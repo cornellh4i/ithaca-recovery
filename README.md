@@ -1,13 +1,13 @@
 <!-- PROJECT LOGO -->
 <br />
-<div align="left">
+<div>
   <a href="https://github.com/github_username/repo_name">
     <img src="./readme/icr.png" alt="Logo" width="80" height="80">
   </a>
 
-<h3 align="center">Ithaca Community Resource</h3>
+<h3>Ithaca Community Resource</h3>
 
-  <p align="center">
+  <p >
     Ithaca Community Recovery is a non-profit organization working to serve as a community resource for members of 12 Step and other recovery oriented groups. They offer safe and affordable event and meeting spaces for recoverers of addiction.
     <br />    
   </p>
