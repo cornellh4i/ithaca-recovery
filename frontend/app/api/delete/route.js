@@ -5,7 +5,7 @@ const prisma = new PrismaClient();
 
 export async function POST(request) {
   try {
-    await prisma.users.deleteMany();
+    await prisma.user.deleteMany();
 
     return NextResponse.json({ message: "All data deleted successfully" });
   } catch (error) {

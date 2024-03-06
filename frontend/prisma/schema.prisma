@@ -1,15 +1,14 @@
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
 generator client {
   provider = "prisma-client-js"
 }
 
-model Users {
-  id      Int     @id @default(autoincrement())
-  uid     String  @unique
+model User {
+  id      String   @id @default(auto()) @map("_id") @db.ObjectId
+  uid     String   @unique
   name    String?
-}
-
-datasource db {
-  provider  = "postgresql"
-  url       = env("POSTGRES_PRISMA_URL") // connection pooling
-  directUrl = env("POSTGRES_URL_NON_POOLING") // direct connection
 }
