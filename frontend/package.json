@@ -11,6 +11,7 @@
   "dependencies": {
     "@prisma/client": "^5.10.2",
     "daisyui": "^4.7.2",
+    "mongoose": "^8.2.1",
     "next": "14.1.0",
     "prisma": "^5.10.2",
     "react": "^18",
