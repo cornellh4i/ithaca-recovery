@@ -12,3 +12,16 @@ model User {
   uid     String   @unique
   name    String?
 }
+
+model Meeting {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  mid          String   @unique
+  title        String
+  description  String
+  creator      String   
+  group        String   
+  date         DateTime
+  startTime    DateTime
+  fromTime     DateTime
+  zoomAccount  String   
+}
