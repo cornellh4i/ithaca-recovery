@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { IUser } from '../../util/models'
+import { IMeeting } from '../../util/models'
 
 function App() {
   const handleButtonClick = async () => {
@@ -66,13 +67,24 @@ function App() {
 
   const CreateMeeting = async () => {
     try {
+      const newMeeting = {
+        title: 'Meeting Title',
+        mid: 'Meeting ID',
+        description: 'Meeting Description',
+        creator: 'Creator',
+        group: 'Group',
+        date: new Date(),
+        startTime: new Date(),
+        fromTime: new Date(),
+        zoomAccount: 'Zoom Account',
+      };
       const response = await fetch('/api/write/meeting', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(
-          // Import Meeting interface from util/models.ts and create Meeting object here
+          newMeeting
         ),
       });
 
