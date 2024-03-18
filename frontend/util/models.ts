@@ -1,12 +1,13 @@
 import { Document } from 'mongoose';
 // Please add models here
 
-interface IUser extends Document {
+export interface IUser {
+  id: string;
   uid: string;
   name: string;
 }
 
-interface IAdmin extends IUser {
+export interface IAdmin extends IUser {
   email: string;
   privilegeMode: string;
 }

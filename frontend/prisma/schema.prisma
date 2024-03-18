@@ -8,15 +8,15 @@ generator client {
 }
 
 model User {
-  id      String   @id @default(auto()) @map("_id") @db.ObjectId
-  uid     String   @unique
-  name    String?
+  id   String @id @default(auto()) @map("_id") @db.ObjectId
+  uid  String @unique
+  name String
 }
 
 model Admin {
-  id      String   @id @default(auto()) @map("_id") @db.ObjectId
-  uid     String   @unique
-  name    String?
-  email   String   @unique
-  pmode   String 
+  id            String @id @default(auto()) @map("_id") @db.ObjectId
+  uid           String @unique
+  name          String
+  email         String @unique
+  privilegeMode String
 }
