@@ -88,7 +88,13 @@ function App() {
         ),
       });
 
-      console.log(await response.text());
+      if (response.ok) {
+        const meetingResponse = await response.json();
+        console.log(meetingResponse);
+      } else {
+        console.error('HTTP error:', response.statusText);
+      }
+
     } catch (error) {
       console.error('There was an error fetching the data:', error);
     }

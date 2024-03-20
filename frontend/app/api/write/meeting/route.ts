@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 
 const prisma = new PrismaClient();
 
-const createMeeting = async (request : string) => {
+const createMeeting = async (request : Request) => {
   try {
     const { mid, title, description, creator, group, date, startTime, fromTime, zoomAccount } = await request.json();
 
