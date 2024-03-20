@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+//import { render, screen } from '@testing-library/react';
 import { test } from '@jest/globals';
 
 const AdminTest: React.FC = () => {
@@ -44,19 +44,18 @@ const AdminTest: React.FC = () => {
     }
   };
 
-  test('checks create', () => {
-    render(<button className="btn" onClick={handleButtonClick} > Call create users post / api / write </button>);
-  });
+  /*test('checks create', () => {
+    render(<button className="btn" onClick={handleButtonClick} > Call create users post / api / write / admin</button>);
+  });*/
 
 
   return (
     <div>
-      <button className="btn" onClick={handleButtonClick} > Call create users post / api / write </button>
-      <button className="btn" onClick={handleButtonClick2} > Call get all data / api / retrieve </button>
-      <button className="btn" onClick={handleButtonClick3} > Call delete post / api / delete </button>
+      <button className="btn" onClick={handleButtonClick} > Call create users post / api / write / admin</button>
+      <button className="btn" onClick={handleButtonClick2} > Call get all data / api / retrieve / admin </button>
+      <button className="btn" onClick={handleButtonClick3} > Call delete post / api / delete / admin </button>
     </div>
   );
 }
 
 export default AdminTest;
-

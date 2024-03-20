@@ -3,7 +3,7 @@ import Link from "next/link";
 import Logo from "./logo";
 import Button from "./button";
 
-const Navbar = ({toggle}) => {
+const Navbar = ({ toggle }) => {
   return (
     <>
       <div className="w-full h-20 bg-emerald-800 sticky top-0">
@@ -46,6 +46,11 @@ const Navbar = ({toggle}) => {
               <li className="btn btn-ghost">
                 <Link href="/test">
                   <p>Testing Endpoints</p>
+                </Link>
+              </li>
+              <li className="btn btn-ghost">
+                <Link href="/admintesting">
+                  <p>Admin Testing</p>
                 </Link>
               </li>
             </ul>
