@@ -10,13 +10,18 @@
     "postinstall": "prisma generate"
   },
   "dependencies": {
+    "@azure/msal-browser": "^3.10.0",
+    "@azure/msal-node": "^2.6.5",
+    "@azure/msal-react": "^2.0.12",
     "@prisma/client": "^5.10.2",
+    "@remix-run/node": "^2.8.1",
     "daisyui": "^4.7.2",
     "mongoose": "^8.2.1",
-    "next": "14.1.0",
+    "next": "14.0.0",
     "prisma": "^5.10.2",
-    "react": "^18",
-    "react-dom": "^18",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "redis": "^4.6.13",
     "web-vitals": "^3.5.2"
   },
   "devDependencies": {
