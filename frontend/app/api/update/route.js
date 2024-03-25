@@ -6,16 +6,15 @@ const POST = async (request) => {
     const { uid, name } = await request.json();
     const updatedUser = await prisma.user.update({
     where: {
-        uid: "fillervalue"
+        uid: uid
     },
-    data: {
-        name: "fillervalue"
+    data: { 
+        name: name
     }
-    
     })
+    console.log(updatedUser)
     return NextResponse.json(updatedUser)
    }
-   
    catch(error) {
    }
 };
