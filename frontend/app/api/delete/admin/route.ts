@@ -3,7 +3,7 @@ import { IAdmin } from "../../../../util/models";
 
 const prisma = new PrismaClient();
 
-const DELETE = async (email: IAdmin['email']) => {
+export const DELETE = async (email: IAdmin['email']) => {
   try {
     const deleteUser = await prisma.admin.delete({
       where: {
@@ -17,5 +17,3 @@ const DELETE = async (email: IAdmin['email']) => {
     return null;
   }
 }
-
-export default DELETE;

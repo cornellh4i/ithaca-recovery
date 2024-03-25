@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 
 const prisma = new PrismaClient();
 
-const POST = async (request) => {
+export const POST = async (request) => {
   try {
     const { uid, name, email, privilegeMode } = await request.json();
 
@@ -22,5 +22,3 @@ const POST = async (request) => {
     return Response.json({ error: "Internal Server Error" }, error);
   }
 }
-
-export default POST;

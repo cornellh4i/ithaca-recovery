@@ -3,7 +3,7 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-const GET = async (email: IAdmin["email"]) => {
+export const GET = async (email: IAdmin["email"]) => {
   try {
     const user: (IAdmin | null) = await prisma.admin.findUnique({
       where: {
@@ -17,5 +17,3 @@ const GET = async (email: IAdmin["email"]) => {
     return null;
   }
 }
-
-export default GET;
