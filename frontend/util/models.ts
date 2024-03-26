@@ -1,9 +1,9 @@
 // Please add models here
+interface IUser {
+  id: string;
+  uid: string;
+  name: string;}
 
-interface IUser extends Document{
-    uid: string;
-    name: string;
-  }
 
 interface IMeeting extends Document {
   title: string;
@@ -17,4 +17,11 @@ interface IMeeting extends Document {
   zoomAccount: string; 
 }  
 
-export type { IUser, IMeeting };
+interface IAdmin extends IUser {
+  email: string;
+  privilegeMode: string;
+}
+
+export type { IUser, IMeeting, IAdmin };
+
+

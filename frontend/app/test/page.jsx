@@ -13,7 +13,7 @@ function App() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(
-          { "uid": "f04nf0483fjffg", "name": "Hello"}
+          { "uid": "f04nf0483fjffg", "name": "Hello" }
         ),
       });
 
@@ -54,7 +54,6 @@ function App() {
         },
         body: JSON.stringify({ message: 'Hello World!' }),
       });
-      
 
       if (response.ok) {
         console.log('Success');
@@ -109,7 +108,7 @@ function App() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(
-          { "uid": "4iN010DwUFVMMMO6BxIuC6XVMG93", "name": "Sanya Mahajan"}
+          { "uid": "4iN010DwUFVMMMO6BxIuC6XVMG93", "name": "Sanya Mahajan" }
         ),
       });
       const data = await response.json();
