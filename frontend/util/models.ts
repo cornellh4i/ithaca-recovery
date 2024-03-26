@@ -1,0 +1,20 @@
+// Please add models here
+
+interface IUser extends Document{
+    uid: string;
+    name: string;
+  }
+
+interface IMeeting extends Document {
+  title: string;
+  mid: string;
+  description: string;
+  creator: string; // admin later on
+  group: string; // group interface later on
+  date: Date;
+  startTime: Date;
+  fromTime: Date;
+  zoomAccount: string; 
+}  
+
+export type { IUser, IMeeting };

@@ -1,17 +1,19 @@
 "use client"
 
 import React from 'react';
+import { IUser } from '../../util/models'
+import { IMeeting } from '../../util/models'
 
 function App() {
   const handleButtonClick = async () => {
     try {
-      const response = await fetch('/api/write', {
+      const response = await fetch('/api/write/user', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(
-          { "uid": "4iN010DwUFVMMMO6BxIuC6XVMG93", "name": "Joseph Ugarte"}
+          { "uid": "f04nf0483fjffg", "name": "Hello"}
         ),
       });
 
@@ -64,6 +66,41 @@ function App() {
     }
   };
 
+  const CreateMeeting = async () => {
+    try {
+      const newMeeting = {
+        title: 'Meeting Title',
+        mid: 'Meeting ID',
+        description: 'Meeting Description',
+        creator: 'Creator',
+        group: 'Group',
+        date: new Date(),
+        startTime: new Date(),
+        fromTime: new Date(),
+        zoomAccount: 'Zoom Account',
+      };
+      const response = await fetch('/api/write/meeting', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(
+          newMeeting
+        ),
+      });
+
+      if (response.ok) {
+        const meetingResponse = await response.json();
+        console.log(meetingResponse);
+      } else {
+        console.error('HTTP error:', response.statusText);
+      }
+
+    } catch (error) {
+      console.error('There was an error fetching the data:', error);
+    }
+  };
+
   const handleUpdate = async () => {
     try {
       const response = await fetch('/api/update', {
@@ -84,10 +121,11 @@ function App() {
 
   return (
     <div>
-      <button className="btn" onClick={handleButtonClick}>Call create users post /api/write</button>
+      <button className="btn" onClick={handleButtonClick}>Call create users post /api/write/user</button>
       <button className="btn" onClick={handleButtonClick2}>Call get all data /api/retrieve</button>
       <button className="btn" onClick={handleButtonClick3}>Call delete post /api/delete</button>
       <button className="btn btn-active btn-secondary" onClick={handleButtonClick4}>Call webhook post /api/webhook</button>
+      <button className="btn" onClick={CreateMeeting}>Call create Meeting /api/write/meeting</button>
       <button className="btn" onClick={handleUpdate}>Call create Meeting /api/update/meeting</button>
     </div>
   );
