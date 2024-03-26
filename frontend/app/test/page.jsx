@@ -13,7 +13,7 @@ function App() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(
-          { "uid": "f04nf0483fjffg", "name": "Hello"}
+          { "uid": "84hf804fh", "name": "Alexa"}
         ),
       });
 
