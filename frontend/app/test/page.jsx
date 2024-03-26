@@ -109,7 +109,7 @@ function App() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(
-          { "uid": "f04nf0483fjffg", "name": "Sanya Mahajan"}
+          { "uid": "4iN010DwUFVMMMO6BxIuC6XVMG93", "name": "Sanya Mahajan"}
         ),
       });
       const data = await response.json();
@@ -126,7 +126,7 @@ function App() {
       <button className="btn" onClick={handleButtonClick3}>Call delete post /api/delete</button>
       <button className="btn btn-active btn-secondary" onClick={handleButtonClick4}>Call webhook post /api/webhook</button>
       <button className="btn" onClick={CreateMeeting}>Call create Meeting /api/write/meeting</button>
-      <button className="btn" onClick={handleUpdate}>Call create Meeting /api/update/meeting</button>
+      <button className="btn" onClick={handleUpdate}>Call create User /api/update/</button>
     </div>
   );
 }
