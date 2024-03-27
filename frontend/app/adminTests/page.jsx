@@ -25,9 +25,16 @@ function AdminTests() {
 
   const handleButtonClick2 = async () => {
     try {
-
-      const response = await fetch('/api/retrieve/admin');
-      console.log(await response.text());
+      const response = await fetch('/api/retrieve/admin', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(
+          { "email": "jeu9@cornell.edu" }
+        ),
+      });
+      console.log(await response.json());
     } catch (error) {
       console.error('There was an error fetching the data:', error);
     }
@@ -37,6 +44,10 @@ function AdminTests() {
     try {
       const response = await fetch("/api/delete/admin", {
         method: "DELETE",
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email: 'jeu9@cornell.edu' }),
       });
       const data = await response.json();
       console.log(data);

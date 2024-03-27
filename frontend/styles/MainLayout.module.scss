@@ -1,23 +1,16 @@
-// .mainlayout {
-//     display: flex;
-//     flex-direction: column;
-//     width: 100%;
-//     height: 100%;
-// }
-
 .mainlayout {
-    display: flex; // Using Flexbox to layout children
-    flex-direction: column; // Stack children vertically
-    min-height: 100vh; // Full viewport height
-    width: 100vw; // Full viewport width
+    display: flex;
+    flex-direction: column; 
+    min-height: 100vh; 
+    width: 100vw;
 
     .navigation {
-        flex: 0 1 auto; // Navigation bar size is based on its content
+        flex: 0 1 auto; 
     }
 
     .content {
-        flex: 1 1 auto; // Content takes up the remaining space
-        overflow-y: auto; // Allows content to scroll if it exceeds viewport height
+        flex: 1 1 auto;
+        overflow-y: auto;
     }
 }
 
