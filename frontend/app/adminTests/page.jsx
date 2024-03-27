@@ -37,6 +37,10 @@ function AdminTests() {
     try {
       const response = await fetch("/api/delete/admin", {
         method: "DELETE",
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email: 'jeu9@cornell.edu' }),
       });
       const data = await response.json();
       console.log(data);
