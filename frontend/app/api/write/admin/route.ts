@@ -19,6 +19,11 @@ export const POST = async (request: Request) => {
     return NextResponse.json(createdUser);
   } catch (error) {
     console.error(error);
-    return Response.json({ error: "Internal Server Error" }, error);
+    return new Response(JSON.stringify({ error: "Internal Server Error" }), {
+      status: 500,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
   }
 }
