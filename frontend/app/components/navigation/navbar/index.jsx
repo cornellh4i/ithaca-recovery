@@ -4,7 +4,7 @@ import Button from "./button";
 import Logo from "./logo"
 import styles from "../../../../styles/Navbar.module.scss"
 
-const Navbar = ({toggle}) => {
+const Navbar = ({ toggle }) => {
   return (
     <>
       <div className={styles.navbar}>
@@ -24,6 +24,11 @@ const Navbar = ({toggle}) => {
             <li className="btn btn-ghost">
               <Link href="/test">
                 <p>Testing Endpoints</p>
+              </Link>
+            </li>
+            <li className="btn btn-ghost">
+              <Link href="/admintesting">
+                <p>Admin Testing</p>
               </Link>
             </li>
           </ul>

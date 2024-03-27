@@ -14,7 +14,7 @@ function App() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(
-          { "uid": "84hf804fh", "name": "Alexa"}
+          { "uid": "f04nf0483fjffg", "name": "Hello" }
         ),
       });
 
@@ -55,7 +55,7 @@ function App() {
         },
         body: JSON.stringify({ message: 'Hello World!' }),
       });
-  
+
       if (response.ok) {
         console.log('Success');
       } else {
@@ -101,15 +101,23 @@ function App() {
     }
   };
 
-  // return (
-  //   <div>
-  //     <button className="btn" onClick={handleButtonClick}>Call create users post /api/write/user</button>
-  //     <button className="btn" onClick={handleButtonClick2}>Call get all users /api/retrieve</button>
-  //     <button className="btn" onClick={handleButtonClick3}>Call delete user /api/delete</button>
-  //     <button className="btn btn-active btn-secondary" onClick={handleButtonClick4}>Call webhook post /api/webhook</button>
-  //     <button className="btn" onClick={CreateMeeting}>Call create Meeting /api/write/meeting</button>
-  //   </div>
-  // );
+  const handleUpdate = async () => {
+    try {
+      const response = await fetch('/api/update', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(
+          { "uid": "4iN010DwUFVMMMO6BxIuC6XVMG93", "name": "Sanya Mahajan" }
+        ),
+      });
+      const data = await response.json();
+      console.log(data);
+    } catch (error) {
+      console.error("Error updating user:", error);
+    }
+  };
 
   return (
     <div className={styles['apicontainer']}>
@@ -118,6 +126,7 @@ function App() {
         <button className={styles.btn} onClick={handleButtonClick}>Call create users post /api/write/user</button>
         <button className={styles.btn} onClick={handleButtonClick2}>Call get all users /api/retrieve</button>
         <button className={styles.btn} onClick={handleButtonClick3}>Call delete user /api/delete</button>
+        <button className={styles.btn} onClick={handleUpdate}>Call create User /api/update/</button>
       </div>
       <div className={styles.section + ' ' + styles.meetings}>
         <h2>Meetings</h2>

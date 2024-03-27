@@ -10,10 +10,12 @@
     "postinstall": "prisma generate"
   },
   "dependencies": {
+    "@jest/globals": "^29.7.0",
     "@azure/msal-browser": "^3.10.0",
     "@azure/msal-node": "^2.6.5",
     "@azure/msal-react": "^2.0.12",
     "@prisma/client": "^5.10.2",
+    "@testing-library/react": "^14.2.2",
     "@remix-run/node": "^2.8.1",
     "daisyui": "^4.7.2",
     "mongoose": "^8.2.1",
@@ -29,6 +31,7 @@
     "@types/node": "20.11.24",
     "@types/react": "18.2.63",
     "@types/react-dom": "^18.2.22",
+    "@types/testing-library__react": "^10.2.0",
     "autoprefixer": "^10.0.1",
     "eslint": "^8",
     "eslint-config-next": "14.1.0",
