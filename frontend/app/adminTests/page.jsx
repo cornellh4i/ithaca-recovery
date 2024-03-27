@@ -34,7 +34,7 @@ function AdminTests() {
           { "email": "jeu9@cornell.edu" }
         ),
       });
-      console.log(await response.text());
+      console.log(await response.json());
     } catch (error) {
       console.error('There was an error fetching the data:', error);
     }

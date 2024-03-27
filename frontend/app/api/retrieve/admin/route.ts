@@ -11,10 +11,29 @@ export const GET = async (request: Request) => {
         email: email
       }
     });
-    return user;
+    if (!user) {
+      return new Response(JSON.stringify({ error: "Admin not found" }), {
+        status: 404,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+    }
+
+    return new Response(JSON.stringify(user), {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
   }
   catch (error) {
-    console.error("Admin not found: ", error);
-    return null;
+    console.error("Error finding admin: ", error);
+    return new Response(JSON.stringify({ error: "Error finding admin" }), {
+      status: 500,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
   }
 }
