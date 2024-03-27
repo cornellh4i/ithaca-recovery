@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import { IAdmin } from "../../../../util/models";
+import { NextResponse } from "next/server";
 
 const prisma = new PrismaClient();
 
@@ -11,7 +12,7 @@ export const DELETE = async (request: Request) => {
         email: email,
       },
     });
-    return deleteUser;
+    return NextResponse.json(deleteUser);;
   }
   catch (error) {
     console.error("Admin not found: ", error);
