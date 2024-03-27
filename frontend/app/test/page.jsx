@@ -122,7 +122,7 @@ function App() {
   return (
     <div className={styles['apicontainer']}>
       <div className={styles.section + ' ' + styles['test-users']}>
-        <h2>Test Users</h2>
+        <h2>Users</h2>
         <button className={styles.btn} onClick={handleButtonClick}>Call create users post /api/write/user</button>
         <button className={styles.btn} onClick={handleButtonClick2}>Call get all users /api/retrieve</button>
         <button className={styles.btn} onClick={handleButtonClick3}>Call delete user /api/delete</button>
@@ -131,9 +131,6 @@ function App() {
       <div className={styles.section + ' ' + styles.meetings}>
         <h2>Meetings</h2>
         <button className={styles.btn} onClick={CreateMeeting}>Call create Meeting /api/write/meeting</button>
-      </div>
-      <div className={styles.section + ' ' + styles.admins}>
-        <h2>Admins</h2>
       </div>
       <div className={styles.section + ' ' + styles.webhook}>
         <h2>Wehbooks</h2>
