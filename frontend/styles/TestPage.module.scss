@@ -1,0 +1,53 @@
+.apicontainer {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    margin-top: 20px;
+
+    .section {
+        display: flex;
+        align-items: flex-start;
+        flex-direction: column;
+        border: 1px solid #ccc; // Light grey border for the section
+        border-radius: 8px; // Rounded corners
+        padding: 20px; // Padding inside the sections
+        background-color: #f9f9f9; // Light background for each section
+        margin: 10px
+
+        h2 {
+            margin-top: 0;
+        }
+
+        .btn {
+            display: inline-block;
+            margin: 5px 0; // Space between buttons
+            padding: 10px 15px; // Padding inside buttons
+            border: none; // Remove default border
+            border-radius: 4px; // Rounded corners for buttons
+            background-color: #007bff; // Bootstrap primary color
+            color: white; // Text color
+            cursor: pointer;
+            transition: background-color 0.2s;
+
+            &:hover {
+                background-color: #0056b3; // Darken button on hover
+            }
+
+            &.btn-active {
+                background-color: #28a745; // Bootstrap success color
+
+                &:hover {
+                    background-color: #218838; // Darken button on hover
+                }
+            }
+
+            &.btn-secondary {
+                background-color: #6c757d; // Bootstrap secondary color
+
+                &:hover {
+                    background-color: #5a6268; // Darken button on hover
+                }
+            }
+        }
+    }
+}
