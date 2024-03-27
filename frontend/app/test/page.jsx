@@ -3,6 +3,7 @@
 import React from 'react';
 import { IUser } from '../../util/models'
 import { IMeeting } from '../../util/models'
+import styles from "../../styles/TestPage.module.scss"
 
 function App() {
   const handleButtonClick = async () => {
@@ -100,13 +101,35 @@ function App() {
     }
   };
 
+  // return (
+  //   <div>
+  //     <button className="btn" onClick={handleButtonClick}>Call create users post /api/write/user</button>
+  //     <button className="btn" onClick={handleButtonClick2}>Call get all users /api/retrieve</button>
+  //     <button className="btn" onClick={handleButtonClick3}>Call delete user /api/delete</button>
+  //     <button className="btn btn-active btn-secondary" onClick={handleButtonClick4}>Call webhook post /api/webhook</button>
+  //     <button className="btn" onClick={CreateMeeting}>Call create Meeting /api/write/meeting</button>
+  //   </div>
+  // );
+
   return (
-    <div>
-      <button className="btn" onClick={handleButtonClick}>Call create users post /api/write/user</button>
-      <button className="btn" onClick={handleButtonClick2}>Call get all data /api/retrieve</button>
-      <button className="btn" onClick={handleButtonClick3}>Call delete post /api/delete</button>
-      <button className="btn btn-active btn-secondary" onClick={handleButtonClick4}>Call webhook post /api/webhook</button>
-      <button className="btn" onClick={CreateMeeting}>Call create Meeting /api/write/meeting</button>
+    <div className={styles['apicontainer']}>
+      <div className={styles.section + ' ' + styles['test-users']}>
+        <h2>Test Users</h2>
+        <button className={styles.btn} onClick={handleButtonClick}>Call create users post /api/write/user</button>
+        <button className={styles.btn} onClick={handleButtonClick2}>Call get all users /api/retrieve</button>
+        <button className={styles.btn} onClick={handleButtonClick3}>Call delete user /api/delete</button>
+      </div>
+      <div className={styles.section + ' ' + styles.meetings}>
+        <h2>Meetings</h2>
+        <button className={styles.btn} onClick={CreateMeeting}>Call create Meeting /api/write/meeting</button>
+      </div>
+      <div className={styles.section + ' ' + styles.admins}>
+        <h2>Admins</h2>
+      </div>
+      <div className={styles.section + ' ' + styles.webhook}>
+        <h2>Wehbooks</h2>
+        <button className={`${styles.btn} ${styles['btn-active']} ${styles['btn-secondary']}`} onClick={handleButtonClick4}>Call webhook post /api/webhook</button>
+      </div>
     </div>
   );
 }

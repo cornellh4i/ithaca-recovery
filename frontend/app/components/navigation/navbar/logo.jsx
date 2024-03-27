@@ -3,6 +3,7 @@ import Image from "next/image";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Button from "./button";
+import IcrLogo from "../../../assets/icr.png"
 
 const Logo = () => {
   const [width, setWidth] = useState(0);
@@ -35,10 +36,10 @@ const Logo = () => {
     <>
       <Link href="/" style={{ display: showButton ? "none" : "block" }}>
         <Image
-          src="/irc_logo.png"
+          src={IcrLogo}
           alt="Logo"
-          width={width < 1024 ? "50" : "60"}
-          height={width < 1024 ? "50" : "60"}
+          width={width < 1024 ? "50" : "100"}
+          height={width < 1024 ? "50" : "100"}
           className="relative"
         />
       </Link>
@@ -47,7 +48,6 @@ const Logo = () => {
           display: showButton ? "block" : "none",
         }}
       >
-        <Button />
       </div>
     </>
   );
