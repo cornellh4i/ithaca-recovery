@@ -22,11 +22,11 @@
 }
 
 .navigationlist {
-    display: flex; // This replaces the 'hidden md:flex' classes for demonstration
-    gap: 24px; // Adjust the gap as needed, this replaces 'gap-x-6'
-    color: #fff; // Ensures text is white
-    list-style-type: none; // Removes bullet points
-    padding: 0; // Removes default padding
+    display: flex;
+    gap: 24px;
+    color: #fff;
+    list-style-type: none;
+    padding: 0;
     width: 100%;
     justify-content: space-around;
 
@@ -35,24 +35,22 @@
         button,
         a {
             display: inline-block;
-            padding: 5px 10px; // Adjust padding as needed
-            border: 2px solid transparent; // Adjust for a button look
-            border-radius: 8px; // Rounded corners for the buttons
-            text-decoration: none; // Removes underline from links
-            color: #fff; // White text color
-            background-color: transparent; // Transparent background for the 'ghost' effect
+            padding: 5px 10px;
+            border: 2px solid transparent;
+            border-radius: 8px;
+            text-decoration: none; 
+            color: #fff;
+            background-color: transparent; 
             transition: background-color 0.3s, color 0.3s, border-color 0.3s;
 
             &:hover,
             &:focus {
-                color: #005f73; // Example hover color, adjust as needed
-                background-color: #fff; // Background color on hover
-                border-color: #005f73; // Border color to match the text on hover
+                color: #005f73; 
+                background-color: #fff;
+                border-color: #005f73; 
             }
         }
 
-        // Additional customization for active or specific state can go here
-        // For example, to style the currently active link (if your framework supports it)
         &.active {
             a {
                 color: #005f73;

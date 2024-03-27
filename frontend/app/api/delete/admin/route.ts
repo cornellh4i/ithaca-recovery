@@ -16,6 +16,11 @@ export const DELETE = async (request: Request) => {
   }
   catch (error) {
     console.error("Admin not found: ", error);
-    return Response.json({ error: "Internal Server Error" }, error);
+    return new Response(JSON.stringify({ error: "Internal Server Error" }), {
+      status: 500,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
   }
 }
