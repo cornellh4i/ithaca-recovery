@@ -3,8 +3,7 @@
 import React from 'react';
 import { IUser } from '../../util/models'
 import { IMeeting } from '../../util/models'
-import styles from "../../styles/TestPage.module.scss"
-import { getZoomToken } from "../../app/api/zoom/generateToken"
+import styles from "../../styles/TestPage.module.scss";
 
 function App() {
   const handleButtonClick = async () => {
@@ -122,8 +121,9 @@ function App() {
 
   const handleZoomToken = async () => {
     try {
-      const response = await getZoomToken();
-      console.log('Access Token:', response.access_token); 
+      const response = await fetch('/api/zoom');
+      const data = await response.json();
+      console.log('Access Token:', data.access_token);
     } catch (error) {
       console.error('Error generating Zoom token:', error);
     }

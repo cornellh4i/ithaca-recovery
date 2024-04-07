@@ -1,13 +1,15 @@
 import axios from 'axios';
 import { NextResponse } from "next/server";
+import { NextApiRequest, NextApiResponse } from 'next/types';
 
 // function to generate zoom access token 
-async function generateZoomToken() {
+const  generateZoomToken = async () => {
   try {
-    const clientId = process.env.ZOOM1_CLIENT_ID;
-    const clientSecret = process.env.ZOOM1_CLIENT_SECRET;
-    const accountId = process.env.ZOOM1_ACCOUNT_ID;
-
+    const clientId = process.env.NEXT_PUBLIC_ZOOM1_CLIENT_ID;
+    const clientSecret = process.env.NEXT_PUBLIC_ZOOM1_CLIENT_SECRET;
+    const accountId = process.env.NEXT_PUBLIC_ZOOM1_ACCOUNT_ID;
+    console.log("hi2");
+  
     // check if the environment variables are set
     if (!clientId || !clientSecret || !accountId) {
       throw new Error('Environment variables not set');
@@ -33,7 +35,7 @@ async function generateZoomToken() {
 }
 
 // function to export access token 
-export async function getZoomToken() {
+const getZoomToken = async (req: NextApiRequest, res: NextApiResponse) => {
   try {
     const zoomToken = await generateZoomToken();
 
@@ -47,3 +49,5 @@ export async function getZoomToken() {
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
+
+export { getZoomToken as GET}
