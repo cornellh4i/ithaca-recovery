@@ -22,6 +22,7 @@
     "mongoose": "^8.2.1",
     "next": "14.0.0",
     "prisma": "^5.10.2",
+    "query-string": "^9.0.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "redis": "^4.6.13",
