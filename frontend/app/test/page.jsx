@@ -4,6 +4,7 @@ import React from 'react';
 import { IUser } from '../../util/models'
 import { IMeeting } from '../../util/models'
 import styles from "../../styles/TestPage.module.scss"
+import { getZoomToken } from "../../app/api/zoom/generateToken"
 
 function App() {
   const handleButtonClick = async () => {
@@ -119,6 +120,15 @@ function App() {
     }
   };
 
+  const handleZoomToken = async () => {
+    try {
+      const response = await getZoomToken();
+      console.log('Access Token:', response.access_token); 
+    } catch (error) {
+      console.error('Error generating Zoom token:', error);
+    }
+  };
+
   return (
     <div className={styles['apicontainer']}>
       <div className={styles.section + ' ' + styles['test-users']}>
@@ -133,8 +143,12 @@ function App() {
         <button className={styles.btn} onClick={CreateMeeting}>Call create Meeting /api/write/meeting</button>
       </div>
       <div className={styles.section + ' ' + styles.webhook}>
-        <h2>Wehbooks</h2>
+        <h2>Webhooks</h2>
         <button className={`${styles.btn} ${styles['btn-active']} ${styles['btn-secondary']}`} onClick={handleButtonClick4}>Call webhook post /api/webhook</button>
+      </div>
+      <div className={styles.section + ' ' + styles.zoom}>
+        <h2>Zoom Testing</h2>
+        <button className={`${styles.btn} ${styles['btn-active']} ${styles['btn-secondary']}`} onClick={handleZoomToken}>Generate zoom token</button>
       </div>
     </div>
   );
