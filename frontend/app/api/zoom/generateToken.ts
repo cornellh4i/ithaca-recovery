@@ -19,10 +19,10 @@ const generateZoomToken = async () => {
     }
 
     // make a post req to zoom api 
-    const request = await axios.post('https://zoom.us/oauth/token',  qs.stringify({
-      grant_type: 'account_credentials',
-      account_id: accountId,
-    }), {
+    const request = await axios.post(
+      'https://zoom.us/oauth/token', 
+      qs.stringify({ grant_type: 'account_credentials', account_id: accountId }), 
+      {
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
           'Authorization': `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`,
