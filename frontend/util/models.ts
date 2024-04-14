@@ -2,10 +2,11 @@
 interface IUser {
   id: string;
   uid: string;
-  name: string;}
+  name: string;
+}
 
 
-interface IMeeting extends Document {
+interface IMeeting {
   title: string;
   mid: string;
   description: string;
@@ -14,8 +15,8 @@ interface IMeeting extends Document {
   date: Date;
   startTime: Date;
   fromTime: Date;
-  zoomAccount: string; 
-}  
+  zoomAccount: string;
+}
 
 interface IAdmin extends IUser {
   email: string;
