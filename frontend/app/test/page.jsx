@@ -66,6 +66,24 @@ function App() {
     }
   };
 
+  const handleUpdate = async () => {
+    try {
+      const response = await fetch('/api/update', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(
+          { "uid": "4iN010DwUFVMMMO6BxIuC6XVMG93", "name": "Sanya Mahajan" }
+        ),
+      });
+      const data = await response.json();
+      console.log(data);
+    } catch (error) {
+      console.error("Error updating user:", error);
+    }
+  };
+
   const CreateMeeting = async () => {
     try {
       const newMeeting = {
@@ -101,21 +119,78 @@ function App() {
     }
   };
 
-  const handleUpdate = async () => {
+  const DeleteMeeting = async () => {
     try {
-      const response = await fetch('/api/update', {
-        method: 'POST',
+      const newMeeting = {
+        title: 'Meeting Title',
+        mid: 'Meeting ID',
+        description: 'Meeting Description',
+        creator: 'Creator',
+        group: 'Group',
+        date: new Date(),
+        startTime: new Date(),
+        fromTime: new Date(),
+        zoomAccount: 'Zoom Account',
+      };
+      const response = await fetch('/api/delete/meeting', {
+        method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(
-          { "uid": "4iN010DwUFVMMMO6BxIuC6XVMG93", "name": "Sanya Mahajan" }
+          newMeeting
         ),
       });
-      const data = await response.json();
-      console.log(data);
+
+
+      if (response.ok) {
+        const meetingResponse = await response.json();
+        console.log(meetingResponse);
+      } else {
+        console.error('HTTP error during update:', response.statusText);
+      }
+
+
     } catch (error) {
-      console.error("Error updating user:", error);
+      console.error('There was an error fetching the data:', error);
+    }
+  };
+
+  const UpdateMeeting = async () => {
+    try {
+      const newMeeting = {
+        title: 'Meeting Title',
+        mid: 'Meeting ID',
+        description: 'Meeting Description',
+        creator: 'Creator',
+        group: 'Group',
+        date: new Date(),
+        startTime: new Date(),
+        fromTime: new Date(),
+        zoomAccount: 'Zoom Account',
+      };
+      const response = await fetch('/api/update/meeting', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(
+          newMeeting
+
+        ),
+      });
+
+
+      if (response.ok) {
+        const meetingResponse = await response.json();
+        console.log(meetingResponse);
+      } else {
+        console.error('HTTP error during update:', response.statusText);
+      }
+
+
+    } catch (error) {
+      console.error('There was an error fetching the data:', error);
     }
   };
 
@@ -141,6 +216,8 @@ function App() {
       <div className={styles.section + ' ' + styles.meetings}>
         <h2>Meetings</h2>
         <button className={styles.btn} onClick={CreateMeeting}>Call create Meeting /api/write/meeting</button>
+        <button className={styles.btn} onClick={UpdateMeeting}>Call Update meeting /api/update/meeting</button>
+        <button className={styles.btn} onClick={DeleteMeeting}>Call Delete meeting /api/delete/meeting</button>
       </div>
       <div className={styles.section + ' ' + styles.webhook}>
         <h2>Webhooks</h2>
