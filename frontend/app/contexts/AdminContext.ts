@@ -2,6 +2,9 @@ import React, { createContext, useState, useContext, useEffect } from 'react';
 import { authProvider } from "../../services/auth";
 
 const AdminProvider = ({ children }) => {
+
+  const [admin, setAdmin] = useState(null);
+
   const GetEmail = async () => {
     try {
       const account = await authProvider.getAccount();
@@ -26,9 +29,9 @@ const AdminProvider = ({ children }) => {
     email: String,
   });
 
-  const Admin = mongoose.model('Admin', schema);
+  const model = mongoose.model('Admin', schema);
 
-  mongoose.connect('mongodb+srv://icr-dev:dev@recovery.p7osltx.mongodb.net/', { useNewUrlParser: true, useUnifiedTopology: true })
+  mongoose.connect(URL, { useNewUrlParser: true, useUnifiedTopology: true })
     .then(() => {
       console.log('Connected to MongoDB');
       queryAdminByEmail('client@example.com');
@@ -40,7 +43,7 @@ const AdminProvider = ({ children }) => {
   async function queryAdminByEmail(email) {
     try {
       // Find the Admin object by email
-      const admin = await Admin.findOne({ email });
+      setAdmin(await model.findOne({ email }));
 
       if (admin) {
         // If an admin object is found, log it
@@ -55,10 +58,13 @@ const AdminProvider = ({ children }) => {
       mongoose.connection.close();
     }
   }
+  useEffect(() => {
+    queryAdminByEmail('email');
+  }, []);
 }
 
-// export const AdminContext = createContext(AdminProvider.queryAdminByEmail)
+export const AdminContext = createContext(null)
 
-// export const useAdmin = () => useContext(AdminContext)
+export const useAdmin = () => useContext(AdminContext)
 
 export { AdminProvider };
