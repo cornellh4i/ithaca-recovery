@@ -42,14 +42,11 @@ const AdminProvider = ({ children }) => {
 
   async function queryAdminByEmail(email) {
     try {
-      // Find the Admin object by email
       setAdmin(await model.findOne({ email }));
 
       if (admin) {
-        // If an admin object is found, log it
         console.log('Admin object found:', admin);
       } else {
-        // If no admin object is found, log a message
         console.log('Admin object not found for email:', email);
       }
     } catch (error) {
