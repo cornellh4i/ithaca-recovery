@@ -7,7 +7,7 @@ import { SingleInputTimeRangeField } from '@mui/x-date-pickers-pro/SingleInputTi
 import { DateRange } from '@mui/x-date-pickers-pro/models';
 import TextField from '@mui/material/TextField';
 import dayjs, { Dayjs } from 'dayjs';
-import styles from "../../styles/CreateMeetingPage.module.scss"
+import styles from "../../styles/CreateMeetingPage.module.scss";
 
 
 const CreateMeetingPage = () => {
@@ -46,6 +46,23 @@ const CreateMeetingPage = () => {
     return requestBody;
   };
 
+  const handleCreateMeeting = async () => {
+    try {
+      const response = await fetch('/api/zoom/CreateMeeting', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(createZoomMeetingRequestBody()),
+      });
+      console.log('Meeting created:', response);
+    } catch (error) {
+      console.error('Error creating Zoom meeting:', error);
+    }
+  };
+  
+
+
   return (
     <div className={styles.base}>
       <h2>Create a meeting</h2>
@@ -71,6 +88,9 @@ const CreateMeetingPage = () => {
           />
         </LocalizationProvider>
 
+      </div>
+      <div className={styles.section + ' ' + styles.meetings}>
+        <button className={styles.btn} onClick={handleCreateMeeting}>Create Meeting</button>
       </div>
     </div>
   );
