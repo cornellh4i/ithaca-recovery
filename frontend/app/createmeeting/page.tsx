@@ -46,6 +46,47 @@ const CreateMeetingPage = () => {
     return requestBody;
   };
 
+  const handleClick = async () => {
+    try {
+      const newMeeting = {
+        title: 'Meeting Title',
+        mid: 'Meeting ID',
+        description: 'Meeting Description',
+        creator: 'Creator',
+        group: 'Group',
+        startDateTime: '2024-04-15T12:30:00Z',
+        endDateTime: '2024-05-20T15:30:00Z',
+        zoomAccount: 'Zoom Account',
+        zoomLink: 'URL:ZOOM ACCOUTN',
+        zid: 'gdjjedhheagjhas',
+        type: 'online',
+        room: 'Room 135'
+      };
+      const response = await fetch('/api/update/meeting', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(
+          newMeeting
+
+        ),
+      });
+
+
+      if (response.ok) {
+        const meetingResponse = await response.json();
+        console.log(meetingResponse);
+      } else {
+        console.error('HTTP error during update:', response.statusText);
+      }
+
+
+    } catch (error) {
+      console.error('There was an error fetching the data:', error);
+    }
+  };
+
   return (
     <div className={styles.base}>
       <h2>Create a meeting</h2>
@@ -75,5 +116,6 @@ const CreateMeetingPage = () => {
     </div>
   );
 };
+
 
 export default CreateMeetingPage;

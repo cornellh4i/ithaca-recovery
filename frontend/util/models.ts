@@ -12,10 +12,13 @@ interface IMeeting {
   description: string;
   creator: string; // admin later on
   group: string; // group interface later on
-  date: Date;
-  startTime: Date;
-  fromTime: Date;
+  startDateTime: Date;
+  endDateTime: Date;
   zoomAccount: string;
+  zoomLink: string;
+  zid: string;
+  type: string;
+  room: string;
 }
 
 interface IAdmin extends IUser {
