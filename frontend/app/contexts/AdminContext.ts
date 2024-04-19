@@ -1,67 +1,69 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
+import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
 import { authProvider } from "../../services/auth";
+import mongoose, { Document } from 'mongoose';
 
-const AdminProvider = ({ children }) => {
+// Create a context for the admin user
+export const AdminContext = createContext<Document | null>(null);
 
-  const [admin, setAdmin] = useState(null);
+// Custom hook to use the admin context
+export const useAdmin = () => useContext(AdminContext);
 
-  const GetEmail = async () => {
-    try {
-      const account = await authProvider.getAccount();
-
-      if (account) {
-        const email = account.username;
-        console.log("User is logged in with email:", email);
-      } else {
-        // If no account object is returned (i.e., user is not logged in)
-        console.log("User is not logged in");
-      }
-    } catch (error) {
-      console.error("Error checking authentication:", error);
-    }
-  };
-
-  GetEmail();
-
-  const mongoose = require('mongoose');
-
-  const schema = new mongoose.Schema({
-    email: String,
-  });
-
-  const model = mongoose.model('Admin', schema);
-
-  mongoose.connect(URL, { useNewUrlParser: true, useUnifiedTopology: true })
-    .then(() => {
-      console.log('Connected to MongoDB');
-      queryAdminByEmail('client@example.com');
-    })
-    .catch((error) => {
-      console.error('Error connecting to MongoDB:', error);
-    });
-
-  async function queryAdminByEmail(email) {
-    try {
-      setAdmin(await model.findOne({ email }));
-
-      if (admin) {
-        console.log('Admin object found:', admin);
-      } else {
-        console.log('Admin object not found for email:', email);
-      }
-    } catch (error) {
-      console.error('Error querying Admin object:', error);
-    } finally {
-      mongoose.connection.close();
-    }
-  }
-  useEffect(() => {
-    queryAdminByEmail('email');
-  }, []);
+interface Props {
+  children: ReactNode;
 }
 
-export const AdminContext = createContext(null)
+// AdminProvider component
+export const AdminProvider = ({ children }: Props) => {
+  const [admin, setAdmin] = useState<Document | null>(null);
 
-export const useAdmin = () => useContext(AdminContext)
+  useEffect(() => {
+    // Function to get the logged-in user's email and query the admin object
+    const getAdmin = async () => {
+      try {
+        const account = await authProvider.getAccount();
+        if (account) {
+          const email = account.username;
+          console.log("User is logged in with email:", email);
+          await queryAdminByEmail(email, 'URL');
+        } else {
+          console.log("User is not logged in");
+        }
+      } catch (error) {
+        console.error("Error checking authentication:", error);
+      }
+    };
 
-export { AdminProvider };
+    // Define the schema and model for querying the admin object
+    const schema = new mongoose.Schema({ email: String });
+    const AdminModel = mongoose.model('Admin', schema);
+
+    // Function to query the admin object by email
+    const queryAdminByEmail = async (email: string, URL: string) => {
+      try {
+        await mongoose.connect(URL, { useUnifiedTopology: true } as any);
+        console.log('Connected to MongoDB');
+        const adminObject = await AdminModel.findOne({ email });
+        if (adminObject) {
+          console.log('Admin object found:', adminObject);
+          setAdmin(adminObject);
+        } else {
+          console.log('Admin object not found for email:', email);
+        }
+      } catch (error) {
+        console.error('Error querying Admin object:', error);
+      } finally {
+        mongoose.connection.close();
+      }
+    };
+
+    // Call the function to get the admin object when the component mounts
+    getAdmin();
+  }, []);
+
+  // return (
+  //   <AdminContext.Provider value= { admin } >
+  //   { children }
+  //   < /AdminContext.Provider>
+  // );
+
+};
