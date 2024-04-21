@@ -1,6 +1,7 @@
+"use client"; // This is a client component
+
 // Config object to be passed to Msal on creation
 import { Configuration, LogLevel } from "@azure/msal-node";
-import "server-only";
 
 export const msalConfig: Configuration = {
     auth: {

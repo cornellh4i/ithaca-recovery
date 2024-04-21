@@ -3,6 +3,7 @@ import Link from "next/link";
 import Button from "./button";
 import Logo from "./logo"
 import styles from "../../../../styles/Navbar.module.scss"
+import { AdminContext } from "../../../contexts/AdminContext";
 
 const Navbar = ({ toggle }) => {
   return (
@@ -33,6 +34,7 @@ const Navbar = ({ toggle }) => {
             </li>
           </ul>
         </div>
+        <div>hello</div>
       </div>
     </>
   );

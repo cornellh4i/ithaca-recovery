@@ -1,9 +1,14 @@
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
 import { authProvider } from "../../services/auth";
 import mongoose, { Document } from 'mongoose';
+import { loginRequest } from '../auth/authConfig';
+import { getCurrentUrl } from '../auth/url';
+import { redirect } from 'next/navigation';
+import { Admin } from '@prisma/client';
+import { IAdmin } from '../../util/models';
 
 // Create a context for the admin user
-export const AdminContext = createContext<Document | null>(null);
+export const AdminContext = createContext(null);
 
 // Custom hook to use the admin context
 export const useAdmin = () => useContext(AdminContext);
@@ -14,20 +19,26 @@ interface Props {
 
 // AdminProvider component
 export const AdminProvider = ({ children }: Props) => {
-  const [admin, setAdmin] = useState<Document | null>(null);
+  const [admin, setAdmin] = useState<IAdmin | null>(null);
 
   useEffect(() => {
     // Function to get the logged-in user's email and query the admin object
     const getAdmin = async () => {
       try {
-        const account = await authProvider.getAccount();
-        if (account) {
-          const email = account.username;
-          console.log("User is logged in with email:", email);
-          await queryAdminByEmail(email, 'URL');
-        } else {
-          console.log("User is not logged in");
+        let { account } = await authProvider.authenticate();
+        account = await authProvider.getAccount();
+
+        if (!account) {
+          redirect(await authProvider.getAuthCodeUrl(loginRequest, getCurrentUrl()));
         }
+        // const account = await authProvider.getAccount();
+        // if (account) {
+        //   const email = account.username;
+        //   console.log("User is logged in with email:", email);
+        //   await queryAdminByEmail(email, 'URL');
+        // } else {
+        //   console.log("User is not logged in");
+        // }
       } catch (error) {
         console.error("Error checking authentication:", error);
       }
@@ -42,7 +53,7 @@ export const AdminProvider = ({ children }: Props) => {
       try {
         await mongoose.connect(URL, { useUnifiedTopology: true } as any);
         console.log('Connected to MongoDB');
-        const adminObject = await AdminModel.findOne({ email });
+        const adminObject = await AdminModel.findOne({ email }) as IAdmin;
         if (adminObject) {
           console.log('Admin object found:', adminObject);
           setAdmin(adminObject);
