@@ -87,6 +87,27 @@ export class AuthProvider {
         });
     }
 
+    async getAccessToken(): Promise<string> {
+        try {
+            const account = await this.getAccount();
+            if (!account) {
+                throw new Error('No account is signed in :(');
+            }
+
+            const silentTokenRequest = {
+                scopes: [`${process.env.NEXT_PUBLIC_GRAPH_API_ENDPOINT}Group.Read.All`, `${process.env.NEXT_PUBLIC_GRAPH_API_ENDPOINT}Calendars.Read`],
+                account: account
+            };
+
+            const instance = await this.getInstance();
+            const authResult = await instance.acquireTokenSilent(silentTokenRequest);
+            return authResult.accessToken;
+        } catch (error) {
+            console.error('Failed to acquire token silently. Attempting by redirect:', error);
+            throw error;
+        }
+    }
+
     /**
      * Handles token acquisition based on the url that the user was sent to from Azure.
      * @param url The return url from Azure
