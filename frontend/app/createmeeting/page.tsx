@@ -87,34 +87,92 @@ const CreateMeetingPage = () => {
     }
   };
 
-  return (
-    <div className={styles.base}>
-      <h2>Create a meeting</h2>
-      <div className={styles.form}>
-        <TextField
-          id="outlined-controlled"
-          label="Title"
-          value={title}
-          onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
-            setTitle(event.target.value);
-          }}
-        />
-        <LocalizationProvider dateAdapter={AdapterDayjs}>
-          <DatePicker
-            label="Date"
-            value={value}
-            onChange={(newValue) => setValue(newValue)}
-          />
-          <SingleInputTimeRangeField
-            label="Time Range"
-            value={time}
-            onChange={(newValue) => setTime(newValue)}
-          />
-        </LocalizationProvider>
+  const handleButtonClickDay = async () => {
+    try {
+      const currentDate = new Date('2024-04-14');
+      const response = await fetch('/api/retrieve/meetings/${interval}?date=${encodeURIComponent(currentDate)}', {
+        method: 'GET',
+      });
+      const data = await response.json();
+      console.log(data);
+    } catch (error) {
+      console.error('There was an error fetching the data:', error);
+    }
+  };
 
-      </div>
+  const handleButtonClickMonth = async () => {
+    try {
+      const startDate = new Date('2024-04-01');
+      const endDate = new Date('2024-04-30');
+      const currentDate = new Date(startDate.getTime() + Math.random() * (endDate.getTime() - startDate.getTime()));
+      const response = await fetch('/api/retrieve/meeting/Month', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ date: currentDate.toISOString() })
+      });
+      const data = await response.json();
+      console.log(await response.text());
+    } catch (error) {
+      console.error('There was an error fetching the data:', error);
+    }
+  };
+
+  const handleButtonClickWeek = async () => {
+    try {
+      const startDate = new Date('2024-04-14');
+      const endDate = new Date('2024-04-20');
+      const currentDate = new Date();
+      const response = await fetch('/api/retrieve/meeting/Week', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ startDate: startDate.toISOString(), endDate: endDate.toISOString() })
+      });
+      console.log(await response.text());
+    } catch (error) {
+      console.error('There was an error fetching the data:', error);
+    }
+  };
+
+
+
+
+
+
+}
+
+
+return (
+  <div className={styles.base}>
+    <h2>Create a meeting</h2>
+    <div className={styles.form}>
+      <TextField
+        id="outlined-controlled"
+        label="Title"
+        value={title}
+        onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+          setTitle(event.target.value);
+        }}
+      />
+      <LocalizationProvider dateAdapter={AdapterDayjs}>
+        <DatePicker
+          label="Date"
+          value={value}
+          onChange={(newValue) => setValue(newValue)}
+        />
+        <SingleInputTimeRangeField
+          label="Time Range"
+          value={time}
+          onChange={(newValue) => setTime(newValue)}
+        />
+      </LocalizationProvider>
+
     </div>
-  );
+  </div>
+);
 };
 
 
