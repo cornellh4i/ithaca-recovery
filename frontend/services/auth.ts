@@ -1,6 +1,3 @@
-import "server-only";
-"server-only";
-
 import { SessionPartitionManager } from "../app/auth/SessionPartitionManager";
 import RedisCacheClient from "../app/auth/redis/redisCacheClient";
 import { redisClient } from "./redis";

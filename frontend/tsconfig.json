@@ -31,7 +31,8 @@
     ]
   },
   "include": [
-    "src",
+    "app",
+    "services",
     ".next/types/**/*.ts",
     "types/*.d.ts",
     "*.d.ts"
