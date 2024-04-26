@@ -39,7 +39,7 @@ const generateZoomToken = async () => {
 }
 
 // function to export access token 
-const getZoomToken = async (req: NextApiRequest, res: NextApiResponse) => {
+const getZoomToken = async (req: Request, res: NextApiResponse) => {
   // if (req.method === 'GET') {
     try {
       const zoomToken = await generateZoomToken();

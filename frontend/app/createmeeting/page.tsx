@@ -17,7 +17,8 @@ const CreateMeetingPage = () => {
     dayjs('2024-04-08T15:30'),
     dayjs('2024-04-08T18:30'),
   ]);
-
+  const [meetingId, setMeetingId] = React.useState('');
+  
   const createZoomMeetingRequestBody = () => {
     const startTime = time[0]?.format();
 
@@ -60,7 +61,26 @@ const CreateMeetingPage = () => {
       console.error('Error creating Zoom meeting:', error);
     }
   };
-  
+
+  const handleUpdateMeeting = async () => {
+    try {
+      const reqBody = { 
+        meetingId: meetingId,
+        ...createZoomMeetingRequestBody()
+      };
+
+      const response = await fetch('/api/zoom/UpdateMeeting', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(reqBody),
+      });
+      console.log('Meeting updated:', response);
+    } catch (error) {
+      console.error('Error updating Zoom meeting:', error);
+    }
+  }
 
 
   return (
@@ -91,6 +111,17 @@ const CreateMeetingPage = () => {
       </div>
       <div className={styles.section + ' ' + styles.meetings}>
         <button className={styles.btn} onClick={handleCreateMeeting}>Create Meeting</button>
+        <div>
+          <input
+            type="text"
+            placeholder="Meeting ID"
+            value={meetingId}
+            onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+              setMeetingId(event.target.value);
+            }}
+          />
+          <button className={styles.btn} onClick={handleUpdateMeeting}>Update Meeting</button>
+        </div>
       </div>
     </div>
   );
