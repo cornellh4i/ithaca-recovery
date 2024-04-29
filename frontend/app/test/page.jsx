@@ -204,6 +204,55 @@ function App() {
     }
   };
 
+  const getGroups = async () => {
+    try {
+      const group = await fetch('/api/groups/routes', {
+        method: "GET",
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(
+          accessToken
+        ),
+      });
+      const data = await response.json();
+      console.log('Access Token: ', data);
+    }
+    catch (error) {
+      console.error("Error fetching groups: ", error)
+    }
+  }
+
+  const getCalendars = async () => {
+    try {
+      // const group = await fetch('/api/groups/routes', {
+      //   method: "GET",
+      //   headers: {
+      //     'Content-Type': 'application/json'
+      //   },
+      //   body: JSON.stringify(
+      //     accessToken
+
+      //   ),
+      // });
+      //const data = await response.json();
+      const groupCal = await fetch('/api/calendars/getCalendars/routes', {
+        method: "GET",
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(
+          accessToken, groupId
+        ),
+      });
+      const groupData = await groupCal.json();
+      console.log('Group calendar: ', groupData);
+    }
+    catch (error) {
+      console.error("Error fetching group calendar: ", error)
+    }
+  }
+
   return (
     <div className={styles['apicontainer']}>
       <div className={styles.section + ' ' + styles['test-users']}>
@@ -226,6 +275,11 @@ function App() {
       <div className={styles.section + ' ' + styles.zoom}>
         <h2>Zoom Testing</h2>
         <button className={`${styles.btn} ${styles['btn-active']} ${styles['btn-secondary']}`} onClick={handleZoomToken}>Generate zoom token</button>
+      </div>
+      <div className={styles.section + ' ' + styles.meetings}>
+        <h2>Microsoft Exchange Calendars</h2>
+        <button className={styles.btn} onClick={getGroups}>Call get groups /api/groups/routes</button>
+        <button className={styles.btn} onClick={getCalendars}>Call get calendars /api/calender/getCalendars/routes</button>
       </div>
     </div>
   );
