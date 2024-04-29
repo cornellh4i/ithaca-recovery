@@ -9,7 +9,7 @@ import TextField from '@mui/material/TextField';
 import dayjs, { Dayjs } from 'dayjs';
 import styles from "../../styles/CreateMeetingPage.module.scss";
 
-
+//4/29/2024
 const CreateMeetingPage = () => {
   const [title, setTitle] = React.useState('');
   const [value, setValue] = useState<Dayjs | null>(dayjs('2024-04-08'));
@@ -48,6 +48,7 @@ const CreateMeetingPage = () => {
 
   const handleClick = async () => {
     try {
+      console.log(time);
       const newMeeting = {
         title: title,
         mid: new Date().toISOString(),
@@ -105,15 +106,16 @@ const CreateMeetingPage = () => {
       const startDate = new Date('2024-04-01');
       const endDate = new Date('2024-04-30');
       const currentDate = new Date(startDate.getTime() + Math.random() * (endDate.getTime() - startDate.getTime()));
+      console.log(currentDate);
       const response = await fetch('/api/retrieve/meeting/Month', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ date: currentDate.toISOString() })
+        //body: JSON.stringify({ date: currentDate.toISOString() })
       });
       const data = await response.json();
-      console.log(await response.text());
+      console.log(data);
     } catch (error) {
       console.error('There was an error fetching the data:', error);
     }
