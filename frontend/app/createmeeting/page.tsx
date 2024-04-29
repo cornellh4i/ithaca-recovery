@@ -181,6 +181,15 @@ const CreateMeetingPage = () => {
       <div className={styles.section + ' ' + styles.meetings}>
         <button className={styles.btn} onClick={handleCreateMeeting}>Create Meeting</button>
       </div>
+      <div className={styles.section + ' ' + styles.meetings}>
+        <button className={styles.btn} onClick={handleButtonClickDay}>Day</button>
+      </div>
+      <div className={styles.section + ' ' + styles.meetings}>
+        <button className={styles.btn} onClick={handleButtonClickMonth}>Month</button>
+      </div>
+      <div className={styles.section + ' ' + styles.meetings}>
+        <button className={styles.btn} onClick={handleButtonClickWeek}>Week</button>
+      </div>
     </div>
   );
 };
