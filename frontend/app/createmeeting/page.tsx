@@ -46,23 +46,6 @@ const CreateMeetingPage = () => {
     return requestBody;
   };
 
-  const handleCreateMeeting = async () => {
-    try {
-      const response = await fetch('/api/zoom/CreateMeeting', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(createZoomMeetingRequestBody()),
-      });
-      console.log('Meeting created:', response);
-    } catch (error) {
-      console.error('Error creating Zoom meeting:', error);
-    }
-  };
-
-
-
   const handleClick = async () => {
     try {
       const newMeeting = {
@@ -123,7 +106,7 @@ const CreateMeetingPage = () => {
       const endDate = new Date('2024-04-30');
       const currentDate = new Date(startDate.getTime() + Math.random() * (endDate.getTime() - startDate.getTime()));
       const response = await fetch('/api/retrieve/meeting/Month', {
-        method: 'POST',
+        method: 'GET',
         headers: {
           'Content-Type': 'application/json',
         },
@@ -142,7 +125,7 @@ const CreateMeetingPage = () => {
       const endDate = new Date('2024-04-20');
       const currentDate = new Date();
       const response = await fetch('/api/retrieve/meeting/Week', {
-        method: 'POST',
+        method: 'GET',
         headers: {
           'Content-Type': 'application/json',
         },
