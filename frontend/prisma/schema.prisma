@@ -29,7 +29,6 @@ model Meeting {
   description    String
   creator        String   
   group          String   
-  date           DateTime
   startDateTime  DateTime
   endDateTime    DateTime
   zoomAccount    String   

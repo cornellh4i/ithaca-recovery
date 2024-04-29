@@ -49,21 +49,21 @@ const CreateMeetingPage = () => {
   const handleClick = async () => {
     try {
       const newMeeting = {
-        title: 'Meeting Title',
-        mid: 'Meeting ID',
+        title: title,
+        mid: new Date().toISOString(),
         description: 'Meeting Description',
-        creator: 'Creator',
+        creator: 'creator',
         group: 'Group',
-        startDateTime: '2024-04-15T12:30:00Z',
-        endDateTime: '2024-05-20T15:30:00Z',
+        startDateTime: time[0]?.toISOString(),
+        endDateTime: time[1]?.toISOString(),
         zoomAccount: 'Zoom Account',
         zoomLink: 'URL:ZOOM ACCOUTN',
         zid: 'gdjjedhheagjhas',
         type: 'online',
         room: 'Room 135'
       };
-      const response = await fetch('/api/update/meeting', {
-        method: 'PUT',
+      const response = await fetch('/api/write/meeting', {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
@@ -137,42 +137,52 @@ const CreateMeetingPage = () => {
     }
   };
 
+  const handleCreateMeeting = async () => {
+    try {
+      const response = await fetch('/api/zoom/CreateMeeting', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(handleClick()),
+      });
+      console.log('Meeting created:', response);
+    } catch (error) {
+      console.error('Error creating Zoom meeting:', error);
+    }
+  };
 
-
-
-
-
-}
-
-
-return (
-  <div className={styles.base}>
-    <h2>Create a meeting</h2>
-    <div className={styles.form}>
-      <TextField
-        id="outlined-controlled"
-        label="Title"
-        value={title}
-        onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
-          setTitle(event.target.value);
-        }}
-      />
-      <LocalizationProvider dateAdapter={AdapterDayjs}>
-        <DatePicker
-          label="Date"
-          value={value}
-          onChange={(newValue) => setValue(newValue)}
+  return (
+    <div className={styles.base}>
+      <h2>Create a meeting</h2>
+      <div className={styles.form}>
+        <TextField
+          id="outlined-controlled"
+          label="Title"
+          value={title}
+          onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+            setTitle(event.target.value);
+          }}
         />
-        <SingleInputTimeRangeField
-          label="Time Range"
-          value={time}
-          onChange={(newValue) => setTime(newValue)}
-        />
-      </LocalizationProvider>
+        <LocalizationProvider dateAdapter={AdapterDayjs}>
+          <DatePicker
+            label="Date"
+            value={value}
+            onChange={(newValue) => setValue(newValue)}
+          />
+          <SingleInputTimeRangeField
+            label="Time Range"
+            value={time}
+            onChange={(newValue) => setTime(newValue)}
+          />
+        </LocalizationProvider>
 
+      </div>
+      <div className={styles.section + ' ' + styles.meetings}>
+        <button className={styles.btn} onClick={handleCreateMeeting}>Create Meeting</button>
+      </div>
     </div>
-  </div>
-);
+  );
 };
 
 
