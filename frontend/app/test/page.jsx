@@ -1,9 +1,11 @@
 "use client"
 
+
 import React from 'react';
 import { IUser } from '../../util/models'
 import { IMeeting } from '../../util/models'
 import styles from "../../styles/TestPage.module.scss";
+
 
 function App() {
   const handleButtonClick = async () => {
@@ -18,14 +20,17 @@ function App() {
         ),
       });
 
+
       console.log(await response.text());
     } catch (error) {
       console.error('There was an error fetching the data:', error);
     }
   };
 
+
   const handleButtonClick2 = async () => {
     try {
+
 
       const response = await fetch('/api/retrieve');
       console.log(await response.text());
@@ -33,6 +38,7 @@ function App() {
       console.error('There was an error fetching the data:', error);
     }
   };
+
 
   const handleButtonClick3 = async () => {
     try {
@@ -46,6 +52,7 @@ function App() {
     }
   };
 
+
   const handleButtonClick4 = async () => {
     try {
       const response = await fetch('/api/webhook', {
@@ -56,6 +63,7 @@ function App() {
         body: JSON.stringify({ message: 'Hello World!' }),
       });
 
+
       if (response.ok) {
         console.log('Success');
       } else {
@@ -65,6 +73,7 @@ function App() {
       console.error('Error:', error);
     }
   };
+
 
   const handleUpdate = async () => {
     try {
@@ -83,6 +92,7 @@ function App() {
       console.error("Error updating user:", error);
     }
   };
+
 
   const CreateMeeting = async () => {
     try {
@@ -107,6 +117,7 @@ function App() {
         ),
       });
 
+
       if (response.ok) {
         const meetingResponse = await response.json();
         console.log(meetingResponse);
@@ -114,10 +125,12 @@ function App() {
         console.error('HTTP error:', response.statusText);
       }
 
+
     } catch (error) {
       console.error('There was an error fetching the data:', error);
     }
   };
+
 
   const DeleteMeeting = async () => {
     try {
@@ -143,6 +156,8 @@ function App() {
       });
 
 
+
+
       if (response.ok) {
         const meetingResponse = await response.json();
         console.log(meetingResponse);
@@ -151,10 +166,13 @@ function App() {
       }
 
 
+
+
     } catch (error) {
       console.error('There was an error fetching the data:', error);
     }
   };
+
 
   const UpdateMeeting = async () => {
     try {
@@ -177,8 +195,11 @@ function App() {
         body: JSON.stringify(
           newMeeting
 
+
         ),
       });
+
+
 
 
       if (response.ok) {
@@ -189,10 +210,13 @@ function App() {
       }
 
 
+
+
     } catch (error) {
       console.error('There was an error fetching the data:', error);
     }
   };
+
 
   const handleZoomToken = async () => {
     try {
@@ -203,6 +227,59 @@ function App() {
       console.error('Error generating Zoom token:', error);
     }
   };
+
+
+  const getGroups = async () => {
+    try {
+      const group = await fetch('/api/groups/routes', {
+        method: "GET",
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(
+          accessToken
+        ),
+      });
+      const data = await response.json();
+      console.log('Access Token: ', data);
+    }
+    catch (error) {
+      console.error("Error fetching groups: ", error)
+    }
+  }
+
+
+  const getCalendars = async () => {
+    try {
+      // const group = await fetch('/api/groups/routes', {
+      //   method: "GET",
+      //   headers: {
+      //     'Content-Type': 'application/json'
+      //   },
+      //   body: JSON.stringify(
+      //     accessToken
+
+
+      //   ),
+      // });
+      //const data = await response.json();
+      const groupCal = await fetch('/api/calendars/getCalendars/routes', {
+        method: "GET",
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(
+          accessToken, groupId
+        ),
+      });
+      const groupData = await groupCal.json();
+      console.log('Group calendar: ', groupData);
+    }
+    catch (error) {
+      console.error("Error fetching group calendar: ", error)
+    }
+  }
+
 
   return (
     <div className={styles['apicontainer']}>
@@ -227,8 +304,14 @@ function App() {
         <h2>Zoom Testing</h2>
         <button className={`${styles.btn} ${styles['btn-active']} ${styles['btn-secondary']}`} onClick={handleZoomToken}>Generate zoom token</button>
       </div>
+      <div className={styles.section + ' ' + styles.meetings}>
+        <h2>Microsoft Exchange Calendars</h2>
+        <button className={styles.btn} onClick={getGroups}>Call get groups /api/groups/routes</button>
+        <button className={styles.btn} onClick={getCalendars}>Call get calendars /api/calender/getCalendars/routes</button>
+      </div>
     </div>
   );
 }
+
 
 export default App;
