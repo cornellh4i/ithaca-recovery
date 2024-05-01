@@ -18,6 +18,10 @@ const CreateMeetingPage = () => {
     dayjs('2024-04-08T18:30'),
   ]);
 
+  const updateTime = (newStartTime: Dayjs | null, newEndTime: Dayjs | null) => {
+    setTime([newStartTime || time[0], newEndTime || time[1]]);
+  };
+
   const createZoomMeetingRequestBody = () => {
     const startTime = time[0]?.format();
 
@@ -47,8 +51,9 @@ const CreateMeetingPage = () => {
   };
 
   const handleClick = async () => {
+    updateTime(dayjs('2024-04-29T15:30'),
+      dayjs('2024-04-29T18:30'))
     try {
-      console.log(time);
       const newMeeting = {
         title: title,
         mid: new Date().toISOString(),
@@ -112,10 +117,19 @@ const CreateMeetingPage = () => {
         headers: {
           'Content-Type': 'application/json',
         },
-        //body: JSON.stringify({ date: currentDate.toISOString() })
-      });
-      const data = await response.json();
-      console.log(data);
+      })
+        .then(response => {
+          if (!response.ok) {
+            throw new Error('Network response was not ok');
+          }
+          return response.json();
+        })
+        .then(data => {
+          console.log(data);
+        })
+        .catch(error => {
+          console.error('Fetch error:', error);
+        })
     } catch (error) {
       console.error('There was an error fetching the data:', error);
     }
