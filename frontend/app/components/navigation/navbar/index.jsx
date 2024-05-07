@@ -1,11 +1,13 @@
-import React from "react";
+import React, { useContext } from "react";
 import Link from "next/link";
 import Button from "./button";
 import Logo from "./logo"
 import styles from "../../../../styles/Navbar.module.scss"
-// import { AdminContext } from "../../../contexts/AdminContext";
+import AdminContext from '../index.tsx'
+import Navigation from "../index.tsx";
 
 const Navbar = ({ toggle }) => {
+  const admin = useContext(AdminContext);
   return (
     <>
       <div className={styles.navbar}>
@@ -34,8 +36,8 @@ const Navbar = ({ toggle }) => {
             </li>
           </ul>
         </div>
-        <div>hello</div>
       </div>
+      <div style={{ marginLeft: '30px', paddingBottom: '10px', paddingTop: '20px', fontSize: 'xx-large', fontFamily: 'sans-serif', color: '#065861' }}>Hello {admin && JSON.stringify(admin)}!</div>
     </>
   );
 };
