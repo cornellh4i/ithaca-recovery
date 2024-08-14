@@ -5,16 +5,19 @@ import { IUser } from '../../util/models'
 import { IMeeting } from '../../util/models'
 import styles from "../../styles/TestPage.module.scss";
 
-function App() {
-  const handleButtonClick = async () => {
+const App = () => {
+
+  /** ADMIN TESTING FUNCTIONS  */
+
+  const createAdmin = async () => {
     try {
-      const response = await fetch('/api/write/user', {
+      const response = await fetch('/api/write/admin', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(
-          { "uid": "f04nf0483fjffg", "name": "Hello" }
+          { "uid": "4iN010DwUFVMMMO6BxIuC6XVMG93", "name": "Joseph Ugarte", "email": "ju24@gmail.com", "privilegeMode": "Admin" }
         ),
       });
 
@@ -24,20 +27,20 @@ function App() {
     }
   };
 
-  const handleButtonClick2 = async () => {
+  const getAdmin = async () => {
     try {
 
-      const response = await fetch('/api/retrieve');
+      const response = await fetch('/api/retrieve/admin');
       console.log(await response.text());
     } catch (error) {
       console.error('There was an error fetching the data:', error);
     }
   };
 
-  const handleButtonClick3 = async () => {
+  const deleteAdmin = async () => {
     try {
-      const response = await fetch("/api/delete", {
-        method: "POST",
+      const response = await fetch("/api/delete/admin", {
+        method: "DELETE",
       });
       const data = await response.json();
       console.log(data);
@@ -46,43 +49,7 @@ function App() {
     }
   };
 
-  const handleButtonClick4 = async () => {
-    try {
-      const response = await fetch('/api/webhook', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ message: 'Hello World!' }),
-      });
-
-      if (response.ok) {
-        console.log('Success');
-      } else {
-        console.error('Error:', response.statusText);
-      }
-    } catch (error) {
-      console.error('Error:', error);
-    }
-  };
-
-  const handleUpdate = async () => {
-    try {
-      const response = await fetch('/api/update', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(
-          { "uid": "4iN010DwUFVMMMO6BxIuC6XVMG93", "name": "Sanya Mahajan" }
-        ),
-      });
-      const data = await response.json();
-      console.log(data);
-    } catch (error) {
-      console.error("Error updating user:", error);
-    }
-  };
+  /** MEETING TESTING FUNCTIONS */
 
   const CreateMeeting = async () => {
     try {
@@ -194,6 +161,8 @@ function App() {
     }
   };
 
+  /** ZOOM TESTING FUNCTIONS */
+
   const handleZoomToken = async () => {
     try {
       const response = await fetch('/api/zoom');
@@ -206,22 +175,17 @@ function App() {
 
   return (
     <div className={styles['apicontainer']}>
-      <div className={styles.section + ' ' + styles['test-users']}>
-        <h2>Users</h2>
-        <button className={styles.btn} onClick={handleButtonClick}>Call create users post /api/write/user</button>
-        <button className={styles.btn} onClick={handleButtonClick2}>Call get all users /api/retrieve</button>
-        <button className={styles.btn} onClick={handleButtonClick3}>Call delete user /api/delete</button>
-        <button className={styles.btn} onClick={handleUpdate}>Call create User /api/update/</button>
+      <div className={styles.section}>
+        <h2>Admins</h2>
+        <button className={styles.btn} onClick={createAdmin}>Call create admin post /api/write/admin</button>
+        <button className={styles.btn} onClick={getAdmin}>Call get admin /api/retrieve/admin</button>
+        <button className={styles.btn} onClick={deleteAdmin}>Call delete admin /api/delete/admin</button>
       </div>
       <div className={styles.section + ' ' + styles.meetings}>
         <h2>Meetings</h2>
         <button className={styles.btn} onClick={CreateMeeting}>Call create Meeting /api/write/meeting</button>
         <button className={styles.btn} onClick={UpdateMeeting}>Call Update meeting /api/update/meeting</button>
         <button className={styles.btn} onClick={DeleteMeeting}>Call Delete meeting /api/delete/meeting</button>
-      </div>
-      <div className={styles.section + ' ' + styles.webhook}>
-        <h2>Webhooks</h2>
-        <button className={`${styles.btn} ${styles['btn-active']} ${styles['btn-secondary']}`} onClick={handleButtonClick4}>Call webhook post /api/webhook</button>
       </div>
       <div className={styles.section + ' ' + styles.zoom}>
         <h2>Zoom Testing</h2>
