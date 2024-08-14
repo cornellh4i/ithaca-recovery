@@ -1,18 +1,20 @@
+import { NextApiRequest } from "next";
 import { IAdmin } from "../../../../util/models";
 import { PrismaClient } from '@prisma/client';
+import { NextRequest } from "next/server";
 
 const prisma = new PrismaClient();
 
-export const GET = async (request: Request) => {
+export const GET = async (request: NextRequest) => {
   try {
-    const { email } = await request.json()
+    const email = request.nextUrl.searchParams.get("email")
     const user: (IAdmin | null) = await prisma.admin.findUnique({
       where: {
-        email: email
+        email: email as string
       }
     });
     if (!user) {
-      return new Response(JSON.stringify({ error: "Admin not found" }), {
+      return new Response(JSON.stringify({ error: `Admin not found` }), {
         status: 404,
         headers: {
           'Content-Type': 'application/json',
@@ -28,8 +30,7 @@ export const GET = async (request: Request) => {
     });
   }
   catch (error) {
-    console.error("Error finding admin: ", error);
-    return new Response(JSON.stringify({ error: "Error finding admin" }), {
+    return new Response(JSON.stringify({ error: `Admin not found: ${error}` }), {
       status: 500,
       headers: {
         'Content-Type': 'application/json',

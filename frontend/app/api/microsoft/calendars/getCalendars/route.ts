@@ -1,10 +1,9 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 
-
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+const getCalendars = async (req: NextApiRequest, res: NextApiResponse) => {
   try {
     const { accessToken, groupId } = req.body;
-    const endpoint = "https://graph.microsoft.com/" + `/groups/${groupId}/calendar`;
+    const endpoint = `https://graph.microsoft.com/groups/${groupId}/calendar`;
     const headers = {
       'Authorization': `Bearer ${accessToken}`,
       'Content-Type': 'application/json'
@@ -23,3 +22,5 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     res.status(500).json({ error: 'Error fetching calendar' });
   }
 }
+
+export {getCalendars as GET}

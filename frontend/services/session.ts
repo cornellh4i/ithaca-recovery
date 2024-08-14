@@ -1,6 +1,5 @@
 import { createCookieSessionStorage } from "@remix-run/node";
 import { sessionSecret } from "../app/auth/authConfig";
-import "server-only";
 
 export type SessionData = {
     homeAccountId: string;

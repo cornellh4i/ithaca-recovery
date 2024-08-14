@@ -59,8 +59,6 @@
 // };
 
 // export default RootLayout;
-
-
 import { redirect } from "next/navigation";
 import { PropsWithChildren } from "react";
 import { loginRequest } from "./auth/authConfig";
@@ -70,7 +68,6 @@ import Navigation from "./components/navigation";
 import React from "react";
 import { Inter } from "next/font/google";
 import styles from "../styles/MainLayout.module.scss";
-
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -84,15 +81,14 @@ export default async function RootLayout({ children }: PropsWithChildren) {
   return (
     <html lang="en">
       <head>
-        <style>{`body { padding: 0 !important; margin: 0 !important; }`}</style>
       </head>
       <body className={inter.className}>
-        <div className={styles.mainlayout}>
-          <div className={styles.navigation}>
-            <Navigation />
+          <div className={styles.mainlayout}>
+            <div className={styles.navigation}>
+              <Navigation account={account}/>
+            </div>
+            {children}
           </div>
-          {children}
-        </div>
       </body>
     </html>
   );

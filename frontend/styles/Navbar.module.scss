@@ -1,6 +1,7 @@
 .navbar {
     width: 100%;
-    background-color: #005f73;
+    background-color: #fff;
+    border-bottom: 2px solid #CECECE;
 }
 
 .logo {
@@ -9,7 +10,7 @@
 
 .navItem {
     padding: 10px;
-    color: #fff;
+    color: #000;
 
     &:hover {
         background-color: #e9d8a6;
@@ -24,11 +25,12 @@
 .navigationlist {
     display: flex;
     gap: 24px;
-    color: #fff;
+    color: #000;
     list-style-type: none;
     padding: 0;
     width: 100%;
     justify-content: space-around;
+    margin: 0px;
 
     li {
 
@@ -39,24 +41,29 @@
             border: 2px solid transparent;
             border-radius: 8px;
             text-decoration: none; 
-            color: #fff;
+            color: #000;
             background-color: transparent; 
             transition: background-color 0.3s, color 0.3s, border-color 0.3s;
 
             &:hover,
             &:focus {
-                color: #005f73; 
-                background-color: #fff;
-                border-color: #005f73; 
+                color: #000; 
+                border-color: #000; 
             }
         }
 
         &.active {
             a {
-                color: #005f73;
+                color: #000;
                 background-color: #e9d8a6;
-                border-color: #005f73;
+                border-color: #000;
             }
         }
     }
     }
+
+.welcome {
+    padding: 7px 12px;
+    font-size: 16px;
+    width: 15%;
+}
