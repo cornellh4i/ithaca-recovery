@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useContext } from "react";
 import Link from "next/link";
 import Logo from "./logo"
 import type { AccountInfo } from "@azure/msal-node";
@@ -36,6 +36,7 @@ const Navbar: React.FC<NavbarProps> = ({ account }) => {
           </div>
         </div>
       </div>
+      <div style={{ marginLeft: '30px', paddingBottom: '10px', paddingTop: '20px', fontSize: 'xx-large', fontFamily: 'sans-serif', color: '#065861' }}>Hello {admin && JSON.stringify(admin)}!</div>
     </>
   );
 };
