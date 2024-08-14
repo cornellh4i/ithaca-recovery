@@ -36,7 +36,6 @@ const Navbar: React.FC<NavbarProps> = ({ account }) => {
           </div>
         </div>
       </div>
-      <div style={{ marginLeft: '30px', paddingBottom: '10px', paddingTop: '20px', fontSize: 'xx-large', fontFamily: 'sans-serif', color: '#065861' }}>Hello {admin && JSON.stringify(admin)}!</div>
     </>
   );
 };
