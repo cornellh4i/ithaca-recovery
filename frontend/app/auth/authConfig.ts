@@ -35,6 +35,9 @@ export const msalConfig: Configuration = {
     }
 };
 
+export const scopes = [`${process.env.NEXT_PUBLIC_GRAPH_API_ENDPOINT}Group.Read.All`, `${process.env.NEXT_PUBLIC_GRAPH_API_ENDPOINT}Calendars.Read`];
+
+
 // Add here scopes for id token to be used at MS Identity Platform endpoints.
 export const loginRequest = {
     scopes: ["User.Read"]

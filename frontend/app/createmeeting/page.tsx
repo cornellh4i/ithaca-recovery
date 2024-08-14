@@ -7,7 +7,7 @@ import { SingleInputTimeRangeField } from '@mui/x-date-pickers-pro/SingleInputTi
 import { DateRange } from '@mui/x-date-pickers-pro/models';
 import TextField from '@mui/material/TextField';
 import dayjs, { Dayjs } from 'dayjs';
-import styles from "../../styles/CreateMeetingPage.module.scss"
+import styles from "../../styles/CreateMeetingPage.module.scss";
 
 
 const CreateMeetingPage = () => {
@@ -17,7 +17,8 @@ const CreateMeetingPage = () => {
     dayjs('2024-04-08T15:30'),
     dayjs('2024-04-08T18:30'),
   ]);
-
+  const [meetingId, setMeetingId] = React.useState('');
+  
   const createZoomMeetingRequestBody = () => {
     const startTime = time[0]?.format();
 
@@ -46,6 +47,42 @@ const CreateMeetingPage = () => {
     return requestBody;
   };
 
+  const handleCreateMeeting = async () => {
+    try {
+      const response = await fetch('/api/zoom/CreateMeeting', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(createZoomMeetingRequestBody()),
+      });
+      console.log('Meeting created:', response);
+    } catch (error) {
+      console.error('Error creating Zoom meeting:', error);
+    }
+  };
+
+  const handleUpdateMeeting = async () => {
+    try {
+      const reqBody = { 
+        meetingId: meetingId,
+        ...createZoomMeetingRequestBody()
+      };
+
+      const response = await fetch('/api/zoom/UpdateMeeting', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(reqBody),
+      });
+      console.log('Meeting updated:', response);
+    } catch (error) {
+      console.error('Error updating Zoom meeting:', error);
+    }
+  }
+
+
   return (
     <div className={styles.base}>
       <h2>Create a meeting</h2>
@@ -71,6 +108,20 @@ const CreateMeetingPage = () => {
           />
         </LocalizationProvider>
 
+      </div>
+      <div className={styles.section + ' ' + styles.meetings}>
+        <button className={styles.btn} onClick={handleCreateMeeting}>Create Meeting</button>
+        <div>
+          <input
+            type="text"
+            placeholder="Meeting ID"
+            value={meetingId}
+            onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+              setMeetingId(event.target.value);
+            }}
+          />
+          <button className={styles.btn} onClick={handleUpdateMeeting}>Update Meeting</button>
+        </div>
       </div>
     </div>
   );

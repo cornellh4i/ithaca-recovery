@@ -39,8 +39,8 @@ const generateZoomToken = async () => {
 }
 
 // function to export access token 
-const getZoomToken = async (req: NextApiRequest, res: NextApiResponse) => {
-  if (req.method === 'GET') {
+const getZoomToken = async (req: Request, res: NextApiResponse) => {
+  // if (req.method === 'GET') {
     try {
       const zoomToken = await generateZoomToken();
 
@@ -53,9 +53,9 @@ const getZoomToken = async (req: NextApiRequest, res: NextApiResponse) => {
       console.error('Error getting Zoom token:', error);
       return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }
-  } else {
-    return NextResponse.json({ error: 'Method Not Allowed' }, { status: 405 });
-  }
+  // } else {
+  //   return NextResponse.json({ error: 'Method Not Allowed' }, { status: 405 });
+  // }
 }
 
 export { getZoomToken as GET };
