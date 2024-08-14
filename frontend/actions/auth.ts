@@ -17,6 +17,10 @@ export async function login() {
     await acquireToken(loginRequest);
 }
 
+export async function getAccount() {
+    return await authProvider.getAccount()
+}
+
 export async function logout() {
     const { instance, account } = await authProvider.authenticate();
 

@@ -1,5 +1,4 @@
 import { createClient } from "redis";
-import "server-only";
 import { redisUrl } from "../app/auth/authConfig";
 
 export const redisClient = createClient(

@@ -1,10 +1,14 @@
-import React from "react";
+import React, { useContext } from "react";
 import Link from "next/link";
-import Button from "./button";
 import Logo from "./logo"
+import type { AccountInfo } from "@azure/msal-node";
 import styles from "../../../../styles/Navbar.module.scss"
 
-const Navbar = ({ toggle }) => {
+interface NavbarProps {
+  account: AccountInfo
+}
+
+const Navbar: React.FC<NavbarProps> = ({ account }) => {
   return (
     <>
       <div className={styles.navbar}>
@@ -26,12 +30,10 @@ const Navbar = ({ toggle }) => {
                 <p>Testing Endpoints</p>
               </Link>
             </li>
-            <li className="btn btn-ghost">
-              <Link href="/admintesting">
-                <p>Admin Testing</p>
-              </Link>
-            </li>
           </ul>
+          <div className={styles.welcome}>
+            <p>Welcome, {account.name}</p>
+          </div>
         </div>
       </div>
     </>

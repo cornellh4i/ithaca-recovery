@@ -5,7 +5,6 @@ import { AuthProvider } from "../app/auth/AuthProvider";
 import { getSession } from "./session";
 import { cookies } from "next/headers";
 import { authCallbackUri, msalConfig } from "../app/auth/authConfig";
-import "server-only";
 
 async function partitionManagerFactory() {
     const cookie = cookies().get("__session");
