@@ -1,8 +1,10 @@
 "use client";
+
 import React from 'react';
-import { IUser } from '../../util/models'
+import { IAdmin, IUser } from '../../util/models'
 import { IMeeting } from '../../util/models'
 import styles from "../../styles/TestPage.module.scss";
+import TestButton from "../components/Test/TestButton"
 
 const App = () => {
 
@@ -10,28 +12,49 @@ const App = () => {
 
   const createAdmin = async () => {
     try {
+      const newAdmin: IAdmin = { 
+        uid: `${Math.floor(Math.random() * 100000) + 1}`, // Most likely will be Microsoft ID
+        name: "Joseph Ugarte", 
+        email: "jeu9@cornell.edu"
+      }
+
       const response = await fetch('/api/write/admin', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(
-          { "uid": "4iN010DwUFVMMMO6BxIuC6XVMG93", "name": "Joseph Ugarte", "email": "ju24@gmail.com", "privilegeMode": "Admin" }
+          newAdmin
         ),
       });
 
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
 
-      console.log(await response.text());
+      const adminResponse = await response.json();
+      console.log(adminResponse);
+      alert("Admin created successfully! Please check the Admin collection on MongoDB.")
     } catch (error) {
-      console.error('There was an error fetching the data:', error);
+      console.error('There was an error creating the data:', error);
     }
   };
 
   const getAdmin = async () => {
     try {
+      /* Configure to me an Admin's real email */
+      const email = "jeu9@cornell.edu";
+      const url = new URL('/api/retrieve/admin', window.location.origin);
+      url.searchParams.append('email', email);
+      const response = await fetch(url);
 
-      const response = await fetch('/api/retrieve/admin');
-      console.log(await response.text());
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const adminResponse = await response.json();
+      console.log(adminResponse);
+      alert("Admin retrieved successfully! Please check the Admin collection on MongoDB.")
     } catch (error) {
       console.error('There was an error fetching the data:', error);
     }
@@ -39,11 +62,25 @@ const App = () => {
 
   const deleteAdmin = async () => {
     try {
+      /* Configure to me an Admin's real email */
+      const email = "jeu9@cornell.edu";
       const response = await fetch("/api/delete/admin", {
         method: "DELETE",
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email
+        }),
       });
-      const data = await response.json();
-      console.log(data);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const adminResponse = await response.json();
+      console.log(adminResponse);
+      alert("Admin deleted successfully! Please check the Admin collection on MongoDB.")
     } catch (error) {
       console.error("Error clearing database:", error);
     }
@@ -51,12 +88,11 @@ const App = () => {
 
   /** MEETING TESTING FUNCTIONS */
 
-
-  const CreateMeeting = async () => {
+  const createMeeting = async () => {
     try {
-      const newMeeting = {
+      const newMeeting: IMeeting = {
         title: 'Meeting Title',
-        mid: 'Meeting ID',
+        mid: `${Math.floor(Math.random() * 100000) + 1}`,
         description: 'Meeting Description',
         creator: 'Creator',
         group: 'Group',
@@ -75,68 +111,53 @@ const App = () => {
         ),
       });
 
-
-      if (response.ok) {
-        const meetingResponse = await response.json();
-        console.log(meetingResponse);
-      } else {
-        console.error('HTTP error:', response.statusText);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
-
-
+     
+      const meetingResponse = await response.json();
+      console.log(meetingResponse);
+      alert("Meeting created successfully! Please check the Meeting collection on MongoDB.")
     } catch (error) {
       console.error('There was an error fetching the data:', error);
     }
   };
 
 
-  const DeleteMeeting = async () => {
+  const deleteMeeting = async () => {
     try {
-      const newMeeting = {
-        title: 'Meeting Title',
-        mid: 'Meeting ID',
-        description: 'Meeting Description',
-        creator: 'Creator',
-        group: 'Group',
-        date: new Date(),
-        startTime: new Date(),
-        fromTime: new Date(),
-        zoomAccount: 'Zoom Account',
-      };
+      /* Configure to be a real mid */
+      const mid = '96160';
+
       const response = await fetch('/api/delete/meeting', {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(
-          newMeeting
-        ),
+        body: JSON.stringify({
+          mid
+        }),
       });
 
-
-
-
-      if (response.ok) {
-        const meetingResponse = await response.json();
-        console.log(meetingResponse);
-      } else {
-        console.error('HTTP error during update:', response.statusText);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-
-
-
+      const meetingResponse = await response.json();
+      console.log(meetingResponse);
+      alert("Meeting deleted successfully! Please check the Meeting collection on MongoDB.")
     } catch (error) {
       console.error('There was an error fetching the data:', error);
     }
   };
 
 
-  const UpdateMeeting = async () => {
+  const updateMeeting = async () => {
     try {
+      /* mid must correspond to a meeting existing in the collection */
       const newMeeting = {
         title: 'Meeting Title',
-        mid: 'Meeting ID',
+        mid: '96160',
         description: 'Meeting Description',
         creator: 'Creator',
         group: 'Group',
@@ -145,6 +166,7 @@ const App = () => {
         fromTime: new Date(),
         zoomAccount: 'Zoom Account',
       };
+
       const response = await fetch('/api/update/meeting', {
         method: 'PUT',
         headers: {
@@ -154,12 +176,14 @@ const App = () => {
           newMeeting
         ),
       });
-      if (response.ok) {
-        const meetingResponse = await response.json();
-        console.log(meetingResponse);
-      } else {
-        console.error('HTTP error during update:', response.statusText);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
+
+      const meetingResponse = await response.json();
+      console.log(meetingResponse);
+      alert("Meeting updated successfully! Please check the Meeting collection on MongoDB.")
     } catch (error) {
       console.error('There was an error fetching the data:', error);
     }
@@ -185,10 +209,7 @@ const App = () => {
         method: "GET",
         headers: {
           'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(
-          accessToken
-        ),
+        }
       });
       const data = await response.json();
       console.log('Access Token: ', data);
@@ -200,14 +221,16 @@ const App = () => {
 
   const getCalendars = async () => {
     try {
+      const groupId = "123";
+
       const groupCal = await fetch('/api/microsoft/calendars/getCalendars', {
         method: "GET",
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(
-          accessToken, groupId
-        ),
+        body: JSON.stringify({
+          groupId
+        }),
       });
       const groupData = await groupCal.json();
       console.log('Group calendar: ', groupData);
@@ -221,24 +244,24 @@ const App = () => {
     <div className={styles['apicontainer']}>
       <div className={styles.section}>
         <h2>Admins</h2>
-        <button className={styles.btn} onClick={createAdmin}>Call create admin post /api/write/admin</button>
-        <button className={styles.btn} onClick={getAdmin}>Call get admin /api/retrieve/admin</button>
-        <button className={styles.btn} onClick={deleteAdmin}>Call delete admin /api/delete/admin</button>
+        <TestButton testFunc={createAdmin} text="Call create admin post /api/write/admin"/>
+        <TestButton testFunc={getAdmin} text="Call get admin /api/retrieve/admin" />
+        <TestButton testFunc={deleteAdmin} text="Call delete admin /api/delete/admin" />
       </div>
       <div className={styles.section + ' ' + styles.meetings}>
         <h2>Meetings</h2>
-        <button className={styles.btn} onClick={CreateMeeting}>Call create Meeting /api/write/meeting</button>
-        <button className={styles.btn} onClick={UpdateMeeting}>Call Update meeting /api/update/meeting</button>
-        <button className={styles.btn} onClick={DeleteMeeting}>Call Delete meeting /api/delete/meeting</button>
+        <TestButton testFunc={createMeeting} text="Call create Meeting /api/write/meeting" />
+        <TestButton testFunc={updateMeeting} text="Call Update meeting /api/update/meeting" />
+        <TestButton testFunc={deleteMeeting} text="Call Delete meeting /api/delete/meeting" />
       </div>
       <div className={styles.section + ' ' + styles.zoom}>
         <h2>Zoom Testing</h2>
-        <button className={`${styles.btn} ${styles['btn-active']} ${styles['btn-secondary']}`} onClick={handleZoomToken}>Generate zoom token</button>
+        <TestButton testFunc={handleZoomToken} text="Generate zoom token" />
       </div>
       <div className={styles.section + ' ' + styles.meetings}>
         <h2>Microsoft Exchange Calendars</h2>
-        <button className={styles.btn} onClick={getGroups}>Call get groups /api/groups/routes</button>
-        <button className={styles.btn} onClick={getCalendars}>Call get calendars /api/calender/getCalendars/routes</button>
+        <TestButton testFunc={getGroups} text="Call get groups /api/groups/routes" />
+        <TestButton testFunc={getCalendars} text="Call get calendars /api/calender/getCalendars/routes" />
       </div>
     </div>
   );

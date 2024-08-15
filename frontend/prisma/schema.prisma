@@ -18,7 +18,6 @@ model Admin {
   uid           String @unique
   name          String
   email         String @unique
-  privilegeMode String
 }
 
 model Meeting {

@@ -1,10 +1,12 @@
 // Please add models here
 interface IUser {
-  id: string;
   uid: string;
   name: string;
 }
 
+interface IAdmin extends IUser {
+  email: string;
+}
 
 interface IMeeting {
   title: string;
@@ -16,11 +18,6 @@ interface IMeeting {
   startTime: Date;
   fromTime: Date;
   zoomAccount: string;
-}
-
-interface IAdmin extends IUser {
-  email: string;
-  privilegeMode: string;
 }
 
 export type { IUser, IMeeting, IAdmin };

@@ -5,7 +5,7 @@ import { NextRequest } from "next/server";
 
 const prisma = new PrismaClient();
 
-export const GET = async (request: NextRequest) => {
+const getAdminByEmail = async (request: NextRequest) => {
   try {
     const email = request.nextUrl.searchParams.get("email")
     const user: (IAdmin | null) = await prisma.admin.findUnique({
@@ -39,3 +39,4 @@ export const GET = async (request: NextRequest) => {
   }
 }
 
+export { getAdminByEmail as GET }

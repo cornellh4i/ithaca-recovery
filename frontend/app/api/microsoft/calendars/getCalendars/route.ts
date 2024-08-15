@@ -1,9 +1,17 @@
 import { NextApiRequest, NextApiResponse } from 'next';
+import { authProvider } from "../../../../../services/auth";
+import getAccessToken from "../../AccessToken";
 
 const getCalendars = async (req: NextApiRequest, res: NextApiResponse) => {
   try {
-    const { accessToken, groupId } = req.body;
-    const endpoint = `https://graph.microsoft.com/groups/${groupId}/calendar`;
+    const accessToken = await getAccessToken();
+    if (accessToken === null) {
+      console.log("Unable to retrieve access token, please try again.")
+      return;
+    }
+
+    const { groupId } = req.body;
+    const endpoint = `${process.env.NEXT_PUBLIC_GRAPH_API_ENDPOINT}/groups/${groupId}/calendar`;
     const headers = {
       'Authorization': `Bearer ${accessToken}`,
       'Content-Type': 'application/json'
@@ -23,4 +31,4 @@ const getCalendars = async (req: NextApiRequest, res: NextApiResponse) => {
   }
 }
 
-export {getCalendars as GET}
+export { getCalendars as GET }

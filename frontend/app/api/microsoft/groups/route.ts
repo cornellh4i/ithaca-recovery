@@ -1,9 +1,16 @@
 import { NextApiRequest, NextApiResponse } from 'next';
+import { authProvider } from "../../../../services/auth";
+import getAccessToken from '../AccessToken';
 
 const getGroups = async (req: NextApiRequest, res: NextApiResponse) => {
   try {
-    const { accessToken } = req.body;
-    const endpoint = `https://graph.microsoft.com/groups`;
+    const accessToken = await getAccessToken();
+    if (accessToken === null) {
+      console.log("Unable to retrieve access token, please try again.")
+      return;
+    }
+
+    const endpoint = `${process.env.NEXT_PUBLIC_GRAPH_API_ENDPOINT}/groups`;
     const headers = {
       'Authorization': `Bearer ${accessToken}`,
       'Content-Type': 'application/json'
@@ -23,4 +30,4 @@ const getGroups = async (req: NextApiRequest, res: NextApiResponse) => {
   }
 }
 
-export {getGroups as GET}
+export { getGroups as GET }
