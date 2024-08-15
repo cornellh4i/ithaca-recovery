@@ -6,20 +6,9 @@ const prisma = new PrismaClient();
 
 const createMeeting = async (request : Request) => {
   try {
-    const { mid, title, description, creator, group, date, startTime, fromTime, zoomAccount } = await request.json();
-
+    const meeting = await request.json() as IMeeting;
     const newMeeting = await prisma.meeting.create({
-      data: {
-        mid: mid,
-        title: title,
-        description: description,
-        creator: creator,
-        group: group,
-        date: new Date(date),
-        startTime: new Date(startTime),
-        fromTime: new Date(fromTime),
-        zoomAccount: zoomAccount,
-      },
+      data: meeting
     });
 
     return new Response(JSON.stringify(newMeeting), {

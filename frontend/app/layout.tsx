@@ -66,7 +66,6 @@ import { authProvider } from "../services/auth";
 import { getCurrentUrl } from "./auth/url";
 import Navigation from "./components/navigation";
 import React from "react";
-import ProviderWrapper from './ProviderWrapper';
 import { Inter } from "next/font/google";
 import styles from "../styles/MainLayout.module.scss";
 
@@ -82,17 +81,14 @@ export default async function RootLayout({ children }: PropsWithChildren) {
   return (
     <html lang="en">
       <head>
-        <style>{`body { padding: 0 !important; margin: 0 !important; }`}</style>
       </head>
       <body className={inter.className}>
-        <ProviderWrapper>
           <div className={styles.mainlayout}>
             <div className={styles.navigation}>
               <Navigation account={account}/>
             </div>
             {children}
           </div>
-        </ProviderWrapper>
       </body>
     </html>
   );

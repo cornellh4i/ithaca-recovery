@@ -34,6 +34,7 @@
     "react-dom": "^18.2.0",
     "redis": "^4.6.13",
     "sass": "^1.72.0",
+    "swr": "^2.2.5",
     "web-vitals": "^3.5.2"
   },
   "devDependencies": {

@@ -8,8 +8,7 @@ const prisma = new PrismaClient();
 export const deleteMeeting = async (request: Request) => {
   try {
     const { mid } = await request.json()
-
-
+    
     await prisma.meeting.delete({
       where: {
         mid: mid,

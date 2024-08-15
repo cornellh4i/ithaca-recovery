@@ -12,7 +12,7 @@ export const DELETE = async (request: Request) => {
         email: email,
       },
     });
-    return NextResponse.json(deleteUser);;
+    return NextResponse.json(deleteUser);
   }
   catch (error) {
     console.error("Admin not found: ", error);

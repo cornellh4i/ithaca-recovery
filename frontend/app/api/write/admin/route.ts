@@ -1,19 +1,15 @@
 import { PrismaClient } from "@prisma/client";
 import { NextResponse } from "next/server";
+import { IAdmin } from "../../../../util/models";
 
 const prisma = new PrismaClient();
 
 export const POST = async (request: Request) => {
   try {
-    const { uid, name, email, privilegeMode } = await request.json();
+    const newAdmin = await request.json() as IAdmin;
 
     const createdUser = await prisma.admin.create({
-      data: {
-        uid: uid,
-        name: name,
-        email: email,
-        privilegeMode: privilegeMode
-      },
+      data: newAdmin
     });
 
     return NextResponse.json(createdUser);
