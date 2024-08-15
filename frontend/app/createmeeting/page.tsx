@@ -1,4 +1,5 @@
 "use client";
+
 import React, { useState } from "react";
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -11,11 +12,12 @@ import styles from "../../styles/CreateMeetingPage.module.scss";
 
 
 const CreateMeetingPage = () => {
+
   const [title, setTitle] = React.useState('');
-  const [value, setValue] = useState<Dayjs | null>(dayjs('2024-04-08'));
+  const [value, setValue] = useState<Dayjs | null>(dayjs('2024-08-24'));
   const [time, setTime] = useState<DateRange<Dayjs>>(() => [
-    dayjs('2024-04-08T15:30'),
-    dayjs('2024-04-08T18:30'),
+    dayjs('2024-08-24T15:30'),
+    dayjs('2024-08-24T18:30'),
   ]);
   const [meetingId, setMeetingId] = React.useState('');
   
@@ -56,7 +58,14 @@ const CreateMeetingPage = () => {
         },
         body: JSON.stringify(createZoomMeetingRequestBody()),
       });
-      console.log('Meeting created:', response);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const zoomResponse = await response.json();
+      console.log(zoomResponse);
+      alert("Zoom meeting created! Please check the console & the icr Zoom account.");
     } catch (error) {
       console.error('Error creating Zoom meeting:', error);
     }
@@ -76,7 +85,14 @@ const CreateMeetingPage = () => {
         },
         body: JSON.stringify(reqBody),
       });
-      console.log('Meeting updated:', response);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const zoomResponse = await response.json();
+      console.log(zoomResponse);
+      alert("Zoom meeting updated! Please check the console & the icr Zoom account.");
     } catch (error) {
       console.error('Error updating Zoom meeting:', error);
     }

@@ -194,8 +194,14 @@ const App = () => {
   const handleZoomToken = async () => {
     try {
       const response = await fetch('/api/zoom');
-      const data = await response.json();
-      console.log('Access Token:', data.access_token);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const zoomResponse = await response.json();
+      console.log(zoomResponse);
+      alert("Zoom token retrieved! Please check the console.");
     } catch (error) {
       console.error('Error generating Zoom token:', error);
     }

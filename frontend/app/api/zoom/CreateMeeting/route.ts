@@ -2,10 +2,7 @@ import axios from 'axios'
 import { NextResponse } from "next/server"
 import { NextApiRequest, NextApiResponse } from 'next/types'
 import { GET as getZoomToken }  from '../generateToken'
-import { PrismaClient } from "@prisma/client"
 import  { GET as getZoomMeeting }  from '../GetMeeting/route'
-
-const prisma = new PrismaClient()
 
 // function for POST request to create a zoom meeting
 const createZoomMeeting = async (req : Request, res : NextApiResponse) => {
@@ -30,7 +27,8 @@ const createZoomMeeting = async (req : Request, res : NextApiResponse) => {
     // call get function on the response we got
     const response = request.data;
     const {id : meetingId} = response;
-    const meetingDetails = await getZoomMeeting(meetingId, accessToken);
+    const meetingResponse = await getZoomMeeting(meetingId, accessToken);
+    const meetingDetails = await meetingResponse.json();
 
     return NextResponse.json(meetingDetails, { status: 200 });
   } catch (error) {

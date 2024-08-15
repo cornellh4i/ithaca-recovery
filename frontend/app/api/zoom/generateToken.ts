@@ -30,7 +30,7 @@ const generateZoomToken = async () => {
       }
     );
 
-    const response = await request.data;
+    const response = request.data;
     const zoomToken = response.access_token;
     return zoomToken;
   } catch (error) {
