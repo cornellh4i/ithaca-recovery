@@ -98,6 +98,29 @@ const CreateMeetingPage = () => {
     }
   }
 
+  const handleDeleteMeeting = async () => {
+    try {
+      const url = new URL('/api/zoom/DeleteMeeting', window.location.origin);
+      url.searchParams.append('id', meetingId);
+
+      const response = await fetch(url, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const zoomResponse = await response.json();
+      console.log(zoomResponse);
+      alert("Zoom meeting deleted! Please check the console & the icr Zoom account.");
+    } catch (error) {
+      console.error('Error updating Zoom meeting:', error);
+    }
+  }
 
   return (
     <div className={styles.base}>
@@ -137,6 +160,7 @@ const CreateMeetingPage = () => {
             }}
           />
           <button className={styles.btn} onClick={handleUpdateMeeting}>Update Meeting</button>
+          <button className={styles.btn} onClick={handleDeleteMeeting}>Delete Meeting</button>
         </div>
       </div>
     </div>

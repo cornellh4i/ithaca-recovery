@@ -8,7 +8,7 @@ import  { GET as getZoomMeeting }  from '../GetMeeting/route'
 const createZoomMeeting = async (req : Request, res : NextApiResponse) => {
   try {
     
-    const token = (await getZoomToken(req,res));
+    const token = await getZoomToken(req, res);
     const tokenJSON = await token.json();
     const accessToken = tokenJSON.access_token;
     const reqBody = await req.json();

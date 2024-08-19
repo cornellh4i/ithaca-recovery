@@ -1,10 +1,7 @@
 import axios from 'axios';
 import { NextResponse } from "next/server";
 import { NextApiRequest, NextApiResponse } from 'next/types';
-import { PrismaClient} from "@prisma/client";
 import qs from 'query-string';
-
-const prisma = new PrismaClient();
 
 // function to generate zoom access token 
 const generateZoomToken = async () => {
