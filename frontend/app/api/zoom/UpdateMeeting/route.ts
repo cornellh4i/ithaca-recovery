@@ -29,13 +29,13 @@ const updateZoomMeeting = async (req : Request, res : NextApiResponse) => {
 
     const response = request.data;
 
-    const meetingDetails = await getZoomMeeting(meetingId, accessToken);
+    const meetingResponse = await getZoomMeeting(meetingId, accessToken);
+    const meetingDetails = await meetingResponse.json()
     return NextResponse.json(meetingDetails, { status: 200 });
   } catch (error) {
     console.error(`Error updating Zoom meeting: for ${process.env.NEXT_PUBLIC_ZOOM1_EMAIL}`, error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
-
 }
 
 export { updateZoomMeeting as PATCH };

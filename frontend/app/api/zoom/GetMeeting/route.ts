@@ -2,9 +2,6 @@ import axios from 'axios'
 import { NextResponse } from "next/server"
 import { NextApiRequest, NextApiResponse } from 'next/types'
 import { GET } from '../generateToken'
-import { PrismaClient } from "@prisma/client"
-
-const prisma = new PrismaClient()
 
 // function for GET request for a meeting
 const getZoomMeeting = async (meetingId : string, accessToken : any) => {
