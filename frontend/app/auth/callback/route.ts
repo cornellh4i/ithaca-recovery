@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 
 export async function POST(request: NextRequest) {
     try {
-        const { account, returnTo } = await authProvider.handleAuthCodeCallback(
+        const { account, returnTo, code } = await authProvider.handleAuthCodeCallback(
             await request.formData()
         );
 
@@ -20,10 +20,13 @@ export async function POST(request: NextRequest) {
 
         session.set("homeAccountId", account.homeAccountId);
 
+        const sessionCookie = await commitSession(session);
+        const authCodeCookie = `authCode=${code}; Path=/; HttpOnly`;
+
         return NextResponse.redirect(returnTo, {
             status: 303,
             headers: {
-                "Set-Cookie": await commitSession(session),
+                "Set-Cookie": `${sessionCookie}, ${authCodeCookie}`,
             },
         });
     } catch (error) {

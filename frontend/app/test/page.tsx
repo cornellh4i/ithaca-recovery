@@ -217,8 +217,14 @@ const App = () => {
           'Content-Type': 'application/json'
         }
       });
-      const data = await response.json();
-      console.log('Access Token: ', data);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const graphResponse = await response.json();
+      console.log(graphResponse.value[0]);
+      alert(`Recovery organization group retrieved: ${graphResponse.value[0].mail}`);
     }
     catch (error) {
       console.error("Error fetching groups: ", error)
@@ -227,19 +233,31 @@ const App = () => {
 
   const getCalendars = async () => {
     try {
-      const groupId = "123";
+      /* Recovery Group ID */
+      const groupId = "ad5a4776-6e1e-41f3-8a1e-7d9737bff0d1";
+      // const groupId = "ad5a47766e1e41f38a1e7d9737bff0d1";
 
-      const groupCal = await fetch('/api/microsoft/calendars/getCalendars', {
-        method: "GET",
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          groupId
-        }),
-      });
-      const groupData = await groupCal.json();
-      console.log('Group calendar: ', groupData);
+      const url = new URL('/api/microsoft/calendars/getCalendars', window.location.origin);
+      url.searchParams.append('groupId', groupId);
+      const response = await fetch(url);
+
+      // const response = await fetch('/api/microsoft/calendars/getCalendars', {
+      //   method: "GET",
+      //   headers: {
+      //     'Content-Type': 'application/json'
+      //   },
+      //   body: JSON.stringify({
+      //     groupId
+      //   }),
+      // });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const graphResponse = await response.json();
+      console.log(graphResponse);
+      alert(`Calendar retrieved!`);
     }
     catch (error) {
       console.error("Error fetching group calendar: ", error)
@@ -266,8 +284,8 @@ const App = () => {
       </div>
       <div className={styles.section + ' ' + styles.meetings}>
         <h2>Microsoft Exchange Calendars</h2>
-        <TestButton testFunc={getGroups} text="Call get groups /api/groups/routes" />
-        <TestButton testFunc={getCalendars} text="Call get calendars /api/calender/getCalendars/routes" />
+        <TestButton testFunc={getGroups} text="Call get groups /api/microsoft/groups" />
+        <TestButton testFunc={getCalendars} text="Call get calendars /api/microsoft/calender/getCalendars" />
       </div>
     </div>
   );

@@ -68,6 +68,7 @@ import Navigation from "./components/navigation";
 import React from "react";
 import { Inter } from "next/font/google";
 import styles from "../styles/MainLayout.module.scss";
+import { getGridUtilityClass } from "@mui/material";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -85,7 +86,7 @@ export default async function RootLayout({ children }: PropsWithChildren) {
       <body className={inter.className}>
           <div className={styles.mainlayout}>
             <div className={styles.navigation}>
-              <Navigation account={account}/>
+              <Navigation account={account} />
             </div>
             {children}
           </div>

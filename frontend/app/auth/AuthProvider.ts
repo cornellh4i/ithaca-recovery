@@ -1,4 +1,5 @@
 import {
+    AccountInfo,
     AuthorizationCodePayload,
     AuthorizationCodeRequest,
     AuthorizationUrlRequest,
@@ -11,6 +12,7 @@ import {
     ResponseMode,
 } from "@azure/msal-node";
 import { cache } from "react";
+import { parseCookies } from 'nookies';
 
 export type PartitionManagerFactory = () => Promise<IPartitionManager>;
 
@@ -89,17 +91,22 @@ export class AuthProvider {
 
     async getAccessToken(): Promise<string> {
         try {
-            const account = await this.getAccount();
+            const { account, instance }  = await this.authenticate();
             if (!account) {
                 throw new Error('No account is signed in :(');
             }
 
+            const cookies = parseCookies();
+            const authCode = cookies.authCode;
+
             const silentTokenRequest = {
-                scopes: [`${process.env.NEXT_PUBLIC_GRAPH_API_ENDPOINT}Group.Read.All`, `${process.env.NEXT_PUBLIC_GRAPH_API_ENDPOINT}Calendars.Read`],
-                account: account
+                // scopes: [`${process.env.NEXT_PUBLIC_GRAPH_API_ENDPOINT}/Group.ReadWrite.All`, `${process.env.NEXT_PUBLIC_GRAPH_API_ENDPOINT}/Calendars.ReadWrite`],
+                scopes: [`${process.env.NEXT_PUBLIC_GRAPH_API_ENDPOINT}/.default`],
+                account: account,
+                grant_type: "authorization_code",
+                code: authCode
             };
 
-            const instance = await this.getInstance();
             const authResult = await instance.acquireTokenSilent(silentTokenRequest);
             return authResult.accessToken;
         } catch (error) {
@@ -134,6 +141,7 @@ export class AuthProvider {
         return {
             account: authResult.account,
             returnTo: state.returnTo,
+            code: payload.code
         };
     }
 
