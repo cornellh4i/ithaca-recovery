@@ -96,10 +96,11 @@ const App = () => {
         description: 'Meeting Description',
         creator: 'Creator',
         group: 'Group',
-        date: new Date(),
-        startTime: new Date(),
-        fromTime: new Date(),
+        startDateTime: new Date(),
+        endDateTime: new Date(),
         zoomAccount: 'Zoom Account',
+        type: "in-person",
+        room: "sunflower"
       };
       const response = await fetch('/api/write/meeting', {
         method: 'POST',
@@ -189,6 +190,81 @@ const App = () => {
     }
   };
 
+  const getMeetingsDay = async () => {
+    try {
+      const currentDate = new Date('2024-04-14');
+      const response = await fetch('/api/retrieve/meetings/day', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          date: currentDate.toISOString()
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const meetingResponse = await response.json();
+      console.log(meetingResponse);
+      alert(`Daily meetings retrieved successfully for ${currentDate.toISOString()}! Please check the console.`)
+    } catch (error) {
+      console.error('There was an error fetching the data:', error);
+    }
+  };
+
+  const getMeetingsWeek = async () => {
+    try {
+      const currentDate = new Date('2024-04-01');
+      const response = await fetch('/api/retrieve/meeting/week', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          date: currentDate.toISOString()
+        })
+      })
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const meetingResponse = await response.json();
+      console.log(meetingResponse);
+      alert(`Weekly meetings retrieved successfully for ${currentDate.toISOString()}! Please check the console.`);
+    } catch (error) {
+      console.error('There was an error fetching the data:', error);
+    }
+  };
+
+  const getMeetingsMonth = async () => {
+    try {
+      const currentDate = new Date('2024-04-14');
+      const response = await fetch('/api/retrieve/meeting/Week', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          date: currentDate.toISOString()
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const meetingResponse = await response.json();
+      console.log(meetingResponse);
+      alert(`Monthly meetings retrieved successfully for ${currentDate.toISOString()}! Please check the console.`);
+    } catch (error) {
+      console.error('There was an error fetching the data:', error);
+    }
+  };
+
   /** ZOOM TESTING FUNCTIONS */
 
   const handleZoomToken = async () => {
@@ -256,9 +332,13 @@ const App = () => {
       </div>
       <div className={styles.section + ' ' + styles.meetings}>
         <h2>Meetings</h2>
-        <TestButton testFunc={createMeeting} text="Call create Meeting /api/write/meeting" />
+        <TestButton testFunc={createMeeting} text="Call Create Meeting /api/write/meeting" />
         <TestButton testFunc={updateMeeting} text="Call Update meeting /api/update/meeting" />
         <TestButton testFunc={deleteMeeting} text="Call Delete meeting /api/delete/meeting" />
+
+        <TestButton testFunc={getMeetingsDay} text="Get Meetings (Day) /api/retrieve/meeting/day" />
+        <TestButton testFunc={getMeetingsWeek} text="Get Meetings (Week) /api/retrieve/meeting/week" />
+        <TestButton testFunc={getMeetingsMonth} text="Get Meetings (Month) /api/retrieve/meeting/month" />
       </div>
       <div className={styles.section + ' ' + styles.zoom}>
         <h2>Zoom Testing</h2>
