@@ -128,7 +128,7 @@ const App = () => {
   const deleteMeeting = async () => {
     try {
       /* Configure to be a real mid */
-      const mid = '96160';
+      const mid = "95992";
 
       const response = await fetch('/api/delete/meeting', {
         method: 'DELETE',
@@ -156,16 +156,17 @@ const App = () => {
   const updateMeeting = async () => {
     try {
       /* mid must correspond to a meeting existing in the collection */
-      const newMeeting = {
+      const newMeeting: IMeeting = {
         title: 'Meeting Title',
-        mid: '96160',
+        mid: '36650',
         description: 'Meeting Description',
         creator: 'Creator',
         group: 'Group',
-        date: new Date(),
-        startTime: new Date(),
-        fromTime: new Date(),
+        startDateTime: new Date(),
+        endDateTime: new Date(),
         zoomAccount: 'Zoom Account',
+        type: "in-person",
+        room: "sunflower"
       };
 
       const response = await fetch('/api/update/meeting', {
@@ -192,16 +193,11 @@ const App = () => {
 
   const getMeetingsDay = async () => {
     try {
-      const currentDate = new Date('2024-04-14');
-      const response = await fetch('/api/retrieve/meetings/day', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          date: currentDate.toISOString()
-        })
-      });
+      const currentDate = new Date('2024-09-10');
+
+      const url = new URL('/api/retrieve/meeting/day', window.location.origin);
+      url.searchParams.append('startDate', currentDate.toISOString());
+      const response = await fetch(url);
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -217,16 +213,11 @@ const App = () => {
 
   const getMeetingsWeek = async () => {
     try {
-      const currentDate = new Date('2024-04-01');
-      const response = await fetch('/api/retrieve/meeting/week', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          date: currentDate.toISOString()
-        })
-      })
+      const currentDate = new Date('2024-09-10');
+
+      const url = new URL('/api/retrieve/meeting/week', window.location.origin);
+      url.searchParams.append('startDate', currentDate.toISOString());
+      const response = await fetch(url);
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -242,16 +233,11 @@ const App = () => {
 
   const getMeetingsMonth = async () => {
     try {
-      const currentDate = new Date('2024-04-14');
-      const response = await fetch('/api/retrieve/meeting/Week', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          date: currentDate.toISOString()
-        })
-      });
+      const currentDate = new Date('2024-09-10');
+
+      const url = new URL('/api/retrieve/meeting/month', window.location.origin);
+      url.searchParams.append('startDate', currentDate.toISOString());
+      const response = await fetch(url);
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);

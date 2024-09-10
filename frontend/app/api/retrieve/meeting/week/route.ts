@@ -1,11 +1,12 @@
 import { PrismaClient } from '@prisma/client';
 import { IMeeting } from "../../../../../util/models";
+import { NextRequest } from 'next/server';
 
 const prisma = new PrismaClient();
 
-export const retrieveWeekMeetings = async (request: Request) => {
+export const retrieveWeekMeetings = async (request: NextRequest) => {
     try {
-        const { date } = await request.json();
+        const date = request.nextUrl.searchParams.get("startDate") ?? new Date().toISOString();
         const standardDate = new Date(date)
         const startDate = new Date(Date.UTC(standardDate.getUTCFullYear(), standardDate.getUTCMonth(), (standardDate.getUTCDate() - standardDate.getUTCDay())))
         const endDate = new Date(Date.UTC(standardDate.getUTCFullYear(), standardDate.getUTCMonth(), (standardDate.getUTCDate() + (6 - standardDate.getUTCDay())), 23, 59, 59, 999))

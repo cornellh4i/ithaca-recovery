@@ -16,9 +16,9 @@ interface IMeeting {
   group: string; // group interface later on
   startDateTime: Date;
   endDateTime: Date;
-  zoomAccount?: string;
-  zoomLink?: string;
-  zid?: string;
+  zoomAccount?: string | null;
+  zoomLink?: string | null;
+  zid?: string | null;
   type: string;
   room: string;
 }
