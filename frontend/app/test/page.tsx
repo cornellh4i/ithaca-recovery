@@ -96,10 +96,11 @@ const App = () => {
         description: 'Meeting Description',
         creator: 'Creator',
         group: 'Group',
-        date: new Date(),
-        startTime: new Date(),
-        fromTime: new Date(),
+        startDateTime: new Date(),
+        endDateTime: new Date(),
         zoomAccount: 'Zoom Account',
+        type: "in-person",
+        room: "sunflower"
       };
       const response = await fetch('/api/write/meeting', {
         method: 'POST',
@@ -127,7 +128,7 @@ const App = () => {
   const deleteMeeting = async () => {
     try {
       /* Configure to be a real mid */
-      const mid = '96160';
+      const mid = "95992";
 
       const response = await fetch('/api/delete/meeting', {
         method: 'DELETE',
@@ -155,16 +156,17 @@ const App = () => {
   const updateMeeting = async () => {
     try {
       /* mid must correspond to a meeting existing in the collection */
-      const newMeeting = {
+      const newMeeting: IMeeting = {
         title: 'Meeting Title',
-        mid: '96160',
+        mid: '36650',
         description: 'Meeting Description',
         creator: 'Creator',
         group: 'Group',
-        date: new Date(),
-        startTime: new Date(),
-        fromTime: new Date(),
+        startDateTime: new Date(),
+        endDateTime: new Date(),
         zoomAccount: 'Zoom Account',
+        type: "in-person",
+        room: "sunflower"
       };
 
       const response = await fetch('/api/update/meeting', {
@@ -184,6 +186,66 @@ const App = () => {
       const meetingResponse = await response.json();
       console.log(meetingResponse);
       alert("Meeting updated successfully! Please check the Meeting collection on MongoDB.")
+    } catch (error) {
+      console.error('There was an error fetching the data:', error);
+    }
+  };
+
+  const getMeetingsDay = async () => {
+    try {
+      const currentDate = new Date('2024-09-10');
+
+      const url = new URL('/api/retrieve/meeting/day', window.location.origin);
+      url.searchParams.append('startDate', currentDate.toISOString());
+      const response = await fetch(url);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const meetingResponse = await response.json();
+      console.log(meetingResponse);
+      alert(`Daily meetings retrieved successfully for ${currentDate.toISOString()}! Please check the console.`)
+    } catch (error) {
+      console.error('There was an error fetching the data:', error);
+    }
+  };
+
+  const getMeetingsWeek = async () => {
+    try {
+      const currentDate = new Date('2024-09-10');
+
+      const url = new URL('/api/retrieve/meeting/week', window.location.origin);
+      url.searchParams.append('startDate', currentDate.toISOString());
+      const response = await fetch(url);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const meetingResponse = await response.json();
+      console.log(meetingResponse);
+      alert(`Weekly meetings retrieved successfully for ${currentDate.toISOString()}! Please check the console.`);
+    } catch (error) {
+      console.error('There was an error fetching the data:', error);
+    }
+  };
+
+  const getMeetingsMonth = async () => {
+    try {
+      const currentDate = new Date('2024-09-10');
+
+      const url = new URL('/api/retrieve/meeting/month', window.location.origin);
+      url.searchParams.append('startDate', currentDate.toISOString());
+      const response = await fetch(url);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const meetingResponse = await response.json();
+      console.log(meetingResponse);
+      alert(`Monthly meetings retrieved successfully for ${currentDate.toISOString()}! Please check the console.`);
     } catch (error) {
       console.error('There was an error fetching the data:', error);
     }
@@ -256,9 +318,13 @@ const App = () => {
       </div>
       <div className={styles.section + ' ' + styles.meetings}>
         <h2>Meetings</h2>
-        <TestButton testFunc={createMeeting} text="Call create Meeting /api/write/meeting" />
+        <TestButton testFunc={createMeeting} text="Call Create Meeting /api/write/meeting" />
         <TestButton testFunc={updateMeeting} text="Call Update meeting /api/update/meeting" />
         <TestButton testFunc={deleteMeeting} text="Call Delete meeting /api/delete/meeting" />
+
+        <TestButton testFunc={getMeetingsDay} text="Get Meetings (Day) /api/retrieve/meeting/day" />
+        <TestButton testFunc={getMeetingsWeek} text="Get Meetings (Week) /api/retrieve/meeting/week" />
+        <TestButton testFunc={getMeetingsMonth} text="Get Meetings (Month) /api/retrieve/meeting/month" />
       </div>
       <div className={styles.section + ' ' + styles.zoom}>
         <h2>Zoom Testing</h2>
