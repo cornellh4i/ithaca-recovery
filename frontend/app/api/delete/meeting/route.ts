@@ -3,7 +3,7 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-export const deleteMeeting = async (request: Request) => {
+const deleteMeeting = async (request: Request) => {
   try {
     const { mid } = await request.json()
     
