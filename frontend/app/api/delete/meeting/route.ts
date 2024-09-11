@@ -1,9 +1,7 @@
 import { IMeeting } from "../../../../util/models";
 import { PrismaClient } from '@prisma/client';
 
-
 const prisma = new PrismaClient();
-
 
 export const deleteMeeting = async (request: Request) => {
   try {
@@ -30,7 +28,5 @@ export const deleteMeeting = async (request: Request) => {
     });
   }
 }
-
-
 
 export { deleteMeeting as DELETE }
