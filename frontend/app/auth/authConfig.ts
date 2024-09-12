@@ -53,4 +53,4 @@ export const authCallbackUri =
 
 export const sessionSecret = process.env.SESSION_SECRET!;
 
-export const redisUrl = process.env.REDIS_URL;
+export const redisUrl = process.env.NEXT_PUBLIC_REDIS_URL;
