@@ -1,13 +1,13 @@
 import axios from 'axios'
 import { NextResponse } from "next/server"
 import { NextApiRequest, NextApiResponse } from 'next/types'
-import { GET as getZoomToken }  from '../generateToken'
-import getZoomMeeting from '../GetMeeting/route'
+import { GET as getZoomToken } from '../generateToken'
+import getZoomMeeting from '../GetMeeting/asyncFunction'
 
 // function for POST request to create a zoom meeting
-const createZoomMeeting = async (req : Request, res : NextApiResponse) => {
+const createZoomMeeting = async (req: Request, res: NextApiResponse) => {
   try {
-    
+
     const token = await getZoomToken(req, res);
     const tokenJSON = await token.json();
     const accessToken = tokenJSON.access_token;
@@ -26,7 +26,7 @@ const createZoomMeeting = async (req : Request, res : NextApiResponse) => {
 
     // call get function on the response we got
     const response = request.data;
-    const {id : meetingId} = response;
+    const { id: meetingId } = response;
     return await getZoomMeeting(meetingId, accessToken);
   } catch (error) {
     console.error(`Error creating Zoom meeting: for ${process.env.NEXT_PUBLIC_ZOOM1_EMAIL}`, error);
@@ -34,4 +34,4 @@ const createZoomMeeting = async (req : Request, res : NextApiResponse) => {
   }
 }
 
-export { createZoomMeeting as POST};
+export { createZoomMeeting as POST };

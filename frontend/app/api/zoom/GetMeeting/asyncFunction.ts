@@ -1,6 +1,5 @@
 import axios from 'axios'
 import { NextResponse } from "next/server"
-import { GET } from '../generateToken'
 
 // function for GET request for a meeting
 const getZoomMeeting = async (meetingId : string, accessToken : any) => {
