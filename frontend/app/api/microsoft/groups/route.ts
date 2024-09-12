@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { authProvider } from "../../../../services/auth";
 import getAccessToken from '../AccessToken';
 

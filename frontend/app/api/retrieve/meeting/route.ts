@@ -1,9 +1,7 @@
 import { IMeeting } from "../../../../util/models";
 import { PrismaClient } from '@prisma/client';
 
-
 const prisma = new PrismaClient();
-
 
 const retrieveMeetings = async (request: Request) => {
   try {
