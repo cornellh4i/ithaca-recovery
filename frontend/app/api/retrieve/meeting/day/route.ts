@@ -5,7 +5,7 @@ import { NextRequest } from 'next/server';
 
 const prisma = new PrismaClient();
 
-export const retrieveDayMeetings = async (request: NextRequest) => {
+const retrieveDayMeetings = async (request: NextRequest) => {
     try {
         const date = request.nextUrl.searchParams.get("startDate") ?? new Date().toISOString();
         const standardDate = new Date(date);
