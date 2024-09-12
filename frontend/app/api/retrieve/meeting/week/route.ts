@@ -1,4 +1,4 @@
-export const dynamic = 'force-dynamic';
+// export const dynamic = 'force-dynamic';
 import { PrismaClient } from '@prisma/client';
 import { IMeeting } from "../../../../../util/models";
 import { NextRequest } from 'next/server';
