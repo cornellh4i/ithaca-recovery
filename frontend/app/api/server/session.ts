@@ -2,7 +2,6 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import { cookies } from 'next/headers';
 
 export default function handler(req: NextApiRequest, res: NextApiResponse) {
-    console.log("here")
     const sessionCookie = cookies().get('__session');
     const val = sessionCookie?.value
     console.log(val); 
