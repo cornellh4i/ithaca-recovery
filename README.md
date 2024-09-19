@@ -56,12 +56,11 @@ This project aims to develop internal tooling and automation to streamline ICR's
 > Folder structure 
 
     .
-    ├── backend       
-    ├── frontend      # Next.js client
+    ├── frontend      # Next.js App Router (leveraging server and client sided environments)
     └── README.md
 
 ### Prerequisites
-* Docker
+* Redis
 
 ### Installation
 
@@ -79,6 +78,19 @@ This project aims to develop internal tooling and automation to streamline ICR's
 > Note: See individual project files for more information on how to build and deploy the project.
 
 <!-- Developers -->
+<details>
+  <summary>Fall 2024 Developers</summary>
+
+  - Tech Leads: Owen Chen & Tuni Le
+  - Sophie L Wang
+  - Leane Ying
+  - Phoebe Qian
+  - Brandon Lerit
+  - Alisha Varma
+  - Tanvi Mavani
+  - Sophie Strausberg 
+</details>
+
 <details>
   <summary>Spring 2024 Developers</summary>
 
