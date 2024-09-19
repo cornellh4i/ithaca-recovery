@@ -1,7 +1,5 @@
 import axios from 'axios'
 import { NextResponse } from "next/server"
-import { NextApiRequest, NextApiResponse } from 'next/types'
-import { GET } from '../generateToken'
 
 // function for GET request for a meeting
 const getZoomMeeting = async (meetingId : string, accessToken : any) => {
@@ -25,4 +23,4 @@ const getZoomMeeting = async (meetingId : string, accessToken : any) => {
   }
 }
 
-export { getZoomMeeting as GET };
+export default getZoomMeeting;

@@ -1,16 +1,22 @@
-import { NextApiRequest, NextApiResponse } from 'next';
+export const dynamic = 'force-dynamic';
 import { authProvider } from "../../../../../services/auth";
 import getAccessToken from "../../AccessToken";
 
-const getCalendars = async (req: NextApiRequest, res: NextApiResponse) => {
+const getCalendars = async (req: Request) => {
   try {
     const accessToken = await getAccessToken();
     if (accessToken === null) {
-      console.log("Unable to retrieve access token, please try again.")
-      return;
+      console.log("Unable to retrieve access token, please try again.");
+      return new Response(
+        JSON.stringify({ error: "Unable to retrieve access token" }),
+        {
+          status: 500,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
     }
 
-    const { groupId } = req.body;
+    const { groupId } = await req.json();
     const endpoint = `${process.env.NEXT_PUBLIC_GRAPH_API_ENDPOINT}/groups/${groupId}/calendar`;
     const headers = {
       'Authorization': `Bearer ${accessToken}`,
@@ -20,14 +26,26 @@ const getCalendars = async (req: NextApiRequest, res: NextApiResponse) => {
       method: 'GET',
       headers: headers
     });
+
     if (!response.ok) {
       throw new Error('Error fetching calendar');
     }
+
     const data = await response.json();
-    res.status(200).json(data);
+    return new Response(JSON.stringify(data), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
+
   } catch (error) {
     console.error('Error fetching calendar:', error);
-    res.status(500).json({ error: 'Error fetching calendar' });
+    return new Response(
+      JSON.stringify({ error: 'Error fetching calendar' }),
+      {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      }
+    );
   }
 }
 

@@ -4,9 +4,9 @@ import "server-only";
 
 export const msalConfig: Configuration = {
     auth: {
-        clientId: process.env.NEXT_PUBLIC_CLIENT_ID || '',
-        authority: `${process.env.NEXT_PUBLIC_CLOUD_INSTANCE || ''}${process.env.NEXT_PUBLIC_TENANT_ID || ''}`,
-        clientSecret: process.env.NEXT_PUBLIC_CLIENT_SECRET || '',
+        clientId: process.env.CLIENT_ID || '',
+        authority: `${process.env.CLOUD_INSTANCE || ''}${process.env.TENANT_ID || ''}`,
+        clientSecret: process.env.CLIENT_SECRET || '',
     },
     system: {
         loggerOptions: {
@@ -48,9 +48,8 @@ export const graphConfig = {
     graphMeEndpoint: "https://graph.microsoft.com/v1.0/me"
 };
 
-export const authCallbackUri =
-    process.env.AUTH_CALLBACK_URI ?? "http://localhost:3000/auth/callback";
+export const authCallbackUri = process.env.NEXT_PUBLIC_AUTH_CALLBACK_URI || '';
 
 export const sessionSecret = process.env.SESSION_SECRET!;
 
-export const redisUrl = process.env.REDIS_URL;
+export const redisUrl = process.env.NEXT_PUBLIC_REDIS_URL;

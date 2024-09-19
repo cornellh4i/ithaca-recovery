@@ -1,11 +1,9 @@
 import { IMeeting } from "../../../../util/models";
 import { PrismaClient } from '@prisma/client';
 
-
 const prisma = new PrismaClient();
 
-
-export const retrieveMeetings = async (request: Request) => {
+const retrieveMeetings = async (request: Request) => {
   try {
     const meetings = await prisma.meeting.findMany();
     const typedMeetings: IMeeting[] = meetings.map(meeting => ({ ...meeting }))

@@ -1,10 +1,11 @@
+export const dynamic = 'force-dynamic';
 import { PrismaClient } from '@prisma/client';
 import { IMeeting } from "../../../../../util/models";
 import { NextRequest } from 'next/server';
 
 const prisma = new PrismaClient();
 
-export const retrieveMonthMeetings = async (request: NextRequest) => {
+const retrieveMonthMeetings = async (request: NextRequest) => {
     try {
         const date = request.nextUrl.searchParams.get("startDate") ?? new Date().toISOString();
         const standardDate = new Date(date);

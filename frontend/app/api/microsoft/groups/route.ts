@@ -1,8 +1,8 @@
-import { NextApiRequest, NextApiResponse } from 'next';
+export const dynamic = 'force-dynamic';
 import { authProvider } from "../../../../services/auth";
 import getAccessToken from '../AccessToken';
 
-const getGroups = async (req: NextApiRequest, res: NextApiResponse) => {
+const getGroups = async (req: Request) => {
   try {
     const accessToken = await getAccessToken();
     if (accessToken === null) {
@@ -15,18 +15,31 @@ const getGroups = async (req: NextApiRequest, res: NextApiResponse) => {
       'Authorization': `Bearer ${accessToken}`,
       'Content-Type': 'application/json'
     };
+
     const response = await fetch(endpoint, {
       method: 'GET',
       headers: headers
     });
+
     if (!response.ok) {
-      throw new Error('Error');
+      throw new Error('Error fetching groups');
     }
+
     const data = await response.json();
-    res.status(200).json(data);
+    return new Response(JSON.stringify(data), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
+
   } catch (error) {
     console.error('Error fetching groups:', error);
-    res.status(500).json({ error: 'Error' });
+    return new Response(
+      JSON.stringify({ error: 'Error fetching groups' }),
+      {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      }
+    );
   }
 }
 
