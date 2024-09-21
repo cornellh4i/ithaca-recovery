@@ -6,7 +6,7 @@
     <img src="https://www.ithacacommunityrecovery.org/wp-content/uploads/cropped-new_logo_4.png" alt="Logo" width="120" height="120">
   </a>
 
-<h3>Ithaca Community Resource</h3>
+<h3>Ithaca Community Recovery</h3>
 
   <p >
     Ithaca Community Recovery is a non-profit organization working to serve as a community resource for members of 12 Step and other recovery-oriented groups. They offer safe and affordable event and meeting spaces for recoverers of addiction.
@@ -16,31 +16,37 @@
 
 
 
-<!-- TABLE OF CONTENTS -->
-<details>
-  <summary>Table of Contents</summary>
-  <ol>
+<!-- TABLE OF CONTENTS --> 
+<details open="open"> 
+  <summary>Table of Contents</summary> 
+  <ol> 
+    <li> 
+      <a href="#about-the-project">About The Project</a> 
+      <ul> 
+        <li>
+          <a href="#built-with">Built With</a>
+        </li> 
+      </ul> 
+    </li> 
     <li>
-      <a href="#about-the-project">About The Project</a>
-      <ul>
-        <li><a href="#built-with">Built With</a></li>
-      </ul>
-    </li>
+      <a href="#documents">Documents</a>
+    </li> 
     <li>
-      <a href="#getting-started">Getting Started</a>
-      <ul>
-        <li><a href="#prerequisites">Prerequisites</a></li>
-        <li><a href="#installation">Installation</a></li>
-      </ul>
-    </li>
-  </ol>
+      <a href="#project-structure">Project Structure</a>
+    </li> 
+    <li>
+      <a href="#prerequisites">Prerequisites</a>
+    </li> 
+    <li>
+      <a href="#developers">Developers</a> 
+    </li> 
+  </ol> 
 </details>
-
 
 
 <!-- ABOUT THE PROJECT -->
 ## About The Project
-This project aims to develop internal tooling and automation to streamline ICR's signup, outreach, and event setup process.
+This project aims to develop internal tooling and automation to streamline ICR's event & meeting setup process.
 
 ### Built With
 
@@ -49,9 +55,13 @@ This project aims to develop internal tooling and automation to streamline ICR's
 * ![MongoDB](https://img.shields.io/badge/MongoDB-%234ea94b.svg?style=for-the-badge&logo=mongodb&logoColor=white)
 * ![Vercel](https://img.shields.io/badge/vercel-%23000000.svg?style=for-the-badge&logo=vercel&logoColor=white)
 
-<!-- GETTING STARTED -->
-## Getting Started
+<!-- Setup -->
+## Documents
+[ICR Development Setup](https://docs.google.com/document/d/1bucVpOUzu9ySimDKaqEE1Pol_J8ZBy5BoTddIoZb8EY/edit)
+<br><br>
+[ICR Tech Spec](https://docs.google.com/document/d/1reZL2JN5EETC5tPHWooDAVCn5CvzYXGyiyf_3lPw-HM/edit)
 
+### Project Structure
 
 > Folder structure 
 
@@ -60,24 +70,12 @@ This project aims to develop internal tooling and automation to streamline ICR's
     └── README.md
 
 ### Prerequisites
+* Yarn
 * Redis
-
-### Installation
-
-1. Clone the repo
-   ```sh
-   git clone git@github.com:cornellh4i/ithaca-recovery.git
-   ```
-2. Start the client
-   ```sh
-   cd frontend
-   yarn install
-   yarn run dev
-   ```
-
-> Note: See individual project files for more information on how to build and deploy the project.
+* MongoDB Compass (Recommended)
 
 <!-- Developers -->
+## Developers
 <details>
   <summary>Fall 2024 Developers</summary>
 
