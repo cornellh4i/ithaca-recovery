@@ -9,13 +9,42 @@ import TestButton from "../components/Test/TestButton"
 const App = () => {
 
   /** ADMIN TESTING FUNCTIONS  */
+  const updateAdmin = async () => {
+    try {
+      const newAdmin: IAdmin = { 
+        uid: `hr392fb93bf932f`, // Most likely will be Microsoft ID
+        name: "Phoebe Qian", 
+        email: "pq29@cornell.edu"
+      }
+
+      const response = await fetch('/api/update/admin', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(
+          newAdmin
+        ),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const adminResponse = await response.json();
+      console.log(adminResponse);
+      alert("Admin updated successfully! Please check the Admin collection on MongoDB.")
+    } catch (error) {
+      console.error('There was an error updating the data:', error);
+    }
+  };
 
   const createAdmin = async () => {
     try {
       const newAdmin: IAdmin = { 
         uid: `${Math.floor(Math.random() * 100000) + 1}`, // Most likely will be Microsoft ID
-        name: "Joseph Ugarte", 
-        email: "jeu9@cornell.edu"
+        name: "Phoebe Qian 2", 
+        email: "178@cornell.edu"
       }
 
       const response = await fetch('/api/write/admin', {
@@ -312,6 +341,7 @@ const App = () => {
     <div className={styles['apicontainer']}>
       <div className={styles.section}>
         <h2>Admins</h2>
+        <TestButton testFunc={updateAdmin} text="Call create admin put /api/update/admin"/>
         <TestButton testFunc={createAdmin} text="Call create admin post /api/write/admin"/>
         <TestButton testFunc={getAdmin} text="Call get admin /api/retrieve/admin" />
         <TestButton testFunc={deleteAdmin} text="Call delete admin /api/delete/admin" />
