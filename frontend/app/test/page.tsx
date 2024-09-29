@@ -12,9 +12,9 @@ const App = () => {
 
   const createAdmin = async () => {
     try {
-      const newAdmin: IAdmin = { 
+      const newAdmin: IAdmin = {
         uid: `${Math.floor(Math.random() * 100000) + 1}`, // Most likely will be Microsoft ID
-        name: "Joseph Ugarte", 
+        name: "Joseph Ugarte",
         email: "jeu9@cornell.edu"
       }
 
@@ -55,6 +55,37 @@ const App = () => {
       const adminResponse = await response.json();
       console.log(adminResponse);
       alert("Admin retrieved successfully! Please check the Admin collection on MongoDB.")
+    } catch (error) {
+      console.error('There was an error fetching the data:', error);
+    }
+  };
+
+  const updateAdmin = async () => {
+    try {
+      /* uid must correspond to an admin existing in the collection */
+      const updatedAdmin: IAdmin = {
+        uid: "72638",
+        name: "Sophie Wang",
+        email: "slw284@cornell.edu"
+      };
+
+      const response = await fetch('/api/update/admin', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(
+          updatedAdmin
+        ),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const adminResponse = await response.json();
+      console.log(adminResponse);
+      alert("Admin updated successfully! Please check the Admin collection on MongoDB.")
     } catch (error) {
       console.error('There was an error fetching the data:', error);
     }
@@ -115,7 +146,7 @@ const App = () => {
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-     
+
       const meetingResponse = await response.json();
       console.log(meetingResponse);
       alert("Meeting created successfully! Please check the Meeting collection on MongoDB.")
@@ -178,7 +209,7 @@ const App = () => {
           newMeeting
         ),
       });
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -218,7 +249,7 @@ const App = () => {
       const url = new URL('/api/retrieve/meeting/week', window.location.origin);
       url.searchParams.append('startDate', currentDate.toISOString());
       const response = await fetch(url);
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -256,7 +287,7 @@ const App = () => {
   const handleZoomToken = async () => {
     try {
       const response = await fetch('/api/zoom');
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -312,8 +343,9 @@ const App = () => {
     <div className={styles['apicontainer']}>
       <div className={styles.section}>
         <h2>Admins</h2>
-        <TestButton testFunc={createAdmin} text="Call create admin post /api/write/admin"/>
+        <TestButton testFunc={createAdmin} text="Call create admin post /api/write/admin" />
         <TestButton testFunc={getAdmin} text="Call get admin /api/retrieve/admin" />
+        <TestButton testFunc={updateAdmin} text="Call update admin /api/update/admin" />
         <TestButton testFunc={deleteAdmin} text="Call delete admin /api/delete/admin" />
       </div>
       <div className={styles.section + ' ' + styles.meetings}>
