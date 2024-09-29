@@ -14,7 +14,7 @@ const handleClick = () => {
 const About = () => {
   return (
     <>
-      <Button />
+      <Button text="hello" />
       Hello there
       <button onClick={handleClick}>cat fact</button>
     </>
