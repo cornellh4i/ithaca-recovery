@@ -5,7 +5,9 @@ import { IAdmin, IUser } from '../../util/models'
 import { IMeeting } from '../../util/models'
 import styles from "../../styles/TestPage.module.scss";
 import TestButton from "../components/Test/TestButton"
-
+import TextButton from "../components/atoms/textbutton/index"
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faPlus } from '@fortawesome/free-solid-svg-icons';
 const App = () => {
 
   /** ADMIN TESTING FUNCTIONS  */
@@ -318,7 +320,7 @@ const App = () => {
       </div>
       <div className={styles.section + ' ' + styles.meetings}>
         <h2>Meetings</h2>
-        <TestButton testFunc={createMeeting} text="Call Create Meeting /api/write/meeting" />
+        <TextButton onClick={createMeeting} label="New Meeting " icon={<FontAwesomeIcon icon={faPlus} />}/>
         <TestButton testFunc={updateMeeting} text="Call Update meeting /api/update/meeting" />
         <TestButton testFunc={deleteMeeting} text="Call Delete meeting /api/delete/meeting" />
 
