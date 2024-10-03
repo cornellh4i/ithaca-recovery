@@ -1,0 +1,28 @@
+.dropdown {
+    position: relative; /* Relative to its containing element */
+    top: 0; /* Dropdown appears directly below the button */
+    background-color: white;
+    border: 1px solid #ccc;
+    width: 200px; /* Adjust width if necessary */
+    // margin-top: 2px; /* Adds some space between button and dropdown */
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2); /* Adds some visual depth */
+}
+
+.noBorder {
+    border: none; /* Removes border when dropdown is active */
+}
+
+.dropdown ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.dropdown li {
+    padding: 8px 12px;
+    cursor: pointer;
+}
+
+.dropdown li:hover {
+    background-color: #f0f0f0;
+}
