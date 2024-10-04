@@ -1,0 +1,52 @@
+.uploadwrapper {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+  }
+  
+  .uploaddroparea {
+    width: 95%;
+    height: 200px;
+    border: 2px dashed gray;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    text-align: center;
+  }
+  
+  .uploadplaceholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    color: #555;
+    margin-bottom: -25px;
+
+  
+    .uploadbutton {
+      color: rgb(57, 48, 48);
+      border-radius: 5px;
+      cursor: pointer;
+      margin-top: 10px;
+      scale: 4;
+      color: gray;
+      margin-bottom: 25px;
+    }
+  
+    .fileinput {
+      display: none;
+    }
+
+    .underline {
+        text-decoration: underline;
+    }
+  }
+  
+  .uploadfileinfo {
+    p {
+      font-size: 16px;
+      color: #333;
+    }
+}
+  
