@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import "../styles/globals.css";
 import { AuthenticatedTemplate, UnauthenticatedTemplate, useMsal, useMsalAuthentication } from '@azure/msal-react';
 import { InteractionType } from '@azure/msal-browser';
 import { authProvider } from "../services/auth";
