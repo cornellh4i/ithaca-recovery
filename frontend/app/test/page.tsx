@@ -6,7 +6,6 @@ import { IMeeting } from '../../util/models'
 import styles from "../../styles/TestPage.module.scss";
 import TestButton from "../components/Test/TestButton"
 import BoxText from "../components/atoms/BoxText"
-import "../../styles/globals.css";
 
 const App = () => {
 
