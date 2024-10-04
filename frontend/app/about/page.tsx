@@ -4,10 +4,7 @@ import Button from "../components/button";
 /** An About page */
 const About = () => {
   return (
-    <>
-      <Button />
-      Hello there
-    </>
+    <Button text="hello" />
   );
 };
 
