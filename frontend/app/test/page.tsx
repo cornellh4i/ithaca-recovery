@@ -337,7 +337,25 @@ const App = () => {
         <TestButton testFunc={getCalendars} text="Call get calendars /api/calender/getCalendars/routes" />
       </div>
 
-      <BoxText boxType='Room Block' title="hello" bgColor="bg-pink" />
+      <div className="container">
+        <div className="meeting-blocks">
+          <BoxText boxType="Meeting Block" title="Meeting Name" bgColor="#a4d3ae" time="9am-10am" tags={['Hybrid', 'AA']} />
+          <BoxText boxType="Meeting Block" title="Meeting Name" bgColor="#a4d3d3" time="9am-10am" tags={['Hybrid', 'AA']} />
+          <BoxText boxType="Meeting Block" title="Meeting Name" bgColor="#f9c9a4" time="9am-10am" tags={['Hybrid', 'AA']} />
+          <BoxText boxType="Meeting Block" title="Meeting Name" bgColor="#e4a4d3" time="9am-10am" tags={['Hybrid', 'AA']} />
+          <BoxText boxType="Meeting Block" title="Meeting Name" bgColor="#e6e6e6" time="9am-10am" tags={['Hybrid', 'AA']} />
+        </div>
+
+        <div className="room-blocks">
+          <BoxText boxType="Room Block" title="Serenity Room" bgColor="#a4d3ae" />
+          <BoxText boxType="Room Block" title="Seeds of Hope" bgColor="#ffe0a4" />
+          <BoxText boxType="Room Block" title="Small but Powerful - Left" bgColor="#e4a4d3" />
+          <BoxText boxType="Room Block" title="Unity Room" bgColor="#b3d1ff" />
+          <BoxText boxType="Room Block" title="Room for Improvement" bgColor="#f9c9a4" />
+          <BoxText boxType="Room Block" title="Zoom Account" bgColor="#e6e6e6" />
+        </div>
+      </div>
+
 
     </div>
   );

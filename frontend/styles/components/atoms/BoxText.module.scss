@@ -1,0 +1,54 @@
+.box {
+  border-radius: 5px;
+  padding: 25px;
+  margin: 25px; // Added margin to all boxes for spacing
+  display: flex;
+  flex-direction: column;
+
+  justify-content: space-between;
+  text-align: left;
+  color: #000;
+
+  &.meeting {
+    width: 220px;
+    height: 130px;
+    border-left: 10px solid rgba(0, 0, 0, 0.2);
+  }
+
+  &.room {
+    width: 240px;
+    height: 150px; // Adjusted the height to make them taller (three lines)
+    flex-shrink: 0; // Prevent shrinking
+    flex-grow: 0; // Prevent growing
+  }
+
+  .time {
+    font-size: 1.0rem;
+    padding: 0px;
+    margin-top: 0px;
+    color: #444
+  }
+
+  .title {
+    font-size: 1.3rem;
+    padding: 0px;
+    margin-bottom: 0px;
+    font-weight: bold;
+    word-wrap: break-word; // Ensures text wraps to three lines
+  }
+
+  .tags {
+    display: flex;
+    gap: 5px;
+    flex-wrap: wrap;
+
+    .tag {
+      background-color: rgba(0, 0, 0, 0.2);
+      padding: 5px 10px;
+      border-radius: 15px;
+      font-size: 0.8rem;
+
+    }
+
+  }
+}
