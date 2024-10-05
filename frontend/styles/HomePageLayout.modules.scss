@@ -1,0 +1,16 @@
+.container {
+  display: flex;
+  height: 100vh; 
+}
+
+.sidebar {
+  width: 250px;
+  background-color: #f4f4f4; 
+  padding: 20px;
+}
+
+.primaryCalendar {
+  flex: 1; 
+  background-color: #ffffff; 
+  padding: 20px;
+}
