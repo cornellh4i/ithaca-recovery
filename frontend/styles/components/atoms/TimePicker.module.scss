@@ -1,0 +1,61 @@
+.time-picker-wrapper {
+  display: flex;
+  align-items: center;
+  margin-bottom: 15px;
+
+  .time-picker-label {
+    margin-right: 10px;
+    display: flex;
+    align-items: center;
+    font-size: 16px;
+
+    svg {
+      margin-right: 5px;
+      width: 20px;
+      height: 20px;
+      fill: #555;
+    }
+  }
+
+  .time-picker-input {
+    padding: 5px;
+    font-size: 16px;
+    border: none; // Remove the border
+    outline: none; // Remove the focus outline
+    width: 90px;
+    background-color: transparent; // Transparent background
+
+    /* Hide the time picker icon */
+    &::-webkit-calendar-picker-indicator {
+      display: none;
+      -webkit-appearance: none;
+    }
+
+    &::-moz-calendar-picker-indicator {
+      display: none;
+    }
+
+    &::-ms-expand {
+      display: none;
+    }
+
+    &:focus {
+      border: none; // No border on focus
+      outline: none; // No outline on focus
+    }
+
+    appearance: none; // Ensure the time picker icon doesn't appear
+  }
+
+  .time-range-separator {
+    margin: 0 20px; // Increase spacing between the two inputs
+    font-size: 16px;
+    color: #333;
+  }
+
+  .error-message {
+    color: red;
+    margin-top: 5px;
+    font-size: 14px;
+  }
+}

@@ -1,0 +1,55 @@
+.date-picker-wrapper {
+  display: flex;
+  align-items: center;
+  margin-bottom: 15px;
+
+  .date-picker-label {
+    margin-right: 10px;
+    display: flex;
+    align-items: center;
+    font-size: 16px;
+
+    svg {
+      margin-right: 5px;
+      width: 20px;
+      height: 20px;
+      fill: #555;
+    }
+  }
+
+  .date-picker-input {
+    padding: 5px;
+    font-size: 16px;
+    border: none; // Remove border
+    outline: none; // Remove focus outline
+    width: 200px;
+    background-color: transparent; // Transparent background
+
+    &:focus {
+      border: none; // Ensure no border appears on focus
+      outline: none;
+    }
+
+    /* Hide the calendar icon for WebKit browsers (Chrome, Safari, etc.) */
+    &::-webkit-calendar-picker-indicator {
+      display: none;
+      -webkit-appearance: none;
+    }
+
+    /* Hide the calendar icon for Firefox */
+    &::-moz-calendar-picker-indicator {
+      display: none;
+    }
+
+    /* Hide the calendar icon for Internet Explorer and Edge */
+    &::-ms-expand {
+      display: none;
+    }
+  }
+
+  .error-message {
+    color: red;
+    margin-left: 10px; // Keep error message to the right of the input
+    font-size: 14px;
+  }
+}
