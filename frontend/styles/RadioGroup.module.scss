@@ -1,0 +1,36 @@
+@import 'Variables.module.scss';
+
+.radioGroupContainer {
+    display: flex;
+    flex-direction: column;
+    font-family: 'Source Sans Pro', sans-serif;
+    font-size: 20px;
+
+    .radioGroupLabel {
+        margin-bottom: 8px;
+        color: #1E1E1E;
+    }
+
+    .radioGroupOptions {
+        display: flex;
+        flex-direction: column;
+
+        .radioOption {
+            margin-bottom: 4px;
+            accent-color: $pink-color;
+            cursor: pointer;
+
+            input[type="radio"] {
+                margin-right: 15px;
+                cursor: pointer;
+                transform: scale(1.5);
+            }
+
+            // Style for disabled option
+            input[type="radio"]:disabled + span {
+                color: #848484;
+                cursor: not-allowed;
+            }
+        }
+    }
+}

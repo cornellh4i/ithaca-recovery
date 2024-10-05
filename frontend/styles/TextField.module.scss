@@ -1,36 +1,31 @@
-$text-color: #1E1E1E;           // Color for entered text
-$placeholder-color: #848484; // Color for placeholder text
-$default-line-color: #CECECE; // Color for the default line
-$focused-line-color: #CC3366; // Color for the line when focused
-@import url('https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400&display=swap');
-
+@import 'Variables.module.scss';
 
 .textfieldlabel {
-    color: $text-color;
-    font-family: 'Source Sans Pro', sans-serif;  // Placeholder in Source Sans Pro Regular
+    color: $black-color;
+    font-family: 'Source Sans Pro', sans-serif;
     font-size: 20px;
 }
 
 .textfieldinput {
     border: none;
-    border-bottom: 1px solid $default-line-color;
+    border-bottom: 1px solid $light-grey-color;
     outline: none;
     transition: border-color 0.3s;
-    color: $text-color; // Text color when user types
-    padding: 25px 0px 5px 20px;
-    font-family: 'Source Sans Pro', sans-serif;  // Placeholder in Source Sans Pro Regular
+    color: $black-color;
+    padding: 20px 0px 5px 20px;
+    font-family: 'Source Sans Pro', sans-serif;
     font-size: 20px;
     width: 400px;
 
     &::placeholder {
-      color: $placeholder-color; // Color for placeholder text
+      color: $medium-grey-color;
     }
 
     &.default {
-        border-bottom: 1px solid $default-line-color; // Default line color
+        border-bottom: 1px solid $light-grey-color;
     }
 
     &.focused {
-        border-bottom: 1px solid $focused-line-color; // Focused line color
+        border-bottom: 1px solid $pink-color;
     }
 }

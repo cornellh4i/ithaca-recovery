@@ -21,16 +21,16 @@ const TextField: React.FC<TextFieldProps> = ({
   
     return (
       <div>
+        <label className={styles.textfieldlabel}>{label}</label>
         <div>
-            <label className={styles.textfieldlabel}>{label}</label>
+          <input
+            type="text"
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            className={`${styles.textfieldinput} ${underlineOnFocus ? styles.focused : styles.default}`}
+            placeholder="Email"
+          />
         </div>
-        <input
-          type="text"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          className={`${styles.textfieldinput} ${underlineOnFocus ? styles.focused : styles.default}`}
-          placeholder="Email"
-        />
       </div>
     );
   };
