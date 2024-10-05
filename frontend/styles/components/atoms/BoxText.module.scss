@@ -12,7 +12,6 @@
   &.meeting {
     width: 220px;
     height: 130px;
-    border-left: 10px solid rgba(0, 0, 0, 0.2);
   }
 
   &.room {
@@ -43,11 +42,9 @@
     flex-wrap: wrap;
 
     .tag {
-      background-color: rgba(0, 0, 0, 0.2);
       padding: 5px 10px;
       border-radius: 15px;
       font-size: 0.8rem;
-
     }
 
   }

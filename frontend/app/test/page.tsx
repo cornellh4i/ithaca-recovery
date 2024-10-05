@@ -339,20 +339,23 @@ const App = () => {
 
       <div className="container">
         <div className="meeting-blocks">
-          <BoxText boxType="Meeting Block" title="Meeting Name" bgColor="#a4d3ae" time="9am-10am" tags={['Hybrid', 'AA']} />
-          <BoxText boxType="Meeting Block" title="Meeting Name" bgColor="#a4d3d3" time="9am-10am" tags={['Hybrid', 'AA']} />
-          <BoxText boxType="Meeting Block" title="Meeting Name" bgColor="#f9c9a4" time="9am-10am" tags={['Hybrid', 'AA']} />
-          <BoxText boxType="Meeting Block" title="Meeting Name" bgColor="#e4a4d3" time="9am-10am" tags={['Hybrid', 'AA']} />
-          <BoxText boxType="Meeting Block" title="Meeting Name" bgColor="#e6e6e6" time="9am-10am" tags={['Hybrid', 'AA']} />
+          <BoxText boxType="Meeting Block" title="Meeting Name" primaryColor="#b3ea75" time="9am-10am" tags={['Hybrid', 'AA']} />
+          <BoxText boxType="Meeting Block" title="Meeting Name" primaryColor="#f7e57b" time="9am-10am" tags={['Hybrid', 'AA']} />
+          <BoxText boxType="Meeting Block" title="Meeting Name" primaryColor="#96dbfe" time="9am-10am" tags={['Hybrid', 'AA']} />
+          <BoxText boxType="Meeting Block" title="Meeting Name" primaryColor="#ffae73" time="9am-10am" tags={['Hybrid', 'AA']} />
+          <BoxText boxType="Meeting Block" title="Meeting Name" primaryColor="#d2afff" time="9am-10am" tags={['Hybrid', 'AA']} />
+          <BoxText boxType="Meeting Block" title="Meeting Name" primaryColor="#ffa3c2" time="9am-10am" tags={['Hybrid', 'AA']} />
+          <BoxText boxType="Meeting Block" title="Meeting Name" primaryColor="#cecece" time="9am-10am" tags={['Hybrid', 'AA']} />
         </div>
 
         <div className="room-blocks">
-          <BoxText boxType="Room Block" title="Serenity Room" bgColor="#a4d3ae" />
-          <BoxText boxType="Room Block" title="Seeds of Hope" bgColor="#ffe0a4" />
-          <BoxText boxType="Room Block" title="Small but Powerful - Left" bgColor="#e4a4d3" />
-          <BoxText boxType="Room Block" title="Unity Room" bgColor="#b3d1ff" />
-          <BoxText boxType="Room Block" title="Room for Improvement" bgColor="#f9c9a4" />
-          <BoxText boxType="Room Block" title="Zoom Account" bgColor="#e6e6e6" />
+          <BoxText boxType="Room Block" title="Serenity Room" primaryColor="#b3ea75" />
+          <BoxText boxType="Room Block" title="Seeds of Hope" primaryColor="#f7e57b" />
+          <BoxText boxType="Room Block" title="Small but Powerful - Left" primaryColor="#96dbfe" />
+          <BoxText boxType="Room Block" title="Unity Room" primaryColor="#ffae73" />
+          <BoxText boxType="Room Block" title="Room for Improvement" primaryColor="#d2afff" />
+          <BoxText boxType="Room Block" title="Zoom Account" primaryColor="#ffa3c2" />
+          <BoxText boxType="Room Block" title="Zoom Account" primaryColor="#cecece" />
         </div>
       </div>
 
