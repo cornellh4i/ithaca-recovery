@@ -320,7 +320,7 @@ const App = () => {
       </div>
       <div className={styles.section + ' ' + styles.meetings}>
         <h2>Meetings</h2>
-        <TextButton onClick={createMeeting} label="New Meeting " icon={<FontAwesomeIcon icon={faPlus} />}/>
+        <TestButton testFunc={createMeeting} text="Call Create meeting /api/create/meeting"/>
         <TestButton testFunc={updateMeeting} text="Call Update meeting /api/update/meeting" />
         <TestButton testFunc={deleteMeeting} text="Call Delete meeting /api/delete/meeting" />
 
