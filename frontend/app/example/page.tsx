@@ -21,17 +21,17 @@ const ExampleForm = () => {
         label="Name"
         value={inputValue}
         onChange={setInputValue}
-        underlineOnFocus={false} // Optional prop, defaults to true
+        underlineOnFocus={false}
       />
       <TextField
         value={inputValue}
         onChange={setInputValue}
-        underlineOnFocus={true} // Optional prop, defaults to true
+        underlineOnFocus={true}
       />
       <TextField
         value={inputValue}
         onChange={setInputValue}
-        underlineOnFocus={true} // Optional prop, defaults to true
+        underlineOnFocus={true}
       />
       <p>Entered Value: {inputValue}</p>
 
@@ -42,7 +42,7 @@ const ExampleForm = () => {
                 selectedOption={selectedOption}
                 onChange={handleOptionChange}
                 name="preferences"
-                disabledOptions={["Option 2"]} // Disabling "Option 2"
+                disabledOptions={["On"]}
             />
             <p>You have selected: {selectedOption}</p>
         </div>
