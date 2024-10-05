@@ -15,6 +15,8 @@
     "@azure/msal-react": "^2.0.12",
     "@emotion/react": "^11.11.4",
     "@emotion/styled": "^11.11.5",
+    "@fortawesome/free-solid-svg-icons": "^6.6.0",
+    "@fortawesome/react-fontawesome": "^0.2.2",
     "@jest/globals": "^29.7.0",
     "@mui/material": "^5.15.15",
     "@mui/x-date-pickers": "^7.1.1",
