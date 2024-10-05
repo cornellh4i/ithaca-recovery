@@ -11,14 +11,14 @@ interface ButtonProps {
 const TextButton: React.FC<ButtonProps> = ({ onClick, label, icon }) => {
   const [showDropdown, setShowDropdown] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
-  
+
   const handleClick = async () => {
     await onClick();
-    setShowDropdown(true);
+    setShowDropdown(true); // Open the dropdown on button click
   };
 
   const handleCloseDropdown = () => {
-    setShowDropdown(false);
+    setShowDropdown(false); // Close the dropdown
   };
 
   const handleSelectLocation = (location: string) => {
@@ -27,26 +27,34 @@ const TextButton: React.FC<ButtonProps> = ({ onClick, label, icon }) => {
   };
 
   return (
-    <div className={styles.buttonDropdownContainer}>
-      <button className={styles.btn} onClick={handleClick}>
-        {icon && <span className={styles.icon}>{icon}</span>}
-        {label && <span className={styles.label}>{label}</span>}
-      </button>
-      {showDropdown && (
-        <button className={styles.closeButton} onClick={handleCloseDropdown}>
-          X
-        </button>
-      )}
+    <div className={styles.meetingContainer}>
+      <div className={styles.buttonDropdownContainer}>
+        {!showDropdown ? (
+          <button className={styles.btn} onClick={handleClick}>
+            {icon && <span className={styles.icon}>{icon}</span>}
+            {label && <span className={styles.label}>{label}</span>}
+          </button>
+        ) : (
+          <div className={styles.dropdownHeader}>
+            <p className={styles.meetingTitleText}>New Meeting</p>
+            <button className={styles.closeButton} onClick={handleCloseDropdown}>
+              X
+            </button>
+          </div>
+        )}
+
+        <Dropdown
+          isVisible={showDropdown}
+          onClose={handleCloseDropdown}
+          onSelectLocation={handleSelectLocation}
+        />
 
         {selectedLocation && (
           <div>
             <p>Selected Location: {selectedLocation}</p>
           </div>
         )}
-      <Dropdown isVisible={showDropdown}
-          onClose={handleCloseDropdown}
-          onSelectLocation={handleSelectLocation}/>
-      
+      </div>
     </div>
   );
 };

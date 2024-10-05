@@ -1,36 +1,87 @@
-.btn {
-    display: inline-block;
-    margin: 5px 0;
-    padding: 15px 100px 15px 15px;
-    border-color: #a5a5a5; 
-    border-radius: 12px;
-    border-width: 0.44px;
-    background: #ffffff;
-    color: rgb(0, 0, 0); 
-    cursor: pointer;
-    transition: background-color 0.2s;
-
-    &:hover {
-        background-color: #BFC2C8;
-    }
-
-    .icon {
-        width: 20px;  // Adjust size as necessary
-        height: 20px;
-        margin-right: 10px;  // Space between the icon and text
-      }
-
-      .label {
-        font-size: 15px;
-        font-weight: bold;
-        color: #000;
-      }
-
+.meetingContainer {
+  display: flex;
+  justify-content: flex-start;
+  width: 40%;
+  /* Take up only the left 1/4 of the screen */
 }
 
 .buttonDropdownContainer {
-  position: relative; /* Needed for dropdown to position itself relative to button */
+  width: 80%;
+  /* Ensure content takes up full width of container */
+  position: relative;
 }
 
+.dropdownHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+}
 
+.meetingTitleText {
+  font-size: 16px;
+  font-weight: bold;
+}
 
+.closeButton {
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 5px;
+  color: black;
+}
+
+.btn {
+  display: inline-block;
+  margin: 5px 0;
+  padding: 15px 100px 15px 15px;
+  border-color: #a5a5a5;
+  border-radius: 12px;
+  border-width: 0.44px;
+  background: #ffffff;
+  color: rgb(0, 0, 0);
+  cursor: pointer;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background-color: #BFC2C8;
+  }
+
+  .icon {
+    width: 20px; // Adjust size as necessary
+    height: 20px;
+    margin-right: 10px; // Space between the icon and text
+  }
+
+  .label {
+    font-size: 15px;
+    font-weight: bold;
+    color: #000;
+  }
+}
+
+.buttonDropdownContainer {
+  position: relative;
+}
+
+.dropdownHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+}
+
+.meetingTitleText {
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.closeButton {
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 5px;
+  color: black;
+}

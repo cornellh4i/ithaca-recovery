@@ -1,28 +1,60 @@
 .dropdown {
-    position: relative; /* Relative to its containing element */
-    top: 0; /* Dropdown appears directly below the button */
+    position: relative;
     background-color: white;
+    // border: 1px solid #ccc;
+    width: 50%;
+    // box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    // padding: 20px;
+}
+
+.meetingTitleInput {
+    width: 100%;
+    // padding: 10px;
+    margin-bottom: 10px;
+    border-radius: 4px;
+    // border: 1px solid #ccc;
+}
+
+.meetingTypeContainer {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+
+.meetingTypeButton {
+    padding: 2% 5%;
+    border: none;
+    background-color: #ffffff;
+    cursor: pointer;
+    border-radius: 5px;
+    transition: background-color 0.3s ease;
+}
+
+.meetingTypeButton.active {
+    background-color: #d4dae1;
+    color: rgb(0, 0, 0);
+    font-weight: bold;
+}
+
+.meetingTitleInput {
+    width: 100%;
+    padding: 8px;
+    margin-bottom: 10px;
     border: 1px solid #ccc;
-    width: 200px; /* Adjust width if necessary */
-    // margin-top: 2px; /* Adds some space between button and dropdown */
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2); /* Adds some visual depth */
+    border-radius: 5px;
 }
 
-.noBorder {
-    border: none; /* Removes border when dropdown is active */
-}
-
-.dropdown ul {
+.locationList {
     list-style: none;
     padding: 0;
     margin: 0;
 }
 
-.dropdown li {
+.dropdownItem {
     padding: 8px 12px;
     cursor: pointer;
 }
 
-.dropdown li:hover {
+.dropdownItem:hover {
     background-color: #f0f0f0;
 }
