@@ -3,30 +3,56 @@ import styles from "../../../../styles/Dropdown.module.scss";
 
 interface DropdownProps {
   isVisible: boolean;
-  onClose: () => void;
-  onSelectLocation: (location: string) => void;
 }
 
 const locations = [
-  "Conference Room A",
-  "Conference Room B",
-  "Cafeteria",
-  "Zoom",
-  "Office 101",
-  "Outdoor Patio",
+  "Serenity Room",
+  "Seeds of Hope",
+  "Unity Room",
+  "Room for Improvement",
+  "Small but Powerful - Right",
+  "Small but Powerful - Left",
 ];
 
-const Dropdown: React.FC<DropdownProps> = ({ isVisible, onClose, onSelectLocation }) => {
+const meetings = [
+  "AA",
+  "Al-Anon",
+  "Other"
+];
+
+const accounts = [
+  "Zoom Account 1",
+  "Zoom Account 2",
+  "Zoom Account 3"
+];
+
+const Dropdown: React.FC<DropdownProps> = ({ isVisible }) => {
   const [selectedMeetingType, setSelectedMeetingType] = useState<string>("Hybrid");
-  const [showLocationDropdown, setShowLocationDropdown] = useState(false); // For controlling location dropdown
   const [selectedLocation, setSelectedLocation] = useState<string | null>(null); // Stores the selected location
+  const [selectedMeeting, setSelectedMeeting] = useState<string | null>(null); // Stores the selected meeting
+  const [selectedZoom, setSelectedZoom] = useState<string | null>(null); // Stores the selected Zoom account
+
+  const [activeDropdown, setActiveDropdown] = useState<string | null>(null); // Track which dropdown is open
 
   if (!isVisible) return null;
 
+  const handleDropdownToggle = (dropdownType: string) => {
+    setActiveDropdown((prev) => (prev === dropdownType ? null : dropdownType));
+  };
+
   const handleLocationClick = (location: string) => {
     setSelectedLocation(location);
-    onSelectLocation(location);
-    setShowLocationDropdown(false); // Close the dropdown when a location is selected
+    setActiveDropdown(null); // Close dropdown after selection
+  };
+
+  const handleMeetingClick = (meeting: string) => {
+    setSelectedMeeting(meeting);
+    setActiveDropdown(null); // Close dropdown after selection
+  };
+
+  const handleZoomClick = (Zoom: string) => {
+    setSelectedZoom(Zoom);
+    setActiveDropdown(null); // Close dropdown after selection
   };
 
   const handleMeetingTypeClick = (type: string) => {
@@ -64,22 +90,68 @@ const Dropdown: React.FC<DropdownProps> = ({ isVisible, onClose, onSelectLocatio
       </div>
 
       {/* Location Dropdown */}
-      <div className={styles.locationDropdownContainer}>
+      <div className={styles.DropdownContainer}>
         <button
-          className={styles.locationDropdownButton}
-          onClick={() => setShowLocationDropdown((prev) => !prev)} // Toggle dropdown
+          className={`${styles.DropdownButton} ${activeDropdown === "location" ? styles.activeDropdown : ''}`}
+          onClick={() => handleDropdownToggle("location")}
         >
           {selectedLocation ? selectedLocation : "Location"}
         </button>
-        {showLocationDropdown && (
+        {activeDropdown === "location" && (
           <ul className={styles.locationList}>
             {locations.map((location, index) => (
               <li
                 key={index}
-                className={styles.dropdownItem}
+                className={`${styles.dropdownItem} ${selectedLocation === location ? styles.selected : ''}`}
                 onClick={() => handleLocationClick(location)}
               >
                 {location}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      {/* Meeting Dropdown */}
+      <div className={styles.DropdownContainer}>
+        <button
+          className={`${styles.DropdownButton} ${activeDropdown === "meeting" ? styles.activeDropdown : ''}`}
+          onClick={() => handleDropdownToggle("meeting")}
+        >
+          {selectedMeeting ? selectedMeeting : "Meeting Type"}
+        </button>
+        {activeDropdown === "meeting" && (
+          <ul className={styles.locationList}>
+            {meetings.map((meeting, index) => (
+              <li
+                key={index}
+                className={`${styles.dropdownItem} ${selectedMeeting === meeting ? styles.selected : ''}`}
+                onClick={() => handleMeetingClick(meeting)}
+              >
+                {meeting}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      {/* Zoom Account Dropdown */}
+      <div className={styles.DropdownContainer}>
+        <button
+          className={`${styles.DropdownButton} ${activeDropdown === "zoom" ? styles.activeDropdown : ''}`}
+          onClick={() => handleDropdownToggle("zoom")}
+        >
+          {selectedZoom ? selectedZoom : "Zoom Account"}
+        </button>
+        {activeDropdown === "zoom" && (
+          <ul className={styles.locationList}>
+            {accounts.map((Zoom, index) => (
+              <li
+                key={index}
+                className={`${styles.dropdownItem} ${selectedZoom === Zoom ? styles.selected : ''}`}
+                onClick={() => handleZoomClick(Zoom)}
+              >
+                {Zoom}
               </li>
             ))}
           </ul>

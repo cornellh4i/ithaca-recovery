@@ -10,7 +10,6 @@ interface ButtonProps {
 
 const TextButton: React.FC<ButtonProps> = ({ onClick, label, icon }) => {
   const [showDropdown, setShowDropdown] = useState(false);
-  const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
 
   const handleClick = async () => {
     await onClick();
@@ -21,10 +20,6 @@ const TextButton: React.FC<ButtonProps> = ({ onClick, label, icon }) => {
     setShowDropdown(false); // Close the dropdown
   };
 
-  const handleSelectLocation = (location: string) => {
-    setSelectedLocation(location);
-    console.log(`Location selected: ${location}`);
-  };
 
   return (
     <div className={styles.meetingContainer}>
@@ -45,15 +40,9 @@ const TextButton: React.FC<ButtonProps> = ({ onClick, label, icon }) => {
 
         <Dropdown
           isVisible={showDropdown}
-          onClose={handleCloseDropdown}
-          onSelectLocation={handleSelectLocation}
         />
 
-        {selectedLocation && (
-          <div>
-            <p>Selected Location: {selectedLocation}</p>
-          </div>
-        )}
+      
       </div>
     </div>
   );
