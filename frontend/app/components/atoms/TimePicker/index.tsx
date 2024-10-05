@@ -1,6 +1,8 @@
-import React, { useEffect, useState } from 'react';
-import styles from './TimePicker.module.css';
+import React, { useState, useEffect } from 'react';
+import styles from "../../../../styles/components/atoms/TimePicker.module.scss";
 
+
+// export default TimePicker;
 interface TimePickerProps {
   label: string | JSX.Element;
   value?: string;
@@ -9,15 +11,19 @@ interface TimePickerProps {
   [key: string]: any;
 }
 
-const TimePicker = ({ label, value, error, disablePast, ...props }: TimePickerProps) => {
-  const [minTime, setMinTime] = useState<string | undefined>(undefined);
+const TimePicker = ({ label, value: propValue = '', error, disablePast, ...props }: TimePickerProps) => {
+  const [startTime, setStartTime] = useState<string>(''); // For start time
+  const [endTime, setEndTime] = useState<string>(''); // For end time
+  const [minTime, setMinTime] = useState<string | undefined>(undefined); // For disabling past times
 
-  // Log error to console if present
-  if (error) {
-    console.log(`TimePicker Error: ${error}`);
-  }
+  // Parse the propValue into start and end times when component mounts or propValue changes
+  useEffect(() => {
+    const [start, end] = propValue.split(' - '); // Assuming the propValue is in format "start - end"
+    setStartTime(start || ''); // If no start, set as empty string
+    setEndTime(end || ''); // If no end, set as empty string
+  }, [propValue]);
 
-  // Effect to disable past times if disablePast is true
+  // Effect to disable past times
   useEffect(() => {
     if (disablePast) {
       const now = new Date();
@@ -27,21 +33,45 @@ const TimePicker = ({ label, value, error, disablePast, ...props }: TimePickerPr
     }
   }, [disablePast]);
 
+  // Handle change for start time
+  const handleStartTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newStartTime = e.target.value;
+    setStartTime(newStartTime);
+    const updatedValue = `${newStartTime} - ${endTime}`;
+    props.onChange && props.onChange(updatedValue); // Call onChange with updated value
+  };
+
+  // Handle change for end time
+  const handleEndTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newEndTime = e.target.value;
+    setEndTime(newEndTime);
+    const updatedValue = `${startTime} - ${newEndTime}`;
+    props.onChange && props.onChange(updatedValue); // Call onChange with updated value
+  };
+
   return (
-    <div className="time-picker-wrapper">
-      {/* Render the label */}
-      <label className="time-picker-label">
+    <div className={styles['time-picker-wrapper']}>
+      <label className={styles['time-picker-label']}>
         {typeof label === 'string' ? <span>{label}</span> : label}
       </label>
-
-      {/* Input for time selection */}
       <input
         type="time"
-        value={value}
-        min={disablePast ? minTime : undefined}  // Set min time to current time if disablePast is true
-        className="time-picker-input"
-        {...props}  // Spread additional props to the input
+        value={startTime}
+        min={disablePast ? minTime : undefined}
+        onChange={handleStartTimeChange}
+        className={styles['time-picker-input']}
+        {...props} // Spread any additional props
       />
+      <span className={styles['time-range-separator']}> - </span> {/* Separator between start and end */}
+      <input
+        type="time"
+        value={endTime}
+        min={startTime} // Ensure the end time is after the start time
+        onChange={handleEndTimeChange}
+        className={styles['time-picker-input']}
+        {...props} // Spread any additional props
+      />
+      {error && <div className={styles['error-message']}>{error}</div>}
     </div>
   );
 };

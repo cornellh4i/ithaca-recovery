@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import styles from "../../../../styles/components/atoms/DatePicker.module.scss";
 
 interface DatePickerProps {
   label: string | JSX.Element;
@@ -7,29 +8,30 @@ interface DatePickerProps {
   [key: string]: any;
 }
 
-const DatePicker = ({ label, value, error, ...props }: DatePickerProps) => {
-  // Log error to console if provided
-  if (error) {
-    console.log(`DatePicker Error: ${error}`);
-  }
+const DatePicker = ({ label, value: propValue = '', error, ...props }: DatePickerProps) => {
+  const [value, setValue] = useState<string>(propValue);
+
+  useEffect(() => {
+    if (propValue !== value) {
+      setValue(propValue);
+    }
+  }, [propValue]);
 
   return (
-    <div className="date-picker-wrapper">
-      {/* Render the label next to the picker */}
-      <label className="date-picker-label">
+    <div className={styles['date-picker-wrapper']}>
+      <label className={styles['date-picker-label']}>
         {typeof label === 'string' ? <span>{label}</span> : label}
       </label>
-
-      {/* Input for date selection */}
       <input
         type="date"
         value={value}
-        className="date-picker-input"
-        {...props}  // Additional props passed into the input element
+        onChange={(e) => setValue(e.target.value)}
+        className={styles['date-picker-input']}
+        {...props}
       />
+      {error && <div className={styles['error-message']}>{error}</div>}
     </div>
   );
 };
 
 export default DatePicker;
-
