@@ -15,9 +15,13 @@ const TextField: React.FC<TextFieldProps> = ({
     label,
     value = '',
     onChange,
-    underlineOnFocus = true,
     ...props
   }) => {
+    const [underlineOnFocus, setUnderlineOnFocus] = useState(false);
+
+    const toggleFocus = () => {
+      setUnderlineOnFocus(!underlineOnFocus);
+    };
   
     return (
       <div>
@@ -26,6 +30,8 @@ const TextField: React.FC<TextFieldProps> = ({
           <input
             type="text"
             value={value}
+            onFocus={toggleFocus}
+            onBlur={toggleFocus}
             onChange={(e) => onChange(e.target.value)}
             className={`${styles.textfieldinput} ${underlineOnFocus ? styles.focused : styles.default}`}
             placeholder="Email"

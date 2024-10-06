@@ -1,10 +1,11 @@
 "use client";
-
-import React from 'react';
+import React, { useContext, useState } from 'react';
 import { IAdmin, IUser } from '../../util/models'
 import { IMeeting } from '../../util/models'
 import styles from "../../styles/TestPage.module.scss";
 import TestButton from "../components/Test/TestButton"
+import TextField from '../components/atoms/TextField';
+import RadioGroup from '../components/atoms/RadioGroup';
 
 const App = () => {
 
@@ -308,8 +309,52 @@ const App = () => {
     }
   }
 
+  const [inputValue, setInputValue] = useState(''); // State to hold the value
+
+  const [selectedOption, setSelectedOption] = useState<string>("Option 1");
+  
+    // Function to handle the change in radio button selection
+    const handleOptionChange = (option: string) => {
+        setSelectedOption(option);
+    };
+  
+
   return (
     <div className={styles['apicontainer']}>
+  <div>
+    <h2>Example Form</h2>
+    <TextField
+      label="Name"
+      value={inputValue}
+      onChange={setInputValue}
+      underlineOnFocus={false}
+    />
+    <TextField
+      value={inputValue}
+      onChange={setInputValue}
+      underlineOnFocus={true}
+    />
+    <TextField
+      value={inputValue}
+      onChange={setInputValue}
+      underlineOnFocus={true}
+    />
+    <p>Entered Value: {inputValue}</p>
+
+    <div>
+          <RadioGroup
+              label="Ends"
+              options={["Never", "On", "After"]}
+              selectedOption={selectedOption}
+              onChange={handleOptionChange}
+              name="preferences"
+              disabledOptions={["On"]}
+          />
+          <p>You have selected: {selectedOption}</p>
+      </div>
+  </div>
+      <div>
+      </div>
       <div className={styles.section}>
         <h2>Admins</h2>
         <TestButton testFunc={createAdmin} text="Call create admin post /api/write/admin"/>
@@ -340,3 +385,4 @@ const App = () => {
 }
 
 export default App;
+
