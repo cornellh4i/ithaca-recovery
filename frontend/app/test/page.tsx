@@ -7,7 +7,7 @@ import styles from "../../styles/TestPage.module.scss";
 import TestButton from "../components/Test/TestButton"
 import DatePicker from "../components/atoms/DatePicker"
 import TimePicker from "../components/atoms/TimePicker"
-import CalendarTodayRoundedIcon from '@mui/icons-material/CalendarTodayRounded'
+import TodayIcon from '@mui/icons-material/Today';
 import AccessTimeIcon from '@mui/icons-material/AccessTime'
 
 const App = () => {
@@ -341,7 +341,7 @@ const App = () => {
       </div>
       <div className={styles.section + ' ' + styles.meetings}>
         <h2>DatePicker and TimePicker</h2>
-        <DatePicker label={<CalendarTodayRoundedIcon/>} value={"Value"} />
+        <DatePicker label={<TodayIcon/>} value={"Value"} />
         <DatePicker label={"string label"} value={"Value"} />
         <TimePicker label={<AccessTimeIcon/>} value={"Value"} disablePast={true} />
         <TimePicker label={"string label"} value={"Value"} disablePast={true} />

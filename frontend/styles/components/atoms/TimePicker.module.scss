@@ -4,7 +4,7 @@
   display: flex;
   align-items: center;
   margin-bottom: 18px;
-  padding: 1.5px 0;
+  padding: 1.5px 1.5px;
   font-family: 'Source Sans Pro', sans-serif;
 
   .time-picker-label {
@@ -24,7 +24,8 @@
     font-size: 18px;
     border: none; // Remove the border
     outline: none; // Remove the focus outline
-    width: 50px;
+    width: 46px;
+    text-align: center;
     background-color: transparent; // Transparent background
     font-family: 'Source Sans Pro', sans-serif;
 
