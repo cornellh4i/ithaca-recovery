@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import styles from '/Users/sophie/Desktop/hack4impact/ithaca-recovery/frontend/styles/RadioGroup.module.scss';
+import styles from '../../../../styles/components/atoms/RadioGroup.module.scss';
 
 interface RadioGroupProps {
     label: string;

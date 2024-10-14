@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import styles from '/Users/sophie/Desktop/hack4impact/ithaca-recovery/frontend/styles/TextField.module.scss';
+import styles from '../../../../styles/components/atoms/TextField.module.scss';
 
 interface TextFieldProps {
     label: string;
