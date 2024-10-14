@@ -1,29 +1,33 @@
+@import url('https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;600&display=swap');
+
 .time-picker-wrapper {
   display: flex;
   align-items: center;
-  margin-bottom: 15px;
+  margin-bottom: 18px;
+  padding: 1.5px 0;
+  font-family: 'Source Sans Pro', sans-serif;
 
   .time-picker-label {
-    margin-right: 10px;
+    margin-right: 12px;
     display: flex;
     align-items: center;
-    font-size: 16px;
+    font-size: 18px;
 
     svg {
-      margin-right: 5px;
-      width: 20px;
-      height: 20px;
+      width: 24px;
+      height: 24px;
       fill: #555;
     }
   }
 
   .time-picker-input {
-    padding: 5px;
-    font-size: 16px;
+    font-size: 18px;
     border: none; // Remove the border
     outline: none; // Remove the focus outline
-    width: 90px;
+    width: 50px;
     background-color: transparent; // Transparent background
+    font-family: 'Source Sans Pro', sans-serif;
+
 
     /* Hide the time picker icon */
     &::-webkit-calendar-picker-indicator {
@@ -48,8 +52,8 @@
   }
 
   .time-range-separator {
-    margin: 0 20px; // Increase spacing between the two inputs
-    font-size: 16px;
+    margin: 0 12px; // Increase spacing between the two inputs
+    font-size: 18px;
     color: #333;
   }
 

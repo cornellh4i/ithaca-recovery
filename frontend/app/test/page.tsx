@@ -7,6 +7,8 @@ import styles from "../../styles/TestPage.module.scss";
 import TestButton from "../components/Test/TestButton"
 import DatePicker from "../components/atoms/DatePicker"
 import TimePicker from "../components/atoms/TimePicker"
+import CalendarTodayRoundedIcon from '@mui/icons-material/CalendarTodayRounded'
+import AccessTimeIcon from '@mui/icons-material/AccessTime'
 
 const App = () => {
 
@@ -314,7 +316,7 @@ const App = () => {
     <div className={styles['apicontainer']}>
       <div className={styles.section}>
         <h2>Admins</h2>
-        <TestButton testFunc={createAdmin} text="Call create admin post /api/write/admin" />
+        <TestButton testFunc={createAdmin} text="Call create admin post /api/write/admin"/>
         <TestButton testFunc={getAdmin} text="Call get admin /api/retrieve/admin" />
         <TestButton testFunc={deleteAdmin} text="Call delete admin /api/delete/admin" />
       </div>
@@ -339,9 +341,9 @@ const App = () => {
       </div>
       <div className={styles.section + ' ' + styles.meetings}>
         <h2>DatePicker and TimePicker</h2>
-        <DatePicker label={<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24"><path fill="currentColor" d="M19 19H5V8h14m-3-7v2H8V1H6v2H5c-1.11 0-2 .89-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-1V1"></path></svg>} value={"Value"} />
+        <DatePicker label={<CalendarTodayRoundedIcon/>} value={"Value"} />
         <DatePicker label={"string label"} value={"Value"} />
-        <TimePicker label={<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24"><path fill="currentColor" d="M12 20a8 8 0 0 0 8-8a8 8 0 0 0-8-8a8 8 0 0 0-8 8a8 8 0 0 0 8 8m0-18a10 10 0 0 1 10 10a10 10 0 0 1-10 10C6.47 22 2 17.5 2 12A10 10 0 0 1 12 2m.5 5v5.25l4.5 2.67l-.75 1.23L11 13V7z"></path></svg>} value={"Value"} disablePast={true} />
+        <TimePicker label={<AccessTimeIcon/>} value={"Value"} disablePast={true} />
         <TimePicker label={"string label"} value={"Value"} disablePast={true} />
       </div>
     </div>
