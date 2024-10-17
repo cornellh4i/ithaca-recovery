@@ -1,0 +1,58 @@
+@import url('https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;600&display=swap');
+
+.date-picker-wrapper {
+  display: flex;
+  align-items: center;
+  margin-bottom: 18px;
+  padding: 1.5px 1.5px;
+  font-family: 'Source Sans Pro', sans-serif;
+
+  .date-picker-label {
+    margin-right: 12px;
+    display: flex;
+    align-items: center;
+    font-size: 18px;
+
+    svg {
+      width: 24px;
+      height: 24px;
+      fill: #555;
+    }
+  }
+
+  .date-picker-input {
+    font-size: 18px;
+    border: none; // Remove border
+    outline: none; // Remove focus outline
+    width: 200px;
+    background-color: transparent; // Transparent background
+    font-family: 'Source Sans Pro', sans-serif;
+
+    &:focus {
+      border: none; // Ensure no border appears on focus
+      outline: none;
+    }
+
+    /* Hide the calendar icon for WebKit browsers (Chrome, Safari, etc.) */
+    &::-webkit-calendar-picker-indicator {
+      display: none;
+      -webkit-appearance: none;
+    }
+
+    /* Hide the calendar icon for Firefox */
+    &::-moz-calendar-picker-indicator {
+      display: none;
+    }
+
+    /* Hide the calendar icon for Internet Explorer and Edge */
+    &::-ms-expand {
+      display: none;
+    }
+  }
+
+  .error-message {
+    color: red;
+    margin-left: 5px; // Keep error message to the right of the input
+    font-size: 14px;
+  }
+}
