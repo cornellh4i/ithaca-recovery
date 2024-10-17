@@ -1,0 +1,68 @@
+@import url('https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;600&display=swap');
+
+.box {
+  display: flex;
+  flex-direction: column;
+  font-family: "Source Sans Pro";
+  text-align: left;
+  color: #000;
+
+  &.meeting {
+    width: 140px;
+    height: 85px;
+    padding: 8px 16px;
+    border-radius: 6px;
+
+    .title {
+      font-size: 14px;
+      margin-top: 0px;
+      margin-bottom: 0px;
+      font-weight: 600;
+      padding: 0px;
+      word-wrap: break-word; // Ensures text wraps to three lines
+    }
+  }
+
+  &.room {
+    width: 155px;
+    height: 88px;
+    padding: 10px 12px;
+    margin: 0px;
+    border-radius: 4px;
+
+    .title {
+      font-size: 16px;
+      margin-top: 0px;
+      margin-bottom: 0px;
+      font-weight: 600;
+      padding: 0px;
+      word-wrap: break-word; // Ensures text wraps to three lines
+    }
+  }
+
+  .time {
+    font-size: 13px;
+    font-style: normal;
+    font-weight: 400;
+    margin-top: 0px;
+    padding: 0px;
+    color: #3A3E49;
+  }
+
+  .tags {
+    margin-top: 16px;
+    padding: 0px;
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+    align-items: center;
+
+    .tag {
+      padding: 2px 12px;
+      border-radius: 10.593px;
+      font-size: 10px;
+      font-weight: 400;
+    }
+
+  }
+}
