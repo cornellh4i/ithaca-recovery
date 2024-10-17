@@ -61,7 +61,7 @@ const BoxText: React.FC<BoxProps> = ({ boxType, title, primaryColor, time, tags 
   return (
     <div
       className={`${styles.box} ${boxType === 'Meeting Block' ? styles.meeting : styles.room}`}
-      style={{ backgroundColor: bgColor, borderLeft: `10px solid ${primaryColor}` }}
+      style={{ backgroundColor: bgColor, borderLeft: `7px solid ${primaryColor}` }}
     >
       <h3 className={styles.title}>{title}</h3>
 

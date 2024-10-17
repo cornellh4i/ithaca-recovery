@@ -1,50 +1,67 @@
+@import url('https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;600&display=swap');
+
 .box {
-  border-radius: 5px;
-  padding: 25px;
-  margin: 25px; // Added margin to all boxes for spacing
   display: flex;
   flex-direction: column;
-
-  justify-content: space-between;
+  font-family: "Source Sans Pro";
   text-align: left;
   color: #000;
 
   &.meeting {
-    width: 220px;
-    height: 130px;
+    width: 140px;
+    height: 85px;
+    padding: 8px 16px;
+    border-radius: 6px;
+
+    .title {
+      font-size: 14px;
+      margin-top: 0px;
+      margin-bottom: 0px;
+      font-weight: 600;
+      padding: 0px;
+      word-wrap: break-word; // Ensures text wraps to three lines
+    }
   }
 
   &.room {
-    width: 240px;
-    height: 150px; // Adjusted the height to make them taller (three lines)
-    flex-shrink: 0; // Prevent shrinking
-    flex-grow: 0; // Prevent growing
+    width: 155px;
+    height: 88px;
+    padding: 10px 12px;
+    margin: 0px;
+    border-radius: 4px;
+
+    .title {
+      font-size: 16px;
+      margin-top: 0px;
+      margin-bottom: 0px;
+      font-weight: 600;
+      padding: 0px;
+      word-wrap: break-word; // Ensures text wraps to three lines
+    }
   }
 
   .time {
-    font-size: 1.0rem;
-    padding: 0px;
+    font-size: 13px;
+    font-style: normal;
+    font-weight: 400;
     margin-top: 0px;
-    color: #444
-  }
-
-  .title {
-    font-size: 1.3rem;
     padding: 0px;
-    margin-bottom: 0px;
-    font-weight: bold;
-    word-wrap: break-word; // Ensures text wraps to three lines
+    color: #3A3E49;
   }
 
   .tags {
+    margin-top: 16px;
+    padding: 0px;
     display: flex;
-    gap: 5px;
+    gap: 4px;
     flex-wrap: wrap;
+    align-items: center;
 
     .tag {
-      padding: 5px 10px;
-      border-radius: 15px;
-      font-size: 0.8rem;
+      padding: 2px 12px;
+      border-radius: 10.593px;
+      font-size: 10px;
+      font-weight: 400;
     }
 
   }
