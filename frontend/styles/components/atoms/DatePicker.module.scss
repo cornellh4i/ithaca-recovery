@@ -1,16 +1,19 @@
+@import url('https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;600&display=swap');
+
 .date-picker-wrapper {
   display: flex;
   align-items: center;
-  margin-bottom: 15px;
+  margin-bottom: 18px;
+  padding: 1.5px 1.5px;
+  font-family: 'Source Sans Pro', sans-serif;
 
   .date-picker-label {
-    margin-right: 10px;
+    margin-right: 12px;
     display: flex;
     align-items: center;
-    font-size: 16px;
+    font-size: 18px;
 
     svg {
-      margin-right: 5px;
       width: 24px;
       height: 24px;
       fill: #555;
@@ -18,12 +21,12 @@
   }
 
   .date-picker-input {
-    padding: 5px;
     font-size: 18px;
     border: none; // Remove border
     outline: none; // Remove focus outline
     width: 200px;
     background-color: transparent; // Transparent background
+    font-family: 'Source Sans Pro', sans-serif;
 
     &:focus {
       border: none; // Ensure no border appears on focus
@@ -49,7 +52,7 @@
 
   .error-message {
     color: red;
-    margin-left: 10px; // Keep error message to the right of the input
+    margin-left: 5px; // Keep error message to the right of the input
     font-size: 14px;
   }
 }
