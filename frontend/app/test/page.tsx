@@ -351,7 +351,7 @@ const App = () => {
       <div className={styles.section}>
         <h2>Example Text Field & Radio Buttons</h2>
           <TextField
-              label="Name"
+              label="Meeting title"
               value={inputValue}
               onChange={setInputValue}
               underlineOnFocus={false}/>

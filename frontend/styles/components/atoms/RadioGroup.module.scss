@@ -3,34 +3,32 @@
 .radioGroupContainer {
     display: flex;
     flex-direction: column;
+    gap: 12px;
     font-family: 'Source Sans Pro', sans-serif;
-    font-size: 20px;
+    font-size: 18px;
+    font-weight: 400;
 
+    /* Align label and options to the same starting position */
     .radioGroupLabel {
-        margin-bottom: 8px;
         color: $black-color;
     }
 
     .radioGroupOptions {
         display: flex;
         flex-direction: column;
+        gap: 12px;
+    }
 
-        .radioOption {
-            margin-bottom: 4px;
-            accent-color: $pink-color;
+    .radioOption {
+        display: flex;
+        gap: 12px;
+        cursor: pointer;
+        accent-color: $pink-color;
+
+        input[type="radio"] {
+            position: absolute; /* Prevents the native radio button from taking up space */
+            opacity: 0; /* Hide the native radio input */
             cursor: pointer;
-
-            input[type="radio"] {
-                margin-right: 15px;
-                cursor: pointer;
-                transform: scale(1.5);
-            }
-
-            // Style for disabled option
-            input[type="radio"]:disabled + span {
-                color: #848484;
-                cursor: not-allowed;
-            }
         }
     }
 }
