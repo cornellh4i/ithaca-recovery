@@ -322,39 +322,10 @@ const App = () => {
 
   return (
     <div className={styles['apicontainer']}>
-  <div>
-    <CalendarNavbar></CalendarNavbar>
-    <h2>Example Form</h2>
-    <TextField
-      label="Name"
-      value={inputValue}
-      onChange={setInputValue}
-      underlineOnFocus={false}
-    />
-    <TextField
-      value={inputValue}
-      onChange={setInputValue}
-      underlineOnFocus={true}
-    />
-    <TextField
-      value={inputValue}
-      onChange={setInputValue}
-      underlineOnFocus={true}
-    />
-    <p>Entered Value: {inputValue}</p>
-
-    <div>
-          <RadioGroup
-              label="Ends"
-              options={["Never", "On", "After"]}
-              selectedOption={selectedOption}
-              onChange={handleOptionChange}
-              name="preferences"
-              disabledOptions={["On"]}
-          />
-          <p>You have selected: {selectedOption}</p>
+      <div className={styles.section}>
+      <h2>Calendar Navbar</h2>
+      <CalendarNavbar></CalendarNavbar>
       </div>
-  </div>
       <div>
       </div>
       <div className={styles.section}>
