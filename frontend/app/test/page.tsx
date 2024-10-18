@@ -1,10 +1,12 @@
 "use client";
-
-import React from 'react';
+import React, { useContext, useState } from 'react';
 import { IAdmin, IUser } from '../../util/models'
 import { IMeeting } from '../../util/models'
 import styles from "../../styles/TestPage.module.scss";
 import TestButton from "../components/Test/TestButton"
+import TextField from '../components/atoms/TextField';
+import RadioGroup from '../components/atoms/RadioGroup';
+import CalendarNavbar from "../components/organisms/CalendarNavbar"
 
 const App = () => {
 
@@ -308,8 +310,24 @@ const App = () => {
     }
   }
 
+  const [inputValue, setInputValue] = useState(''); // State to hold the value
+
+  const [selectedOption, setSelectedOption] = useState<string>("Option 1");
+  
+    // Function to handle the change in radio button selection
+    const handleOptionChange = (option: string) => {
+        setSelectedOption(option);
+    };
+  
+
   return (
     <div className={styles['apicontainer']}>
+      <div className={styles.section}>
+      <h2>Calendar Navbar</h2>
+      <CalendarNavbar></CalendarNavbar>
+      </div>
+      <div>
+      </div>
       <div className={styles.section}>
         <h2>Admins</h2>
         <TestButton testFunc={createAdmin} text="Call create admin post /api/write/admin"/>
@@ -340,3 +358,4 @@ const App = () => {
 }
 
 export default App;
+
