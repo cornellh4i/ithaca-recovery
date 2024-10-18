@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import styles from "/Users/sophie/Desktop/hack4impact/ithaca-recovery/frontend/styles/organisms.NewMeeting.module.scss";
+import styles from "../../../../styles/organisms.NewMeeting.module.scss";
 
 const CalendarNavbar = () => {
     const [currentDate, setCurrentDate] = useState(new Date());
@@ -102,10 +102,11 @@ const CalendarNavbar = () => {
 
     return (
         <div className={styles.navbarContainer}>
-            <h2>{getDateRange(currentDate)}</h2>
+            <h2 className={styles.navbarContainerRight}>{getDateRange(currentDate)}</h2>
             <div className={styles.navbarContainerLeft}>
-                <img src="/search-icon.svg" alt="Search Icon" width={30} height={30} />
+                <img src="/search-icon.svg" alt="Search Icon" width={36} height={36} />
                 <div className={styles.box}>
+                    {/* Temporary dropdown component */}
                     <select id="view-select" value={selectedView} onChange={handleViewChange}>
                         <option value="Day">Day</option>
                         <option value="Week">Week</option>
