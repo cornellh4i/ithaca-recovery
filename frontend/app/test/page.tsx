@@ -5,6 +5,8 @@ import { IAdmin, IUser } from '../../util/models'
 import { IMeeting } from '../../util/models'
 import styles from "../../styles/TestPage.module.scss";
 import TestButton from "../components/Test/TestButton"
+import checkbox from "../components/atoms/checkbox/index"
+import NewMeetingSidebar from '../components/organisms/NewMeeting';
 
 const App = () => {
 
@@ -12,9 +14,9 @@ const App = () => {
 
   const createAdmin = async () => {
     try {
-      const newAdmin: IAdmin = { 
+      const newAdmin: IAdmin = {
         uid: `${Math.floor(Math.random() * 100000) + 1}`, // Most likely will be Microsoft ID
-        name: "Joseph Ugarte", 
+        name: "Joseph Ugarte",
         email: "jeu9@cornell.edu"
       }
 
@@ -115,7 +117,7 @@ const App = () => {
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-     
+
       const meetingResponse = await response.json();
       console.log(meetingResponse);
       alert("Meeting created successfully! Please check the Meeting collection on MongoDB.")
@@ -178,7 +180,7 @@ const App = () => {
           newMeeting
         ),
       });
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -218,7 +220,7 @@ const App = () => {
       const url = new URL('/api/retrieve/meeting/week', window.location.origin);
       url.searchParams.append('startDate', currentDate.toISOString());
       const response = await fetch(url);
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -256,7 +258,7 @@ const App = () => {
   const handleZoomToken = async () => {
     try {
       const response = await fetch('/api/zoom');
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -312,7 +314,7 @@ const App = () => {
     <div className={styles['apicontainer']}>
       <div className={styles.section}>
         <h2>Admins</h2>
-        <TestButton testFunc={createAdmin} text="Call create admin post /api/write/admin"/>
+        <TestButton testFunc={createAdmin} text="Call create admin post /api/write/admin" />
         <TestButton testFunc={getAdmin} text="Call get admin /api/retrieve/admin" />
         <TestButton testFunc={deleteAdmin} text="Call delete admin /api/delete/admin" />
       </div>
@@ -334,6 +336,11 @@ const App = () => {
         <h2>Microsoft Exchange Calendars</h2>
         <TestButton testFunc={getGroups} text="Call get groups /api/groups/routes" />
         <TestButton testFunc={getCalendars} text="Call get calendars /api/calender/getCalendars/routes" />
+      </div>
+      {/* New Meeting Sidebar Section */}
+      <div className={styles.section + ' ' + styles.newMeetingSidebar}>
+        <h2>New Meeting Sidebar</h2>
+        <NewMeetingSidebar checkbox={<input type="checkbox" />} />
       </div>
     </div>
   );
