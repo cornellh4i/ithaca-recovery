@@ -6,6 +6,7 @@ import styles from "../../styles/TestPage.module.scss";
 import TestButton from "../components/Test/TestButton"
 import TextField from '../components/atoms/TextField';
 import RadioGroup from '../components/atoms/RadioGroup';
+import CalendarNavbar from "../components/organisms/CalendarNavbar"
 
 const App = () => {
 
@@ -322,6 +323,7 @@ const App = () => {
   return (
     <div className={styles['apicontainer']}>
   <div>
+    <CalendarNavbar></CalendarNavbar>
     <h2>Example Form</h2>
     <TextField
       label="Name"
