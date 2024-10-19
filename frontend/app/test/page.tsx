@@ -86,6 +86,32 @@ const App = () => {
     }
   };
 
+  async function updateAdmin() {
+    const updatedAdminData = {
+      uid: "35462", 
+      name: 'Leon Huang',         
+      email: "lyh7@cornell.edu",  
+    };
+  
+    try {
+      const response = await fetch('/api/update/admin', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updatedAdminData),
+      });
+  
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      } 
+      const result = await response.json();
+      console.log('Admin updated successfully, please check the Admin collection on MongoDB.');
+    } catch (error) {
+      console.error('Error calling updateAdmin:', error);
+    }
+  }
+
   /** MEETING TESTING FUNCTIONS */
 
   const createMeeting = async () => {
@@ -315,6 +341,7 @@ const App = () => {
         <TestButton testFunc={createAdmin} text="Call create admin post /api/write/admin"/>
         <TestButton testFunc={getAdmin} text="Call get admin /api/retrieve/admin" />
         <TestButton testFunc={deleteAdmin} text="Call delete admin /api/delete/admin" />
+        <TestButton testFunc={updateAdmin} text = "Call create admin post /api/write/admin"/>
       </div>
       <div className={styles.section + ' ' + styles.meetings}>
         <h2>Meetings</h2>
