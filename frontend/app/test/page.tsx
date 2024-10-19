@@ -337,29 +337,28 @@ const App = () => {
         <TestButton testFunc={getCalendars} text="Call get calendars /api/calender/getCalendars/routes" />
       </div>
 
-      <div className="container">
-        <div className="meeting-blocks">
-          <BoxText boxType="Meeting Block" title="Meeting Name" primaryColor="#b3ea75" time="9am-10am" tags={['Hybrid', 'AA']} />
-          <BoxText boxType="Meeting Block" title="Meeting Name" primaryColor="#f7e57b" time="9am-10am" tags={['Hybrid', 'AA']} />
-          <BoxText boxType="Meeting Block" title="Meeting Name" primaryColor="#96dbfe" time="9am-10am" tags={['Hybrid', 'AA']} />
-          <BoxText boxType="Meeting Block" title="Meeting Name" primaryColor="#ffae73" time="9am-10am" tags={['Hybrid', 'AA']} />
-          <BoxText boxType="Meeting Block" title="Meeting Name" primaryColor="#d2afff" time="9am-10am" tags={['Hybrid', 'AA']} />
-          <BoxText boxType="Meeting Block" title="Meeting Name" primaryColor="#ffa3c2" time="9am-10am" tags={['Hybrid', 'AA']} />
-          <BoxText boxType="Meeting Block" title="Meeting Name" primaryColor="#cecece" time="9am-10am" tags={['Hybrid', 'AA']} />
-        </div>
+      <div className={styles.section}>
+          <h2>Meeting Block & Room Block</h2>
+          <div className="meeting-blocks">
+            <BoxText boxType="Meeting Block" title="Meeting Name" primaryColor="#b3ea75" time="9am-10am" tags={['Hybrid', 'AA']} />
+            <BoxText boxType="Meeting Block" title="Meeting Name" primaryColor="#f7e57b" time="9am-10am" tags={['Hybrid', 'AA']} />
+            <BoxText boxType="Meeting Block" title="Meeting Name" primaryColor="#96dbfe" time="9am-10am" tags={['Hybrid', 'AA']} />
+            <BoxText boxType="Meeting Block" title="Meeting Name" primaryColor="#ffae73" time="9am-10am" tags={['Hybrid', 'AA']} />
+            <BoxText boxType="Meeting Block" title="Meeting Name" primaryColor="#d2afff" time="9am-10am" tags={['Hybrid', 'AA']} />
+            <BoxText boxType="Meeting Block" title="Meeting Name" primaryColor="#ffa3c2" time="9am-10am" tags={['Hybrid', 'AA']} />
+            <BoxText boxType="Meeting Block" title="Meeting Name" primaryColor="#cecece" time="9am-10am" tags={['Hybrid', 'AA']} />
+          </div>
 
-        <div className="room-blocks">
-          <BoxText boxType="Room Block" title="Serenity Room" primaryColor="#b3ea75" />
-          <BoxText boxType="Room Block" title="Seeds of Hope" primaryColor="#f7e57b" />
-          <BoxText boxType="Room Block" title="Small but Powerful - Left" primaryColor="#96dbfe" />
-          <BoxText boxType="Room Block" title="Unity Room" primaryColor="#ffae73" />
-          <BoxText boxType="Room Block" title="Room for Improvement" primaryColor="#d2afff" />
-          <BoxText boxType="Room Block" title="Zoom Account" primaryColor="#ffa3c2" />
-          <BoxText boxType="Room Block" title="Zoom Account" primaryColor="#cecece" />
-        </div>
+          <div className="room-blocks">
+            <BoxText boxType="Room Block" title="Serenity Room" primaryColor="#b3ea75" />
+            <BoxText boxType="Room Block" title="Seeds of Hope" primaryColor="#f7e57b" />
+            <BoxText boxType="Room Block" title="Small but Powerful - Left" primaryColor="#96dbfe" />
+            <BoxText boxType="Room Block" title="Unity Room" primaryColor="#ffae73" />
+            <BoxText boxType="Room Block" title="Room for Improvement" primaryColor="#d2afff" />
+            <BoxText boxType="Room Block" title="Zoom Account" primaryColor="#ffa3c2" />
+            <BoxText boxType="Room Block" title="Zoom Account" primaryColor="#cecece" />
+          </div>
       </div>
-
-
     </div>
   );
 }
