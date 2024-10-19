@@ -35,6 +35,17 @@ import { authProvider } from "../services/auth";
 
 // export default MainPage
 
+import MeetingsFilter from './components/molecules/MeetingsFilter';
+
+const HomePage: React.FC = () => {
+    return (
+        <div>
+            <h1>Meetings Filter Test</h1>
+            <MeetingsFilter />
+        </div>
+    );
+};
+
 
 export default async function ForcedPage() {
 
