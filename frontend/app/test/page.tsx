@@ -6,6 +6,7 @@ import styles from "../../styles/TestPage.module.scss";
 import TestButton from "../components/Test/TestButton"
 import TextField from '../components/atoms/TextField';
 import RadioGroup from '../components/atoms/RadioGroup';
+import BoxText from "../components/atoms/BoxText"
 
 const App = () => {
 
@@ -13,9 +14,9 @@ const App = () => {
 
   const createAdmin = async () => {
     try {
-      const newAdmin: IAdmin = { 
+      const newAdmin: IAdmin = {
         uid: `${Math.floor(Math.random() * 100000) + 1}`, // Most likely will be Microsoft ID
-        name: "Joseph Ugarte", 
+        name: "Joseph Ugarte",
         email: "jeu9@cornell.edu"
       }
 
@@ -116,7 +117,7 @@ const App = () => {
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-     
+
       const meetingResponse = await response.json();
       console.log(meetingResponse);
       alert("Meeting created successfully! Please check the Meeting collection on MongoDB.")
@@ -179,7 +180,7 @@ const App = () => {
           newMeeting
         ),
       });
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -219,7 +220,7 @@ const App = () => {
       const url = new URL('/api/retrieve/meeting/week', window.location.origin);
       url.searchParams.append('startDate', currentDate.toISOString());
       const response = await fetch(url);
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -257,7 +258,7 @@ const App = () => {
   const handleZoomToken = async () => {
     try {
       const response = await fetch('/api/zoom');
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -325,7 +326,7 @@ const App = () => {
       </div>
       <div className={styles.section}>
         <h2>Admins</h2>
-        <TestButton testFunc={createAdmin} text="Call create admin post /api/write/admin"/>
+        <TestButton testFunc={createAdmin} text="Call create admin post /api/write/admin" />
         <TestButton testFunc={getAdmin} text="Call get admin /api/retrieve/admin" />
         <TestButton testFunc={deleteAdmin} text="Call delete admin /api/delete/admin" />
       </div>
@@ -368,6 +369,29 @@ const App = () => {
           />
           <p>You have selected: {selectedOption}</p>
       </div>
+      </div>
+
+      <div className={styles.section}>
+          <h2>Meeting Block & Room Block</h2>
+          <div className="meeting-blocks">
+            <BoxText boxType="Meeting Block" title="Meeting Name" primaryColor="#b3ea75" time="9am-10am" tags={['Hybrid', 'AA']} />
+            <BoxText boxType="Meeting Block" title="Meeting Name" primaryColor="#f7e57b" time="9am-10am" tags={['Hybrid', 'AA']} />
+            <BoxText boxType="Meeting Block" title="Meeting Name" primaryColor="#96dbfe" time="9am-10am" tags={['Hybrid', 'AA']} />
+            <BoxText boxType="Meeting Block" title="Meeting Name" primaryColor="#ffae73" time="9am-10am" tags={['Hybrid', 'AA']} />
+            <BoxText boxType="Meeting Block" title="Meeting Name" primaryColor="#d2afff" time="9am-10am" tags={['Hybrid', 'AA']} />
+            <BoxText boxType="Meeting Block" title="Meeting Name" primaryColor="#ffa3c2" time="9am-10am" tags={['Hybrid', 'AA']} />
+            <BoxText boxType="Meeting Block" title="Meeting Name" primaryColor="#cecece" time="9am-10am" tags={['Hybrid', 'AA']} />
+          </div>
+
+          <div className="room-blocks">
+            <BoxText boxType="Room Block" title="Serenity Room" primaryColor="#b3ea75" />
+            <BoxText boxType="Room Block" title="Seeds of Hope" primaryColor="#f7e57b" />
+            <BoxText boxType="Room Block" title="Small but Powerful - Left" primaryColor="#96dbfe" />
+            <BoxText boxType="Room Block" title="Unity Room" primaryColor="#ffae73" />
+            <BoxText boxType="Room Block" title="Room for Improvement" primaryColor="#d2afff" />
+            <BoxText boxType="Room Block" title="Zoom Account" primaryColor="#ffa3c2" />
+            <BoxText boxType="Room Block" title="Zoom Account" primaryColor="#cecece" />
+          </div>
       </div>
     </div>
   );
