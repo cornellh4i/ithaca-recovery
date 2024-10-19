@@ -1,5 +1,3 @@
-"use client";
-
 import React, { useState } from "react";
 import styles from "../../../../styles/components/atoms/TextField.module.scss";
 

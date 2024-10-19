@@ -4,9 +4,13 @@ import { IAdmin, IUser } from '../../util/models'
 import { IMeeting } from '../../util/models'
 import styles from "../../styles/TestPage.module.scss";
 import TestButton from "../components/Test/TestButton"
-import TextField from '../components/atoms/TextField';
+import BoxText from "../components/atoms/BoxText";
+import DatePicker from "../components/atoms/DatePicker";
 import RadioGroup from '../components/atoms/RadioGroup';
-import BoxText from "../components/atoms/BoxText"
+import TextField from '../components/atoms/TextField';
+import TimePicker from "../components/atoms/TimePicker";
+import TodayIcon from '@mui/icons-material/Today';
+import AccessTimeIcon from '@mui/icons-material/AccessTime';
 
 const App = () => {
 
@@ -392,6 +396,13 @@ const App = () => {
             <BoxText boxType="Room Block" title="Zoom Account" primaryColor="#ffa3c2" />
             <BoxText boxType="Room Block" title="Zoom Account" primaryColor="#cecece" />
           </div>
+      </div>
+      <div className={styles.section + ' ' + styles.meetings}>
+        <h2>DatePicker and TimePicker</h2>
+        <DatePicker label={<TodayIcon/>} value={"Value"} />
+        <DatePicker label={"string label"} value={"Value"} />
+        <TimePicker label={<AccessTimeIcon/>} value={"Value"} disablePast={true} />
+        <TimePicker label={"string label"} value={"Value"} disablePast={true} />
       </div>
     </div>
   );
