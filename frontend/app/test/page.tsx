@@ -11,6 +11,7 @@ import TextField from '../components/atoms/TextField';
 import TimePicker from "../components/atoms/TimePicker";
 import TodayIcon from '@mui/icons-material/Today';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
+import SpinnerInput from "../components/atoms/SpinnerInput";
 
 const App = () => {
 
@@ -327,6 +328,10 @@ const App = () => {
   return (
     <div className={styles['apicontainer']}>
       <div>
+      </div>
+      <div className={styles.section}>
+        <h2>Spinner Input</h2>
+        <SpinnerInput value={1} onChange={() => {}}></SpinnerInput>
       </div>
       <div className={styles.section}>
         <h2>Admins</h2>
