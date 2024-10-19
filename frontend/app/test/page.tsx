@@ -16,6 +16,21 @@ const App = () => {
 
   /** ADMIN TESTING FUNCTIONS  */
 
+  // State for DatePicker
+  const [dateValue, setDateValue] = useState<string>('2024-10-19'); // Example initial date value
+  // State for TimePicker
+  const [timeValue, setTimeValue] = useState<string>('10:00 - 12:00'); // Example initial time range
+
+  // Handlers for DatePicker
+  const handleDateChange = (newDate: string) => {
+    setDateValue(newDate);
+  };
+
+  // Handlers for TimePicker
+  const handleTimeChange = (newTime: string) => {
+    setTimeValue(newTime);
+  };
+
   const createAdmin = async () => {
     try {
       const newAdmin: IAdmin = {
@@ -317,12 +332,12 @@ const App = () => {
   const [inputValue, setInputValue] = useState(''); // State to hold the value
 
   const [selectedOption, setSelectedOption] = useState<string>("Option 1");
-  
-    // Function to handle the change in radio button selection
-    const handleOptionChange = (option: string) => {
-        setSelectedOption(option);
-    };
-  
+
+  // Function to handle the change in radio button selection
+  const handleOptionChange = (option: string) => {
+    setSelectedOption(option);
+  };
+
 
   return (
     <div className={styles['apicontainer']}>
@@ -355,54 +370,76 @@ const App = () => {
       </div>
       <div className={styles.section}>
         <h2>Example Text Field & Radio Buttons</h2>
-          <TextField
-              label="Meeting title"
-              value={inputValue}
-              onChange={setInputValue}
-              underlineOnFocus={false}/>
-          <p>Entered Value: {inputValue}</p>
+        <TextField
+          label="Meeting title"
+          value={inputValue}
+          onChange={setInputValue}
+          underlineOnFocus={false} />
+        <p>Entered Value: {inputValue}</p>
 
-      <div>
+        <div>
           <RadioGroup
-              label="Ends"
-              options={["Never", "On", "After"]}
-              selectedOption={selectedOption}
-              onChange={handleOptionChange}
-              name="preferences"
-              disabledOptions={["On"]}
+            label="Ends"
+            options={["Never", "On", "After"]}
+            selectedOption={selectedOption}
+            onChange={handleOptionChange}
+            name="preferences"
+            disabledOptions={["On"]}
           />
           <p>You have selected: {selectedOption}</p>
-      </div>
+        </div>
       </div>
 
       <div className={styles.section}>
-          <h2>Meeting Block & Room Block</h2>
-          <div className="meeting-blocks">
-            <BoxText boxType="Meeting Block" title="Meeting Name" primaryColor="#b3ea75" time="9am-10am" tags={['Hybrid', 'AA']} />
-            <BoxText boxType="Meeting Block" title="Meeting Name" primaryColor="#f7e57b" time="9am-10am" tags={['Hybrid', 'AA']} />
-            <BoxText boxType="Meeting Block" title="Meeting Name" primaryColor="#96dbfe" time="9am-10am" tags={['Hybrid', 'AA']} />
-            <BoxText boxType="Meeting Block" title="Meeting Name" primaryColor="#ffae73" time="9am-10am" tags={['Hybrid', 'AA']} />
-            <BoxText boxType="Meeting Block" title="Meeting Name" primaryColor="#d2afff" time="9am-10am" tags={['Hybrid', 'AA']} />
-            <BoxText boxType="Meeting Block" title="Meeting Name" primaryColor="#ffa3c2" time="9am-10am" tags={['Hybrid', 'AA']} />
-            <BoxText boxType="Meeting Block" title="Meeting Name" primaryColor="#cecece" time="9am-10am" tags={['Hybrid', 'AA']} />
-          </div>
+        <h2>Meeting Block & Room Block</h2>
+        <div className="meeting-blocks">
+          <BoxText boxType="Meeting Block" title="Meeting Name" primaryColor="#b3ea75" time="9am-10am" tags={['Hybrid', 'AA']} />
+          <BoxText boxType="Meeting Block" title="Meeting Name" primaryColor="#f7e57b" time="9am-10am" tags={['Hybrid', 'AA']} />
+          <BoxText boxType="Meeting Block" title="Meeting Name" primaryColor="#96dbfe" time="9am-10am" tags={['Hybrid', 'AA']} />
+          <BoxText boxType="Meeting Block" title="Meeting Name" primaryColor="#ffae73" time="9am-10am" tags={['Hybrid', 'AA']} />
+          <BoxText boxType="Meeting Block" title="Meeting Name" primaryColor="#d2afff" time="9am-10am" tags={['Hybrid', 'AA']} />
+          <BoxText boxType="Meeting Block" title="Meeting Name" primaryColor="#ffa3c2" time="9am-10am" tags={['Hybrid', 'AA']} />
+          <BoxText boxType="Meeting Block" title="Meeting Name" primaryColor="#cecece" time="9am-10am" tags={['Hybrid', 'AA']} />
+        </div>
 
-          <div className="room-blocks">
-            <BoxText boxType="Room Block" title="Serenity Room" primaryColor="#b3ea75" />
-            <BoxText boxType="Room Block" title="Seeds of Hope" primaryColor="#f7e57b" />
-            <BoxText boxType="Room Block" title="Small but Powerful - Left" primaryColor="#96dbfe" />
-            <BoxText boxType="Room Block" title="Unity Room" primaryColor="#ffae73" />
-            <BoxText boxType="Room Block" title="Room for Improvement" primaryColor="#d2afff" />
-            <BoxText boxType="Room Block" title="Zoom Account" primaryColor="#ffa3c2" />
-            <BoxText boxType="Room Block" title="Zoom Account" primaryColor="#cecece" />
-          </div>
+        <div className="room-blocks">
+          <BoxText boxType="Room Block" title="Serenity Room" primaryColor="#b3ea75" />
+          <BoxText boxType="Room Block" title="Seeds of Hope" primaryColor="#f7e57b" />
+          <BoxText boxType="Room Block" title="Small but Powerful - Left" primaryColor="#96dbfe" />
+          <BoxText boxType="Room Block" title="Unity Room" primaryColor="#ffae73" />
+          <BoxText boxType="Room Block" title="Room for Improvement" primaryColor="#d2afff" />
+          <BoxText boxType="Room Block" title="Zoom Account" primaryColor="#ffa3c2" />
+          <BoxText boxType="Room Block" title="Zoom Account" primaryColor="#cecece" />
+        </div>
       </div>
       <div className={styles.section + ' ' + styles.meetings}>
         <h2>DatePicker and TimePicker</h2>
-        <DatePicker label={<TodayIcon/>} value={"Value"} />
-        <DatePicker label={"string label"} value={"Value"} />
-        <TimePicker label={<AccessTimeIcon/>} value={"Value"} disablePast={true} />
-        <TimePicker label={"string label"} value={"Value"} disablePast={true} />
+        <DatePicker
+          label={<TodayIcon />}
+          value={dateValue}
+          onChange={handleDateChange}
+          error={dateValue === '' ? 'Date is required' : undefined} // Example error handling
+        />
+        <DatePicker
+          label="string label"
+          value={dateValue}
+          onChange={handleDateChange}
+          error={dateValue === '' ? 'Date is required' : undefined} // Example error handling
+        />
+        <TimePicker
+          label={<AccessTimeIcon />}
+          value={timeValue}
+          onChange={handleTimeChange}
+          disablePast={true}
+          error={timeValue === '' ? 'Time is required' : undefined} // Example error handling
+        />
+        <TimePicker
+          label="string label"
+          value={timeValue}
+          onChange={handleTimeChange}
+          disablePast={true}
+          error={timeValue === '' ? 'Time is required' : undefined} // Example error handling
+        />
       </div>
     </div>
   );

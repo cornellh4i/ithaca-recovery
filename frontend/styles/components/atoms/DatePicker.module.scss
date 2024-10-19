@@ -1,4 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;600&display=swap');
+@import '../../Variables.module.scss';
 
 .date-picker-wrapper {
   display: flex;
@@ -31,6 +32,14 @@
     &:focus {
       border: none; // Ensure no border appears on focus
       outline: none;
+      background-color: transparent;
+      box-shadow: none;
+    }
+
+    cursor: text;
+
+    &:underline {
+      border-bottom: 1px solid $dark-pink-color;
     }
 
     /* Hide the calendar icon for WebKit browsers (Chrome, Safari, etc.) */

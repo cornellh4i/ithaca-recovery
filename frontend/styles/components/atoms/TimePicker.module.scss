@@ -24,11 +24,12 @@
     font-size: 18px;
     border: none; // Remove the border
     outline: none; // Remove the focus outline
-    width: 46px;
+    width: 80px; // Adjust the width to be wider
+    min-width: 70px; // Set a minimum width
     text-align: center;
     background-color: transparent; // Transparent background
     font-family: 'Source Sans Pro', sans-serif;
-
+    padding: 4px; // Add some padding
 
     /* Hide the time picker icon */
     &::-webkit-calendar-picker-indicator {
