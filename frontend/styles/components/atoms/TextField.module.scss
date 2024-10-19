@@ -1,0 +1,33 @@
+@import '../../Variables.module.scss';
+
+.textfieldcontainer {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    align-self: stretch;
+}
+
+.textfieldinput {
+    border: none;
+    outline: none;
+    flex: 1 0 0;
+    align-self: stretch;
+    font-family: 'Source Sans Pro', sans-serif;
+    font-size: 24px;
+    font-weight: 400;
+    padding: 6px 12px;
+    color: $black-color;
+    transition: border-color 0.3s;
+
+    &::placeholder {
+        color: $medium-grey-color;
+    }
+
+    &.default {
+        border-bottom: 1px solid $light-grey-color;
+    }
+
+    &.focused {
+        border-bottom: 1px solid $dark-pink-color;
+    }
+}
