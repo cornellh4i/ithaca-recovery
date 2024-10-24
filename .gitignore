@@ -2,3 +2,5 @@
 .env
 secrets/
 node_modules/
+yarn.lock
+*.json

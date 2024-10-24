@@ -9,41 +9,19 @@ interface ButtonProps {
 }
 
 const TextButton: React.FC<ButtonProps> = ({ onClick, label, icon }) => {
-  const [showDropdown, setShowDropdown] = useState(false);
 
   const handleClick = async () => {
     await onClick();
-    setShowDropdown(true); // Open the dropdown on button click
-  };
-
-  const handleCloseDropdown = () => {
-    setShowDropdown(false); // Close the dropdown
   };
 
 
   return (
     <div className={styles.meetingContainer}>
-      <div className={styles.buttonDropdownContainer}>
-        {!showDropdown ? (
-          <button className={styles.btn} onClick={handleClick}>
+        <button className={styles.btn} onClick={handleClick}>
             {icon && <span className={styles.icon}>{icon}</span>}
             {label && <span className={styles.label}>{label}</span>}
           </button>
-        ) : (
-          <div className={styles.dropdownHeader}>
-            <p className={styles.meetingTitleText}>New Meeting</p>
-            <button className={styles.closeButton} onClick={handleCloseDropdown}>
-              X
-            </button>
-          </div>
-        )}
 
-        <Dropdown
-          isVisible={showDropdown}
-        />
-
-      
-      </div>
     </div>
   );
 };
