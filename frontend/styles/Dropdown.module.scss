@@ -1,0 +1,120 @@
+.dropdown {
+    position: relative;
+    background-color: white;
+    // border: 1px solid #ccc;
+    width: 50%;
+    // box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    // padding: 20px;
+}
+
+.meetingTitleInput {
+    width: 100%;
+    // padding: 10px;
+    margin-bottom: 10px;
+    border-radius: 4px;
+    // border: 1px solid #ccc;
+}
+
+.meetingTypeContainer {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+
+.meetingTypeButton {
+    padding: 2% 5%;
+    border: none;
+    background-color: #ffffff;
+    cursor: pointer;
+    border-radius: 5px;
+    transition: background-color 0.3s ease;
+}
+
+.meetingTypeButton.active {
+    background-color: #d4dae1;
+    color: rgb(0, 0, 0);
+    font-weight: bold;
+}
+
+.meetingTitleInput {
+    width: 100%;
+    padding: 8px;
+    margin-bottom: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+
+.elementList {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.DropdownContainer {
+    position: relative;
+    margin-bottom: 15px; /* Add more margin for spacing */
+}
+
+.DropdownButton {
+    display: flex;
+    align-items: center;
+    justify-content: space-between; /* Make space between the text and the icon */
+    padding: 12px; /* Increase padding for better visual appearance */
+    width: 100%; /* Make button full width */
+    border: 1px solid #ccc; /* Add a border */
+    background-color: #ffffff;
+    cursor: pointer;
+    border-radius: 4px; /* Softer, slightly rounded corners */
+    transition: background-color 0.3s ease, border-color 0.3s ease; /* Transition for border color */
+    color: #333; /* Darker text color */
+}
+
+.DropdownButton:after {
+    content: '\25BC'; /* Downward arrow icon (Unicode) */
+    font-size: 0.8rem; /* Adjust the icon size */
+    color: #999; /* Lighter gray color for the icon */
+}
+
+/* Add active class for when the dropdown is clicked */
+.activeDropdown {
+    border-color: #d22e55; /* Red border when dropdown is active */
+}
+
+.locationList {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 100%;
+    background-color: white;
+    border: 1px solid #ccc;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    z-index: 1;
+    border-radius: 4px; /* Softer corners for the dropdown */
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.dropdownItem {
+    padding: 10px 12px;
+    cursor: pointer;
+    color: #333; /* Darker text color */
+    display: flex;
+    align-items: center;
+    justify-content: space-between; /* Space between the text and icon */
+}
+
+.dropdownItem:hover {
+    background-color: #f0f0f0;
+}
+
+.dropdownItem:after {
+    content: '\2713'; /* Checkmark icon (Unicode) */
+    font-size: 0.9rem; /* Adjust icon size */
+    color: #d22e55; /* Red color for checkmark */
+    opacity: 0; /* Hide by default */
+}
+
+.dropdownItem.selected:after {
+    opacity: 1; /* Show checkmark if selected */
+}
