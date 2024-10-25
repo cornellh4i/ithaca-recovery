@@ -40,14 +40,17 @@ import MeetingsFilter from './components/molecules/MeetingsFilter';
 const HomePage: React.FC = () => {
     return (
         <div>
-            <h1>Meetings Filter Test</h1>
+            <h1>Meetings Filter</h1>
             <MeetingsFilter />
         </div>
     );
 };
 
+export default HomePage;
 
-export default async function ForcedPage() {
+// export default async function ForcedPage() {
 
-  return <div>Welcome</div>;
-}
+//     return <div>Welcome</div>;
+// }
+
+

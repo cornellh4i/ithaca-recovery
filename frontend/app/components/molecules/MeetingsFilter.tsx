@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useState } from 'react';
 import LabeledCheckbox from '../atoms/checkbox/index';
 import styles from '../../../styles/components/molecules/MeetingsFilter.module.scss';
@@ -5,21 +7,22 @@ import styles from '../../../styles/components/molecules/MeetingsFilter.module.s
 const MeetingsFilter: React.FC = () => {
     // State to track the checked status of each filter
     const [filters, setFilters] = useState({
-        SerenityRoom: false,
-        SeedsOfHope: false,
-        UnityRoom: false,
-        RoomForImprovement: false,
-        SmallButPowerfulRight: false,
-        SmallButPowerfulLeft: false,
-        ZoomAccount1: false,
-        ZoomAccount2: false,
-        ZoomAccount3: false,
-        ZoomAccount4: false,
-        AA: false,
-        AlAnon: false,
-        Other: false,
-        InPerson: false,
-        Hybrid: false
+        SerenityRoom: true,
+        SeedsOfHope: true,
+        UnityRoom: true,
+        RoomForImprovement: true,
+        SmallButPowerfulRight: true,
+        SmallButPowerfulLeft: true,
+        ZoomAccount1: true,
+        ZoomAccount2: true,
+        ZoomAccount3: true,
+        ZoomAccount4: true,
+        AA: true,
+        AlAnon: true,
+        Other: true,
+        InPerson: true,
+        Hybrid: true,
+        Remote: true
     });
 
     // Handler to update the filter state
@@ -151,6 +154,14 @@ const MeetingsFilter: React.FC = () => {
                     label="Hybrid"
                     checked={filters.Hybrid}
                     onChange={handleCheckboxChange('Hybrid')}
+                    color="#CC3366"
+                />
+            </div>
+            <div className={styles.checkbox}>
+                <LabeledCheckbox 
+                    label="Remote"
+                    checked={filters.Remote}
+                    onChange={handleCheckboxChange('Remote')}
                     color="#CC3366"
                 />
             </div>
