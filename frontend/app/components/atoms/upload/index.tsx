@@ -94,7 +94,7 @@ const UploadPandaDocs: React.FC<UploadProps> = ({ onFileSelect }) => {
               </div>
               <p className={styles.cancelupload} onClick={removeFile}>✕</p>
             </div>
-            {uploadProgress !== null && (
+            {uploadProgress !== null && uploadProgress < 100 && (
               <div className={styles.progressbarcontainer}>
                 <div
                   className={styles.progressbar}
