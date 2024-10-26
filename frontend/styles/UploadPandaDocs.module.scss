@@ -87,6 +87,10 @@
       text-align: left;
       color: #000000;
       margin-bottom: 0px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      max-width: 200px;
     }
 
     .filesize {
