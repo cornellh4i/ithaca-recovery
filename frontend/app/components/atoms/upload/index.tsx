@@ -57,7 +57,7 @@ const UploadPandaDocs: React.FC<UploadProps> = ({ onFileSelect }) => {
   
     reader.onloadend = () => {
       setUploadCompleted(true);
-      setTimeout(() => setUploadProgress(null), 1000)
+      setTimeout(() => setUploadProgress(null), 500)
     };
   
     reader.readAsArrayBuffer(file);
