@@ -330,10 +330,6 @@ const App = () => {
       <div>
       </div>
       <div className={styles.section}>
-        <h2>Spinner Input</h2>
-        <SpinnerInput value={1} onChange={() => {}}></SpinnerInput>
-      </div>
-      <div className={styles.section}>
         <h2>Admins</h2>
         <TestButton testFunc={createAdmin} text="Call create admin post /api/write/admin" />
         <TestButton testFunc={getAdmin} text="Call get admin /api/retrieve/admin" />
@@ -408,6 +404,10 @@ const App = () => {
         <DatePicker label={"string label"} value={"Value"} />
         <TimePicker label={<AccessTimeIcon/>} value={"Value"} disablePast={true} />
         <TimePicker label={"string label"} value={"Value"} disablePast={true} />
+      </div>
+      <div className={styles.section}>
+        <h2>Spinner Input</h2>
+        <SpinnerInput value={1} onChange={() => {}}></SpinnerInput>
       </div>
     </div>
   );
