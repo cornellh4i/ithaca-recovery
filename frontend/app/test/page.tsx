@@ -12,6 +12,7 @@ import TimePicker from "../components/atoms/TimePicker";
 import TodayIcon from '@mui/icons-material/Today';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import SpinnerInput from "../components/atoms/SpinnerInput";
+import ReccuringMeeting from "../components/organisms/RecurringMeeting";
 
 const App = () => {
 
@@ -328,6 +329,10 @@ const App = () => {
   return (
     <div className={styles['apicontainer']}>
       <div>
+      </div>
+      <div className={styles.section}>
+        <h2>Reccuring Meeting</h2>
+        <ReccuringMeeting></ReccuringMeeting>
       </div>
       <div className={styles.section}>
         <h2>Spinner Input</h2>
