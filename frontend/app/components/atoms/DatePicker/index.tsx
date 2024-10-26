@@ -36,7 +36,7 @@ const DatePicker = ({ label, value: propValue = '', error, onChange, underlineOn
 
   const getToday = () => {
     const today = new Date();
-    return today.toISOString().split('T')[0]; // Format as YYYY-MM-DD for input
+    return today.toISOString().split('T')[0];
   };
 
   // Filter out 'onChange' from props to avoid passing it twice
