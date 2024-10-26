@@ -6,7 +6,6 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
   text-align: center;
 }
 
@@ -16,15 +15,18 @@
   align-items: center;
   color: #555;
   margin-bottom: -35px;
+  cursor: pointer;
 
-  .uploadbutton {
-    color: rgb(57, 48, 48);
-    border-radius: 5px;
-    cursor: pointer;
+  svg {
     margin-top: 10px;
     scale: 4;
     color: gray;
     margin-bottom: 25px;
+  }
+
+  .uploadbutton {
+    color: rgb(57, 48, 48);
+    border-radius: 5px;
   }
 
   .fileinput {
@@ -48,7 +50,7 @@
   .progressbarcontainer {
     display: flex;
     align-items: center;
-    gap: 10px; 
+    gap: 10px;
     width: 100%;
   }
 
@@ -57,7 +59,7 @@
     height: 8px;
     background-color: #484848;
     border-radius: 4px;
-    transition: width 1s ease;
+    transition: width .4s ease;
   }
 
   .progresspercentage {
@@ -106,6 +108,7 @@
     font-weight: 900;
     font-size: 20px;
     color: #878787;
+    cursor: pointer;
   }
 }
 

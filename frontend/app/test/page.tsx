@@ -5,6 +5,7 @@ import { IAdmin, IUser } from '../../util/models'
 import { IMeeting } from '../../util/models'
 import styles from "../../styles/TestPage.module.scss";
 import TestButton from "../components/Test/TestButton"
+import UploadPandaDocs from '../components/atoms/upload/index';
 
 const App = () => {
 
@@ -308,6 +309,15 @@ const App = () => {
     }
   }
 
+  /** PANDADOCS FUNCTION */
+  const handleFileSelect = (file: File | null) => {
+    if (file) {
+        console.log('File selected:', file.name);
+    } else {
+        console.log('No file selected');
+    }
+  };
+
   return (
     <div className={styles['apicontainer']}>
       <div className={styles.section}>
@@ -335,6 +345,8 @@ const App = () => {
         <TestButton testFunc={getGroups} text="Call get groups /api/groups/routes" />
         <TestButton testFunc={getCalendars} text="Call get calendars /api/calender/getCalendars/routes" />
       </div>
+
+      <UploadPandaDocs onFileSelect={handleFileSelect} />
     </div>
   );
 }

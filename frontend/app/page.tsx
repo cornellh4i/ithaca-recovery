@@ -1,5 +1,3 @@
-'use client'
-
 import React, { useEffect } from 'react';
 import { AuthenticatedTemplate, UnauthenticatedTemplate, useMsal, useMsalAuthentication } from '@azure/msal-react';
 import { InteractionType } from '@azure/msal-browser';
@@ -37,29 +35,8 @@ import { authProvider } from "../services/auth";
 
 // export default MainPage
 
-import UploadPandaDocs from './components/atoms/upload/index';
 
-const HomePage: React.FC = () => {
-    // Handler function to be called when a file is selected
-    const handleFileSelect = (file: File | null) => {
-        if (file) {
-            console.log('File selected:', file.name);
-        } else {
-            console.log('No file selected');
-        }
-    };
+export default async function ForcedPage() {
 
-    return (
-        <div>
-            <h1>Upload PandaDocs</h1>
-            <UploadPandaDocs onFileSelect={handleFileSelect} />
-        </div>
-    );
-};
-
-export default HomePage;
-
-// export default async function ForcedPage() {
-
-//   return <div>Welcome</div>;
-// }
+  return <div>Welcome</div>;
+}
