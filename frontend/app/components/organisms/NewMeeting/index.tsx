@@ -2,53 +2,26 @@ import React from 'react';
 import styles from "../../../../styles/organisms/NewMeeting.module.scss";
 
 interface NewMeetingSidebarProps {
-  checkbox: React.ReactElement;
+  TextField: React.ReactElement;
+  DatePicker: React.ReactElement;
+  TimePicker: React.ReactElement;
+  RadioGroup: React.ReactElement;
 }
 
-const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({ checkbox }) => {
+const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({ TextField, DatePicker, TimePicker, RadioGroup }) => {
   return (
     <div className={styles.newMeetingSidebar}>
       <div className={styles.dummyComponent}>
-        {checkbox}
+        {TextField}
       </div>
       <div className={styles.dummyComponent}>
-        {checkbox}
+        {DatePicker}
       </div>
       <div className={styles.dummyComponent}>
-        {checkbox}
+        {TimePicker}
       </div>
       <div className={styles.dummyComponent}>
-        {checkbox}
-      </div>
-      <div className={styles.dummyComponent}>
-        {checkbox}
-      </div>
-      <div className={styles.dummyComponent}>
-        {checkbox}
-      </div>
-      <div className={styles.dummyComponent}>
-        {checkbox}
-      </div>
-      <div className={styles.dummyComponent}>
-        {checkbox}
-      </div>
-      <div className={styles.dummyComponent}>
-        {checkbox}
-      </div>
-      <div className={styles.dummyComponent}>
-        {checkbox}
-      </div>
-      <div className={styles.dummyComponent}>
-        {checkbox}
-      </div>
-      <div className={styles.dummyComponent}>
-        {checkbox}
-      </div>
-      <div className={styles.dummyComponent}>
-        {checkbox}
-      </div>
-      <div className={styles.dummyComponent}>
-        {checkbox}
+        {RadioGroup}
       </div>
       <button className={styles.createMeetingButton}>Create Meeting</button>
     </div>
