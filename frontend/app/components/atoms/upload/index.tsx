@@ -8,6 +8,8 @@ interface UploadProps {
 const UploadPandaDocs: React.FC<UploadProps> = ({ onFileSelect }) => {
   const [dragActive, setDragActive] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  const [uploadCompleted, setUploadCompleted] = useState(false);
 
   const handleDragOver = useCallback((event: React.DragEvent<HTMLLabelElement>) => {
     event.preventDefault();
@@ -36,6 +38,21 @@ const UploadPandaDocs: React.FC<UploadProps> = ({ onFileSelect }) => {
     onFileSelect(file);
   };
 
+  const simulateUpload = (file: File) => {
+    setUploadProgress(0);
+    setUploadCompleted(false);
+    const interval = setInterval(() => {
+      setUploadProgress((prevProgress) => {
+        if (prevProgress === null || prevProgress >= 100) {
+          clearInterval(interval);
+          setUploadCompleted(true);
+          return 100;
+        }
+        return prevProgress + 10;
+      });
+    }, 500);
+  };
+
   return (
     <div className={styles.uploadwrapper}>
       <label
@@ -47,8 +64,18 @@ const UploadPandaDocs: React.FC<UploadProps> = ({ onFileSelect }) => {
       >
         {selectedFile ? (
           <div className={styles.uploadfileinfo}>
-            <p>{selectedFile.name}</p>
-          </div>
+          <p>{selectedFile.name} ({(selectedFile.size / (1024 * 1024)).toFixed(1)}MB)</p>
+          {uploadProgress !== null && (
+            <div className={styles.progressbarcontainer}>
+              <div
+                className={styles.progressbar}
+                style={{ width: `${uploadProgress}%` }}
+              />
+              <p className={styles.progresspercentage}>{uploadProgress}%</p>
+            </div>
+          )}
+          {uploadCompleted && <p className={styles.uploadcomplete}>Upload Complete!</p>}
+        </div>
         ) : (
           <div className={styles.uploadplaceholder}>
             <label htmlFor="file-upload" className={styles.uploadbutton}>
