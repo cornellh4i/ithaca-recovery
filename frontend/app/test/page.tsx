@@ -4,6 +4,7 @@ import { IAdmin, IUser } from '../../util/models'
 import { IMeeting } from '../../util/models'
 import styles from "../../styles/TestPage.module.scss";
 import TestButton from "../components/Test/TestButton"
+import UploadPandaDocs from '../components/atoms/upload/index';
 import BoxText from "../components/atoms/BoxText";
 import DatePicker from "../components/atoms/DatePicker";
 import RadioGroup from '../components/atoms/RadioGroup';
@@ -316,6 +317,14 @@ const App = () => {
     }
   }
 
+  /** PANDADOCS FUNCTION */
+  const handleFileSelect = (file: File | null) => {
+    if (file) {
+        console.log('File selected:', file.name);
+    } else {
+        console.log('No file selected');
+    }
+  
   const [inputValue, setInputValue] = useState(''); // State to hold the value
 
   const [selectedOption, setSelectedOption] = useState<string>("Option 1");
@@ -367,6 +376,9 @@ const App = () => {
         <TestButton testFunc={getGroups} text="Call get groups /api/groups/routes" />
         <TestButton testFunc={getCalendars} text="Call get calendars /api/calender/getCalendars/routes" />
       </div>
+
+      <UploadPandaDocs onFileSelect={handleFileSelect} />
+
       <div className={styles.section}>
         <h2>Example Text Field & Radio Buttons</h2>
         <TextField

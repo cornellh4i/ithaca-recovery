@@ -13,7 +13,7 @@ import { authProvider } from "../services/auth";
 
 //   const { login, result, error } = useMsalAuthentication(InteractionType.Silent, request);
 
-//   useEffect(() => {
+//   useEffect(() =s> {
 //     if (error) {
 //       login(InteractionType.Popup, request);
 //     }
