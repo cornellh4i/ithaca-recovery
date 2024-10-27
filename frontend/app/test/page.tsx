@@ -1,11 +1,19 @@
 "use client";
-
-import React from 'react';
+import React, { useContext, useState } from 'react';
 import { IAdmin, IUser } from '../../util/models'
 import { IMeeting } from '../../util/models'
 import styles from "../../styles/TestPage.module.scss";
 import TestButton from "../components/Test/TestButton"
 import UploadPandaDocs from '../components/atoms/upload/index';
+import BoxText from "../components/atoms/BoxText";
+import DatePicker from "../components/atoms/DatePicker";
+import RadioGroup from '../components/atoms/RadioGroup';
+import TextField from '../components/atoms/TextField';
+import TimePicker from "../components/atoms/TimePicker";
+import SolidButton from "../components/atoms/solidbutton"
+import MeetingsFilter from '../components/molecules/MeetingsFilter';
+import TodayIcon from '@mui/icons-material/Today';
+import AccessTimeIcon from '@mui/icons-material/AccessTime';
 
 const App = () => {
 
@@ -13,9 +21,9 @@ const App = () => {
 
   const createAdmin = async () => {
     try {
-      const newAdmin: IAdmin = { 
+      const newAdmin: IAdmin = {
         uid: `${Math.floor(Math.random() * 100000) + 1}`, // Most likely will be Microsoft ID
-        name: "Joseph Ugarte", 
+        name: "Joseph Ugarte",
         email: "jeu9@cornell.edu"
       }
 
@@ -116,7 +124,7 @@ const App = () => {
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-     
+
       const meetingResponse = await response.json();
       console.log(meetingResponse);
       alert("Meeting created successfully! Please check the Meeting collection on MongoDB.")
@@ -179,7 +187,7 @@ const App = () => {
           newMeeting
         ),
       });
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -219,7 +227,7 @@ const App = () => {
       const url = new URL('/api/retrieve/meeting/week', window.location.origin);
       url.searchParams.append('startDate', currentDate.toISOString());
       const response = await fetch(url);
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -257,7 +265,7 @@ const App = () => {
   const handleZoomToken = async () => {
     try {
       const response = await fetch('/api/zoom');
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -316,13 +324,32 @@ const App = () => {
     } else {
         console.log('No file selected');
     }
+  
+  const [inputValue, setInputValue] = useState(''); // State to hold the value
+
+  const [selectedOption, setSelectedOption] = useState<string>("Option 1");
+
+  // Function to handle the change in radio button selection
+  const handleOptionChange = (option: string) => {
+    setSelectedOption(option);
+  };
+
+  // Define handler functions for button click events
+  const handleCreateMeetingClick = (): void => {
+    console.log('Create Meeting button clicked');
+  };
+
+  const handleGenerateLinkClick = (): void => {
+    console.log('Generate Meeting Link button clicked');
   };
 
   return (
     <div className={styles['apicontainer']}>
+      <div>
+      </div>
       <div className={styles.section}>
         <h2>Admins</h2>
-        <TestButton testFunc={createAdmin} text="Call create admin post /api/write/admin"/>
+        <TestButton testFunc={createAdmin} text="Call create admin post /api/write/admin" />
         <TestButton testFunc={getAdmin} text="Call get admin /api/retrieve/admin" />
         <TestButton testFunc={deleteAdmin} text="Call delete admin /api/delete/admin" />
       </div>
@@ -335,6 +362,10 @@ const App = () => {
         <TestButton testFunc={getMeetingsDay} text="Get Meetings (Day) /api/retrieve/meeting/day" />
         <TestButton testFunc={getMeetingsWeek} text="Get Meetings (Week) /api/retrieve/meeting/week" />
         <TestButton testFunc={getMeetingsMonth} text="Get Meetings (Month) /api/retrieve/meeting/month" />
+
+        <SolidButton text="Create Meeting" bgColor="#D95372" onClick={handleCreateMeetingClick} ></SolidButton>
+        <SolidButton text="Generate Meeting Link" bgColor="#D95372" onClick={handleGenerateLinkClick} ></SolidButton>
+
       </div>
       <div className={styles.section + ' ' + styles.zoom}>
         <h2>Zoom Testing</h2>
@@ -347,8 +378,65 @@ const App = () => {
       </div>
 
       <UploadPandaDocs onFileSelect={handleFileSelect} />
+
+      <div className={styles.section}>
+        <h2>Example Text Field & Radio Buttons</h2>
+        <TextField
+          label="Meeting title"
+          value={inputValue}
+          onChange={setInputValue}
+          underlineOnFocus={false} />
+        <p>Entered Value: {inputValue}</p>
+
+        <div>
+          <RadioGroup
+            label="Ends"
+            options={["Never", "On", "After"]}
+            selectedOption={selectedOption}
+            onChange={handleOptionChange}
+            name="preferences"
+            disabledOptions={["On"]}
+          />
+          <p>You have selected: {selectedOption}</p>
+        </div>
+      </div>
+
+      <div className={styles.section}>
+        <h2>Meeting Block & Room Block</h2>
+        <div className="meeting-blocks">
+          <BoxText boxType="Meeting Block" title="Meeting Name" primaryColor="#b3ea75" time="9am-10am" tags={['Hybrid', 'AA']} />
+          <BoxText boxType="Meeting Block" title="Meeting Name" primaryColor="#f7e57b" time="9am-10am" tags={['Hybrid', 'AA']} />
+          <BoxText boxType="Meeting Block" title="Meeting Name" primaryColor="#96dbfe" time="9am-10am" tags={['Hybrid', 'AA']} />
+          <BoxText boxType="Meeting Block" title="Meeting Name" primaryColor="#ffae73" time="9am-10am" tags={['Hybrid', 'AA']} />
+          <BoxText boxType="Meeting Block" title="Meeting Name" primaryColor="#d2afff" time="9am-10am" tags={['Hybrid', 'AA']} />
+          <BoxText boxType="Meeting Block" title="Meeting Name" primaryColor="#ffa3c2" time="9am-10am" tags={['Hybrid', 'AA']} />
+          <BoxText boxType="Meeting Block" title="Meeting Name" primaryColor="#cecece" time="9am-10am" tags={['Hybrid', 'AA']} />
+        </div>
+
+        <div className="room-blocks">
+          <BoxText boxType="Room Block" title="Serenity Room" primaryColor="#b3ea75" />
+          <BoxText boxType="Room Block" title="Seeds of Hope" primaryColor="#f7e57b" />
+          <BoxText boxType="Room Block" title="Small but Powerful - Left" primaryColor="#96dbfe" />
+          <BoxText boxType="Room Block" title="Unity Room" primaryColor="#ffae73" />
+          <BoxText boxType="Room Block" title="Room for Improvement" primaryColor="#d2afff" />
+          <BoxText boxType="Room Block" title="Zoom Account" primaryColor="#ffa3c2" />
+          <BoxText boxType="Room Block" title="Zoom Account" primaryColor="#cecece" />
+        </div>
+      </div>
+      <div className={styles.section + ' ' + styles.meetings}>
+        <h2>DatePicker and TimePicker</h2>
+        <DatePicker label={<TodayIcon />} value={"Value"} />
+        <DatePicker label={"string label"} value={"Value"} />
+        <TimePicker label={<AccessTimeIcon />} value={"Value"} disablePast={true} />
+        <TimePicker label={"string label"} value={"Value"} disablePast={true} />
+      </div>
+      <div>
+        <h1>Meetings Filter</h1>
+        <MeetingsFilter />
+      </div>
     </div>
   );
 }
 
 export default App;
+
