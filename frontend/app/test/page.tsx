@@ -10,6 +10,7 @@ import RadioGroup from '../components/atoms/RadioGroup';
 import TextField from '../components/atoms/TextField';
 import TimePicker from "../components/atoms/TimePicker";
 import SolidButton from "../components/atoms/solidbutton"
+import MeetingsFilter from '../components/molecules/MeetingsFilter';
 import TodayIcon from '@mui/icons-material/Today';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 
@@ -416,6 +417,10 @@ const App = () => {
         <DatePicker label={"string label"} value={"Value"} />
         <TimePicker label={<AccessTimeIcon />} value={"Value"} disablePast={true} />
         <TimePicker label={"string label"} value={"Value"} disablePast={true} />
+      </div>
+      <div>
+        <h1>Meetings Filter</h1>
+        <MeetingsFilter />
       </div>
     </div>
   );
