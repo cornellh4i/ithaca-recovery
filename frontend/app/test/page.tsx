@@ -324,6 +324,7 @@ const App = () => {
     } else {
         console.log('No file selected');
     }
+  }
   
   const [inputValue, setInputValue] = useState(''); // State to hold the value
 
