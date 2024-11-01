@@ -22,7 +22,7 @@
 
   .time-picker-input {
     font-size: 18px;
-    border: none; // Remove the border
+    border: 1px solid transparent; // Set a transparent border
     outline: none; // Remove the focus outline
     width: 80px; // Adjust the width to be wider
     min-width: 70px; // Set a minimum width
@@ -46,7 +46,7 @@
     }
 
     &:focus {
-      border: none; // No border on focus
+      border: 1px solid transparent; // Keep a transparent border on focus
       outline: none; // No outline on focus
     }
 
@@ -59,9 +59,14 @@
     color: #333;
   }
 
+  .error-input {
+    border: 1px solid red; // Apply red border for error state
+  }
+
   .error-message {
-    color: red;
-    margin-top: 5px;
-    font-size: 14px;
+    color: red; // Set the text color of the error message to red
+    font-size: 14px; // Adjust the font size as needed
+    margin-top: 4px; // Add some space above the error message
+    margin-left: 4px;
   }
 }

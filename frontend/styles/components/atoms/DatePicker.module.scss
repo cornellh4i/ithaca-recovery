@@ -1,6 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;600&display=swap');
-@import '../../Variables.module.scss';
-
 .date-picker-wrapper {
   display: flex;
   align-items: center;
@@ -9,7 +6,7 @@
   font-family: 'Source Sans Pro', sans-serif;
 
   .date-picker-label {
-    margin-right: 12px;
+    margin-right: 5px;
     display: flex;
     align-items: center;
     font-size: 18px;
@@ -23,14 +20,14 @@
 
   .date-picker-input {
     font-size: 18px;
-    border: none; // Remove border
-    outline: none; // Remove focus outline
+    border: none;
+    outline: none;
     width: 200px;
-    background-color: transparent; // Transparent background
+    background-color: transparent;
     font-family: 'Source Sans Pro', sans-serif;
 
     &:focus {
-      border: none; // Ensure no border appears on focus
+      border: none;
       outline: none;
       background-color: transparent;
       box-shadow: none;
@@ -38,30 +35,27 @@
 
     cursor: text;
 
-    &:underline {
-      border-bottom: 1px solid $dark-pink-color;
-    }
-
-    /* Hide the calendar icon for WebKit browsers (Chrome, Safari, etc.) */
+    // Hide the calendar icon for various browsers
     &::-webkit-calendar-picker-indicator {
       display: none;
-      -webkit-appearance: none;
     }
 
-    /* Hide the calendar icon for Firefox */
     &::-moz-calendar-picker-indicator {
       display: none;
     }
 
-    /* Hide the calendar icon for Internet Explorer and Edge */
     &::-ms-expand {
       display: none;
     }
   }
 
+  .error-input {
+    border: 1px solid red; // Apply red border for error state
+  }
+
   .error-message {
+    margin-left: 10px; // Space between input and error message
     color: red;
-    margin-left: 5px; // Keep error message to the right of the input
     font-size: 14px;
   }
 }
