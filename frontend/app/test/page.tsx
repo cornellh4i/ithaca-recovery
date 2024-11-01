@@ -4,11 +4,14 @@ import { IAdmin, IUser } from '../../util/models'
 import { IMeeting } from '../../util/models'
 import styles from "../../styles/TestPage.module.scss";
 import TestButton from "../components/Test/TestButton"
+import UploadPandaDocs from '../components/atoms/upload/index';
 import BoxText from "../components/atoms/BoxText";
 import DatePicker from "../components/atoms/DatePicker";
 import RadioGroup from '../components/atoms/RadioGroup';
 import TextField from '../components/atoms/TextField';
 import TimePicker from "../components/atoms/TimePicker";
+import SolidButton from "../components/atoms/solidbutton"
+import MeetingsFilter from '../components/molecules/MeetingsFilter';
 import TodayIcon from '@mui/icons-material/Today';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import checkbox from "../components/atoms/checkbox/index"
@@ -316,6 +319,15 @@ const App = () => {
     }
   }
 
+  /** PANDADOCS FUNCTION */
+  const handleFileSelect = (file: File | null) => {
+    if (file) {
+        console.log('File selected:', file.name);
+    } else {
+        console.log('No file selected');
+    }
+  }
+  
   const [inputValue, setInputValue] = useState(''); // State to hold the value
 
   const [selectedOption, setSelectedOption] = useState<string>("Option 1");
@@ -325,6 +337,14 @@ const App = () => {
     setSelectedOption(option);
   };
 
+  // Define handler functions for button click events
+  const handleCreateMeetingClick = (): void => {
+    console.log('Create Meeting button clicked');
+  };
+
+  const handleGenerateLinkClick = (): void => {
+    console.log('Generate Meeting Link button clicked');
+  };
 
   return (
     <div className={styles['apicontainer']}>
@@ -345,6 +365,10 @@ const App = () => {
         <TestButton testFunc={getMeetingsDay} text="Get Meetings (Day) /api/retrieve/meeting/day" />
         <TestButton testFunc={getMeetingsWeek} text="Get Meetings (Week) /api/retrieve/meeting/week" />
         <TestButton testFunc={getMeetingsMonth} text="Get Meetings (Month) /api/retrieve/meeting/month" />
+
+        <SolidButton text="Create Meeting" bgColor="#D95372" onClick={handleCreateMeetingClick} ></SolidButton>
+        <SolidButton text="Generate Meeting Link" bgColor="#D95372" onClick={handleGenerateLinkClick} ></SolidButton>
+
       </div>
       <div className={styles.section + ' ' + styles.zoom}>
         <h2>Zoom Testing</h2>
@@ -355,6 +379,9 @@ const App = () => {
         <TestButton testFunc={getGroups} text="Call get groups /api/groups/routes" />
         <TestButton testFunc={getCalendars} text="Call get calendars /api/calender/getCalendars/routes" />
       </div>
+
+      <UploadPandaDocs onFileSelect={handleFileSelect} />
+
       <div className={styles.section}>
         <h2>Example Text Field & Radio Buttons</h2>
         <TextField
@@ -405,6 +432,10 @@ const App = () => {
         <DatePicker label={"string label"} value={"Value"} />
         <TimePicker label={<AccessTimeIcon />} value={"Value"} disablePast={true} />
         <TimePicker label={"string label"} value={"Value"} disablePast={true} />
+      </div>
+      <div>
+        <h1>Meetings Filter</h1>
+        <MeetingsFilter />
       </div>
       {/* New Meeting Sidebar Section */}
       <div className={styles.section + ' ' + styles.newMeetingSidebar}>
