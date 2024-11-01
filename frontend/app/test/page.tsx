@@ -16,10 +16,68 @@ import TodayIcon from '@mui/icons-material/Today';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import checkbox from "../components/atoms/checkbox/index"
 import NewMeetingSidebar from '../components/organisms/NewMeeting';
-
+import Dropdown from '../components/atoms/dropdown/index';
 const App = () => {
 
   /** ADMIN TESTING FUNCTIONS  */
+
+  // State declarations
+  const [inputValue, setInputValue] = useState(""); // Meeting title
+  const [dateValue, setDateValue] = useState<string>(""); // Initial date value as empty
+  const [timeValue, setTimeValue] = useState<string>(""); // Initial time range as empty
+  const [selectedRoom, setSelectedRoom] = useState<string | null>(null); // Initially no room selected
+  const [selectedMeetingType, setSelectedMeetingType] = useState<string>("Hybrid"); // Default meeting type
+  const [selectedOption, setSelectedOption] = useState<string>("Never"); // Default radio option
+  const [selectedZoomAccount, setSelectedZoomAccount] = useState<string | null>(null); // Initially no Zoom account selected
+
+  // Room and Meeting Type options
+  const roomOptions = [
+    "Serenity Room",
+    "Seeds of Hope",
+    "Unity Room",
+    "Room for Improvement",
+    "Small but Powerful - Right",
+    "Small but Powerful - Left"
+  ];
+
+  const meetingTypeOptions = [
+    "In Person",
+    "Hybrid",
+    "Remote"
+  ];
+
+  const zoomAccountOptions = [
+    "Zoom Email 1",
+    "Zoom Email 2",
+    "Zoom Email 3",
+    "Zoom Email 4"
+  ];
+
+  // Handlers
+  const handleDateChange = (newDate: string) => {
+    setDateValue(newDate);
+  };
+
+  const handleTimeChange = (newTime: string) => {
+    setTimeValue(newTime);
+  };
+
+  const handleRoomChange = (room: string) => {
+    setSelectedRoom(room);
+  };
+
+  const handleMeetingTypeChange = (type: string) => {
+    setSelectedMeetingType(type);
+  };
+
+  const handleOptionChange = (option: string) => {
+    setSelectedOption(option);
+  };
+
+  const handleZoomChange = (email: string) => {
+    setSelectedZoomAccount(email);
+  };
+
 
   const createAdmin = async () => {
     try {
@@ -328,15 +386,6 @@ const App = () => {
     }
   }
 
-  const [inputValue, setInputValue] = useState(''); // State to hold the value
-
-  const [selectedOption, setSelectedOption] = useState<string>("Option 1");
-
-  // Function to handle the change in radio button selection
-  const handleOptionChange = (option: string) => {
-    setSelectedOption(option);
-  };
-
   // Define handler functions for button click events
   const handleCreateMeetingClick = (): void => {
     console.log('Create Meeting button clicked');
@@ -463,13 +512,24 @@ const App = () => {
       <div className={styles.section + ' ' + styles.newMeetingSidebar}>
         <h2>New Meeting Sidebar</h2>
         <NewMeetingSidebar
-          TextField={<TextField
+          meetingTitleTextField={<TextField
             label="Meeting title"
             value={inputValue}
             onChange={setInputValue}
             underlineOnFocus={false} />}
-          DatePicker={<DatePicker label={<TodayIcon />} value={"Value"} />}
-          TimePicker={<TimePicker label={<AccessTimeIcon />} value={"Value"} disablePast={true} />}
+          DatePicker={<DatePicker
+            label={<TodayIcon />}
+            value={dateValue}
+            onChange={handleDateChange}
+            error={dateValue === '' ? 'Date is required' : undefined} // Example error handling
+          />}
+          TimePicker={<TimePicker
+            label={<AccessTimeIcon />}
+            value={timeValue}
+            onChange={handleTimeChange}
+            disablePast={true}
+            error={timeValue === '' ? 'Time is required' : undefined} // Example error handling
+          />}
           RadioGroup={<RadioGroup
             label="Ends"
             options={["Never", "On", "After"]}
@@ -478,6 +538,34 @@ const App = () => {
             name="preferences"
             disabledOptions={["On"]}
           />}
+          roomSelectionDropdown={ // For room selection dropdown
+            <Dropdown
+              isVisible={true}
+              elements={roomOptions}
+              name="Select Room"
+            />
+          }
+          meetingTypeDropdown={ // For meeting type dropdown
+            <Dropdown
+              isVisible={true}
+              elements={meetingTypeOptions}
+              name="Select Meeting Type"
+            />
+          }
+          zoomAccountDropdown={
+            <Dropdown
+              isVisible={true}
+              elements={zoomAccountOptions}
+              name="Select Zoom Account"
+            />
+          }
+          emailTextField={<TextField
+            label="Email"
+            value={inputValue}
+            onChange={setInputValue}
+            underlineOnFocus={false} />
+          }
+          uploadPandaDocsForm={<UploadPandaDocs onFileSelect={handleFileSelect} />}
         ></NewMeetingSidebar>
       </div>
     </div>
