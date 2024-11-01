@@ -441,7 +441,11 @@ const App = () => {
       <div className={styles.section + ' ' + styles.newMeetingSidebar}>
         <h2>New Meeting Sidebar</h2>
         <NewMeetingSidebar
-          TextField={<input type="TextField" />}
+          TextField= {<TextField
+            label="Meeting title"
+            value={inputValue}
+            onChange={setInputValue}
+            underlineOnFocus={false} />}
           DatePicker={<DatePicker label={<TodayIcon />} value={"Value"} />}
           TimePicker={<TimePicker label={<AccessTimeIcon />} value={"Value"} disablePast={true} />}
           RadioGroup={<RadioGroup
