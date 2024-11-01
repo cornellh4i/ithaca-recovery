@@ -14,6 +14,7 @@ import SolidButton from "../components/atoms/solidbutton"
 import MeetingsFilter from '../components/molecules/MeetingsFilter';
 import TodayIcon from '@mui/icons-material/Today';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
+import SpinnerInput from "../components/atoms/SpinnerInput";
 
 const App = () => {
 
@@ -430,6 +431,10 @@ const App = () => {
         <DatePicker label={"string label"} value={"Value"} />
         <TimePicker label={<AccessTimeIcon />} value={"Value"} disablePast={true} />
         <TimePicker label={"string label"} value={"Value"} disablePast={true} />
+      </div>
+      <div className={styles.section}>
+        <h2>Spinner Input</h2>
+        <SpinnerInput value={1} onChange={() => {}}></SpinnerInput>
       </div>
       <div>
         <h1>Meetings Filter</h1>
