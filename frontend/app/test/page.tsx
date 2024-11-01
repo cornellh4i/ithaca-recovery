@@ -322,12 +322,12 @@ const App = () => {
   /** PANDADOCS FUNCTION */
   const handleFileSelect = (file: File | null) => {
     if (file) {
-        console.log('File selected:', file.name);
+      console.log('File selected:', file.name);
     } else {
-        console.log('No file selected');
+      console.log('No file selected');
     }
   }
-  
+
   const [inputValue, setInputValue] = useState(''); // State to hold the value
 
   const [selectedOption, setSelectedOption] = useState<string>("Option 1");
@@ -428,10 +428,32 @@ const App = () => {
       </div>
       <div className={styles.section + ' ' + styles.meetings}>
         <h2>DatePicker and TimePicker</h2>
-        <DatePicker label={<TodayIcon />} value={"Value"} />
-        <DatePicker label={"string label"} value={"Value"} />
-        <TimePicker label={<AccessTimeIcon />} value={"Value"} disablePast={true} />
-        <TimePicker label={"string label"} value={"Value"} disablePast={true} />
+        <DatePicker
+          label={<TodayIcon />}
+          value={dateValue}
+          onChange={handleDateChange}
+          error={dateValue === '' ? 'Date is required' : undefined} // Example error handling
+        />
+        <DatePicker
+          label="string label"
+          value={dateValue}
+          onChange={handleDateChange}
+          error={dateValue === '' ? 'Date is required' : undefined} // Example error handling
+        />
+        <TimePicker
+          label={<AccessTimeIcon />}
+          value={timeValue}
+          onChange={handleTimeChange}
+          disablePast={true}
+          error={timeValue === '' ? 'Time is required' : undefined} // Example error handling
+        />
+        <TimePicker
+          label="string label"
+          value={timeValue}
+          onChange={handleTimeChange}
+          disablePast={true}
+          error={timeValue === '' ? 'Time is required' : undefined} // Example error handling
+        />
       </div>
       <div>
         <h1>Meetings Filter</h1>
@@ -441,7 +463,7 @@ const App = () => {
       <div className={styles.section + ' ' + styles.newMeetingSidebar}>
         <h2>New Meeting Sidebar</h2>
         <NewMeetingSidebar
-          TextField= {<TextField
+          TextField={<TextField
             label="Meeting title"
             value={inputValue}
             onChange={setInputValue}
