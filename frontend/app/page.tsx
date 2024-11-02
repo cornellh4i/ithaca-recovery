@@ -4,6 +4,8 @@ import { AuthenticatedTemplate, UnauthenticatedTemplate, useMsal, useMsalAuthent
 import { InteractionType } from '@azure/msal-browser';
 import { authProvider } from "../services/auth";
 
+import DailyView from "./components/organisms/DailyView/index";
+
 // const MainPage = () => {
 
 //   const request = {
@@ -37,5 +39,5 @@ import { authProvider } from "../services/auth";
 
 export default function ForcedPage() 
 {
-  return <div><HomePage /></div>;
+  return <div><DailyView /></div>;
 }
