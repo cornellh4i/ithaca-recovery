@@ -1,11 +1,16 @@
+.calendarSidebar {
+  margin: 7px;
+}
+
 .meetingsFilter {
   display: inline-block;
-  margin: 5px 0;
-  padding: 15px;
+  margin-top: 2px;
+  padding: 20px;
+  padding-top: 2px;
   border-style: solid;
   border-color: #a5a5a5;
   border-radius: 12px;
-  border-width: 0.44px;
+  border-width: 0.5px;
   background: #ffffff;
   color: rgb(0, 0, 0);
 }

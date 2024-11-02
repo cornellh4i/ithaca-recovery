@@ -22,7 +22,7 @@ const CalendarSidebar: React.FC = () => {
   };
 
   return (
-    <div>
+    <div className={styles.calendarSidebar}>
       {isNewMeetingOpen ? (
         <NewMeetingSidebar //Placeholder
           TextField={<TextField label="Meeting Title" onChange={() => { }} />}
