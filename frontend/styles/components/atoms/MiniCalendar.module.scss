@@ -1,3 +1,4 @@
+@import '../../Variables.module.scss';
 // .rdpMonth .rdp-nav {
 //     display: flex;
 //     justify-content: center;
@@ -68,65 +69,198 @@
 
 /* bruh */
 
+// .container {
+//     display: flex;
+//     flex-direction: column;
+//     align-items: flex-start;
+//     gap: 16px;
+//     align-self: stretch;
+//     padding: 16px;
+//     background-color: #FFF;
+//     border-radius: 4px;
+// }
+
+// .rdpMonth {
+//     display: grid;
+//     grid-template-columns: repeat(7, 1fr);
+//     gap: 4px;
+// }
+
+// .rdp .rdp-day_selected {
+//     background-color: transparent; 
+//     color: inherit; 
+//     border: none; 
+// }
+
+// .day, .selectedDay {
+//     width: 36px;
+//     height: 36px;
+//     border-radius: 2px;
+//     background-color: #FFF;
+//     color: black;
+//     font-family: "Source Sans Pro", sans-serif;
+//     font-size: 14px;
+//     font-weight: 600;
+//     text-align: center; 
+//     line-height: 36px; 
+//     position: relative; 
+// }
+
+// .selectedDay {
+//     color: white;
+// }
+
+// .selectedDay::before {
+//     content: "";
+//     position: absolute;
+//     width: 24px;
+//     height: 24px;
+//     background-color: #C36;
+//     border-radius: 2px;
+//     top: 50%;
+//     left: 50%;
+//     transform: translate(-50%, -50%);
+// }
+
+// .dayOutside {
+//     color: #848484;
+// }
+
+// .weekday {
+//     font-size: 0.7em;
+//     color: #848484;
+//     text-align: center;
+// }
+
+// /* Container for DayPicker */
+// .container {
+//     display: flex;
+//     flex-direction: column;
+//     align-items: flex-start;
+//     gap: 16px;
+//     align-self: stretch;
+//     padding: 16px;
+//     background-color: #FFF;
+//     border-radius: 4px;
+// }
+
+// /* Month Grid */
+// .rdpMonth {
+//     display: grid;
+//     grid-template-columns: repeat(7, 1fr);
+//     gap: 4px;
+// }
+
+// /* Styling for individual days */
+// .day, .selectedDay {
+//     width: 36px;
+//     height: 36px;
+//     border-radius: 2px;
+//     font-family: "Source Sans Pro", sans-serif;
+//     font-size: 14px;
+//     font-weight: 600;
+//     text-align: center; 
+//     line-height: 36px;
+//     position: relative;
+// }
+
+// /* Regular day styling */
+// .day {
+//     background-color: #FFF;
+//     color: black;
+// }
+
+// /* Selected day styling */
+// .selectedDay {
+//     color: white;
+//     background-color: #C36; /* Red background for selected day */
+//     position: relative;
+//     z-index: 1;
+// }
+
+// /* Ensure the text (day number) stays visible */
+// .selectedDay::before {
+//     // content: attr(data-day); /* Display the day number */
+//     color: white;
+//     font-weight: bold;
+//     position: absolute;
+//     top: 50%;
+//     left: 50%;
+//     transform: translate(-50%, -50%);
+//     z-index: 2;
+//     width: 24px;
+//     height: 24px;
+// }
+
+// /* Outside days styling */
+// .dayOutside {
+//     color: #848484;
+// }
+
+// /* Weekday labels styling */
+// .weekday {
+//     font-size: 0.7em;
+//     color: #848484;
+//     text-align: center;
+// }
+
+// Main container
 .container {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 16px;
-    align-self: stretch;
     padding: 16px;
     background-color: #FFF;
     border-radius: 4px;
+    font-family: "Source Sans Pro";
+
+    span {
+        font-size: 20px;
+        font-weight: 600;
+        padding-left: 15px;
+    }
+
+    // table {
+    //     padding-top: 20px;
+    // }
+
+    svg {
+        fill: $medium-grey-color;
+    }
+    
+    z-index: 99;
+
+    button {
+        font-size: 14px;
+    }
 }
 
-.rdpMonth {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    gap: 4px;
-}
-
-.rdp .rdp-day_selected {
-    background-color: transparent; 
-    color: inherit; 
-    border: none; 
-}
-
-.day, .selectedDay {
-    width: 36px;
-    height: 36px;
-    border-radius: 2px;
-    background-color: #FFF;
-    color: black;
-    font-family: "Source Sans Pro", sans-serif;
-    font-size: 14px;
-    font-weight: 600;
-    text-align: center; 
-    line-height: 36px; 
-    position: relative; 
-}
-
+// Selected day style
 .selectedDay {
     color: white;
+    position: absolute;
+    border-radius: 2px;
 }
 
+/* Ensure the text (day number) stays visible */
 .selectedDay::before {
+    background-clip: padding-box;
+    background-color: $dark-pink-color;
+    border: solid transparent;
+    border-radius: 2px;
     content: "";
     position: absolute;
-    width: 24px;
-    height: 24px;
-    background-color: #C36;
-    border-radius: 2px;
     top: 50%;
     left: 50%;
-    transform: translate(-50%, -50%);
+    transform: translate(-45%, -45%);
+    z-index: -1;
+    width: 20px;
+    height: 20px;
 }
 
+
+// Outside days (days not in the current month)
 .dayOutside {
     color: #848484;
 }
 
-.weekday {
-    font-size: 0.7em;
-    color: #848484;
-    text-align: center;
+.today:not(.selectedDay) {
+    color: black; // Set the text color for .today elements that are not .selectedDay
 }
