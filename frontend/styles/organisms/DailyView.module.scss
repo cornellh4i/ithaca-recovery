@@ -1,29 +1,46 @@
+@import url('https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;600&display=swap');
+
 .container {
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    overflow: hidden;
-    max-width: 100%;
-  }
-  
-  .timeLabels {
-    display: grid;
-    grid-template-columns: 100px repeat(8, 1fr);
-  }
-  
-  .timeHeader {
-    text-align: center;
+  display: grid;
+  grid-template-rows: auto repeat(7, 1fr);
+  background-color: #fff;
+  font-family: 'Source Sans Pro', sans-serif;
+  width: 100%;
+}
+
+.headerRow {
+  display: grid;
+  grid-template-columns: 183px repeat(8, 1fr);
+  font-weight: 600;
+  text-align: center;
+
+  .roomColumn {
     font-weight: bold;
-    border-right: 1px solid #ddd;
+    text-align: left;
+    padding-left: 10px;
   }
-  
-  .timeSlot {
-    text-align: center;
-    border-right: 1px solid #ddd;
+
+  .timeLabel {
+    padding: 10px 0;
+    border-left: 1px solid #ddd;
+    border-bottom: 1px solid #ddd;
+    background-color: #fff;
+  }
+}
+
+.gridRow {
+  display: grid;
+  grid-template-columns: 183px repeat(8, 1fr);
+
+  .roomColumn {
+    display: flex;
+    align-items: center;
+    padding: 10px 12px;
   }
 
   .gridCell {
     border-left: 1px solid #ddd;
-    border-top: 1px solid #ddd;
     background-color: #fff;
-    height: 60px;
+    border-bottom: 1px solid #ddd;
   }
+}
