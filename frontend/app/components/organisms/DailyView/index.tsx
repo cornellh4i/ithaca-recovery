@@ -1,21 +1,34 @@
 import React from "react";
-import BoxText from '../../atoms/BoxText/index';
+import styles from '../../../../styles/organisms/DailyView.module.scss';
 
-const DailyView = () => {
-    return (
-        <div className="room-blocks">
-            <BoxText boxType="Room Block" title="Serenity Room" primaryColor="#b3ea75" />
-            <BoxText boxType="Room Block" title="Seeds of Hope" primaryColor="#f7e57b" />
-            <BoxText boxType="Room Block" title="Unity Room" primaryColor="#96dbfe" />
-            <BoxText boxType="Room Block" title="Room for Improvement" primaryColor="#ffae73" />
-            <BoxText boxType="Room Block" title="Small but Powerful - Right" primaryColor="#d2afff" />
-            <BoxText boxType="Room Block" title="Small but Powerful - Left" primaryColor="#ffa3c2" />
-            <BoxText boxType="Room Block" title="Zoom Email 1" primaryColor="#cecece" />
-            <BoxText boxType="Room Block" title="Zoom Email 2" primaryColor="#cecece" />
-            <BoxText boxType="Room Block" title="Zoom Email 3" primaryColor="#cecece" />
-            <BoxText boxType="Room Block" title="Zoom Email 4" primaryColor="#cecece" />
-        </div>
-    )
+const formatTime = (hour: number): string => {
+  const period = hour >= 12 ? "PM" : "AM";
+  const formattedHour = hour % 12 || 12; // Convert to 12-hour format
+  return `${formattedHour} ${period}`;
+};
+
+const timeSlots = Array.from({ length: 8 }, (_, i) => formatTime(7 + i)); // Time labels from 7 AM to 3 PM
+
+const DailyView: React.FC = () => {
+  return (
+    <div className={styles.container}>
+      <div className={styles.timeLabels}>
+        <div className={styles.timeHeader}></div>
+        {timeSlots.map((time) => (
+          <div key={time} className={styles.timeSlot}>
+            {time}
+          </div>
+        ))}
+      </div>
+
+      <div className={styles.grid}>
+        <div className={styles.roomColumn}></div>
+        {Array.from({ length: 10 }).map((_, index) => (
+          <div key={index} className={styles.gridCell}></div>
+        ))}
+      </div>
+    </div>
+  );
 };
 
 export default DailyView;

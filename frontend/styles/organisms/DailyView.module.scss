@@ -1,0 +1,29 @@
+.container {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    overflow: hidden;
+    max-width: 100%;
+  }
+  
+  .timeLabels {
+    display: grid;
+    grid-template-columns: 100px repeat(8, 1fr);
+  }
+  
+  .timeHeader {
+    text-align: center;
+    font-weight: bold;
+    border-right: 1px solid #ddd;
+  }
+  
+  .timeSlot {
+    text-align: center;
+    border-right: 1px solid #ddd;
+  }
+
+  .gridCell {
+    border-left: 1px solid #ddd;
+    border-top: 1px solid #ddd;
+    background-color: #fff;
+    height: 60px;
+  }
