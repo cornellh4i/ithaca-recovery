@@ -18,6 +18,7 @@ import Dropdown from '../components/atoms/dropdown/index';
 
 import TodayIcon from '@mui/icons-material/Today';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
+import SpinnerInput from "../components/atoms/SpinnerInput";
 
 const App = () => {
 
@@ -505,6 +506,10 @@ const App = () => {
           disablePast={true}
           error={timeValue === '' ? 'Time is required' : undefined} // Example error handling
         />
+      </div>
+      <div className={styles.section}>
+        <h2>Spinner Input</h2>
+        <SpinnerInput value={1} onChange={() => {}}></SpinnerInput>
       </div>
       <div>
         <h1>Meetings Filter</h1>
