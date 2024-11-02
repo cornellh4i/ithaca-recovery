@@ -8,7 +8,7 @@ const formatTime = (hour: number): string => {
   return `${formattedHour} ${period}`;
 };
 
-const timeSlots = Array.from({ length: 8 }, (_, i) => formatTime(7 + i)); 
+const timeSlots = Array.from({ length: 9 }, (_, i) => formatTime(7 + i)); 
 
 const rooms = [
     { name: 'Serenity Room', primaryColor: '#b3ea75' },

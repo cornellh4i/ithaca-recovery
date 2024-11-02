@@ -2,17 +2,15 @@
 
 .container {
   display: grid;
-  grid-template-rows: auto repeat(7, 1fr);
-  background-color: #fff;
+  grid-template-rows: auto repeat(9, 1fr);
   font-family: 'Source Sans Pro', sans-serif;
   width: 100%;
 }
 
 .headerRow {
   display: grid;
-  grid-template-columns: 183px repeat(8, 1fr);
+  grid-template-columns: 179px repeat(9, 1fr);
   font-weight: 600;
-  text-align: center;
 
   .roomColumn {
     font-weight: bold;
@@ -21,16 +19,15 @@
   }
 
   .timeLabel {
-    padding: 10px 0;
+    padding: 10px 20px;
     border-left: 1px solid #ddd;
     border-bottom: 1px solid #ddd;
-    background-color: #fff;
   }
 }
 
 .gridRow {
   display: grid;
-  grid-template-columns: 183px repeat(8, 1fr);
+  grid-template-columns: 179px repeat(9, 1fr);
 
   .roomColumn {
     display: flex;
