@@ -2,13 +2,14 @@ import React, { useState } from "react";
 import styles from "../../../../styles/Dropdown.module.scss";
 
 interface DropdownProps {
+  label: string | React.ReactNode;
   isVisible: boolean;
   elements: string[]; 
   name: string; 
 }
 
 
-const Dropdown: React.FC<DropdownProps> = ({ isVisible, elements, name }) => {
+const Dropdown: React.FC<DropdownProps> = ({ label, isVisible, elements, name }) => {
   const [selectedElement, setselectedElement] = useState<string | null>(null);
 
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null); 
@@ -28,6 +29,9 @@ const Dropdown: React.FC<DropdownProps> = ({ isVisible, elements, name }) => {
   return (
     <div className={styles.dropdown}>
       <div className={styles.DropdownContainer}>
+        <label className={styles.DropdownLabel}>
+          {typeof label === 'string' ? <span>{label}</span> : label}
+        </label>
         <button
           className={`${styles.DropdownButton} ${activeDropdown === "element" ? styles.activeDropdown : ''}`}
           onClick={() => handleDropdownToggle("element")}
