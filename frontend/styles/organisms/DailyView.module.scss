@@ -1,43 +1,76 @@
 @import url('https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;600&display=swap');
 
-.container {
-  display: grid;
-  grid-template-rows: auto repeat(9, 1fr);
-  font-family: 'Source Sans Pro', sans-serif;
+.outerContainer {
+  display: flex;
   width: 100%;
+  background-color: #fff;
+  font-family: 'Source Sans Pro', sans-serif;
+}
+
+.roomContainer {
+  display: grid;
+  grid-template-rows: repeat(10, min-content);
+  width: 180px;
+  padding-top: 42px;
+  background-color: #fff;
+  position: sticky;
+  left: 0;
+  z-index: 1;
+}
+
+.scrollContainer {
+  display: grid;
+  grid-template-rows: auto repeat(10, 1fr);
+  overflow-x: auto;
+  width: calc(100% - 180px);
+  scroll-snap-type: x mandatory;
+  margin-left: 30px;
 }
 
 .headerRow {
   display: grid;
-  grid-template-columns: 179px repeat(9, 1fr);
+  grid-template-columns: repeat(24, 155px);
   font-weight: 600;
+  background-color: #fff;
+  border-bottom: 1px solid #ddd;
+  scroll-snap-align: start;
+}
 
-  .roomColumn {
-    font-weight: bold;
-    text-align: left;
-    padding-left: 10px;
-  }
-
-  .timeLabel {
-    padding: 10px 20px;
-    border-left: 1px solid #ddd;
-    border-bottom: 1px solid #ddd;
-  }
+.timeLabel {
+  padding: 10px 20px;
+  border-left: 1px solid #ddd;
+  background-color: #fff;
+  white-space: nowrap;
+  scroll-snap-align: start;
 }
 
 .gridRow {
   display: grid;
-  grid-template-columns: 179px repeat(9, 1fr);
-
-  .roomColumn {
-    display: flex;
-    align-items: center;
-    padding: 10px 12px;
-  }
+  grid-template-columns: repeat(24, 155px);
+  background-color: #fff;
 
   .gridCell {
+    position: relative;
     border-left: 1px solid #ddd;
-    background-color: #fff;
     border-bottom: 1px solid #ddd;
+    background-color: #fff;
+
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      height: 100%;
+      width: 1px;
+      background-color: #eee;
+      opacity: 0.5;
+    }
   }
+}
+
+.roomColumn {
+  display: flex;
+  align-items: center;
+  padding: 5px 10px;
 }

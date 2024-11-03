@@ -8,7 +8,7 @@ const formatTime = (hour: number): string => {
   return `${formattedHour} ${period}`;
 };
 
-const timeSlots = Array.from({ length: 9 }, (_, i) => formatTime(7 + i)); 
+const timeSlots = Array.from({ length: 24 }, (_, i) => formatTime(i));
 
 const rooms = [
     { name: 'Serenity Room', primaryColor: '#b3ea75' },
@@ -25,30 +25,30 @@ const rooms = [
 
 const DailyView: React.FC = () => {
   return (
-    <div className={styles.container}>
-      <div className={styles.headerRow}>
-        <div className={styles.roomColumn}></div>
-        {timeSlots.map((time, index) => (
-          <div key={index} className={styles.timeLabel}>
-            {time}
+    <div className={styles.outerContainer}>
+      <div className={styles.roomContainer}>
+        {rooms.map((room, index) => (
+          <div key={index} className={styles.roomColumn}>
+            <BoxText boxType="Room Block" title={room.name} primaryColor={room.primaryColor} />
           </div>
         ))}
       </div>
 
-      {rooms.map((room, index) => (
-        <div key={index} className={styles.gridRow}>
-          <div className={styles.roomColumn}>
-            <BoxText
-              boxType="Room Block"
-              title={room.name}
-              primaryColor={room.primaryColor}
-            />
-          </div>
-          {timeSlots.map((_, timeIndex) => (
-            <div key={timeIndex} className={styles.gridCell}></div>
+      <div className={styles.scrollContainer}>
+        <div className={styles.headerRow}>
+          {timeSlots.map((time, index) => (
+            <div key={index} className={styles.timeLabel}>{time}</div>
           ))}
         </div>
-      ))}
+
+        {rooms.map((_, rowIndex) => (
+          <div key={rowIndex} className={styles.gridRow}>
+            {timeSlots.map((_, colIndex) => (
+              <div key={colIndex} className={styles.gridCell}></div>
+            ))}
+          </div>
+        ))}
+      </div>
     </div>
   );
 };
