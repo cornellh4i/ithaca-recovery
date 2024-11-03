@@ -33,7 +33,7 @@ const RecurringMeetingForm: React.FC = () => {
   return (
     <div className={styles.container}>
       <Checkbox
-        label={`This meeting is ${isRecurring ? 'recurring' : 'not recurring'}`}
+        label={`This meeting is recurring`}
         checked={isRecurring}
         onChange={handleRecurringChange}
         color="blue"
