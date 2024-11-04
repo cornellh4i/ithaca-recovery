@@ -1,5 +1,5 @@
 import React from 'react';
-import styles from "../../../../styles/organisms/NewMeeting.module.scss";
+import styles from "../../../../styles/components/organisms/NewMeeting.module.scss";
 
 interface NewMeetingSidebarProps {
   meetingTitleTextField: React.ReactElement;

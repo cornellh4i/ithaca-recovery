@@ -4,6 +4,7 @@ import { IAdmin, IUser } from '../../util/models'
 import { IMeeting } from '../../util/models'
 import styles from "../../styles/TestPage.module.scss";
 import TestButton from "../components/Test/TestButton"
+
 import UploadPandaDocs from '../components/atoms/upload/index';
 import BoxText from "../components/atoms/BoxText";
 import DatePicker from "../components/atoms/DatePicker";
@@ -11,25 +12,30 @@ import RadioGroup from '../components/atoms/RadioGroup';
 import TextField from '../components/atoms/TextField';
 import TimePicker from "../components/atoms/TimePicker";
 import SolidButton from "../components/atoms/solidbutton"
-import MeetingsFilter from '../components/molecules/MeetingsFilter';
 import checkbox from "../components/atoms/checkbox/index"
+import SpinnerInput from "../components/atoms/SpinnerInput";
+import Dropdown from "../components/atoms/dropdown";
+
+import MeetingsFilter from '../components/molecules/MeetingsFilter';
+
 import NewMeetingSidebar from '../components/organisms/NewMeeting';
-import Dropdown from '../components/atoms/dropdown/index';
+import CalendarNavbar from "../components/organisms/CalendarNavbar"
 
 import TodayIcon from '@mui/icons-material/Today';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
-import SpinnerInput from "../components/atoms/SpinnerInput";
+import { set } from 'mongoose';
 
 const App = () => {
 
   /** ADMIN TESTING FUNCTIONS  */
 
   // State declarations
-  const [inputValue, setInputValue] = useState(""); // Meeting title
+  const [inputMeetingTitleValue, setMeetingTitleValue] = useState(""); // Meeting title
   const [dateValue, setDateValue] = useState<string>(""); // Initial date value as empty
   const [timeValue, setTimeValue] = useState<string>(""); // Initial time range as empty
   const [selectedRoom, setSelectedRoom] = useState<string | null>(null); // Initially no room selected
   const [selectedMeetingType, setSelectedMeetingType] = useState<string>("Hybrid"); // Default meeting type
+  const [inputEmailValue, setEmailValue] = useState(""); // Email input value
   const [selectedOption, setSelectedOption] = useState<string>("Never"); // Default radio option
   const [selectedZoomAccount, setSelectedZoomAccount] = useState<string | null>(null); // Initially no Zoom account selected
 
@@ -402,6 +408,13 @@ const App = () => {
     <div className={styles['apicontainer']}>
       <div>
       </div>
+      <div>
+      </div>
+      {/* Calendar Navbar Section */}
+      <div className={styles.section}>
+        <h2>Calendar Navbar</h2>
+        <CalendarNavbar></CalendarNavbar>
+      </div>
       <div className={styles.section}>
         <h2>Admins</h2>
         <TestButton testFunc={createAdmin} text="Call create admin post /api/write/admin" />
@@ -438,10 +451,10 @@ const App = () => {
         <h2>Example Text Field & Radio Buttons</h2>
         <TextField
           label="Meeting title"
-          value={inputValue}
-          onChange={setInputValue}
+          value={inputMeetingTitleValue}
+          onChange={setMeetingTitleValue}
           underlineOnFocus={false} />
-        <p>Entered Value: {inputValue}</p>
+        <p>Entered Value: {inputMeetingTitleValue}</p>
 
         <div>
           <RadioGroup
@@ -521,8 +534,8 @@ const App = () => {
         <NewMeetingSidebar
           meetingTitleTextField={<TextField
             label="Meeting title"
-            value={inputValue}
-            onChange={setInputValue}
+            value={inputMeetingTitleValue}
+            onChange={setMeetingTitleValue}
             underlineOnFocus={false} />}
           DatePicker={<DatePicker
             label={<TodayIcon />}
@@ -579,8 +592,8 @@ const App = () => {
           }
           emailTextField={<TextField
             label="Email"
-            value={inputValue}
-            onChange={setInputValue}
+            value={inputEmailValue}
+            onChange={setEmailValue}
             underlineOnFocus={false} />
           }
           uploadPandaDocsForm={<UploadPandaDocs onFileSelect={handleFileSelect} />}
