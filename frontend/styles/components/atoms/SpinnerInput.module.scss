@@ -1,0 +1,65 @@
+@import url('https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;600&display=swap');
+@import '../../Variables.module.scss';
+
+.spinnerInputContainer {
+    display: flex;
+    width: 60px;
+    padding: 8px 8px 8px 12px;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    transition: border-color 0.3s;
+    background: var(--White, #FFF);
+    border-radius: 8px;
+
+    &.default {
+        border: 1px solid var(--Lightest-Grey, #F1F1F1);
+    }
+
+    &.focused {
+        border: 1px solid $dark-pink-color;
+    }
+}
+
+.spinnerInput {
+    flex: 1 0 0;
+    width: 40px;
+    font-family: "Source Sans Pro";
+    font-weight: 400;
+    font-size: 16px;
+    outline: none;
+    border: none;
+    appearance: none;
+
+    /* Hide default arrows */
+    -webkit-appearance: none;
+    -moz-appearance: textfield;
+
+    &::-webkit-inner-spin-button,
+    &::-webkit-outer-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+
+    &:disabled {
+        background-color: #f0f0f0;
+        cursor: not-allowed;
+        opacity: 0.6;
+    }
+}
+
+.spinnerArrows {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+}
+
+.spinnerArrow {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    width: 6px;
+    height: 3px;
+    cursor: pointer;
+}

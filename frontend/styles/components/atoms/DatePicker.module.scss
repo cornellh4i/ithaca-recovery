@@ -1,0 +1,61 @@
+.date-picker-wrapper {
+  display: flex;
+  align-items: center;
+  margin-bottom: 18px;
+  padding: 1.5px 1.5px;
+  font-family: 'Source Sans Pro', sans-serif;
+
+  .date-picker-label {
+    margin-right: 5px;
+    display: flex;
+    align-items: center;
+    font-size: 18px;
+
+    svg {
+      width: 24px;
+      height: 24px;
+      fill: #555;
+    }
+  }
+
+  .date-picker-input {
+    font-size: 18px;
+    border: none;
+    outline: none;
+    width: 200px;
+    background-color: transparent;
+    font-family: 'Source Sans Pro', sans-serif;
+
+    &:focus {
+      border: none;
+      outline: none;
+      background-color: transparent;
+      box-shadow: none;
+    }
+
+    cursor: text;
+
+    // Hide the calendar icon for various browsers
+    &::-webkit-calendar-picker-indicator {
+      display: none;
+    }
+
+    &::-moz-calendar-picker-indicator {
+      display: none;
+    }
+
+    &::-ms-expand {
+      display: none;
+    }
+  }
+
+  .error-input {
+    border: 1px solid red; // Apply red border for error state
+  }
+
+  .error-message {
+    margin-left: 10px; // Space between input and error message
+    color: red;
+    font-size: 14px;
+  }
+}

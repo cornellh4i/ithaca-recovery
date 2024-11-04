@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import styles from "../../../../styles/organisms.NewMeeting.module.scss";
-import { set } from 'mongoose';
+import styles from "../../../../styles/components/organisms/CalendarNavbar.module.scss";
 
 const CalendarNavbar = () => {
     const [currentDate, setCurrentDate] = useState(new Date());
