@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import styles from "../../../../styles/organisms.NewMeeting.module.scss";
+import { set } from 'mongoose';
 
 const CalendarNavbar = () => {
     const [currentDate, setCurrentDate] = useState(new Date());
@@ -96,7 +97,8 @@ const CalendarNavbar = () => {
     };
 
     const handleToday = () => {
-        setCurrentDate(new Date()); // Reset to the current date
+        setSelectedView("Day");
+        setCurrentDate(new Date());
     };
 
     return (
