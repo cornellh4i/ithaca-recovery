@@ -3,7 +3,6 @@
 .outerContainer {
   display: flex;
   width: 100%;
-  background-color: #fff;
   font-family: 'Source Sans Pro', sans-serif;
 }
 
@@ -12,7 +11,6 @@
   grid-template-rows: repeat(10, min-content);
   width: 180px;
   padding-top: 42px;
-  background-color: #fff;
   position: sticky;
   left: 0;
   z-index: 1;
@@ -39,7 +37,6 @@
 .timeLabel {
   padding: 10px 20px;
   border-left: 1px solid #ddd;
-  background-color: #fff;
   white-space: nowrap;
   scroll-snap-align: start;
 }
@@ -47,13 +44,18 @@
 .gridRow {
   display: grid;
   grid-template-columns: repeat(24, 155px);
-  background-color: #fff;
+  position: relative;
+  
+  .gridMeetingRow {
+    z-index: 1;
+    position: absolute;
+    margin-top: 10px;
+  }
 
   .gridCell {
     position: relative;
     border-left: 1px solid #ddd;
     border-bottom: 1px solid #ddd;
-    background-color: #fff;
 
     &::before {
       content: '';
