@@ -5,7 +5,7 @@ const CalendarNavbar = () => {
     const [currentDate, setCurrentDate] = useState(new Date());
     const [selectedView, setSelectedView] = useState('Day');
 
-    const getDateRange = (date) => {
+    const getDateRange = (date: Date) => {
         let startDate, endDate;
 
         switch (selectedView) {
@@ -90,9 +90,8 @@ const CalendarNavbar = () => {
         setCurrentDate(newDate);
     };
 
-    const handleViewChange = (event) => {
+    const handleViewChange: React.ChangeEventHandler<HTMLSelectElement> = (event) => {
         setSelectedView(event.target.value);
-        // Reset currentDate to today when the view changes
         setCurrentDate(new Date());
     };
 
