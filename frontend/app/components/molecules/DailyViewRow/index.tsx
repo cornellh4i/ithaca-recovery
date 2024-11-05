@@ -20,10 +20,12 @@ interface DailyViewRowProps {
     meetings: Meeting[];
 }
 
-const formatTime = (hour: number): string => {
-    const period = hour >= 12 ? "PM" : "AM";
-    const formattedHour = hour % 12 || 12;
-    return `${formattedHour} ${period}`;
+const formatTime = (time: string) => {
+    const [hours, minutes] = time.split(':').map(Number);
+    const period = hours >= 12 ? "PM" : "AM";
+    const formattedHours = hours % 12 || 12;
+    const formattedMinutes = minutes < 10 ? "0" + minutes : minutes;
+    return `${formattedHours}:${formattedMinutes} ${period}`;
 };
 const hexToRgb = (hex: string) => {
     hex = hex.replace('#', '');
@@ -93,7 +95,7 @@ const DailyViewRow: React.FC<DailyViewRowProps> = ({ roomColor, meetings }) => {
                   boxType="Meeting Block"
                   title={meeting.title}
                   primaryColor={roomColor}
-                  time={`${(meeting.startTime)} - ${(meeting.endTime)}`}
+                  time={`${formatTime(meeting.startTime)} - ${formatTime(meeting.endTime)}`}
                   tags={meeting.tags}
                 />
               </div>
