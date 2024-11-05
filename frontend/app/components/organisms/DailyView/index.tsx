@@ -13,40 +13,36 @@ const timeSlots = Array.from({ length: 24 }, (_, i) => formatTime(i));
 
 // Dummy Data
 const rooms = [
-    { name: 'Serenity Room', primaryColor: '#b3ea75', meetings: [{ title: 'Meeting 1', startTime: '7:00', endTime: '8:00', tags: ['AA', 'Hybrid'] }] },
-    { name: 'Seeds of Hope', primaryColor: '#f7e57b', meetings: [{ title: 'Meeting 1', startTime: '7:00', endTime: '8:00', tags: ['AA', 'Hybrid'] }] },
-    { name: 'Unity Room', primaryColor: '#96dbfe', meetings: [{ title: 'Meeting 1', startTime: '7:00', endTime: '8:00', tags: ['AA', 'Hybrid'] }] },
-    { name: 'Room for Improvement', primaryColor: '#ffae73', meetings: [{ title: 'Meeting 1', startTime: '7:00', endTime: '8:00', tags: ['AA', 'Hybrid'] }] },
-    { name: 'Small but Powerful - Right', primaryColor: '#d2afff', meetings: [{ title: 'Meeting 1', startTime: '7:00', endTime: '8:00', tags: ['AA', 'Hybrid'] }] },
-    { name: 'Small but Powerful - Left', primaryColor: '#ffa3c2', meetings: [{ title: 'Meeting 1', startTime: '7:00', endTime: '8:00', tags: ['AA', 'Hybrid'] }] },
-    { name: 'Zoom Email 1', primaryColor: '#cecece', meetings: [{ title: 'Meeting 1', startTime: '7:00', endTime: '8:00', tags: ['AA', 'Hybrid'] }] },
-    { name: 'Zoom Email 2', primaryColor: '#cecece', meetings: [{ title: 'Meeting 1', startTime: '7:00', endTime: '8:00', tags: ['AA', 'Hybrid'] }] },
-    { name: 'Zoom Email 3', primaryColor: '#cecece', meetings: [{ title: 'Meeting 1', startTime: '7:00', endTime: '8:00', tags: ['AA', 'Hybrid'] }] },
-    { name: 'Zoom Email 4', primaryColor: '#cecece', meetings: [{ title: 'Meeting 1', startTime: '7:00', endTime: '8:00', tags: ['AA', 'Hybrid'] }] },
+  { name: 'Serenity Room', primaryColor: '#b3ea75', meetings: [{ title: 'Meeting 1', startTime: '7:00', endTime: '8:00', tags: ['AA', 'Hybrid'] }] },
+  { name: 'Seeds of Hope', primaryColor: '#f7e57b', meetings: [{ title: 'Meeting 1', startTime: '7:00', endTime: '8:00', tags: ['AA', 'Hybrid'] }] },
+  { name: 'Unity Room', primaryColor: '#96dbfe', meetings: [{ title: 'Meeting 1', startTime: '7:00', endTime: '8:00', tags: ['AA', 'Hybrid'] }] },
+  { name: 'Room for Improvement', primaryColor: '#ffae73', meetings: [{ title: 'Meeting 1', startTime: '7:00', endTime: '8:00', tags: ['AA', 'Hybrid'] }] },
+  { name: 'Small but Powerful - Right', primaryColor: '#d2afff', meetings: [{ title: 'Meeting 1', startTime: '7:00', endTime: '8:00', tags: ['AA', 'Hybrid'] }] },
+  { name: 'Small but Powerful - Left', primaryColor: '#ffa3c2', meetings: [{ title: 'Meeting 1', startTime: '7:00', endTime: '8:00', tags: ['AA', 'Hybrid'] }] },
+  { name: 'Zoom Email 1', primaryColor: '#cecece', meetings: [{ title: 'Meeting 1', startTime: '7:00', endTime: '8:00', tags: ['AA', 'Hybrid'] }] },
+  { name: 'Zoom Email 2', primaryColor: '#cecece', meetings: [{ title: 'Meeting 1', startTime: '7:00', endTime: '8:00', tags: ['AA', 'Hybrid'] }] },
+  { name: 'Zoom Email 3', primaryColor: '#cecece', meetings: [{ title: 'Meeting 1', startTime: '7:00', endTime: '8:00', tags: ['AA', 'Hybrid'] }] },
+  { name: 'Zoom Email 4', primaryColor: '#cecece', meetings: [{ title: 'Meeting 1', startTime: '7:00', endTime: '8:00', tags: ['AA', 'Hybrid'] }] },
 ];
 
 const DailyView: React.FC = () => {
   const [currentTimePosition, setCurrentTimePosition] = useState(0);
 
-  // Calculate the current time position
   useEffect(() => {
     const updateTimePosition = () => {
-      const now = new Date();
-      const currentHour = now.getHours();
-      const currentMinutes = now.getMinutes();
-      const calendarWidth = document.querySelector(`.${styles.scrollContainer}`)?.clientWidth || 0;
-      const slotWidth = calendarWidth / 24; // Dynamically calculate based on calendar width
+    const now = new Date();
+    const currentHour = now.getHours();
+    const currentMinutes = now.getMinutes();
+      
+    const position = (currentHour * 60 + currentMinutes) * (155 / 60);
+    setCurrentTimePosition(position);
+  };
 
-      // Calculate the exact left position based on the current time
-      const position = (currentHour * 60 + currentMinutes) * (155 / 60);
-      setCurrentTimePosition(position);
-    };
+  updateTimePosition();
+  const intervalId = setInterval(updateTimePosition, 60000);
 
-    updateTimePosition();
-    const intervalId = setInterval(updateTimePosition, 60000); // Update every minute
-
-    return () => clearInterval(intervalId); // Cleanup interval on component unmount
-  }, []);
+  return () => clearInterval(intervalId);
+}, []);
 
   return (
     <div className={styles.outerContainer}>
@@ -64,7 +60,6 @@ const DailyView: React.FC = () => {
             <div key={index} className={styles.timeLabel}>{time}</div>
           ))}
         </div>
-        {/* Magenta vertical line for current time */}
 
         {rooms.map((room, rowIndex) => (
           <div key={rowIndex} className={styles.gridRow}>

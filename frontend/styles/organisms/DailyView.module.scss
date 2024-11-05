@@ -15,13 +15,25 @@
   left: 0;
   z-index: 1;
 }
+
 .currentTimeLine {
   position: absolute;
   top: 0;
   height: 100%;
   width: 4px;
   background-color: #cc3366;
-  z-index: 10; // Ensure it appears above other elements
+  z-index: 10; 
+}
+
+.currentTimeLine::before {
+  content: "";
+  position: absolute;
+  top: -6px; 
+  left: -4px; 
+  width: 12px; 
+  height: 12px; 
+  border-radius: 50%;
+  background-color: #cc3366; 
 }
 
 .scrollContainer {
