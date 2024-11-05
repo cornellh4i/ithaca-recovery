@@ -38,7 +38,7 @@ const DailyView: React.FC = () => {
       const slotWidth = calendarWidth / 24; // Dynamically calculate based on calendar width
 
       // Calculate the exact left position based on the current time
-      const position = (currentHour + currentMinutes / 60) * slotWidth;
+      const position = (currentHour * 60 + currentMinutes) * (155 / 60);
       setCurrentTimePosition(position);
     };
 
@@ -47,6 +47,7 @@ const DailyView: React.FC = () => {
 
     return () => clearInterval(intervalId); // Cleanup interval on component unmount
   }, []);
+
   return (
     <div className={styles.outerContainer}>
       <div className={styles.roomContainer}>
@@ -64,10 +65,6 @@ const DailyView: React.FC = () => {
           ))}
         </div>
         {/* Magenta vertical line for current time */}
-        <div
-          className={styles.currentTimeLine}
-          style={{ top: `${currentTimePosition}px` }}
-        />
 
         {rooms.map((room, rowIndex) => (
           <div key={rowIndex} className={styles.gridRow}>
@@ -77,6 +74,10 @@ const DailyView: React.FC = () => {
             {timeSlots.map((_, colIndex) => (
               <div key={colIndex} className={styles.gridCell}></div>
             ))}
+            <div
+              className={styles.currentTimeLine}
+              style={{ left: `${currentTimePosition}px` }}
+            />
           </div>
         ))}
       </div>
