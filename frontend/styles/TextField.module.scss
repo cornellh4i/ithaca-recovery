@@ -1,0 +1,31 @@
+@import 'Variables.module.scss';
+
+.textfieldlabel {
+    color: $black-color;
+    font-family: 'Source Sans Pro', sans-serif;
+    font-size: 20px;
+}
+
+.textfieldinput {
+    border: none;
+    border-bottom: 1px solid $light-grey-color;
+    outline: none;
+    transition: border-color 0.3s;
+    color: $black-color;
+    padding: 20px 0px 5px 20px;
+    font-family: 'Source Sans Pro', sans-serif;
+    font-size: 20px;
+    width: 400px;
+
+    &::placeholder {
+      color: $medium-grey-color;
+    }
+
+    &.default {
+        border-bottom: 1px solid $light-grey-color;
+    }
+
+    &.focused {
+        border-bottom: 1px solid $pink-color;
+    }
+}
