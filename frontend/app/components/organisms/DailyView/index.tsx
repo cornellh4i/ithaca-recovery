@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import styles from '../../../../styles/organisms/DailyView.module.scss';
 import BoxText from '../../atoms/BoxText';
 import DailyViewRow from "../../molecules/DailyViewRow";
@@ -26,6 +26,27 @@ const rooms = [
 ];
 
 const DailyView: React.FC = () => {
+  const [currentTimePosition, setCurrentTimePosition] = useState(0);
+
+  // Calculate the current time position
+  useEffect(() => {
+    const updateTimePosition = () => {
+      const now = new Date();
+      const currentHour = now.getHours();
+      const currentMinutes = now.getMinutes();
+      const calendarWidth = document.querySelector(`.${styles.scrollContainer}`)?.clientWidth || 0;
+      const slotWidth = calendarWidth / 24; // Dynamically calculate based on calendar width
+
+      // Calculate the exact left position based on the current time
+      const position = (currentHour + currentMinutes / 60) * slotWidth;
+      setCurrentTimePosition(position);
+    };
+
+    updateTimePosition();
+    const intervalId = setInterval(updateTimePosition, 60000); // Update every minute
+
+    return () => clearInterval(intervalId); // Cleanup interval on component unmount
+  }, []);
   return (
     <div className={styles.outerContainer}>
       <div className={styles.roomContainer}>
@@ -42,6 +63,11 @@ const DailyView: React.FC = () => {
             <div key={index} className={styles.timeLabel}>{time}</div>
           ))}
         </div>
+        {/* Magenta vertical line for current time */}
+        <div
+          className={styles.currentTimeLine}
+          style={{ top: `${currentTimePosition}px` }}
+        />
 
         {rooms.map((room, rowIndex) => (
           <div key={rowIndex} className={styles.gridRow}>

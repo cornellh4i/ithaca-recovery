@@ -15,6 +15,14 @@
   left: 0;
   z-index: 1;
 }
+.currentTimeLine {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  width: 4px;
+  background-color: #cc3366;
+  z-index: 10; // Ensure it appears above other elements
+}
 
 .scrollContainer {
   display: grid;
