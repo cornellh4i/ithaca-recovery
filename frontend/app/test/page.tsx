@@ -509,9 +509,6 @@ const App = () => {
         <h2>Spinner Input</h2>
         <SpinnerInput value={1} onChange={() => { }}></SpinnerInput>
       </div>
-      <div>
-        <CalendarSidebar />
-      </div>
       {/* New Meeting Sidebar Section */}
       <div className={styles.section + ' ' + styles.newMeetingSidebar}>
         <h2>New Meeting Sidebar</h2>
@@ -582,6 +579,11 @@ const App = () => {
           }
           uploadPandaDocsForm={<UploadPandaDocs onFileSelect={handleFileSelect} />}
         ></NewMeetingSidebar>
+      </div >
+      {/* Calendar Sidebar Section */}
+      <div className={styles.section}>
+        <h2>Calendar Sidebar</h2>
+        <CalendarSidebar />
       </div>
     </div>
   );

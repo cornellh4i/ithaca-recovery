@@ -3,14 +3,22 @@
 }
 
 .meetingsFilter {
-  display: inline-block;
   margin-top: 2px;
   padding: 20px;
   padding-top: 2px;
-  border-style: solid;
-  border-color: #a5a5a5;
-  border-radius: 12px;
-  border-width: 0.5px;
-  background: #ffffff;
+  border-radius: 6px;
+  border: 1.5px solid #E5E5E5;
+  background: #FFF;
   color: rgb(0, 0, 0);
+}
+
+.newMeetingHeader {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  color: var(--Dark-Navy, #3A3E49);
+  font-family: "Source Sans Pro";
+  font-style: normal;
+  font-weight: 600;
+  background-color: white;
 }
