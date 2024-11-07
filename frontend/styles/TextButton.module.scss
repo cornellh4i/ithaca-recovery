@@ -33,11 +33,11 @@
 
 .btn {
   display: flex;
+  width: 100%;
   flex-direction: row;
   align-items: center;
-  gap: 10px;
-  margin: 5px 0px;
-  padding: 15px 110px 15px 15px;
+  gap: 20px;
+  padding: 11.4px;
   border: 1.5px solid #CECECE;
   border-radius: 8px;
   background: #ffffff;
@@ -52,7 +52,6 @@
   .icon {
     width: 10px; // Adjust size as necessary
     height: auto;
-    margin-right: 10px; // Space between the icon and text
   }
 
   .label {

@@ -10,7 +10,7 @@ import DatePicker from "../components/atoms/DatePicker";
 import RadioGroup from '../components/atoms/RadioGroup';
 import TextField from '../components/atoms/TextField';
 import TimePicker from "../components/atoms/TimePicker";
-import CalendarSidebar from '../components/organisms/CalendarSidebar'
+
 import SolidButton from "../components/atoms/solidbutton"
 import checkbox from "../components/atoms/checkbox/index"
 import SpinnerInput from "../components/atoms/SpinnerInput";
@@ -579,11 +579,6 @@ const App = () => {
           }
           uploadPandaDocsForm={<UploadPandaDocs onFileSelect={handleFileSelect} />}
         ></NewMeetingSidebar>
-      </div >
-      {/* Calendar Sidebar Section */}
-      <div className={styles.section}>
-        <h2>Calendar Sidebar</h2>
-        <CalendarSidebar />
       </div>
     </div>
   );

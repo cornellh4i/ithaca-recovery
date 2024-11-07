@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import TextButton from '../../atoms/textbutton';
 import TextField from '../../atoms/TextField';
 import DatePicker from '../../atoms/DatePicker';
@@ -14,8 +14,50 @@ import IconButton from '@mui/material/IconButton';
 import styles from '../../../../styles/components/organisms/CalendarSidebar.module.scss';
 
 const CalendarSidebar: React.FC = () => {
+  // A unique key for the filter 
+  const filterKey = 'meetingFilterState';
+
   const [isNewMeetingOpen, setIsNewMeetingOpen] = useState(false);
   const [selectedOption, setSelectedOption] = useState(''); // Default to an empty string
+  const [filters, setFilters] = useState<any>({
+    SerenityRoom: false,
+    SeedsOfHope: false,
+    UnityRoom: false,
+    RoomForImprovement: false,
+    SmallButPowerfulRight: false,
+    SmallButPowerfulLeft: false,
+    ZoomAccount1: false,
+    ZoomAccount2: false,
+    ZoomAccount3: false,
+    ZoomAccount4: false,
+    AA: false,
+    AlAnon: false,
+    Other: false,
+    InPerson: false,
+    Hybrid: false,
+    Remote: false,
+  });
+
+  // Load filters from localStorage, but only on the client side
+  useEffect(() => {
+    if (typeof window !== 'undefined' && localStorage) {
+      const savedState = localStorage.getItem(filterKey);
+      if (savedState) {
+        setFilters(JSON.parse(savedState));
+      }
+    }
+  }, []);
+
+  // Update filters and save to localStorage
+  const handleFilterChange = (name: string, value: boolean) => {
+    const updatedFilters = { ...filters, [name]: value };
+    setFilters(updatedFilters);
+    // Save updated state to localStorage
+    if (typeof window !== 'undefined' && localStorage) {
+      localStorage.setItem(filterKey, JSON.stringify(updatedFilters));
+    }
+  };
+
 
   const handleOpenNewMeeting = () => {
     setIsNewMeetingOpen(true);
@@ -35,13 +77,13 @@ const CalendarSidebar: React.FC = () => {
   };
 
   return (
-    <div className={styles.calendarSidebar}>
+    <div>
       {isNewMeetingOpen ? (
         <div>
           {isNewMeetingOpen && (
             <div className={styles.newMeetingHeader}>
               <h3>New Meeting</h3>
-              <IconButton onClick={handleCloseNewMeeting}><CloseIcon /></IconButton>
+              <IconButton className={styles.iconButton} onClick={handleCloseNewMeeting}><CloseIcon sx={{ color: 'black' }} /></IconButton>
             </div>
           )}
           <NewMeetingSidebar //Placeholder
@@ -69,7 +111,7 @@ const CalendarSidebar: React.FC = () => {
         <>
           <TextButton label="New Meeting" onClick={handleOpenNewMeeting} icon={<AddIcon />} />
           <div className={styles.meetingsFilter}>
-            <MeetingsFilter />
+            <MeetingsFilter filters={filters} onFilterChange={handleFilterChange} />
           </div>
         </>
       )}
