@@ -1,7 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { NextApiRequest } from "next";
-import { IMeeting } from "../../../../util/models";
+import { IMeeting } from "../../../../../util/models";
 import { NextRequest } from "next/server";
 
 const prisma = new PrismaClient();
