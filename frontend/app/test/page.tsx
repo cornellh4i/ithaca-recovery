@@ -23,9 +23,32 @@ import CalendarNavbar from "../components/organisms/CalendarNavbar"
 
 import TodayIcon from '@mui/icons-material/Today';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
+
+import ViewMeetingDetails from '../components/organisms/ViewMeeting';
 import { set } from 'mongoose';
 
 const App = () => {
+
+  
+    const sampleMeeting = {
+      id: '1',
+      mid: 'M123',
+      title: 'Project Kickoff',
+      description: 'Discuss project goals, milestones, and next steps with the team.',
+      creator: 'Alice Johnson',
+      group: 'Team Calendar',
+      startDateTime: new Date(2024, 10, 20, 14, 0), // Nov 20, 2024, 2:00 PM
+      endDateTime: new Date(2024, 10, 20, 15, 30), // Nov 20, 2024, 3:30 PM
+      zoomAccount: 'alice.johnson@company.com',
+      zoomLink: 'https://zoom.us/j/123456789',
+      zid: 'Z456',
+      type: 'Virtual Meeting',
+      room: 'Conference Room B',
+      recurrence: 'Weekly',
+      onBack: () => alert('Back button clicked'),
+      onEdit: () => alert('Edit button clicked'),
+      onDelete: () => alert('Delete button clicked'),
+    };
 
   /** ADMIN TESTING FUNCTIONS  */
 
@@ -599,9 +622,15 @@ const App = () => {
           uploadPandaDocsForm={<UploadPandaDocs onFileSelect={handleFileSelect} />}
         ></NewMeetingSidebar>
       </div>
+
+      <div>
+        <h1>Test Page for ViewMeetingDetails Component</h1>
+        <ViewMeetingDetails {...sampleMeeting} />
+      </div>
+
+
     </div>
   );
 }
 
 export default App;
-
