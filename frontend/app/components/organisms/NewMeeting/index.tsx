@@ -12,6 +12,7 @@ interface NewMeetingSidebarProps {
   zoomAccountDropdown: React.ReactElement;
   emailTextField: React.ReactElement;
   uploadPandaDocsForm: React.ReactElement;
+  descriptionTextField: React.ReactElement;
 }
 
 const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({
@@ -24,6 +25,7 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({
   zoomAccountDropdown,
   emailTextField,
   uploadPandaDocsForm,
+  descriptionTextField
 }) => {
 
   const [meetingTitle, setMeetingTitle] = useState<string>('');
@@ -128,9 +130,10 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({
           onChange: (e: React.ChangeEvent<HTMLInputElement>) => setPandaDoc(e.target.files ? e.target.files[0] : null),
         })}
       </div>
-      <button className={styles.createMeetingButton} onClick={createMeeting}>
-        Create Meeting
-      </button>
+      <div className={styles.dummyComponent}>
+        {descriptionTextField}
+      </div>
+      <button className={styles.createMeetingButton}>Create Meeting</button>
     </div>
   );
 };
