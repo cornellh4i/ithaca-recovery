@@ -111,6 +111,15 @@ const CalendarSidebar: React.FC = () => {
   const createMeeting = async () => {
     try {
 
+      let startDateString: string = "YYYY-MM-DDTHH:MM:SS";  // Placeholder for start date/time
+      let endDateString: string = "YYYY-MM-DDTHH:MM:SS";    // Placeholder for end date/time
+
+      // Example: Later on, you can replace the placeholders with actual values from the date/time picker
+
+      // Create Date objects for start and end times (adding "Z" for UTC)
+      const startDateTime = new Date(startDateString + "Z");  // Adding "Z" indicates UTC time
+      const endDateTime = new Date(endDateString + "Z");      // Adding "Z" indicates UTC time
+
       const newMeeting: IMeeting = {
         title: inputMeetingTitleValue,
         mid: generateMeetingId(),
@@ -122,7 +131,7 @@ const CalendarSidebar: React.FC = () => {
         zoomAccount: selectedZoomAccount, //zoomLink, zid, zoomAccount - note these are optional
         type: selectedMeetingType,
         room: selectedRoom,
-        pandaDoc: pandaDoc, //this is optional
+        //pandaDoc: pandaDoc, //this is optional
       };
       const response = await fetch('/api/write/meeting', {
         method: 'POST',
