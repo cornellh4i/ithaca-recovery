@@ -9,6 +9,7 @@ interface Meeting {
   tags?: string[];
 }
 
+
 // 1 hour is 155px
 const timeToPixels = (time: string) => {
   const [hours, minutes] = time.split(':').map(Number);
@@ -19,6 +20,7 @@ interface DailyViewRowProps {
   roomColor: string;
   meetings: Meeting[];
 }
+
 
 const formatTime = (time: string) => {
   const [hours, minutes] = time.split(':').map(Number);
@@ -69,6 +71,10 @@ const toPastelColor = (color: string) => {
 };
 
 const DailyViewRow: React.FC<DailyViewRowProps> = ({ roomColor, meetings }) => {
+  const handleBoxClick = (meetingId: string) => {
+    console.log(`Meeting ${meetingId} clicked`);
+  };
+  
   return (
     <div className={styles.rowContainer}>
       <div className={styles.gridRow}>
@@ -98,6 +104,8 @@ const DailyViewRow: React.FC<DailyViewRowProps> = ({ roomColor, meetings }) => {
                 primaryColor={roomColor}
                 time={`${formatTime(meeting.startTime)} - ${formatTime(meeting.endTime)}`}
                 tags={meeting.tags}
+                meetingId="id"
+                onClick={handleBoxClick}
               />
             </div>
           );
