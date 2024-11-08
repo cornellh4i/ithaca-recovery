@@ -10,6 +10,7 @@ import DatePicker from "../components/atoms/DatePicker";
 import RadioGroup from '../components/atoms/RadioGroup';
 import TextField from '../components/atoms/TextField';
 import TimePicker from "../components/atoms/TimePicker";
+import MiniCalendar from "../components/atoms/MiniCalendar";
 
 import SolidButton from "../components/atoms/solidbutton"
 import checkbox from "../components/atoms/checkbox/index"
@@ -585,6 +586,10 @@ const App = () => {
             onChange={setDescriptionValue}
             underlineOnFocus={false} />}
         ></NewMeetingSidebar>
+      </div>
+      <div className={styles.section}>
+        <h2>Mini Calendar</h2>
+        <MiniCalendar />
       </div>
     </div>
   );
