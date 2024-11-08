@@ -6,6 +6,7 @@ import TimePicker from '../../atoms/TimePicker';
 import RadioGroup from '../../atoms/RadioGroup';
 import Dropdown from '../../atoms/dropdown';
 import UploadPandaDocs from '../../atoms/upload';
+import MiniCalendar from '../../atoms/MiniCalendar';
 import MeetingsFilter from '../../molecules/MeetingsFilter';
 import NewMeetingSidebar from '../NewMeeting';
 import AddIcon from '@mui/icons-material/Add';
@@ -181,6 +182,7 @@ const CalendarSidebar: React.FC = () => {
       ) : (
         <>
           <TextButton label="New Meeting" onClick={handleOpenNewMeeting} icon={<AddIcon />} />
+          <div> <MiniCalendar/> </div>
           <div className={styles.meetingsFilter}>
             <MeetingsFilter filters={filters} onFilterChange={handleFilterChange} />
           </div>

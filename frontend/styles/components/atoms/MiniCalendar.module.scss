@@ -1,7 +1,8 @@
 @import '../../Variables.module.scss';
 // Main container
 .container {
-    padding: 16px;
+    margin-top: 8px;
+    padding: 12px;
     background-color: #FFF;
     border-radius: 4px;
     font-family: "Source Sans Pro";
@@ -28,6 +29,7 @@
     color: white;
     position: absolute;
     border-radius: 2px;
+    z-index: 0;
 }
 
 /* Ensure the text (day number) stays visible */
@@ -45,7 +47,6 @@
     width: 20px;
     height: 20px;
 }
-
 
 // Outside days (days not in the current month)
 .dayOutside {
