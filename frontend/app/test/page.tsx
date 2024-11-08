@@ -39,6 +39,7 @@ const App = () => {
   const [inputEmailValue, setEmailValue] = useState(""); // Email input value
   const [selectedOption, setSelectedOption] = useState<string>("Never"); // Default radio option
   const [selectedZoomAccount, setSelectedZoomAccount] = useState<string | null>(null); // Initially no Zoom account selected
+  const [inputDescriptionValue, setDescriptionValue] = useState(""); // Description input value
 
   // Room and Meeting Type options
   const roomOptions = [
@@ -578,6 +579,11 @@ const App = () => {
             underlineOnFocus={false} />
           }
           uploadPandaDocsForm={<UploadPandaDocs onFileSelect={handleFileSelect} />}
+          descriptionTextField={<TextField
+            label="Description"
+            value={inputDescriptionValue}
+            onChange={setDescriptionValue}
+            underlineOnFocus={false} />}
         ></NewMeetingSidebar>
       </div>
     </div>
