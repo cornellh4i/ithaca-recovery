@@ -111,10 +111,6 @@ const CalendarSidebar: React.FC = () => {
   const createMeeting = async () => {
     try {
 
-      const startDateTime = new Date(`${dateValue} ${timeValue}`);
-      const endDateTime = new Date(startDateTime);
-      endDateTime.setHours(endDateTime.getHours() + 1); // For example, assume a 1-hour meeting duration
-
       const newMeeting: IMeeting = {
         title: inputMeetingTitleValue,
         mid: generateMeetingId(),
