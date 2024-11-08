@@ -29,9 +29,8 @@ const TextField: React.FC<TextFieldProps> = ({
         onFocus={toggleFocus}
         onBlur={toggleFocus}
         onChange={(e) => onChange(e.target.value)}
-        className={`${styles.textfieldinput} ${
-          underlineOnFocus ? styles.focused : styles.default
-        }`}
+        className={`${styles.textfieldinput} ${underlineOnFocus ? styles.focused : styles.default
+          }`}
         placeholder={label}
       />
     </div>
