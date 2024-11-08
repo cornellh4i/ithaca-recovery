@@ -585,6 +585,8 @@ const App = () => {
             value={inputDescriptionValue}
             onChange={setDescriptionValue}
             underlineOnFocus={false} />}
+
+          onCreateMeeting={createMeeting}
         ></NewMeetingSidebar>
       </div>
       <div className={styles.section}>

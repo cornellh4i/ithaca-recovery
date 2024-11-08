@@ -12,6 +12,7 @@ interface NewMeetingSidebarProps {
   emailTextField: React.ReactElement;
   uploadPandaDocsForm: React.ReactElement;
   descriptionTextField: React.ReactElement;
+  onCreateMeeting: () => Promise<void>;
 }
 
 const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({
