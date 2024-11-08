@@ -13,11 +13,12 @@
     flex: 1 0 0;
     align-self: stretch;
     font-family: 'Source Sans Pro', sans-serif;
-    font-size: 24px;
+    font-size: 18px;
     font-weight: 400;
     padding: 6px 12px;
     color: $black-color;
     transition: border-color 0.3s;
+    width: 100%;
 
     &::placeholder {
         color: $medium-grey-color;
