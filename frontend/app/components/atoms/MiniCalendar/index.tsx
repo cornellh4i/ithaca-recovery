@@ -5,11 +5,11 @@ import styles from "../../../../styles/components/atoms/MiniCalendar.module.scss
 
 
 const MiniCalendar: React.FC = () => {
-    const [selectedDate, setSelectedDate] = useState<Date | undefined>();
-    const [month, setMonth] = useState(new Date());
+    const [selectedDate, setSelectedDate] = useState(new Date());
+    const [currentMonth, setCurrentMonth] = useState(new Date());
 
     const isOutsideDay = (date: Date) => {
-        const selectedMonth = month.getMonth();
+        const selectedMonth = currentMonth.getMonth();
         return date.getMonth() !== selectedMonth; // Check if the month of the date is different from the current month
     };
 
@@ -18,10 +18,10 @@ const MiniCalendar: React.FC = () => {
             <DayPicker
                 mode="single"
                 selected={selectedDate}
-                month={month}
-                onMonthChange={setMonth}
-                showOutsideDays
-                onSelect={(date) => {
+                month={currentMonth}
+                onMonthChange={setCurrentMonth}
+                showOutsideDays={true}
+                onSelect={(date: Date) => {
                     // Check if the date is valid and not an outside day
                     if (date && !isOutsideDay(date)) {
                         setSelectedDate(date);
@@ -33,12 +33,13 @@ const MiniCalendar: React.FC = () => {
                     outside: styles.dayOutside,
                     today: styles.today,
                 }}
-                defaultMonth={new Date(2024, 4)} // Starting month May 2024
+                defaultMonth={currentMonth}
                 formatters={{
-                    formatWeekdayName: (date) => {
+                    formatWeekdayName: (date: Date) => {
                         return date.toLocaleDateString('en-US', { weekday: 'short' })[0];
                     },
                 }}
+                required
             />
         </div>
     );
