@@ -25,6 +25,8 @@ import CalendarNavbar from "../components/organisms/CalendarNavbar"
 import TodayIcon from '@mui/icons-material/Today';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 
+
+
 import { set } from 'mongoose';
 
 const App = () => {
@@ -39,7 +41,7 @@ const App = () => {
   const [selectedMeetingType, setSelectedMeetingType] = useState<string>("Hybrid"); // Default meeting type
   const [inputEmailValue, setEmailValue] = useState(""); // Email input value
   const [selectedOption, setSelectedOption] = useState<string>("Never"); // Default radio option
-  const [selectedZoomAccount, setSelectedZoomAccount] = useState<string | null>(null); // Initially no Zoom account selected
+  const [selectedZoomAccount, setSelectedZoomAccount] = useState<string | null>("Zoom Email 1"); // Initially no Zoom account selected
   const [inputDescriptionValue, setDescriptionValue] = useState(""); // Description input value
 
   // Room and Meeting Type options
@@ -91,36 +93,47 @@ const App = () => {
   };
 
   const handleCreateMeeting = async () => {
+
     if (!inputMeetingTitleValue || !dateValue || !timeValue || !selectedZoomAccount) {
       alert("Please fill in all required fields: Title, Date, Time, and Zoom Account.");
       return;
     }
   
+    // Map selected Zoom account to account ID
     const accountId = zoomAccountOptions.indexOf(selectedZoomAccount) + 1;
-  
+    
     try {
-      const response = await fetch('/api/zoom/create', {
+      const newMeeting: IMeeting = {
+        title: 'Meeting Title',
+        mid: `${Math.floor(Math.random() * 100000) + 1}`,
+        description: 'Meeting Description',
+        creator: 'Creator',
+        group: 'Group',
+        startDateTime: dateValue,
+        endDateTime: timeValue,
+        zoomAccount: 'Zoom Account',
+        type: "in-person",
+        room: "hello"
+      };
+      const response = await fetch('/api/write/meeting', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          title: inputMeetingTitleValue,
-          date: dateValue,
-          time: timeValue,
-          zoomAccount: accountId
-        }),
+        body: JSON.stringify(
+          newMeeting
+        ),
       });
-  
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-  
-      const zoomResponse = await response.json();
-      console.log(zoomResponse);
-      alert("Zoom meeting created! Check the correct Zoom account.");
+
+      const meetingResponse = await response.json();
+      console.log(meetingResponse);
+      alert("Meeting created successfully! Please check the Meeting collection on MongoDB.")
     } catch (error) {
-      console.error('Error creating Zoom meeting:', error);
+      console.error('There was an error fetching the data:', error);
     }
   };
   
@@ -214,11 +227,11 @@ const App = () => {
         description: 'Meeting Description',
         creator: 'Creator',
         group: 'Group',
-        startDateTime: new Date(),
-        endDateTime: new Date(),
+        // startDateTime: new Date(),
+        // endDateTime: new Date(),
         zoomAccount: 'Zoom Account',
         type: "in-person",
-        room: "sunflower"
+        room: "hello"
       };
       const response = await fetch('/api/write/meeting', {
         method: 'POST',

@@ -14,8 +14,8 @@ interface IMeeting {
   description: string;
   creator: string; // admin later on [optional]
   group: string; // group interface later on [optional]
-  startDateTime: Date;
-  endDateTime: Date;
+  // startDateTime: string;
+  // endDateTime: Date;
   zoomAccount?: string | null;
   zoomLink?: string | null;
   zid?: string | null;
