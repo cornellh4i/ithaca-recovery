@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import RadioGroup from '../../atoms/RadioGroup';
 import Checkbox from '../../atoms/checkbox';
 import SpinnerInput from '../../atoms/SpinnerInput';
-import styles from "../../../../styles/components/organisms/ReoccuringMeeting.module.scss"; // Import SCSS module
+import styles from "../../../../styles/components/organisms/RecurringMeeting.module.scss";
 
 const RecurringMeetingForm: React.FC = () => {
   const [isRecurring, setIsRecurring] = useState(false);
