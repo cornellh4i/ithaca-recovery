@@ -27,20 +27,6 @@ import { set } from 'mongoose';
 
 const App = () => {
 
-  const getMeeting = async () => {
-    const meetingId = "2024-04-29T21:01:39.214Z"; // Hardcoded meeting ID, replace with a valid ID for testing
-    try {
-      const response = await fetch(`/api/retrieve/meeting`);
-      if (!response.ok) {
-        throw new Error(`Error: ${response.statusText}`);
-      }
-      const data = await response.json();
-      console.log("Meeting Data:", data); // Log the response data
-    } catch (error) {
-      console.error("Failed to fetch meeting:", error); // Log any error
-    }
-  };
-
   /** ADMIN TESTING FUNCTIONS  */
 
   // State declarations
@@ -283,6 +269,20 @@ const App = () => {
     }
   };
 
+  const getMeeting = async () => {
+    const meetingId = "2024-04-29T21:01:39.214Z"; 
+    try {
+      const response = await fetch(`/api/retrieve/meeting/${meetingId}`, {method: 'GET'});
+      if (!response.ok) {
+        throw new Error(`Error: ${response.statusText}`);
+      }
+      const data = await response.json();
+      console.log("Meeting Data:", data);
+    } catch (error) {
+      console.error("Failed to fetch meeting:", error);
+    }
+  };
+  
   const getMeetingsDay = async () => {
     try {
       const currentDate = new Date('2024-09-10');
