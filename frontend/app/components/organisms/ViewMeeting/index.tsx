@@ -78,7 +78,7 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
         </div>
       </div>
       <div className={styles.details}>
-        <p style={{ color: 'gray' }}><CalendarTodayIcon />&nbsp;{startDateTime.getDate()} {startDateTime.toLocaleString('default', { month: 'long' })} - {startDateTime.getFullYear()}</p>
+        <p style={{ color: 'gray' }}><CalendarTodayIcon />&nbsp;{startDateTime.getDate()} {startDateTime.toLocaleString('default', { month: 'long' })} {startDateTime.getFullYear()} - {endDateTime.getDate()} {endDateTime.toLocaleString('default', { month: 'long' })} {endDateTime.getFullYear()}</p>
         <p style={{ color: 'gray' }}>
   <AccessTimeIcon />&nbsp;{`${startDateTime.getHours()}:${startDateTime.getMinutes().toString().padStart(2, '0')}`} 
   - 
