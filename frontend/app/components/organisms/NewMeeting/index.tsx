@@ -25,7 +25,8 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({
   zoomAccountDropdown,
   emailTextField,
   uploadPandaDocsForm,
-  descriptionTextField
+  descriptionTextField,
+  onCreateMeeting
 }) => {
   return (
     <div className={styles.newMeetingSidebar}>
@@ -59,7 +60,7 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({
       <div className={styles.dummyComponent}>
         {descriptionTextField}
       </div>
-      <button className={styles.createMeetingButton}>Create Meeting</button>
+      <button className={styles.createMeetingButton} onClick={onCreateMeeting}>Create Meeting</button>
     </div>
   );
 };
