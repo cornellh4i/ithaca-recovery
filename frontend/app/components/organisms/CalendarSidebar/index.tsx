@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { v7 as uuidv7 } from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 import { IMeeting } from '../../../../util/models'
 import TextButton from '../../atoms/textbutton';
 import TextField from '../../atoms/TextField';
@@ -105,20 +105,45 @@ const CalendarSidebar: React.FC = () => {
   ];
 
   const generateMeetingId = () => {
-    return uuidv7(); // Generate a UUID v7 (time-based)
+    return uuidv4();
   };
+
+  function convertToISODate(dateString: string) {
+    const dateObject = new Date(dateString);
+    if (isNaN(dateObject.getTime())) {
+      console.error("Invalid date string:", dateString)
+      return null;
+    }
+    return dateObject.toISOString().split('T')[0]; // Returns "YYYY-MM-DD"
+  }
 
   const createMeeting = async () => {
     try {
 
-      let startDateString: string = "YYYY-MM-DDTHH:MM:SS";  // Placeholder for start date/time
-      let endDateString: string = "YYYY-MM-DDTHH:MM:SS";    // Placeholder for end date/time
+      // Convert dateValue to ISO format
+      const isoDateValue = convertToISODate(dateValue);
 
-      // Example: Later on, you can replace the placeholders with actual values from the date/time picker
+      if (!isoDateValue) {
+        console.error("Failed to convert dateValue to ISO format");
+      }
 
-      // Create Date objects for start and end times (adding "Z" for UTC)
-      const startDateTime = new Date(startDateString + "Z");  // Adding "Z" indicates UTC time
-      const endDateTime = new Date(endDateString + "Z");      // Adding "Z" indicates UTC time
+      const [startTime, endTime] = timeValue?.split(' - ') || [];
+      if (!startTime || !endTime) {
+        console.error("Invalid timeValue format");
+      }
+
+      const startDateString = `${isoDateValue}T${startTime}`
+      const endDateString = `${isoDateValue}T${endTime}`
+
+      if (!startDateString || !endDateString) {
+        console.error("Start or end date string could not be constructed");
+      }
+
+      const startDateTime = new Date(startDateString);
+      const endDateTime = new Date(endDateString);
+
+      startDateTime.setHours(startDateTime.getHours() - 5);
+      endDateTime.setHours(endDateTime.getHours() - 5);
 
       const newMeeting: IMeeting = {
         title: inputMeetingTitleValue,
@@ -128,10 +153,9 @@ const CalendarSidebar: React.FC = () => {
         group: 'Group',
         startDateTime: startDateTime,
         endDateTime: endDateTime,
-        zoomAccount: selectedZoomAccount, //zoomLink, zid, zoomAccount - note these are optional
+        zoomAccount: selectedZoomAccount,
         type: selectedMeetingType,
         room: selectedRoom,
-        //pandaDoc: pandaDoc, //this is optional
       };
       const response = await fetch('/api/write/meeting', {
         method: 'POST',
