@@ -25,16 +25,16 @@
   z-index: 10; 
 }
 
-.currentTimeLine::before {
-  content: "";
-  position: absolute;
-  top: -6px; 
-  left: -4px; 
-  width: 12px; 
-  height: 12px; 
-  border-radius: 50%;
-  background-color: #cc3366; 
-}
+// .currentTimeLine::before {
+//   content: "";
+//   position: absolute;
+//   top: -6px; 
+//   left: -4px; 
+//   width: 12px; 
+//   height: 12px; 
+//   border-radius: 50%;
+//   background-color: #cc3366; 
+// }
 
 .scrollContainer {
   display: grid;

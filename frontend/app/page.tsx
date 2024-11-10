@@ -5,7 +5,7 @@ import { AuthenticatedTemplate, UnauthenticatedTemplate, useMsal, useMsalAuthent
 import { InteractionType } from '@azure/msal-browser';
 import { authProvider } from "../services/auth";
 
-import DailyView from "./components/organisms/DailyView/index";
+
 
 // const MainPage = () => {
 
@@ -40,5 +40,5 @@ import DailyView from "./components/organisms/DailyView/index";
 
 export default function ForcedPage() 
 {
-  return <div><DailyView /></div>;
+  return <div><HomePage /></div>;
 }
