@@ -4,28 +4,48 @@ import { IAdmin, IUser } from '../../util/models'
 import { IMeeting } from '../../util/models'
 import styles from "../../styles/TestPage.module.scss";
 import TestButton from "../components/Test/TestButton"
-
 import UploadPandaDocs from '../components/atoms/upload/index';
 import BoxText from "../components/atoms/BoxText";
 import DatePicker from "../components/atoms/DatePicker";
 import RadioGroup from '../components/atoms/RadioGroup';
 import TextField from '../components/atoms/TextField';
 import TimePicker from "../components/atoms/TimePicker";
+import MiniCalendar from "../components/atoms/MiniCalendar";
 import SolidButton from "../components/atoms/solidbutton"
 import checkbox from "../components/atoms/checkbox/index"
 import SpinnerInput from "../components/atoms/SpinnerInput";
 import Dropdown from "../components/atoms/dropdown";
-
 import MeetingsFilter from '../components/molecules/MeetingsFilter';
-
 import NewMeetingSidebar from '../components/organisms/NewMeeting';
-import CalendarNavbar from "../components/organisms/CalendarNavbar"
-
+import CalendarNavbar from "../components/organisms/CalendarNavbar";
+import ViewMeetingDetails from '../components/organisms/ViewMeeting';
 import TodayIcon from '@mui/icons-material/Today';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
+
 import { set } from 'mongoose';
 
 const App = () => {
+
+  
+    const sampleMeeting = {
+      id: '1',
+      mid: 'M123',
+      title: 'Project Kickoff',
+      description: 'Discuss project goals, milestones, and next steps with the team.',
+      creator: 'Alice Johnson',
+      group: 'Team Calendar',
+      startDateTime: new Date(2024, 10, 20, 14, 0), // Nov 20, 2024, 2:00 PM
+      endDateTime: new Date(2024, 10, 20, 15, 30), // Nov 20, 2024, 3:30 PM
+      zoomAccount: 'alice.johnson@company.com',
+      zoomLink: 'https://zoom.us/j/123456789',
+      zid: 'Z456',
+      type: 'Virtual Meeting',
+      room: 'Conference Room B',
+      recurrence: 'Weekly',
+      onBack: () => alert('Back button clicked'),
+      onEdit: () => alert('Edit button clicked'),
+      onDelete: () => alert('Delete button clicked'),
+    };
 
   /** ADMIN TESTING FUNCTIONS  */
 
@@ -38,6 +58,7 @@ const App = () => {
   const [inputEmailValue, setEmailValue] = useState(""); // Email input value
   const [selectedOption, setSelectedOption] = useState<string>("Never"); // Default radio option
   const [selectedZoomAccount, setSelectedZoomAccount] = useState<string | null>(null); // Initially no Zoom account selected
+  const [inputDescriptionValue, setDescriptionValue] = useState(""); // Description input value
 
   // Room and Meeting Type options
   const roomOptions = [
@@ -399,7 +420,6 @@ const App = () => {
       console.error("Error fetching group calendar: ", error)
     }
   }
-
   /** PANDADOCS FUNCTION */
   const handleFileSelect = (file: File | null) => {
     if (file) {
@@ -409,14 +429,6 @@ const App = () => {
     }
   }
 
-  // Define handler functions for button click events
-  const handleCreateMeetingClick = (): void => {
-    console.log('Create Meeting button clicked');
-  };
-
-  const handleGenerateLinkClick = (): void => {
-    console.log('Generate Meeting Link button clicked');
-  };
 
   return (
     <div className={styles['apicontainer']}>
@@ -446,10 +458,6 @@ const App = () => {
         <TestButton testFunc={getMeetingsDay} text="Get Meetings (Day) /api/retrieve/meeting/day" />
         <TestButton testFunc={getMeetingsWeek} text="Get Meetings (Week) /api/retrieve/meeting/week" />
         <TestButton testFunc={getMeetingsMonth} text="Get Meetings (Month) /api/retrieve/meeting/month" />
-
-        <SolidButton text="Create Meeting" bgColor="#D95372" onClick={handleCreateMeetingClick} ></SolidButton>
-        <SolidButton text="Generate Meeting Link" bgColor="#D95372" onClick={handleGenerateLinkClick} ></SolidButton>
-
       </div>
       <div className={styles.section + ' ' + styles.zoom}>
         <h2>Zoom Testing</h2>
@@ -460,9 +468,6 @@ const App = () => {
         <TestButton testFunc={getGroups} text="Call get groups /api/groups/routes" />
         <TestButton testFunc={getCalendars} text="Call get calendars /api/calender/getCalendars/routes" />
       </div>
-
-      <UploadPandaDocs onFileSelect={handleFileSelect} />
-
       <div className={styles.section}>
         <h2>Example Text Field & Radio Buttons</h2>
         <TextField
@@ -540,10 +545,12 @@ const App = () => {
         <h2>Spinner Input</h2>
         <SpinnerInput value={1} onChange={() => { }}></SpinnerInput>
       </div>
-      <div>
+      
+      <div className={styles.section}>
         <h1>Meetings Filter</h1>
         <MeetingsFilter />
       </div>
+      
       {/* New Meeting Sidebar Section */}
       <div className={styles.section + ' ' + styles.newMeetingSidebar}>
         <h2>New Meeting Sidebar</h2>
@@ -613,11 +620,26 @@ const App = () => {
             underlineOnFocus={false} />
           }
           uploadPandaDocsForm={<UploadPandaDocs onFileSelect={handleFileSelect} />}
+          descriptionTextField={<TextField
+            label="Description"
+            value={inputDescriptionValue}
+            onChange={setDescriptionValue}
+            underlineOnFocus={false} />}
         ></NewMeetingSidebar>
       </div>
+
+      <div className={styles.section}>
+        <h1>Test Page for ViewMeetingDetails Component</h1>
+        <ViewMeetingDetails {...sampleMeeting} />
+      </div>
+
+      <div className={styles.section}>
+        <h2>Mini Calendar</h2>
+        <MiniCalendar />
+      </div>
+
     </div>
   );
 }
 
 export default App;
-
