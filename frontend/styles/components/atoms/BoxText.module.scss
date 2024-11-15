@@ -8,7 +8,8 @@
   color: #000;
 
   &.meeting {
-    width: 140px;
+    // Width for a 15 minute Meeting
+    min-width: 16px;
     height: 85px;
     padding: 8px 16px;
     border-radius: 6px;
@@ -19,7 +20,11 @@
       margin-bottom: 0px;
       font-weight: 600;
       padding: 0px;
-      word-wrap: break-word; // Ensures text wraps to three lines
+      // Adds an ellipses for titles when there is no space
+      overflow-x: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      flex-shrink: 0;
     }
   }
 
@@ -47,22 +52,28 @@
     margin-top: 0px;
     padding: 0px;
     color: #3A3E49;
+    overflow-x: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    flex-shrink: 0;
   }
 
   .tags {
+    display: flex;
+    flex-wrap: nowrap;
     margin-top: 16px;
     padding: 0px;
-    display: flex;
     gap: 4px;
-    flex-wrap: wrap;
     align-items: center;
+    overflow-x: hidden;
+    white-space: nowrap;
 
     .tag {
       padding: 2px 12px;
       border-radius: 10.593px;
       font-size: 10px;
       font-weight: 400;
+      white-space: nowrap;
     }
-
   }
 }

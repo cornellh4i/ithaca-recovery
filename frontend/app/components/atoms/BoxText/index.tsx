@@ -7,10 +7,12 @@ interface BoxProps {
   primaryColor: string;
   time?: string; // For Meeting Block
   tags?: string[]; // For badges like "Hybrid", "AA"
+  meetingId: string;
+  onClick: (meetingId: string) => void;
   [key: string]: any;
 };
 
-const BoxText: React.FC<BoxProps> = ({ boxType, title, primaryColor, time, tags }) => {
+const BoxText: React.FC<BoxProps> = ({ boxType, title, primaryColor, time, tags, meetingId, onClick }) => {
 
   // Function to convert hex to RGB
   const hexToRgb = (hex: string) => {
@@ -62,6 +64,7 @@ const BoxText: React.FC<BoxProps> = ({ boxType, title, primaryColor, time, tags 
     <div
       className={`${styles.box} ${boxType === 'Meeting Block' ? styles.meeting : styles.room}`}
       style={{ backgroundColor: bgColor, borderLeft: `7px solid ${primaryColor}` }}
+      onClick={() => onClick(meetingId)}
     >
       <h3 className={styles.title}>{title}</h3>
 
