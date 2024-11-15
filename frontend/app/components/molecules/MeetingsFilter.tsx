@@ -1,33 +1,37 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import LabeledCheckbox from '../atoms/checkbox/index';
 import styles from '../../../styles/components/molecules/MeetingsFilter.module.scss';
 
-const MeetingsFilter: React.FC = () => {
+interface MeetingsFilterProps {
+    filters: {
+        SerenityRoom: boolean;
+        SeedsOfHope: boolean;
+        UnityRoom: boolean;
+        RoomForImprovement: boolean;
+        SmallButPowerfulRight: boolean;
+        SmallButPowerfulLeft: boolean;
+        ZoomAccount1: boolean;
+        ZoomAccount2: boolean;
+        ZoomAccount3: boolean;
+        ZoomAccount4: boolean;
+        AA: boolean;
+        AlAnon: boolean;
+        Other: boolean;
+        InPerson: boolean;
+        Hybrid: boolean;
+        Remote: boolean;
+    };
+    onFilterChange: (name: string, value: boolean) => void;
+}
+
+const MeetingsFilter: React.FC<MeetingsFilterProps> = ({ filters, onFilterChange }) => {
     // State to track the checked status of each filter
-    const [filters, setFilters] = useState({
-        SerenityRoom: true,
-        SeedsOfHope: true,
-        UnityRoom: true,
-        RoomForImprovement: true,
-        SmallButPowerfulRight: true,
-        SmallButPowerfulLeft: true,
-        ZoomAccount1: true,
-        ZoomAccount2: true,
-        ZoomAccount3: true,
-        ZoomAccount4: true,
-        AA: true,
-        AlAnon: true,
-        Other: true,
-        InPerson: true,
-        Hybrid: true,
-        Remote: true
-    });
 
     // Handler to update the filter state
     const handleCheckboxChange = (name: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
-        setFilters({ ...filters, [name]: e.target.checked });
+        onFilterChange(name, e.target.checked);
     };
 
     return (
@@ -150,7 +154,7 @@ const MeetingsFilter: React.FC = () => {
                 />
             </div>
             <div className={styles.checkbox}>
-                <LabeledCheckbox 
+                <LabeledCheckbox
                     label="Hybrid"
                     checked={filters.Hybrid}
                     onChange={handleCheckboxChange('Hybrid')}
@@ -158,7 +162,7 @@ const MeetingsFilter: React.FC = () => {
                 />
             </div>
             <div className={styles.checkbox}>
-                <LabeledCheckbox 
+                <LabeledCheckbox
                     label="Remote"
                     checked={filters.Remote}
                     onChange={handleCheckboxChange('Remote')}

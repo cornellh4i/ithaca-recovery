@@ -1,5 +1,5 @@
 import React from 'react';
-import styles from "../../../../styles/organisms/NewMeeting.module.scss";
+import styles from "../../../../styles/components/organisms/NewMeeting.module.scss";
 
 interface NewMeetingSidebarProps {
   meetingTitleTextField: React.ReactElement;
@@ -11,6 +11,7 @@ interface NewMeetingSidebarProps {
   zoomAccountDropdown: React.ReactElement;
   emailTextField: React.ReactElement;
   uploadPandaDocsForm: React.ReactElement;
+  descriptionTextField: React.ReactElement;
 }
 
 const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({
@@ -23,6 +24,7 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({
   zoomAccountDropdown,
   emailTextField,
   uploadPandaDocsForm,
+  descriptionTextField
 }) => {
   return (
     <div className={styles.newMeetingSidebar}>
@@ -52,6 +54,9 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({
       </div>
       <div className={styles.dummyComponent}>
         {uploadPandaDocsForm}
+      </div>
+      <div className={styles.dummyComponent}>
+        {descriptionTextField}
       </div>
       <button className={styles.createMeetingButton}>Create Meeting</button>
     </div>

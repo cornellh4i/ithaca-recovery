@@ -1,0 +1,26 @@
+.meetingsFilter {
+  margin-top: 7px;
+  padding: 20px;
+  padding-top: 1px;
+  border-radius: 6px;
+  border: 1.5px solid #E5E5E5;
+  background: #FFF;
+  color: rgb(0, 0, 0);
+}
+
+.newMeetingHeader {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  color: var(--Dark-Navy, #3A3E49);
+  font-family: "Source Sans Pro";
+  font-style: normal;
+  font-weight: 600;
+  background-color: white;
+}
+
+.iconButton {
+  width: auto;
+  height: 40px;
+}
