@@ -1,3 +1,5 @@
+@import '../../Variables.module.scss';
+
 .date-picker-wrapper {
   display: flex;
   align-items: center;
@@ -27,7 +29,7 @@
     font-family: 'Source Sans Pro', sans-serif;
 
     &:focus {
-      border: none;
+      border-bottom: 1px solid $dark-pink-color;
       outline: none;
       background-color: transparent;
       box-shadow: none;
