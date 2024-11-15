@@ -26,26 +26,26 @@ import { set } from 'mongoose';
 
 const App = () => {
 
-  
-    const sampleMeeting = {
-      id: '1',
-      mid: 'M123',
-      title: 'Project Kickoff',
-      description: 'Discuss project goals, milestones, and next steps with the team.',
-      creator: 'Alice Johnson',
-      group: 'Team Calendar',
-      startDateTime: new Date(2024, 10, 20, 14, 0), // Nov 20, 2024, 2:00 PM
-      endDateTime: new Date(2024, 10, 20, 15, 30), // Nov 20, 2024, 3:30 PM
-      zoomAccount: 'alice.johnson@company.com',
-      zoomLink: 'https://zoom.us/j/123456789',
-      zid: 'Z456',
-      type: 'Virtual Meeting',
-      room: 'Conference Room B',
-      recurrence: 'Weekly',
-      onBack: () => alert('Back button clicked'),
-      onEdit: () => alert('Edit button clicked'),
-      onDelete: () => alert('Delete button clicked'),
-    };
+
+  const sampleMeeting = {
+    id: '1',
+    mid: 'M123',
+    title: 'Project Kickoff',
+    description: 'Discuss project goals, milestones, and next steps with the team.',
+    creator: 'Alice Johnson',
+    group: 'Team Calendar',
+    startDateTime: new Date(2024, 10, 20, 14, 0), // Nov 20, 2024, 2:00 PM
+    endDateTime: new Date(2024, 10, 20, 15, 30), // Nov 20, 2024, 3:30 PM
+    zoomAccount: 'alice.johnson@company.com',
+    zoomLink: 'https://zoom.us/j/123456789',
+    zid: 'Z456',
+    type: 'Virtual Meeting',
+    room: 'Conference Room B',
+    recurrence: 'Weekly',
+    onBack: () => alert('Back button clicked'),
+    onEdit: () => alert('Edit button clicked'),
+    onDelete: () => alert('Delete button clicked'),
+  };
 
   /** ADMIN TESTING FUNCTIONS  */
 
@@ -291,9 +291,9 @@ const App = () => {
   };
 
   const getMeeting = async () => {
-    const meetingId = "2024-04-29T21:01:39.214Z"; 
+    const meetingId = "2024-04-29T21:01:39.214Z";
     try {
-      const response = await fetch(`/api/retrieve/meeting/${meetingId}`, {method: 'GET'});
+      const response = await fetch(`/api/retrieve/meeting/${meetingId}`, { method: 'GET' });
       if (!response.ok) {
         throw new Error(`Error: ${response.statusText}`);
       }
@@ -303,7 +303,7 @@ const App = () => {
       console.error("Failed to fetch meeting:", error);
     }
   };
-  
+
   const getMeetingsDay = async () => {
     try {
       const currentDate = new Date('2024-09-10');
@@ -545,12 +545,31 @@ const App = () => {
         <h2>Spinner Input</h2>
         <SpinnerInput value={1} onChange={() => { }}></SpinnerInput>
       </div>
-      
+
       <div className={styles.section}>
         <h1>Meetings Filter</h1>
-        <MeetingsFilter />
+        <MeetingsFilter filters={{
+          SerenityRoom: false,
+          SeedsOfHope: false,
+          UnityRoom: false,
+          RoomForImprovement: false,
+          SmallButPowerfulRight: false,
+          SmallButPowerfulLeft: false,
+          ZoomAccount1: false,
+          ZoomAccount2: false,
+          ZoomAccount3: false,
+          ZoomAccount4: false,
+          AA: false,
+          AlAnon: false,
+          Other: false,
+          InPerson: false,
+          Hybrid: false,
+          Remote: false
+        }} onFilterChange={function (name: string, value: boolean): void {
+          throw new Error('Function not implemented.');
+        }} />
       </div>
-      
+
       {/* New Meeting Sidebar Section */}
       <div className={styles.section + ' ' + styles.newMeetingSidebar}>
         <h2>New Meeting Sidebar</h2>
