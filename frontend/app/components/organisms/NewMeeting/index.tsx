@@ -33,7 +33,7 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({
         {meetingTitleTextField}
       </div>
       <div className={styles.meetingButtons}>
-        <button className={styles.button}>Hybrid</button>
+        <button className={styles.button} autoFocus>Hybrid</button>
         <button className={styles.button}>In Person</button>
         <button className={styles.button}>Remote</button>
       </div>
