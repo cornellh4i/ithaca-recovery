@@ -471,7 +471,7 @@ const App = () => {
       <div className={styles.section}>
         <h2>Example Text Field & Radio Buttons</h2>
         <TextField
-          label="Meeting title"
+          input="Meeting title"
           value={inputMeetingTitleValue}
           onChange={setMeetingTitleValue}
           underlineOnFocus={false} />
@@ -575,7 +575,7 @@ const App = () => {
         <h2>New Meeting Sidebar</h2>
         <NewMeetingSidebar
           meetingTitleTextField={<TextField
-            label="Meeting title"
+            input="Meeting title"
             value={inputMeetingTitleValue}
             onChange={setMeetingTitleValue}
             underlineOnFocus={false} />}
@@ -633,14 +633,15 @@ const App = () => {
             />
           }
           emailTextField={<TextField
-            label="Email"
+            input="Email"
+            label="label"
             value={inputEmailValue}
             onChange={setEmailValue}
             underlineOnFocus={false} />
           }
           uploadPandaDocsForm={<UploadPandaDocs onFileSelect={handleFileSelect} />}
           descriptionTextField={<TextField
-            label="Description"
+            input="Description"
             value={inputDescriptionValue}
             onChange={setDescriptionValue}
             underlineOnFocus={false} />}
