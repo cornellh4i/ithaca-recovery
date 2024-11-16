@@ -104,7 +104,7 @@ const CalendarNavbar: React.FC<CalendarNavbarProps> = ({ onPreviousDay, onNextDa
     const handleToday = () => {
       setSelectedView("Day");
       setCurrentDate(new Date());
-      onToday(); // Call the external function as well
+      // onToday(); // Call the external function as well
     };
   
     const handleCombinedPrevious = () => {
