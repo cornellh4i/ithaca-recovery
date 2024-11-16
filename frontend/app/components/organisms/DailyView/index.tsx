@@ -22,6 +22,11 @@ const meetingCache = new Map<string, Room[]>();
 
 const fetchMeetingsByDay = async (date: Date): Promise<Room[]> => {
   const formattedDate = date.toISOString().split('T')[0];
+  if (meetingCache.has(formattedDate)) {
+    console.log("Using cached data for date:", formattedDate);
+    return meetingCache.get(formattedDate) || [];
+  }
+  
   console.log("Fetching meetings for date:", formattedDate);
 
   try {

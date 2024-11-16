@@ -76,7 +76,7 @@ type CalendarNavbarProps = {
           break;
       }
       setCurrentDate(newDate);
-      onPreviousDay();
+
     };
   
     const handleNext = () => {
@@ -95,7 +95,6 @@ type CalendarNavbarProps = {
           break;
       }
       setCurrentDate(newDate);
-      onNextDay();
     };
   
     const handleViewChange: React.ChangeEventHandler<HTMLSelectElement> = (event) => {
