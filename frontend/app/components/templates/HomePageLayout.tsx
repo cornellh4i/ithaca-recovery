@@ -2,6 +2,7 @@
 import React, { useContext, useState } from 'react';
 import styles from "../../../styles/HomePageLayout.module.scss";
 import CalendarSidebar from "../organisms/CalendarSidebar";
+import DailyView from "../organisms/DailyView/index";
 
 const HomePage = () => {
   return (
@@ -9,7 +10,9 @@ const HomePage = () => {
       <div className={styles.sidebar}>
         <CalendarSidebar />
       </div>
-      <div className={styles.primaryCalendar}>Primary Calendar</div>
+      <div className={styles.primaryCalendar}>
+        <DailyView />
+      </div>
     </div>
   );
 };

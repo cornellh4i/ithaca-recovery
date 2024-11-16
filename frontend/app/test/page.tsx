@@ -11,23 +11,40 @@ import RadioGroup from '../components/atoms/RadioGroup';
 import TextField from '../components/atoms/TextField';
 import TimePicker from "../components/atoms/TimePicker";
 import MiniCalendar from "../components/atoms/MiniCalendar";
-
 import SolidButton from "../components/atoms/solidbutton"
 import checkbox from "../components/atoms/checkbox/index"
 import SpinnerInput from "../components/atoms/SpinnerInput";
 import Dropdown from "../components/atoms/dropdown";
-
 import MeetingsFilter from '../components/molecules/MeetingsFilter';
-
 import NewMeetingSidebar from '../components/organisms/NewMeeting';
-import CalendarNavbar from "../components/organisms/CalendarNavbar"
-
+import ViewMeetingDetails from '../components/organisms/ViewMeeting';
 import TodayIcon from '@mui/icons-material/Today';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 
 import { set } from 'mongoose';
 
 const App = () => {
+
+
+  const sampleMeeting = {
+    id: '1',
+    mid: 'M123',
+    title: 'Project Kickoff',
+    description: 'Discuss project goals, milestones, and next steps with the team.',
+    creator: 'Alice Johnson',
+    group: 'Team Calendar',
+    startDateTime: new Date(2024, 10, 20, 14, 0), // Nov 20, 2024, 2:00 PM
+    endDateTime: new Date(2024, 10, 20, 15, 30), // Nov 20, 2024, 3:30 PM
+    zoomAccount: 'alice.johnson@company.com',
+    zoomLink: 'https://zoom.us/j/123456789',
+    zid: 'Z456',
+    type: 'Virtual Meeting',
+    room: 'Conference Room B',
+    recurrence: 'Weekly',
+    onBack: () => alert('Back button clicked'),
+    onEdit: () => alert('Edit button clicked'),
+    onDelete: () => alert('Delete button clicked'),
+  };
 
   /** ADMIN TESTING FUNCTIONS  */
 
@@ -272,6 +289,20 @@ const App = () => {
     }
   };
 
+  const getMeeting = async () => {
+    const meetingId = "2024-04-29T21:01:39.214Z";
+    try {
+      const response = await fetch(`/api/retrieve/meeting/${meetingId}`, { method: 'GET' });
+      if (!response.ok) {
+        throw new Error(`Error: ${response.statusText}`);
+      }
+      const data = await response.json();
+      console.log("Meeting Data:", data);
+    } catch (error) {
+      console.error("Failed to fetch meeting:", error);
+    }
+  };
+
   const getMeetingsDay = async () => {
     try {
       const currentDate = new Date('2024-09-10');
@@ -404,11 +435,6 @@ const App = () => {
       </div>
       <div>
       </div>
-      {/* Calendar Navbar Section */}
-      <div className={styles.section}>
-        <h2>Calendar Navbar</h2>
-        <CalendarNavbar></CalendarNavbar>
-      </div>
       <div className={styles.section}>
         <h2>Admins</h2>
         <TestButton testFunc={createAdmin} text="Call create admin post /api/write/admin" />
@@ -420,6 +446,8 @@ const App = () => {
         <TestButton testFunc={createMeeting} text="Call Create Meeting /api/write/meeting" />
         <TestButton testFunc={updateMeeting} text="Call Update meeting /api/update/meeting" />
         <TestButton testFunc={deleteMeeting} text="Call Delete meeting /api/delete/meeting" />
+        <TestButton testFunc={getMeeting} text="Call Get meeting /api/retrieve/[id]" />
+
 
         <TestButton testFunc={getMeetingsDay} text="Get Meetings (Day) /api/retrieve/meeting/day" />
         <TestButton testFunc={getMeetingsWeek} text="Get Meetings (Week) /api/retrieve/meeting/week" />
@@ -437,7 +465,7 @@ const App = () => {
       <div className={styles.section}>
         <h2>Example Text Field & Radio Buttons</h2>
         <TextField
-          label="Meeting title"
+          input="Meeting title"
           value={inputMeetingTitleValue}
           onChange={setMeetingTitleValue}
           underlineOnFocus={false} />
@@ -456,28 +484,6 @@ const App = () => {
         </div>
       </div>
 
-      <div className={styles.section}>
-        <h2>Meeting Block & Room Block</h2>
-        <div className="meeting-blocks">
-          <BoxText boxType="Meeting Block" title="Meeting Name" primaryColor="#b3ea75" time="9am-10am" tags={['Hybrid', 'AA']} />
-          <BoxText boxType="Meeting Block" title="Meeting Name" primaryColor="#f7e57b" time="9am-10am" tags={['Hybrid', 'AA']} />
-          <BoxText boxType="Meeting Block" title="Meeting Name" primaryColor="#96dbfe" time="9am-10am" tags={['Hybrid', 'AA']} />
-          <BoxText boxType="Meeting Block" title="Meeting Name" primaryColor="#ffae73" time="9am-10am" tags={['Hybrid', 'AA']} />
-          <BoxText boxType="Meeting Block" title="Meeting Name" primaryColor="#d2afff" time="9am-10am" tags={['Hybrid', 'AA']} />
-          <BoxText boxType="Meeting Block" title="Meeting Name" primaryColor="#ffa3c2" time="9am-10am" tags={['Hybrid', 'AA']} />
-          <BoxText boxType="Meeting Block" title="Meeting Name" primaryColor="#cecece" time="9am-10am" tags={['Hybrid', 'AA']} />
-        </div>
-
-        <div className="room-blocks">
-          <BoxText boxType="Room Block" title="Serenity Room" primaryColor="#b3ea75" />
-          <BoxText boxType="Room Block" title="Seeds of Hope" primaryColor="#f7e57b" />
-          <BoxText boxType="Room Block" title="Small but Powerful - Left" primaryColor="#96dbfe" />
-          <BoxText boxType="Room Block" title="Unity Room" primaryColor="#ffae73" />
-          <BoxText boxType="Room Block" title="Room for Improvement" primaryColor="#d2afff" />
-          <BoxText boxType="Room Block" title="Zoom Account" primaryColor="#ffa3c2" />
-          <BoxText boxType="Room Block" title="Zoom Account" primaryColor="#cecece" />
-        </div>
-      </div>
       <div className={styles.section + ' ' + styles.meetings}>
         <h2>DatePicker and TimePicker</h2>
         <DatePicker
@@ -511,12 +517,37 @@ const App = () => {
         <h2>Spinner Input</h2>
         <SpinnerInput value={1} onChange={() => { }}></SpinnerInput>
       </div>
+
+      <div className={styles.section}>
+        <h1>Meetings Filter</h1>
+        <MeetingsFilter filters={{
+          SerenityRoom: false,
+          SeedsOfHope: false,
+          UnityRoom: false,
+          RoomForImprovement: false,
+          SmallButPowerfulRight: false,
+          SmallButPowerfulLeft: false,
+          ZoomAccount1: false,
+          ZoomAccount2: false,
+          ZoomAccount3: false,
+          ZoomAccount4: false,
+          AA: false,
+          AlAnon: false,
+          Other: false,
+          InPerson: false,
+          Hybrid: false,
+          Remote: false
+        }} onFilterChange={function (name: string, value: boolean): void {
+          throw new Error('Function not implemented.');
+        }} />
+      </div>
+
       {/* New Meeting Sidebar Section */}
       <div className={styles.section + ' ' + styles.newMeetingSidebar}>
         <h2>New Meeting Sidebar</h2>
         <NewMeetingSidebar
           meetingTitleTextField={<TextField
-            label="Meeting title"
+            input="Meeting title"
             value={inputMeetingTitleValue}
             onChange={setMeetingTitleValue}
             underlineOnFocus={false} />}
@@ -574,14 +605,15 @@ const App = () => {
             />
           }
           emailTextField={<TextField
-            label="Email"
+            input="Email"
+            label="label"
             value={inputEmailValue}
             onChange={setEmailValue}
             underlineOnFocus={false} />
           }
           uploadPandaDocsForm={<UploadPandaDocs onFileSelect={handleFileSelect} />}
           descriptionTextField={<TextField
-            label="Description"
+            input="Description"
             value={inputDescriptionValue}
             onChange={setDescriptionValue}
             underlineOnFocus={false} />}
@@ -589,13 +621,19 @@ const App = () => {
           onCreateMeeting={createMeeting}
         ></NewMeetingSidebar>
       </div>
+
+      <div className={styles.section}>
+        <h1>Test Page for ViewMeetingDetails Component</h1>
+        <ViewMeetingDetails {...sampleMeeting} />
+      </div>
+
       <div className={styles.section}>
         <h2>Mini Calendar</h2>
         <MiniCalendar />
       </div>
+
     </div>
   );
 }
 
 export default App;
-

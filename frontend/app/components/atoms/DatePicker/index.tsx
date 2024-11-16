@@ -14,6 +14,7 @@ const DatePicker = ({ label, value: propValue = '', onChange, underlineOnFocus =
   const [isFocused, setIsFocused] = useState<boolean>(false);
   const [inputError, setInputError] = useState<string | null>(null);
 
+
   const isValidDate = (dateString: string): boolean => {
     const regex = /^(1[0-2]|0?[1-9])\/([1-2][0-9]|3[01]|0?[1-9])\/(\d{4})$/;
     if (!regex.test(dateString)) return false;

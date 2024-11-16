@@ -28,6 +28,30 @@
   border-radius: 8px;
 }
 
+.button {
+  background: none;
+  border: none;
+  font-family: 'Source Sans Pro', sans-serif;
+  font-size: 16px;
+  color: #1E1E1E;
+  padding: 8px 12px;
+}
+
+.button:focus {
+  outline: none;
+  /* Remove the default focus outline */
+  border-radius: 8px;
+  background: #F1F1F1;
+}
+
+.meetingButtons {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  margin: 10px;
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .newMeetingSidebar {

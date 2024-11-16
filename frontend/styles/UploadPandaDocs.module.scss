@@ -1,3 +1,9 @@
+.uploadLabel {
+  font-family: 'Source Sans Pro', sans-serif;
+  font-size: 18px;
+  margin-bottom: 15px;
+}
+
 .uploaddroparea {
   width: 95%;
   height: 150px;
@@ -34,7 +40,7 @@
   }
 
   .underline {
-      text-decoration: underline;
+    text-decoration: underline;
   }
 }
 
@@ -115,4 +121,3 @@
 .uploaded {
   border: solid 2px #CC3366;
 }
-  
