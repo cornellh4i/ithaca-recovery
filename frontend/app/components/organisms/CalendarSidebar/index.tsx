@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { v4 as uuidv4 } from 'uuid';
+import { IMeeting } from '../../../../util/models'
 import TextButton from '../../atoms/textbutton';
 import TextField from '../../atoms/TextField';
 import DatePicker from '../../atoms/DatePicker';
@@ -40,18 +42,17 @@ const CalendarSidebar: React.FC = () => {
     Remote: true,
   });
 
-  // Update filters and save to localStorage
   const handleFilterChange = (name: string, value: boolean) => {
     const updatedFilters = { ...filters, [name]: value };
     setFilters(updatedFilters);
   };
-
 
   const handleOpenNewMeeting = () => {
     setIsNewMeetingOpen(true);
   };
 
   const handleCloseNewMeeting = () => {
+    clearMeetingState();
     setIsNewMeetingOpen(false);
   };
 
@@ -64,6 +65,11 @@ const CalendarSidebar: React.FC = () => {
     }
   };
 
+  // Update handlers for these dropdowns
+  const handleRoomChange = (value: string) => setSelectedRoom(value);
+  const handleMeetingTypeChange = (value: string) => setSelectedMeetingType(value);
+  const handleZoomAccountChange = (value: string) => setSelectedZoomAccount(value);
+
   // State declarations for New Meeting form
   const [inputMeetingTitleValue, setMeetingTitleValue] = useState(""); // Meeting title
   const [dateValue, setDateValue] = useState<string>(""); // Initial date value as empty
@@ -71,6 +77,9 @@ const CalendarSidebar: React.FC = () => {
   const [freqValue, setFreqValue] = useState<string>("Never"); // Default frequency value
   const [inputEmailValue, setEmailValue] = useState(""); // Email input value
   const [inputDescriptionValue, setDescriptionValue] = useState(""); // Description input value
+  const [selectedRoom, setSelectedRoom] = useState<string>("Serenity Room");
+  const [selectedMeetingType, setSelectedMeetingType] = useState<string>("AA");
+  const [selectedZoomAccount, setSelectedZoomAccount] = useState<string>("Zoom Email 1");
 
   // Room and Meeting Type options
   const roomOptions = [
@@ -94,6 +103,94 @@ const CalendarSidebar: React.FC = () => {
     "Zoom Email 3",
     "Zoom Email 4"
   ];
+
+  const generateMeetingId = () => {
+    return uuidv4();
+  };
+
+  function convertToISODate(dateString: string) {
+    const dateObject = new Date(dateString);
+    if (isNaN(dateObject.getTime())) {
+      console.error("Invalid date string:", dateString)
+      return null;
+    }
+    return dateObject.toISOString().split('T')[0]; // Returns "YYYY-MM-DD"
+  }
+
+  const createMeeting = async () => {
+    try {
+
+      // Convert dateValue to ISO format
+      const isoDateValue = convertToISODate(dateValue);
+
+      if (!isoDateValue) {
+        console.error("Failed to convert dateValue to ISO format");
+      }
+
+      const [startTime, endTime] = timeValue?.split(' - ') || [];
+      if (!startTime || !endTime) {
+        console.error("Invalid timeValue format");
+        return;
+      }
+
+      const startDateString = `${isoDateValue}T${startTime}`
+      const endDateString = `${isoDateValue}T${endTime}`
+
+      if (!startDateString || !endDateString) {
+        console.error("Start or end date string could not be constructed");
+        return;
+      }
+
+      const startDateTime = new Date(startDateString);
+      const endDateTime = new Date(endDateString);
+
+      startDateTime.setHours(startDateTime.getHours() - 5);
+      endDateTime.setHours(endDateTime.getHours() - 5);
+
+      const newMeeting: IMeeting = {
+        title: inputMeetingTitleValue,
+        mid: generateMeetingId(),
+        description: inputDescriptionValue,
+        creator: 'Creator',
+        group: 'Group',
+        startDateTime: startDateTime,
+        endDateTime: endDateTime,
+        zoomAccount: selectedZoomAccount,
+        type: selectedMeetingType,
+        room: selectedRoom,
+      };
+      const response = await fetch('/api/write/meeting', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(
+          newMeeting
+        ),
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const meetingResponse = await response.json();
+      console.log(meetingResponse);
+      alert("Meeting created successfully! Please check the Meeting collection on MongoDB.");
+      handleCloseNewMeeting();
+    } catch (error) {
+      console.error('There was an error fetching the data:', error);
+    }
+  };
+
+  const clearMeetingState = () => {
+    setMeetingTitleValue("");
+    setDateValue("");
+    setTimeValue("");
+    setFreqValue("Never");
+    setEmailValue("");
+    setDescriptionValue("");
+    setSelectedRoom("");
+    setSelectedMeetingType("");
+    setSelectedZoomAccount("");
+  };
 
   return (
     <div>
@@ -169,6 +266,7 @@ const CalendarSidebar: React.FC = () => {
               value={inputDescriptionValue}
               onChange={setDescriptionValue}
               underlineOnFocus={false} />}
+            onCreateMeeting={createMeeting}
           ></NewMeetingSidebar>
         </div>
       ) : (

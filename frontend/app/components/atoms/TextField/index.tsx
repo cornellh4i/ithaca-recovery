@@ -42,8 +42,8 @@ const TextField: React.FC<TextFieldProps> = ({
         onChange={(e) => onChange(e.target.value)}
         className={`${styles.textfieldinput} ${underlineOnFocus ? styles.focused : styles.default}`}
         placeholder={input}
-        style={{ fontSize }} // Apply font size based on the presence of the label
-        {...props} // Include props safely after handling focus
+        style={{ fontSize }}
+        {...props}
       />
     </div>
   );
