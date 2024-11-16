@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import styles from '../../../../styles/organisms/DailyView.module.scss';
 import BoxText from '../../atoms/BoxText';
 import DailyViewRow from "../../molecules/DailyViewRow";
+import CalendarNavbar from "../CalendarNavbar";
 
 type Meeting = {
   id: string;
@@ -113,6 +114,7 @@ const DailyView: React.FC = () => {
   };
 
   const handleNextDay = () => {
+    console.log("next day");
     const nextDate = new Date(currentDate);
     nextDate.setDate(nextDate.getDate() + 1);
     handleDateChange(nextDate);
@@ -140,41 +142,48 @@ const DailyView: React.FC = () => {
 
   return (
     <div className={styles.outerContainer}>
-      <div className={styles.roomContainer}>
-        {combinedRooms.map((room, index) => (
-          <div key={index} className={styles.roomColumn}>
-            <BoxText
-              boxType="Room Block"
-              title={room.name}
-              primaryColor={room.primaryColor}
-              meetingId={room.meetings[0]?.id || ""}
-              onClick={handleBoxClick}
-            />
-          </div>
-        ))}
-      </div>
-
-      <div className={styles.scrollContainer}>
-        <div className={styles.headerRow}>
-          {timeSlots.map((time, index) => (
-            <div key={index} className={styles.timeLabel}>{time}</div>
+      <CalendarNavbar 
+        onPreviousDay={handlePreviousDay} 
+        onNextDay={handleNextDay} 
+        onToday={() => handleDateChange(getTodayDate())}
+      />
+      <div className={styles.viewContainer}>
+        <div className={styles.roomContainer}>
+          {combinedRooms.map((room, index) => (
+            <div key={index} className={styles.roomColumn}>
+              <BoxText
+                boxType="Room Block"
+                title={room.name}
+                primaryColor={room.primaryColor}
+                meetingId={room.meetings[0]?.id || ""}
+                onClick={handleBoxClick}
+              />
+            </div>
           ))}
         </div>
 
-        {combinedRooms.map((room, rowIndex) => (
-          <div key={rowIndex} className={styles.gridRow}>
-            <div className={styles.gridMeetingRow}>
-              <DailyViewRow roomColor={room.primaryColor} meetings={room.meetings} />
-            </div>
-            {timeSlots.map((_, colIndex) => (
-              <div key={colIndex} className={styles.gridCell}></div>
+        <div className={styles.scrollContainer}>
+          <div className={styles.headerRow}>
+            {timeSlots.map((time, index) => (
+              <div key={index} className={styles.timeLabel}>{time}</div>
             ))}
-            <div
-              className={styles.currentTimeLine}
-              style={{ left: `${currentTimePosition}px` }}
-            />
           </div>
-        ))}
+
+          {combinedRooms.map((room, rowIndex) => (
+            <div key={rowIndex} className={styles.gridRow}>
+              <div className={styles.gridMeetingRow}>
+                <DailyViewRow roomColor={room.primaryColor} meetings={room.meetings} />
+              </div>
+              {timeSlots.map((_, colIndex) => (
+                <div key={colIndex} className={styles.gridCell}></div>
+              ))}
+              <div
+                className={styles.currentTimeLine}
+                style={{ left: `${currentTimePosition}px` }}
+              />
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );

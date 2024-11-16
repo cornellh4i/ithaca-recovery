@@ -1,7 +1,13 @@
 import React, { useState } from 'react';
 import styles from "../../../../styles/components/organisms/CalendarNavbar.module.scss";
 
-const CalendarNavbar = () => {
+type CalendarNavbarProps = {
+    onPreviousDay: () => void;
+    onNextDay: () => void;
+    onToday: () => void;
+  };
+  
+const CalendarNavbar: React.FC<CalendarNavbarProps> = ({ onPreviousDay, onNextDay, onToday }) => {
     const [currentDate, setCurrentDate] = useState(new Date());
     const [selectedView, setSelectedView] = useState('Day');
 
