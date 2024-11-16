@@ -266,6 +266,7 @@ const CalendarSidebar: React.FC = () => {
               value={inputDescriptionValue}
               onChange={setDescriptionValue}
               underlineOnFocus={false} />}
+            onCreateMeeting={createMeeting}
           ></NewMeetingSidebar>
         </div>
       ) : (
