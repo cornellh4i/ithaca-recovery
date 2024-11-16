@@ -2,6 +2,7 @@
 
 .outerContainer {
   display: flex;
+  flex-direction: column;
   width: 100%;
   font-family: 'Source Sans Pro', sans-serif;
 }
@@ -43,6 +44,11 @@
   width: calc(100% - 180px);
   scroll-snap-type: x mandatory;
   margin-left: 30px;
+}
+
+.viewContainer {
+  display: flex;
+  margin-top: 24px;
 }
 
 .headerRow {
