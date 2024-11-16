@@ -21,7 +21,8 @@ type Room = {
 const meetingCache = new Map<string, Room[]>();
 
 const fetchMeetingsByDay = async (date: Date): Promise<Room[]> => {
-  const formattedDate = date.toISOString().split('T')[0];
+  const utcDate = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), 0, 0, 0, 0));
+  const formattedDate = utcDate.toISOString().split('T')[0];
   if (meetingCache.has(formattedDate)) {
     console.log("Using cached data for date:", formattedDate);
     return meetingCache.get(formattedDate) || [];
@@ -30,18 +31,12 @@ const fetchMeetingsByDay = async (date: Date): Promise<Room[]> => {
   console.log("Fetching meetings for date:", formattedDate);
 
   try {
-    const response = await fetch(`/api/retrieve/meeting/day?date=${formattedDate}`);
+    const response = await fetch(`/api/retrieve/meeting/day?startDate=${formattedDate}`);
     const data = await response.json();
     console.log("Raw API response:", data);
 
-    const filteredData = data.filter((meeting: any) => {
-      const meetingDate = new Date(meeting.startDateTime).toISOString().split('T')[0];
-      return meetingDate === formattedDate;
-    });
-    console.log("Filtered data:", filteredData);
-
     const groupedRooms: { [key: string]: Meeting[] } = {};
-    filteredData.forEach((meeting: any) => {
+    data.forEach((meeting: any) => {
       const roomName = meeting.room;
       if (!groupedRooms[roomName]) {
         groupedRooms[roomName] = [];
@@ -127,16 +122,17 @@ const DailyView: React.FC = () => {
   };
 
   const handlePreviousDay = () => {
+    console.log("prev day");
     const prevDate = new Date(currentDate);
     prevDate.setDate(prevDate.getDate() - 1);
-    handleDateChange(prevDate);
+    setCurrentDate(prevDate);
   };
 
   const handleNextDay = () => {
     console.log("next day");
     const nextDate = new Date(currentDate);
     nextDate.setDate(nextDate.getDate() + 1);
-    handleDateChange(nextDate);
+    setCurrentDate(nextDate);
   };
 
   useEffect(() => {
@@ -164,7 +160,6 @@ const DailyView: React.FC = () => {
       <CalendarNavbar 
         onPreviousDay={handlePreviousDay} 
         onNextDay={handleNextDay} 
-        onToday={() => handleDateChange(getTodayDate())}
       />
       <div className={styles.viewContainer}>
         <div className={styles.roomContainer}>

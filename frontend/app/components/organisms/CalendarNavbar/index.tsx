@@ -4,10 +4,9 @@ import styles from "../../../../styles/components/organisms/CalendarNavbar.modul
 type CalendarNavbarProps = {
     onPreviousDay: () => void;
     onNextDay: () => void;
-    onToday: () => void;
   };
   
-  const CalendarNavbar: React.FC<CalendarNavbarProps> = ({ onPreviousDay, onNextDay, onToday }) => {
+const CalendarNavbar: React.FC<CalendarNavbarProps> = ({ onPreviousDay, onNextDay }) => {
     const [currentDate, setCurrentDate] = useState(new Date());
     const [selectedView, setSelectedView] = useState('Day');
   
