@@ -22,7 +22,7 @@ const TextField: React.FC<TextFieldProps> = ({
   const toggleFocus = () => setUnderlineOnFocus((prev) => !prev);
 
   // Determine font size based on label presence
-  const fontSize = label ? "18px" : "24px";
+  const fontSize = label == null ? "24px" : "18px";
 
   return (
     <div className={styles.textfieldcontainer}>
