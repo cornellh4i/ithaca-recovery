@@ -21,8 +21,7 @@ type Room = {
 const meetingCache = new Map<string, Room[]>();
 
 const fetchMeetingsByDay = async (date: Date): Promise<Room[]> => {
-  const utcDate = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), 0, 0, 0, 0));
-  const formattedDate = utcDate.toISOString().split('T')[0];
+  const formattedDate = date.toISOString().split('T')[0];
   if (meetingCache.has(formattedDate)) {
     console.log("Using cached data for date:", formattedDate);
     return meetingCache.get(formattedDate) || [];
@@ -110,7 +109,6 @@ const DailyView: React.FC = () => {
     const data = await fetchMeetingsByDay(date);
     console.log("Data fetched:", data);
     setMeetings(data);
-    setCurrentDate(date);
   };
 
   const updateTimePosition = () => {
