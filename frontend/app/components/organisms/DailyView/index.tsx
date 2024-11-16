@@ -83,7 +83,11 @@ const defaultRooms = [
   { name: 'Zoom Email 4', primaryColor: '#cecece' },
 ];
 
-const DailyView: React.FC = () => {
+interface DailyViewProps {
+  setSelectedMeetingID: (meetingId: string) => void;
+}
+
+const DailyView: React.FC<DailyViewProps> = ({ setSelectedMeetingID }) => {
   const [currentTimePosition, setCurrentTimePosition] = useState(0);
   const [meetings, setMeetings] = useState<Room[]>([]);
   const [currentDate, setCurrentDate] = useState(getTodayDate());
@@ -164,7 +168,7 @@ const DailyView: React.FC = () => {
         {combinedRooms.map((room, rowIndex) => (
           <div key={rowIndex} className={styles.gridRow}>
             <div className={styles.gridMeetingRow}>
-              <DailyViewRow roomColor={room.primaryColor} meetings={room.meetings} />
+              <DailyViewRow roomColor={room.primaryColor} meetings={room.meetings} setSelectedMeetingID = {setSelectedMeetingID} />
             </div>
             {timeSlots.map((_, colIndex) => (
               <div key={colIndex} className={styles.gridCell}></div>
