@@ -22,45 +22,57 @@ const meetingCache = new Map<string, Room[]>();
 
 const fetchMeetingsByDay = async (date: Date): Promise<Room[]> => {
   const formattedDate = date.toISOString().split('T')[0];
+  console.log("Fetching meetings for date:", formattedDate);
 
-  if (meetingCache.has(formattedDate)) {
-    return meetingCache.get(formattedDate)!;
-  }
+  try {
+    const response = await fetch(`/api/retrieve/meeting/day?date=${formattedDate}`);
+    const data = await response.json();
+    console.log("Raw API response:", data);
 
-  const response = await fetch(`/api/retrieve/meeting/day?date=${formattedDate}`);
-  const data = await response.json();
-
-  const groupedRooms: { [key: string]: Meeting[] } = {};
-  data.forEach((meeting: any) => {
-    const roomName = meeting.room;
-    if (!groupedRooms[roomName]) {
-      groupedRooms[roomName] = [];
-    }
-
-    const start = new Date(meeting.startDateTime.replace("Z", ""));
-    const end = new Date(meeting.endDateTime.replace("Z", ""));
-
-    groupedRooms[roomName].push({
-      id: meeting._id,
-      title: meeting.title,
-      startTime: start.toLocaleTimeString('en-GB', { hour12: false }),
-      endTime: end.toLocaleTimeString('en-GB', { hour12: false }),
-      tags: [meeting.type, meeting.group], 
+    const filteredData = data.filter((meeting: any) => {
+      const meetingDate = new Date(meeting.startDateTime).toISOString().split('T')[0];
+      return meetingDate === formattedDate;
     });
-  });
+    console.log("Filtered data:", filteredData);
 
-  const structuredData: Room[] = Object.keys(groupedRooms).map((roomName) => {
-    const defaultRoom = defaultRooms.find((r) => r.name === roomName);
-    return {
-      name: roomName,
-      primaryColor: defaultRoom?.primaryColor || "#ffffff", 
-      meetings: groupedRooms[roomName],
-    };
-  });
+    const groupedRooms: { [key: string]: Meeting[] } = {};
+    filteredData.forEach((meeting: any) => {
+      const roomName = meeting.room;
+      if (!groupedRooms[roomName]) {
+        groupedRooms[roomName] = [];
+      }
 
-  meetingCache.set(formattedDate, structuredData);
-  return structuredData;
+      const start = new Date(meeting.startDateTime.replace("Z", ""));
+      const end = new Date(meeting.endDateTime.replace("Z", ""));
+
+      groupedRooms[roomName].push({
+        id: meeting._id,
+        title: meeting.title,
+        startTime: start.toLocaleTimeString("en-GB", { hour12: false }),
+        endTime: end.toLocaleTimeString("en-GB", { hour12: false }),
+        tags: [meeting.type, meeting.group],
+      });
+    });
+
+    const structuredData: Room[] = Object.keys(groupedRooms).map((roomName) => {
+      const defaultRoom = defaultRooms.find((r) => r.name === roomName);
+      return {
+        name: roomName,
+        primaryColor: defaultRoom?.primaryColor || "#ffffff",
+        meetings: groupedRooms[roomName],
+      };
+    });
+
+    console.log("Processed room data:", structuredData);
+
+    meetingCache.set(formattedDate, structuredData);
+    return structuredData;
+  } catch (error) {
+    console.error("Error fetching meetings:", error);
+    return [];
+  }
 };
+
 
 const formatTime = (hour: number): string => {
   const period = hour >= 12 ? "PM" : "AM";
@@ -94,7 +106,9 @@ const DailyView: React.FC = () => {
   }
 
   const handleDateChange = async (date: Date) => {
+    console.log("handleDateChange called with date:", date.toISOString());
     const data = await fetchMeetingsByDay(date);
+    console.log("Data fetched:", data);
     setMeetings(data);
     setCurrentDate(date);
   };
