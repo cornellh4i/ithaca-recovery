@@ -1,4 +1,5 @@
 import React from 'react';
+import TextButton from "../../atoms/textbutton"
 import styles from "../../../../styles/components/organisms/NewMeeting.module.scss";
 
 interface NewMeetingSidebarProps {
@@ -30,6 +31,11 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({
     <div className={styles.newMeetingSidebar}>
       <div className={styles.dummyComponent}>
         {meetingTitleTextField}
+      </div>
+      <div className={styles.meetingButtons}>
+        <button className={styles.button} autoFocus>Hybrid</button>
+        <button className={styles.button}>In Person</button>
+        <button className={styles.button}>Remote</button>
       </div>
       <div className={styles.dummyComponent}>
         {DatePicker}
