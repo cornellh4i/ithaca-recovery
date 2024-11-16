@@ -53,6 +53,7 @@ const CalendarSidebar: React.FC = () => {
   };
 
   const handleCloseNewMeeting = () => {
+    clearMeetingState();
     setIsNewMeetingOpen(false);
   };
 
@@ -130,6 +131,7 @@ const CalendarSidebar: React.FC = () => {
       const [startTime, endTime] = timeValue?.split(' - ') || [];
       if (!startTime || !endTime) {
         console.error("Invalid timeValue format");
+        return;
       }
 
       const startDateString = `${isoDateValue}T${startTime}`
@@ -137,6 +139,7 @@ const CalendarSidebar: React.FC = () => {
 
       if (!startDateString || !endDateString) {
         console.error("Start or end date string could not be constructed");
+        return;
       }
 
       const startDateTime = new Date(startDateString);
@@ -171,10 +174,23 @@ const CalendarSidebar: React.FC = () => {
       }
       const meetingResponse = await response.json();
       console.log(meetingResponse);
-      alert("Meeting created successfully! Please check the Meeting collection on MongoDB.")
+      alert("Meeting created successfully! Please check the Meeting collection on MongoDB.");
+      handleCloseNewMeeting();
     } catch (error) {
       console.error('There was an error fetching the data:', error);
     }
+  };
+
+  const clearMeetingState = () => {
+    setMeetingTitleValue("");
+    setDateValue("");
+    setTimeValue("");
+    setFreqValue("Never");
+    setEmailValue("");
+    setDescriptionValue("");
+    setSelectedRoom("");
+    setSelectedMeetingType("");
+    setSelectedZoomAccount("");
   };
 
   return (
