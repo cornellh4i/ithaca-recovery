@@ -64,8 +64,11 @@ const SpinnerInput: React.FC<InputSpinnerProps> = ({
         underline ? styles.focused : styles.default
       }`}
     >
+      {label && <label>{label}</label>}
       <input
-        className={styles.spinnerInput}
+        className={`${styles.spinnerInput} ${
+          underlineOnFocus ? styles.focused : styles.default
+        }`}
         onFocus={toggleFocus}
         onBlur={handleBlur}
         type="number"
@@ -76,6 +79,7 @@ const SpinnerInput: React.FC<InputSpinnerProps> = ({
         disabled={disabled}
         readOnly={readOnly}
         onChange={handleChange}
+        placeholder={localValue}
       />
       <div className={styles.spinnerArrows}>
         <div
@@ -125,4 +129,4 @@ const SpinnerInput: React.FC<InputSpinnerProps> = ({
   );
 };
 
-export default SpinnerInput; 
+export default SpinnerInput;

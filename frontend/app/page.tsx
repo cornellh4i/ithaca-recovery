@@ -1,9 +1,11 @@
+'use client'
 import React, { useEffect } from 'react';
+import HomePage from "./components/templates/HomePageLayout";
 import { AuthenticatedTemplate, UnauthenticatedTemplate, useMsal, useMsalAuthentication } from '@azure/msal-react';
 import { InteractionType } from '@azure/msal-browser';
 import { authProvider } from "../services/auth";
 
-//
+
 // const MainPage = () => {
 
 //   const request = {
@@ -13,7 +15,7 @@ import { authProvider } from "../services/auth";
 
 //   const { login, result, error } = useMsalAuthentication(InteractionType.Silent, request);
 
-//   useEffect(() => {
+//   useEffect(() =s> {
 //     if (error) {
 //       login(InteractionType.Popup, request);
 //     }
@@ -35,8 +37,7 @@ import { authProvider } from "../services/auth";
 
 // export default MainPage
 
-
-export default async function ForcedPage() {
-
-  return <div>Welcome</div>;
+export default function ForcedPage() 
+{
+  return <div><HomePage /></div>;
 }

@@ -1,0 +1,88 @@
+.meetingContainer {
+  display: flex;
+  justify-content: flex-start;
+  width: 100%;
+}
+
+.buttonDropdownContainer {
+  width: 80%;
+  /* Ensure content takes up full width of container */
+  position: relative;
+}
+
+.dropdownHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+}
+
+.meetingTitleText {
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.closeButton {
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 5px;
+  color: black;
+}
+
+.btn {
+  display: flex;
+  width: 100%;
+  flex-direction: row;
+  align-items: center;
+  gap: 20px;
+  padding: 11.4px;
+  border: 1.5px solid #CECECE;
+  border-radius: 8px;
+  background: #ffffff;
+  color: rgb(0, 0, 0);
+  cursor: pointer;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background-color: #BFC2C8;
+  }
+
+  .icon {
+    width: 10px; // Adjust size as necessary
+    height: auto;
+  }
+
+  .label {
+    font-size: 15px;
+    font-style: normal;
+    font-weight: 600;
+    color: #000;
+  }
+}
+
+.buttonDropdownContainer {
+  position: relative;
+}
+
+.dropdownHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+}
+
+.meetingTitleText {
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.closeButton {
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 5px;
+  color: black;
+}

@@ -1,0 +1,17 @@
+.container {
+  display: flex;
+  height: 100vh; 
+}
+
+.sidebar {
+  width: 350px;
+  background-color: #ffffff; 
+  padding: 10px;
+}
+
+.primaryCalendar {
+  flex: 1; 
+  background-color: #ffffff; 
+  padding: 10px;
+  overflow-x: hidden;
+}
