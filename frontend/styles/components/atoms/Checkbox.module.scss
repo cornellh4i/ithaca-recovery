@@ -17,8 +17,12 @@
     }
   
     .checkboxLabel {
-      font-size: 14px;
-      color: black;
+      color: var(--Black, #1E1E1E);
+      font-family: "Source Sans Pro";
+      font-size: 18px;
+      font-style: normal;
+      font-weight: 400;
+      line-height: normal;
     }
 
     .checkmark {

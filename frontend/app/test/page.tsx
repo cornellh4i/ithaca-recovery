@@ -20,6 +20,7 @@ import NewMeetingSidebar from '../components/organisms/NewMeeting';
 import ViewMeetingDetails from '../components/organisms/ViewMeeting';
 import TodayIcon from '@mui/icons-material/Today';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
+import ReccuringMeeting from "../components/molecules/RecurringMeeting";
 
 import { set } from 'mongoose';
 
@@ -436,6 +437,14 @@ const App = () => {
       <div>
       </div>
       <div className={styles.section}>
+        <h2>Reccuring Meeting</h2>
+        <ReccuringMeeting></ReccuringMeeting>
+      </div>
+      <div className={styles.section}>
+        <h2>Spinner Input</h2>
+        <SpinnerInput value={1} onChange={() => {}}></SpinnerInput>
+      </div>
+      <div className={styles.section}>
         <h2>Admins</h2>
         <TestButton testFunc={createAdmin} text="Call create admin post /api/write/admin" />
         <TestButton testFunc={getAdmin} text="Call get admin /api/retrieve/admin" />
@@ -468,7 +477,7 @@ const App = () => {
           input="Meeting title"
           value={inputMeetingTitleValue}
           onChange={setMeetingTitleValue}
-          underlineOnFocus={false} />
+        />
         <p>Entered Value: {inputMeetingTitleValue}</p>
 
         <div>
@@ -550,7 +559,7 @@ const App = () => {
             input="Meeting title"
             value={inputMeetingTitleValue}
             onChange={setMeetingTitleValue}
-            underlineOnFocus={false} />}
+            />}
           DatePicker={<DatePicker
             label={<TodayIcon />}
             value={dateValue}
@@ -564,13 +573,7 @@ const App = () => {
             disablePast={true}
             error={timeValue === '' ? 'Time is required' : undefined} // Example error handling
           />}
-          RadioGroup={<RadioGroup
-            label="Ends"
-            options={["Never", "On", "After"]}
-            selectedOption={selectedOption}
-            onChange={handleOptionChange}
-            name="preferences"
-          />}
+          RecurringMeeting={<ReccuringMeeting/>}
           roomSelectionDropdown={ // For room selection dropdown
             <Dropdown
               label={<svg width="28" height="29" viewBox="0 0 28 29" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -609,14 +612,14 @@ const App = () => {
             label="label"
             value={inputEmailValue}
             onChange={setEmailValue}
-            underlineOnFocus={false} />
+            />
           }
           uploadPandaDocsForm={<UploadPandaDocs onFileSelect={handleFileSelect} />}
           descriptionTextField={<TextField
             input="Description"
             value={inputDescriptionValue}
             onChange={setDescriptionValue}
-            underlineOnFocus={false} />}
+            />}
 
           onCreateMeeting={createMeeting}
         ></NewMeetingSidebar>

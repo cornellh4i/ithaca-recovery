@@ -1,0 +1,91 @@
+@import url('https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;600&display=swap');
+@import '../../Variables.module.scss';
+
+.container {
+  color: var(--Black, #1E1E1E);
+  font-family: "Source Sans Pro";
+  font-size: 18px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+
+  align-items: center;
+  padding: 0px 5px;
+  
+  .isRecurring {
+    margin-left: 30px
+  }
+
+  .dayButtons {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+
+    .dayButton {
+      padding: 6px 9px;
+      border: 1px solid #ccc;
+      border-radius: 50%;
+      background-color: #fff;
+      color: #333;
+      cursor: pointer;
+      transition: background-color 0.3s, border-color 0.3s;
+
+      &:hover {
+        background-color: #f1f1f1;
+      }
+
+      &.active {
+        background-color: #cc3366;
+        color: #fff;
+        border-color: #cc3366;
+      }
+
+      &:focus {
+        outline: none;
+        box-shadow: 0 0 4px rgba(204, 51, 102, 0.6);
+      }
+    }
+  }
+
+  .spinner-container {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-bottom: 16px;
+
+    label {
+      font-weight: bold;
+      margin-right: 5px;
+    }
+
+    .spinnerInput {
+      width: 50px;
+      text-align: center;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      padding: 8px;
+    }
+  }
+
+  .radio-group {
+    margin-bottom: 16px;
+
+    label {
+      display: flex;
+      align-items: center;
+      margin-bottom: 8px;
+
+      input[type="radio"] {
+        margin-right: 8px;
+        accent-color: #cc3366;
+      }
+    }
+  }
+
+  .separator {
+    width: 100%;
+    height: 1.5px;
+    background-color: #F1F1F1;
+    margin: 24px 0;
+  }
+}

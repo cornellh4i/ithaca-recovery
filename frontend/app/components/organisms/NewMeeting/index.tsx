@@ -6,7 +6,7 @@ interface NewMeetingSidebarProps {
   meetingTitleTextField: React.ReactElement;
   DatePicker: React.ReactElement;
   TimePicker: React.ReactElement;
-  RadioGroup: React.ReactElement;
+  RecurringMeeting: React.ReactElement;
   roomSelectionDropdown: React.ReactElement;
   meetingTypeDropdown: React.ReactElement;
   zoomAccountDropdown: React.ReactElement;
@@ -20,7 +20,7 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({
   meetingTitleTextField,
   DatePicker,
   TimePicker,
-  RadioGroup,
+  RecurringMeeting,
   roomSelectionDropdown,
   meetingTypeDropdown,
   zoomAccountDropdown,
@@ -46,7 +46,7 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({
         {TimePicker}
       </div>
       <div className={styles.dummyComponent}>
-        {RadioGroup}
+        {RecurringMeeting}
       </div>
       <div className={styles.dummyComponent}>
         {roomSelectionDropdown}

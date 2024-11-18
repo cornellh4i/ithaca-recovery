@@ -1,5 +1,5 @@
 import React from 'react';
-import BoxText from '../../atoms/BoxText';
+import BoxText from '../atoms/BoxText';
 
 interface Meeting {
   title: string;

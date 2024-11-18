@@ -5,7 +5,6 @@ import TextButton from '../../atoms/textbutton';
 import TextField from '../../atoms/TextField';
 import DatePicker from '../../atoms/DatePicker';
 import TimePicker from '../../atoms/TimePicker';
-import RadioGroup from '../../atoms/RadioGroup';
 import Dropdown from '../../atoms/dropdown';
 import UploadPandaDocs from '../../atoms/upload';
 import MiniCalendar from '../../atoms/MiniCalendar';
@@ -16,6 +15,7 @@ import styles from '../../../../styles/components/organisms/CalendarSidebar.modu
 import AddIcon from '@mui/icons-material/Add';
 import CloseIcon from '@mui/icons-material/Close';
 import IconButton from '@mui/material/IconButton';
+import RecurringMeetingForm from '../../molecules/RecurringMeeting';
 
 const CalendarSidebar: React.FC = () => {
   // State declarations for New Meeting button
@@ -207,7 +207,7 @@ const CalendarSidebar: React.FC = () => {
               input="Meeting title"
               value={inputMeetingTitleValue}
               onChange={setMeetingTitleValue}
-              underlineOnFocus={false} />}
+              />}
             DatePicker={<DatePicker
               label={<img src='/svg/calendar-icon.svg' alt="Calendar Icon" />}
               value={dateValue}
@@ -221,13 +221,7 @@ const CalendarSidebar: React.FC = () => {
               disablePast={true}
               error={timeValue === '' ? 'Time is required' : undefined}
             />}
-            RadioGroup={<RadioGroup
-              label="Ends"
-              options={["Never", "On", "After"]}
-              selectedOption={freqValue}
-              onChange={setFreqValue}
-              name="preferences"
-            />}
+            RecurringMeeting={<RecurringMeetingForm/>}
             roomSelectionDropdown={
               <Dropdown
                 label={<img src="/svg/location-icon.svg" alt="Location Icon" />}
@@ -257,7 +251,7 @@ const CalendarSidebar: React.FC = () => {
               label={<img src="svg/mail-icon.svg" alt="Mail Icon"/>}
               value={inputEmailValue}
               onChange={setEmailValue}
-              underlineOnFocus={false} />
+              />
             }
             uploadPandaDocsForm={<UploadPandaDocs onFileSelect={handleFileSelect} />}
             descriptionTextField={<TextField
@@ -265,7 +259,7 @@ const CalendarSidebar: React.FC = () => {
               label = ""
               value={inputDescriptionValue}
               onChange={setDescriptionValue}
-              underlineOnFocus={false} />}
+              />}
             onCreateMeeting={createMeeting}
           ></NewMeetingSidebar>
         </div>
