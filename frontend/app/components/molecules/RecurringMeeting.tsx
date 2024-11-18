@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import RadioGroup from '../atoms/RadioGroup';
 import LabeledCheckbox from '../atoms/checkbox';
 import SpinnerInput from '../atoms/SpinnerInput';
+import DatePicker from '../atoms/DatePicker';
 import styles from "../../../styles/components/molecules/RecurringMeeting.module.scss";
 
 const RecurringMeetingForm: React.FC = () => {
@@ -11,6 +12,8 @@ const RecurringMeetingForm: React.FC = () => {
   const [frequency, setFrequency] = useState(1);
   const [selectedDays, setSelectedDays] = useState<string[]>([]);
   const [endOption, setEndOption] = useState('Never');
+  const [endDate, setEndDate] = useState<string | undefined>("");
+  const [occurrences, setOccurrences] = useState(1);
 
   const days = [
     { id: 'sun', label: 'S' },
@@ -36,7 +39,21 @@ const RecurringMeetingForm: React.FC = () => {
     setFrequency(value);
   };
 
-  const endOptions = ['Never', 'On a specific date', 'After X occurrences'];
+  const handleEndOptionChange = (option: string) => {
+    setEndOption(option);
+  
+    // If "On" is selected, reset specificDate
+    if (option !== 'On') {
+      setEndDate("");
+    }
+
+    // If "After" is selected, reset occurrences
+    if (option !== "After") {
+      setOccurrences(1);
+    }
+  };
+
+  const endOptions = ['Never', 'On', 'After'];
 
   return (
     <div className={styles.container}>
@@ -81,9 +98,31 @@ const RecurringMeetingForm: React.FC = () => {
               label="Ends"
               options={endOptions}
               selectedOption={endOption}
-              onChange={setEndOption}
+              onChange={handleEndOptionChange}
               name="recurrence-end"
             />
+
+            {endOption === 'On' && (
+              <DatePicker
+                label={"Ends On:"}
+                value={endDate}
+                onChange={setEndDate}
+                error={endDate === '' ? 'Date is required' : undefined}
+              />
+            )}
+
+            {endOption === 'After' && (
+              <div style={{ display: 'flex', alignItems: 'center'}}>
+                <label style={{ marginRight: '5px'}}>Ends after</label>
+                <SpinnerInput
+                    value={occurrences}
+                    min={1}
+                    step={1}
+                    onChange={setOccurrences}
+                  />
+                  <label style={{ marginLeft: '5px'}}>occurrences(s)</label>
+              </div>
+            )}
           
           </div>
           <div className={styles.separator}></div>
