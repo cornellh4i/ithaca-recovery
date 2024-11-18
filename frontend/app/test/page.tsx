@@ -20,8 +20,7 @@ import NewMeetingSidebar from '../components/organisms/NewMeeting';
 import ViewMeetingDetails from '../components/organisms/ViewMeeting';
 import TodayIcon from '@mui/icons-material/Today';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
-import SpinnerInput from "../components/atoms/SpinnerInput";
-import ReccuringMeeting from "../components/organisms/RecurringMeeting";
+import ReccuringMeeting from "../components/molecules/RecurringMeeting";
 
 import { set } from 'mongoose';
 
@@ -478,7 +477,7 @@ const App = () => {
           input="Meeting title"
           value={inputMeetingTitleValue}
           onChange={setMeetingTitleValue}
-          underlineOnFocus={false} />
+        />
         <p>Entered Value: {inputMeetingTitleValue}</p>
 
         <div>
@@ -560,7 +559,7 @@ const App = () => {
             input="Meeting title"
             value={inputMeetingTitleValue}
             onChange={setMeetingTitleValue}
-            underlineOnFocus={false} />}
+            />}
           DatePicker={<DatePicker
             label={<TodayIcon />}
             value={dateValue}
@@ -619,14 +618,14 @@ const App = () => {
             label="label"
             value={inputEmailValue}
             onChange={setEmailValue}
-            underlineOnFocus={false} />
+            />
           }
           uploadPandaDocsForm={<UploadPandaDocs onFileSelect={handleFileSelect} />}
           descriptionTextField={<TextField
             input="Description"
             value={inputDescriptionValue}
             onChange={setDescriptionValue}
-            underlineOnFocus={false} />}
+            />}
 
           onCreateMeeting={createMeeting}
         ></NewMeetingSidebar>

@@ -207,7 +207,7 @@ const CalendarSidebar: React.FC = () => {
               input="Meeting title"
               value={inputMeetingTitleValue}
               onChange={setMeetingTitleValue}
-              underlineOnFocus={false} />}
+              />}
             DatePicker={<DatePicker
               label={<img src='/svg/calendar-icon.svg' alt="Calendar Icon" />}
               value={dateValue}
@@ -257,7 +257,7 @@ const CalendarSidebar: React.FC = () => {
               label={<img src="svg/mail-icon.svg" alt="Mail Icon"/>}
               value={inputEmailValue}
               onChange={setEmailValue}
-              underlineOnFocus={false} />
+              />
             }
             uploadPandaDocsForm={<UploadPandaDocs onFileSelect={handleFileSelect} />}
             descriptionTextField={<TextField
@@ -265,7 +265,7 @@ const CalendarSidebar: React.FC = () => {
               label = ""
               value={inputDescriptionValue}
               onChange={setDescriptionValue}
-              underlineOnFocus={false} />}
+              />}
             onCreateMeeting={createMeeting}
           ></NewMeetingSidebar>
         </div>
