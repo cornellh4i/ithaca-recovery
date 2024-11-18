@@ -2,9 +2,9 @@
 
 import React, { useState } from 'react';
 import RadioGroup from '../atoms/RadioGroup';
-import Checkbox from '../atoms/checkbox';
+import LabeledCheckbox from '../atoms/checkbox';
 import SpinnerInput from '../atoms/SpinnerInput';
-import styles from "../../../styles/components/organisms/RecurringMeeting.module.scss";
+import styles from "../../../styles/components/molecules/RecurringMeeting.module.scss";
 
 const RecurringMeetingForm: React.FC = () => {
   const [isRecurring, setIsRecurring] = useState(false);
@@ -32,11 +32,11 @@ const RecurringMeetingForm: React.FC = () => {
 
   return (
     <div className={styles.container}>
-      <Checkbox
+      <LabeledCheckbox
         label={`This meeting is recurring`}
         checked={isRecurring}
         onChange={handleRecurringChange}
-        color="blue"
+        color= "#848484"
       />
 
       {isRecurring && (
@@ -52,19 +52,19 @@ const RecurringMeetingForm: React.FC = () => {
               <span>week(s)</span>
         </div>
 
-          <div className={styles.dayButtons}>
-            <p>On:</p>
-            {days.map((day, index) => (
-                <button
-                key={`${day}-${index}`} 
-                type="button"
-                className={`${styles.dayButton} ${selectedDays.includes(day) ? styles.active : ''}`}
-                onClick={() => toggleDay(day)}
-                >
-                {day}
-                </button>
-            ))}
-            </div>
+        <div className={styles.dayButtons}>
+          <p>On:</p>
+          {days.map((day, index) => (
+              <button
+              key={`${day}-${index}`} 
+              type="button"
+              className={`${styles.dayButton} ${selectedDays.includes(day) ? styles.active : ''}`}
+              onClick={() => toggleDay(day)}
+              >
+              {day}
+              </button>
+          ))}
+          </div>
 
           <RadioGroup
             label="Ends"

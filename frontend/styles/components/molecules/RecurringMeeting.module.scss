@@ -1,0 +1,91 @@
+@import url('https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;600&display=swap');
+@import '../../Variables.module.scss';
+
+.container {
+  font-family: "Source Sans Pro", sans-serif;
+  font-size: 16px;
+  color: #333;
+
+  label {
+    font-weight: 600;
+    margin-bottom: 8px;
+    display: block;
+  }
+
+  input,
+  select {
+    font-family: inherit;
+    font-size: inherit;
+  }
+
+  .dayButtons {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+
+    p {
+      margin: 0;
+      font-weight: bold;
+    }
+
+    .dayButton {
+      padding: 8px 12px;
+      border: 1px solid #ccc;
+      border-radius: 50%;
+      background-color: #fff;
+      color: #333;
+      cursor: pointer;
+      transition: background-color 0.3s, border-color 0.3s;
+
+      &:hover {
+        background-color: #f1f1f1;
+      }
+
+      &.active {
+        background-color: #cc3366;
+        color: #fff;
+        border-color: #cc3366;
+      }
+
+      &:focus {
+        outline: none;
+        box-shadow: 0 0 4px rgba(204, 51, 102, 0.6);
+      }
+    }
+  }
+
+  .spinner-container {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-bottom: 16px;
+
+    label {
+      font-weight: bold;
+      margin-right: 5px;
+    }
+
+    .spinnerInput {
+      width: 50px;
+      text-align: center;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      padding: 8px;
+    }
+  }
+
+  .radio-group {
+    margin-bottom: 16px;
+
+    label {
+      display: flex;
+      align-items: center;
+      margin-bottom: 8px;
+
+      input[type="radio"] {
+        margin-right: 8px;
+        accent-color: #cc3366;
+      }
+    }
+  }
+}

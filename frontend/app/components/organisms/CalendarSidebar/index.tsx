@@ -16,6 +16,7 @@ import styles from '../../../../styles/components/organisms/CalendarSidebar.modu
 import AddIcon from '@mui/icons-material/Add';
 import CloseIcon from '@mui/icons-material/Close';
 import IconButton from '@mui/material/IconButton';
+import RecurringMeetingForm from '../../molecules/RecurringMeeting';
 
 const CalendarSidebar: React.FC = () => {
   // State declarations for New Meeting button
@@ -221,13 +222,7 @@ const CalendarSidebar: React.FC = () => {
               disablePast={true}
               error={timeValue === '' ? 'Time is required' : undefined}
             />}
-            RadioGroup={<RadioGroup
-              label="Ends"
-              options={["Never", "On", "After"]}
-              selectedOption={freqValue}
-              onChange={setFreqValue}
-              name="preferences"
-            />}
+            RecurringMeeting={<RecurringMeetingForm/>}
             roomSelectionDropdown={
               <Dropdown
                 label={<img src="/svg/location-icon.svg" alt="Location Icon" />}
