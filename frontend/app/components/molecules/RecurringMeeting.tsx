@@ -32,38 +32,40 @@ const RecurringMeetingForm: React.FC = () => {
 
   return (
     <div className={styles.container}>
-      <LabeledCheckbox
-        label={`This meeting is recurring`}
-        checked={isRecurring}
-        onChange={handleRecurringChange}
-        color= "#848484"
-      />
-
+      <div>
+        <LabeledCheckbox
+          label={`This meeting is recurring`}
+          checked={isRecurring}
+          onChange={handleRecurringChange}
+          color= "#848484"
+        />
+      </div>
+    
       {isRecurring && (
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-              <label style={{ marginRight: '5px', fontWeight: 'bold' }}>Every</label>
+        <div className={styles.isRecurring}>
+          <div style={{ display: 'flex', alignItems: 'center', marginBottom: '18px' }}>
+              <label style={{ marginRight: '5px'}}>Every</label>
               <SpinnerInput
                 value={frequency}
                 min={1}
                 step={1}
                 onChange={handleFrequencyChange}
               />
-              <span>week(s)</span>
-        </div>
+              <label style={{ marginLeft: '5px'}}>week(s)</label>
+          </div>
 
-        <div className={styles.dayButtons}>
-          <p>On:</p>
-          {days.map((day, index) => (
-              <button
-              key={`${day}-${index}`} 
-              type="button"
-              className={`${styles.dayButton} ${selectedDays.includes(day) ? styles.active : ''}`}
-              onClick={() => toggleDay(day)}
-              >
-              {day}
-              </button>
-          ))}
+          <div className={styles.dayButtons}>
+            <label style={{ marginRight: '5px'}}>On</label>
+            {days.map((day, index) => (
+                <button
+                key={`${day}-${index}`} 
+                type="button"
+                className={`${styles.dayButton} ${selectedDays.includes(day) ? styles.active : ''}`}
+                onClick={() => toggleDay(day)}
+                >
+                {day}
+                </button>
+            ))}
           </div>
 
           <RadioGroup

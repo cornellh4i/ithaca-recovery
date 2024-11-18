@@ -2,20 +2,19 @@
 @import '../../Variables.module.scss';
 
 .container {
-  font-family: "Source Sans Pro", sans-serif;
-  font-size: 16px;
-  color: #333;
+  color: var(--Black, #1E1E1E);
+  font-family: "Source Sans Pro";
+  font-size: 18px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
 
-  label {
-    font-weight: 600;
-    margin-bottom: 8px;
-    display: block;
-  }
+  align-items: center;
+  margin-bottom: 18px;
+  padding: 1.5px 5px;
 
-  input,
-  select {
-    font-family: inherit;
-    font-size: inherit;
+  .isRecurring {
+    margin-left: 30px
   }
 
   .dayButtons {
@@ -23,13 +22,8 @@
     gap: 8px;
     margin-bottom: 16px;
 
-    p {
-      margin: 0;
-      font-weight: bold;
-    }
-
     .dayButton {
-      padding: 8px 12px;
+      padding: 6px 9px;
       border: 1px solid #ccc;
       border-radius: 50%;
       background-color: #fff;
