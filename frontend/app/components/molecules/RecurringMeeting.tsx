@@ -50,39 +50,43 @@ const RecurringMeetingForm: React.FC = () => {
       </div>
     
       {isRecurring && (
-        <div className={styles.isRecurring}>
-          <div style={{ display: 'flex', alignItems: 'center', marginBottom: '18px' }}>
-              <label style={{ marginRight: '5px'}}>Every</label>
-              <SpinnerInput
-                value={frequency}
-                min={1}
-                step={1}
-                onChange={handleFrequencyChange}
-              />
-              <label style={{ marginLeft: '5px'}}>week(s)</label>
-          </div>
+        <div>
+          <div className={styles.isRecurring}>
+            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '18px' }}>
+                <label style={{ marginRight: '5px'}}>Every</label>
+                <SpinnerInput
+                  value={frequency}
+                  min={1}
+                  step={1}
+                  onChange={handleFrequencyChange}
+                />
+                <label style={{ marginLeft: '5px'}}>week(s)</label>
+            </div>
 
-          <div className={styles.dayButtons}>
-            <label style={{ marginRight: '5px'}}>On</label>
-            {days.map((day, index) => (
-                <button
-                key={day.id} 
-                type="button"
-                className={`${styles.dayButton} ${selectedDays.includes(day.id) ? styles.active : ''}`}
-                onClick={() => toggleDay(day.id)}
-                >
-                  {day.label}
-                </button>
-            ))}
-          </div>
+            <div className={styles.dayButtons}>
+              <label style={{ marginRight: '5px'}}>On</label>
+              {days.map((day, index) => (
+                  <button
+                  key={day.id} 
+                  type="button"
+                  className={`${styles.dayButton} ${selectedDays.includes(day.id) ? styles.active : ''}`}
+                  onClick={() => toggleDay(day.id)}
+                  >
+                    {day.label}
+                  </button>
+              ))}
+            </div>
 
-          <RadioGroup
-            label="Ends"
-            options={endOptions}
-            selectedOption={endOption}
-            onChange={setEndOption}
-            name="recurrence-end"
-          />
+            <RadioGroup
+              label="Ends"
+              options={endOptions}
+              selectedOption={endOption}
+              onChange={setEndOption}
+              name="recurrence-end"
+            />
+          
+          </div>
+          <div className={styles.separator}></div>
         </div>
       )}
     </div>
