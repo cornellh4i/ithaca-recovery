@@ -573,13 +573,7 @@ const App = () => {
             disablePast={true}
             error={timeValue === '' ? 'Time is required' : undefined} // Example error handling
           />}
-          RadioGroup={<RadioGroup
-            label="Ends"
-            options={["Never", "On", "After"]}
-            selectedOption={selectedOption}
-            onChange={handleOptionChange}
-            name="preferences"
-          />}
+          RecurringMeeting={<ReccuringMeeting/>}
           roomSelectionDropdown={ // For room selection dropdown
             <Dropdown
               label={<svg width="28" height="29" viewBox="0 0 28 29" fill="none" xmlns="http://www.w3.org/2000/svg">
