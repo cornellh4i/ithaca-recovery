@@ -12,15 +12,23 @@ const RecurringMeetingForm: React.FC = () => {
   const [selectedDays, setSelectedDays] = useState<string[]>([]);
   const [endOption, setEndOption] = useState('Never');
 
-  const days = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+  const days = [
+    { id: 'sun', label: 'S' },
+    { id: 'mon', label: 'M' },
+    { id: 'tue', label: 'T' },
+    { id: 'wed', label: 'W' },
+    { id: 'thu', label: 'T' },
+    { id: 'fri', label: 'F' },
+    { id: 'sat', label: 'S' },
+  ];
 
   const handleRecurringChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setIsRecurring(e.target.checked);
   };
 
-  const toggleDay = (day: string) => {
+  const toggleDay = (dayId: string) => {
     setSelectedDays((prev) =>
-      prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day]
+      prev.includes(dayId) ? prev.filter((id) => id !== dayId) : [...prev, dayId]
     );
   };
 
@@ -58,12 +66,12 @@ const RecurringMeetingForm: React.FC = () => {
             <label style={{ marginRight: '5px'}}>On</label>
             {days.map((day, index) => (
                 <button
-                key={`${day}-${index}`} 
+                key={day.id} 
                 type="button"
-                className={`${styles.dayButton} ${selectedDays.includes(day) ? styles.active : ''}`}
-                onClick={() => toggleDay(day)}
+                className={`${styles.dayButton} ${selectedDays.includes(day.id) ? styles.active : ''}`}
+                onClick={() => toggleDay(day.id)}
                 >
-                {day}
+                  {day.label}
                 </button>
             ))}
           </div>
