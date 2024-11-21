@@ -109,7 +109,10 @@ const RecurringMeetingForm: React.FC<{ onRecurrenceDataChange: (data: any) => vo
               <DatePicker
                 label={"Ends On:"}
                 value={endDate}
-                onChange={setEndDate}
+                onChange={(date: string) => {
+                  setEndDate(date)
+                  onRecurrenceDataChange({ endDate: date })
+                }}
                 error={endDate === '' ? 'Date is required' : undefined}
               />
             )}
