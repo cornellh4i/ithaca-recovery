@@ -65,19 +65,11 @@ const CalendarSidebar: React.FC = () => {
   };
 
   // Capture recurrence data from RecurringMeetingForm
-  /**const handleRecurrenceDataChange = (data: any) => {
+  const handleRecurrenceDataChange = (data: any) => {
     setRecurrenceData((prevData: any) => ({
       ...prevData,
       ...data,
     }));
-  };**/
-
-  const handleRecurrenceDataChange = (data: any) => {
-    setRecurrenceData((prevData: any) => {
-      const updatedData = { ...prevData, ...data };
-      console.log(updatedData);  // Log the updated recurrenceData
-      return updatedData;
-    });
   };
 
   const handleFileSelect = (file: File | null) => {
