@@ -124,7 +124,10 @@ const RecurringMeetingForm: React.FC<{ onRecurrenceDataChange: (data: any) => vo
                   value={occurrences}
                   min={1}
                   step={1}
-                  onChange={setOccurrences}
+                  onChange={(repeat: number) => {
+                    setOccurrences(repeat)
+                    onRecurrenceDataChange({ occurrences: repeat })
+                  }}
                 />
                 <label style={{ marginLeft: '5px' }}>occurrences(s)</label>
               </div>
