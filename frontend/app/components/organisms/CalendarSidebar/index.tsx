@@ -20,6 +20,14 @@ import RecurringMeetingForm from '../../molecules/RecurringMeeting';
 const CalendarSidebar: React.FC = () => {
   // State declarations for New Meeting button
   const [isNewMeetingOpen, setIsNewMeetingOpen] = useState(false);
+  const [recurrenceData, setRecurrenceData] = useState({
+    isRecurring: false,
+    frequency: 1,
+    selectedDays: [],
+    endOption: 'Never',
+    endDate: '',
+    occurrences: 1,
+  });
 
   // A unique key for the filter 
   const filterKey = 'meetingFilterState';
@@ -56,6 +64,13 @@ const CalendarSidebar: React.FC = () => {
     setIsNewMeetingOpen(false);
   };
 
+  // Capture recurrence data from RecurringMeetingForm
+  const handleRecurrenceDataChange = (data: any) => {
+    setRecurrenceData((prevData: any) => ({
+      ...prevData,
+      ...data,
+    }));
+  };
   const handleFileSelect = (file: File | null) => {
     if (file) {
       console.log("File selected:", file);
@@ -158,6 +173,10 @@ const CalendarSidebar: React.FC = () => {
         zoomAccount: selectedZoomAccount,
         type: selectedMeetingType,
         room: selectedRoom,
+        recurrenceId: uuidv4(), // Generate a unique recurrence ID for this group
+        weeklyFrequency: recurrenceData.frequency || 1,
+        recurrenceEndOn: recurrenceData.endOption === 'On' ? new Date(recurrenceData.endDate) : null,
+        recurrenceEndAfter: recurrenceData.endOption === 'After' ? recurrenceData.occurrences : null,
       };
       const response = await fetch('/api/write/meeting', {
         method: 'POST',
@@ -207,7 +226,7 @@ const CalendarSidebar: React.FC = () => {
               input="Meeting title"
               value={inputMeetingTitleValue}
               onChange={setMeetingTitleValue}
-              />}
+            />}
             DatePicker={<DatePicker
               label={<img src='/svg/calendar-icon.svg' alt="Calendar Icon" />}
               value={dateValue}
@@ -221,7 +240,7 @@ const CalendarSidebar: React.FC = () => {
               disablePast={true}
               error={timeValue === '' ? 'Time is required' : undefined}
             />}
-            RecurringMeeting={<RecurringMeetingForm/>}
+            RecurringMeeting={<RecurringMeetingForm onRecurrenceDataChange={handleRecurrenceDataChange} />}
             roomSelectionDropdown={
               <Dropdown
                 label={<img src="/svg/location-icon.svg" alt="Location Icon" />}
@@ -232,7 +251,7 @@ const CalendarSidebar: React.FC = () => {
             }
             meetingTypeDropdown={
               <Dropdown
-                label={<img src="svg/group-icon.svg" alt="Group Icon"/>}
+                label={<img src="svg/group-icon.svg" alt="Group Icon" />}
                 isVisible={true}
                 elements={meetingTypeOptions}
                 name="Select Meeting Type"
@@ -240,7 +259,7 @@ const CalendarSidebar: React.FC = () => {
             }
             zoomAccountDropdown={
               <Dropdown
-                label={<img src="svg/person-icon.svg" alt="Person Icon"/>}
+                label={<img src="svg/person-icon.svg" alt="Person Icon" />}
                 isVisible={true}
                 elements={zoomAccountOptions}
                 name="Select Zoom Account"
@@ -248,18 +267,18 @@ const CalendarSidebar: React.FC = () => {
             }
             emailTextField={<TextField
               input="Email"
-              label={<img src="svg/mail-icon.svg" alt="Mail Icon"/>}
+              label={<img src="svg/mail-icon.svg" alt="Mail Icon" />}
               value={inputEmailValue}
               onChange={setEmailValue}
-              />
+            />
             }
             uploadPandaDocsForm={<UploadPandaDocs onFileSelect={handleFileSelect} />}
             descriptionTextField={<TextField
               input="Description"
-              label = ""
+              label=""
               value={inputDescriptionValue}
               onChange={setDescriptionValue}
-              />}
+            />}
             onCreateMeeting={createMeeting}
           ></NewMeetingSidebar>
         </div>

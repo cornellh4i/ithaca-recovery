@@ -24,6 +24,12 @@ interface IMeeting {
   type: string;
   room: string;
   pandaDoc?: File | Buffer | GridFSBucketWriteStream | null;
+
+  // Recurrence-related properties
+  recurrenceId: string; // Shared across all instances in the recurrence group
+  weeklyFrequency?: number; // How often it occurs (1 = weekly, 2 = every other week, etc.)
+  recurrenceEndOn?: Date | null; // Optional: The date when the recurrence ends
+  recurrenceEndAfter?: number | null; // Optional: The number of occurrences after which it ends
 }
 
 export type { IUser, IMeeting, IAdmin };
