@@ -583,6 +583,7 @@ const App = () => {
               isVisible={true}
               elements={roomOptions}
               name="Select Room"
+              onChange={handleRoomChange}
             />
           }
           meetingTypeDropdown={ // For meeting type dropdown
@@ -594,6 +595,7 @@ const App = () => {
               isVisible={true}
               elements={meetingTypeOptions}
               name="Select Meeting Type"
+              onChange={handleMeetingTypeChange}
             />
           }
           zoomAccountDropdown={
@@ -605,6 +607,7 @@ const App = () => {
               isVisible={true}
               elements={zoomAccountOptions}
               name="Select Zoom Account"
+              onChange={handleZoomChange}
             />
           }
           emailTextField={<TextField

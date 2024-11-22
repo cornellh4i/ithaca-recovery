@@ -228,6 +228,7 @@ const CalendarSidebar: React.FC = () => {
                 isVisible={true}
                 elements={roomOptions}
                 name="Select Room"
+                onChange={handleRoomChange}
               />
             }
             meetingTypeDropdown={
@@ -236,6 +237,7 @@ const CalendarSidebar: React.FC = () => {
                 isVisible={true}
                 elements={meetingTypeOptions}
                 name="Select Meeting Type"
+                onChange={handleMeetingTypeChange}
               />
             }
             zoomAccountDropdown={
@@ -244,6 +246,7 @@ const CalendarSidebar: React.FC = () => {
                 isVisible={true}
                 elements={zoomAccountOptions}
                 name="Select Zoom Account"
+                onChange={handleZoomAccountChange}
               />
             }
             emailTextField={<TextField
