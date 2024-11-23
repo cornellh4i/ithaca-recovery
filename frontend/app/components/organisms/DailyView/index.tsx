@@ -102,6 +102,12 @@ const DailyView: React.FC<{ filters: any }> = ({ filters }) => {
             return;
           }
         }
+
+        if (filters.hasOwnProperty(meeting.type.replace(/\s+/g, ''))) {
+          if (!filters[meeting.type.replace(/\s+/g, '')]) { 
+            return;
+          }
+        }
   
         const roomName = meeting.room;
         if (!groupedRooms[roomName]) {
