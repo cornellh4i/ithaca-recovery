@@ -50,7 +50,40 @@ const DailyView: React.FC<{ filters: any }> = ({ filters }) => {
   const fetchMeetingsByDay = async (date: Date): Promise<Room[]> => {
     const formattedDate = date.toISOString().split('T')[0];
     if (meetingCache.has(formattedDate)) {
-      return meetingCache.get(formattedDate) || [];
+      const cachedData = meetingCache.get(formattedDate) || [];
+      const filteredCachedData: Room[] = [];
+
+      cachedData.forEach((room) => {
+        const filteredMeetings: Meeting[] = [];
+
+        const roomEnabled = filters[room.name.replace(/[-\s]+/g, '').replace(/\s+/g, '')] !== false;
+
+        if (roomEnabled) {
+          room.meetings.forEach((meeting) => {
+            // Check Calendar Filters
+            const groupName = meeting.tags[1].replace(/[-\s]+/g, '');
+
+            const typeEnabled = filters[meeting.tags[0].replace(/\s+/g, '')] !== false;
+            const groupEnabled = filters[groupName] !== false;
+
+            let otherEnabled = true;
+
+            if (groupName !== "AA" && groupName !== "AlAnon") {
+              otherEnabled = filters["Other"];
+            }
+            
+            if (typeEnabled && groupEnabled && otherEnabled) {
+              filteredMeetings.push(meeting);
+            }
+          })
+        }
+        
+        if (filteredMeetings.length > 0) {
+          filteredCachedData.push({ ...room, meetings: filteredMeetings });
+        }
+      });
+
+      return filteredCachedData;
     }
   
     try {
@@ -59,8 +92,15 @@ const DailyView: React.FC<{ filters: any }> = ({ filters }) => {
   
       const groupedRooms: { [key: string]: Meeting[] } = {};
       data.forEach((meeting: any) => {
-        if (!filters[meeting.room]) {
+        // Does not add meeting if its room name is filtered
+        if (filters.hasOwnProperty(meeting.room.replace(/[-\s]+/g, '').replace(/\s+/g, '')) && !filters[meeting.room.replace(/[-\s]+/g, '').replace(/\s+/g, '')]) {
           return;
+        }
+
+        if (filters.hasOwnProperty(meeting.group.replace(/[-\s]+/g, ''))) {
+          if (!filters[meeting.group.replace(/[-\s]+/g, '')]) { 
+            return;
+          }
         }
   
         const roomName = meeting.room;
@@ -104,10 +144,13 @@ const DailyView: React.FC<{ filters: any }> = ({ filters }) => {
     }
 
     fetchData();
+    console.log(meetings);
   }, [filters, currentDate]);
 
   function getTodayDate(): Date {
-    return new Date();
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    return now;
   }
 
   const handleDateChange = async (date: Date) => {
