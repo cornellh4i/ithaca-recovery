@@ -20,59 +20,6 @@ type Room = {
 
 const meetingCache = new Map<string, Room[]>();
 
-const fetchMeetingsByDay = async (date: Date): Promise<Room[]> => {
-  const formattedDate = date.toISOString().split('T')[0];
-  if (meetingCache.has(formattedDate)) {
-    console.log("Using cached data for date:", formattedDate);
-    return meetingCache.get(formattedDate) || [];
-  }
-  
-  console.log("Fetching meetings for date:", formattedDate);
-
-  try {
-    const response = await fetch(`/api/retrieve/meeting/day?startDate=${formattedDate}`);
-    const data = await response.json();
-    console.log("Raw API response:", data);
-
-    const groupedRooms: { [key: string]: Meeting[] } = {};
-    data.forEach((meeting: any) => {
-      const roomName = meeting.room;
-      if (!groupedRooms[roomName]) {
-        groupedRooms[roomName] = [];
-      }
-
-      const start = new Date(meeting.startDateTime.replace("Z", ""));
-      const end = new Date(meeting.endDateTime.replace("Z", ""));
-
-      groupedRooms[roomName].push({
-        id: meeting._id,
-        title: meeting.title,
-        startTime: start.toLocaleTimeString("en-GB", { hour12: false }),
-        endTime: end.toLocaleTimeString("en-GB", { hour12: false }),
-        tags: [meeting.type, meeting.group],
-      });
-    });
-
-    const structuredData: Room[] = Object.keys(groupedRooms).map((roomName) => {
-      const defaultRoom = defaultRooms.find((r) => r.name === roomName);
-      return {
-        name: roomName,
-        primaryColor: defaultRoom?.primaryColor || "#ffffff",
-        meetings: groupedRooms[roomName],
-      };
-    });
-
-    console.log("Processed room data:", structuredData);
-
-    meetingCache.set(formattedDate, structuredData);
-    return structuredData;
-  } catch (error) {
-    console.error("Error fetching meetings:", error);
-    return [];
-  }
-};
-
-
 const formatTime = (hour: number): string => {
   const period = hour >= 12 ? "PM" : "AM";
   const formattedHour = hour % 12 || 12; 
@@ -89,25 +36,82 @@ const defaultRooms = [
   { name: 'Room for Improvement', primaryColor: '#ffae73' },
   { name: 'Small but Powerful - Right', primaryColor: '#d2afff' },
   { name: 'Small but Powerful - Left', primaryColor: '#ffa3c2' },
-  { name: 'Zoom Email 1', primaryColor: '#cecece' },
-  { name: 'Zoom Email 2', primaryColor: '#cecece' },
-  { name: 'Zoom Email 3', primaryColor: '#cecece' },
-  { name: 'Zoom Email 4', primaryColor: '#cecece' },
+  { name: 'Zoom Account 1', primaryColor: '#cecece' },
+  { name: 'Zoom Account 2', primaryColor: '#cecece' },
+  { name: 'Zoom Account 3', primaryColor: '#cecece' },
+  { name: 'Zoom Account 4', primaryColor: '#cecece' },
 ];
 
-const DailyView: React.FC = () => {
+const DailyView: React.FC<{ filters: any }> = ({ filters }) => {
   const [currentTimePosition, setCurrentTimePosition] = useState(0);
   const [meetings, setMeetings] = useState<Room[]>([]);
   const [currentDate, setCurrentDate] = useState(getTodayDate());
+
+  const fetchMeetingsByDay = async (date: Date): Promise<Room[]> => {
+    const formattedDate = date.toISOString().split('T')[0];
+    if (meetingCache.has(formattedDate)) {
+      return meetingCache.get(formattedDate) || [];
+    }
+  
+    try {
+      const response = await fetch(`/api/retrieve/meeting/day?startDate=${formattedDate}`);
+      const data = await response.json();
+  
+      const groupedRooms: { [key: string]: Meeting[] } = {};
+      data.forEach((meeting: any) => {
+        if (!filters[meeting.room]) {
+          return;
+        }
+  
+        const roomName = meeting.room;
+        if (!groupedRooms[roomName]) {
+          groupedRooms[roomName] = [];
+        }
+  
+        const start = new Date(meeting.startDateTime.replace("Z", ""));
+        const end = new Date(meeting.endDateTime.replace("Z", ""));
+  
+        groupedRooms[roomName].push({
+          id: meeting._id,
+          title: meeting.title,
+          startTime: start.toLocaleTimeString("en-GB", { hour12: false }),
+          endTime: end.toLocaleTimeString("en-GB", { hour12: false }),
+          tags: [meeting.type, meeting.group],
+        });
+      });
+  
+      const structuredData: Room[] = Object.keys(groupedRooms).map((roomName) => {
+        const defaultRoom = defaultRooms.find((r) => r.name === roomName);
+        return {
+          name: roomName,
+          primaryColor: defaultRoom?.primaryColor || "#ffffff",
+          meetings: groupedRooms[roomName],
+        };
+      });
+  
+      meetingCache.set(formattedDate, structuredData);
+      return structuredData;
+    } catch (error) {
+      console.error("Error fetching meetings:", error);
+      return [];
+    }
+  };
+
+  useEffect(() => {
+    const fetchData = async () => {
+      const data = await fetchMeetingsByDay(currentDate);
+      setMeetings(data);
+    }
+
+    fetchData();
+  }, [filters, currentDate]);
 
   function getTodayDate(): Date {
     return new Date();
   }
 
   const handleDateChange = async (date: Date) => {
-    console.log("handleDateChange called with date:", date.toISOString());
     const data = await fetchMeetingsByDay(date);
-    console.log("Data fetched:", data);
     setMeetings(data);
   };
 
@@ -120,14 +124,12 @@ const DailyView: React.FC = () => {
   };
 
   const handlePreviousDay = () => {
-    console.log("prev day");
     const prevDate = new Date(currentDate);
     prevDate.setDate(prevDate.getDate() - 1);
     setCurrentDate(prevDate);
   };
 
   const handleNextDay = () => {
-    console.log("next day");
     const nextDate = new Date(currentDate);
     nextDate.setDate(nextDate.getDate() + 1);
     setCurrentDate(nextDate);
@@ -146,12 +148,13 @@ const DailyView: React.FC = () => {
     console.log(`Meeting ${meetingId} clicked`);
   };
 
-  const combinedRooms = defaultRooms.map((defaultRoom) => {
-    const roomWithMeetings = meetings.find((meetingRoom) => meetingRoom.name === defaultRoom.name);
-    return roomWithMeetings || { ...defaultRoom, meetings: [] }; 
-  });
-
-  console.log(meetings)
+  const combinedRooms = defaultRooms
+  .filter((defaultRoom) => filters[defaultRoom.name.replace(/[-\s]+/g, '').replace(/\s+/g, '')])
+    .map((defaultRoom) => {
+      const roomWithMeetings = meetings.find((meetingRoom) => meetingRoom.name === defaultRoom.name);
+      return roomWithMeetings || { ...defaultRoom, meetings: [] }; 
+    }
+  );
 
   return (
     <div className={styles.outerContainer}>
