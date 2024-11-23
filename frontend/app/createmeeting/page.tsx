@@ -1,26 +1,25 @@
 "use client";
 
 import React, { useState } from "react";
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
-import { SingleInputTimeRangeField } from '@mui/x-date-pickers-pro/SingleInputTimeRangeField';
-import { DateRange } from '@mui/x-date-pickers-pro/models';
-import TextField from '@mui/material/TextField';
-import dayjs, { Dayjs } from 'dayjs';
+import { DatePicker } from "@mui/x-date-pickers/DatePicker";
+import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
+import { SingleInputTimeRangeField } from "@mui/x-date-pickers-pro/SingleInputTimeRangeField";
+import { DateRange } from "@mui/x-date-pickers-pro/models";
+import TextField from "@mui/material/TextField";
+import dayjs, { Dayjs } from "dayjs";
 import styles from "../../styles/CreateMeetingPage.module.scss";
 
-
 const CreateMeetingPage = () => {
-
-  const [title, setTitle] = React.useState('');
-  const [value, setValue] = useState<Dayjs | null>(dayjs('2024-08-24'));
+  const [title, setTitle] = React.useState("");
+  const [zoomAcct, setZoomAcct] = React.useState("");
+  const [value, setValue] = useState<Dayjs | null>(dayjs("2024-08-24"));
   const [time, setTime] = useState<DateRange<Dayjs>>(() => [
-    dayjs('2024-08-24T15:30'),
-    dayjs('2024-08-24T18:30'),
+    dayjs("2024-08-24T15:30"),
+    dayjs("2024-08-24T18:30"),
   ]);
-  const [meetingId, setMeetingId] = React.useState('');
-  
+  const [meetingId, setMeetingId] = React.useState("");
+
   const createZoomMeetingRequestBody = () => {
     const startTime = time[0]?.format();
 
@@ -28,7 +27,7 @@ const CreateMeetingPage = () => {
 
     let duration = defaultDuration;
     if (time[0] && time[1]) {
-      duration = time[1].diff(time[0], 'minute');
+      duration = time[1].diff(time[0], "minute");
     }
 
     const requestBody = {
@@ -44,6 +43,7 @@ const CreateMeetingPage = () => {
       timezone: "America/Los_Angeles",
       topic: title,
       type: 2,
+      zoomAccount: zoomAcct,
     };
 
     return requestBody;
@@ -51,10 +51,10 @@ const CreateMeetingPage = () => {
 
   const handleCreateMeeting = async () => {
     try {
-      const response = await fetch('/api/zoom/CreateMeeting', {
-        method: 'POST',
+      const response = await fetch("/api/zoom/CreateMeeting", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify(createZoomMeetingRequestBody()),
       });
@@ -65,62 +65,69 @@ const CreateMeetingPage = () => {
 
       const zoomResponse = await response.json();
       console.log(zoomResponse);
-      alert("Zoom meeting created! Please check the console & the icr Zoom account.");
+      alert(
+        "Zoom meeting created! Please check the console & the icr Zoom account."
+      );
     } catch (error) {
-      console.error('Error creating Zoom meeting:', error);
+      console.error("Error creating Zoom meeting:", error);
     }
   };
 
   const handleUpdateMeeting = async () => {
     try {
-      const reqBody = { 
+      const reqBody = {
         meetingId: meetingId,
-        ...createZoomMeetingRequestBody()
+        ...createZoomMeetingRequestBody(),
       };
 
-      const response = await fetch('/api/zoom/UpdateMeeting', {
-        method: 'PATCH',
+      const response = await fetch("/api/zoom/UpdateMeeting", {
+        method: "PATCH",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify(reqBody),
       });
-      
+
       if (!response.ok) {
+        const errorDetails = await response.json();
+        console.error("Error updating meeting:", errorDetails);
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
       const zoomResponse = await response.json();
-      console.log(zoomResponse);
-      alert("Zoom meeting updated! Please check the console & the icr Zoom account.");
+      console.log("Zoom meeting updated:", zoomResponse);
+      alert("Zoom meeting updated successfully!");
     } catch (error) {
-      console.error('Error updating Zoom meeting:', error);
+      console.error("Error updating Zoom meeting:", error);
     }
-  }
+  };
 
   const handleDeleteMeeting = async () => {
     try {
-      const url = new URL('/api/zoom/DeleteMeeting', window.location.origin);
-      url.searchParams.append('id', meetingId);
+      const url = new URL("/api/zoom/DeleteMeeting", window.location.origin);
+      url.searchParams.append("id", meetingId); // Replace `meetingId` with the actual ID variable
+      url.searchParams.append("zoomAccount", "ZOOM1"); // Replace 'ZOOM1' with the actual account name
 
       const response = await fetch(url, {
-        method: 'DELETE',
+        method: "DELETE",
         headers: {
-          'Content-Type': 'application/json',
-        }
+          "Content-Type": "application/json",
+        },
       });
 
       if (!response.ok) {
+        const errorDetails = await response.json();
+        console.error("Error Response:", errorDetails);
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
       const zoomResponse = await response.json();
-      console.log(zoomResponse);
-      alert("Zoom meeting deleted! Please check the console & the icr Zoom account.");
+      console.log("Zoom meeting deleted:", zoomResponse);
+      alert("Zoom meeting deleted successfully!");
     } catch (error) {
-      console.error('Error updating Zoom meeting:', error);
+      console.error("Error deleting Zoom meeting:", error);
     }
-  }
+  };
 
   return (
     <div className={styles.base}>
@@ -132,6 +139,14 @@ const CreateMeetingPage = () => {
           value={title}
           onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
             setTitle(event.target.value);
+          }}
+        />
+        <TextField
+          id="outlined-controlled"
+          label="Zoom Account"
+          value={zoomAcct}
+          onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+            setZoomAcct(event.target.value);
           }}
         />
         <LocalizationProvider dateAdapter={AdapterDayjs}>
@@ -146,10 +161,11 @@ const CreateMeetingPage = () => {
             onChange={(newValue) => setTime(newValue)}
           />
         </LocalizationProvider>
-
       </div>
-      <div className={styles.section + ' ' + styles.meetings}>
-        <button className={styles.btn} onClick={handleCreateMeeting}>Create Meeting</button>
+      <div className={styles.section + " " + styles.meetings}>
+        <button className={styles.btn} onClick={handleCreateMeeting}>
+          Create Meeting
+        </button>
         <div>
           <input
             type="text"
@@ -159,8 +175,12 @@ const CreateMeetingPage = () => {
               setMeetingId(event.target.value);
             }}
           />
-          <button className={styles.btn} onClick={handleUpdateMeeting}>Update Meeting</button>
-          <button className={styles.btn} onClick={handleDeleteMeeting}>Delete Meeting</button>
+          <button className={styles.btn} onClick={handleUpdateMeeting}>
+            Update Meeting
+          </button>
+          <button className={styles.btn} onClick={handleDeleteMeeting}>
+            Delete Meeting
+          </button>
         </div>
       </div>
     </div>

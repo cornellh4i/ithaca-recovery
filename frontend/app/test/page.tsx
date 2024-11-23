@@ -21,6 +21,7 @@ import CalendarNavbar from "../components/organisms/CalendarNavbar";
 import ViewMeetingDetails from '../components/organisms/ViewMeeting';
 import TodayIcon from '@mui/icons-material/Today';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
+import CreateMeetingPage from '../createmeeting/page';
 
 import { set } from 'mongoose';
 
@@ -636,6 +637,11 @@ const App = () => {
       <div className={styles.section}>
         <h2>Mini Calendar</h2>
         <MiniCalendar />
+      </div>
+
+      <div className={styles.section}>
+        <h2>Create Meeting</h2>
+        <CreateMeetingPage />
       </div>
 
     </div>

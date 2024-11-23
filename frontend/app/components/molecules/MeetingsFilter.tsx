@@ -37,15 +37,15 @@ const MeetingsFilter: React.FC<MeetingsFilterProps> = ({ filters, onFilterChange
     return (
         <div>
             <h3>Location</h3>
-            <div className={styles.checkbox}>
+            {/* <div className={styles.checkbox}>
                 <LabeledCheckbox
                     label="Serenity Room"
                     checked={filters.SerenityRoom}
                     onChange={handleCheckboxChange('SerenityRoom')}
                     color="#B3EA75"
                 />
-            </div>
-            <div className={styles.checkbox}>
+            </div> */}
+            {/* <div className={styles.checkbox}>
                 <LabeledCheckbox
                     label="Seeds of Hope"
                     checked={filters.SeedsOfHope}
@@ -168,7 +168,7 @@ const MeetingsFilter: React.FC<MeetingsFilterProps> = ({ filters, onFilterChange
                     onChange={handleCheckboxChange('Remote')}
                     color="#CC3366"
                 />
-            </div>
+            </div> */}
         </div>
     );
 };
