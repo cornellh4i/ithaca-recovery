@@ -144,7 +144,6 @@ const DailyView: React.FC<{ filters: any }> = ({ filters }) => {
     }
 
     fetchData();
-    console.log(meetings);
   }, [filters, currentDate]);
 
   function getTodayDate(): Date {
