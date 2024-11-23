@@ -39,7 +39,7 @@
 
 .scrollContainer {
   display: grid;
-  grid-template-rows: auto repeat(10, 1fr);
+  grid-template-rows: auto repeat(10, 118px);
   overflow-x: auto;
   width: calc(100% - 180px);
   scroll-snap-type: x mandatory;

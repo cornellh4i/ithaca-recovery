@@ -17,30 +17,12 @@ import CloseIcon from '@mui/icons-material/Close';
 import IconButton from '@mui/material/IconButton';
 import RecurringMeetingForm from '../../molecules/RecurringMeeting';
 
-const CalendarSidebar: React.FC = () => {
+const CalendarSidebar: React.FC<{ filters: any, setFilters: any }> = ({ filters, setFilters })  => {
   // State declarations for New Meeting button
   const [isNewMeetingOpen, setIsNewMeetingOpen] = useState(false);
 
   // A unique key for the filter 
   const filterKey = 'meetingFilterState';
-  const [filters, setFilters] = useState<any>({
-    SerenityRoom: true,
-    SeedsOfHope: true,
-    UnityRoom: true,
-    RoomForImprovement: true,
-    SmallButPowerfulRight: true,
-    SmallButPowerfulLeft: true,
-    ZoomAccount1: true,
-    ZoomAccount2: true,
-    ZoomAccount3: true,
-    ZoomAccount4: true,
-    AA: true,
-    AlAnon: true,
-    Other: true,
-    InPerson: true,
-    Hybrid: true,
-    Remote: true,
-  });
 
   const handleFilterChange = (name: string, value: boolean) => {
     const updatedFilters = { ...filters, [name]: value };
