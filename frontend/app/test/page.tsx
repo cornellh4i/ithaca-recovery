@@ -492,7 +492,7 @@ const App = () => {
 
       <div className={styles.section}>
         <h2>Meeting Block & Room Block</h2>
-        <div className="meeting-blocks">
+        {/* <div className="meeting-blocks">
           <BoxText boxType="Meeting Block" title="Meeting Name" primaryColor="#b3ea75" time="9am-10am" tags={['Hybrid', 'AA']} />
           <BoxText boxType="Meeting Block" title="Meeting Name" primaryColor="#f7e57b" time="9am-10am" tags={['Hybrid', 'AA']} />
           <BoxText boxType="Meeting Block" title="Meeting Name" primaryColor="#96dbfe" time="9am-10am" tags={['Hybrid', 'AA']} />
@@ -510,7 +510,7 @@ const App = () => {
           <BoxText boxType="Room Block" title="Room for Improvement" primaryColor="#d2afff" />
           <BoxText boxType="Room Block" title="Zoom Account" primaryColor="#ffa3c2" />
           <BoxText boxType="Room Block" title="Zoom Account" primaryColor="#cecece" />
-        </div>
+        </div> */}
       </div>
       <div className={styles.section + ' ' + styles.meetings}>
         <h2>DatePicker and TimePicker</h2>
@@ -548,7 +548,7 @@ const App = () => {
       
       <div className={styles.section}>
         <h1>Meetings Filter</h1>
-        <MeetingsFilter />
+        {/* <MeetingsFilter /> */}
       </div>
       
       {/* New Meeting Sidebar Section */}

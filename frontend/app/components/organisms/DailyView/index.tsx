@@ -98,9 +98,11 @@ const DailyView: React.FC<DailyViewProps> = ({ setSelectedMeetingID }) => {
 
   const handleDateChange = async (date: Date) => {
     const data = await fetchMeetingsByDay(date);
-    setMeetings(data);
+    setMeetings(data); // Update meetings state
+    // console.log("Fetched Data: ", data); // Log fetched data directly
     setCurrentDate(date);
   };
+
 
   const updateTimePosition = () => {
     const now = new Date();
@@ -139,8 +141,9 @@ const DailyView: React.FC<DailyViewProps> = ({ setSelectedMeetingID }) => {
     const roomWithMeetings = meetings.find((meetingRoom) => meetingRoom.name === defaultRoom.name);
     return roomWithMeetings || { ...defaultRoom, meetings: [] }; 
   });
+  
 
-  console.log(meetings)
+  console.log("Meeting ", meetings)
 
   return (
     <div className={styles.outerContainer}>
