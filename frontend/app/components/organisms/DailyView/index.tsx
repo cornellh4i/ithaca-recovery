@@ -85,9 +85,10 @@ const defaultRooms = [
 
 interface DailyViewProps {
   setSelectedMeetingID: (meetingId: string) => void;
+  setSelectedNewMeeting: (newMeetingExists: boolean) => void;
 }
 
-const DailyView: React.FC<DailyViewProps> = ({ setSelectedMeetingID }) => {
+const DailyView: React.FC<DailyViewProps> = ({ setSelectedMeetingID, setSelectedNewMeeting }) => {
   const [currentTimePosition, setCurrentTimePosition] = useState(0);
   const [meetings, setMeetings] = useState<Room[]>([]);
   const [currentDate, setCurrentDate] = useState(getTodayDate());
@@ -137,6 +138,13 @@ const DailyView: React.FC<DailyViewProps> = ({ setSelectedMeetingID }) => {
     console.log(`Meeting ${meetingId} clicked`);
   };
 
+  const handleRowNotBoxClick = () => {
+    // Check if the target is a BoxText element
+    setSelectedNewMeeting(true);
+    setSelectedMeetingID(null); 
+ 
+  };
+
   const combinedRooms = defaultRooms.map((defaultRoom) => {
     const roomWithMeetings = meetings.find((meetingRoom) => meetingRoom.name === defaultRoom.name);
     return roomWithMeetings || { ...defaultRoom, meetings: [] }; 
@@ -169,9 +177,9 @@ const DailyView: React.FC<DailyViewProps> = ({ setSelectedMeetingID }) => {
         </div>
 
         {combinedRooms.map((room, rowIndex) => (
-          <div key={rowIndex} className={styles.gridRow}>
+          <div key={rowIndex} className={styles.gridRow} onClick={handleRowNotBoxClick}>
             <div className={styles.gridMeetingRow}>
-              <DailyViewRow roomColor={room.primaryColor} meetings={room.meetings} setSelectedMeetingID = {setSelectedMeetingID} />
+              <DailyViewRow roomColor={room.primaryColor} meetings={room.meetings} setSelectedMeetingID = {setSelectedMeetingID} setSelectedNewMeeting={setSelectedNewMeeting}/>
             </div>
             {timeSlots.map((_, colIndex) => (
               <div key={colIndex} className={styles.gridCell}></div>
