@@ -3,54 +3,45 @@ import React, { useContext, useState } from 'react';
 import styles from "../../../styles/HomePageLayout.module.scss";
 import CalendarSidebar from "../organisms/CalendarSidebar";
 import DailyView from "../organisms/DailyView/index";
-import ViewMeetingDetails from '../../components/organisms/ViewMeeting';
 
 const HomePage = () => {
   const [selectedMeeting, setSelectedMeeting] = useState<string | null>(null); // Track selected meeting or null
-  const [deleteError, setDeleteError] = useState<string | null>(null); // Error state for delete operation
   
-  const handleDelete = () => {
-    setSelectedMeeting(null); // Hide ViewMeeting and show CalendarSidebar
-  };
+  const handleDelete = async (mid : string) => {
+    try {
+      const response = await fetch('/api/delete/meeting', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          mid 
+        }),
+      });
+      console.log("checking if response is ok")
+      if (!response.ok) {
+        alert("Error : Unsuccesful delete")
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      console.log("setting usestate to null 1")
+      setSelectedMeeting(null);
+      console.log("setting usestate to null 2")
 
-  const handleDeleteError = (errorMessage: string) => {
-    setDeleteError(errorMessage); // Set the error message to display in the popup
+      const meetingResponse = await response.json();
+      console.log(meetingResponse);
+      alert("Meeting deleted successfully! Please check the Meeting collection on MongoDB.")
+    
+    } catch (error) {
+      console.error('There was an error fetching the data:', error);
+    }
   };
-
   return (
     <div className={styles.container}>
       <div className={styles.sidebar}>
         <CalendarSidebar />
       </div>
       <div className={styles.primaryCalendar}>
-        {/* Render ViewMeeting if a meeting is selected, else show default view */}
-        {selectedMeeting ? (
-          <ViewMeetingDetails
-            id={selectedMeeting}
-            mid={selectedMeeting}
-            title="Meeting Title"
-            description="Meeting Description"
-            creator="Creator Name"
-            group="Group Name"
-            startDateTime={new Date()}
-            endDateTime={new Date()}
-            zoomAccount="Zoom Account"
-            zoomLink="https://zoom.us"
-            zid="zoomId"
-            type="Meeting Type"
-            room="Room"
-            onBack={() => setSelectedMeeting(null)} // Handle going back
-            onEdit={() => console.log('Edit clicked')}
-            onDelete={handleDelete} // Pass the handleDelete function here
-            // deleteError={deleteError} // Pass the error message to ViewMeeting
-            // setDeleteError={handleDeleteError} // Pass the function to handle error state
-          
-          />
-        ) : (
-          <DailyView />
-
-        )}
-        
+        <DailyView />
       </div>
     </div>
   );

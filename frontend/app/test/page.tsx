@@ -26,27 +26,6 @@ import { set } from 'mongoose';
 
 const App = () => {
 
-  const handleDelete = async (meetingId: string) => {
-    try {
-      const response = await fetch('/api/delete/meeting/${meetingId}', {
-        method: 'DELETE',
-        // headers: {
-        //   'Content-Type': 'application/json',
-        // },
-        // body: JSON.stringify({ meetingId }),
-      });
-
-      if (response.ok) {
-        onDelete();  // Call the onDelete function passed from parent to hide ViewMeeting
-      } else {
-        const result = await response.json();
-        console.error('Failed to delete meeting:', result.error);
-      }
-    } catch (error) {
-      console.error('Error deleting meeting:', error);
-    }
-  };
-
   const sampleMeeting = {
     id: '1',
     mid: 'M123',
@@ -64,7 +43,7 @@ const App = () => {
     recurrence: 'Weekly',
     onBack: () => alert('Back button clicked'),
     onEdit: () => alert('Edit button clicked'),
-    onDelete: () => handleDelete,
+    onDelete: () => alert('Delete Button Clicked'),
   };
 
   /** ADMIN TESTING FUNCTIONS  */
@@ -247,7 +226,7 @@ const App = () => {
   const deleteMeeting = async () => {
     try {
       /* Configure to be a real mid */
-      const mid = "95992";
+      const mid = "84143";
 
       const response = await fetch('/api/delete/meeting', {
         method: 'DELETE',

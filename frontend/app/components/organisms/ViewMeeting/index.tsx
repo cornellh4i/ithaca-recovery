@@ -64,28 +64,6 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
   onDelete,
 }) => {
 
-  const handleDelete = async (meetingId : string) => {
-    try {
-      const response = await fetch('/api/delete/meeting', {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ meetingId }),
-      });
-
-      if (response.ok) {
-        onDelete();  // Call the onDelete function passed from parent to hide ViewMeeting
-      } else {
-        const result = await response.json();
-        console.error('Failed to delete meeting:', result.error);
-      }
-    } catch (error) {
-      console.error('Error deleting meeting:', error);
-    }
-  };
-
-
   return (
     <div className={styles.meetingDetails}>
       <div className={styles.header}>
@@ -96,7 +74,7 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
           <button>⋮</button>
           <div className={styles.optionsMenu}>
             <button onClick={onEdit}>Edit Meeting</button>
-            <button onClick={handleDelete}>Delete Meeting</button>
+            <button onClick={onDelete}>Delete Meeting</button>
           </div>
         </div>
       </div>
