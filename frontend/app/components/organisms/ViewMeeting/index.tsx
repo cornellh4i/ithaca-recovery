@@ -63,6 +63,7 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
   onEdit,
   onDelete,
 }) => {
+
   return (
     <div className={styles.meetingDetails}>
       <div className={styles.header}>
@@ -78,22 +79,22 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
         </div>
       </div>
       <div className={styles.details}>
-      <p style={{ color: 'gray' }}>
-  <CalendarTodayIcon />&nbsp;
-  {startDateTime.getDate()} {startDateTime.toLocaleString('default', { month: 'long' })} {startDateTime.getFullYear()}
-  {!(
-    startDateTime.getFullYear() === endDateTime.getFullYear() &&
-    startDateTime.getMonth() === endDateTime.getMonth() &&
-    startDateTime.getDate() === endDateTime.getDate()
-  ) && (
-    <> - {endDateTime.getDate()} {endDateTime.toLocaleString('default', { month: 'long' })} {endDateTime.getFullYear()}</>
-  )}
-</p>
         <p style={{ color: 'gray' }}>
-  <AccessTimeIcon />&nbsp;{`${startDateTime.getHours()}:${startDateTime.getMinutes().toString().padStart(2, '0')}`} 
-  - 
-  {`${endDateTime.getHours()}:${endDateTime.getMinutes().toString().padStart(2, '0')}`}
-</p>
+          <CalendarTodayIcon />&nbsp;
+          {startDateTime.getDate()} {startDateTime.toLocaleString('default', { month: 'long' })} {startDateTime.getFullYear()}
+          {!(
+            startDateTime.getFullYear() === endDateTime.getFullYear() &&
+            startDateTime.getMonth() === endDateTime.getMonth() &&
+            startDateTime.getDate() === endDateTime.getDate()
+          ) && (
+              <> - {endDateTime.getDate()} {endDateTime.toLocaleString('default', { month: 'long' })} {endDateTime.getFullYear()}</>
+            )}
+        </p>
+        <p style={{ color: 'gray' }}>
+          <AccessTimeIcon />&nbsp;{`${startDateTime.getHours()}:${startDateTime.getMinutes().toString().padStart(2, '0')}`}
+          -
+          {`${endDateTime.getHours()}:${endDateTime.getMinutes().toString().padStart(2, '0')}`}
+        </p>
         {recurrence && <p>{recurrence}</p>}
         <hr className={styles.divider} />
 
@@ -101,7 +102,7 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
         <p><strong>Location:</strong>&nbsp;{room}</p>
         {zoomAccount && <p><strong>Zoom Account:</strong>&nbsp;{zoomAccount}</p>}
         {zoomLink && <a href={zoomLink} target="_blank" rel="noopener noreferrer" className={styles.zoomLink}>
-        <VideoCameraFrontIcon /> {zoomLink}
+          <VideoCameraFrontIcon /> {zoomLink}
         </a>}
         <p><strong>PandaDocs Form</strong></p>
         <div className={styles.pandaDocs}>

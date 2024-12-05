@@ -26,7 +26,6 @@ import { set } from 'mongoose';
 
 const App = () => {
 
-
   const sampleMeeting = {
     id: '1',
     mid: 'M123',
@@ -44,7 +43,7 @@ const App = () => {
     recurrence: 'Weekly',
     onBack: () => alert('Back button clicked'),
     onEdit: () => alert('Edit button clicked'),
-    onDelete: () => alert('Delete button clicked'),
+    onDelete: () => alert('Delete Button Clicked'),
   };
 
   /** ADMIN TESTING FUNCTIONS  */
@@ -227,7 +226,7 @@ const App = () => {
   const deleteMeeting = async () => {
     try {
       /* Configure to be a real mid */
-      const mid = "95992";
+      const mid = "84143";
 
       const response = await fetch('/api/delete/meeting', {
         method: 'DELETE',
