@@ -702,6 +702,7 @@ const App = () => {
               onChange={setDescriptionValue}
               />}
             onCreateMeeting={createMeeting}
+            {... sampleMeeting}
           ></EditMeeting>
       </div>
 

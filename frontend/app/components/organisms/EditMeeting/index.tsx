@@ -13,6 +13,23 @@ interface NewMeetingSidebarProps {
   uploadPandaDocsForm: React.ReactElement;
   descriptionTextField: React.ReactElement;
   onCreateMeeting: () => Promise<void>;
+  id: string;
+  mid: string;
+  title: string;
+  description?: string; 
+  creator: string;
+  group: string; 
+  startDateTime: Date;
+  endDateTime: Date;
+  zoomAccount?: string;
+  zoomLink?: string;
+  zid?: string;
+  type: string;
+  room: string;
+  recurrence?: string;
+  onBack: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
 }
 
 const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({
@@ -26,12 +43,29 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({
   emailTextField,
   uploadPandaDocsForm,
   descriptionTextField,
-  onCreateMeeting
+  onCreateMeeting,
+  id,
+  mid,
+  title,
+  description,
+  creator,
+  group,
+  startDateTime,
+  endDateTime,
+  zoomAccount,
+  zoomLink,
+  zid,
+  type,
+  room,
+  recurrence,
+  onBack,
+  onEdit,
+  onDelete,
 }) => {
   return (
     <div className={styles.newMeetingSidebar}>
       <div className={styles.dummyComponent}>
-        {meetingTitleTextField}
+        meetingTitleTextField={value=title}
       </div>
       <div className={styles.meetingButtons}>
         <button className={styles.button} autoFocus>Hybrid</button>
