@@ -21,6 +21,7 @@ import ViewMeetingDetails from '../components/organisms/ViewMeeting';
 import TodayIcon from '@mui/icons-material/Today';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import ReccuringMeeting from "../components/molecules/RecurringMeeting";
+import EditMeeting from "../components/organisms/EditMeeting";
 
 import { set } from 'mongoose';
 
@@ -107,7 +108,6 @@ const App = () => {
   const handleZoomChange = (email: string) => {
     setSelectedZoomAccount(email);
   };
-
 
   const createAdmin = async () => {
     try {
@@ -636,6 +636,73 @@ const App = () => {
       <div className={styles.section}>
         <h2>Mini Calendar</h2>
         <MiniCalendar />
+      </div>
+
+      <div className={styles.section}>
+        <h2>Edit Meeting</h2>
+        <EditMeeting
+            meetingTitleTextField={<TextField
+              input="Meeting title"
+              value={inputMeetingTitleValue}
+              onChange={setMeetingTitleValue}
+              />}
+            DatePicker={<DatePicker
+              label={<img src='/svg/calendar-icon.svg' alt="Calendar Icon" />}
+              value={dateValue}
+              onChange={setDateValue}
+              error={dateValue === '' ? 'Date is required' : undefined}
+            />}
+            TimePicker={<TimePicker
+              label={<img src='/svg/clock-icon.svg' alt="Clock Icon" />}
+              value={timeValue}
+              onChange={setTimeValue}
+              disablePast={true}
+              error={timeValue === '' ? 'Time is required' : undefined}
+            />}
+            RecurringMeeting={<ReccuringMeeting />}
+            roomSelectionDropdown={
+              <Dropdown
+                label={<img src="/svg/location-icon.svg" alt="Location Icon" />}
+                isVisible={true}
+                elements={roomOptions}
+                name="Select Room"
+                onChange={handleRoomChange}
+              />
+            }
+            meetingTypeDropdown={
+              <Dropdown
+                label={<img src="svg/group-icon.svg" alt="Group Icon"/>}
+                isVisible={true}
+                elements={meetingTypeOptions}
+                name="Select Meeting Type"
+                onChange={handleMeetingTypeChange}
+              />
+            }
+            zoomAccountDropdown={
+              <Dropdown
+                label={<img src="svg/person-icon.svg" alt="Person Icon"/>}
+                isVisible={true}
+                elements={zoomAccountOptions}
+                name="Select Zoom Account"
+                onChange={handleZoomChange}
+              />
+            }
+            emailTextField={<TextField
+              input="Email"
+              label={<img src="svg/mail-icon.svg" alt="Mail Icon"/>}
+              value={inputEmailValue}
+              onChange={setEmailValue}
+              />
+            }
+            uploadPandaDocsForm={<UploadPandaDocs onFileSelect={handleFileSelect} />}
+            descriptionTextField={<TextField
+              input="Description"
+              label = ""
+              value={inputDescriptionValue}
+              onChange={setDescriptionValue}
+              />}
+            onCreateMeeting={createMeeting}
+          ></EditMeeting>
       </div>
 
     </div>
