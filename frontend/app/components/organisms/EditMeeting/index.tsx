@@ -7,12 +7,14 @@ import RecurringMeetingForm from '../../molecules/RecurringMeeting';
 import Dropdown from '../../atoms/dropdown';
 import UploadPandaDocs from '../../atoms/upload';
 import VideoCameraFrontIcon from '@mui/icons-material/VideoCameraFront';
+import { v4 as uuidv4 } from 'uuid';
+import { IMeeting } from '../../../../util/models';
 
 interface EditMeetingProps {
   id: string;
   mid: string;
   title: string;
-  description?: string; 
+  description: string; 
   creator: string;
   group: string; 
   startDateTime: Date;
@@ -81,6 +83,83 @@ const NewMeetingSidebar: React.FC<EditMeetingProps> = ({
         }
     };
 
+    function convertToISODate(dateString: string) {
+      const dateObject = new Date(dateString);
+      if (isNaN(dateObject.getTime())) {
+        console.error("Invalid date string:", dateString)
+        return null;
+      }
+      return dateObject.toISOString().split('T')[0]; // Returns "YYYY-MM-DD"
+    }
+
+    const generateMeetingId = () => {
+      return uuidv4();
+    };
+
+    const updateMeeting = async () => {
+      try {
+
+        const isoDateValue = convertToISODate(dateValue);
+
+        if (!isoDateValue) {
+          console.error("Failed to convert dateValue to ISO format");
+          return;
+        }
+
+        const [startTime, endTime] = timeValue?.split(' - ') || [];
+        if (!startTime || !endTime) {
+          console.error("Invalid timeValue format");
+          return;
+        }
+
+        const startDateString = `${isoDateValue}T${startTime}`;
+        const endDateString = `${isoDateValue}T${endTime}`;
+
+        if (!startDateString || !endDateString) {
+          console.error("Start or end date string could not be constructed");
+          return;
+        }
+
+        const startDateTime = new Date(startDateString);
+        const endDateTime = new Date(endDateString);
+        
+        startDateTime.setHours(startDateTime.getHours() - 5);
+        endDateTime.setHours(endDateTime.getHours() - 5);
+
+        const updatedMeeting: IMeeting = {
+          title: inputMeetingTitleValue || title,
+          mid: mid, 
+          description: inputDescriptionValue || description,
+          creator: creator,
+          group: group,
+          startDateTime: startDateTime,
+          endDateTime: endDateTime,
+          zoomAccount: selectedZoomAccount,
+          type: selectedMeetingType,
+          room: selectedRoom,
+        };
+
+        const response = await fetch(`/api/write/meeting`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(updatedMeeting),
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const meetingResponse = await response.json();
+        console.log("Meeting updated successfully:", meetingResponse);
+        alert("Meeting updated successfully!");
+      } catch (error) {
+        console.error('Error updating the meeting:', error);
+        alert("Failed to update the meeting. Please try again.");
+      }
+    }
+
     const [inputMeetingTitleValue, setMeetingTitleValue] = useState(""); 
     const [dateValue, setDateValue] = useState<string>(String(startDateTime.toLocaleDateString("en-US"))); 
     const [timeValue, setTimeValue] = useState<string>(String(startDateTime.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })));
@@ -91,6 +170,7 @@ const NewMeetingSidebar: React.FC<EditMeetingProps> = ({
     const [selectedMeetingType, setSelectedMeetingType] = useState<string>(group);
     const [selectedMeetingMode, setSelectedMeetingMode] = useState<string>(type);
     const [selectedZoomAccount, setSelectedZoomAccount] = useState<string>("Zoom Email 1");
+
   return (
     <div className={styles.newMeetingSidebar}>
       <div className={styles.dummyComponent}>
@@ -186,7 +266,10 @@ const NewMeetingSidebar: React.FC<EditMeetingProps> = ({
             onChange={setDescriptionValue}
         />
       </div>
-      <button className={styles.createMeetingButton}>Create Meeting</button>
+      <div className={styles.buttonGroup}>
+        <button className={styles.cancelButton}>Cancel</button>
+        <button className={styles.saveButton} onClick={updateMeeting}>Save Changes</button>
+      </div>
     </div>
 )};
 

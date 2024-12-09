@@ -12,7 +12,12 @@
   margin-bottom: 16px;
 }
 
-.createMeetingButton {
+.buttonGroup {
+  display: flex;
+  gap: 24px;
+}
+
+.saveButton {
   width: 100%;
   height: auto;
   background-color: #CC3366;
@@ -26,6 +31,22 @@
   padding: 10px 0;
   text-align: center;
   border-radius: 8px;
+}
+
+.cancelButton {
+  width: 100%;
+  height: auto;
+  color: #CC3366;
+  background-color: #fff;
+  font-family: 'Source Sans Pro', sans-serif;
+  font-weight: 600;
+  font-size: 18px;
+  line-height: 22.63px;
+  cursor: pointer;
+  padding: 10px 0;
+  text-align: center;
+  border-radius: 8px;
+  border: 2px solid var(--Dark-Pink, #C36);
 }
 
 .button {
