@@ -6,6 +6,7 @@ import TimePicker from '../../atoms/TimePicker';
 import RecurringMeetingForm from '../../molecules/RecurringMeeting';
 import Dropdown from '../../atoms/dropdown';
 import UploadPandaDocs from '../../atoms/upload';
+import VideoCameraFrontIcon from '@mui/icons-material/VideoCameraFront';
 
 interface EditMeetingProps {
   id: string;
@@ -16,7 +17,7 @@ interface EditMeetingProps {
   group: string; 
   startDateTime: Date;
   endDateTime: Date;
-  zoomAccount?: string;
+  zoomAccount: string;
   zoomLink?: string;
   zid?: string;
   type: string;
@@ -69,41 +70,58 @@ const NewMeetingSidebar: React.FC<EditMeetingProps> = ({
   onDelete,
 }) => {
     const handleRoomChange = (value: string) => setSelectedRoom(value);
-const handleMeetingTypeChange = (value: string) => setSelectedMeetingType(value);
-const handleZoomAccountChange = (value: string) => setSelectedZoomAccount(value);
+    const handleMeetingTypeChange = (value: string) => setSelectedMeetingType(value);
+    const handleZoomAccountChange = (value: string) => setSelectedZoomAccount(value);
 
-const handleFileSelect = (file: File | null) => {
-    if (file) {
-      console.log("File selected:", file);
-      // Handle the selected file (e.g., upload it or process it)
-    } else {
-      console.log("No file selected");
-    }
-};
+    const handleFileSelect = (file: File | null) => {
+        if (file) {
+        console.log("File selected:", file);
+        } else {
+        console.log("No file selected");
+        }
+    };
 
-const [inputMeetingTitleValue, setMeetingTitleValue] = useState(""); // Meeting title
-const [dateValue, setDateValue] = useState<string>(""); // Initial date value as empty
-const [timeValue, setTimeValue] = useState<string>(""); // Initial time range as empty
-const [freqValue, setFreqValue] = useState<string>("Never"); // Default frequency value
-const [inputEmailValue, setEmailValue] = useState(""); // Email input value
-const [inputDescriptionValue, setDescriptionValue] = useState(""); // Description input value
-const [selectedRoom, setSelectedRoom] = useState<string>("Serenity Room");
-const [selectedMeetingType, setSelectedMeetingType] = useState<string>("AA");
-const [selectedZoomAccount, setSelectedZoomAccount] = useState<string>("Zoom Email 1");
-
+    const [inputMeetingTitleValue, setMeetingTitleValue] = useState(""); 
+    const [dateValue, setDateValue] = useState<string>(String(startDateTime.toLocaleDateString("en-US"))); 
+    const [timeValue, setTimeValue] = useState<string>(String(startDateTime.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })));
+    const [freqValue, setFreqValue] = useState<string>("Never");
+    const [inputEmailValue, setEmailValue] = useState("");
+    const [inputDescriptionValue, setDescriptionValue] = useState(""); // Description input value
+    const [selectedRoom, setSelectedRoom] = useState<string>("Serenity Room");
+    const [selectedMeetingType, setSelectedMeetingType] = useState<string>(group);
+    const [selectedMeetingMode, setSelectedMeetingMode] = useState<string>(type);
+    const [selectedZoomAccount, setSelectedZoomAccount] = useState<string>("Zoom Email 1");
   return (
     <div className={styles.newMeetingSidebar}>
       <div className={styles.dummyComponent}>
         <TextField
-            input="Meeting title"
+            input={title}
             value={inputMeetingTitleValue}
             onChange={setMeetingTitleValue}
         />
       </div>
       <div className={styles.meetingButtons}>
-        <button className={styles.button} autoFocus>Hybrid</button>
-        <button className={styles.button}>In Person</button>
-        <button className={styles.button}>Remote</button>
+        <button
+          className={`${styles.button}`}
+          onClick={() => setSelectedMeetingMode('Hybrid')}
+          style={selectedMeetingMode === 'Hybrid' ? { background: '#F1F1F1', borderRadius: '8px' } : {}}
+        >
+          Hybrid
+        </button>
+        <button
+          className={`${styles.button}`}
+          onClick={() => setSelectedMeetingMode('In Person')}
+          style={selectedMeetingMode === 'In Person' ? { background: '#F1F1F1', borderRadius: '8px' } : {}}
+        >
+          In Person
+        </button>
+        <button
+          className={`${styles.button}`}
+          onClick={() => setSelectedMeetingMode('Remote')}
+          style={selectedMeetingMode === 'Remote' ? { background: '#F1F1F1', borderRadius: '8px' } : {}}
+        >
+          Remote
+        </button>
       </div>
       <div className={styles.dummyComponent}>
         <DatePicker
@@ -139,7 +157,7 @@ const [selectedZoomAccount, setSelectedZoomAccount] = useState<string>("Zoom Ema
             label={<img src="svg/group-icon.svg" alt="Group Icon"/>}
             isVisible={true}
             elements={meetingTypeOptions}
-            name="Select Meeting Type"
+            name={group}
             onChange={handleMeetingTypeChange}
         />
       </div>
@@ -148,24 +166,21 @@ const [selectedZoomAccount, setSelectedZoomAccount] = useState<string>("Zoom Ema
             label={<img src="svg/person-icon.svg" alt="Person Icon"/>}
             isVisible={true}
             elements={zoomAccountOptions}
-            name="Select Zoom Account"
+            name={zoomAccount} 
             onChange={handleZoomAccountChange}
         />
       </div>
       <div className={styles.dummyComponent}>
-        <TextField
-            input="Email"
-            label={<img src="svg/mail-icon.svg" alt="Mail Icon"/>}
-            value={inputEmailValue}
-            onChange={setEmailValue}
-        />
+        {zoomLink && <a href={zoomLink} target="_blank" rel="noopener noreferrer" className={styles.zoomLink}>
+        <VideoCameraFrontIcon /> {zoomLink}
+        </a>}
       </div>
       <div className={styles.dummyComponent}>
         <UploadPandaDocs onFileSelect={handleFileSelect} />
       </div>
       <div className={styles.dummyComponent}>
         <TextField
-            input="Description"
+            input={description}
             label = ""
             value={inputDescriptionValue}
             onChange={setDescriptionValue}

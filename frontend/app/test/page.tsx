@@ -34,13 +34,13 @@ const App = () => {
     title: 'Project Kickoff',
     description: 'Discuss project goals, milestones, and next steps with the team.',
     creator: 'Alice Johnson',
-    group: 'Team Calendar',
+    group: 'Al-Anon',
     startDateTime: new Date(2024, 10, 20, 14, 0), // Nov 20, 2024, 2:00 PM
     endDateTime: new Date(2024, 10, 20, 15, 30), // Nov 20, 2024, 3:30 PM
     zoomAccount: 'alice.johnson@company.com',
     zoomLink: 'https://zoom.us/j/123456789',
     zid: 'Z456',
-    type: 'Virtual Meeting',
+    type: 'In Person',
     room: 'Conference Room B',
     recurrence: 'Weekly',
     onBack: () => alert('Back button clicked'),
@@ -641,67 +641,6 @@ const App = () => {
       <div className={styles.section}>
         <h2>Edit Meeting</h2>
         <EditMeeting
-            meetingTitleTextField={<TextField
-              input="Meeting title"
-              value={inputMeetingTitleValue}
-              onChange={setMeetingTitleValue}
-              />}
-            DatePicker={<DatePicker
-              label={<img src='/svg/calendar-icon.svg' alt="Calendar Icon" />}
-              value={dateValue}
-              onChange={setDateValue}
-              error={dateValue === '' ? 'Date is required' : undefined}
-            />}
-            TimePicker={<TimePicker
-              label={<img src='/svg/clock-icon.svg' alt="Clock Icon" />}
-              value={timeValue}
-              onChange={setTimeValue}
-              disablePast={true}
-              error={timeValue === '' ? 'Time is required' : undefined}
-            />}
-            RecurringMeeting={<ReccuringMeeting />}
-            roomSelectionDropdown={
-              <Dropdown
-                label={<img src="/svg/location-icon.svg" alt="Location Icon" />}
-                isVisible={true}
-                elements={roomOptions}
-                name="Select Room"
-                onChange={handleRoomChange}
-              />
-            }
-            meetingTypeDropdown={
-              <Dropdown
-                label={<img src="svg/group-icon.svg" alt="Group Icon"/>}
-                isVisible={true}
-                elements={meetingTypeOptions}
-                name="Select Meeting Type"
-                onChange={handleMeetingTypeChange}
-              />
-            }
-            zoomAccountDropdown={
-              <Dropdown
-                label={<img src="svg/person-icon.svg" alt="Person Icon"/>}
-                isVisible={true}
-                elements={zoomAccountOptions}
-                name="Select Zoom Account"
-                onChange={handleZoomChange}
-              />
-            }
-            emailTextField={<TextField
-              input="Email"
-              label={<img src="svg/mail-icon.svg" alt="Mail Icon"/>}
-              value={inputEmailValue}
-              onChange={setEmailValue}
-              />
-            }
-            uploadPandaDocsForm={<UploadPandaDocs onFileSelect={handleFileSelect} />}
-            descriptionTextField={<TextField
-              input="Description"
-              label = ""
-              value={inputDescriptionValue}
-              onChange={setDescriptionValue}
-              />}
-            onCreateMeeting={createMeeting}
             {... sampleMeeting}
           ></EditMeeting>
       </div>
