@@ -7,7 +7,6 @@ import RecurringMeetingForm from '../../molecules/RecurringMeeting';
 import Dropdown from '../../atoms/dropdown';
 import UploadPandaDocs from '../../atoms/upload';
 import VideoCameraFrontIcon from '@mui/icons-material/VideoCameraFront';
-import { v4 as uuidv4 } from 'uuid';
 import { IMeeting } from '../../../../util/models';
 
 interface EditMeetingProps {
@@ -25,9 +24,7 @@ interface EditMeetingProps {
   type: string;
   room: string;
   recurrence?: string;
-  onBack: () => void;
-  onEdit: () => void;
-  onDelete: () => void;
+  onCancel: () => void;
 }
 
 const roomOptions = [
@@ -67,9 +64,7 @@ const NewMeetingSidebar: React.FC<EditMeetingProps> = ({
   type,
   room,
   recurrence,
-  onBack,
-  onEdit,
-  onDelete,
+  onCancel,
 }) => {
     const handleRoomChange = (value: string) => setSelectedRoom(value);
     const handleMeetingTypeChange = (value: string) => setSelectedMeetingType(value);
@@ -92,13 +87,8 @@ const NewMeetingSidebar: React.FC<EditMeetingProps> = ({
       return dateObject.toISOString().split('T')[0]; // Returns "YYYY-MM-DD"
     }
 
-    const generateMeetingId = () => {
-      return uuidv4();
-    };
-
     const updateMeeting = async () => {
       try {
-
         const isoDateValue = convertToISODate(dateValue);
 
         if (!isoDateValue) {
@@ -267,7 +257,7 @@ const NewMeetingSidebar: React.FC<EditMeetingProps> = ({
         />
       </div>
       <div className={styles.buttonGroup}>
-        <button className={styles.cancelButton}>Cancel</button>
+        <button className={styles.cancelButton} onClick={onCancel}>Cancel</button>
         <button className={styles.saveButton} onClick={updateMeeting}>Save Changes</button>
       </div>
     </div>
