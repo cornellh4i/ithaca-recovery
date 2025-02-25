@@ -6,7 +6,6 @@ import { InteractionType } from '@azure/msal-browser';
 import { authProvider } from "../services/auth";
 
 
-
 // const MainPage = () => {
 
 //   const request = {

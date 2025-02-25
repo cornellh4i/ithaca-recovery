@@ -6,10 +6,11 @@ interface DropdownProps {
   isVisible: boolean;
   elements: string[]; 
   name: string; 
+  onChange: (value: string) => void;
 }
 
 
-const Dropdown: React.FC<DropdownProps> = ({ label, isVisible, elements, name }) => {
+const Dropdown: React.FC<DropdownProps> = ({ label, isVisible, elements, name, onChange }) => {
   const [selectedElement, setselectedElement] = useState<string | null>(null);
 
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null); 
@@ -22,6 +23,7 @@ const Dropdown: React.FC<DropdownProps> = ({ label, isVisible, elements, name })
 
   const handleElementClick = (element: string) => {
     setselectedElement(element);
+    onChange(element);
     setActiveDropdown(null); 
   };
 

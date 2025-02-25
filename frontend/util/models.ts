@@ -1,3 +1,5 @@
+import { GridFSBucketWriteStream } from 'mongodb';
+
 // Please add models here
 interface IUser {
   uid: string;
@@ -21,6 +23,7 @@ interface IMeeting {
   zid?: string | null;
   type: string;
   room: string;
+  pandaDoc?: File | Buffer | GridFSBucketWriteStream | null;
 }
 
 export type { IUser, IMeeting, IAdmin };
