@@ -40,7 +40,7 @@ const fetchMeetingsByDay = async (date: Date): Promise<Room[]> => {
     const end = new Date(meeting.endDateTime.replace("Z", ""));
 
     groupedRooms[roomName].push({
-      id: meeting._id,
+      id: meeting.mid,
       title: meeting.title,
       startTime: start.toLocaleTimeString('en-GB', { hour12: false }),
       endTime: end.toLocaleTimeString('en-GB', { hour12: false }),
@@ -139,19 +139,15 @@ const DailyView: React.FC<DailyViewProps> = ({ setSelectedMeetingID, setSelected
   };
 
   const handleRowNotBoxClick = () => {
-    // Check if the target is a BoxText element
-    setSelectedNewMeeting(true);
-    setSelectedMeetingID(null); 
- 
+    // TODO: Check if the target is a BoxText element
+    // setSelectedNewMeeting(false);
+    // setSelectedMeetingID(null); 
   };
 
   const combinedRooms = defaultRooms.map((defaultRoom) => {
     const roomWithMeetings = meetings.find((meetingRoom) => meetingRoom.name === defaultRoom.name);
     return roomWithMeetings || { ...defaultRoom, meetings: [] }; 
   });
-  
-
-  console.log("Meeting ", meetings)
 
   return (
     <div className={styles.outerContainer}>

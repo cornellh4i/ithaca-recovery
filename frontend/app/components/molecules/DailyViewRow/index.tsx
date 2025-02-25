@@ -37,7 +37,7 @@ const DailyViewRow: React.FC<DailyViewRowProps> = ({
   setSelectedNewMeeting,
 }) => {
   const handleBoxClick = (meetingId: string) => {
-    // console.log(`Meeting ${meetingId} clicked`);
+    console.log(`Meeting ${meetingId} clicked`);
     setSelectedMeetingID(meetingId);
     setSelectedNewMeeting(false);
 
@@ -53,20 +53,6 @@ const DailyViewRow: React.FC<DailyViewRowProps> = ({
         {Array.from({ length: 24 }).map((_, colIndex) => (
           <div key={colIndex}></div>
         ))}
-
-          {/* <BoxText
-                  boxType="Meeting Block"
-                  title="Test Name"
-                  primaryColor="#D2AFFF"
-                  time="9am-10am"
-                  tags={['Hybrid', 'AA']}
-                  meetingId="2024-05-01T23:30:27.987Z"
-                  onClick={(meetingId, e) => {
-                    handleBoxClick(meetingId);
-                    console.log("clicking on button and e is next");
-                    e.stopPropagation(); // Prevent row click handler from firing
-                  }}
-                /> */}
 
         {meetings.map((meeting, index) => {
           const startOffset = timeToPixels(meeting.startTime);
@@ -92,8 +78,8 @@ const DailyViewRow: React.FC<DailyViewRowProps> = ({
                 tags={meeting.tags}
                 meetingId={meeting.id}
                 onClick={(meetingId, e) => {
-                  e.stopPropagation(); // Prevent row click handler from firing
                   handleBoxClick(meetingId);
+                  e.stopPropagation(); // Prevent row click handler from firing
                 }}
               />
             </div>
