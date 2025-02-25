@@ -5,12 +5,12 @@ const prisma = new PrismaClient();
 
 const updateAdmin = async (request: Request): Promise <Response> => {
    try {
-    const { uid, name } = await request.json();
+    const { uid, name, email } = await request.json();
 
     // add implementation here
     const updatedUser = await prisma.admin.update({
         where: {uid},
-        data: {name},
+        data: {name, email},
       });
   
       return new Response(JSON.stringify(updatedUser), {

@@ -189,13 +189,14 @@ const App = () => {
     try {
       const uid = '89632';
       const newName = "David E. Valarezo"
+      const email = "test@gmail.com"
 
       const response = await fetch("/api/update/admin", {
         method: "PUT",
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({uid:uid, name: newName}) //(key: value)
+        body: JSON.stringify({uid:uid, name: newName, email}) //(key: value)
       })
 
       if (!response.ok){
