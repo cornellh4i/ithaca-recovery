@@ -113,8 +113,8 @@ const App = () => {
     try {
       const newAdmin: IAdmin = {
         uid: `${Math.floor(Math.random() * 100000) + 1}`, // Most likely will be Microsoft ID
-        name: "Joseph Ugarte",
-        email: "jeu9@cornell.edu"
+        name: "David Valarezo",
+        email: "dev38@cornell.edu"
       }
 
       const response = await fetch('/api/write/admin', {
@@ -142,7 +142,7 @@ const App = () => {
   const getAdmin = async () => {
     try {
       /* Configure to me an Admin's real email */
-      const email = "jeu9@cornell.edu";
+      const email = "dev38@cornell.edu";
       const url = new URL('/api/retrieve/admin', window.location.origin);
       url.searchParams.append('email', email);
       const response = await fetch(url);
@@ -184,6 +184,32 @@ const App = () => {
       console.error("Error clearing database:", error);
     }
   };
+
+  const updateAdmin = async () => {
+    try {
+      const uid = '89632';
+      const newName = "David E. Valarezo"
+
+      const response = await fetch("/api/update/admin", {
+        method: "PUT",
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({uid:uid, name: newName}) //(key: value)
+      })
+
+      if (!response.ok){
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const adminResponse = await response.json();
+      console.log(adminResponse)
+      alert("Admin successfully updated! Pleae check the Admin collection on MongoDB")
+
+
+    } catch(error) {
+      console.log("Error updating user:", error);
+    }
+  }
 
   /** MEETING TESTING FUNCTIONS */
 
@@ -449,6 +475,7 @@ const App = () => {
         <TestButton testFunc={createAdmin} text="Call create admin post /api/write/admin" />
         <TestButton testFunc={getAdmin} text="Call get admin /api/retrieve/admin" />
         <TestButton testFunc={deleteAdmin} text="Call delete admin /api/delete/admin" />
+        <TestButton testFunc={updateAdmin} text="Call update admin /api/update/admin"/>
       </div>
       <div className={styles.section + ' ' + styles.meetings}>
         <h2>Meetings</h2>
