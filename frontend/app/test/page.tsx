@@ -108,11 +108,35 @@ const App = () => {
     setSelectedZoomAccount(email);
   };
 
+  const updateAdmin = async () => {
+    try {
+      const hardcodedUid = "101"; 
+      const newName = "Victoria Yu"; 
+      const newEmail = "vwy5@cornell.edu";
+  
+      const response = await fetch("/api/update/meeting/admin", {
+        method: "PUT", 
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ uid: hardcodedUid, name: newName, email: newEmail }),
+      });
+  
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+  
+      const updatedAdmin = await response.json();
+    } catch (error) {
+      console.error("There was an error updating the admin:", error);
+    }
+  };  
 
+  
   const createAdmin = async () => {
     try {
       const newAdmin: IAdmin = {
-        uid: `${Math.floor(Math.random() * 100000) + 1}`, // Most likely will be Microsoft ID
+        uid: "101",
         name: "Joseph Ugarte",
         email: "jeu9@cornell.edu"
       }
@@ -446,6 +470,7 @@ const App = () => {
       </div>
       <div className={styles.section}>
         <h2>Admins</h2>
+        <TestButton testFunc={updateAdmin} text="Update admin" />
         <TestButton testFunc={createAdmin} text="Call create admin post /api/write/admin" />
         <TestButton testFunc={getAdmin} text="Call get admin /api/retrieve/admin" />
         <TestButton testFunc={deleteAdmin} text="Call delete admin /api/delete/admin" />
