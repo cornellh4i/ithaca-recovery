@@ -184,6 +184,39 @@ const App = () => {
       console.error("Error clearing database:", error);
     }
   };
+  const updateAdmin = async () => {
+    try {
+      
+      const uid = "24031";
+  
+      const updatedAdmin = {
+        uid,
+       name: "Sheki", 
+       email: "lso24@cornell.edu"  
+      };
+  
+      const response = await fetch("/api/update/admin", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(updatedAdmin),
+      });
+  
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+  
+      const adminResponse = await response.json();
+      console.log("Updated Admin:", adminResponse);
+      alert("Admin successfully updated! Check MongoDB.");
+    } catch (error) {
+      console.error("Error updating admin:", error);
+      alert("Failed to update admin.");
+    }
+  };
+  
+
 
   /** MEETING TESTING FUNCTIONS */
 
@@ -429,6 +462,7 @@ const App = () => {
     }
   }
 
+  
 
   return (
     <div className={styles['apicontainer']}>
@@ -449,6 +483,7 @@ const App = () => {
         <TestButton testFunc={createAdmin} text="Call create admin post /api/write/admin" />
         <TestButton testFunc={getAdmin} text="Call get admin /api/retrieve/admin" />
         <TestButton testFunc={deleteAdmin} text="Call delete admin /api/delete/admin" />
+        <TestButton testFunc={updateAdmin} text="Call update admin /api/admin" />
       </div>
       <div className={styles.section + ' ' + styles.meetings}>
         <h2>Meetings</h2>
