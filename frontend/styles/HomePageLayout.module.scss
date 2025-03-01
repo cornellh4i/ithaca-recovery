@@ -15,3 +15,20 @@
   padding: 10px;
   overflow-x: hidden;
 }
+
+.newMeetingHeader {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  color: var(--Dark-Navy, #3A3E49);
+  font-family: "Source Sans Pro";
+  font-style: normal;
+  font-weight: 600;
+  background-color: white;
+}
+
+.iconButton {
+  width: auto;
+  height: 40px;
+}

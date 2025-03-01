@@ -6,24 +6,6 @@ import VideoCameraFrontIcon from '@mui/icons-material/VideoCameraFront';
 import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
 import DownloadForOfflineIcon from '@mui/icons-material/DownloadForOffline';
 
-// type ViewMeetingDetailsProps = {
-//   title: string;
-//   setting: string;
-//   date: string;
-//   time: string;
-//   recurrence?: string;
-//   calendar: string;
-//   location: string;
-//   zoomAccount: number;
-//   zoomLink: string;
-//   pandaDocsName: string;
-//   pandaDocsSize: string;
-//   pandaDocsLink: string;
-//   onBack: () => void;
-//   onEdit: () => void;
-//   onDelete: () => void;
-// };
-
 type ViewMeetingDetailsProps = {
   id: string; // Maps to 'id' in the model (ObjectId, but treated as string here)
   mid: string; // Maps to 'mid' in the model
