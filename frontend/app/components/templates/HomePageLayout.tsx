@@ -4,6 +4,8 @@ import styles from "../../../styles/HomePageLayout.module.scss";
 import CalendarSidebar from "../organisms/CalendarSidebar";
 import ViewMeetingDetails from "../organisms/ViewMeeting";
 
+import DailyView from "../organisms/DailyView/index";
+
 // Define the type for selectedMeeting to match ViewMeetingDetailsProps
 type MeetingDetails = {
   id: string;
@@ -21,7 +23,7 @@ type MeetingDetails = {
   room: string;
   recurrence?: string;
 };
-import DailyView from "../organisms/DailyView/index";
+
 const HomePage = () => {
   // Define selectedMeeting state with MeetingDetails type or null
   const [selectedMeeting, setSelectedMeeting] = useState<MeetingDetails | null>(null);
@@ -33,7 +35,6 @@ const HomePage = () => {
   const [freqValue, setFreqValue] = useState<string>("Never"); // Default frequency value
   const [inputEmailValue, setEmailValue] = useState(""); // Email input value
   const [inputDescriptionValue, setDescriptionValue] = useState(""); // Description input value
-  
   
   const roomOptions = [
     "Serenity Room",
@@ -100,7 +101,34 @@ const HomePage = () => {
   };
 
   const handleEdit = () => console.log("Edit meeting");
-  const handleDelete = () => console.log("Delete meeting");
+  const handleDelete = async (mid : string) => {
+    try {
+      const response = await fetch('/api/delete/meeting', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          mid 
+        }),
+      });
+      console.log("checking if response is ok")
+      if (!response.ok) {
+        alert("Error : Unsuccesful delete")
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      console.log("setting usestate to null 1")
+      setSelectedMeeting(null);
+      console.log("setting usestate to null 2")
+
+      const meetingResponse = await response.json();
+      console.log(meetingResponse);
+      alert("Meeting deleted successfully! Please check the Meeting collection on MongoDB.")
+    
+    } catch (error) {
+      console.error('There was an error fetching the data:', error);
+    }
+  };
 
   return (
     <div className={styles.container}>
