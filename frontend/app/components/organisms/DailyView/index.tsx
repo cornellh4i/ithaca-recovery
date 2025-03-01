@@ -20,8 +20,6 @@ type Room = {
 
 const meetingCache = new Map<string, Room[]>();
 
-<<<<<<< HEAD
-=======
 const fetchMeetingsByDay = async (date: Date): Promise<Room[]> => {
   const formattedDate = date.toISOString().split('T')[0];
   if (meetingCache.has(formattedDate)) {
@@ -74,8 +72,6 @@ const fetchMeetingsByDay = async (date: Date): Promise<Room[]> => {
   }
 };
 
-
->>>>>>> origin/master
 const formatTime = (hour: number): string => {
   const period = hour >= 12 ? "PM" : "AM";
   const formattedHour = hour % 12 || 12; 
@@ -98,16 +94,13 @@ const defaultRooms = [
   { name: 'Zoom Account 4', primaryColor: '#cecece' },
 ];
 
-<<<<<<< HEAD
-const DailyView: React.FC<{ filters: any }> = ({ filters }) => {
-=======
 interface DailyViewProps {
   setSelectedMeetingID: (meetingId: string) => void;
   setSelectedNewMeeting: (newMeetingExists: boolean) => void;
+  filters: any;
 }
 
-const DailyView: React.FC<DailyViewProps> = ({ setSelectedMeetingID, setSelectedNewMeeting }) => {
->>>>>>> origin/master
+const DailyView: React.FC<DailyViewProps> = ({ setSelectedMeetingID, setSelectedNewMeeting, filters }) => {
   const [currentTimePosition, setCurrentTimePosition] = useState(0);
   const [meetings, setMeetings] = useState<Room[]>([]);
   const [currentDate, setCurrentDate] = useState(getTodayDate());
@@ -262,7 +255,12 @@ const DailyView: React.FC<DailyViewProps> = ({ setSelectedMeetingID, setSelected
     console.log(`Meeting ${meetingId} clicked`);
   };
 
-<<<<<<< HEAD
+  const handleRowNotBoxClick = () => {
+    // TODO: Check if the target is a BoxText element
+    // setSelectedNewMeeting(false);
+    // setSelectedMeetingID(null); 
+  };
+
   const combinedRooms = defaultRooms
   .filter((defaultRoom) => filters[defaultRoom.name.replace(/[-\s]+/g, '').replace(/\s+/g, '')])
     .map((defaultRoom) => {
@@ -270,18 +268,6 @@ const DailyView: React.FC<DailyViewProps> = ({ setSelectedMeetingID, setSelected
       return roomWithMeetings || { ...defaultRoom, meetings: [] }; 
     }
   );
-=======
-  const handleRowNotBoxClick = () => {
-    // TODO: Check if the target is a BoxText element
-    // setSelectedNewMeeting(false);
-    // setSelectedMeetingID(null); 
-  };
-
-  const combinedRooms = defaultRooms.map((defaultRoom) => {
-    const roomWithMeetings = meetings.find((meetingRoom) => meetingRoom.name === defaultRoom.name);
-    return roomWithMeetings || { ...defaultRoom, meetings: [] }; 
-  });
->>>>>>> origin/master
 
   return (
     <div className={styles.outerContainer}>
