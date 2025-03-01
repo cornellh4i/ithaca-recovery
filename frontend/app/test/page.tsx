@@ -531,11 +531,11 @@ const App = () => {
         <h1>Meetings Filter</h1>
         <MeetingsFilter filters={{
           SerenityRoom: false,
-          SeedsOfHope: false,
+          SeedsofHope: false,
           UnityRoom: false,
-          RoomForImprovement: false,
-          SmallButPowerfulRight: false,
-          SmallButPowerfulLeft: false,
+          RoomforImprovement: false,
+          SmallbutPowerfulRight: false,
+          SmallbutPowerfulLeft: false,
           ZoomAccount1: false,
           ZoomAccount2: false,
           ZoomAccount3: false,
