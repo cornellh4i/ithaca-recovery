@@ -20,6 +20,62 @@ type Room = {
 
 const meetingCache = new Map<string, Room[]>();
 
+<<<<<<< HEAD
+=======
+const fetchMeetingsByDay = async (date: Date): Promise<Room[]> => {
+  const formattedDate = date.toISOString().split('T')[0];
+  if (meetingCache.has(formattedDate)) {
+    console.log("Using cached data for date:", formattedDate);
+    return meetingCache.get(formattedDate) || [];
+  }
+  
+  console.log("Fetching meetings for date:", formattedDate);
+
+  try {
+    const response = await fetch(`/api/retrieve/meeting/day?startDate=${formattedDate}`);
+    const data = await response.json();
+    console.log("Raw API response:", data);
+
+    const groupedRooms: { [key: string]: Meeting[] } = {};
+    data.forEach((meeting: any) => {
+      const roomName = meeting.room;
+      if (!groupedRooms[roomName]) {
+        groupedRooms[roomName] = [];
+      }
+
+      const start = new Date(meeting.startDateTime.replace("Z", ""));
+      const end = new Date(meeting.endDateTime.replace("Z", ""));
+
+      groupedRooms[roomName].push({
+        id: meeting.mid,
+        title: meeting.title,
+        startTime: start.toLocaleTimeString("en-GB", { hour12: false }),
+        endTime: end.toLocaleTimeString("en-GB", { hour12: false }),
+        tags: [meeting.type, meeting.group],
+      });
+    });
+
+    const structuredData: Room[] = Object.keys(groupedRooms).map((roomName) => {
+      const defaultRoom = defaultRooms.find((r) => r.name === roomName);
+      return {
+        name: roomName,
+        primaryColor: defaultRoom?.primaryColor || "#ffffff",
+        meetings: groupedRooms[roomName],
+      };
+    });
+
+    console.log("Processed room data:", structuredData);
+
+    meetingCache.set(formattedDate, structuredData);
+    return structuredData;
+  } catch (error) {
+    console.error("Error fetching meetings:", error);
+    return [];
+  }
+};
+
+
+>>>>>>> origin/master
 const formatTime = (hour: number): string => {
   const period = hour >= 12 ? "PM" : "AM";
   const formattedHour = hour % 12 || 12; 
@@ -42,7 +98,16 @@ const defaultRooms = [
   { name: 'Zoom Account 4', primaryColor: '#cecece' },
 ];
 
+<<<<<<< HEAD
 const DailyView: React.FC<{ filters: any }> = ({ filters }) => {
+=======
+interface DailyViewProps {
+  setSelectedMeetingID: (meetingId: string) => void;
+  setSelectedNewMeeting: (newMeetingExists: boolean) => void;
+}
+
+const DailyView: React.FC<DailyViewProps> = ({ setSelectedMeetingID, setSelectedNewMeeting }) => {
+>>>>>>> origin/master
   const [currentTimePosition, setCurrentTimePosition] = useState(0);
   const [meetings, setMeetings] = useState<Room[]>([]);
   const [currentDate, setCurrentDate] = useState(getTodayDate());
@@ -163,6 +228,7 @@ const DailyView: React.FC<{ filters: any }> = ({ filters }) => {
     setMeetings(data);
   };
 
+
   const updateTimePosition = () => {
     const now = new Date();
     const currentHour = now.getHours();
@@ -196,6 +262,7 @@ const DailyView: React.FC<{ filters: any }> = ({ filters }) => {
     console.log(`Meeting ${meetingId} clicked`);
   };
 
+<<<<<<< HEAD
   const combinedRooms = defaultRooms
   .filter((defaultRoom) => filters[defaultRoom.name.replace(/[-\s]+/g, '').replace(/\s+/g, '')])
     .map((defaultRoom) => {
@@ -203,6 +270,18 @@ const DailyView: React.FC<{ filters: any }> = ({ filters }) => {
       return roomWithMeetings || { ...defaultRoom, meetings: [] }; 
     }
   );
+=======
+  const handleRowNotBoxClick = () => {
+    // TODO: Check if the target is a BoxText element
+    // setSelectedNewMeeting(false);
+    // setSelectedMeetingID(null); 
+  };
+
+  const combinedRooms = defaultRooms.map((defaultRoom) => {
+    const roomWithMeetings = meetings.find((meetingRoom) => meetingRoom.name === defaultRoom.name);
+    return roomWithMeetings || { ...defaultRoom, meetings: [] }; 
+  });
+>>>>>>> origin/master
 
   return (
     <div className={styles.outerContainer}>
@@ -233,9 +312,9 @@ const DailyView: React.FC<{ filters: any }> = ({ filters }) => {
           </div>
 
           {combinedRooms.map((room, rowIndex) => (
-            <div key={rowIndex} className={styles.gridRow}>
+            <div key={rowIndex} className={styles.gridRow} onClick={handleRowNotBoxClick}>
               <div className={styles.gridMeetingRow}>
-                <DailyViewRow roomColor={room.primaryColor} meetings={room.meetings} />
+                <DailyViewRow roomColor={room.primaryColor} meetings={room.meetings} setSelectedMeetingID = {setSelectedMeetingID} setSelectedNewMeeting={setSelectedNewMeeting}/>
               </div>
               {timeSlots.map((_, colIndex) => (
                 <div key={colIndex} className={styles.gridCell}></div>
