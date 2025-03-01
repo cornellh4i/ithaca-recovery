@@ -23,7 +23,7 @@ type ViewMeetingDetailsProps = {
   recurrence?: string; // Remains as optional if required
   onBack: () => void;
   onEdit: () => void;
-  onDelete: () => void;
+  onDelete: (mid: string) => void;
 };
 
 const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
@@ -46,6 +46,10 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
   onDelete,
 }) => {
 
+  const handleDelete = () => {
+    onDelete(mid);
+  }
+
   return (
     <div className={styles.meetingDetails}>
       <div className={styles.header}>
@@ -56,7 +60,7 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
           <button>⋮</button>
           <div className={styles.optionsMenu}>
             <button onClick={onEdit}>Edit Meeting</button>
-            <button onClick={onDelete}>Delete Meeting</button>
+            <button onClick={handleDelete}>Delete Meeting</button>
           </div>
         </div>
       </div>
