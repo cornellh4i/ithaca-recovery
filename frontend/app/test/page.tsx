@@ -112,8 +112,8 @@ const App = () => {
     try {
       const newAdmin: IAdmin = {
         uid: `${Math.floor(Math.random() * 100000) + 1}`, // Most likely will be Microsoft ID
-        name: "Joseph Ugarte",
-        email: "jeu9@cornell.edu"
+        name: "Tanya Aravind",
+        email: "ta374@cornell.edu"
       }
 
       const response = await fetch('/api/write/admin', {
@@ -181,6 +181,37 @@ const App = () => {
       alert("Admin deleted successfully! Please check the Admin collection on MongoDB.")
     } catch (error) {
       console.error("Error clearing database:", error);
+    }
+  };
+
+  const updateAdmin = async () => {
+    try {
+      /* uid must correspond to a meeting existing in the collection */
+      const  newAdmin = {
+        uid: "44890",
+        name: "Tanya Aravind",
+        email: "ta374@cornell.edu"
+      };
+
+      const response = await fetch('/api/update/admin', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(
+          newAdmin
+        ),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const adminResponse = await response.json();
+      console.log(adminResponse);
+      alert("Admin updated successfully! Please check the Admin collection on MongoDB.")
+    } catch (error) {
+      console.error('There was an error fetching the data:', error);
     }
   };
 
@@ -448,6 +479,7 @@ const App = () => {
         <TestButton testFunc={createAdmin} text="Call create admin post /api/write/admin" />
         <TestButton testFunc={getAdmin} text="Call get admin /api/retrieve/admin" />
         <TestButton testFunc={deleteAdmin} text="Call delete admin /api/delete/admin" />
+        <TestButton testFunc={updateAdmin} text="Call Update admin /api/update/admin" />
       </div>
       <div className={styles.section + ' ' + styles.meetings}>
         <h2>Meetings</h2>
