@@ -32,6 +32,12 @@ const DatePicker = ({ label, value: propValue = '', onChange, underlineOnFocus =
     return `${monthNames[month - 1]} ${day}, ${year}`;
   };
 
+  /**
+ * stringToDate translates a given string text to MM/DD/YYYY form. If the year is not specified, the current year is used.
+ * @param dateString is a string in the form of either "Month day, Year", "Month day Year", "Month day", or MM/DD
+ * @returns string in the form of MM/DD/YYYY
+ */
+
   const stringToDate = (dateString: string): string => {
     const currentYear = new Date().getFullYear();
     const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
