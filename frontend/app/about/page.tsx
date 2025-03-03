@@ -1,8 +1,14 @@
 import React from "react";
+import Button from "../components/button"; 
 
 /** An About page */
 const About = () => {
-  return <>Hello there</>;
+  return (
+    <>
+      <Button text="hello" />
+      Hello there
+    </>
+  );
 };
 
 export default About;
