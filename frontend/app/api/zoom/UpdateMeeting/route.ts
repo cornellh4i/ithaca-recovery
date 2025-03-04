@@ -1,7 +1,7 @@
 import axios from 'axios'
 import { NextResponse } from "next/server"
 import { NextApiRequest, NextApiResponse } from 'next/types'
-import { GET as getZoomToken } from '../generateToken'
+import { POST as getZoomToken } from '../generateToken' //i changed this from GET to POST
 import { PrismaClient } from "@prisma/client"
 import getZoomMeeting from '../GetMeeting/asyncFunction'
 

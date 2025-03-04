@@ -47,6 +47,35 @@ const App = () => {
     onDelete: () => alert('Delete button clicked'),
   };
 
+  // const createZoomMeetingRequestBody = () => {
+  //   const startTime = time[0]?.format();
+
+  //   const defaultDuration = 60;
+
+  //   let duration = defaultDuration;
+  //   if (time[0] && time[1]) {
+  //     duration = time[1].diff(time[0], 'minute');
+  //   }
+
+  //   const requestBody = {
+  //     agenda: title,
+  //     default_password: false,
+  //     duration: duration,
+  //     pre_schedule: false,
+  //     settings: {
+  //       host_video: true,
+  //       participant_video: true,
+  //     },
+  //     start_time: startTime || new Date().toISOString(),
+  //     timezone: "America/Los_Angeles",
+  //     topic: title,
+  //     type: 2,
+  //     zoomAccId: 3, //I added this line chat gpt
+  //   };
+
+  //   return requestBody;
+  // };
+
   /** ADMIN TESTING FUNCTIONS  */
 
   // State declarations
@@ -108,6 +137,19 @@ const App = () => {
     setSelectedZoomAccount(email);
   };
 
+  const handleGenerateZoomLink = async (selectedZoomAccount: string | null) => {
+    if (!selectedZoomAccount || !dateValue || !timeValue || !inputMeetingTitleValue) {
+      console.error("Please select a date, time, meeting title and Zoom account");
+      return;
+    }
+    console.log("Generating Zoom link for account:", selectedZoomAccount);
+    const zoomData = await generateZoomLink(selectedZoomAccount);
+  
+    if (zoomData) {
+      console.log("Zoom Link Generated:", zoomData);
+      // Do something with the generated Zoom link (e.g., store in state)
+    }
+  };
 
   const createAdmin = async () => {
     try {
@@ -199,7 +241,7 @@ const App = () => {
         endDateTime: new Date(),
         zoomAccount: 'Zoom Account',
         type: "in-person",
-        room: "sunflower"
+        room: "sunflower",
       };
       const response = await fetch('/api/write/meeting', {
         method: 'POST',
@@ -381,6 +423,36 @@ const App = () => {
       console.error('Error generating Zoom token:', error);
     }
   };
+
+  const generateZoomLink = async (selectedZoomAccount: string) => {
+    try {
+      // Construct request body
+      const zoomAccIdStr = selectedZoomAccount.replace("Zoom Email ", "");
+      const zoomAccId = parseInt(zoomAccIdStr);
+      const requestBody = { zoomAccId }; 
+  
+      // Make the API request
+      const response = await fetch('/api/zoom/CreateMeeting', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestBody),
+      });
+  
+      // Handle the response
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+  
+      const zoomResponse = await response.json();
+      console.log("Zoom Meeting Created:", zoomResponse);
+      alert("Zoom meeting link generated successfully!");
+      return zoomResponse; // Return response for further processing if needed
+  
+    } catch (error) {
+      console.error("Error generating Zoom link:", error);
+      alert("Failed to generate Zoom meeting link.");
+    }
+  }; 
 
   /** MICROSOFT ECOSYSTEM TESTING FUNCTIONS */
 
@@ -622,8 +694,12 @@ const App = () => {
             input="Description"
             value={inputDescriptionValue}
             onChange={setDescriptionValue}
-            />}
+            />
+          }
 
+          generateMeetingLink={() => handleGenerateZoomLink(selectedZoomAccount) 
+          } 
+        
           onCreateMeeting={createMeeting}
         ></NewMeetingSidebar>
       </div>
