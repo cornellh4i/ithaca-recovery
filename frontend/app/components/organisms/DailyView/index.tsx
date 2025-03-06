@@ -94,11 +94,17 @@ const defaultRooms = [
   { name: 'Zoom Email 3', primaryColor: '#cecece' },
   { name: 'Zoom Email 4', primaryColor: '#cecece' },
 ];
+interface DailyViewProps {
+  setSelectedMeetingID: (meetingId: string) => void;
+  setSelectedNewMeeting: (newMeetingExists: boolean) => void;
+  selectedDate: Date;
+  setSelectedDate: (date: Date) => void;
+}
 
-const DailyView: React.FC = () => {
+const DailyView: React.FC<DailyViewProps> = ({ setSelectedMeetingID, setSelectedNewMeeting, selectedDate, setSelectedDate }) => {
   const [currentTimePosition, setCurrentTimePosition] = useState(0);
   const [meetings, setMeetings] = useState<Room[]>([]);
-  const [currentDate, setCurrentDate] = useState(getTodayDate());
+  //const [currentDate, setCurrentDate] = useState(getTodayDate());
 
   function getTodayDate(): Date {
     return new Date();
@@ -121,25 +127,25 @@ const DailyView: React.FC = () => {
 
   const handlePreviousDay = () => {
     console.log("prev day");
-    const prevDate = new Date(currentDate);
+    const prevDate = new Date(selectedDate);
     prevDate.setDate(prevDate.getDate() - 1);
-    setCurrentDate(prevDate);
+    setSelectedDate(prevDate);
   };
 
   const handleNextDay = () => {
     console.log("next day");
-    const nextDate = new Date(currentDate);
+    const nextDate = new Date(selectedDate);
     nextDate.setDate(nextDate.getDate() + 1);
-    setCurrentDate(nextDate);
+    setSelectedDate(nextDate);
   };
 
   useEffect(() => {
-    handleDateChange(currentDate);
+    handleDateChange(selectedDate);
     updateTimePosition();
 
     const intervalId = setInterval(updateTimePosition, 60000);
     return () => clearInterval(intervalId);
-  }, [currentDate]);
+  }, [selectedDate]);
   
   // Dummy function for onClick prop
   const handleBoxClick = (meetingId: string) => {
@@ -155,10 +161,7 @@ const DailyView: React.FC = () => {
 
   return (
     <div className={styles.outerContainer}>
-      <CalendarNavbar 
-        onPreviousDay={handlePreviousDay} 
-        onNextDay={handleNextDay} 
-      />
+      
       <div className={styles.viewContainer}>
         <div className={styles.roomContainer}>
           {combinedRooms.map((room, index) => (

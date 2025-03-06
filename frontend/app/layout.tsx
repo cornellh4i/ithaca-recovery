@@ -77,6 +77,7 @@ export default async function RootLayout({ children }: PropsWithChildren) {
   if (!account) {
     redirect(await authProvider.getAuthCodeUrl(loginRequest, getCurrentUrl()));
   }
+  
 
   return (
     <html lang="en">
