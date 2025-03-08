@@ -426,19 +426,16 @@ const App = () => {
 
   const generateZoomLink = async (selectedZoomAccount: string) => {
     try {
-      // Construct request body
       const zoomAccIdStr = selectedZoomAccount.replace("Zoom Email ", "");
       const zoomAccId = parseInt(zoomAccIdStr);
       const requestBody = { zoomAccId }; 
   
-      // Make the API request
       const response = await fetch('/api/zoom/CreateMeeting', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(requestBody),
       });
   
-      // Handle the response
       if (!response.ok) {
         throw new Error(`HTTP error! Status: ${response.status}`);
       }
@@ -446,7 +443,7 @@ const App = () => {
       const zoomResponse = await response.json();
       console.log("Zoom Meeting Created:", zoomResponse);
       alert("Zoom meeting link generated successfully!");
-      return zoomResponse; // Return response for further processing if needed
+      return zoomResponse; 
   
     } catch (error) {
       console.error("Error generating Zoom link:", error);
