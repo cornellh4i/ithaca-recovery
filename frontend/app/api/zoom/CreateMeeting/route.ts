@@ -4,7 +4,6 @@ import { NextApiRequest, NextApiResponse } from 'next/types'
 import { POST as getZoomToken } from '../generateToken'
 import getZoomMeeting from '../GetMeeting/asyncFunction'
 
-// function for POST request to create a zoom meeting
 const createZoomMeeting = async (req: Request, res: NextApiResponse) => {
   try {
     const token = await getZoomToken(req.clone(), res);

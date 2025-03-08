@@ -70,7 +70,7 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({
         {descriptionTextField}
       </div>
       <button className={styles.createMeetingButton} onClick={generateMeetingLink}>
-        generateMeetingLink
+        Generate Meeting Link
       </button>
       <br/>
       <br/>
