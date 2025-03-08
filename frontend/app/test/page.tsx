@@ -793,7 +793,25 @@ const App = () => {
             title="Calendar Day"
             primaryColor="#8A56E2"
             meetingId=""
-            date={3}
+            date={8}
+            view="monthly"
+            meetings={[
+              { time: "7am", title: "Meeting Name", id: "meet-1", room: "room-1" },
+              { time: "7am", title: "Meeting Name", id: "meet-2", room: "room-1" },
+              { time: "10am", title: "Meeting Name", id: "meet-3", room: "room-1" },
+              { time: "10am", title: "Meeting Name", id: "meet-4", room: "room-1" },
+              { time: "9pm", title: "Meeting Name", id: "meet-5", room: "room-1" },
+            ]}
+            onClick={(meetingId) =>
+              console.log(`Meeting clicked: ${meetingId}`)
+            }
+          />
+          <BoxText
+            boxType="Calendar Day"
+            title="Calendar Day"
+            primaryColor="#8A56E2"
+            meetingId=""
+            date={12}
             view="monthly"
             meetings={[
               { time: "9pm", title: "Meeting Name", id: "meet-1", room: "room-1" },
@@ -808,24 +826,7 @@ const App = () => {
               console.log(`Meeting clicked: ${meetingId}`)
             }
           />
-          <BoxText
-            boxType="Calendar Day"
-            title="Calendar Day"
-            primaryColor="#8A56E2"
-            meetingId=""
-            date={8}
-            view="monthly"
-            meetings={[
-              { time: "7am", title: "Meeting Name", id: "meet-1", room: "room-1" },
-              { time: "7am", title: "Meeting Name", id: "meet-2", room: "room-1" },
-              { time: "10am", title: "Meeting Name", id: "meet-3", room: "room-1" },
-              { time: "10am", title: "Meeting Name", id: "meet-4", room: "room-1" },
-              { time: "9pm", title: "Meeting Name", id: "meet-5", room: "room-1" },
-            ]}
-            onClick={(meetingId) =>
-              console.log(`Meeting clicked: ${meetingId}`)
-            }
-          />
+          
         </div>
       </div>
     </div>

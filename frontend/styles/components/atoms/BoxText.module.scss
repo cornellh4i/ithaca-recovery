@@ -83,35 +83,38 @@
   width: auto;
   height: 192.6px;
   padding: 12px 8px 12px 8px;
-  gap:10px;
+  gap: 10px;
   background-color: white;
-  border: 1px solid #CECECE; 
+  border: 1px solid #CECECE;
   display: flex;
   flex-direction: column;
   font-family: "Source Sans Pro";
 }
 
-.dateNumber {
-  width: auto;
-  height: 30px;
-  padding: 4px 4px;
-  text-align: right;
-  font-size: 20px;
-  font-weight: 600;
-  color: black;
-  border-radius: 2px;
-}
-// make less repetitive
-.todayNumber {
+%dateNumberBase {
   width: 30px;
   height: 30px;
   padding: 4px 4px;
-  text-align: right;
+  text-align: center;
   font-size: 20px;
   font-weight: 600;
+  border-radius: 2px;
+  align-self: flex-end;
+}
+
+.dateNumber {
+  @extend %dateNumberBase;
+  color: black;
+}
+
+.todayNumber {
+  @extend %dateNumberBase;
   color: white;
   background-color: #CC3366;
-  border-radius: 2px;
+}
+
+.pastDay {
+  opacity: 0.6;
 }
 
 .meetingsList {
@@ -124,8 +127,8 @@
 }
 
 .meetingItem {
-  width:190px;
-  height:auto;
+  width: 190px;
+  height: auto;
   border-radius: 6px;
   padding: 2px 5px 2px 5px;
   font-size: 13px;
@@ -151,5 +154,5 @@
   font-weight: 600;
   padding: 2px 10px 2px 8px;
   border-radius: 6px;
-  gap:10px;
+  gap: 10px;
 }
