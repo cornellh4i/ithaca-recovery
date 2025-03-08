@@ -2,17 +2,25 @@ import React from "react";
 import styles from '../../../../styles/components/atoms/BoxText.module.scss';
 
 interface BoxProps {
-  boxType: 'Meeting Block' | 'Room Block';
+  boxType: 'Meeting Block' | 'Room Block' | "Calendar Day";
   title: string;
   primaryColor: string;
   time?: string; // For Meeting Block
   tags?: string[]; // For badges like "Hybrid", "AA"
   meetingId: string;
+  date?: number;
+  view?: 'monthly' | 'weekly' | 'daily';
+  meetings?: Array<{
+    time: string;
+    title: string;
+    room: string;
+    id: string;
+  }>;
   onClick: (meetingId: string, e: React.MouseEvent<HTMLDivElement, MouseEvent>) => void;
   [key: string]: any;
 };
 
-const BoxText: React.FC<BoxProps> = ({ boxType, title, primaryColor, time, tags, meetingId, onClick }) => {
+const BoxText: React.FC<BoxProps> = ({ boxType, title, primaryColor, time, tags, meetingId, view, meetings, room, id, date, onClick }) => {
 
   // Function to convert hex to RGB
   const hexToRgb = (hex: string) => {
@@ -56,9 +64,66 @@ const BoxText: React.FC<BoxProps> = ({ boxType, title, primaryColor, time, tags,
   };
 
   const bgColor =
-    boxType === 'Meeting Block'
-      ? toPastelColor(primaryColor)
-      : primaryColor;
+  boxType === 'Meeting Block'
+    ? toPastelColor(primaryColor)
+    : primaryColor;
+
+    if (boxType === 'Calendar Day' && view === 'monthly' && meetings?.length != null) {
+      const sortedMeetings = [...meetings].sort((a, b) => {
+        const timeA = a.time.toLowerCase();
+        const timeB = b.time.toLowerCase();
+        
+        const isAMA = timeA.includes('am');
+        const isPMA = timeA.includes('pm');
+        const isAMB = timeB.includes('am');
+        const isPMB = timeB.includes('pm');
+        
+        const hourA = parseInt(timeA.match(/\d+/)[0], 10);
+        const hourB = parseInt(timeB.match(/\d+/)[0], 10);
+        
+        let hour24A = hourA;
+        if (isPMA && hourA < 12) hour24A += 12;
+        if (isAMA && hourA === 12) hour24A = 0;
+        
+        let hour24B = hourB;
+        if (isPMB && hourB < 12) hour24B += 12;
+        if (isAMB && hourB === 12) hour24B = 0;
+        
+        return hour24A - hour24B;
+      });
+      
+      const maxMeetingsVisible = sortedMeetings.length > 5 ? 4 : 5;
+      const visibleMeetings = sortedMeetings.slice(0, maxMeetingsVisible);
+      const hasMoreMeetings = sortedMeetings.length > maxMeetingsVisible;
+      const moreCount = sortedMeetings.length - maxMeetingsVisible;
+    
+      return (
+        <div className={styles.calendarDay}>
+          <div className={styles.dateNumber}>{date}</div>
+          <div className={styles.meetingsList}>
+            {visibleMeetings.map((meeting, index) => (
+              <div 
+                key={index} 
+                className={styles.meetingItem}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onClick(meeting.id, e);
+                }}
+                style={{ backgroundColor: "#E8F8D5", borderLeft: "6px solid #B3EA75" }}
+              >
+                <span className={styles.meetingTime}>{meeting.time}</span>
+                <span className={styles.meetingTitle}>{meeting.title}</span>
+              </div>
+            ))}
+            {hasMoreMeetings && (
+              <div className={styles.moreMeetings}>
+                {moreCount} more
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
 
   return (
     <div
