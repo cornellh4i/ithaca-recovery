@@ -92,7 +92,7 @@
 }
 
 .dateNumber {
-  width: 30px;
+  width: auto;
   height: 30px;
   padding: 4px 4px;
   text-align: right;
@@ -120,38 +120,36 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
-  padding: 2px 8px 2px;
+  padding: 2px 2px 8px;
 }
 
 .meetingItem {
   width:190px;
   height:auto;
   border-radius: 6px;
-  padding: 2px 10px 2px 10px;
+  padding: 2px 5px 2px 5px;
   font-size: 13px;
+  display: flex;
+  gap: 4px;
+  box-shadow: 0px 0px 3.66px 0 rgba(0, 0, 0, 0.25);
 }
 
 .meetingTime {
-  color: #666;
-  min-width: 32px;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 400;
+  color: #3A3E49;
 }
 
 .meetingTitle {
-  flex: 1;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  margin-left: 4px;
-  font-size: 12px;
   font-weight: 600;
-  color: #000;
+  font-size: 13px;
+  color: #1e1e1e;
 }
 
 .moreMeetings {
-  font-size: 11px;
-  color: #666;
-  padding: 2px 4px;
-  margin-left: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 2px 10px 2px 8px;
+  border-radius: 6px;
+  gap:10px;
 }
