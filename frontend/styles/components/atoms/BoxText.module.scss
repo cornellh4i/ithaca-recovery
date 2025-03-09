@@ -80,26 +80,37 @@
 
 // Calendar Day styling for monthly view
 .calendarDay {
-  width: auto;
+  display: inline-flex;
   height: 192.6px;
-  padding: 12px 8px 12px 8px;
-  gap: 10px;
-  background-color: white;
-  border: 1px solid #CECECE;
-  display: flex;
+  max-width: 206.86px;
+  padding: 12px 8px 12px 0px;
   flex-direction: column;
-  font-family: "Source Sans Pro";
+  align-items: flex-end;
+  gap: 10px;
+  flex-shrink: 0;
+  border: 1px solid var(--Light-Grey, #CECECE);
+  background: #FFF; 
 }
 
 %dateNumberBase {
+  display: flex;
   width: 30px;
   height: 30px;
-  padding: 4px 4px;
-  text-align: center;
-  font-size: 20px;
-  font-weight: 600;
+  padding: 0px 6px;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
   border-radius: 2px;
-  align-self: flex-end;
+  box-sizing: border-box;
+
+  /* H4 */
+  font-family: "Source Sans Pro";
+  font-size: 20px;
+  font-style: normal;
+  font-weight: 600;
+  line-height: normal;
 }
 
 .dateNumber {
@@ -110,7 +121,7 @@
 .todayNumber {
   @extend %dateNumberBase;
   color: white;
-  background-color: #CC3366;
+  background-color: var(--Dark-Pink, #C36);
 }
 
 .pastDay {
@@ -118,41 +129,77 @@
 }
 
 .meetingsList {
-  width: 100%;
-  height: auto;
   display: flex;
+  padding: 2px 0px 2px 8px;
   flex-direction: column;
+  align-items: flex-start;
   gap: 4px;
-  padding: 2px 2px 8px;
+  align-self: stretch;
 }
 
 .meetingItem {
-  width: 190px;
-  height: auto;
-  border-radius: 6px;
-  padding: 2px 5px 2px 5px;
-  font-size: 13px;
   display: flex;
+  width: 190px;
+  max-width: 100%;
+  padding: 2px 10px;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 16px;
+  border-radius: 6px;
+  border-left: 6px solid var(--Calendar-Green, #B3EA75);
+  background: #E8F8D5;
+  box-shadow: 0px 0px 3.656px 0px rgba(0, 0, 0, 0.25);
+  box-sizing: border-box;
+}
+
+.eventDetails {
+  display: flex;
+  align-items: center;
   gap: 4px;
-  box-shadow: 0px 0px 3.66px 0 rgba(0, 0, 0, 0.25);
+  align-self: stretch;
+  width: 100%;
+  overflow: hidden;
 }
 
 .meetingTime {
+  color: var(--Dark-Navy, #3A3E49);
+  margin-right: 4px;
+
+  /* Body 4/regular */
+  font-family: "Source Sans Pro";
   font-size: 13px;
+  font-style: normal;
   font-weight: 400;
-  color: #3A3E49;
+  line-height: normal;
 }
 
 .meetingTitle {
-  font-weight: 600;
+  overflow: hidden;
+  color: var(--Black, #1E1E1E);
+  text-overflow: ellipsis;
+
+  /* Body 4/semibold */
+  font-family: "Source Sans Pro";
   font-size: 13px;
-  color: #1e1e1e;
+  font-style: normal;
+  font-weight: 600;
+  line-height: normal;
 }
 
 .moreMeetings {
-  font-size: 13px;
-  font-weight: 600;
+  display: flex;
   padding: 2px 10px 2px 8px;
-  border-radius: 6px;
+  align-items: center;
   gap: 10px;
+  align-self: stretch;
+  border-radius: 6px;
+  color: #000;
+
+  /* Body 4/semibold */
+  font-family: "Source Sans Pro";
+  font-size: 13px;
+  font-style: normal;
+  font-weight: 600;
+  line-height: normal;
 }

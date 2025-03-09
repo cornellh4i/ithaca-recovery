@@ -157,8 +157,10 @@ const BoxText: React.FC<BoxProps> = ({
                 borderLeft: "6px solid #B3EA75",
               }}
             >
-              <span className={styles.meetingTime}>{meeting.time}</span>
-              <span className={styles.meetingTitle}>{meeting.title}</span>
+              <div className="eventDetails">
+                <span className={styles.meetingTime}>{meeting.time}</span>
+                <span className={styles.meetingTitle}>{meeting.title}</span>
+              </div>
             </div>
           ))}
           {hasMoreMeetings && (
