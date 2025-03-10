@@ -793,7 +793,7 @@ const App = () => {
             title="Calendar Day"
             primaryColor="#8A56E2"
             meetingId=""
-            date={8}
+            date={9}
             view="monthly"
             meetings={[
               { time: "7am", title: "Meeting Name", id: "meet-1", room: "room-1" },
@@ -811,16 +811,16 @@ const App = () => {
             title="Calendar Day"
             primaryColor="#8A56E2"
             meetingId=""
-            date={12}
+            date={11}
             view="monthly"
             meetings={[
-              { time: "9pm", title: "Meeting Name", id: "meet-1", room: "room-1" },
-              { time: "3pm", title: "Meeting Name", id: "meet-2", room: "room-1" },
-              { time: "12am", title: "Meeting Name", id: "meet-3", room: "room-1" },
-              { time: "7am", title: "Meeting Name", id: "meet-4", room: "room-1" },
-              { time: "9am", title: "Meeting Name", id: "meet-5", room: "room-1" },
-              { time: "9pm", title: "Meeting Name", id: "meet-5", room: "room-1" },
-              { time: "12pm", title: "Meeting Name", id: "meet-5", room: "room-1" },
+              { time: "12am", title: "Meeting Name", id: "meet-1", room: "Serenity Room" },
+              { time: "7am", title: "Meeting Name", id: "meet-2", room: "Seeds of Hope" },
+              { time: "12am", title: "Meeting Name", id: "meet-3", room: "Unity Room" },
+              { time: "7pm", title: "Meeting Name", id: "meet-4", room: "Serenity Room" },
+              { time: "9am", title: "Meeting Name", id: "meet-5", room: "Serenity Room" },
+              { time: "9pm", title: "Meeting Name", id: "meet-5", room: "Serenity Room" },
+              { time: "12pm", title: "Meeting Name", id: "meet-5", room: "Serenity Room" },
             ]}
             onClick={(meetingId) =>
               console.log(`Meeting clicked: ${meetingId}`)

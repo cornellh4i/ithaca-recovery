@@ -87,7 +87,7 @@ const BoxText: React.FC<BoxProps> = ({
   };
 
   const bgColor =
-    boxType === "Meeting Block" ? toPastelColor(primaryColor) : primaryColor;
+    boxType === "Meeting Block" || "Calendar Day" ? toPastelColor(primaryColor) : primaryColor;
 
   const isToday = () => {
     if (!date) return false;
@@ -144,25 +144,31 @@ const BoxText: React.FC<BoxProps> = ({
           {date}
         </div>
         <div className={styles.meetingsList}>
-          {visibleMeetings.map((meeting, index) => (
-            <div
-              key={index}
-              className={styles.meetingItem}
-              onClick={(e) => {
-                e.stopPropagation();
-                onClick(meeting.id, e);
-              }}
-              style={{
-                backgroundColor: "#E8F8D5",
-                borderLeft: "6px solid #B3EA75",
-              }}
-            >
-              <div className="eventDetails">
-                <span className={styles.meetingTime}>{meeting.time}</span>
-                <span className={styles.meetingTitle}>{meeting.title}</span>
+          {visibleMeetings.map((meeting, index) => {
+
+            const roomColor = primaryColor;
+            const meetingBgColor = toPastelColor(roomColor);
+            
+            return (
+              <div
+                key={index}
+                className={styles.meetingItem}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onClick(meeting.id, e);
+                }}
+                style={{
+                  backgroundColor: meetingBgColor,
+                  borderLeft: `7px solid ${roomColor}`,
+                }}
+              >
+                <div className="eventDetails">
+                  <span className={styles.meetingTime}>{meeting.time}</span>
+                  <span className={styles.meetingTitle}>{meeting.title}</span>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
           {hasMoreMeetings && (
             <div className={styles.moreMeetings}>{moreCount} more</div>
           )}
