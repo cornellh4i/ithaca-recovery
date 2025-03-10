@@ -4,9 +4,10 @@ import styles from "../../../../styles/components/organisms/CalendarNavbar.modul
 type CalendarNavbarProps = {
     onPreviousDay: () => void;
     onNextDay: () => void;
+    onToday: () => void;
   };
   
-const CalendarNavbar: React.FC<CalendarNavbarProps> = ({ onPreviousDay, onNextDay }) => {
+const CalendarNavbar: React.FC<CalendarNavbarProps> = ({ onPreviousDay, onNextDay, onToday }) => {
     const [currentDate, setCurrentDate] = useState(new Date());
     const [selectedView, setSelectedView] = useState('Day');
   
@@ -104,7 +105,7 @@ const CalendarNavbar: React.FC<CalendarNavbarProps> = ({ onPreviousDay, onNextDa
     const handleToday = () => {
       setSelectedView("Day");
       setCurrentDate(new Date());
-      // onToday(); // Call the external function as well
+      onToday(); // Call the external function as well
     };
   
     const handleCombinedPrevious = () => {
