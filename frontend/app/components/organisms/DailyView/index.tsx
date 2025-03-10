@@ -139,6 +139,13 @@ const DailyView: React.FC<DailyViewProps> = ({ setSelectedMeetingID, setSelected
     setCurrentDate(nextDate);
   };
 
+  const handleToday = () => {
+    console.log("today");
+    const today = new Date(currentDate);
+    today.setDate(today.getDate());
+    setCurrentDate(today);
+  };
+
   useEffect(() => {
     handleDateChange(currentDate);
     updateTimePosition();
@@ -168,6 +175,7 @@ const DailyView: React.FC<DailyViewProps> = ({ setSelectedMeetingID, setSelected
       <CalendarNavbar 
         onPreviousDay={handlePreviousDay} 
         onNextDay={handleNextDay} 
+        onToday={handleToday} 
       />
       <div className={styles.viewContainer}>
         <div className={styles.roomContainer}>

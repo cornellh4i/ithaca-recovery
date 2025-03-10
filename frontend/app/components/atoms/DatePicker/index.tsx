@@ -26,6 +26,19 @@ const DatePicker = ({ label, value: propValue = '', onChange, underlineOnFocus =
     return day >= 1 && day <= daysInMonth[month - 1];
   };
 
+  const isValidDate2 = (dateString: string): boolean => {
+    const regex1 = /([a-zA-Z]+)\s(\d{1,2})\s*,?\s*(\d{4})/
+    const regex2 = /([a-zA-Z]+)\s(\d{1,2})/
+    const regex3 = /(\d{2})\/(\d{2})/
+    if (!(regex1.test(dateString) || regex2.test(dateString) || regex3.test(dateString))) return false;
+
+    const [month, day, year] = dateString.split('/').map(Number);
+    if (month < 1 || month > 12) return false;
+
+    const daysInMonth = [31, (year % 4 === 0 && year % 100 !== 0) || (year % 400 === 0) ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+    return day >= 1 && day <= daysInMonth[month - 1];
+  };
+
   const formatDate = (dateString: string): string => {
     const [month, day, year] = dateString.split('/').map(Number);
     const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
@@ -82,7 +95,6 @@ const DatePicker = ({ label, value: propValue = '', onChange, underlineOnFocus =
 
     return "";
   };  
-  
 
   useEffect(() => {
     if (propValue !== internalValue) {
@@ -98,6 +110,14 @@ const DatePicker = ({ label, value: propValue = '', onChange, underlineOnFocus =
 
   const handleFocus = () => {
     setIsFocused(true);
+    if (isValidDate2(internalValue)) {
+      const formattedDate = stringToDate(internalValue);
+      setInternalValue(formattedDate); 
+      onChange(formattedDate); 
+    } else {
+      setInputError('Invalid date format. Please enter a valid date in MM/DD/YYYY format.');
+    }
+
     setInputError(null); // Clear error on focus
   };
 
