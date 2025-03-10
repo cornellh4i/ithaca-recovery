@@ -793,7 +793,7 @@ const App = () => {
             title="Calendar Day"
             primaryColor="#8A56E2"
             meetingId=""
-            date={9}
+            date={10}
             view="monthly"
             meetings={[
               { time: "7am", title: "Meeting Name", id: "meet-1", room: "room-1" },

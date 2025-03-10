@@ -146,8 +146,7 @@ const BoxText: React.FC<BoxProps> = ({
         <div className={styles.meetingsList}>
           {visibleMeetings.map((meeting, index) => {
 
-            const roomColor = primaryColor;
-            const meetingBgColor = toPastelColor(roomColor);
+            const meetingBgColor = toPastelColor(primaryColor);
             
             return (
               <div
@@ -159,7 +158,7 @@ const BoxText: React.FC<BoxProps> = ({
                 }}
                 style={{
                   backgroundColor: meetingBgColor,
-                  borderLeft: `7px solid ${roomColor}`,
+                  borderLeft: `7px solid ${primaryColor}`,
                 }}
               >
                 <div className="eventDetails">
