@@ -1,0 +1,120 @@
+@import '../../Variables.module.scss';
+
+.editMeetingSidebar {
+  background-color: #ffffff;
+  width: 100%;
+  height: auto;
+  margin: 0 auto; 
+  border-radius: 0;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+
+  h1 {
+    font-family: 'Source Sans Pro', sans-serif;
+    font-size: 24px;
+    font-weight: 600;
+    margin: 0;
+  }
+
+  .closeButton {
+    background: none;
+    border: none;
+    padding: 8px;
+    cursor: pointer;
+    color: $black-color;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: background-color 0.2s;
+
+    &:hover {
+      background-color: #F1F1F1;
+    }
+  }
+}
+
+.meetingButtons {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  margin-bottom: 16px;
+  gap: 12px;
+}
+
+.dummyComponent {
+  margin-bottom: 16px;
+}
+
+.buttonGroup {
+  display: flex;
+  gap: 16px;
+  margin-top: 24px;
+
+  button {
+    flex: 1;
+    padding: 10px 0;
+    border-radius: 8px;
+    font-family: 'Source Sans Pro', sans-serif;
+    font-weight: 600;
+    font-size: 18px;
+    line-height: 22.63px;
+    cursor: pointer;
+    text-align: center;
+  }
+}
+
+.cancelButton {
+  background-color: #ffffff;
+  color: $dark-pink-color;
+  border: 2px solid $dark-pink-color;
+
+  &:hover {
+    background-color: rgba($dark-pink-color, 0.05);
+  }
+}
+
+.createMeetingButton {
+  background-color: $dark-pink-color;
+  color: #fff;
+  border: none;
+
+  &:hover {
+    background-color: darken($dark-pink-color, 5%);
+  }
+}
+
+.button {
+  background: none;
+  border: none;
+  font-family: 'Source Sans Pro', sans-serif;
+  font-size: 16px;
+  color: $black-color;
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  flex: 1;
+
+  &:hover {
+    background-color: #F1F1F1;
+  }
+}
+
+.buttonActive {
+  background-color: #F1F1F1;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .editMeetingSidebar {
+    width: 100%;
+    height: auto;
+    padding: 20px;
+  }
+}

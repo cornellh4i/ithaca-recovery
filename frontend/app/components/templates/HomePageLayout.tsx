@@ -3,8 +3,9 @@ import React, { useContext, useState, useEffect } from 'react';
 import styles from "../../../styles/HomePageLayout.module.scss";
 import CalendarSidebar from "../organisms/CalendarSidebar";
 import ViewMeetingDetails from "../organisms/ViewMeeting";
-
 import DailyView from "../organisms/DailyView/index";
+import EditMeeting from "../organisms/EditMeeting";
+
 
 // Define the type for selectedMeeting to match ViewMeetingDetailsProps
 type MeetingDetails = {
@@ -20,6 +21,7 @@ type MeetingDetails = {
   zoomLink?: string;
   zid?: string;
   type: string;
+  format: string;
   room: string;
   recurrence?: string;
 };
@@ -28,21 +30,23 @@ const HomePage = () => {
   // Define selectedMeeting state with MeetingDetails type or null
   const [selectedMeeting, setSelectedMeeting] = useState<MeetingDetails | null>(null);
   const [selectedMeetingID, setSelectedMeetingID] = useState<string | null>(null);
-  const [selectedNewMeeting, setSelectedNewMeeting] = useState<boolean| null>(false); 
+  const [selectedNewMeeting, setSelectedNewMeeting] = useState<boolean | null>(false);
+  const [showEditMeeting, setShowEditMeeting] = useState(false);
   const [inputMeetingTitleValue, setMeetingTitleValue] = useState(""); // Meeting title
   const [dateValue, setDateValue] = useState<string>(""); // Initial date value as empty
   const [timeValue, setTimeValue] = useState<string>(""); // Initial time range as empty
   const [freqValue, setFreqValue] = useState<string>("Never"); // Default frequency value
   const [inputEmailValue, setEmailValue] = useState(""); // Email input value
   const [inputDescriptionValue, setDescriptionValue] = useState(""); // Description input value
-  
+
   const roomOptions = [
     "Serenity Room",
     "Seeds of Hope",
     "Unity Room",
     "Room for Improvement",
     "Small but Powerful - Right",
-    "Small but Powerful - Left"
+    "Small but Powerful - Left",
+
   ];
   const meetingTypeOptions = [
     "AA",
@@ -89,7 +93,7 @@ const HomePage = () => {
     }
   }, [selectedMeetingID]);
 
-  
+
   const handleBack = () => {
     setSelectedMeeting(null);
     setSelectedMeetingID(null);
@@ -100,16 +104,22 @@ const HomePage = () => {
     setSelectedNewMeeting(false);
   };
 
-  const handleEdit = () => console.log("Edit meeting");
-  const handleDelete = async (mid : string) => {
+  const handleEdit = () => {
+    setShowEditMeeting(true);
+  };
+  const handleCloseEdit = () => {
+    // Hide the edit sidebar
+    setShowEditMeeting(false);
+  };
+  const handleDelete = async (mid: string) => {
     try {
       const response = await fetch('/api/delete/meeting', {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ 
-          mid 
+        body: JSON.stringify({
+          mid
         }),
       });
       console.log("checking if response is ok")
@@ -124,16 +134,29 @@ const HomePage = () => {
       const meetingResponse = await response.json();
       console.log(meetingResponse);
       alert("Meeting deleted successfully! Please check the Meeting collection on MongoDB.")
-    
+
     } catch (error) {
       console.error('There was an error fetching the data:', error);
     }
   };
 
+
   return (
     <div className={styles.container}>
       <div className={styles.sidebar}>
-        {selectedMeeting ? (
+        {showEditMeeting && selectedMeeting ? (
+          <EditMeeting
+            meeting={selectedMeeting}
+            onClose={handleCloseEdit}
+            onUpdateSuccess={() => {
+              console.log("Meeting updated!");
+              // Refresh the meeting data after successful update
+              if (selectedMeeting.mid) {
+                fetchMeetingDetails(selectedMeeting.mid);
+              }
+            }}
+          />) :
+          selectedMeeting ? (
             // Render ViewMeetingDetails if a meeting is selected
             <ViewMeetingDetails
               id={selectedMeeting.id}
@@ -154,10 +177,10 @@ const HomePage = () => {
               onEdit={handleEdit}
               onDelete={handleDelete}
             />
-        ) : (
+          ) : (
             // Render CalendarSidebar if no meeting is selected
             <CalendarSidebar />
-          )  
+          )
         }
       </div>
       <div className={styles.primaryCalendar}>
