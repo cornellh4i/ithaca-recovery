@@ -428,6 +428,10 @@ const App = () => {
     try {
       const zoomAccIdStr = selectedZoomAccount.replace("Zoom Email ", "");
       const zoomAccId = parseInt(zoomAccIdStr);
+      const meetingStartTime = timeValue.split('-');
+      // const duration = 
+      // const isRecurring = 
+      // const topic = inputMeetingTitleValue
       const requestBody = { zoomAccId }; 
   
       const response = await fetch('/api/zoom/CreateMeeting', {
