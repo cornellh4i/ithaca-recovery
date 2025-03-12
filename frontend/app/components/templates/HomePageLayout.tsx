@@ -1,12 +1,11 @@
 "use client";
-import React, { useContext, useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import styles from "../../../styles/HomePageLayout.module.scss";
+import CalendarNavbar from "../organisms/CalendarNavbar";
 import CalendarSidebar from "../organisms/CalendarSidebar";
 import ViewMeetingDetails from "../organisms/ViewMeeting";
+import DailyView from "../organisms/DailyView";
 
-import DailyView from "../organisms/DailyView/index";
-
-// Define the type for selectedMeeting to match ViewMeetingDetailsProps
 type MeetingDetails = {
   id: string;
   mid: string;
@@ -24,8 +23,9 @@ type MeetingDetails = {
   recurrence?: string;
 };
 
+
 const HomePage = () => {
-  // Define selectedMeeting state with MeetingDetails type or null
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedMeeting, setSelectedMeeting] = useState<MeetingDetails | null>(null);
   const [selectedMeetingID, setSelectedMeetingID] = useState<string | null>(null);
   const [selectedNewMeeting, setSelectedNewMeeting] = useState<boolean| null>(false); 
@@ -89,45 +89,35 @@ const HomePage = () => {
     }
   }, [selectedMeetingID]);
 
-  
   const handleBack = () => {
     setSelectedMeeting(null);
     setSelectedMeetingID(null);
     setSelectedNewMeeting(false);
   };
 
-  const handleCloseNewMeeting = () => {
-    setSelectedNewMeeting(false);
-  };
-
   const handleEdit = () => console.log("Edit meeting");
-  const handleDelete = async (mid : string) => {
+
+  const handleDelete = async (mid: string) => {
     try {
-      const response = await fetch('/api/delete/meeting', {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ 
-          mid 
-        }),
+      const response = await fetch("/api/delete/meeting", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mid }),
       });
-      console.log("checking if response is ok")
+
       if (!response.ok) {
-        alert("Error : Unsuccesful delete")
+        alert("Error: Unsuccessful delete");
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      console.log("setting usestate to null 1")
-      setSelectedMeeting(null);
-      console.log("setting usestate to null 2")
 
-      const meetingResponse = await response.json();
-      console.log(meetingResponse);
-      alert("Meeting deleted successfully! Please check the Meeting collection on MongoDB.")
-    
+      setSelectedMeeting(null);
+      alert("Meeting deleted successfully!");
     } catch (error) {
-      console.error('There was an error fetching the data:', error);
+      console.error("Error deleting the meeting:", error);
     }
+  };
+  const handleCloseNewMeeting = () => {
+    setSelectedNewMeeting(false);
   };
 
   const [filters, setFilters] = useState({
@@ -152,16 +142,48 @@ const HomePage = () => {
   return (
     <div className={styles.container}>
       <div className={styles.sidebar}>
-        <CalendarSidebar 
-          filters={filters}
-          setFilters={setFilters}/>
+        {selectedMeeting ? (
+          <ViewMeetingDetails
+            id={selectedMeeting.id}
+            mid={selectedMeeting.mid}
+            title={selectedMeeting.title}
+            description={selectedMeeting.description}
+            creator={selectedMeeting.creator}
+            group={selectedMeeting.group}
+            startDateTime={new Date(selectedMeeting.startDateTime)}
+            endDateTime={new Date(selectedMeeting.endDateTime)}
+            zoomAccount={selectedMeeting.zoomAccount}
+            zoomLink={selectedMeeting.zoomLink}
+            zid={selectedMeeting.zid}
+            type={selectedMeeting.type}
+            room={selectedMeeting.room}
+            recurrence={selectedMeeting.recurrence}
+            onBack={handleBack}
+            onEdit={handleEdit}
+            onDelete={() => handleDelete(selectedMeeting.mid)}
+          />
+        ) : (
+          <CalendarSidebar 
+            filters={filters}
+            setFilters={setFilters}
+            selectedDate={selectedDate} 
+            setSelectedDate={setSelectedDate} />
+        )}
       </div>
       <div className={styles.primaryCalendar}>
-        {/* Pass setSelectedMeetingID to DailyView for interaction */}
+        <CalendarNavbar
+          selectedDate={selectedDate}
+          onPreviousDay={() => setSelectedDate(new Date(selectedDate.setDate(selectedDate.getDate() - 1)))}
+          onNextDay={() => setSelectedDate(new Date(selectedDate.setDate(selectedDate.getDate() + 1)))}
+          onDateChange={setSelectedDate}
+        />
         <DailyView 
+          filters={filters}
+          selectedDate={selectedDate} 
+          setSelectedDate={setSelectedDate} 
           setSelectedMeetingID={setSelectedMeetingID} 
           setSelectedNewMeeting={setSelectedNewMeeting} 
-          filters={filters} />
+        />
       </div>
     </div>
   );

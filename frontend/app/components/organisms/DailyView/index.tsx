@@ -2,7 +2,6 @@ import React, { useEffect, useState } from "react";
 import styles from '../../../../styles/organisms/DailyView.module.scss';
 import BoxText from '../../atoms/BoxText';
 import DailyViewRow from "../../molecules/DailyViewRow";
-import CalendarNavbar from "../CalendarNavbar";
 
 type Meeting = {
   id: string;
@@ -93,122 +92,17 @@ const defaultRooms = [
   { name: 'Zoom Account 3', primaryColor: '#cecece' },
   { name: 'Zoom Account 4', primaryColor: '#cecece' },
 ];
-
 interface DailyViewProps {
+  filters: any;
+  selectedDate: Date;
+  setSelectedDate: (date: Date) => void;
   setSelectedMeetingID: (meetingId: string) => void;
   setSelectedNewMeeting: (newMeetingExists: boolean) => void;
-  filters: any;
 }
 
-const DailyView: React.FC<DailyViewProps> = ({ setSelectedMeetingID, setSelectedNewMeeting, filters }) => {
+const DailyView: React.FC<DailyViewProps> = ({ filters, selectedDate, setSelectedDate, setSelectedMeetingID, setSelectedNewMeeting }) => {
   const [currentTimePosition, setCurrentTimePosition] = useState(0);
   const [meetings, setMeetings] = useState<Room[]>([]);
-  const [currentDate, setCurrentDate] = useState(getTodayDate());
-
-  const fetchMeetingsByDay = async (date: Date): Promise<Room[]> => {
-    const formattedDate = date.toISOString().split('T')[0];
-    if (meetingCache.has(formattedDate)) {
-      const cachedData = meetingCache.get(formattedDate) || [];
-      const filteredCachedData: Room[] = [];
-
-      cachedData.forEach((room) => {
-        const filteredMeetings: Meeting[] = [];
-
-        const roomEnabled = filters[room.name.replace(/[-\s]+/g, '').replace(/\s+/g, '')] !== false;
-
-        if (roomEnabled) {
-          room.meetings.forEach((meeting) => {
-            // Check Calendar Filters
-            const groupName = meeting.tags[1].replace(/[-\s]+/g, '');
-
-            const typeEnabled = filters[meeting.tags[0].replace(/\s+/g, '')] !== false;
-            const groupEnabled = filters[groupName] !== false;
-
-            let otherEnabled = true;
-
-            if (groupName !== "AA" && groupName !== "AlAnon") {
-              otherEnabled = filters["Other"];
-            }
-            
-            if (typeEnabled && groupEnabled && otherEnabled) {
-              filteredMeetings.push(meeting);
-            }
-          })
-        }
-        
-        if (filteredMeetings.length > 0) {
-          filteredCachedData.push({ ...room, meetings: filteredMeetings });
-        }
-      });
-
-      return filteredCachedData;
-    }
-  
-    try {
-      const response = await fetch(`/api/retrieve/meeting/day?startDate=${formattedDate}`);
-      const data = await response.json();
-  
-      const groupedRooms: { [key: string]: Meeting[] } = {};
-      data.forEach((meeting: any) => {
-        // Does not add meeting if its room name is filtered
-        if (filters.hasOwnProperty(meeting.room.replace(/[-\s]+/g, '').replace(/\s+/g, '')) && !filters[meeting.room.replace(/[-\s]+/g, '').replace(/\s+/g, '')]) {
-          return;
-        }
-
-        if (filters.hasOwnProperty(meeting.group.replace(/[-\s]+/g, ''))) {
-          if (!filters[meeting.group.replace(/[-\s]+/g, '')]) { 
-            return;
-          }
-        }
-
-        if (filters.hasOwnProperty(meeting.type.replace(/\s+/g, ''))) {
-          if (!filters[meeting.type.replace(/\s+/g, '')]) { 
-            return;
-          }
-        }
-  
-        const roomName = meeting.room;
-        if (!groupedRooms[roomName]) {
-          groupedRooms[roomName] = [];
-        }
-  
-        const start = new Date(meeting.startDateTime.replace("Z", ""));
-        const end = new Date(meeting.endDateTime.replace("Z", ""));
-  
-        groupedRooms[roomName].push({
-          id: meeting._id,
-          title: meeting.title,
-          startTime: start.toLocaleTimeString("en-GB", { hour12: false }),
-          endTime: end.toLocaleTimeString("en-GB", { hour12: false }),
-          tags: [meeting.type, meeting.group],
-        });
-      });
-  
-      const structuredData: Room[] = Object.keys(groupedRooms).map((roomName) => {
-        const defaultRoom = defaultRooms.find((r) => r.name === roomName);
-        return {
-          name: roomName,
-          primaryColor: defaultRoom?.primaryColor || "#ffffff",
-          meetings: groupedRooms[roomName],
-        };
-      });
-  
-      meetingCache.set(formattedDate, structuredData);
-      return structuredData;
-    } catch (error) {
-      console.error("Error fetching meetings:", error);
-      return [];
-    }
-  };
-
-  useEffect(() => {
-    const fetchData = async () => {
-      const data = await fetchMeetingsByDay(currentDate);
-      setMeetings(data);
-    }
-
-    fetchData();
-  }, [filters, currentDate]);
 
   function getTodayDate(): Date {
     const now = new Date();
@@ -231,24 +125,26 @@ const DailyView: React.FC<DailyViewProps> = ({ setSelectedMeetingID, setSelected
   };
 
   const handlePreviousDay = () => {
-    const prevDate = new Date(currentDate);
+    console.log("prev day");
+    const prevDate = new Date(selectedDate);
     prevDate.setDate(prevDate.getDate() - 1);
-    setCurrentDate(prevDate);
+    setSelectedDate(prevDate);
   };
 
   const handleNextDay = () => {
-    const nextDate = new Date(currentDate);
+    console.log("next day");
+    const nextDate = new Date(selectedDate);
     nextDate.setDate(nextDate.getDate() + 1);
-    setCurrentDate(nextDate);
+    setSelectedDate(nextDate);
   };
 
   useEffect(() => {
-    handleDateChange(currentDate);
+    handleDateChange(selectedDate);
     updateTimePosition();
 
     const intervalId = setInterval(updateTimePosition, 60000);
     return () => clearInterval(intervalId);
-  }, [currentDate]);
+  }, [selectedDate]);
   
   // Dummy function for onClick prop
   const handleBoxClick = (meetingId: string) => {
@@ -271,10 +167,6 @@ const DailyView: React.FC<DailyViewProps> = ({ setSelectedMeetingID, setSelected
 
   return (
     <div className={styles.outerContainer}>
-      <CalendarNavbar 
-        onPreviousDay={handlePreviousDay} 
-        onNextDay={handleNextDay} 
-      />
       <div className={styles.viewContainer}>
         <div className={styles.roomContainer}>
           {combinedRooms.map((room, index) => (

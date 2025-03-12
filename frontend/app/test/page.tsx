@@ -632,10 +632,10 @@ const App = () => {
         <ViewMeetingDetails {...sampleMeeting} />
       </div>
 
-      <div className={styles.section}>
+      {/* <div className={styles.section}>
         <h2>Mini Calendar</h2>
         <MiniCalendar />
-      </div>
+      </div> */}
 
     </div>
   );
