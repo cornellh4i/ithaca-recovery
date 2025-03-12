@@ -28,7 +28,7 @@ const MiniCalendar: React.FC<MiniCalendarProps> = ({ selectedDate, onSelect }) =
         selected={selectedDate}
         month={currentMonth}
         onMonthChange={setCurrentMonth}
-        showOutsideDays
+        showOutsideDays={true}
         onSelect={handleDateSelect}
         className={styles.rdpMonth}
         modifiersClassNames={{
