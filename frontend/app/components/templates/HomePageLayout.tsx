@@ -5,6 +5,7 @@ import CalendarNavbar from "../organisms/CalendarNavbar";
 import CalendarSidebar from "../organisms/CalendarSidebar";
 import ViewMeetingDetails from "../organisms/ViewMeeting";
 import DailyView from "../organisms/DailyView";
+
 type MeetingDetails = {
   id: string;
   mid: string;
@@ -22,11 +23,63 @@ type MeetingDetails = {
   recurrence?: string;
 };
 
+
 const HomePage = () => {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedMeeting, setSelectedMeeting] = useState<MeetingDetails | null>(null);
   const [selectedMeetingID, setSelectedMeetingID] = useState<string | null>(null);
-  const [selectedNewMeeting, setSelectedNewMeeting] = useState<boolean | null>(false);
+  const [selectedNewMeeting, setSelectedNewMeeting] = useState<boolean| null>(false); 
+  const [inputMeetingTitleValue, setMeetingTitleValue] = useState(""); // Meeting title
+  const [dateValue, setDateValue] = useState<string>(""); // Initial date value as empty
+  const [timeValue, setTimeValue] = useState<string>(""); // Initial time range as empty
+  const [freqValue, setFreqValue] = useState<string>("Never"); // Default frequency value
+  const [inputEmailValue, setEmailValue] = useState(""); // Email input value
+  const [inputDescriptionValue, setDescriptionValue] = useState(""); // Description input value
+  
+  const roomOptions = [
+    "Serenity Room",
+    "Seeds of Hope",
+    "Unity Room",
+    "Room for Improvement",
+    "Small but Powerful - Right",
+    "Small but Powerful - Left"
+  ];
+  const meetingTypeOptions = [
+    "AA",
+    "Al-Anon",
+    "Other"
+  ];
+
+  const zoomAccountOptions = [
+    "Zoom Email 1",
+    "Zoom Email 2",
+    "Zoom Email 3",
+    "Zoom Email 4"
+  ];
+
+  const handleFileSelect = (file: File | null) => {
+    if (file) {
+      console.log("File selected:", file);
+      // Handle the selected file (e.g., upload it or process it)
+    } else {
+      console.log("No file selected");
+    }
+  };
+
+  const fetchMeetingDetails = async (meetingId: string) => {
+    try {
+      const response = await fetch(`/api/retrieve/meeting/${meetingId}`, { method: 'GET' });
+      if (response.ok) {
+        const data: MeetingDetails = await response.json(); // Ensure data matches MeetingDetails type
+        setSelectedMeeting(data);
+        console.log("Meeting Data:", data);
+      } else {
+        console.error("Failed to fetch meeting details");
+      }
+    } catch (error) {
+      console.error('Error fetching meeting details:', error);
+    }
+  };
 
   useEffect(() => {
     if (selectedMeetingID) {
@@ -36,25 +89,12 @@ const HomePage = () => {
     }
   }, [selectedMeetingID]);
 
-  const fetchMeetingDetails = async (meetingId: string) => {
-    try {
-      const response = await fetch(`/api/retrieve/meeting/${meetingId}`, { method: "GET" });
-      if (response.ok) {
-        const data: MeetingDetails = await response.json();
-        setSelectedMeeting(data);
-      } else {
-        console.error("Failed to fetch meeting details");
-      }
-    } catch (error) {
-      console.error("Error fetching meeting details:", error);
-    }
-  };
-
   const handleBack = () => {
     setSelectedMeeting(null);
     setSelectedMeetingID(null);
     setSelectedNewMeeting(false);
   };
+
   const handleEdit = () => console.log("Edit meeting");
 
   const handleDelete = async (mid: string) => {
@@ -74,14 +114,17 @@ const HomePage = () => {
       alert("Meeting deleted successfully!");
     } catch (error) {
       console.error("Error deleting the meeting:", error);
+
+  const handleCloseNewMeeting = () => {
+    setSelectedNewMeeting(false);
+  };
+
     }
   };
 
   return (
     <div className={styles.container}>
-      {/* ✅ Sidebar with MiniCalendar, Location Filters, and New Meeting Button */}
       <div className={styles.sidebar}>
-
         {selectedMeeting ? (
           <ViewMeetingDetails
             id={selectedMeeting.id}
@@ -106,18 +149,13 @@ const HomePage = () => {
           <CalendarSidebar selectedDate={selectedDate} setSelectedDate={setSelectedDate} />
         )}
       </div>
-
-      {/* ✅ Main Content (Calendar View) */}
       <div className={styles.primaryCalendar}>
-        {/* ✅ Make sure Navbar is rendered only ONCE */}
         <CalendarNavbar
           selectedDate={selectedDate}
           onPreviousDay={() => setSelectedDate(new Date(selectedDate.setDate(selectedDate.getDate() - 1)))}
           onNextDay={() => setSelectedDate(new Date(selectedDate.setDate(selectedDate.getDate() + 1)))}
           onDateChange={setSelectedDate}
         />
-
-        {/* ✅ Ensure DailyView only displays the calendar grid */}
         <DailyView 
           selectedDate={selectedDate} 
           setSelectedDate={setSelectedDate} 
