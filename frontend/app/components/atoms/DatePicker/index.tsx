@@ -32,6 +32,58 @@ const DatePicker = ({ label, value: propValue = '', onChange, underlineOnFocus =
     return `${monthNames[month - 1]} ${day}, ${year}`;
   };
 
+  /**
+ * stringToDate translates a given string text to MM/DD/YYYY form. If the year is not specified, the current year is used.
+ * @param dateString is a string in the form of either "Month day, Year", "Month day Year", "Month day", or MM/DD
+ * @returns string in the form of MM/DD/YYYY
+ */
+
+  const stringToDate = (dateString: string): string => {
+    const currentYear = new Date().getFullYear();
+    const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+    const monthAbbr = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  
+    const getMonthIndex = (month: string): number => {
+      let monthIndex = monthNames.indexOf(month);
+      if (monthIndex === -1) {
+        monthIndex = monthAbbr.indexOf(month);
+      }
+      return monthIndex;
+    };
+  
+    // "Month day, Year" or "Month day Year" -> MM/DD/YYYY
+    const matchFullDate = dateString.match(/([a-zA-Z]+)\s(\d{1,2})\s*,?\s*(\d{4})/);
+    if (matchFullDate) {
+      const month = matchFullDate[1];
+      const day = matchFullDate[2];
+      const year = matchFullDate[3];
+      const monthIndex = getMonthIndex(month);
+      
+      return `${monthNames[monthIndex]} ${Number(day)}, ${Number(year)}`;
+    }
+  
+    // "Month day" -> MM/DD/YYYY
+    const matchMonthDay = dateString.match(/([a-zA-Z]+)\s(\d{1,2})/);
+    if (matchMonthDay) {
+      const month = matchMonthDay[1];
+      const day = matchMonthDay[2];
+      const monthIndex = getMonthIndex(month);
+
+      return `${monthNames[monthIndex]} ${Number(day)}, ${currentYear}`;
+    }
+  
+    // MM/DD -> MM/DD/YYYY
+    const matchMMDD = dateString.match(/(\d{2})\/(\d{2})/);
+    if (matchMMDD) {
+      const month = matchMMDD[1];
+      const day = matchMMDD[2];
+      return `${Number(month)}/${Number(day)}/${currentYear}`;
+    }
+
+    return "";
+  };  
+  
+
   useEffect(() => {
     if (propValue !== internalValue) {
       setInternalValue(propValue);
