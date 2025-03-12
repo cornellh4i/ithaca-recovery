@@ -2,7 +2,6 @@ import React, { useEffect, useState } from "react";
 import styles from '../../../../styles/organisms/DailyView.module.scss';
 import BoxText from '../../atoms/BoxText';
 import DailyViewRow from "../../molecules/DailyViewRow";
-import CalendarNavbar from "../CalendarNavbar";
 
 type Meeting = {
   id: string;
@@ -104,7 +103,6 @@ interface DailyViewProps {
 const DailyView: React.FC<DailyViewProps> = ({ setSelectedMeetingID, setSelectedNewMeeting, selectedDate, setSelectedDate }) => {
   const [currentTimePosition, setCurrentTimePosition] = useState(0);
   const [meetings, setMeetings] = useState<Room[]>([]);
-  //const [currentDate, setCurrentDate] = useState(getTodayDate());
 
   function getTodayDate(): Date {
     return new Date();
@@ -161,7 +159,6 @@ const DailyView: React.FC<DailyViewProps> = ({ setSelectedMeetingID, setSelected
 
   return (
     <div className={styles.outerContainer}>
-      
       <div className={styles.viewContainer}>
         <div className={styles.roomContainer}>
           {combinedRooms.map((room, index) => (

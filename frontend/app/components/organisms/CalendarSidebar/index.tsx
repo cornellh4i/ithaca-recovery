@@ -11,7 +11,6 @@ import MiniCalendar from '../../atoms/MiniCalendar';
 import MeetingsFilter from '../../molecules/MeetingsFilter';
 import NewMeetingSidebar from '../NewMeeting';
 import styles from '../../../../styles/components/organisms/CalendarSidebar.module.scss';
-import CalendarNavbar from '../CalendarNavbar';
 import AddIcon from '@mui/icons-material/Add';
 import CloseIcon from '@mui/icons-material/Close';
 import IconButton from '@mui/material/IconButton';
@@ -23,16 +22,13 @@ interface CalendarSidebarProps {
 }
 
 const CalendarSidebar: React.FC<CalendarSidebarProps> = ({ selectedDate, setSelectedDate }) => {
-  // State declarations for New Meeting button
-  const [isNewMeetingOpen, setIsNewMeetingOpen] = useState(false);
-  //const [currentDate, setCurrentDate] = useState(new Date()); 
+  const [isNewMeetingOpen, setIsNewMeetingOpen] = useState(false); // State declarations for New Meeting button
   const handleCalendarDateChange = (date: Date) => {
     console.log("Date selected in MiniCalendar:", date);
-    //setCurrentDate(date); // Updates the selected date
   };
   const handleMiniCalendarSelect = (date: Date) => {
     console.log("Selected Date:", date);
-    setSelectedDate(date); // ✅ Updates shared date state
+    setSelectedDate(date);
   };
 
   // A unique key for the filter 
@@ -78,10 +74,6 @@ const CalendarSidebar: React.FC<CalendarSidebarProps> = ({ selectedDate, setSele
       console.log("No file selected");
     }
   };
-    //const handleMiniCalendarSelect = (date: Date) => {
-    //console.log("Selected Date:", date);
-
-  //};
 
   // Update handlers for these dropdowns
   const handleRoomChange = (value: string) => setSelectedRoom(value);
@@ -287,16 +279,10 @@ const CalendarSidebar: React.FC<CalendarSidebarProps> = ({ selectedDate, setSele
         </div>
       ) : (
         <>
-          {/* Add Calendar Navbar and ensure it updates based on the selected date */}
-  
-          {/* Pass currentDate to MiniCalendar so it updates correctly */}
           <TextButton label="New Meeting" onClick={handleOpenNewMeeting} icon={<AddIcon />} />
           <div>
             <MiniCalendar selectedDate={selectedDate} onSelect={handleMiniCalendarSelect}/>
           </div>
-  
-          
-  
           <div className={styles.meetingsFilter}>
             <MeetingsFilter filters={filters} onFilterChange={handleFilterChange} />
           </div>
@@ -305,6 +291,5 @@ const CalendarSidebar: React.FC<CalendarSidebarProps> = ({ selectedDate, setSele
     </div>
   );
 };
-  
 
 export default CalendarSidebar;

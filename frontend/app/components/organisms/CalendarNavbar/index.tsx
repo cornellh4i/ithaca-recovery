@@ -10,7 +10,6 @@ type CalendarNavbarProps = {
   };
   
 const CalendarNavbar: React.FC<CalendarNavbarProps> = ({ selectedDate, onPreviousDay, onNextDay, onDateChange }) => {
-    //const [currentDate, setCurrentDate] = useState(new Date());
     const [selectedView, setSelectedView] = useState('Day');
   
     const getDateRange = (date: Date) => {

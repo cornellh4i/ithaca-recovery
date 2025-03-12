@@ -4,22 +4,19 @@ import "react-day-picker/dist/style.css";
 import styles from "../../../../styles/components/atoms/MiniCalendar.module.scss";
 
 type MiniCalendarProps = {
- selectedDate: Date
+  selectedDate: Date
   onSelect: (date: Date) => void;
 };
 
 const MiniCalendar: React.FC<MiniCalendarProps> = ({ selectedDate, onSelect }) => {
-  //const [selectedDate, setSelectedDate] = useState(new Date());
-  const [currentMonth, setCurrentMonth] = useState(new Date());
-  
+  const [currentMonth, setCurrentMonth] = useState(new Date(selectedDate));  
 
   const isOutsideDay = (date: Date) => {
     return date.getMonth() !== currentMonth.getMonth();
   };
 
   const handleDateSelect = (date: Date | undefined) => {
-    if (date) {
-      //setSelectedDate(date);
+    if (date && !isOutsideDay(date)) {
       onSelect(date);
     }
   };
