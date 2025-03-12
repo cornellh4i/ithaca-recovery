@@ -141,8 +141,7 @@ const DailyView: React.FC<DailyViewProps> = ({ setSelectedMeetingID, setSelected
 
   const handleToday = () => {
     console.log("today");
-    const today = new Date(currentDate);
-    today.setDate(today.getDate());
+    const today = new Date();
     setCurrentDate(today);
   };
 

@@ -30,7 +30,7 @@ const DatePicker = ({ label, value: propValue = '', onChange, underlineOnFocus =
     const regex1 = /([a-zA-Z]+)\s(\d{1,2})\s*,?\s*(\d{4})/
     const regex2 = /([a-zA-Z]+)\s(\d{1,2})/
     const regex3 = /(\d{2})\/(\d{2})/
-    if (!(regex1.test(dateString) || regex2.test(dateString) || regex3.test(dateString))) return false;
+    return (regex1.test(dateString) || regex2.test(dateString) || regex3.test(dateString));
 
     const [month, day, year] = dateString.split('/').map(Number);
     if (month < 1 || month > 12) return false;
@@ -72,7 +72,8 @@ const DatePicker = ({ label, value: propValue = '', onChange, underlineOnFocus =
       const year = matchFullDate[3];
       const monthIndex = getMonthIndex(month);
       
-      return `${monthNames[monthIndex]} ${Number(day)}, ${Number(year)}`;
+      return `${(monthIndex + 1).toString().padStart(2, '0')}/${Number(day).toString().padStart(2, '0')}/${Number(year)}`;
+
     }
   
     // "Month day" -> MM/DD/YYYY
@@ -82,7 +83,7 @@ const DatePicker = ({ label, value: propValue = '', onChange, underlineOnFocus =
       const day = matchMonthDay[2];
       const monthIndex = getMonthIndex(month);
 
-      return `${monthNames[monthIndex]} ${Number(day)}, ${currentYear}`;
+      return `${(monthIndex + 1).toString().padStart(2, '0')}/${Number(day).toString().padStart(2, '0')}/${currentYear}`;
     }
   
     // MM/DD -> MM/DD/YYYY
@@ -90,7 +91,7 @@ const DatePicker = ({ label, value: propValue = '', onChange, underlineOnFocus =
     if (matchMMDD) {
       const month = matchMMDD[1];
       const day = matchMMDD[2];
-      return `${Number(month)}/${Number(day)}/${currentYear}`;
+      return `${Number(month).toString().padStart(2, '0')}/${Number(day).toString().padStart(2, '0')}/${currentYear}`;
     }
 
     return "";
@@ -111,6 +112,8 @@ const DatePicker = ({ label, value: propValue = '', onChange, underlineOnFocus =
   const handleFocus = () => {
     setIsFocused(true);
     if (isValidDate2(internalValue)) {
+      console.log(internalValue)
+      console.log("this is" + stringToDate(internalValue))
       const formattedDate = stringToDate(internalValue);
       setInternalValue(formattedDate); 
       onChange(formattedDate); 
@@ -127,7 +130,12 @@ const DatePicker = ({ label, value: propValue = '', onChange, underlineOnFocus =
       const formattedDate = formatDate(internalValue);
       setInternalValue(formattedDate); // Format and update input with formatted date
       onChange(formattedDate); // Call onChange with the formatted date
-    } else {
+    } else if (isValidDate2(internalValue)) {
+      const formattedDate = stringToDate(internalValue);
+      setInternalValue(formattedDate); 
+      onChange(formattedDate); 
+    }
+    else {
       setInputError('Invalid date format. Please enter a valid date in MM/DD/YYYY format.');
     }
   };
