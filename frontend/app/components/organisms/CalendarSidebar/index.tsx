@@ -15,17 +15,16 @@ import AddIcon from '@mui/icons-material/Add';
 import CloseIcon from '@mui/icons-material/Close';
 import IconButton from '@mui/material/IconButton';
 import RecurringMeetingForm from '../../molecules/RecurringMeeting';
-
 interface CalendarSidebarProps {
+  filters: any;
+  setFilters: any;
   selectedDate: Date;
   setSelectedDate: React.Dispatch<React.SetStateAction<Date>>;
 }
 
-const CalendarSidebar: React.FC<CalendarSidebarProps> = ({ selectedDate, setSelectedDate }) => {
-  const [isNewMeetingOpen, setIsNewMeetingOpen] = useState(false); // State declarations for New Meeting button
-  const handleCalendarDateChange = (date: Date) => {
-    console.log("Date selected in MiniCalendar:", date);
-  };
+const CalendarSidebar: React.FC<CalendarSidebarProps> = ({filters, setFilters, selectedDate, setSelectedDate}) => {
+  // State declarations for New Meeting button
+  const [isNewMeetingOpen, setIsNewMeetingOpen] = useState(false);
   const handleMiniCalendarSelect = (date: Date) => {
     console.log("Selected Date:", date);
     setSelectedDate(date);
@@ -33,24 +32,6 @@ const CalendarSidebar: React.FC<CalendarSidebarProps> = ({ selectedDate, setSele
 
   // A unique key for the filter 
   const filterKey = 'meetingFilterState';
-  const [filters, setFilters] = useState<any>({
-    SerenityRoom: true,
-    SeedsOfHope: true,
-    UnityRoom: true,
-    RoomForImprovement: true,
-    SmallButPowerfulRight: true,
-    SmallButPowerfulLeft: true,
-    ZoomAccount1: true,
-    ZoomAccount2: true,
-    ZoomAccount3: true,
-    ZoomAccount4: true,
-    AA: true,
-    AlAnon: true,
-    Other: true,
-    InPerson: true,
-    Hybrid: true,
-    Remote: true,
-  });
 
   const handleFilterChange = (name: string, value: boolean) => {
     const updatedFilters = { ...filters, [name]: value };

@@ -114,13 +114,30 @@ const HomePage = () => {
       alert("Meeting deleted successfully!");
     } catch (error) {
       console.error("Error deleting the meeting:", error);
-
+    }
+  };
   const handleCloseNewMeeting = () => {
     setSelectedNewMeeting(false);
   };
 
-    }
-  };
+  const [filters, setFilters] = useState({
+    SerenityRoom: true,
+    SeedsofHope: true,
+    UnityRoom: true,
+    RoomforImprovement: true,
+    SmallbutPowerfulRight: true,
+    SmallbutPowerfulLeft: true,
+    ZoomAccount1: true,
+    ZoomAccount2: true,
+    ZoomAccount3: true,
+    ZoomAccount4: true,
+    AA: true,
+    AlAnon: true,
+    Other: true,
+    InPerson: true,
+    Hybrid: true,
+    Remote: true,
+  });
 
   return (
     <div className={styles.container}>
@@ -146,7 +163,11 @@ const HomePage = () => {
             onDelete={() => handleDelete(selectedMeeting.mid)}
           />
         ) : (
-          <CalendarSidebar selectedDate={selectedDate} setSelectedDate={setSelectedDate} />
+          <CalendarSidebar 
+            filters={filters}
+            setFilters={setFilters}
+            selectedDate={selectedDate} 
+            setSelectedDate={setSelectedDate} />
         )}
       </div>
       <div className={styles.primaryCalendar}>
@@ -157,6 +178,7 @@ const HomePage = () => {
           onDateChange={setSelectedDate}
         />
         <DailyView 
+          filters={filters}
           selectedDate={selectedDate} 
           setSelectedDate={setSelectedDate} 
           setSelectedMeetingID={setSelectedMeetingID} 
