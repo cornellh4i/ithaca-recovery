@@ -99,17 +99,7 @@ interface DailyViewProps {
   selectedDate: Date;
   setSelectedDate: (date: Date) => void;
 }
-
-<<<<<<< HEAD
 const DailyView: React.FC<DailyViewProps> = ({ setSelectedMeetingID, setSelectedNewMeeting, selectedDate, setSelectedDate }) => {
-=======
-interface DailyViewProps {
-  setSelectedMeetingID: (meetingId: string) => void;
-  setSelectedNewMeeting: (newMeetingExists: boolean) => void;
-}
-
-const DailyView: React.FC<DailyViewProps> = ({ setSelectedMeetingID, setSelectedNewMeeting }) => {
->>>>>>> origin/master
   const [currentTimePosition, setCurrentTimePosition] = useState(0);
   const [meetings, setMeetings] = useState<Room[]>([]);
 
