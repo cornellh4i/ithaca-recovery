@@ -49,12 +49,21 @@ const EditMeeting: React.FC<EditMeetingProps> = ({ meeting, onClose, onUpdateSuc
     return `${hours}:${minutes}`;
   };
 
+  // Helper function to format date as Month DD, YYYY
+  const formatDate = (date: Date) => {
+    return new Date(date).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
+
   // Initialize form state with existing meeting data
   const [formData, setFormData] = useState({
     title: meeting.title,
     description: meeting.description || '',
     creator: meeting.creator,
-    date: new Date(meeting.startDateTime).toISOString().split('T')[0],
+    date: formatDate(meeting.startDateTime),
     startTime: formatTime(meeting.startDateTime),
     endTime: formatTime(meeting.endDateTime),
     zoomAccount: meeting.zoomAccount || '',
@@ -91,9 +100,12 @@ const EditMeeting: React.FC<EditMeetingProps> = ({ meeting, onClose, onUpdateSuc
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      // Parse the formatted date back to YYYY-MM-DD for the API
+      const parsedDate = new Date(formData.date).toISOString().split('T')[0];
+
       // Create dates in local timezone
-      const startDateTime = new Date(`${formData.date}T${formData.startTime}:00`);
-      const endDateTime = new Date(`${formData.date}T${formData.endTime}:00`);
+      const startDateTime = new Date(`${parsedDate}T${formData.startTime}:00`);
+      const endDateTime = new Date(`${parsedDate}T${formData.endTime}:00`);
 
       // Convert to UTC for storage
       const startDateTimeUTC = new Date(startDateTime.getTime() - (startDateTime.getTimezoneOffset() * 60000));
@@ -210,7 +222,12 @@ const EditMeeting: React.FC<EditMeetingProps> = ({ meeting, onClose, onUpdateSuc
           <DatePicker
             label={<CalendarTodayIcon />}
             value={formData.date}
-            onChange={(value) => setFormData(prev => ({ ...prev, date: value }))}
+            onChange={(value) => {
+              // Convert the YYYY-MM-DD format from DatePicker to Month DD, YYYY
+              const date = new Date(value);
+              const formattedDate = formatDate(date);
+              setFormData(prev => ({ ...prev, date: formattedDate }));
+            }}
           />
         </div>
 

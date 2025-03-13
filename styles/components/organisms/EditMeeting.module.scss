@@ -1,0 +1,324 @@
+@import url('https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;600&display=swap');
+@import '../../../frontend/styles/Variables.module.scss';
+
+.editMeetingSidebar {
+  background-color: #ffffff;
+  width: 100%;
+  height: auto;
+  margin: 0 auto;
+  border-radius: 0;
+  padding: 24px;
+
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+
+    h1 {
+      font-size: 24px;
+      font-weight: 600;
+      margin: 0;
+      font-family: 'Source Sans Pro', sans-serif;
+      color: $black-color;
+    }
+
+    .closeButton {
+      background: none;
+      border: none;
+      font-size: 20px;
+      cursor: pointer;
+      padding: 5px;
+      color: $black-color;
+    }
+  }
+
+  .titleInput {
+    width: 100%;
+    border: none;
+    border-bottom: 1px solid $light-grey-color;
+    outline: none;
+    transition: border-color 0.3s;
+    color: $black-color;
+    padding: 20px 0px 5px 20px;
+    font-family: 'Source Sans Pro', sans-serif;
+    font-size: 20px;
+    margin-bottom: 24px;
+
+    &::placeholder {
+      color: $medium-grey-color;
+    }
+
+    &:focus {
+      border-bottom-color: $dark-pink-color;
+    }
+  }
+
+  .meetingButtons {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 24px;
+
+    .button {
+      padding: 2% 5%;
+      border: none;
+      background-color: #ffffff;
+      cursor: pointer;
+      border-radius: 5px;
+      transition: background-color 0.3s ease;
+      font-family: 'Source Sans Pro', sans-serif;
+      font-size: 16px;
+      color: $black-color;
+
+      &:hover {
+        background-color: #d4dae1;
+      }
+
+      &.buttonActive {
+        background-color: #d4dae1;
+        color: $black-color;
+        font-weight: bold;
+      }
+    }
+  }
+
+  .dateTimeSection {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+
+    svg {
+      color: #666;
+    }
+
+    input {
+      flex: 1;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      outline: none;
+      font-family: 'Source Sans Pro', sans-serif;
+      background: #fff;
+      color: #333;
+
+      &:focus {
+        border-color: #CC3366;
+      }
+    }
+  }
+
+  .timePickerContainer {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    span {
+      color: #666;
+    }
+
+    input {
+      width: 120px;
+    }
+  }
+
+  .recurringSection {
+    margin-bottom: 24px;
+
+    label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-family: 'Source Sans Pro', sans-serif;
+      color: #333;
+    }
+
+    input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+    }
+  }
+
+  .dropdownSection {
+    display: flex;
+    align-items: center;
+    position: relative;
+    margin-bottom: 15px;
+
+    svg {
+      margin-right: 6px;
+      font-size: 18px;
+      color: $black-color;
+    }
+
+    select {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px;
+      width: 100%;
+      border: 1px solid $light-grey-color;
+      background-color: #ffffff;
+      cursor: pointer;
+      border-radius: 4px;
+      transition: border-color 0.3s ease;
+      color: $black-color;
+      font-family: 'Source Sans Pro', sans-serif;
+      font-size: 16px;
+
+      &:hover {
+        border-color: $dark-pink-color;
+      }
+
+      &:focus {
+        border-color: $dark-pink-color;
+        outline: none;
+      }
+    }
+  }
+
+  .emailSection {
+    display: flex;
+    align-items: center;
+    margin-bottom: 24px;
+
+    svg {
+      margin-right: 6px;
+      font-size: 18px;
+      color: $black-color;
+    }
+
+    input {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid $light-grey-color;
+      border-radius: 4px;
+      outline: none;
+      font-family: 'Source Sans Pro', sans-serif;
+      font-size: 16px;
+      color: $black-color;
+      transition: border-color 0.3s ease;
+
+      &::placeholder {
+        color: $medium-grey-color;
+      }
+
+      &:focus {
+        border-color: $dark-pink-color;
+      }
+    }
+  }
+
+  .uploadSection {
+    border: 2px dashed $light-grey-color;
+    border-radius: 4px;
+    padding: 32px;
+    text-align: center;
+    margin-bottom: 24px;
+    cursor: pointer;
+    transition: border-color 0.3s ease;
+
+    &:hover {
+      border-color: $dark-pink-color;
+    }
+
+    input[type="file"] {
+      display: none;
+    }
+
+    .uploadContent {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      font-family: 'Source Sans Pro', sans-serif;
+
+      .uploadIcon {
+        width: 48px;
+        height: 48px;
+        color: $medium-grey-color;
+      }
+
+      .uploadText {
+        font-size: 16px;
+        color: $black-color;
+
+        .clickable {
+          color: $dark-pink-color;
+          text-decoration: underline;
+          cursor: pointer;
+        }
+      }
+    }
+  }
+
+  .description {
+    width: 100%;
+    min-height: 100px;
+    padding: 12px;
+    border: 1px solid $light-grey-color;
+    border-radius: 4px;
+    resize: vertical;
+    outline: none;
+    font-family: 'Source Sans Pro', sans-serif;
+    font-size: 16px;
+    color: $black-color;
+    margin-bottom: 24px;
+    transition: border-color 0.3s ease;
+
+    &::placeholder {
+      color: $medium-grey-color;
+    }
+
+    &:focus {
+      border-color: $dark-pink-color;
+    }
+  }
+
+  .buttonSection {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+
+    .cancelButton {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid $light-grey-color;
+      border-radius: 4px;
+      background-color: #ffffff;
+      font-family: 'Source Sans Pro', sans-serif;
+      font-size: 16px;
+      color: $black-color;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+
+      &:hover {
+        background-color: #f0f0f0;
+      }
+    }
+
+    .saveButton {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 4px;
+      background-color: $dark-pink-color;
+      font-family: 'Source Sans Pro', sans-serif;
+      font-size: 16px;
+      color: #ffffff;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+
+      &:hover {
+        background-color: darken($dark-pink-color, 5%);
+      }
+    }
+  }
+
+  /* Responsive adjustments */
+  @media (max-width: 768px) {
+    width: 100%;
+    height: auto;
+    padding: 20px;
+  }
+}
