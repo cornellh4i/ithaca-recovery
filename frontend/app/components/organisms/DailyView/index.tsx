@@ -124,20 +124,6 @@ const DailyView: React.FC<DailyViewProps> = ({ filters, selectedDate, setSelecte
     setCurrentTimePosition(position);
   };
 
-  const handlePreviousDay = () => {
-    console.log("prev day");
-    const prevDate = new Date(selectedDate);
-    prevDate.setDate(prevDate.getDate() - 1);
-    setSelectedDate(prevDate);
-  };
-
-  const handleNextDay = () => {
-    console.log("next day");
-    const nextDate = new Date(selectedDate);
-    nextDate.setDate(nextDate.getDate() + 1);
-    setSelectedDate(nextDate);
-  };
-
   useEffect(() => {
     handleDateChange(selectedDate);
     updateTimePosition();
