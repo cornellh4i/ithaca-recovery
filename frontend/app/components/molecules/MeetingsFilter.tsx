@@ -7,11 +7,11 @@ import styles from '../../../styles/components/molecules/MeetingsFilter.module.s
 interface MeetingsFilterProps {
     filters: {
         SerenityRoom: boolean;
-        SeedsOfHope: boolean;
+        SeedsofHope: boolean;
         UnityRoom: boolean;
-        RoomForImprovement: boolean;
-        SmallButPowerfulRight: boolean;
-        SmallButPowerfulLeft: boolean;
+        RoomforImprovement: boolean;
+        SmallbutPowerfulRight: boolean;
+        SmallbutPowerfulLeft: boolean;
         ZoomAccount1: boolean;
         ZoomAccount2: boolean;
         ZoomAccount3: boolean;
@@ -48,8 +48,8 @@ const MeetingsFilter: React.FC<MeetingsFilterProps> = ({ filters, onFilterChange
             <div className={styles.checkbox}>
                 <LabeledCheckbox
                     label="Seeds of Hope"
-                    checked={filters.SeedsOfHope}
-                    onChange={handleCheckboxChange('SeedsOfHope')}
+                    checked={filters.SeedsofHope}
+                    onChange={handleCheckboxChange('SeedsofHope')}
                     color="#F7E57B"
                 />
             </div>
@@ -64,24 +64,24 @@ const MeetingsFilter: React.FC<MeetingsFilterProps> = ({ filters, onFilterChange
             <div className={styles.checkbox}>
                 <LabeledCheckbox
                     label="Room for Improvement"
-                    checked={filters.RoomForImprovement}
-                    onChange={handleCheckboxChange('RoomForImprovement')}
+                    checked={filters.RoomforImprovement}
+                    onChange={handleCheckboxChange('RoomforImprovement')}
                     color="#FFAE73"
                 />
             </div>
             <div className={styles.checkbox}>
                 <LabeledCheckbox
                     label="Small but Powerful - Right"
-                    checked={filters.SmallButPowerfulRight}
-                    onChange={handleCheckboxChange('SmallButPowerfulRight')}
+                    checked={filters.SmallbutPowerfulRight}
+                    onChange={handleCheckboxChange('SmallbutPowerfulRight')}
                     color="#D2AFFF"
                 />
             </div>
             <div className={styles.checkbox}>
                 <LabeledCheckbox
                     label="Small but Powerful - Left"
-                    checked={filters.SmallButPowerfulLeft}
-                    onChange={handleCheckboxChange('SmallButPowerfulLeft')}
+                    checked={filters.SmallbutPowerfulLeft}
+                    onChange={handleCheckboxChange('SmallbutPowerfulLeft')}
                     color="#FFA3C2"
                 />
             </div>

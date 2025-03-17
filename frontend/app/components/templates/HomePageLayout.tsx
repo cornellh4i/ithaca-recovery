@@ -1,10 +1,11 @@
 "use client";
-import React, { useContext, useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import styles from "../../../styles/HomePageLayout.module.scss";
+import CalendarNavbar from "../organisms/CalendarNavbar";
 import CalendarSidebar from "../organisms/CalendarSidebar";
 import ViewMeetingDetails from "../organisms/ViewMeeting";
+import DailyView from "../organisms/DailyView";
 
-// Define the type for selectedMeeting to match ViewMeetingDetailsProps
 type MeetingDetails = {
   id: string;
   mid: string;
@@ -21,9 +22,10 @@ type MeetingDetails = {
   room: string;
   recurrence?: string;
 };
-import DailyView from "../organisms/DailyView/index";
+
+
 const HomePage = () => {
-  // Define selectedMeeting state with MeetingDetails type or null
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedMeeting, setSelectedMeeting] = useState<MeetingDetails | null>(null);
   const [selectedMeetingID, setSelectedMeetingID] = useState<string | null>(null);
   const [selectedNewMeeting, setSelectedNewMeeting] = useState<boolean| null>(false); 
@@ -33,7 +35,6 @@ const HomePage = () => {
   const [freqValue, setFreqValue] = useState<string>("Never"); // Default frequency value
   const [inputEmailValue, setEmailValue] = useState(""); // Email input value
   const [inputDescriptionValue, setDescriptionValue] = useState(""); // Description input value
-  
   
   const roomOptions = [
     "Serenity Room",
@@ -88,53 +89,101 @@ const HomePage = () => {
     }
   }, [selectedMeetingID]);
 
-  
   const handleBack = () => {
     setSelectedMeeting(null);
     setSelectedMeetingID(null);
     setSelectedNewMeeting(false);
   };
 
+  const handleEdit = () => console.log("Edit meeting");
+
+  const handleDelete = async (mid: string) => {
+    try {
+      const response = await fetch("/api/delete/meeting", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mid }),
+      });
+
+      if (!response.ok) {
+        alert("Error: Unsuccessful delete");
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      setSelectedMeeting(null);
+      alert("Meeting deleted successfully!");
+    } catch (error) {
+      console.error("Error deleting the meeting:", error);
+    }
+  };
   const handleCloseNewMeeting = () => {
     setSelectedNewMeeting(false);
   };
 
-  const handleEdit = () => console.log("Edit meeting");
-  const handleDelete = () => console.log("Delete meeting");
+  const [filters, setFilters] = useState({
+    SerenityRoom: true,
+    SeedsofHope: true,
+    UnityRoom: true,
+    RoomforImprovement: true,
+    SmallbutPowerfulRight: true,
+    SmallbutPowerfulLeft: true,
+    ZoomAccount1: true,
+    ZoomAccount2: true,
+    ZoomAccount3: true,
+    ZoomAccount4: true,
+    AA: true,
+    AlAnon: true,
+    Other: true,
+    InPerson: true,
+    Hybrid: true,
+    Remote: true,
+  });
 
   return (
     <div className={styles.container}>
       <div className={styles.sidebar}>
         {selectedMeeting ? (
-            // Render ViewMeetingDetails if a meeting is selected
-            <ViewMeetingDetails
-              id={selectedMeeting.id}
-              mid={selectedMeeting.mid}
-              title={selectedMeeting.title}
-              description={selectedMeeting.description}
-              creator={selectedMeeting.creator}
-              group={selectedMeeting.group}
-              startDateTime={new Date(selectedMeeting.startDateTime)}
-              endDateTime={new Date(selectedMeeting.endDateTime)}
-              zoomAccount={selectedMeeting.zoomAccount}
-              zoomLink={selectedMeeting.zoomLink}
-              zid={selectedMeeting.zid}
-              type={selectedMeeting.type}
-              room={selectedMeeting.room}
-              recurrence={selectedMeeting.recurrence}
-              onBack={handleBack}
-              onEdit={handleEdit}
-              onDelete={handleDelete}
-            />
+          <ViewMeetingDetails
+            id={selectedMeeting.id}
+            mid={selectedMeeting.mid}
+            title={selectedMeeting.title}
+            description={selectedMeeting.description}
+            creator={selectedMeeting.creator}
+            group={selectedMeeting.group}
+            startDateTime={new Date(selectedMeeting.startDateTime)}
+            endDateTime={new Date(selectedMeeting.endDateTime)}
+            zoomAccount={selectedMeeting.zoomAccount}
+            zoomLink={selectedMeeting.zoomLink}
+            zid={selectedMeeting.zid}
+            type={selectedMeeting.type}
+            room={selectedMeeting.room}
+            recurrence={selectedMeeting.recurrence}
+            onBack={handleBack}
+            onEdit={handleEdit}
+            onDelete={() => handleDelete(selectedMeeting.mid)}
+          />
         ) : (
-            // Render CalendarSidebar if no meeting is selected
-            <CalendarSidebar />
-          )  
-        }
+          <CalendarSidebar 
+            filters={filters}
+            setFilters={setFilters}
+            selectedDate={selectedDate} 
+            setSelectedDate={setSelectedDate} />
+        )}
       </div>
       <div className={styles.primaryCalendar}>
-        {/* Pass setSelectedMeetingID to DailyView for interaction */}
-        <DailyView setSelectedMeetingID={setSelectedMeetingID} setSelectedNewMeeting={setSelectedNewMeeting} />
+        <CalendarNavbar
+          selectedDate={selectedDate}
+          onPreviousDay={() => setSelectedDate(new Date(selectedDate.setDate(selectedDate.getDate() - 1)))}
+          onNextDay={() => setSelectedDate(new Date(selectedDate.setDate(selectedDate.getDate() + 1)))}
+          onDateChange={setSelectedDate}
+        />
+        <DailyView 
+          filters={filters}
+          selectedDate={selectedDate} 
+          setSelectedDate={setSelectedDate} 
+          setSelectedMeetingID={setSelectedMeetingID} 
+          setSelectedNewMeeting={setSelectedNewMeeting} 
+        />
       </div>
     </div>
   );
