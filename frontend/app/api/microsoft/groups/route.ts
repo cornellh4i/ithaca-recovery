@@ -43,4 +43,45 @@ const getGroups = async (req: Request) => {
   }
 }
 
-export { getGroups as GET }
+const fetchGroups = async () => {
+  try {
+    const accessToken = await getAccessToken();
+    if (accessToken === null) {
+      console.log("Unable to retrieve access token, please try again.")
+      return;
+    }
+
+    const endpoint = `${process.env.NEXT_PUBLIC_GRAPH_API_ENDPOINT}/v1.0/groups`;
+    const headers = {
+      'Authorization': `Bearer ${accessToken}`,
+      'Content-Type': 'application/json'
+    };
+
+    const response = await fetch(endpoint, {
+      method: 'GET',
+      headers: headers
+    });
+
+    if (!response.ok) {
+      throw new Error('Error fetching groups');
+    }
+
+    const data = await response.json();
+    return new Response(JSON.stringify(data), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
+
+  } catch (error) {
+    console.error('Error fetching groups:', error);
+    return new Response(
+      JSON.stringify({ error: 'Error fetching groups' }),
+      {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      }
+    );
+  }
+}
+
+export { fetchGroups, getGroups as GET }
