@@ -530,11 +530,11 @@ const App = () => {
         <h1>Meetings Filter</h1>
         <MeetingsFilter filters={{
           SerenityRoom: false,
-          SeedsOfHope: false,
+          SeedsofHope: false,
           UnityRoom: false,
-          RoomForImprovement: false,
-          SmallButPowerfulRight: false,
-          SmallButPowerfulLeft: false,
+          RoomforImprovement: false,
+          SmallbutPowerfulRight: false,
+          SmallbutPowerfulLeft: false,
           ZoomAccount1: false,
           ZoomAccount2: false,
           ZoomAccount3: false,
@@ -632,10 +632,10 @@ const App = () => {
         <ViewMeetingDetails {...sampleMeeting} />
       </div>
 
-      <div className={styles.section}>
+      {/* <div className={styles.section}>
         <h2>Mini Calendar</h2>
         <MiniCalendar />
-      </div>
+      </div> */}
 
     </div>
   );

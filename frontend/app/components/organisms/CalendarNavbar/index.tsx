@@ -2,12 +2,14 @@ import React, { useState } from 'react';
 import styles from "../../../../styles/components/organisms/CalendarNavbar.module.scss";
 
 type CalendarNavbarProps = {
+    selectedDate: Date;
     onPreviousDay: () => void;
     onNextDay: () => void;
+    onDateChange: (date: Date) => void;
+
   };
   
-const CalendarNavbar: React.FC<CalendarNavbarProps> = ({ onPreviousDay, onNextDay }) => {
-    const [currentDate, setCurrentDate] = useState(new Date());
+const CalendarNavbar: React.FC<CalendarNavbarProps> = ({ selectedDate, onPreviousDay, onNextDay, onDateChange }) => {
     const [selectedView, setSelectedView] = useState('Day');
   
     const getDateRange = (date: Date) => {
@@ -60,7 +62,7 @@ const CalendarNavbar: React.FC<CalendarNavbarProps> = ({ onPreviousDay, onNextDa
     };
   
     const handlePrevious = () => {
-      const newDate = new Date(currentDate);
+      const newDate = new Date(selectedDate);
       switch (selectedView) {
         case 'Day':
           newDate.setDate(newDate.getDate() - 1);
@@ -74,12 +76,12 @@ const CalendarNavbar: React.FC<CalendarNavbarProps> = ({ onPreviousDay, onNextDa
         default:
           break;
       }
-      setCurrentDate(newDate);
+      onDateChange(newDate);
 
     };
   
     const handleNext = () => {
-      const newDate = new Date(currentDate);
+      const newDate = new Date(selectedDate);
       switch (selectedView) {
         case 'Day':
           newDate.setDate(newDate.getDate() + 1);
@@ -93,17 +95,17 @@ const CalendarNavbar: React.FC<CalendarNavbarProps> = ({ onPreviousDay, onNextDa
         default:
           break;
       }
-      setCurrentDate(newDate);
+      onDateChange(newDate);
     };
   
     const handleViewChange: React.ChangeEventHandler<HTMLSelectElement> = (event) => {
       setSelectedView(event.target.value);
-      setCurrentDate(new Date());
+      onDateChange(new Date());
     };
   
     const handleToday = () => {
       setSelectedView("Day");
-      setCurrentDate(new Date());
+      onDateChange(new Date());
       // onToday(); // Call the external function as well
     };
   
@@ -119,7 +121,7 @@ const CalendarNavbar: React.FC<CalendarNavbarProps> = ({ onPreviousDay, onNextDa
   
     return (
       <div className={styles.navbarContainer}>
-        <h2 className={styles.navbarContainerRight}>{getDateRange(currentDate)}</h2>
+        <h2 className={styles.navbarContainerRight}>{getDateRange(selectedDate)}</h2>
         <div className={styles.navbarContainerLeft}>
           <img src="/search-icon.svg" alt="Search Icon" width={36} height={36} />
           <div className={styles.box}>
@@ -131,7 +133,7 @@ const CalendarNavbar: React.FC<CalendarNavbarProps> = ({ onPreviousDay, onNextDa
             </select>
           </div>
           <div className={styles.box}>
-            <a href="#" onClick={handleToday}>Today</a>
+            <a href="#" onClick={() => onDateChange(new Date())}>Today</a>
           </div>
           <div className={styles.dateToggle}>
             <img src="/left-arrow.svg" alt="Left Arrow" width={24} height={24} onClick={handleCombinedPrevious} />
