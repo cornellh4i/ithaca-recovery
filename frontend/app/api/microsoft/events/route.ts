@@ -16,7 +16,8 @@ const getEvents = async (groupId: string) => {
       );
     }
 
-    const endpoint = `${process.env.NEXT_PUBLIC_GRAPH_API_ENDPOINT}/groups/${groupId}/calendar/events?$orderby=start/dateTime`;
+    const endpoint = `${process.env.NEXT_PUBLIC_GRAPH_API_ENDPOINT}/v1.0/groups/${groupId}/calendar/events?$orderby=start/dateTime`;
+    console.log("Events endpoint:", endpoint);
     const headers = {
       'Authorization': `Bearer ${accessToken}`,
       'Content-Type': 'application/json'

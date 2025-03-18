@@ -17,7 +17,8 @@ const getCalendars = async (req: Request) => {
     }
 
     const { groupId } = await req.json();
-    const endpoint = `${process.env.NEXT_PUBLIC_GRAPH_API_ENDPOINT}/groups/${groupId}/calendar`;
+    const endpoint = `${process.env.NEXT_PUBLIC_GRAPH_API_ENDPOINT}/v1.0/groups/${groupId}/calendar`;
+    console.log("Calendar endpoint:", endpoint);
     const headers = {
       'Authorization': `Bearer ${accessToken}`,
       'Content-Type': 'application/json'
@@ -75,7 +76,8 @@ const fetchCalendars = async (groupId: string) => {
     });
 
     if (!response.ok) {
-      throw new Error('Error fetching calendar');
+      console.error('Error fetching calendar:', response.status, response.statusText);
+      throw new Error(`Error fetching calendar: ${response.status}`);
     }
 
     const data = await response.json();
