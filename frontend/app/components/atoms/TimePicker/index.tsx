@@ -32,11 +32,25 @@ const getTimeDifferenceInMinutes = (startTime: string, endTime: string): number 
 };
 
 const TimePicker = ({ label, value: propValue = '', disablePast, onChange, error, ...props }: TimePickerProps) => {
-  const [startTime, setStartTime] = useState<string>(''); // Start time in 24-hour format
-  const [endTime, setEndTime] = useState<string>(''); // End time in 24-hour format
-  const [timeDifference, setTimeDifference] = useState<number>(60); // Default difference is 60 minutes
+  // Initialize state from propValue if it's in the format "HH:MM - HH:MM"
+  const [startTime, setStartTime] = useState<string>('');
+  const [endTime, setEndTime] = useState<string>('');
+  const [timeDifference, setTimeDifference] = useState<number>(60);
   const [minTime, setMinTime] = useState<string | undefined>(undefined);
-  const [endTimeError, setEndTimeError] = useState<boolean>(false); // Track if there's an end time error
+  const [endTimeError, setEndTimeError] = useState<boolean>(false);
+
+  // Effect to initialize times from propValue
+  useEffect(() => {
+    if (propValue) {
+      const [start, end] = propValue.split(' - ');
+      if (start && end) {
+        setStartTime(start);
+        setEndTime(end);
+        const diff = getTimeDifferenceInMinutes(start, end);
+        setTimeDifference(diff > 0 ? diff : 60);
+      }
+    }
+  }, [propValue]);
 
   // Effect to disable past times
   useEffect(() => {

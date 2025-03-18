@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
-import styles from '../../../../styles/organisms/DailyView.module.scss';
-import BoxText from '../../atoms/BoxText';
-import DailyViewRow from "../../molecules/DailyViewRow";
+import styles from '../../../styles/organisms/DailyView.module.scss';
+import BoxText from '../atoms/BoxText';
+import DailyViewRow from "../molecules/DailyViewRow";
 
 type Meeting = {
   id: string;
