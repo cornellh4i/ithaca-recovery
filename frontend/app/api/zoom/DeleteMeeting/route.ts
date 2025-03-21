@@ -1,7 +1,7 @@
 import axios from 'axios'
 import { NextRequest, NextResponse } from "next/server"
 import { NextApiRequest, NextApiResponse } from 'next/types'
-import { GET as getZoomToken } from '../generateToken'
+import { POST as getZoomToken } from '../generateToken'
 
 // function for deleting a zoom meeting
 const deleteZoomMeeting = async (request: NextRequest, sentResponse: NextApiResponse) => {

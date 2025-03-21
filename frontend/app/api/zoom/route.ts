@@ -1,2 +1,2 @@
-import { GET } from './generateToken';
-export { GET };
+import { POST } from './generateToken';
+export { POST };
