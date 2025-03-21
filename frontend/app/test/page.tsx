@@ -88,6 +88,21 @@ const App = () => {
   const [selectedOption, setSelectedOption] = useState<string>("Never"); // Default radio option
   const [selectedZoomAccount, setSelectedZoomAccount] = useState<string | null>(null); // Initially no Zoom account selected
   const [inputDescriptionValue, setDescriptionValue] = useState(""); // Description input value
+  const [recurringMeetingInfo, setRecurringMeetingInfo] = useState<{
+    isRecurring: boolean;
+    frequency: number;
+    selectedDays: string[];
+    endOption: string;
+    endDate: string | undefined;
+    occurrences: number;
+  }>({
+    isRecurring: false,
+    frequency: 1,
+    selectedDays: [],
+    endOption: 'Never',
+    endDate: undefined, // allow undefined here
+    occurrences: 1,
+  }); //this will store all the info for recurring meetings
 
   // Room and Meeting Type options
   const roomOptions = [
@@ -147,6 +162,7 @@ const App = () => {
   
     if (zoomData) {
       console.log("Zoom Link Generated:", zoomData);
+      console.log("Recurring meeting info:", recurringMeetingInfo)
       // Do something with the generated Zoom link (e.g., store in state)
     }
   };
@@ -429,10 +445,89 @@ const App = () => {
       const zoomAccIdStr = selectedZoomAccount.replace("Zoom Email ", "");
       const zoomAccId = parseInt(zoomAccIdStr);
       const meetingStartTime = timeValue.split('-');
-      // const duration = 
-      // const isRecurring = 
-      // const topic = inputMeetingTitleValue
-      const requestBody = { zoomAccId }; 
+      const isRecurring = recurringMeetingInfo.isRecurring; //tells us if recurring meeting is checked
+
+
+      const type = isRecurring ? 8 : 2; //8 = recurring if box is checked; 2 = single event if box isn't checked
+      console.log('isRecurringType hi:', type)
+
+      // extract and clean up the start and end times
+      const startTime = meetingStartTime[0].trim();
+      const endTime = meetingStartTime[1].trim();
+
+      // convert time to minutes since midnight
+      const convertToMinutes = (time: string): number => {
+        const [hours, minutes] = time.split(':').map(Number);
+        return hours * 60 + minutes;
+      };
+
+      const startMinutes = convertToMinutes(startTime);
+      const endMinutes = convertToMinutes(endTime);
+
+      const duration = endMinutes - startMinutes;
+
+      const formatStartTime = (dateValue: string, startTime: string): string => {
+        const date = new Date(dateValue).toISOString().split('T')[0]; // convert to YYYY-MM-DD
+        return `${date}T${startTime}:00Z`; // combine with startTime and append "Z" for UTC
+      };
+
+      const start_time = formatStartTime(dateValue, startTime);
+
+      const topic = inputMeetingTitleValue
+
+      //Here we convert the days to numbers (zoom expects numbers)
+      const daysByNum:Record<string, number> = {
+        sun: 1,
+        mon: 2,
+        tue: 3,
+        wed: 4,
+        thu: 5,
+        fri: 6,
+        sat: 7
+      };
+
+      const convertDaysToNums = (days: string[]) => {
+        return days.map(day => daysByNum[day.toLowerCase()]).filter(num => num !== undefined).join(",");
+      };
+
+      const daysAsNum = convertDaysToNums(recurringMeetingInfo.selectedDays) //list numbers
+      console.log('end date', recurringMeetingInfo.endDate)
+
+      //If user select 'Ends On' option for recurring meetings we want to convert the end date to ISO format
+      const zoomEndDate = recurringMeetingInfo.endDate 
+        ? formatStartTime(String(recurringMeetingInfo.endDate), startTime)
+        : null;
+
+
+      const recurrence = {
+        type: 2, //1= daily, 2=weekly, 3=monthly
+        repeat_interval: recurringMeetingInfo.frequency, //1 means repeats every week; 2 means repeats every two weeks, etc...
+        weekly_days: daysAsNum, //the days of week we want the meeting to repeat on
+
+        /** 
+         * We need this conditional cuz if we have both fields, end_times overrides end_date_time
+         * So if we choose 'end On' we use end_date_time
+         * If we choose 'end after we use end_times; end times controls how many times the meeting repeats
+         * The spread operator adds one of the two key value pairs to our recurrence object (dictionary)
+        */
+        ...(zoomEndDate
+          ? { end_date_time: zoomEndDate }  
+          : { end_times: recurringMeetingInfo.occurrences })
+        
+        //nothing in our form corresponds to these fields
+        // monthly_day: 1,
+        // monthly_week: 1,
+        // monthly_week_day: 6,
+      }
+      //we send this to the zoom api
+      const requestBody = {
+        zoomAccId,
+        duration,
+        type,
+        start_time,
+        topic,
+        recurrence
+      };
   
       const response = await fetch('/api/zoom/CreateMeeting', {
         method: 'POST',
@@ -511,7 +606,7 @@ const App = () => {
       </div>
       <div className={styles.section}>
         <h2>Reccuring Meeting</h2>
-        <ReccuringMeeting></ReccuringMeeting>
+        <ReccuringMeeting onChange={setRecurringMeetingInfo}></ReccuringMeeting>
       </div>
       <div className={styles.section}>
         <h2>Spinner Input</h2>
@@ -646,7 +741,8 @@ const App = () => {
             disablePast={true}
             error={timeValue === '' ? 'Time is required' : undefined} // Example error handling
           />}
-          RecurringMeeting={<ReccuringMeeting/>}
+          RecurringMeeting={<ReccuringMeeting onChange ={setRecurringMeetingInfo}/>}
+
           roomSelectionDropdown={ // For room selection dropdown
             <Dropdown
               label={<svg width="28" height="29" viewBox="0 0 28 29" fill="none" xmlns="http://www.w3.org/2000/svg">

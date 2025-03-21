@@ -1,13 +1,25 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import RadioGroup from '../atoms/RadioGroup';
 import LabeledCheckbox from '../atoms/checkbox';
 import SpinnerInput from '../atoms/SpinnerInput';
 import DatePicker from '../atoms/DatePicker';
 import styles from "../../../styles/components/molecules/RecurringMeeting.module.scss";
 
-const RecurringMeetingForm: React.FC = () => {
+//This component accepts a function that accepts a dictionary of the following values as parameter
+interface RecurringMeetingFormProps {
+  onChange: (data: {
+    isRecurring: boolean;
+    frequency: number;
+    selectedDays: string[];
+    endOption: string;
+    endDate: string | undefined;
+    occurrences: number;
+  }) => void;
+}
+
+const RecurringMeetingForm: React.FC<RecurringMeetingFormProps> = ({ onChange }) => {
   const [isRecurring, setIsRecurring] = useState(false);
   const [frequency, setFrequency] = useState(1);
   const [selectedDays, setSelectedDays] = useState<string[]>([]);
@@ -24,6 +36,29 @@ const RecurringMeetingForm: React.FC = () => {
     { id: 'fri', label: 'F' },
     { id: 'sat', label: 'S' },
   ];
+
+  //this useEffect resets our fields to their default values if we uncheck recurring meeting
+  useEffect(() => {
+    if (!isRecurring) {
+      setFrequency(1);
+      setSelectedDays([]);
+      setEndOption('Never');
+      setEndDate("");
+      setOccurrences(1);
+    }
+  }, [isRecurring]);
+
+  //this useEffect will update the values in the parent component calling this
+  useEffect(() => {
+    onChange({
+      isRecurring,
+      frequency,
+      selectedDays,
+      endOption,
+      endDate,
+      occurrences,
+    });
+  }, [isRecurring, frequency, selectedDays, endOption, endDate, occurrences, onChange]);
 
   const handleRecurringChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setIsRecurring(e.target.checked);
