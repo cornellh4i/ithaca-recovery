@@ -1,0 +1,84 @@
+@import url('https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;600&display=swap');
+
+.newMeetingSidebar {
+  background-color: #ffffff;
+  width: 100%;
+  height: auto;
+  margin: 0 auto; // so the height is responsive to the atoms in it
+  border-radius: 0;
+}
+
+.newMeetingSidebar .dummyComponent {
+  margin-bottom: 16px;
+}
+
+.createMeetingButton {
+  width: 100%;
+  height: auto;
+  background-color: #CC3366;
+  color: #fff;
+  border: none;
+  font-family: 'Source Sans Pro', sans-serif;
+  font-weight: 600;
+  font-size: 18px;
+  line-height: 22.63px;
+  cursor: pointer;
+  padding: 10px 0;
+  text-align: center;
+  border-radius: 8px;
+}
+
+.button {
+  background: none;
+  border: none;
+  font-family: 'Source Sans Pro', sans-serif;
+  font-size: 16px;
+  color: #1E1E1E;
+  padding: 8px 12px;
+}
+
+.button:focus {
+  outline: none;
+  /* Remove the default focus outline */
+  border-radius: 8px;
+  background: #F1F1F1;
+}
+
+.button.selected {
+  background: #F1F1F1;
+  border-radius: 8px;
+}
+
+.meetingButtons {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  width: 100%;
+  margin-bottom: 10px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .newMeetingSidebar {
+    width: 100%;
+    height: auto;
+    padding: 20px;
+  }
+}
+
+.meetingHeader {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  color: var(--Dark-Navy, #3A3E49);
+  font-family: "Source Sans Pro";
+  font-style: normal;
+  font-weight: 600;
+  background-color: white;
+}
+
+.iconButton {
+  width: auto;
+  height: 40px;
+}
