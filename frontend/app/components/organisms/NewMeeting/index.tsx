@@ -16,6 +16,8 @@ interface NewMeetingSidebarProps {
   onCreateMeeting: () => Promise<void>;
 }
 
+type MeetingType = 'Hybrid' | 'In Person' | 'Remote';
+
 const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({
   meetingTitleTextField,
   DatePicker,
@@ -29,10 +31,13 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({
   descriptionTextField,
   onCreateMeeting
 }) => {
-  const [selectedMeetingType, setSelectedMeetingType] = useState('Hybrid');
+  // Add state to track which button is selected
+  const [selectedMeetingType, setSelectedMeetingType] = useState<MeetingType>('Hybrid');
 
-  const handleButtonClick = (type: string) => {
+  // Function to handle button click
+  const handleMeetingTypeChange = (type: MeetingType) => {
     setSelectedMeetingType(type);
+    
   };
 
   return (
@@ -43,27 +48,24 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({
       <div className={styles.meetingButtons}>
         <button 
           className={`${styles.button} ${selectedMeetingType === 'Hybrid' ? styles.selected : ''}`}
-          onClick={() => handleButtonClick('Hybrid')}
-          autoFocus={selectedMeetingType === 'Hybrid'}>
-            Hybrid
+          onClick={() => handleMeetingTypeChange('Hybrid')}
+        >
+          Hybrid
         </button>
         <button 
           className={`${styles.button} ${selectedMeetingType === 'In Person' ? styles.selected : ''}`}
-          onClick={() => handleButtonClick('In Person')}
-          autoFocus={selectedMeetingType === 'In Person'}>
-            In Person
+          onClick={() => handleMeetingTypeChange('In Person')}
+        >
+          In Person
         </button>
         <button 
           className={`${styles.button} ${selectedMeetingType === 'Remote' ? styles.selected : ''}`}
-          onClick={() => handleButtonClick('Remote')}
-          autoFocus={selectedMeetingType === 'Remote'}>
-            Remote
+          onClick={() => handleMeetingTypeChange('Remote')}
+        >
+          Remote
         </button>
       </div>
-
-      {selectedMeetingType === 'Hybrid' && (
-        <>
-        <div className={styles.dummyComponent}>
+      <div className={styles.dummyComponent}>
         {DatePicker}
       </div>
       <div className={styles.dummyComponent}>
@@ -90,72 +92,6 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({
       <div className={styles.dummyComponent}>
         {descriptionTextField}
       </div>
-       </>
-        )}
-
-      {selectedMeetingType === 'In Person' && (
-        <>
-        <div className={styles.dummyComponent}>
-        {DatePicker}
-      </div>
-      <div className={styles.dummyComponent}>
-        {TimePicker}
-      </div>
-      <div className={styles.dummyComponent}>
-        {RecurringMeeting}
-      </div>
-      <div className={styles.dummyComponent}>
-        {roomSelectionDropdown}
-      </div>
-      <div className={styles.dummyComponent}>
-        {meetingTypeDropdown}
-      </div>
-      <div className={styles.dummyComponent}>
-        {emailTextField}
-      </div>
-      <div className={styles.dummyComponent}>
-        {uploadPandaDocsForm}
-      </div>
-      <div className={styles.dummyComponent}>
-        {descriptionTextField}
-      </div>
-       </>
-        )}
-
-      {selectedMeetingType === 'Remote' && (
-        <>
-        <div className={styles.dummyComponent}>
-        {DatePicker}
-      </div>
-      <div className={styles.dummyComponent}>
-        {TimePicker}
-      </div>
-      <div className={styles.dummyComponent}>
-        {RecurringMeeting}
-      </div>
-      <div className={styles.dummyComponent}>
-        {roomSelectionDropdown}
-      </div>
-      <div className={styles.dummyComponent}>
-        {meetingTypeDropdown}
-      </div>
-      <div className={styles.dummyComponent}>
-        {zoomAccountDropdown}
-      </div>
-      <div className={styles.dummyComponent}>
-        {emailTextField}
-      </div>
-      <div className={styles.dummyComponent}>
-        {uploadPandaDocsForm}
-      </div>
-      <div className={styles.dummyComponent}>
-        {descriptionTextField}
-      </div>
-       </>
-        )}
-
-
-      
       <button className={styles.createMeetingButton} onClick={onCreateMeeting}>Create Meeting</button>
     </div>
   );
