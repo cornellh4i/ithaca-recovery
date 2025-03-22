@@ -134,9 +134,6 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({
         {RecurringMeeting}
       </div>
       <div className={styles.dummyComponent}>
-        {roomSelectionDropdown}
-      </div>
-      <div className={styles.dummyComponent}>
         {meetingTypeDropdown}
       </div>
       <div className={styles.dummyComponent}>
