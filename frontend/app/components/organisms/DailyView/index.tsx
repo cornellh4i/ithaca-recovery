@@ -25,7 +25,7 @@ const fetchMeetingsByDay = async (date: Date): Promise<Room[]> => {
     console.log("Using cached data for date:", formattedDate);
     return meetingCache.get(formattedDate) || [];
   }
-  
+
   console.log("Fetching meetings for date:", formattedDate);
 
   try {
@@ -73,7 +73,7 @@ const fetchMeetingsByDay = async (date: Date): Promise<Room[]> => {
 
 const formatTime = (hour: number): string => {
   const period = hour >= 12 ? "PM" : "AM";
-  const formattedHour = hour % 12 || 12; 
+  const formattedHour = hour % 12 || 12;
   return `${formattedHour} ${period}`;
 };
 
@@ -115,7 +115,6 @@ const DailyView: React.FC<DailyViewProps> = ({ filters, selectedDate, setSelecte
     setMeetings(data);
   };
 
-
   const updateTimePosition = () => {
     const now = new Date();
     const currentHour = now.getHours();
@@ -145,7 +144,7 @@ const DailyView: React.FC<DailyViewProps> = ({ filters, selectedDate, setSelecte
     const intervalId = setInterval(updateTimePosition, 60000);
     return () => clearInterval(intervalId);
   }, [selectedDate]);
-  
+
   // Dummy function for onClick prop
   const handleBoxClick = (meetingId: string) => {
     console.log(`Meeting ${meetingId} clicked`);
@@ -157,13 +156,42 @@ const DailyView: React.FC<DailyViewProps> = ({ filters, selectedDate, setSelecte
     // setSelectedMeetingID(null); 
   };
 
+  // filter meetings based on meeting type and room filters
+  const filterMeetings = (room: Room): Room => {
+    // filter meetings based on  tags (meeting type)
+    const filteredMeetings = room.meetings.filter(meeting => {
+      // check if all tags for this meeting are enabled in filters
+      return meeting.tags.every(tag => {
+        // normalize tag name to match filter names (removing spaces and special chars)
+        const normalizedTag = tag.replace(/[-\s]+/g, '').replace(/\s+/g, '');
+        // ff filter for this tag exists and is true, or if filter doesn't exist, keep the meeting
+        return filters[normalizedTag] !== false;
+      });
+    });
+
+    // return the room with filtered meetings
+    return {
+      ...room,
+      meetings: filteredMeetings
+    };
+  };
+
+  // First filter rooms by room name, then filter meetings within each room by meeting type
   const combinedRooms = defaultRooms
-  .filter((defaultRoom) => filters[defaultRoom.name.replace(/[-\s]+/g, '').replace(/\s+/g, '')])
+    .filter((defaultRoom) => {
+      const normalizedRoomName = defaultRoom.name.replace(/[-\s]+/g, '').replace(/\s+/g, '');
+      return filters[normalizedRoomName] !== false;
+    })
     .map((defaultRoom) => {
       const roomWithMeetings = meetings.find((meetingRoom) => meetingRoom.name === defaultRoom.name);
-      return roomWithMeetings || { ...defaultRoom, meetings: [] }; 
-    }
-  );
+
+      if (roomWithMeetings) {
+        // Apply meeting type filters to the meetings in this room
+        return filterMeetings(roomWithMeetings);
+      } else {
+        return { ...defaultRoom, meetings: [] };
+      }
+    });
 
   return (
     <div className={styles.outerContainer}>
@@ -192,7 +220,7 @@ const DailyView: React.FC<DailyViewProps> = ({ filters, selectedDate, setSelecte
           {combinedRooms.map((room, rowIndex) => (
             <div key={rowIndex} className={styles.gridRow} onClick={handleRowNotBoxClick}>
               <div className={styles.gridMeetingRow}>
-                <DailyViewRow roomColor={room.primaryColor} meetings={room.meetings} setSelectedMeetingID = {setSelectedMeetingID} setSelectedNewMeeting={setSelectedNewMeeting}/>
+                <DailyViewRow roomColor={room.primaryColor} meetings={room.meetings} setSelectedMeetingID={setSelectedMeetingID} setSelectedNewMeeting={setSelectedNewMeeting} />
               </div>
               {timeSlots.map((_, colIndex) => (
                 <div key={colIndex} className={styles.gridCell}></div>
