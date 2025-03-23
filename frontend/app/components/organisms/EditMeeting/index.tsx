@@ -243,7 +243,6 @@ const EditMeeting: React.FC<EditMeetingProps> = ({ meeting, onClose, onUpdateSuc
                 endTime: end
               }));
             }}
-            disablePast={true}
           />
         </div>
 

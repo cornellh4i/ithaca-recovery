@@ -8,6 +8,7 @@ interface TimePickerProps {
   underlineOnFocus?: boolean;
   error?: string;
   disablePast?: boolean;
+  selectedDate?: string;
   [key: string]: any;
 }
 
@@ -31,7 +32,7 @@ const getTimeDifferenceInMinutes = (startTime: string, endTime: string): number 
   return (endDate.getTime() - startDate.getTime()) / (1000 * 60);
 };
 
-const TimePicker = ({ label, value: propValue = '', disablePast, onChange, error, ...props }: TimePickerProps) => {
+const TimePicker = ({ label, value: propValue = '', disablePast, selectedDate, onChange, error, ...props }: TimePickerProps) => {
   // Initialize state from propValue if it's in the format "HH:MM - HH:MM"
   const [startTime, setStartTime] = useState<string>('');
   const [endTime, setEndTime] = useState<string>('');
@@ -52,15 +53,26 @@ const TimePicker = ({ label, value: propValue = '', disablePast, onChange, error
     }
   }, [propValue]);
 
-  // Effect to disable past times
+  // Effect to disable past times only if the selected date is today
   useEffect(() => {
-    if (disablePast) {
-      const now = new Date();
-      const hours = now.getHours().toString().padStart(2, '0');
-      const minutes = now.getMinutes().toString().padStart(2, '0');
-      setMinTime(`${hours}:${minutes}`);
+    if (disablePast && selectedDate) {
+      const today = new Date().toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+
+      // Only set minTime if we're editing today's date
+      if (selectedDate === today) {
+        const now = new Date();
+        const hours = now.getHours().toString().padStart(2, '0');
+        const minutes = now.getMinutes().toString().padStart(2, '0');
+        setMinTime(`${hours}:${minutes}`);
+      } else {
+        setMinTime(undefined); // No time restrictions for future dates
+      }
     }
-  }, [disablePast]);
+  }, [disablePast, selectedDate]);
 
   // Handle change for start time
   const handleStartTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
