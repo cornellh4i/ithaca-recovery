@@ -5,7 +5,10 @@ import CalendarNavbar from "../organisms/CalendarNavbar";
 import CalendarSidebar from "../organisms/CalendarSidebar";
 import ViewMeetingDetails from "../organisms/ViewMeeting";
 import DailyView from "../organisms/DailyView";
+import EditMeeting from "../organisms/EditMeeting";
 
+
+// Define the type for selectedMeeting to match ViewMeetingDetailsProps
 type MeetingDetails = {
   id: string;
   mid: string;
@@ -19,6 +22,7 @@ type MeetingDetails = {
   zoomLink?: string;
   zid?: string;
   type: string;
+  format: string;
   room: string;
   recurrence?: string;
 };
@@ -28,21 +32,23 @@ const HomePage = () => {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedMeeting, setSelectedMeeting] = useState<MeetingDetails | null>(null);
   const [selectedMeetingID, setSelectedMeetingID] = useState<string | null>(null);
-  const [selectedNewMeeting, setSelectedNewMeeting] = useState<boolean| null>(false); 
+  const [selectedNewMeeting, setSelectedNewMeeting] = useState<boolean | null>(false);
+  const [showEditMeeting, setShowEditMeeting] = useState(false);
   const [inputMeetingTitleValue, setMeetingTitleValue] = useState(""); // Meeting title
   const [dateValue, setDateValue] = useState<string>(""); // Initial date value as empty
   const [timeValue, setTimeValue] = useState<string>(""); // Initial time range as empty
   const [freqValue, setFreqValue] = useState<string>("Never"); // Default frequency value
   const [inputEmailValue, setEmailValue] = useState(""); // Email input value
   const [inputDescriptionValue, setDescriptionValue] = useState(""); // Description input value
-  
+
   const roomOptions = [
     "Serenity Room",
     "Seeds of Hope",
     "Unity Room",
     "Room for Improvement",
     "Small but Powerful - Right",
-    "Small but Powerful - Left"
+    "Small but Powerful - Left",
+
   ];
   const meetingTypeOptions = [
     "AA",
@@ -95,29 +101,45 @@ const HomePage = () => {
     setSelectedNewMeeting(false);
   };
 
-  const handleEdit = () => console.log("Edit meeting");
+  const handleEdit = () => {
+    setShowEditMeeting(true);
+  };
+
+  const handleCloseEdit = () => {
+    setShowEditMeeting(false);
+  };
+
+  const handleCloseNewMeeting = () => {
+    setSelectedNewMeeting(false);
+  };
 
   const handleDelete = async (mid: string) => {
     try {
-      const response = await fetch("/api/delete/meeting", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mid }),
+      const response = await fetch('/api/delete/meeting', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          mid
+        }),
       });
-
+      console.log("checking if response is ok")
       if (!response.ok) {
-        alert("Error: Unsuccessful delete");
+        alert("Error : Unsuccesful delete")
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-
+      console.log("setting usestate to null 1")
       setSelectedMeeting(null);
-      alert("Meeting deleted successfully!");
+      console.log("setting usestate to null 2")
+
+      const meetingResponse = await response.json();
+      console.log(meetingResponse);
+      alert("Meeting deleted successfully! Please check the Meeting collection on MongoDB.")
+
     } catch (error) {
-      console.error("Error deleting the meeting:", error);
+      console.error('There was an error fetching the data:', error);
     }
-  };
-  const handleCloseNewMeeting = () => {
-    setSelectedNewMeeting(false);
   };
 
   const [filters, setFilters] = useState({
@@ -139,30 +161,45 @@ const HomePage = () => {
     Remote: true,
   });
 
+
+
   return (
     <div className={styles.container}>
       <div className={styles.sidebar}>
-        {selectedMeeting ? (
-          <ViewMeetingDetails
-            id={selectedMeeting.id}
-            mid={selectedMeeting.mid}
-            title={selectedMeeting.title}
-            description={selectedMeeting.description}
-            creator={selectedMeeting.creator}
-            group={selectedMeeting.group}
-            startDateTime={new Date(selectedMeeting.startDateTime)}
-            endDateTime={new Date(selectedMeeting.endDateTime)}
-            zoomAccount={selectedMeeting.zoomAccount}
-            zoomLink={selectedMeeting.zoomLink}
-            zid={selectedMeeting.zid}
-            type={selectedMeeting.type}
-            room={selectedMeeting.room}
-            recurrence={selectedMeeting.recurrence}
-            onBack={handleBack}
-            onEdit={handleEdit}
-            onDelete={() => handleDelete(selectedMeeting.mid)}
-          />
-        ) : (
+        {showEditMeeting && selectedMeeting ? (
+          <EditMeeting
+            meeting={selectedMeeting}
+            onClose={handleCloseEdit}
+            onUpdateSuccess={() => {
+              console.log("Meeting updated!");
+              // Refresh the meeting data after successful update
+              if (selectedMeeting.mid) {
+                fetchMeetingDetails(selectedMeeting.mid);
+              }
+            }}
+          />) :
+          selectedMeeting ? (
+            // Render ViewMeetingDetails if a meeting is selected
+            <ViewMeetingDetails
+              id={selectedMeeting.id}
+              mid={selectedMeeting.mid}
+              title={selectedMeeting.title}
+              description={selectedMeeting.description}
+              creator={selectedMeeting.creator}
+              group={selectedMeeting.group}
+              startDateTime={new Date(selectedMeeting.startDateTime)}
+              endDateTime={new Date(selectedMeeting.endDateTime)}
+              zoomAccount={selectedMeeting.zoomAccount}
+              zoomLink={selectedMeeting.zoomLink}
+              zid={selectedMeeting.zid}
+              type={selectedMeeting.type}
+              room={selectedMeeting.room}
+              recurrence={selectedMeeting.recurrence}
+              onBack={handleBack}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+            />
+          ) : (
           <CalendarSidebar 
             filters={filters}
             setFilters={setFilters}
