@@ -1,5 +1,5 @@
 "use client";
-import React, { useContext, useState } from 'react';
+import React, { useContext, useState, useEffect } from 'react';
 import { IAdmin, IUser } from '../../util/models'
 import { IMeeting } from '../../util/models'
 import styles from "../../styles/TestPage.module.scss";
@@ -21,8 +21,210 @@ import ViewMeetingDetails from '../components/organisms/ViewMeeting';
 import TodayIcon from '@mui/icons-material/Today';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import ReccuringMeeting from "../components/molecules/RecurringMeeting";
-
 import { set } from 'mongoose';
+import {
+  InteractionRequiredAuthError,
+  InteractionStatus,
+  PublicClientApplication,
+  EventType,
+} from "@azure/msal-browser";
+import { MsalProvider, AuthenticatedTemplate, UnauthenticatedTemplate, useMsal } from "@azure/msal-react";
+
+// MSAL configuration
+const msalConfig = {
+  auth: {
+    clientId: process.env.LIENT_ID || "",
+    authority: `https://login.microsoftonline.com/${process.env.TENANT_ID}`,
+    redirectUri: window.location.origin,
+  },
+  cache: {
+    cacheLocation: "sessionStorage",
+    storeAuthStateInCookie: false,
+  },
+};
+
+const msalInstance = new PublicClientApplication(msalConfig);
+
+const TestPage = () => {
+  const testCreateCalendarEvent = async () => {
+    try {
+      const response = await fetch('/api/microsoft/calendars/createEvent', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          title: "Test Calendar Event",
+          description: "This is a test event created using API",
+          startDateTime: new Date(Date.now() + 3600000).toISOString(),
+          endDateTime: new Date(Date.now() + 7200000).toISOString(),
+          groupId: "19477",
+          attendees: [{ email: "test@example.com" }]
+        })
+      });
+      const data = await response.json();
+      console.log('Create Calendar Event Response:', data);
+      alert(response.ok ? "Calendar event created successfully!" : `Failed to create event: ${data.error}`);
+    } catch (error) {
+      console.error('Error creating calendar event:', error);
+      alert('Error creating calendar event. Check console for details.');
+    }
+  };
+
+  const testUpdateCalendarEvent = async () => {
+    try {
+      const response = await fetch('/api/microsoft/calendars/updateEvent', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          eventId: "test-event-id",
+          groupId: "19477",
+          title: "Updated Test Event",
+          description: "This event was updated via API"
+        })
+      });
+      const data = await response.json();
+      console.log('Update Calendar Event Response:', data);
+      alert(response.ok ? "Calendar event updated successfully!" : `Failed to update event: ${data.error}`);
+    } catch (error) {
+      console.error('Error updating calendar event:', error);
+      alert('Error updating calendar event. Check console for details.');
+    }
+  };
+
+  const testDeleteCalendarEvent = async () => {
+    try {
+      const response = await fetch('/api/microsoft/calendars/deleteEvent', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          eventId: "test-event-id",
+          groupId: "19477"
+        })
+      });
+      if (response.status === 204) {
+        console.log('Calendar event deleted successfully');
+        alert('Calendar event deleted successfully!');
+      } else {
+        const data = await response.json();
+        console.error('Delete Calendar Event Error:', data);
+        alert(`Failed to delete event: ${data.error}`);
+      }
+    } catch (error) {
+      console.error('Error deleting calendar event:', error);
+      alert('Error deleting calendar event. Check console for details.');
+    }
+  };
+
+  return (
+    <MsalProvider instance={msalInstance}>
+      <div className={styles['apicontainer']}>
+        <div className={styles.section}>
+          <h2>Microsoft Calendar Operations</h2>
+          <TestButton testFunc={testCreateCalendarEvent} text="Create Calendar Event" />
+          <TestButton testFunc={testUpdateCalendarEvent} text="Update Calendar Event" />
+          <TestButton testFunc={testDeleteCalendarEvent} text="Delete Calendar Event" />
+        </div>
+        <App />
+      </div>
+    </MsalProvider>
+  );
+};
+
+const MicrosoftCalendarOperations = () => {
+  const { instance, accounts } = useMsal();
+  const [accessToken, setAccessToken] = useState<string | null>("dummy-token"); // Providing a dummy token
+
+  const testCreateCalendarEvent = async () => {
+    try {
+      const response = await fetch('/api/microsoft/calendars/createEvent', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`
+        },
+        body: JSON.stringify({
+          title: "Test Calendar Event",
+          description: "This is a test event created using API",
+          startDateTime: new Date(Date.now() + 3600000).toISOString(),
+          endDateTime: new Date(Date.now() + 7200000).toISOString(),
+          groupId: "123",
+          attendees: [{ email: "test@example.com" }]
+        })
+      });
+      const data = await response.json();
+      console.log('Create Calendar Event Response:', data);
+      alert(response.ok ? "Calendar event created successfully!" : `Failed to create event: ${data.error}`);
+    } catch (error) {
+      console.error('Error creating calendar event:', error);
+      alert('Error creating calendar event. Check console for details.');
+    }
+  };
+
+  const testUpdateCalendarEvent = async () => {
+    try {
+      const response = await fetch('/api/microsoft/calendars/updateEvent', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`
+        },
+        body: JSON.stringify({
+          eventId: "test-event-id",
+          groupId: "123",
+          title: "Updated Test Event",
+          description: "This event was updated via API"
+        })
+      });
+      const data = await response.json();
+      console.log('Update Calendar Event Response:', data);
+      alert(response.ok ? "Calendar event updated successfully!" : `Failed to update event: ${data.error}`);
+    } catch (error) {
+      console.error('Error updating calendar event:', error);
+      alert('Error updating calendar event. Check console for details.');
+    }
+  };
+
+  const testDeleteCalendarEvent = async () => {
+    try {
+      const response = await fetch('/api/microsoft/calendars/deleteEvent', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`
+        },
+        body: JSON.stringify({
+          eventId: "test-event-id",
+          groupId: "123"
+        })
+      });
+      if (response.status === 204) {
+        console.log('Calendar event deleted successfully');
+        alert('Calendar event deleted successfully!');
+      } else {
+        const data = await response.json();
+        console.error('Delete Calendar Event Error:', data);
+        alert(`Failed to delete event: ${data.error}`);
+      }
+    } catch (error) {
+      console.error('Error deleting calendar event:', error);
+      alert('Error deleting calendar event. Check console for details.');
+    }
+  };
+
+  return (
+    <div className={styles.section}>
+      <h2>Microsoft Calendar Operations</h2>
+      <TestButton testFunc={testCreateCalendarEvent} text="Create Calendar Event" />
+      <TestButton testFunc={testUpdateCalendarEvent} text="Update Calendar Event" />
+      <TestButton testFunc={testDeleteCalendarEvent} text="Delete Calendar Event" />
+    </div>
+  );
+};
 
 const App = () => {
 
@@ -558,7 +760,7 @@ const App = () => {
             input="Meeting title"
             value={inputMeetingTitleValue}
             onChange={setMeetingTitleValue}
-            />}
+          />}
           DatePicker={<DatePicker
             label={<TodayIcon />}
             value={dateValue}
@@ -614,14 +816,14 @@ const App = () => {
             label="label"
             value={inputEmailValue}
             onChange={setEmailValue}
-            />
+          />
           }
           uploadPandaDocsForm={<UploadPandaDocs onFileSelect={handleFileSelect} />}
           descriptionTextField={<TextField
             input="Description"
             value={inputDescriptionValue}
             onChange={setDescriptionValue}
-            />}
+          />}
 
           onCreateMeeting={createMeeting}
         ></NewMeetingSidebar>
@@ -641,4 +843,4 @@ const App = () => {
   );
 }
 
-export default App;
+export default TestPage;
