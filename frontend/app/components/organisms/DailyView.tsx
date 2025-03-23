@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from "react";
-import styles from '../../../../styles/organisms/DailyView.module.scss';
-import BoxText from '../../atoms/BoxText';
-import DailyViewRow from "../../molecules/DailyViewRow";
-import CalendarNavbar from "../CalendarNavbar";
+import styles from '../../../styles/organisms/DailyView.module.scss';
+import BoxText from '../atoms/BoxText';
+import DailyViewRow from "../molecules/DailyViewRow";
 
 type Meeting = {
   id: string;
@@ -72,7 +71,6 @@ const fetchMeetingsByDay = async (date: Date): Promise<Room[]> => {
   }
 };
 
-
 const formatTime = (hour: number): string => {
   const period = hour >= 12 ? "PM" : "AM";
   const formattedHour = hour % 12 || 12; 
@@ -89,30 +87,31 @@ const defaultRooms = [
   { name: 'Room for Improvement', primaryColor: '#ffae73' },
   { name: 'Small but Powerful - Right', primaryColor: '#d2afff' },
   { name: 'Small but Powerful - Left', primaryColor: '#ffa3c2' },
-  { name: 'Zoom Email 1', primaryColor: '#cecece' },
-  { name: 'Zoom Email 2', primaryColor: '#cecece' },
-  { name: 'Zoom Email 3', primaryColor: '#cecece' },
-  { name: 'Zoom Email 4', primaryColor: '#cecece' },
+  { name: 'Zoom Account 1', primaryColor: '#cecece' },
+  { name: 'Zoom Account 2', primaryColor: '#cecece' },
+  { name: 'Zoom Account 3', primaryColor: '#cecece' },
+  { name: 'Zoom Account 4', primaryColor: '#cecece' },
 ];
-
 interface DailyViewProps {
+  filters: any;
+  selectedDate: Date;
+  setSelectedDate: (date: Date) => void;
   setSelectedMeetingID: (meetingId: string) => void;
   setSelectedNewMeeting: (newMeetingExists: boolean) => void;
 }
 
-const DailyView: React.FC<DailyViewProps> = ({ setSelectedMeetingID, setSelectedNewMeeting }) => {
+const DailyView: React.FC<DailyViewProps> = ({ filters, selectedDate, setSelectedDate, setSelectedMeetingID, setSelectedNewMeeting }) => {
   const [currentTimePosition, setCurrentTimePosition] = useState(0);
   const [meetings, setMeetings] = useState<Room[]>([]);
-  const [currentDate, setCurrentDate] = useState(getTodayDate());
 
   function getTodayDate(): Date {
-    return new Date();
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    return now;
   }
 
   const handleDateChange = async (date: Date) => {
-    console.log("handleDateChange called with date:", date.toISOString());
     const data = await fetchMeetingsByDay(date);
-    console.log("Data fetched:", data);
     setMeetings(data);
   };
 
@@ -127,25 +126,25 @@ const DailyView: React.FC<DailyViewProps> = ({ setSelectedMeetingID, setSelected
 
   const handlePreviousDay = () => {
     console.log("prev day");
-    const prevDate = new Date(currentDate);
+    const prevDate = new Date(selectedDate);
     prevDate.setDate(prevDate.getDate() - 1);
-    setCurrentDate(prevDate);
+    setSelectedDate(prevDate);
   };
 
   const handleNextDay = () => {
     console.log("next day");
-    const nextDate = new Date(currentDate);
+    const nextDate = new Date(selectedDate);
     nextDate.setDate(nextDate.getDate() + 1);
-    setCurrentDate(nextDate);
+    setSelectedDate(nextDate);
   };
 
   useEffect(() => {
-    handleDateChange(currentDate);
+    handleDateChange(selectedDate);
     updateTimePosition();
 
     const intervalId = setInterval(updateTimePosition, 60000);
     return () => clearInterval(intervalId);
-  }, [currentDate]);
+  }, [selectedDate]);
   
   // Dummy function for onClick prop
   const handleBoxClick = (meetingId: string) => {
@@ -158,17 +157,16 @@ const DailyView: React.FC<DailyViewProps> = ({ setSelectedMeetingID, setSelected
     // setSelectedMeetingID(null); 
   };
 
-  const combinedRooms = defaultRooms.map((defaultRoom) => {
-    const roomWithMeetings = meetings.find((meetingRoom) => meetingRoom.name === defaultRoom.name);
-    return roomWithMeetings || { ...defaultRoom, meetings: [] }; 
-  });
+  const combinedRooms = defaultRooms
+  .filter((defaultRoom) => filters[defaultRoom.name.replace(/[-\s]+/g, '').replace(/\s+/g, '')])
+    .map((defaultRoom) => {
+      const roomWithMeetings = meetings.find((meetingRoom) => meetingRoom.name === defaultRoom.name);
+      return roomWithMeetings || { ...defaultRoom, meetings: [] }; 
+    }
+  );
 
   return (
     <div className={styles.outerContainer}>
-      <CalendarNavbar 
-        onPreviousDay={handlePreviousDay} 
-        onNextDay={handleNextDay} 
-      />
       <div className={styles.viewContainer}>
         <div className={styles.roomContainer}>
           {combinedRooms.map((room, index) => (
