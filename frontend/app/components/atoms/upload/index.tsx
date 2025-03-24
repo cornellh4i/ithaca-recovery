@@ -1,11 +1,12 @@
 import styles from "../../../../styles/UploadPandaDocs.module.scss"
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 
 interface UploadProps {
-  onFileSelect: (file: File | null) => void;
+  onFileSelect: (file: File | null, hasError: boolean) => void;
+  onErrorChange?: (hasError: boolean) => void;
 }
 
-const UploadPandaDocs: React.FC<UploadProps> = ({ onFileSelect }) => {
+const UploadPandaDocs: React.FC<UploadProps> = ({ onFileSelect, onErrorChange }) => {
   const [dragActive, setDragActive] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
@@ -13,9 +14,17 @@ const UploadPandaDocs: React.FC<UploadProps> = ({ onFileSelect }) => {
 
   const [isFocused, setIsFocused] = useState<boolean>(false);
   const [inputError, setInputError] = useState<string | null>(null);
+  const [hasInteracted, setHasInteracted] = useState<boolean>(false);
   
   // Reference to the file input
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Report error state to parent when it changes
+  useEffect(() => {
+    if (hasInteracted && onErrorChange) {
+      onErrorChange(inputError !== null);
+    }
+  }, [inputError, hasInteracted, onErrorChange]);
 
   const handleDragOver = useCallback((event: React.DragEvent<HTMLLabelElement>) => {
     event.preventDefault();
@@ -27,6 +36,7 @@ const UploadPandaDocs: React.FC<UploadProps> = ({ onFileSelect }) => {
   }, []);
 
   const handleDrop = useCallback((event: React.DragEvent<HTMLLabelElement>) => {
+    setHasInteracted(true);
     setIsFocused(true);
     event.preventDefault();
     setDragActive(false);
@@ -36,21 +46,26 @@ const UploadPandaDocs: React.FC<UploadProps> = ({ onFileSelect }) => {
       setInputError(null);
       const file = files[0];
       setSelectedFile(file);
-      onFileSelect(file);
+      onFileSelect(file, false); // No error
       uploadFile(file);
     } else {
       setInputError("Please upload a file");
+      onFileSelect(null, true); // Error
     }
   }, [onFileSelect]);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setHasInteracted(true);
     const file = event.target.files?.[0] || null;
     setSelectedFile(file);
-    onFileSelect(file);
     
     if (file) {
       uploadFile(file);
       setInputError(null);
+      onFileSelect(file, false); // No error
+    } else {
+      setInputError("Please upload a file");
+      onFileSelect(null, true); // Error
     }
   };
 
@@ -76,23 +91,27 @@ const UploadPandaDocs: React.FC<UploadProps> = ({ onFileSelect }) => {
   };
 
   const removeFile = () => {
+    setHasInteracted(true);
     setSelectedFile(null);
     setUploadProgress(null);
     setUploadCompleted(false);
-    onFileSelect(null);
     setInputError("Please upload a file");
+    onFileSelect(null, true); // Error
   };
   
   // Simplified upload click handler - directly sets the error
   const handleUploadClick = () => {
+    setHasInteracted(true);
     setIsFocused(true);
     if (!selectedFile) {
       setInputError("Please upload a file");
+      onFileSelect(null, true); // Error
     }
   };
 
   const handleFocus = () => {
     setIsFocused(true);
+    setHasInteracted(true);
   };
 
   const handleBlur = () => {

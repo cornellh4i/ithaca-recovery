@@ -4,7 +4,8 @@ import styles from "../../../../styles/components/atoms/TimePicker.module.scss";
 interface TimePickerProps {
   label: string | JSX.Element;
   value?: string;
-  onChange: (value: string) => void;
+  onChange: (value: string, hasError?: boolean) => void;
+  onErrorChange?: (hasError: boolean) => void;
   underlineOnFocus?: boolean;
   error?: string;
   disablePast?: boolean;
@@ -31,7 +32,7 @@ const getTimeDifferenceInMinutes = (startTime: string, endTime: string): number 
   return (endDate.getTime() - startDate.getTime()) / (1000 * 60);
 };
 
-const TimePicker = ({ label, value: propValue = '', disablePast, onChange, error, ...props }: TimePickerProps) => {
+const TimePicker = ({ label, value: propValue = '', disablePast, onChange, onErrorChange, error, ...props }: TimePickerProps) => {
   const [startTime, setStartTime] = useState<string>(''); // Start time in 24-hour format
   const [endTime, setEndTime] = useState<string>(''); // End time in 24-hour format
   const [timeDifference, setTimeDifference] = useState<number>(60); // Default difference is 60 minutes
@@ -44,6 +45,12 @@ const TimePicker = ({ label, value: propValue = '', disablePast, onChange, error
   // Track which input has the error styling
   const [startTimeErrorStyle, setStartTimeErrorStyle] = useState<boolean>(false);
   const [endTimeErrorStyle, setEndTimeErrorStyle] = useState<boolean>(false);
+
+  // Report error state to parent when error states change
+  useEffect(() => {
+    const hasError = timeError || endTimeSequenceError;
+    onErrorChange && onErrorChange(hasError);
+  }, [timeError, endTimeSequenceError, onErrorChange]);
 
   // Effect to disable past times
   useEffect(() => {
@@ -63,7 +70,6 @@ const TimePicker = ({ label, value: propValue = '', disablePast, onChange, error
     // Calculate the new end time based on the current time difference
     const newEndTime = addMinutes(newStartTime, timeDifference);
     setEndTime(newEndTime);
-    onChange && onChange(`${newStartTime} - ${newEndTime}`);
     
     // Reset error states when start time changes
     setStartTimeErrorStyle(false);
@@ -72,11 +78,17 @@ const TimePicker = ({ label, value: propValue = '', disablePast, onChange, error
     }
     
     // Check end time sequence error
+    let hasSequenceError = false;
     if (endTime && getTimeDifferenceInMinutes(newStartTime, endTime) <= 0) {
       setEndTimeSequenceError(true);
+      hasSequenceError = true;
     } else {
       setEndTimeSequenceError(false);
     }
+    
+    // Call onChange with error status
+    const hasError = !newStartTime || !endTime || hasSequenceError;
+    onChange && onChange(`${newStartTime} - ${newEndTime}`, hasError);
   };
 
   // Handle change for end time
@@ -85,10 +97,12 @@ const TimePicker = ({ label, value: propValue = '', disablePast, onChange, error
     setEndTime(newEndTime);
 
     // Validate end time against start time
+    let hasSequenceError = false;
     if (startTime && newEndTime) {
       const newTimeDifference = getTimeDifferenceInMinutes(startTime, newEndTime);
       if (newTimeDifference <= 0) {
         setEndTimeSequenceError(true);
+        hasSequenceError = true;
       } else {
         setEndTimeSequenceError(false);
         setTimeDifference(newTimeDifference);
@@ -101,7 +115,9 @@ const TimePicker = ({ label, value: propValue = '', disablePast, onChange, error
       setTimeError(false);
     }
     
-    onChange && onChange(`${startTime} - ${newEndTime}`);
+    // Call onChange with error status
+    const hasError = !startTime || !newEndTime || hasSequenceError;
+    onChange && onChange(`${startTime} - ${newEndTime}`, hasError);
   };
 
   const handleStartTimeBlur = () => {
@@ -110,6 +126,9 @@ const TimePicker = ({ label, value: propValue = '', disablePast, onChange, error
       if (!timeError && !endTime) {
         setTimeError(true);
       }
+      
+      // Report error on blur
+      onChange && onChange(`${startTime} - ${endTime}`, true);
     }
   };
 
@@ -119,6 +138,9 @@ const TimePicker = ({ label, value: propValue = '', disablePast, onChange, error
       if (!timeError && !startTime) {
         setTimeError(true);
       }
+      
+      // Report error on blur
+      onChange && onChange(`${startTime} - ${endTime}`, true);
     }
   };
 
