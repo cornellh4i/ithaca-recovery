@@ -11,20 +11,27 @@ interface DropdownProps {
 
 
 const Dropdown: React.FC<DropdownProps> = ({ label, isVisible, elements, name, onChange }) => {
-  const [selectedElement, setselectedElement] = useState<string | null>(null);
-
+  const [selectedElement, setSelectedElement] = useState<string | null>(null);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null); 
+  const [inputError, setInputError] = useState<string | null>(null);
 
   if (!isVisible) return null;
 
   const handleDropdownToggle = (dropdownType: string) => {
-    setActiveDropdown((prev) => (prev === dropdownType ? null : dropdownType));
+    if (activeDropdown === dropdownType) {
+      if (!selectedElement) setInputError("Please select an option.");
+      setActiveDropdown(null);
+    } else {
+      setActiveDropdown(dropdownType);
+      setInputError(null); 
+    }
   };
 
   const handleElementClick = (element: string) => {
-    setselectedElement(element);
+    setSelectedElement(element);
     onChange(element);
     setActiveDropdown(null); 
+    setInputError(null); // Clear error on valid selection
   };
 
 
@@ -35,7 +42,8 @@ const Dropdown: React.FC<DropdownProps> = ({ label, isVisible, elements, name, o
           {typeof label === 'string' ? <span>{label}</span> : label}
         </label>
         <button
-          className={`${styles.DropdownButton} ${activeDropdown === "element" ? styles.activeDropdown : ''}`}
+          className={`${styles.DropdownButton} ${activeDropdown === "element" ? styles.activeDropdown : ''} 
+            ${inputError ? styles.DropdownErrorInput : ''}`}
           onClick={() => handleDropdownToggle("element")}
         >
           {selectedElement ? selectedElement : name}
@@ -53,6 +61,7 @@ const Dropdown: React.FC<DropdownProps> = ({ label, isVisible, elements, name, o
             ))}
           </ul>
         )}
+        {inputError && <div className={styles.DropdownErrorMessage}>{inputError}</div>}
       </div>
 
     </div>
