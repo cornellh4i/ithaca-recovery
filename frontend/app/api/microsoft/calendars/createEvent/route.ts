@@ -4,11 +4,11 @@ import getAccessToken from "../../AccessToken";
 
 interface EventRequestBody {
   title: string;
-  description?: string;
+  description: string;
   startDateTime: string;
   endDateTime: string;
   attendees?: { email: string }[];
-  groupId: string;
+  groupId?: string;
 }
 
 export async function POST(req: Request) {

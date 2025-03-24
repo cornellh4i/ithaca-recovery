@@ -4,7 +4,7 @@ import getAccessToken from "../../AccessToken";
 
 interface EventUpdateBody {
   eventId: string;
-  groupId: string;
+  groupId?: string;
   title?: string;
   description?: string;
   startDateTime?: string;
@@ -27,7 +27,6 @@ export async function PUT(req: Request) {
 
     const body: EventUpdateBody = await req.json();
 
-    // Construct the update object with only provided fields
     const updateEvent: any = {};
 
     if (body.title) {
