@@ -25,6 +25,11 @@ interface CalendarSidebarProps {
 const CalendarSidebar: React.FC<CalendarSidebarProps> = ({filters, setFilters, selectedDate, setSelectedDate}) => {
   // State declarations for New Meeting button
   const [isNewMeetingOpen, setIsNewMeetingOpen] = useState(false);
+  
+  const handleMiniCalendarSelect = (date: Date) => {
+    console.log("Selected Date:", date);
+    setSelectedDate(date);
+  };
 
   // Form validation errors tracking
   const [formErrors, setFormErrors] = useState({
