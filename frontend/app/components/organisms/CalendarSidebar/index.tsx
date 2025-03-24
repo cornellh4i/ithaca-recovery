@@ -11,13 +11,18 @@ import MiniCalendar from '../../atoms/MiniCalendar';
 import MeetingsFilter from '../../molecules/MeetingsFilter';
 import NewMeetingSidebar from '../NewMeeting';
 import styles from '../../../../styles/components/organisms/CalendarSidebar.module.scss';
-
 import AddIcon from '@mui/icons-material/Add';
 import CloseIcon from '@mui/icons-material/Close';
 import IconButton from '@mui/material/IconButton';
 import RecurringMeetingForm from '../../molecules/RecurringMeeting';
+interface CalendarSidebarProps {
+  filters: any;
+  setFilters: any;
+  selectedDate: Date;
+  setSelectedDate: React.Dispatch<React.SetStateAction<Date>>;
+}
 
-const CalendarSidebar: React.FC = () => {
+const CalendarSidebar: React.FC<CalendarSidebarProps> = ({filters, setFilters, selectedDate, setSelectedDate}) => {
   // State declarations for New Meeting button
   const [isNewMeetingOpen, setIsNewMeetingOpen] = useState(false);
 
@@ -44,24 +49,6 @@ const CalendarSidebar: React.FC = () => {
 
   // A unique key for the filter 
   const filterKey = 'meetingFilterState';
-  const [filters, setFilters] = useState<any>({
-    SerenityRoom: true,
-    SeedsOfHope: true,
-    UnityRoom: true,
-    RoomForImprovement: true,
-    SmallButPowerfulRight: true,
-    SmallButPowerfulLeft: true,
-    ZoomAccount1: true,
-    ZoomAccount2: true,
-    ZoomAccount3: true,
-    ZoomAccount4: true,
-    AA: true,
-    AlAnon: true,
-    Other: true,
-    InPerson: true,
-    Hybrid: true,
-    Remote: true,
-  });
 
   const handleFilterChange = (name: string, value: boolean) => {
     const updatedFilters = { ...filters, [name]: value };
@@ -299,7 +286,9 @@ const CalendarSidebar: React.FC = () => {
           {isNewMeetingOpen && (
             <div className={styles.newMeetingHeader}>
               <h3>New Meeting</h3>
-              <IconButton className={styles.iconButton} onClick={handleCloseNewMeeting}><CloseIcon sx={{ color: 'black' }} /></IconButton>
+              <IconButton className={styles.iconButton} onClick={handleCloseNewMeeting}>
+                <CloseIcon sx={{ color: 'black' }} />
+              </IconButton>
             </div>
           )}
           <NewMeetingSidebar
@@ -322,7 +311,7 @@ const CalendarSidebar: React.FC = () => {
               onErrorChange={(hasError) => updateErrorState('time', hasError)}
               disablePast={true}
             />}
-            RecurringMeeting={<RecurringMeetingForm/>}
+            RecurringMeeting={<RecurringMeetingForm />}
             roomSelectionDropdown={
               <Dropdown
                 label={<img src="/svg/location-icon.svg" alt="Location Icon" />}
@@ -335,7 +324,7 @@ const CalendarSidebar: React.FC = () => {
             }
             meetingTypeDropdown={
               <Dropdown
-                label={<img src="svg/group-icon.svg" alt="Group Icon"/>}
+                label={<img src="svg/group-icon.svg" alt="Group Icon" />}
                 isVisible={true}
                 elements={meetingTypeOptions}
                 name="Select Meeting Type"
@@ -345,7 +334,7 @@ const CalendarSidebar: React.FC = () => {
             }
             zoomAccountDropdown={
               <Dropdown
-                label={<img src="svg/person-icon.svg" alt="Person Icon"/>}
+                label={<img src="svg/person-icon.svg" alt="Person Icon" />}
                 isVisible={true}
                 elements={zoomAccountOptions}
                 name="Select Zoom Account"
@@ -355,7 +344,7 @@ const CalendarSidebar: React.FC = () => {
             }
             emailTextField={<TextField
               input="Email"
-              label={<img src="svg/mail-icon.svg" alt="Mail Icon"/>}
+              label={<img src="svg/mail-icon.svg" alt="Mail Icon" />}
               value={inputEmailValue}
               onChange={handleEmailChange}
               onErrorChange={(hasError) => updateErrorState('email', hasError)}
@@ -367,18 +356,20 @@ const CalendarSidebar: React.FC = () => {
             />}
             descriptionTextField={<TextField
               input="Description"
-              label = ""
+              label=""
               value={inputDescriptionValue}
               onChange={handleDescriptionChange}
               onErrorChange={(hasError) => updateErrorState('description', hasError)}
               />}
             onCreateMeeting={createMeeting}
-          ></NewMeetingSidebar>
+          />
         </div>
       ) : (
         <>
           <TextButton label="New Meeting" onClick={handleOpenNewMeeting} icon={<AddIcon />} />
-          <div> <MiniCalendar /> </div>
+          <div>
+            <MiniCalendar selectedDate={selectedDate} onSelect={handleMiniCalendarSelect}/>
+          </div>
           <div className={styles.meetingsFilter}>
             <MeetingsFilter filters={filters} onFilterChange={handleFilterChange} />
           </div>
@@ -389,4 +380,3 @@ const CalendarSidebar: React.FC = () => {
 };
 
 export default CalendarSidebar;
-
