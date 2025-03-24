@@ -121,3 +121,15 @@
 .uploaded {
   border: solid 2px #CC3366;
 }
+
+.uploadError {
+  border: 1px solid red; // Apply red border for error state
+
+}
+
+.uploadErrorMessage {
+  margin-left: 10px; // Space between input and error message
+  color: red;
+  font-size: 14px;
+
+}

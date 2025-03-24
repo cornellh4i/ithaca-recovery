@@ -25,9 +25,31 @@ interface CalendarSidebarProps {
 const CalendarSidebar: React.FC<CalendarSidebarProps> = ({filters, setFilters, selectedDate, setSelectedDate}) => {
   // State declarations for New Meeting button
   const [isNewMeetingOpen, setIsNewMeetingOpen] = useState(false);
+  
   const handleMiniCalendarSelect = (date: Date) => {
     console.log("Selected Date:", date);
     setSelectedDate(date);
+  };
+
+  // Form validation errors tracking
+  const [formErrors, setFormErrors] = useState({
+    meetingTitle: false,
+    date: false,
+    time: false,
+    room: false,
+    meetingType: false,
+    zoomAccount: false,
+    email: false,
+    pandaDocs: false,
+    description: false
+  });
+
+  // Function to update form error state
+  const updateErrorState = (field: string, hasError: boolean) => {
+    setFormErrors(prev => ({
+      ...prev,
+      [field]: hasError
+    }));
   };
 
   // A unique key for the filter 
@@ -39,6 +61,18 @@ const CalendarSidebar: React.FC<CalendarSidebarProps> = ({filters, setFilters, s
   };
 
   const handleOpenNewMeeting = () => {
+    // Reset all form errors when opening the form
+    setFormErrors({
+      meetingTitle: false,
+      date: false,
+      time: false,
+      room: false,
+      meetingType: false,
+      zoomAccount: false,
+      email: false,
+      pandaDocs: false,
+      description: false
+    });
     setIsNewMeetingOpen(true);
   };
 
@@ -47,7 +81,8 @@ const CalendarSidebar: React.FC<CalendarSidebarProps> = ({filters, setFilters, s
     setIsNewMeetingOpen(false);
   };
 
-  const handleFileSelect = (file: File | null) => {
+  const handleFileSelect = (file: File | null, hasError: boolean) => {
+    updateErrorState('pandaDocs', hasError);
     if (file) {
       console.log("File selected:", file);
       // Handle the selected file (e.g., upload it or process it)
@@ -57,9 +92,47 @@ const CalendarSidebar: React.FC<CalendarSidebarProps> = ({filters, setFilters, s
   };
 
   // Update handlers for these dropdowns
-  const handleRoomChange = (value: string) => setSelectedRoom(value);
-  const handleMeetingTypeChange = (value: string) => setSelectedMeetingType(value);
-  const handleZoomAccountChange = (value: string) => setSelectedZoomAccount(value);
+  const handleRoomChange = (value: string, hasError: boolean) => {
+    setSelectedRoom(value);
+    updateErrorState('room', hasError);
+  };
+  
+  const handleMeetingTypeChange = (value: string, hasError: boolean) => {
+    setSelectedMeetingType(value);
+    updateErrorState('meetingType', hasError);
+  };
+  
+  const handleZoomAccountChange = (value: string, hasError: boolean) => {
+    setSelectedZoomAccount(value);
+    updateErrorState('zoomAccount', hasError);
+  };
+
+  // Handle text field changes with error reporting
+  const handleMeetingTitleChange = (value: string, hasError: boolean) => {
+    setMeetingTitleValue(value);
+    updateErrorState('meetingTitle', hasError);
+  };
+
+  const handleEmailChange = (value: string, hasError: boolean) => {
+    setEmailValue(value);
+    updateErrorState('email', hasError);
+  };
+
+  const handleDescriptionChange = (value: string, hasError: boolean) => {
+    setDescriptionValue(value);
+    updateErrorState('description', hasError);
+  };
+
+  // Handle date and time changes with error reporting
+  const handleDateChange = (value: string, hasError: boolean) => {
+    setDateValue(value);
+    updateErrorState('date', hasError);
+  };
+
+  const handleTimeChange = (value: string, hasError: boolean) => {
+    setTimeValue(value);
+    updateErrorState('time', hasError);
+  };
 
   // State declarations for New Meeting form
   const [inputMeetingTitleValue, setMeetingTitleValue] = useState(""); // Meeting title
@@ -68,9 +141,9 @@ const CalendarSidebar: React.FC<CalendarSidebarProps> = ({filters, setFilters, s
   const [freqValue, setFreqValue] = useState<string>("Never"); // Default frequency value
   const [inputEmailValue, setEmailValue] = useState(""); // Email input value
   const [inputDescriptionValue, setDescriptionValue] = useState(""); // Description input value
-  const [selectedRoom, setSelectedRoom] = useState<string>("Serenity Room");
-  const [selectedMeetingType, setSelectedMeetingType] = useState<string>("AA");
-  const [selectedZoomAccount, setSelectedZoomAccount] = useState<string>("Zoom Email 1");
+  const [selectedRoom, setSelectedRoom] = useState<string>("");
+  const [selectedMeetingType, setSelectedMeetingType] = useState<string>("");
+  const [selectedZoomAccount, setSelectedZoomAccount] = useState<string>("");
 
   // Room and Meeting Type options
   const roomOptions = [
@@ -110,12 +183,40 @@ const CalendarSidebar: React.FC<CalendarSidebarProps> = ({filters, setFilters, s
 
   const createMeeting = async () => {
     try {
+      // Check if any form errors exist
+      const hasErrors = Object.values(formErrors).some(error => error === true);
+      
+      // Also check for empty required fields
+      const requiredFieldsEmpty = 
+        !inputMeetingTitleValue || 
+        !dateValue || 
+        !timeValue || 
+        !selectedRoom || 
+        !selectedMeetingType || 
+        !selectedZoomAccount || 
+        !inputEmailValue;
+      
+      if (hasErrors || requiredFieldsEmpty) {
+        alert("Please fix all errors and fill in all required fields before creating a meeting");
+        
+        // Set errors for empty fields
+        if (!inputMeetingTitleValue) updateErrorState('meetingTitle', true);
+        if (!dateValue) updateErrorState('date', true);
+        if (!timeValue) updateErrorState('time', true);
+        if (!selectedRoom) updateErrorState('room', true);
+        if (!selectedMeetingType) updateErrorState('meetingType', true);
+        if (!selectedZoomAccount) updateErrorState('zoomAccount', true);
+        if (!inputEmailValue) updateErrorState('email', true);
+        
+        return;
+      }
 
       // Convert dateValue to ISO format
       const isoDateValue = convertToISODate(dateValue);
 
       if (!isoDateValue) {
         console.error("Failed to convert dateValue to ISO format");
+        return;
       }
 
       const [startTime, endTime] = timeValue?.split(' - ') || [];
@@ -199,20 +300,21 @@ const CalendarSidebar: React.FC<CalendarSidebarProps> = ({filters, setFilters, s
             meetingTitleTextField={<TextField
               input="Meeting title"
               value={inputMeetingTitleValue}
-              onChange={setMeetingTitleValue}
-            />}
+              onChange={handleMeetingTitleChange}
+              onErrorChange={(hasError) => updateErrorState('meetingTitle', hasError)}
+              />}
             DatePicker={<DatePicker
               label={<img src='/svg/calendar-icon.svg' alt="Calendar Icon" />}
               value={dateValue}
-              onChange={setDateValue}
-              error={dateValue === '' ? 'Date is required' : undefined}
+              onChange={handleDateChange}
+              onErrorChange={(hasError) => updateErrorState('date', hasError)}
             />}
             TimePicker={<TimePicker
               label={<img src='/svg/clock-icon.svg' alt="Clock Icon" />}
               value={timeValue}
               onChange={setTimeValue}
+              onErrorChange={(hasError) => updateErrorState('time', hasError)}
               disablePast={true}
-              error={timeValue === '' ? 'Time is required' : undefined}
             />}
             RecurringMeeting={<RecurringMeetingForm />}
             roomSelectionDropdown={
@@ -222,6 +324,7 @@ const CalendarSidebar: React.FC<CalendarSidebarProps> = ({filters, setFilters, s
                 elements={roomOptions}
                 name="Select Room"
                 onChange={handleRoomChange}
+                onErrorChange={(hasError) => updateErrorState('room', hasError)}
               />
             }
             meetingTypeDropdown={
@@ -231,6 +334,7 @@ const CalendarSidebar: React.FC<CalendarSidebarProps> = ({filters, setFilters, s
                 elements={meetingTypeOptions}
                 name="Select Meeting Type"
                 onChange={handleMeetingTypeChange}
+                onErrorChange={(hasError) => updateErrorState('meetingType', hasError)}
               />
             }
             zoomAccountDropdown={
@@ -240,21 +344,28 @@ const CalendarSidebar: React.FC<CalendarSidebarProps> = ({filters, setFilters, s
                 elements={zoomAccountOptions}
                 name="Select Zoom Account"
                 onChange={handleZoomAccountChange}
+                onErrorChange={(hasError) => updateErrorState('zoomAccount', hasError)}
               />
             }
             emailTextField={<TextField
               input="Email"
               label={<img src="svg/mail-icon.svg" alt="Mail Icon" />}
               value={inputEmailValue}
-              onChange={setEmailValue}
+              onChange={handleEmailChange}
+              onErrorChange={(hasError) => updateErrorState('email', hasError)}
+              />
+            }
+            uploadPandaDocsForm={<UploadPandaDocs 
+              onFileSelect={handleFileSelect} 
+              onErrorChange={(hasError) => updateErrorState('pandaDocs', hasError)}
             />}
-            uploadPandaDocsForm={<UploadPandaDocs onFileSelect={handleFileSelect} />}
             descriptionTextField={<TextField
               input="Description"
               label=""
               value={inputDescriptionValue}
-              onChange={setDescriptionValue}
-            />}
+              onChange={handleDescriptionChange}
+              onErrorChange={(hasError) => updateErrorState('description', hasError)}
+              />}
             onCreateMeeting={createMeeting}
           />
         </div>

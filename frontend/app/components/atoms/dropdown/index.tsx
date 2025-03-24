@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import styles from "../../../../styles/Dropdown.module.scss";
 
 interface DropdownProps {
@@ -6,25 +6,52 @@ interface DropdownProps {
   isVisible: boolean;
   elements: string[]; 
   name: string; 
-  onChange: (value: string) => void;
+  onChange: (value: string, hasError: boolean) => void;
+  onErrorChange?: (hasError: boolean) => void;
 }
 
-
-const Dropdown: React.FC<DropdownProps> = ({ label, isVisible, elements, name, onChange }) => {
-  const [selectedElement, setselectedElement] = useState<string | null>(null);
-
+const Dropdown: React.FC<DropdownProps> = ({ 
+  label, 
+  isVisible, 
+  elements, 
+  name, 
+  onChange, 
+  onErrorChange 
+}) => {
+  const [selectedElement, setSelectedElement] = useState<string | null>(null);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null); 
+  const [inputError, setInputError] = useState<string | null>(null);
+  const [hasInteracted, setHasInteracted] = useState<boolean>(false);
+
+  // Report error state to parent when it changes
+  useEffect(() => {
+    if (hasInteracted && onErrorChange) {
+      onErrorChange(inputError !== null);
+    }
+  }, [inputError, hasInteracted, onErrorChange]);
 
   if (!isVisible) return null;
 
   const handleDropdownToggle = (dropdownType: string) => {
-    setActiveDropdown((prev) => (prev === dropdownType ? null : dropdownType));
+    setHasInteracted(true);
+
+    if (activeDropdown === dropdownType) {
+      if (!selectedElement) {
+        setInputError("Please select an option.");
+        onChange("", true); // Report empty selection with error
+      }
+      setActiveDropdown(null);
+    } else {
+      setActiveDropdown(dropdownType);
+      // Don't clear error yet, only when user makes a selection
+    }
   };
 
   const handleElementClick = (element: string) => {
-    setselectedElement(element);
-    onChange(element);
-    setActiveDropdown(null); 
+    setSelectedElement(element);
+    setInputError(null); // Clear error on valid selection
+    onChange(element, false); // Report valid selection with no error
+    setActiveDropdown(null);
   };
 
 
@@ -35,7 +62,8 @@ const Dropdown: React.FC<DropdownProps> = ({ label, isVisible, elements, name, o
           {typeof label === 'string' ? <span>{label}</span> : label}
         </label>
         <button
-          className={`${styles.DropdownButton} ${activeDropdown === "element" ? styles.activeDropdown : ''}`}
+          className={`${styles.DropdownButton} ${activeDropdown === "element" ? styles.activeDropdown : ''} 
+            ${inputError ? styles.DropdownErrorInput : ''}`}
           onClick={() => handleDropdownToggle("element")}
         >
           {selectedElement ? selectedElement : name}
@@ -53,6 +81,7 @@ const Dropdown: React.FC<DropdownProps> = ({ label, isVisible, elements, name, o
             ))}
           </ul>
         )}
+        {inputError && <div className={styles.DropdownErrorMessage}>{inputError}</div>}
       </div>
 
     </div>

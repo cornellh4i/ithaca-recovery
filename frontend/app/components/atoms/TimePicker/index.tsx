@@ -4,7 +4,8 @@ import styles from "../../../../styles/components/atoms/TimePicker.module.scss";
 interface TimePickerProps {
   label: string | JSX.Element;
   value?: string;
-  onChange: (value: string) => void;
+  onChange: (value: string, hasError?: boolean) => void;
+  onErrorChange?: (hasError: boolean) => void;
   underlineOnFocus?: boolean;
   error?: string;
   disablePast?: boolean;
@@ -31,12 +32,25 @@ const getTimeDifferenceInMinutes = (startTime: string, endTime: string): number 
   return (endDate.getTime() - startDate.getTime()) / (1000 * 60);
 };
 
-const TimePicker = ({ label, value: propValue = '', disablePast, onChange, error, ...props }: TimePickerProps) => {
+const TimePicker = ({ label, value: propValue = '', disablePast, onChange, onErrorChange, error, ...props }: TimePickerProps) => {
   const [startTime, setStartTime] = useState<string>(''); // Start time in 24-hour format
   const [endTime, setEndTime] = useState<string>(''); // End time in 24-hour format
   const [timeDifference, setTimeDifference] = useState<number>(60); // Default difference is 60 minutes
   const [minTime, setMinTime] = useState<string | undefined>(undefined);
-  const [endTimeError, setEndTimeError] = useState<boolean>(false); // Track if there's an end time error
+  
+  // Replace individual error states with a single timeError state and message
+  const [timeError, setTimeError] = useState<boolean>(false);
+  const [endTimeSequenceError, setEndTimeSequenceError] = useState<boolean>(false);
+  
+  // Track which input has the error styling
+  const [startTimeErrorStyle, setStartTimeErrorStyle] = useState<boolean>(false);
+  const [endTimeErrorStyle, setEndTimeErrorStyle] = useState<boolean>(false);
+
+  // Report error state to parent when error states change
+  useEffect(() => {
+    const hasError = timeError || endTimeSequenceError;
+    onErrorChange && onErrorChange(hasError);
+  }, [timeError, endTimeSequenceError, onErrorChange]);
 
   // Effect to disable past times
   useEffect(() => {
@@ -56,8 +70,25 @@ const TimePicker = ({ label, value: propValue = '', disablePast, onChange, error
     // Calculate the new end time based on the current time difference
     const newEndTime = addMinutes(newStartTime, timeDifference);
     setEndTime(newEndTime);
-    onChange && onChange(`${newStartTime} - ${newEndTime}`);
-    setEndTimeError(false); // Reset error state when start time changes
+    
+    // Reset error states when start time changes
+    setStartTimeErrorStyle(false);
+    if (newStartTime) {
+      setTimeError(false);
+    }
+    
+    // Check end time sequence error
+    let hasSequenceError = false;
+    if (endTime && getTimeDifferenceInMinutes(newStartTime, endTime) <= 0) {
+      setEndTimeSequenceError(true);
+      hasSequenceError = true;
+    } else {
+      setEndTimeSequenceError(false);
+    }
+    
+    // Call onChange with error status
+    const hasError = !newStartTime || !endTime || hasSequenceError;
+    onChange && onChange(`${newStartTime} - ${newEndTime}`, hasError);
   };
 
   // Handle change for end time
@@ -66,14 +97,51 @@ const TimePicker = ({ label, value: propValue = '', disablePast, onChange, error
     setEndTime(newEndTime);
 
     // Validate end time against start time
-    const newTimeDifference = getTimeDifferenceInMinutes(startTime, newEndTime);
-    if (newTimeDifference <= 0) {
-      setEndTimeError(true); // Set error state if end time is not later than start time
-    } else {
-      setEndTimeError(false); // Clear error state if valid
+    let hasSequenceError = false;
+    if (startTime && newEndTime) {
+      const newTimeDifference = getTimeDifferenceInMinutes(startTime, newEndTime);
+      if (newTimeDifference <= 0) {
+        setEndTimeSequenceError(true);
+        hasSequenceError = true;
+      } else {
+        setEndTimeSequenceError(false);
+        setTimeDifference(newTimeDifference);
+      }
     }
-    setTimeDifference(newTimeDifference); // Update the time difference based on user input
-    onChange && onChange(`${startTime} - ${newEndTime}`);
+    
+    // Reset error states when end time changes
+    setEndTimeErrorStyle(false);
+    if (newEndTime) {
+      setTimeError(false);
+    }
+    
+    // Call onChange with error status
+    const hasError = !startTime || !newEndTime || hasSequenceError;
+    onChange && onChange(`${startTime} - ${newEndTime}`, hasError);
+  };
+
+  const handleStartTimeBlur = () => {
+    if (!startTime) {
+      setStartTimeErrorStyle(true);
+      if (!timeError && !endTime) {
+        setTimeError(true);
+      }
+      
+      // Report error on blur
+      onChange && onChange(`${startTime} - ${endTime}`, true);
+    }
+  };
+
+  const handleEndTimeBlur = () => {
+    if (!endTime) {
+      setEndTimeErrorStyle(true);
+      if (!timeError && !startTime) {
+        setTimeError(true);
+      }
+      
+      // Report error on blur
+      onChange && onChange(`${startTime} - ${endTime}`, true);
+    }
   };
 
   return (
@@ -86,7 +154,8 @@ const TimePicker = ({ label, value: propValue = '', disablePast, onChange, error
         value={startTime}
         min={disablePast ? minTime : undefined}
         onChange={handleStartTimeChange}
-        className={styles['time-picker-input']}
+        onBlur={handleStartTimeBlur}
+        className={`${styles['time-picker-input']} ${startTimeErrorStyle ? styles['error-input'] : ''}`}
         {...props}
       />
       <span className={styles['time-range-separator']}> - </span>
@@ -94,10 +163,12 @@ const TimePicker = ({ label, value: propValue = '', disablePast, onChange, error
         type="time"
         value={endTime}
         onChange={handleEndTimeChange}
-        className={`${styles['time-picker-input']} ${endTimeError ? styles['error-input'] : ''}`} // Apply error class conditionally
+        onBlur={handleEndTimeBlur}
+        className={`${styles['time-picker-input']} ${endTimeErrorStyle ? styles['error-input'] : ''}`}
         {...props}
       />
-      {endTimeError && <div className={styles['error-message']}>End time must be later than start time.</div>} {/* Display error message */}
+      {timeError && <div className={styles['error-message']}>Time is required.</div>}
+      {endTimeSequenceError && <div className={styles['error-message']}>End time must be later than start time.</div>}
       {error && <div className={styles['error-message']}>{error}</div>}
     </div>
   );

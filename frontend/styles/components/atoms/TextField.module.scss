@@ -28,7 +28,20 @@
         border-bottom: 1px solid $light-grey-color;
     }
 
-    &.focused {
-        border-bottom: 1px solid $dark-pink-color;
+    &:focus {
+      border-bottom: 1px solid $dark-pink-color;
+      outline: none;
+      background-color: transparent;
+      box-shadow: none;
     }
+}
+
+.error-input {
+    border: 1px solid red; // Apply red border for error state
+}
+
+.error-message {
+    margin-left: 10px; // Space between input and error message
+    color: red;
+    font-size: 14px;
 }

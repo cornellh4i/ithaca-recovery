@@ -67,6 +67,18 @@
     margin-bottom: 15px; /* Add more margin for spacing */
 }
 
+.DropdownErrorInput {
+    border: 1px solid red;
+}
+
+
+.DropdownErrorMessage {
+    margin-left: 10px; // Space between input and error message
+    color: red;
+    font-size: 14px;
+}
+
+
 .DropdownLabel {
     margin-right: 6px;
     display: flex;

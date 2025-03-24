@@ -4,18 +4,35 @@ import styles from "../../../../styles/components/atoms/DatePicker.module.scss";
 interface DatePickerProps {
   label: string | JSX.Element;
   value?: string; // Expect value to be in 'MM/DD/YYYY' format
-  onChange: (value: string) => void;
+  onChange: (value: string, hasError: boolean) => void;
+  onErrorChange?: (hasError: boolean) => void;
   underlineOnFocus?: boolean;
   [key: string]: any;
 }
 
-const DatePicker = ({ label, value: propValue = '', onChange, underlineOnFocus = true, ...props }: DatePickerProps) => {
+const DatePicker = ({ 
+  label, 
+  value: propValue = '', 
+  onChange, 
+  onErrorChange,
+  underlineOnFocus = true, 
+  ...props 
+}: DatePickerProps) => {
   const [internalValue, setInternalValue] = useState<string>(propValue);
   const [isFocused, setIsFocused] = useState<boolean>(false);
   const [inputError, setInputError] = useState<string | null>(null);
+  const [hasInteracted, setHasInteracted] = useState<boolean>(false);
 
+  // Report error state to parent when it changes
+  useEffect(() => {
+    if (hasInteracted && onErrorChange) {
+      onErrorChange(inputError !== null);
+    }
+  }, [inputError, hasInteracted, onErrorChange]);
 
   const isValidDate = (dateString: string): boolean => {
+    if (!dateString.trim()) return false;
+    
     const regex = /^(1[0-2]|0?[1-9])\/([1-2][0-9]|3[01]|0?[1-9])\/(\d{4})$/;
     if (!regex.test(dateString)) return false;
 
@@ -46,17 +63,26 @@ const DatePicker = ({ label, value: propValue = '', onChange, underlineOnFocus =
 
   const handleFocus = () => {
     setIsFocused(true);
+    setHasInteracted(true);
     setInputError(null); // Clear error on focus
   };
 
   const handleBlur = () => {
     setIsFocused(false);
+    
+    if (!internalValue.trim()) {
+      setInputError('Date is required.');
+      onChange(internalValue, true); // Report to parent with error
+      return;
+    }
+    
     if (isValidDate(internalValue)) {
       const formattedDate = formatDate(internalValue);
       setInternalValue(formattedDate); // Format and update input with formatted date
-      onChange(formattedDate); // Call onChange with the formatted date
+      onChange(formattedDate, false); // Call onChange with the formatted date and no error
     } else {
       setInputError('Invalid date format. Please enter a valid date in MM/DD/YYYY format.');
+      onChange(internalValue, true); // Report to parent with error
     }
   };
 
