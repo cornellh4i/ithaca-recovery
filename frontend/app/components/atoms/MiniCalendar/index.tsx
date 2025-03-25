@@ -38,7 +38,8 @@ const MiniCalendar: React.FC<MiniCalendarProps> = ({ selectedDate, onSelect }) =
         }}
         defaultMonth={currentMonth}
         formatters={{
-          formatWeekdayName: (date: Date) => date.toLocaleDateString("en-US", { weekday: "short" })[0],
+          formatWeekdayName: (date: Date) => 
+            date.toLocaleDateString("en-US", { weekday: "short" }).substring(0, 1),
         }}
         required
       />

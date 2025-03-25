@@ -6,6 +6,9 @@
     background-color: #FFF;
     border-radius: 4px;
     font-family: "Source Sans Pro";
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 999; // Increased z-index to ensure visibility
+    width: 300px; // Explicit width
 
     span {
         font-size: 20px;
@@ -16,43 +19,88 @@
     svg {
         fill: $medium-grey-color;
     }
-    
-    z-index: 99;
 
     button {
         font-size: 14px;
+    }
+    
+    /* Global styles nested inside the local .container class */
+    :global(.rdp) {
+        --rdp-cell-size: 36px;
+        --rdp-accent-color: $dark-pink-color;
+        --rdp-background-color: #f5f5f5;
+        margin: 0;
+    }
+
+    :global(.rdp-months) {
+        display: flex;
+        justify-content: center;
+    }
+
+    :global(.rdp-month) {
+        display: table;
+        width: 100%;
+    }
+
+    :global(.rdp-caption) {
+        display: flex;
+        justify-content: space-between;
+        padding: 0 8px;
+        margin-bottom: 8px;
+    }
+
+    :global(.rdp-nav) {
+        display: flex;
+    }
+
+    :global(.rdp-button) {
+        cursor: pointer;
+        
+        &:hover {
+            background-color: lighten($dark-pink-color, 35%);
+        }
+    }
+
+    :global(.rdp-day) {
+        cursor: pointer;
+        
+        &:hover:not(.rdp-day_selected):not(.rdp-day_disabled) {
+            background-color: lighten($dark-pink-color, 35%);
+        }
     }
 }
 
 // Selected day style
 .selectedDay {
-    color: white;
-    position: absolute;
-    border-radius: 2px;
-    z-index: 0;
-}
-
-/* Ensure the text (day number) stays visible */
-.selectedDay::before {
-    background-clip: padding-box;
-    background-color: $dark-pink-color;
-    border: solid transparent;
-    border-radius: 4px;
-    content: "";
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-45%, -45%);
-    z-index: -1;
-    width: 20px;
-    height: 20px;
+    color: white !important;
+    position: relative;
+    z-index: 1;
+    
+    &::before {
+        background-clip: padding-box;
+        background-color: $dark-pink-color;
+        border: solid transparent;
+        border-radius: 4px;
+        content: "";
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        z-index: -1;
+        width: 28px;
+        height: 28px;
+    }
 }
 
 // Outside days (days not in the current month)
 .dayOutside {
-    color: #848484;
+    color: #848484 !important;
+    opacity: 0.6;
 }
 
+// Today styling
 .today:not(.selectedDay) {
-    color: black; // Set the text color for .today elements that are not .selectedDay
+    color: black;
+    font-weight: bold;
+    text-decoration: underline;
 }
