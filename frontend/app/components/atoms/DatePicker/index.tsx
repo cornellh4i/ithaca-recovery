@@ -15,7 +15,12 @@ const DatePicker = ({ label, value: propValue = '', onChange, underlineOnFocus =
   const [inputError, setInputError] = useState<string | null>(null);
 
 
-  const isValidDate = (dateString: string): boolean => {
+  /**
+   * isDateFormat1 is a function that returns whether the provided string is in  MM/DD/YYYY format
+   * @param dateString is a string representing a date in some form
+   * @returns True if dateString is a string in the form of MM/DD/YYYY
+   */
+  const isDateFormat1 = (dateString: string): boolean => {
     const regex = /^(1[0-2]|0?[1-9])\/([1-2][0-9]|3[01]|0?[1-9])\/(\d{4})$/;
     if (!regex.test(dateString)) return false;
 
@@ -26,17 +31,16 @@ const DatePicker = ({ label, value: propValue = '', onChange, underlineOnFocus =
     return day >= 1 && day <= daysInMonth[month - 1];
   };
 
-  const isValidDate2 = (dateString: string): boolean => {
+  /**
+   * isDateFormat2 is a function that returns whether the provided string is in "Month day, Year", "Month day Year", "Month day", or MM/DD format
+   * @param dateString is a string representing a date in some form
+   * @returns True if dateString is a string in the form of either "Month day, Year", "Month day Year", "Month day", or MM/DD
+   */
+  const isDateFormat2 = (dateString: string): boolean => {
     const regex1 = /([a-zA-Z]+)\s(\d{1,2})\s*,?\s*(\d{4})/
     const regex2 = /([a-zA-Z]+)\s(\d{1,2})/
     const regex3 = /(\d{2})\/(\d{2})/
     return (regex1.test(dateString) || regex2.test(dateString) || regex3.test(dateString));
-
-    const [month, day, year] = dateString.split('/').map(Number);
-    if (month < 1 || month > 12) return false;
-
-    const daysInMonth = [31, (year % 4 === 0 && year % 100 !== 0) || (year % 400 === 0) ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
-    return day >= 1 && day <= daysInMonth[month - 1];
   };
 
   const formatDate = (dateString: string): string => {
@@ -111,7 +115,7 @@ const DatePicker = ({ label, value: propValue = '', onChange, underlineOnFocus =
 
   const handleFocus = () => {
     setIsFocused(true);
-    if (isValidDate2(internalValue)) {
+    if (isDateFormat2(internalValue)) {
       console.log(internalValue)
       console.log("this is" + stringToDate(internalValue))
       const formattedDate = stringToDate(internalValue);
@@ -126,11 +130,11 @@ const DatePicker = ({ label, value: propValue = '', onChange, underlineOnFocus =
 
   const handleBlur = () => {
     setIsFocused(false);
-    if (isValidDate(internalValue)) {
+    if (isDateFormat1(internalValue)) {
       const formattedDate = formatDate(internalValue);
       setInternalValue(formattedDate); // Format and update input with formatted date
       onChange(formattedDate); // Call onChange with the formatted date
-    } else if (isValidDate2(internalValue)) {
+    } else if (isDateFormat2(internalValue)) {
       const formattedDate = stringToDate(internalValue);
       setInternalValue(formattedDate); 
       onChange(formattedDate); 
