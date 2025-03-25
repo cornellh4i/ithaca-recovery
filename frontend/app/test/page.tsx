@@ -18,6 +18,7 @@ import Dropdown from "../components/atoms/dropdown";
 import MeetingsFilter from '../components/molecules/MeetingsFilter';
 import NewMeetingSidebar from '../components/organisms/NewMeeting';
 import ViewMeetingDetails from '../components/organisms/ViewMeeting';
+import ModeTypeButtons from '../components/atoms/ModeTypeButtons';
 import TodayIcon from '@mui/icons-material/Today';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import ReccuringMeeting from "../components/molecules/RecurringMeeting";
@@ -58,6 +59,7 @@ const App = () => {
   const [selectedOption, setSelectedOption] = useState<string>("Never"); // Default radio option
   const [selectedZoomAccount, setSelectedZoomAccount] = useState<string | null>(null); // Initially no Zoom account selected
   const [inputDescriptionValue, setDescriptionValue] = useState(""); // Description input value
+  const [selectedMode, setSelectedMode] = useState<string>("Hybrid"); // Default mode
 
   // Room and Meeting Type options
   const roomOptions = [
@@ -107,6 +109,10 @@ const App = () => {
     setSelectedZoomAccount(email);
   };
 
+  const handleModeSelect = (mode: string) => {
+    console.log("Selected mode:", mode);
+    setSelectedMode(mode)
+  };
 
   const createAdmin = async () => {
     try {
@@ -197,7 +203,8 @@ const App = () => {
         startDateTime: new Date(),
         endDateTime: new Date(),
         zoomAccount: 'Zoom Account',
-        type: "in-person",
+        calType: "in-person",
+        modeType: "Hybrid",
         room: "sunflower"
       };
       const response = await fetch('/api/write/meeting', {
@@ -263,7 +270,8 @@ const App = () => {
         startDateTime: new Date(),
         endDateTime: new Date(),
         zoomAccount: 'Zoom Account',
-        type: "in-person",
+        calType: "in-person",
+        modeType: "Hybrid",
         room: "sunflower"
       };
 
@@ -559,6 +567,9 @@ const App = () => {
             value={inputMeetingTitleValue}
             onChange={setMeetingTitleValue}
             />}
+          modeTypeButtons={<ModeTypeButtons 
+            onModeSelect={handleModeSelect}
+          />}
           DatePicker={<DatePicker
             label={<TodayIcon />}
             value={dateValue}

@@ -15,6 +15,7 @@ import AddIcon from '@mui/icons-material/Add';
 import CloseIcon from '@mui/icons-material/Close';
 import IconButton from '@mui/material/IconButton';
 import RecurringMeetingForm from '../../molecules/RecurringMeeting';
+import ModeTypeButtons from '../../atoms/ModeTypeButtons';
 interface CalendarSidebarProps {
   filters: any;
   setFilters: any;
@@ -71,6 +72,11 @@ const CalendarSidebar: React.FC<CalendarSidebarProps> = ({filters, setFilters, s
   const [selectedRoom, setSelectedRoom] = useState<string>("Serenity Room");
   const [selectedMeetingType, setSelectedMeetingType] = useState<string>("AA");
   const [selectedZoomAccount, setSelectedZoomAccount] = useState<string>("Zoom Email 1");
+  const [selectedMode, setSelectedMode] = useState<string>('Hybrid');
+
+  const handleModeSelect = (mode: string) => {
+    setSelectedMode(mode);
+  };
 
   // Room and Meeting Type options
   const roomOptions = [
@@ -147,7 +153,8 @@ const CalendarSidebar: React.FC<CalendarSidebarProps> = ({filters, setFilters, s
         startDateTime: startDateTime,
         endDateTime: endDateTime,
         zoomAccount: selectedZoomAccount,
-        type: selectedMeetingType,
+        calType: selectedMeetingType,
+        modeType: selectedMode,
         room: selectedRoom,
       };
       const response = await fetch('/api/write/meeting', {
@@ -181,6 +188,7 @@ const CalendarSidebar: React.FC<CalendarSidebarProps> = ({filters, setFilters, s
     setSelectedRoom("");
     setSelectedMeetingType("");
     setSelectedZoomAccount("");
+    setSelectedMode('Hybrid');
   };
 
   return (
@@ -200,6 +208,9 @@ const CalendarSidebar: React.FC<CalendarSidebarProps> = ({filters, setFilters, s
               input="Meeting title"
               value={inputMeetingTitleValue}
               onChange={setMeetingTitleValue}
+            />}
+            modeTypeButtons={<ModeTypeButtons 
+              onModeSelect={handleModeSelect}
             />}
             DatePicker={<DatePicker
               label={<img src='/svg/calendar-icon.svg' alt="Calendar Icon" />}

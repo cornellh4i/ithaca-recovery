@@ -21,7 +21,8 @@ interface IMeeting {
   zoomAccount?: string | null;
   zoomLink?: string | null;
   zid?: string | null;
-  type: string;
+  calType: string;
+  modeType: string;
   room: string;
   pandaDoc?: File | Buffer | GridFSBucketWriteStream | null;
 }

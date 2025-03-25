@@ -48,7 +48,7 @@ const fetchMeetingsByDay = async (date: Date): Promise<Room[]> => {
         title: meeting.title,
         startTime: start.toLocaleTimeString("en-GB", { hour12: false }),
         endTime: end.toLocaleTimeString("en-GB", { hour12: false }),
-        tags: [meeting.type, meeting.group],
+        tags: [meeting.calType, meeting.modeType], //do we really need meeting.group?
       });
     });
 
