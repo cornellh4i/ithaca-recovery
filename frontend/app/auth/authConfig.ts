@@ -48,7 +48,9 @@ export const graphConfig = {
     graphMeEndpoint: "https://graph.microsoft.com/v1.0/me"
 };
 
-export const authCallbackUri = process.env.NEXT_PUBLIC_AUTH_CALLBACK_URI || '';
+export const authCallbackUri = process.env.NODE_ENV === "production"
+    ? (process.env.NEXT_PUBLIC_AUTH_CALLBACK_PROD_URI || "")
+    : (process.env.NEXT_PUBLIC_AUTH_CALLBACK_URI || "");
 
 export const sessionSecret = process.env.SESSION_SECRET!;
 
