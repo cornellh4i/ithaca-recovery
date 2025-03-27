@@ -13,6 +13,7 @@ interface NewMeetingSidebarProps {
   emailTextField: React.ReactElement;
   uploadPandaDocsForm: React.ReactElement;
   descriptionTextField: React.ReactElement;
+  modeTypeButtons: React.ReactElement;
   onCreateMeeting: () => Promise<void>;
 }
 
@@ -27,7 +28,8 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({
   emailTextField,
   uploadPandaDocsForm,
   descriptionTextField,
-  onCreateMeeting
+  onCreateMeeting,
+  modeTypeButtons
 }) => {
   return (
     <div className={styles.newMeetingSidebar}>
@@ -35,9 +37,7 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({
         {meetingTitleTextField}
       </div>
       <div className={styles.meetingButtons}>
-        <button className={styles.button} autoFocus>Hybrid</button>
-        <button className={styles.button}>In Person</button>
-        <button className={styles.button}>Remote</button>
+        {modeTypeButtons}
       </div>
       <div className={styles.dummyComponent}>
         {DatePicker}

@@ -32,6 +32,7 @@ model Meeting {
   zoomAccount    String?   
   zoomLink       String?
   zid            String?
-  type           String
+  calType        String
   room           String
+  modeType       String
 }
