@@ -35,3 +35,15 @@ model Meeting {
   type           String
   room           String
 }
+
+model recurrencePattern {
+  id                  String @id @default(cuid()) @map("_id") @db.ObjectId
+  meetingId           String @unique
+  meeting             @relation(fields: [meetingId], references: [id])
+  type                String
+  startDate           DateTime
+  endDate             DateTime?
+  numberOfOccurences  Int?
+  daysOfWeek          String[]?
+  firstDayOfWeek      String
+}

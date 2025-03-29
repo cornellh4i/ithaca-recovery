@@ -17,6 +17,8 @@ interface IMeeting {
   creator: string; // admin later on [optional]
   group: string; // group interface later on [optional]
   startDateTime: Date;
+  reoccurance: number; 
+  recurrencePattern?: RecurrencePattern | null;
   endDateTime: Date;
   zoomAccount?: string | null;
   zoomLink?: string | null;
@@ -26,6 +28,18 @@ interface IMeeting {
   pandaDoc?: File | Buffer | GridFSBucketWriteStream | null;
 }
 
-export type { IUser, IMeeting, IAdmin };
+interface RecurrencePattern{
+  id?: string;
+  meetingId?: string;
+  interval: number;
+  type: string;
+  startDate: Date;
+  endDate?: Date;
+  numberOfOccurrences?: number;
+  daysOfWeek?: string[];
+  firstDayOfWeek: string;
+}
+
+export type { IUser, IMeeting, IAdmin, RecurrencePattern };
 
 
