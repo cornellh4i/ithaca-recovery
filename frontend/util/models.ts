@@ -10,6 +10,18 @@ interface IAdmin extends IUser {
   email: string;
 }
 
+interface IRecurrencePattern {
+  id?: string;
+  meetingId?: string;
+  type: string; 
+  startDate: Date;
+  endDate?: Date | null;
+  numberOfOccurrences?: number | null;
+  daysOfWeek?: string[] | null;
+  firstDayOfWeek: string; 
+  interval: number; // 1 = weekly, 2 = biweekly, etc.
+}
+
 interface IMeeting {
   title: string;
   mid: string;
@@ -17,8 +29,6 @@ interface IMeeting {
   creator: string; // admin later on [optional]
   group: string; // group interface later on [optional]
   startDateTime: Date;
-  reoccurance: number; 
-  recurrencePattern?: RecurrencePattern | null;
   endDateTime: Date;
   zoomAccount?: string | null;
   zoomLink?: string | null;
@@ -26,20 +36,18 @@ interface IMeeting {
   type: string;
   room: string;
   pandaDoc?: File | Buffer | GridFSBucketWriteStream | null;
+  
+  // Optional recurrence pattern (will be null if not recurring)
+  recurrencePattern?: IRecurrencePattern | null;
+  
+  isRecurring?: boolean;
+  recurrenceType?: string;
+  recurrenceInterval?: number;
+  recurrenceStartDate?: Date;
+  recurrenceEndDate?: Date | null;
+  recurrenceOccurrences?: number | null;
+  recurrenceDaysOfWeek?: string[];
+  recurrenceFirstDay?: string;
 }
 
-interface RecurrencePattern{
-  id?: string;
-  meetingId?: string;
-  interval: number;
-  type: string;
-  startDate: Date;
-  endDate?: Date;
-  numberOfOccurrences?: number;
-  daysOfWeek?: string[];
-  firstDayOfWeek: string;
-}
-
-export type { IUser, IMeeting, IAdmin, RecurrencePattern };
-
-
+export type { IUser, IMeeting, IAdmin, IRecurrencePattern };
