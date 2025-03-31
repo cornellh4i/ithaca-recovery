@@ -38,16 +38,8 @@ interface IMeeting {
   pandaDoc?: File | Buffer | GridFSBucketWriteStream | null;
   
   // Optional recurrence pattern (will be null if not recurring)
-  recurrencePattern?: IRecurrencePattern | null;
-  
   isRecurring?: boolean;
-  recurrenceType?: string;
-  recurrenceInterval?: number;
-  recurrenceStartDate?: Date;
-  recurrenceEndDate?: Date | null;
-  recurrenceOccurrences?: number | null;
-  recurrenceDaysOfWeek?: string[];
-  recurrenceFirstDay?: string;
+  recurrencePattern?: IRecurrencePattern | null;
 }
 
 export type { IUser, IMeeting, IAdmin, IRecurrencePattern };

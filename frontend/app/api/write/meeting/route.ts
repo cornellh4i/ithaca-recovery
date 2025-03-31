@@ -10,23 +10,39 @@ const createMeeting = async (request: Request) => {
     
     const { recurrencePattern, ...meetingDetails } = meetingData;
 
-    const data = {
-      ...meetingDetails,
-      isRecurring: !!recurrencePattern,
-      ...(recurrencePattern ? {
-        recurrenceType: recurrencePattern.type,
-        recurrenceInterval: recurrencePattern.interval,
-        recurrenceStartDate: recurrencePattern.startDate,
-        recurrenceEndDate: recurrencePattern.endDate,
-        recurrenceOccurrences: recurrencePattern.numberOfOccurrences,
-        recurrenceDaysOfWeek: recurrencePattern.daysOfWeek || [],
-        recurrenceFirstDay: recurrencePattern.firstDayOfWeek || "Sunday"
-      } : {})
-    };
-
     const newMeeting = await prisma.meeting.create({
-      data
+      data: {
+        ...meetingDetails,
+        isRecurring: !!recurrencePattern
+      }
     });
+
+    if (recurrencePattern) {
+      await prisma.recurrencePattern.create({
+        data: {
+          meetingId: newMeeting.id, 
+          type: recurrencePattern.type,
+          startDate: recurrencePattern.startDate,
+          endDate: recurrencePattern.endDate,
+          numberOfOccurences: recurrencePattern.numberOfOccurrences,
+          daysOfWeek: recurrencePattern.daysOfWeek || [],
+          firstDayOfWeek: recurrencePattern.firstDayOfWeek || "Sunday",
+          interval: recurrencePattern.interval
+        }
+      });
+
+      const meetingWithRecurrence = await prisma.meeting.findUnique({
+        where: { id: newMeeting.id },
+        include: { recurrencePattern: true }
+      });
+
+      return new Response(JSON.stringify(meetingWithRecurrence), {
+        status: 201,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+    }
 
     return new Response(JSON.stringify(newMeeting), {
       status: 201,

@@ -34,13 +34,19 @@ model Meeting {
   zid              String?
   type             String
   room             String
-  
-  isRecurring      Boolean  @default(false)
-  recurrenceType   String?
-  recurrenceInterval Int?    @default(1)
-  recurrenceStartDate DateTime?
-  recurrenceEndDate DateTime?
-  recurrenceOccurrences Int?
-  recurrenceDaysOfWeek String[]
-  recurrenceFirstDay String? @default("Sunday")
+  isRecurring      Boolean @default(false)
+  recurrencePattern RecurrencePattern?       
+}
+
+model RecurrencePattern {
+  id                  String @id @default(auto()) @map("_id") @db.ObjectId
+  meetingId           String @unique
+  meeting             Meeting @relation(fields: [meetingId], references: [id])
+  type                String
+  startDate           DateTime
+  endDate             DateTime?
+  numberOfOccurences  Int?
+  daysOfWeek          String[]
+  firstDayOfWeek      String
+  interval            Int
 }
