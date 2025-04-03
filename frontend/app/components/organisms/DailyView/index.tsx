@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import styles from '../../../../styles/organisms/DailyView.module.scss';
 import BoxText from '../../atoms/BoxText';
 import DailyViewRow from "../../molecules/DailyViewRow";
+import { convertUTCToEST } from "../../../../util/timeUtils";
 
 type Meeting = {
   id: string;
@@ -43,11 +44,14 @@ const fetchMeetingsByDay = async (date: Date): Promise<Room[]> => {
       const start = new Date(meeting.startDateTime.replace("Z", ""));
       const end = new Date(meeting.endDateTime.replace("Z", ""));
 
+      const startEST = convertUTCToEST(start.toISOString());
+      const endEST = convertUTCToEST(end.toISOString());
+
       groupedRooms[roomName].push({
         id: meeting.mid,
         title: meeting.title,
-        startTime: start.toLocaleTimeString("en-GB", { hour12: false }),
-        endTime: end.toLocaleTimeString("en-GB", { hour12: false }),
+        startTime: startEST,
+        endTime: endEST,
         tags: [meeting.type, meeting.group],
       });
     });

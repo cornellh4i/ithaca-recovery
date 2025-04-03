@@ -15,6 +15,8 @@ import AddIcon from '@mui/icons-material/Add';
 import CloseIcon from '@mui/icons-material/Close';
 import IconButton from '@mui/material/IconButton';
 import RecurringMeetingForm from '../../molecules/RecurringMeeting';
+import { convertESTToUTC } from "../../../../util/timeUtils";
+
 interface CalendarSidebarProps {
   filters: any;
   setFilters: any;
@@ -124,19 +126,20 @@ const CalendarSidebar: React.FC<CalendarSidebarProps> = ({filters, setFilters, s
         return;
       }
 
-      const startDateString = `${isoDateValue}T${startTime}`
-      const endDateString = `${isoDateValue}T${endTime}`
+      // in EST
+      const startDateString = `${isoDateValue}T${startTime}`;
+      const endDateString = `${isoDateValue}T${endTime}`;
 
       if (!startDateString || !endDateString) {
         console.error("Start or end date string could not be constructed");
         return;
       }
 
-      const startDateTime = new Date(startDateString);
-      const endDateTime = new Date(endDateString);
+      const startDateTimeUTCString = convertESTToUTC(startDateString);
+      const endDateTimeUTCString = convertESTToUTC(endDateString);
 
-      startDateTime.setHours(startDateTime.getHours() - 5);
-      endDateTime.setHours(endDateTime.getHours() - 5);
+      const startDateTimeUTC= new Date(startDateTimeUTCString);
+      const endDateTimeUTC = new Date(endDateTimeUTCString);
 
       const newMeeting: IMeeting = {
         title: inputMeetingTitleValue,
@@ -144,8 +147,8 @@ const CalendarSidebar: React.FC<CalendarSidebarProps> = ({filters, setFilters, s
         description: inputDescriptionValue,
         creator: 'Creator',
         group: 'Group',
-        startDateTime: startDateTime,
-        endDateTime: endDateTime,
+        startDateTime: startDateTimeUTC,
+        endDateTime: endDateTimeUTC,
         zoomAccount: selectedZoomAccount,
         type: selectedMeetingType,
         room: selectedRoom,

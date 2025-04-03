@@ -5,6 +5,7 @@ import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import VideoCameraFrontIcon from '@mui/icons-material/VideoCameraFront';
 import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
 import DownloadForOfflineIcon from '@mui/icons-material/DownloadForOffline';
+import { convertUTCToEST } from "../../../../util/timeUtils";
 
 type ViewMeetingDetailsProps = {
   id: string; // Maps to 'id' in the model (ObjectId, but treated as string here)
@@ -50,6 +51,9 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
     onDelete(mid);
   }
 
+  const startDateEST = convertUTCToEST(startDateTime.toISOString());
+  const endDateEST = convertUTCToEST(endDateTime.toISOString());
+
   return (
     <div className={styles.meetingDetails}>
       <div className={styles.header}>
@@ -67,19 +71,17 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
       <div className={styles.details}>
         <p style={{ color: 'gray' }}>
           <CalendarTodayIcon />&nbsp;
-          {startDateTime.getDate()} {startDateTime.toLocaleString('default', { month: 'long' })} {startDateTime.getFullYear()}
+          {startDateEST}
           {!(
             startDateTime.getFullYear() === endDateTime.getFullYear() &&
             startDateTime.getMonth() === endDateTime.getMonth() &&
             startDateTime.getDate() === endDateTime.getDate()
           ) && (
-              <> - {endDateTime.getDate()} {endDateTime.toLocaleString('default', { month: 'long' })} {endDateTime.getFullYear()}</>
+              <> - {endDateEST}</>
             )}
         </p>
         <p style={{ color: 'gray' }}>
-          <AccessTimeIcon />&nbsp;{`${startDateTime.getHours()}:${startDateTime.getMinutes().toString().padStart(2, '0')}`}
-          -
-          {`${endDateTime.getHours()}:${endDateTime.getMinutes().toString().padStart(2, '0')}`}
+          <AccessTimeIcon />&nbsp;{`${startDateEST} - ${endDateEST}`}
         </p>
         {recurrence && <p>{recurrence}</p>}
         <hr className={styles.divider} />
