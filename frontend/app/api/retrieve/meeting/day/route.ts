@@ -75,14 +75,27 @@ const retrieveDayMeetings = async (request: NextRequest) => {
             if (recurrence.endDate && localDate > new Date(recurrence.endDate)) return false;
             
             if (recurrence.type === "weekly") {
-                const msPerDay = 24 * 60 * 60 * 1000;
-                const daysSinceStart = Math.floor(
-                    (localDate.getTime() - patternStartDate.getTime()) / msPerDay
+                // Get the day of week of the pattern start date (0-6)
+                const startDayOfWeek = patternStartDate.getUTCDay();
+                
+                // Calculate the start of the week containing the pattern start date
+                const patternStartWeekStart = new Date(patternStartDate);
+                patternStartWeekStart.setUTCDate(patternStartDate.getUTCDate() - startDayOfWeek);
+                patternStartWeekStart.setUTCHours(0, 0, 0, 0);
+                
+                // Calculate the start of the week containing the requested date
+                const requestedDateWeekStart = new Date(localDate);
+                requestedDateWeekStart.setUTCDate(localDate.getUTCDate() - dayOfWeek);
+                requestedDateWeekStart.setUTCHours(0, 0, 0, 0);
+                
+                // Calculate complete weeks between the start week and the requested week
+                const msPerWeek = 7 * 24 * 60 * 60 * 1000;
+                const weeksBetween = Math.round(
+                    (requestedDateWeekStart.getTime() - patternStartWeekStart.getTime()) / msPerWeek
                 );
                 
-                const weeksSinceStart = Math.floor(daysSinceStart / 7);
-                
-                const isIntervalMatch = weeksSinceStart % recurrence.interval === 0;
+                // Check if the number of weeks matches the interval pattern
+                const isIntervalMatch = weeksBetween % recurrence.interval === 0;
                 if (!isIntervalMatch) return false;
             }
             
