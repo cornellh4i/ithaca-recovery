@@ -138,6 +138,7 @@ const CalendarSidebar: React.FC<CalendarSidebarProps> = ({filters, setFilters, s
       const startDateTimeUTCString = convertESTToUTC(startDateString);
       const endDateTimeUTCString = convertESTToUTC(endDateString);
 
+
       const startDateTimeUTC= new Date(startDateTimeUTCString);
       const endDateTimeUTC = new Date(endDateTimeUTCString);
 

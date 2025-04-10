@@ -21,12 +21,27 @@ type Room = {
 const meetingCache = new Map<string, Room[]>();
 
 const fetchMeetingsByDay = async (date: Date): Promise<Room[]> => {
-  const formattedDate = date.toISOString().split('T')[0];
+  // Step 1: Ensure the date is in EDT and adjust to UTC properly
+  
+  const localDate = new Date(date);
+
+  // Get the timezone offset for localDate in minutes (difference between local time and UTC)
+  const localOffset = localDate.getTimezoneOffset();  // in minutes
+  
+  // Step 2: Adjust the local date to UTC
+  const utcDate = new Date(localDate.getTime() - localOffset * 60000); // subtract offset (milliseconds)
+  
+  // Step 3: Format the UTC date to a "yyyy-mm-dd" string for API fetching
+  const formattedDate = utcDate.toISOString().split('T')[0];  // e.g., '2025-04-09'
+
+  console.log("Formatted date for fetching meetings (in UTC):", formattedDate);
+  
+  // Check if we already have cached data for the date
   if (meetingCache.has(formattedDate)) {
     console.log("Using cached data for date:", formattedDate);
     return meetingCache.get(formattedDate) || [];
   }
-  
+
   console.log("Fetching meetings for date:", formattedDate);
 
   try {
@@ -37,21 +52,29 @@ const fetchMeetingsByDay = async (date: Date): Promise<Room[]> => {
     const groupedRooms: { [key: string]: Meeting[] } = {};
     data.forEach((meeting: any) => {
       const roomName = meeting.room;
+      console.log("Processing meeting for room:", roomName);
+
       if (!groupedRooms[roomName]) {
         groupedRooms[roomName] = [];
       }
 
+      // Convert meeting times (stored in UTC in the API) to EDT for display
       const start = new Date(meeting.startDateTime.replace("Z", ""));
       const end = new Date(meeting.endDateTime.replace("Z", ""));
 
-      const startEST = convertUTCToEST(start.toISOString());
-      const endEST = convertUTCToEST(end.toISOString());
+      console.log(`Start time (before conversion): ${start}, End time (before conversion): ${end}`);
+      
+      // Convert the UTC times to EDT (local time)
+      const startEDT = convertUTCToEST(start.toISOString());  // adjust conversion method as needed
+      const endEDT = convertUTCToEST(end.toISOString());  // adjust conversion method as needed
+
+      console.log(`Converted Start Time: ${startEDT}, Converted End Time: ${endEDT}`);
 
       groupedRooms[roomName].push({
         id: meeting.mid,
         title: meeting.title,
-        startTime: startEST,
-        endTime: endEST,
+        startTime: startEDT,
+        endTime: endEDT,
         tags: [meeting.type, meeting.group],
       });
     });
@@ -67,6 +90,7 @@ const fetchMeetingsByDay = async (date: Date): Promise<Room[]> => {
 
     console.log("Processed room data:", structuredData);
 
+    // Cache the result to avoid unnecessary refetching
     meetingCache.set(formattedDate, structuredData);
     return structuredData;
   } catch (error) {
@@ -74,6 +98,8 @@ const fetchMeetingsByDay = async (date: Date): Promise<Room[]> => {
     return [];
   }
 };
+
+
 
 const formatTime = (hour: number): string => {
   const period = hour >= 12 ? "PM" : "AM";
@@ -96,6 +122,7 @@ const defaultRooms = [
   { name: 'Zoom Account 3', primaryColor: '#cecece' },
   { name: 'Zoom Account 4', primaryColor: '#cecece' },
 ];
+
 interface DailyViewProps {
   filters: any;
   selectedDate: Date;
@@ -115,45 +142,51 @@ const DailyView: React.FC<DailyViewProps> = ({ filters, selectedDate, setSelecte
   }
 
   const handleDateChange = async (date: Date) => {
+    console.log("Handling date change, selected date:", date);
     const data = await fetchMeetingsByDay(date);
+    console.log("Meetings fetched for selected date:", data);
     setMeetings(data);
   };
 
-
   const updateTimePosition = () => {
-    const now = new Date();
+    const now = new Date(selectedDate); // Use selectedDate instead of current date
+    console.log("Updating time position based on selected date:", now);
     const currentHour = now.getHours();
     const currentMinutes = now.getMinutes();
     const position = (currentHour * 60 + currentMinutes) * (155 / 60);
+    console.log("Current time position:", position);
     setCurrentTimePosition(position);
   };
 
   useEffect(() => {
+    console.log("Component mounted or selectedDate changed:", selectedDate);
     handleDateChange(selectedDate);
     updateTimePosition();
 
     const intervalId = setInterval(updateTimePosition, 60000);
-    return () => clearInterval(intervalId);
+    return () => {
+      console.log("Clearing interval for time position update");
+      clearInterval(intervalId);
+    };
   }, [selectedDate]);
-  
-  // Dummy function for onClick prop
+
   const handleBoxClick = (meetingId: string) => {
     console.log(`Meeting ${meetingId} clicked`);
   };
 
   const handleRowNotBoxClick = () => {
     // TODO: Check if the target is a BoxText element
-    // setSelectedNewMeeting(false);
-    // setSelectedMeetingID(null); 
+    console.log("Grid row clicked");
   };
 
   const combinedRooms = defaultRooms
-  .filter((defaultRoom) => filters[defaultRoom.name.replace(/[-\s]+/g, '').replace(/\s+/g, '')])
+    .filter((defaultRoom) => filters[defaultRoom.name.replace(/[-\s]+/g, '').replace(/\s+/g, '')])
     .map((defaultRoom) => {
       const roomWithMeetings = meetings.find((meetingRoom) => meetingRoom.name === defaultRoom.name);
       return roomWithMeetings || { ...defaultRoom, meetings: [] }; 
-    }
-  );
+    });
+
+  console.log("Combined rooms to render:", combinedRooms);
 
   return (
     <div className={styles.outerContainer}>
@@ -182,7 +215,7 @@ const DailyView: React.FC<DailyViewProps> = ({ filters, selectedDate, setSelecte
           {combinedRooms.map((room, rowIndex) => (
             <div key={rowIndex} className={styles.gridRow} onClick={handleRowNotBoxClick}>
               <div className={styles.gridMeetingRow}>
-                <DailyViewRow roomColor={room.primaryColor} meetings={room.meetings} setSelectedMeetingID = {setSelectedMeetingID} setSelectedNewMeeting={setSelectedNewMeeting}/>
+                <DailyViewRow roomColor={room.primaryColor} meetings={room.meetings} setSelectedMeetingID={setSelectedMeetingID} setSelectedNewMeeting={setSelectedNewMeeting}/>
               </div>
               {timeSlots.map((_, colIndex) => (
                 <div key={colIndex} className={styles.gridCell}></div>

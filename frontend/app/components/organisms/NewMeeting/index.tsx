@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import TextButton from "../../atoms/textbutton"
-import { convertESTToUTC, convertUTCToEST } from "../../../../util/timeUtils";
 import styles from "../../../../styles/components/organisms/NewMeeting.module.scss";
 
 interface NewMeetingSidebarProps {
@@ -14,7 +13,7 @@ interface NewMeetingSidebarProps {
   emailTextField: React.ReactElement;
   uploadPandaDocsForm: React.ReactElement;
   descriptionTextField: React.ReactElement;
-  onCreateMeeting: (meetingData: any) => Promise<void>;
+  onCreateMeeting: () => Promise<void>;
 }
 
 const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({
@@ -30,29 +29,6 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({
   descriptionTextField,
   onCreateMeeting
 }) => {
-  const [startTime, setStartTime] = useState<Date | null>(null);
-  const [endTime, setEndTime] = useState<Date | null>(null);
-
-  const handleCreateMeeting = async () => {
-    if (startTime && endTime) {
-      const utcStartTime = convertESTToUTC(startTime.toISOString());
-      const utcEndTime = convertESTToUTC(endTime.toISOString());
-
-      const meetingData = {
-        title: "Meeting Title",
-        startTime: utcStartTime,
-        endTime: utcEndTime,
-      };
-
-      try {
-        await onCreateMeeting(meetingData);
-      } catch (error) {
-        console.error("Failed to create meeting:", error);
-      }
-    } else {
-      console.error("Start time or end time is not set.");
-    }
-  };
 
   return (
     <div className={styles.newMeetingSidebar}>
@@ -91,9 +67,7 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({
       <div className={styles.dummyComponent}>
         {descriptionTextField}
       </div>
-      <button className={styles.createMeetingButton} onClick={handleCreateMeeting}>
-        Create Meeting
-      </button>
+      <button className={styles.createMeetingButton} onClick={onCreateMeeting}>Create Meeting</button>
     </div>
   );
 };
