@@ -72,7 +72,6 @@ const HomePage = () => {
       if (response.ok) {
         const data: MeetingDetails = await response.json(); // Ensure data matches MeetingDetails type
         setSelectedMeeting(data);
-        console.log("Meeting Data:", data);
       } else {
         console.error("Failed to fetch meeting details");
       }
@@ -156,7 +155,6 @@ const HomePage = () => {
 
     // Build a formatted ISO date string and create a Date object
     const isoDateString = `${year}-${month}-${day}T${hours.toString().padStart(2, '0')}:${minute}:${seconds}`;
-    console.log("Converted EST to ISO:", isoDateString); // log conversion result
     return new Date(isoDateString);
   };
 

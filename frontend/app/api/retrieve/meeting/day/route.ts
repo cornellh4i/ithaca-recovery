@@ -11,8 +11,6 @@ const retrieveDayMeetings = async (request: NextRequest) => {
         const dateParam = request.nextUrl.searchParams.get("startDate");
         const inputDate = dateParam ? new Date(dateParam) : new Date();
 
-        console.log("REQUESTED DATE:", inputDate.toISOString());
-
         // Set start of the day in EDT (midnight EDT = 4am UTC)
         const startUTC = new Date(Date.UTC(
             inputDate.getUTCFullYear(),
@@ -23,7 +21,7 @@ const retrieveDayMeetings = async (request: NextRequest) => {
 
         // End of the day in EDT = 1 day later, minus 1 ms
         const endUTC = new Date(startUTC.getTime() + (24 * 60 * 60 * 1000) - 1);
-        
+
         const meetings = await prisma.meeting.findMany({
             where: {
                 startDateTime: {

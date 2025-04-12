@@ -28,7 +28,6 @@ const CalendarSidebar: React.FC<CalendarSidebarProps> = ({filters, setFilters, s
   // State declarations for New Meeting button
   const [isNewMeetingOpen, setIsNewMeetingOpen] = useState(false);
   const handleMiniCalendarSelect = (date: Date) => {
-    console.log("Selected Date:", date);
     setSelectedDate(date);
   };
 

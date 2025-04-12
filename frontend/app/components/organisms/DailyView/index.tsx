@@ -21,18 +21,12 @@ type Room = {
 const meetingCache = new Map<string, Room[]>();
 
 const fetchMeetingsByDay = async (date: Date): Promise<Room[]> => {
-  console.log("fetch meetings by day", date);
   // Step 1: Format the date in local time (EDT) to ensure correct calendar day
   const formattedDate = date.toLocaleDateString("en-CA"); // e.g., "2025-04-09"
 
-  console.log("Formatted date for fetching meetings (local time):", formattedDate);
-
   if (meetingCache.has(formattedDate)) {
-    console.log("Using cached data for date:", formattedDate);
     return meetingCache.get(formattedDate) || [];
   }
-
-  console.log("Fetching meetings for date:", formattedDate);
 
   try {
     const response = await fetch(`/api/retrieve/meeting/day?startDate=${formattedDate}`);
@@ -71,8 +65,6 @@ const fetchMeetingsByDay = async (date: Date): Promise<Room[]> => {
         meetings: groupedRooms[roomName],
       };
     });
-
-    console.log("Processed room data:", structuredData);
 
     // Cache result
     meetingCache.set(formattedDate, structuredData);
@@ -131,7 +123,6 @@ const DailyView: React.FC<DailyViewProps> = ({ filters, selectedDate, setSelecte
       selected.getMonth(),
       selected.getDate()
     ); // this creates local midnight
-    console.log("Handling date change, adjusted date:", adjustedDate);
   
     const data = await fetchMeetingsByDay(adjustedDate);
     setMeetings(data);
@@ -140,22 +131,18 @@ const DailyView: React.FC<DailyViewProps> = ({ filters, selectedDate, setSelecte
 
   const updateTimePosition = () => {
     const now = new Date(selectedDate); // Use selectedDate instead of current date
-    console.log("Updating time position based on selected date:", now);
     const currentHour = now.getHours();
     const currentMinutes = now.getMinutes();
     const position = (currentHour * 60 + currentMinutes) * (155 / 60);
-    console.log("Current time position:", position);
     setCurrentTimePosition(position);
   };
 
   useEffect(() => {
-    console.log("Component mounted or selectedDate changed:", selectedDate);
     handleDateChange(selectedDate);
     updateTimePosition();
 
     const intervalId = setInterval(updateTimePosition, 60000);
     return () => {
-      console.log("Clearing interval for time position update");
       clearInterval(intervalId);
     };
   }, [selectedDate]);

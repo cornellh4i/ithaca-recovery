@@ -72,10 +72,6 @@ const DailyViewRow: React.FC<DailyViewRowProps> = ({
 
         {/* Render meetings */}
         {meetings.map((meeting, index) => {
-          // Log startTime and endTime before conversion
-          console.log("Meeting", meeting.id, "startTime YAY", meeting.startTime);
-          console.log("Meeting", meeting.id, "endTime YAY", meeting.endTime);
-
           // Convert times to EDT before calculating pixels
           const startOffset = timeToPixels(meeting.startTime);
           const endOffset = timeToPixels(meeting.endTime);
@@ -84,10 +80,6 @@ const DailyViewRow: React.FC<DailyViewRowProps> = ({
           // Convert startTime and endTime to EDT for display
           const startTimeEDT = new Date(meeting.startTime).toLocaleString("en-US", { timeZone: "America/New_York" });
           const endTimeEDT = new Date(meeting.endTime).toLocaleString("en-US", { timeZone: "America/New_York" });
-
-          // Log the converted startTimeEDT and endTimeEDT
-          console.log(`Meeting ${meeting.id} startTimeEDT: ${startTimeEDT}`);
-          console.log(`Meeting ${meeting.id} endTimeEDT: ${endTimeEDT}`);
 
           return (
             <div

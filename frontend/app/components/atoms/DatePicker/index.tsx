@@ -117,7 +117,6 @@ const DatePicker = ({ label, value: propValue = '', onChange, underlineOnFocus =
     setIsFocused(true);
     if (isDateFormat2(internalValue)) {
       console.log(internalValue)
-      console.log("this is" + stringToDate(internalValue))
       const formattedDate = stringToDate(internalValue);
       setInternalValue(formattedDate); 
       onChange(formattedDate); 
