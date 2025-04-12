@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic';
+
 import { PrismaClient } from '@prisma/client';
-import { start } from 'repl';
 import { IMeeting } from "../../../../../util/models";
 import { NextRequest } from 'next/server';
 
@@ -8,29 +8,44 @@ const prisma = new PrismaClient();
 
 const retrieveDayMeetings = async (request: NextRequest) => {
     try {
-        const date = request.nextUrl.searchParams.get("startDate") ?? new Date().toISOString();
-        const standardDate = new Date(date);
-        const startDate = new Date(Date.UTC(standardDate.getUTCFullYear(), standardDate.getUTCMonth(), standardDate.getUTCDate()));
-        const endDate = new Date(Date.UTC(standardDate.getUTCFullYear(), standardDate.getUTCMonth(), standardDate.getUTCDate(), 23, 59, 59, 999));
+        const dateParam = request.nextUrl.searchParams.get("startDate");
+        const inputDate = dateParam ? new Date(dateParam) : new Date();
+
+        console.log("REQUESTED DATE:", inputDate.toISOString());
+
+        // Set start of the day in EDT (midnight EDT = 4am UTC)
+        const startUTC = new Date(Date.UTC(
+            inputDate.getUTCFullYear(),
+            inputDate.getUTCMonth(),
+            inputDate.getUTCDate(),
+            4, 0, 0, 0 // midnight EDT
+        ));
+
+        // End of the day in EDT = 1 day later, minus 1 ms
+        const endUTC = new Date(startUTC.getTime() + (24 * 60 * 60 * 1000) - 1);
+
+        console.log("QUERY RANGE UTC:", startUTC.toISOString(), "→", endUTC.toISOString());
+
         const meetings = await prisma.meeting.findMany({
             where: {
                 startDateTime: {
-                    gte: startDate,
+                    gte: startUTC,
                 },
                 endDateTime: {
-                    lte: endDate
-                }
-            }
-        }
-        );
+                    lte: endUTC,
+                },
+            },
+        });
 
         const typedMeetings: IMeeting[] = meetings.map(meeting => ({ ...meeting }));
+
         return new Response(JSON.stringify(typedMeetings), {
             status: 200,
             headers: {
                 'Content-Type': 'application/json',
             },
         });
+
     } catch (error) {
         console.error("Error retrieving meetings: ", error);
         return new Response(JSON.stringify({ error: "Error retrieving meetings" }), {
@@ -40,6 +55,6 @@ const retrieveDayMeetings = async (request: NextRequest) => {
             },
         });
     }
-}
+};
 
-export { retrieveDayMeetings as GET }
+export { retrieveDayMeetings as GET };

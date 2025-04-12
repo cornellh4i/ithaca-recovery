@@ -1,12 +1,11 @@
 import React from 'react';
 import BoxText from '../atoms/BoxText';
-import { convertUTCToEST } from "../../../util/timeUtils";
 
 // Meeting Interface
 interface Meeting {
   title: string;
-  startTime: string;
-  endTime: string;
+  startTime: string; // Raw UTC timestamp (ISO 8601 format)
+  endTime: string;   // Raw UTC timestamp (ISO 8601 format)
   tags?: string[];
   id: string;
 }
@@ -19,36 +18,12 @@ interface DailyViewRowProps {
   setSelectedNewMeeting: (newMeetingExists: boolean) => void;
 }
 
-const convertUTCToEDT2 = (datetime: string) => {
-  // Parse the string to get a Date object in UTC
+const timeToPixels = (datetime: string) => {
+  // Create Date object from raw UTC timestamp
   const utcDate = new Date(datetime);
 
-  // Subtract 4 hours for EDT
-  const edtDate = new Date(utcDate.getTime() - 4 * 60 * 60 * 1000);
-
-  // Format EDT date as MM/DD/YYYY, hh:mm:ss AM/PM
-  const month = (edtDate.getMonth() + 1).toString().padStart(2, '0');
-  const day = edtDate.getDate().toString().padStart(2, '0');
-  const year = edtDate.getFullYear();
-
-  let hours = edtDate.getHours();
-  const minutes = edtDate.getMinutes().toString().padStart(2, '0');
-  const seconds = edtDate.getSeconds().toString().padStart(2, '0');
-
-  const period = hours >= 12 ? 'PM' : 'AM';
-  hours = hours % 12;
-  if (hours === 0) hours = 12;
-
-  const formattedTime = `${month}/${day}/${year}, ${hours}:${minutes}:${seconds} ${period}`;
-  return formattedTime;
-};
-
-
-
-
-const timeToPixels = (datetime: string) => {
-  // First, convert the datetime from UTC to EDT
-  const edtDatetime = convertUTCToEDT2(datetime);
+  // Convert to EDT using toLocaleString with 'America/New_York' timezone
+  const edtDatetime = utcDate.toLocaleString("en-US", { timeZone: "America/New_York" });
 
   // Extract date and time components from the converted EDT time string
   const [datePart, timePart] = edtDatetime.split(', ');
@@ -73,9 +48,6 @@ const timeToPixels = (datetime: string) => {
   // Convert minutes to pixels (1 hour = 155px)
   return totalMinutes * (155 / 60);  // Pixel scale factor based on minutes per hour
 };
-
-
-
 
 const DailyViewRow: React.FC<DailyViewRowProps> = ({
   roomColor,
@@ -110,8 +82,8 @@ const DailyViewRow: React.FC<DailyViewRowProps> = ({
           const width = endOffset - startOffset;
 
           // Convert startTime and endTime to EDT for display
-          const startTimeEDT = convertUTCToEDT2(meeting.startTime);
-          const endTimeEDT = convertUTCToEDT2(meeting.endTime);
+          const startTimeEDT = new Date(meeting.startTime).toLocaleString("en-US", { timeZone: "America/New_York" });
+          const endTimeEDT = new Date(meeting.endTime).toLocaleString("en-US", { timeZone: "America/New_York" });
 
           // Log the converted startTimeEDT and endTimeEDT
           console.log(`Meeting ${meeting.id} startTimeEDT: ${startTimeEDT}`);

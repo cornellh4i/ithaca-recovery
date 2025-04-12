@@ -21,22 +21,13 @@ type Room = {
 const meetingCache = new Map<string, Room[]>();
 
 const fetchMeetingsByDay = async (date: Date): Promise<Room[]> => {
-  // Step 1: Ensure the date is in EDT and adjust to UTC properly
-  
-  const localDate = new Date(date);
+  console.log("fetch meetings by day", date);
+  // Step 1: Format the date in local time (EDT) to ensure correct calendar day
+  const formattedDate = date.toLocaleDateString("en-CA"); // e.g., "2025-04-09"
 
-  // Get the timezone offset for localDate in minutes (difference between local time and UTC)
-  const localOffset = localDate.getTimezoneOffset();  // in minutes
-  
-  // Step 2: Adjust the local date to UTC
-  const utcDate = new Date(localDate.getTime() - localOffset * 60000); // subtract offset (milliseconds)
-  
-  // Step 3: Format the UTC date to a "yyyy-mm-dd" string for API fetching
-  const formattedDate = utcDate.toISOString().split('T')[0];  // e.g., '2025-04-09'
+  console.log("Formatted date for fetching meetings (local time):", formattedDate);
 
-  console.log("Formatted date for fetching meetings (in UTC):", formattedDate);
-  
-  // Check if we already have cached data for the date
+  // Step 2: Check cache
   if (meetingCache.has(formattedDate)) {
     console.log("Using cached data for date:", formattedDate);
     return meetingCache.get(formattedDate) || [];
@@ -50,25 +41,19 @@ const fetchMeetingsByDay = async (date: Date): Promise<Room[]> => {
     console.log("Raw API response:", data);
 
     const groupedRooms: { [key: string]: Meeting[] } = {};
+
     data.forEach((meeting: any) => {
       const roomName = meeting.room;
-      console.log("Processing meeting for room:", roomName);
-
       if (!groupedRooms[roomName]) {
         groupedRooms[roomName] = [];
       }
 
-      // Convert meeting times (stored in UTC in the API) to EDT for display
-      const start = new Date(meeting.startDateTime.replace("Z", ""));
-      const end = new Date(meeting.endDateTime.replace("Z", ""));
+      // Convert meeting times from UTC to EDT for display
+      const startUTC = new Date(meeting.startDateTime);
+      const endUTC = new Date(meeting.endDateTime);
 
-      console.log(`Start time (before conversion): ${start}, End time (before conversion): ${end}`);
-      
-      // Convert the UTC times to EDT (local time)
-      const startEDT = convertUTCToEST(start.toISOString());  // adjust conversion method as needed
-      const endEDT = convertUTCToEST(end.toISOString());  // adjust conversion method as needed
-
-      console.log(`Converted Start Time: ${startEDT}, Converted End Time: ${endEDT}`);
+      const startEDT = convertUTCToEST(startUTC.toISOString());
+      const endEDT = convertUTCToEST(endUTC.toISOString());
 
       groupedRooms[roomName].push({
         id: meeting.mid,
@@ -90,7 +75,7 @@ const fetchMeetingsByDay = async (date: Date): Promise<Room[]> => {
 
     console.log("Processed room data:", structuredData);
 
-    // Cache the result to avoid unnecessary refetching
+    // Cache result
     meetingCache.set(formattedDate, structuredData);
     return structuredData;
   } catch (error) {
@@ -141,12 +126,18 @@ const DailyView: React.FC<DailyViewProps> = ({ filters, selectedDate, setSelecte
     return now;
   }
 
-  const handleDateChange = async (date: Date) => {
-    console.log("Handling date change, selected date:", date);
-    const data = await fetchMeetingsByDay(date);
-    console.log("Meetings fetched for selected date:", data);
+  const handleDateChange = async (selected: Date) => {
+    const adjustedDate = new Date(
+      selected.getFullYear(),
+      selected.getMonth(),
+      selected.getDate()
+    ); // this creates local midnight
+    console.log("Handling date change, adjusted date:", adjustedDate);
+  
+    const data = await fetchMeetingsByDay(adjustedDate);
     setMeetings(data);
   };
+  
 
   const updateTimePosition = () => {
     const now = new Date(selectedDate); // Use selectedDate instead of current date
