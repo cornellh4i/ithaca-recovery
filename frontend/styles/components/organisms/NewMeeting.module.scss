@@ -44,6 +44,11 @@
   background: #F1F1F1;
 }
 
+.button.selected {
+  background: #F1F1F1;
+  border-radius: 8px;
+}
+
 .meetingButtons {
   display: flex;
   flex-direction: row;

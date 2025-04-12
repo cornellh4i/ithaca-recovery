@@ -95,7 +95,11 @@ export class AuthProvider {
             }
 
             const silentTokenRequest = {
-                scopes: [`${process.env.NEXT_PUBLIC_GRAPH_API_ENDPOINT}Group.Read.All`, `${process.env.NEXT_PUBLIC_GRAPH_API_ENDPOINT}Calendars.Read`],
+                scopes: [
+                    `${process.env.NEXT_PUBLIC_GRAPH_API_ENDPOINT}/Group.Read.All`, 
+                    `${process.env.NEXT_PUBLIC_GRAPH_API_ENDPOINT}/Calendars.Read`,
+                    `${process.env.NEXT_PUBLIC_GRAPH_API_ENDPOINT}/User.Read`
+                ],
                 account: account
             };
 
