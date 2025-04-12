@@ -18,14 +18,12 @@ const retrieveDayMeetings = async (request: NextRequest) => {
             inputDate.getUTCFullYear(),
             inputDate.getUTCMonth(),
             inputDate.getUTCDate(),
-            4, 0, 0, 0 // midnight EDT
+            4, 0, 0, 0 
         ));
 
         // End of the day in EDT = 1 day later, minus 1 ms
         const endUTC = new Date(startUTC.getTime() + (24 * 60 * 60 * 1000) - 1);
-
-        console.log("QUERY RANGE UTC:", startUTC.toISOString(), "→", endUTC.toISOString());
-
+        
         const meetings = await prisma.meeting.findMany({
             where: {
                 startDateTime: {

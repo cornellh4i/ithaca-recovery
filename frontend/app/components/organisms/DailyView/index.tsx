@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import styles from '../../../../styles/organisms/DailyView.module.scss';
 import BoxText from '../../atoms/BoxText';
 import DailyViewRow from "../../molecules/DailyViewRow";
-import { convertUTCToEST } from "../../../../util/timeUtils";
+import { convertUTCToET } from "../../../../util/timeUtils";
 
 type Meeting = {
   id: string;
@@ -27,7 +27,6 @@ const fetchMeetingsByDay = async (date: Date): Promise<Room[]> => {
 
   console.log("Formatted date for fetching meetings (local time):", formattedDate);
 
-  // Step 2: Check cache
   if (meetingCache.has(formattedDate)) {
     console.log("Using cached data for date:", formattedDate);
     return meetingCache.get(formattedDate) || [];
@@ -52,8 +51,8 @@ const fetchMeetingsByDay = async (date: Date): Promise<Room[]> => {
       const startUTC = new Date(meeting.startDateTime);
       const endUTC = new Date(meeting.endDateTime);
 
-      const startEDT = convertUTCToEST(startUTC.toISOString());
-      const endEDT = convertUTCToEST(endUTC.toISOString());
+      const startEDT = convertUTCToET(startUTC.toISOString());
+      const endEDT = convertUTCToET(endUTC.toISOString());
 
       groupedRooms[roomName].push({
         id: meeting.mid,

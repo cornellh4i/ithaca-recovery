@@ -5,7 +5,7 @@ import CalendarNavbar from "../organisms/CalendarNavbar";
 import CalendarSidebar from "../organisms/CalendarSidebar";
 import ViewMeetingDetails from "../organisms/ViewMeeting";
 import DailyView from "../organisms/DailyView";
-import { convertUTCToEST } from "../../../util/timeUtils";
+import { convertUTCToET } from "../../../util/timeUtils";
 
 type MeetingDetails = {
   id: string;
@@ -173,7 +173,7 @@ const HomePage = () => {
             group={selectedMeeting.group}
 
             startDateTime={convertESTStringToDate(
-              convertUTCToEST(
+              convertUTCToET(
                 selectedMeeting.startDateTime instanceof Date
                   ? selectedMeeting.startDateTime.toISOString()
                   : selectedMeeting.startDateTime
@@ -181,7 +181,7 @@ const HomePage = () => {
             )}
             
             endDateTime={convertESTStringToDate(
-              convertUTCToEST(
+              convertUTCToET(
                 selectedMeeting.endDateTime instanceof Date
                   ? selectedMeeting.endDateTime.toISOString()
                   : selectedMeeting.endDateTime

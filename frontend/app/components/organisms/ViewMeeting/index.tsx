@@ -5,7 +5,7 @@ import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import VideoCameraFrontIcon from '@mui/icons-material/VideoCameraFront';
 import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
 import DownloadForOfflineIcon from '@mui/icons-material/DownloadForOffline';
-import { convertUTCToEST } from "../../../../util/timeUtils";
+import { convertUTCToET } from "../../../../util/timeUtils";
 
 type ViewMeetingDetailsProps = {
   id: string; // Maps to 'id' in the model (ObjectId, but treated as string here)
@@ -51,8 +51,8 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
     onDelete(mid);
   }
 
-  const startDateEST = convertUTCToEST(startDateTime.toISOString());
-  const endDateEST = convertUTCToEST(endDateTime.toISOString());
+  const startDateEST = convertUTCToET(startDateTime.toISOString());
+  const endDateEST = convertUTCToET(endDateTime.toISOString());
 
   return (
     <div className={styles.meetingDetails}>

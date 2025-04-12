@@ -15,7 +15,7 @@ import AddIcon from '@mui/icons-material/Add';
 import CloseIcon from '@mui/icons-material/Close';
 import IconButton from '@mui/material/IconButton';
 import RecurringMeetingForm from '../../molecules/RecurringMeeting';
-import { convertESTToUTC } from "../../../../util/timeUtils";
+import { convertETToUTC } from "../../../../util/timeUtils";
 
 interface CalendarSidebarProps {
   filters: any;
@@ -135,9 +135,8 @@ const CalendarSidebar: React.FC<CalendarSidebarProps> = ({filters, setFilters, s
         return;
       }
 
-      const startDateTimeUTCString = convertESTToUTC(startDateString);
-      const endDateTimeUTCString = convertESTToUTC(endDateString);
-
+      const startDateTimeUTCString = convertETToUTC(startDateString);
+      const endDateTimeUTCString = convertETToUTC(endDateString);
 
       const startDateTimeUTC= new Date(startDateTimeUTCString);
       const endDateTimeUTC = new Date(endDateTimeUTCString);
