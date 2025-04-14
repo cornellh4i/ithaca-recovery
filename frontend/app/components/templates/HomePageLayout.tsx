@@ -23,19 +23,21 @@ type MeetingDetails = {
   recurrence?: string;
 };
 
-
 const HomePage = () => {
+  // Add state for login status - default to logged in
+  const [isLoggedIn, setIsLoggedIn] = useState(true);
+
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedMeeting, setSelectedMeeting] = useState<MeetingDetails | null>(null);
   const [selectedMeetingID, setSelectedMeetingID] = useState<string | null>(null);
-  const [selectedNewMeeting, setSelectedNewMeeting] = useState<boolean| null>(false); 
+  const [selectedNewMeeting, setSelectedNewMeeting] = useState<boolean | null>(false);
   const [inputMeetingTitleValue, setMeetingTitleValue] = useState(""); // Meeting title
   const [dateValue, setDateValue] = useState<string>(""); // Initial date value as empty
   const [timeValue, setTimeValue] = useState<string>(""); // Initial time range as empty
   const [freqValue, setFreqValue] = useState<string>("Never"); // Default frequency value
   const [inputEmailValue, setEmailValue] = useState(""); // Email input value
   const [inputDescriptionValue, setDescriptionValue] = useState(""); // Description input value
-  
+
   const roomOptions = [
     "Serenity Room",
     "Seeds of Hope",
@@ -116,8 +118,14 @@ const HomePage = () => {
       console.error("Error deleting the meeting:", error);
     }
   };
+
   const handleCloseNewMeeting = () => {
     setSelectedNewMeeting(false);
+  };
+
+  // Test function to toggle login status
+  const toggleLoginStatus = () => {
+    setIsLoggedIn(!isLoggedIn);
   };
 
   const [filters, setFilters] = useState({
@@ -139,52 +147,98 @@ const HomePage = () => {
     Remote: true,
   });
 
+  // Create a custom component to modify the Sign In/Out button text
+  const CustomCalendarNavbar = () => {
+    useEffect(() => {
+      // Find and modify the existing button after render
+      const observer = new MutationObserver((mutations, obs) => {
+        const navbarActions = document.querySelector(`.${styles.primaryCalendar} [class*="actions"]`);
+        if (navbarActions) {
+          const existingButton = navbarActions.querySelector('button');
+          if (existingButton) {
+            existingButton.textContent = isLoggedIn ? 'Sign Out' : 'Sign In';
+            obs.disconnect(); // Stop observing once we've updated
+          }
+        }
+      });
+
+      observer.observe(document.body, {
+        childList: true,
+        subtree: true
+      });
+
+      return () => observer.disconnect();
+    }, [isLoggedIn]);
+
+    return (
+      <CalendarNavbar
+        selectedDate={selectedDate}
+        onPreviousDay={() => setSelectedDate(new Date(selectedDate.setDate(selectedDate.getDate() - 1)))}
+        onNextDay={() => setSelectedDate(new Date(selectedDate.setDate(selectedDate.getDate() + 1)))}
+        onToday={() => setSelectedDate(new Date())}
+        onDateChange={setSelectedDate}
+      />
+    );
+  };
+
   return (
-    <div className={styles.container}>
-      <div className={styles.sidebar}>
-        {selectedMeeting ? (
-          <ViewMeetingDetails
-            id={selectedMeeting.id}
-            mid={selectedMeeting.mid}
-            title={selectedMeeting.title}
-            description={selectedMeeting.description}
-            creator={selectedMeeting.creator}
-            group={selectedMeeting.group}
-            startDateTime={new Date(selectedMeeting.startDateTime)}
-            endDateTime={new Date(selectedMeeting.endDateTime)}
-            zoomAccount={selectedMeeting.zoomAccount}
-            zoomLink={selectedMeeting.zoomLink}
-            zid={selectedMeeting.zid}
-            type={selectedMeeting.type}
-            room={selectedMeeting.room}
-            recurrence={selectedMeeting.recurrence}
-            onBack={handleBack}
-            onEdit={handleEdit}
-            onDelete={() => handleDelete(selectedMeeting.mid)}
-          />
-        ) : (
-          <CalendarSidebar 
-            filters={filters}
-            setFilters={setFilters}
-            selectedDate={selectedDate} 
-            setSelectedDate={setSelectedDate} />
-        )}
+    <div>
+      {/* Test toggle button */}
+      <div style={{ position: 'absolute', top: '10px', right: '10px', zIndex: 100 }}>
+        <button
+          onClick={toggleLoginStatus}
+          style={{ padding: '8px 16px', backgroundColor: '#4a90e2', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+        >
+          Test {isLoggedIn ? "Log Out" : "Log In"}
+        </button>
       </div>
-      <div className={styles.primaryCalendar}>
-        <CalendarNavbar
-          selectedDate={selectedDate}
-          onPreviousDay={() => setSelectedDate(new Date(selectedDate.setDate(selectedDate.getDate() - 1)))}
-          onNextDay={() => setSelectedDate(new Date(selectedDate.setDate(selectedDate.getDate() + 1)))}
-          onToday={() => (setSelectedDate(new Date()))}
-          onDateChange={setSelectedDate}
-        />
-        <DailyView 
-          filters={filters}
-          selectedDate={selectedDate} 
-          setSelectedDate={setSelectedDate} 
-          setSelectedMeetingID={setSelectedMeetingID} 
-          setSelectedNewMeeting={setSelectedNewMeeting} 
-        />
+
+      <div className={styles.container}>
+        {/* Only render sidebar when logged in */}
+        {isLoggedIn && (
+          <div className={styles.sidebar}>
+            {selectedMeeting ? (
+              <ViewMeetingDetails
+                id={selectedMeeting.id}
+                mid={selectedMeeting.mid}
+                title={selectedMeeting.title}
+                description={selectedMeeting.description}
+                creator={selectedMeeting.creator}
+                group={selectedMeeting.group}
+                startDateTime={new Date(selectedMeeting.startDateTime)}
+                endDateTime={new Date(selectedMeeting.endDateTime)}
+                zoomAccount={selectedMeeting.zoomAccount}
+                zoomLink={selectedMeeting.zoomLink}
+                zid={selectedMeeting.zid}
+                type={selectedMeeting.type}
+                room={selectedMeeting.room}
+                recurrence={selectedMeeting.recurrence}
+                onBack={handleBack}
+                onEdit={handleEdit}
+                onDelete={() => handleDelete(selectedMeeting.mid)}
+              />
+            ) : (
+              <CalendarSidebar
+                filters={filters}
+                setFilters={setFilters}
+                selectedDate={selectedDate}
+                setSelectedDate={setSelectedDate} />
+            )}
+          </div>
+        )}
+
+        {/* Primary calendar area */}
+        <div className={styles.primaryCalendar}>
+          <CustomCalendarNavbar />
+
+          <DailyView
+            filters={filters}
+            selectedDate={selectedDate}
+            setSelectedDate={setSelectedDate}
+            setSelectedMeetingID={isLoggedIn ? setSelectedMeetingID : () => { }} // Disable meeting selection when logged out
+            setSelectedNewMeeting={isLoggedIn ? setSelectedNewMeeting : () => { }} // Disable new meeting when logged out
+          />
+        </div>
       </div>
     </div>
   );
