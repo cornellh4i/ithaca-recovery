@@ -1,10 +1,11 @@
-import React from 'react'
+import React, { useState } from 'react';
 import styles from '../../../../styles/ViewMeeting.module.scss';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import VideoCameraFrontIcon from '@mui/icons-material/VideoCameraFront';
 import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
 import DownloadForOfflineIcon from '@mui/icons-material/DownloadForOffline';
+import DeleteRecurringModal from '../../molecules/DeleteRecurringModal';
 
 type ViewMeetingDetailsProps = {
   id: string; // Maps to 'id' in the model (ObjectId, but treated as string here)
@@ -21,9 +22,20 @@ type ViewMeetingDetailsProps = {
   type: string; // Maps to 'type' in the model
   room: string; // Maps to 'room' in the model
   recurrence?: string; // Remains as optional if required
+  isRecurring: boolean;
+  recurrencePattern?: {
+    type: string;
+    interval: number;
+    daysOfWeek: string[];
+    startDate?: Date;
+    endDate?: Date | null;
+    numberOfOccurences?: number | null;
+    firstDayOfWeek?: string;
+  };
+  currentOccurrenceDate?: Date; // Handles the specific occurrence date
   onBack: () => void;
   onEdit: () => void;
-  onDelete: (mid: string) => void;
+  onDelete: (mid: string, deleteOption?: 'this' | 'thisAndFollowing' | 'all') => void;
 };
 
 const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
@@ -41,14 +53,105 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
   type,
   room,
   recurrence,
+  isRecurring,
+  recurrencePattern,
+  currentOccurrenceDate, // This is the selected date from the calendar view
   onBack,
   onEdit,
   onDelete,
 }) => {
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
-  const handleDelete = () => {
-    onDelete(mid);
+  const doesMeetingOccurOnDate = (date: Date): boolean => {
+    if (!isRecurring || !recurrencePattern) {
+      const meetingDate = new Date(startDateTime);
+      return (
+        meetingDate.getFullYear() === date.getFullYear() &&
+        meetingDate.getMonth() === date.getMonth() &&
+        meetingDate.getDate() === date.getDate()
+      );
+    }
+
+    if (recurrencePattern.type === "weekly") {
+      const dayOfWeek = date.toLocaleDateString('en-US', { weekday: 'long' });
+      if (!recurrencePattern.daysOfWeek.includes(dayOfWeek)) {
+        return false;
+      }
+
+      const originalDate = new Date(startDateTime);
+      const diffTime = Math.abs(date.getTime() - originalDate.getTime());
+      const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+      const diffWeeks = Math.floor(diffDays / 7);
+      
+      return diffWeeks % recurrencePattern.interval === 0;
+    }
+
+    return true;
+  };
+
+  let displayStartDate = startDateTime;
+  let displayEndDate = endDateTime;
+
+  if (isRecurring && currentOccurrenceDate && doesMeetingOccurOnDate(currentOccurrenceDate)) {
+    const newStartDate = new Date(startDateTime);
+    newStartDate.setFullYear(currentOccurrenceDate.getFullYear());
+    newStartDate.setMonth(currentOccurrenceDate.getMonth());
+    newStartDate.setDate(currentOccurrenceDate.getDate());
+    
+    displayStartDate = newStartDate;
+    
+    const duration = endDateTime.getTime() - startDateTime.getTime();
+    displayEndDate = new Date(displayStartDate.getTime() + duration);
   }
+
+  const handleDeleteClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (isRecurring) {
+      setShowDeleteModal(true);
+    } else {
+      onDelete(mid);
+    }
+  };
+
+  const handleModalDelete = (option: 'this' | 'thisAndFollowing' | 'all') => {
+    console.log("Deleting recurring meeting with option:", option); 
+    onDelete(mid, option);
+    setShowDeleteModal(false);
+  };
+
+  
+  const getRecurrenceText = () => {
+    if (recurrencePattern) {
+      const { type, interval, daysOfWeek } = recurrencePattern;
+
+      let intervalText = "regularly";
+      if (type === "weekly") {
+        if (interval === 1) intervalText = "weekly";
+        else if (interval === 2) intervalText = "biweekly";
+        else if (interval === 3) intervalText = "triweekly";
+        else intervalText = `every ${interval} weeks`;
+      }
+
+      let daysText = "";
+      if (Array.isArray(daysOfWeek) && daysOfWeek.length > 0) {
+        daysText = ` on ${daysOfWeek.join(', ')}`;
+      }
+
+      return `Repeats ${intervalText}${daysText}`;
+    }
+
+    return "Repeats regularly";
+  };
+
+  console.log("Rendering ViewMeetingDetails with dates:", {
+    startDateTime,
+    endDateTime,
+    displayStartDate,
+    displayEndDate,
+    currentOccurrenceDate,
+    doesOccur: currentOccurrenceDate ? doesMeetingOccurOnDate(currentOccurrenceDate) : false
+  });
 
   return (
     <div className={styles.meetingDetails}>
@@ -60,36 +163,34 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
           <button>⋮</button>
           <div className={styles.optionsMenu}>
             <button onClick={onEdit}>Edit Meeting</button>
-            <button onClick={handleDelete}>Delete Meeting</button>
+            <button onClick={handleDeleteClick}>Delete Meeting</button>
           </div>
         </div>
       </div>
       <div className={styles.details}>
-        <p style={{ color: 'gray' }}>
+      <p style={{ color: 'gray' }}>
           <CalendarTodayIcon />&nbsp;
-          {startDateTime.getDate()} {startDateTime.toLocaleString('default', { month: 'long' })} {startDateTime.getFullYear()}
-          {!(
-            startDateTime.getFullYear() === endDateTime.getFullYear() &&
-            startDateTime.getMonth() === endDateTime.getMonth() &&
-            startDateTime.getDate() === endDateTime.getDate()
-          ) && (
-              <> - {endDateTime.getDate()} {endDateTime.toLocaleString('default', { month: 'long' })} {endDateTime.getFullYear()}</>
-            )}
+          {displayStartDate.getDate()} {displayStartDate.toLocaleString('default', { month: 'long' })} {displayStartDate.getFullYear()}
         </p>
         <p style={{ color: 'gray' }}>
-          <AccessTimeIcon />&nbsp;{`${startDateTime.getHours()}:${startDateTime.getMinutes().toString().padStart(2, '0')}`}
-          -
-          {`${endDateTime.getHours()}:${endDateTime.getMinutes().toString().padStart(2, '0')}`}
+          <AccessTimeIcon />&nbsp;
+          {`${displayStartDate.getHours()}:${displayStartDate.getMinutes().toString().padStart(2, '0')}`} - {`${displayEndDate.getHours()}:${displayEndDate.getMinutes().toString().padStart(2, '0')}`}
         </p>
-        {recurrence && <p>{recurrence}</p>}
+
+        {isRecurring && (
+          <p className={styles.recurringInfo}>
+            {getRecurrenceText()}
+          </p>
+        )}
+
         <hr className={styles.divider} />
 
         <p><strong>Calendar:</strong>&nbsp;{group}</p>
         <p><strong>Location:</strong>&nbsp;{room}</p>
         {zoomAccount && <p><strong>Zoom Account:</strong>&nbsp;{zoomAccount}</p>}
-        {zoomLink && <a href={zoomLink} target="_blank" rel="noopener noreferrer" className={styles.zoomLink}>
+        {zoomLink && <a href={zoomLink} target="_blank" rel="noopener noreferrer" className={styles.zoomLink}> 
           <VideoCameraFrontIcon /> {zoomLink}
-        </a>}
+          </a>}
         <p><strong>PandaDocs Form</strong></p>
         <div className={styles.pandaDocs}>
 
@@ -109,6 +210,11 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
         <hr className={styles.divider} />
 
       </div>
+      <DeleteRecurringModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onDelete={handleModalDelete}
+      />
     </div>
   );
 };

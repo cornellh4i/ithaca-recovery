@@ -21,6 +21,16 @@ type MeetingDetails = {
   type: string;
   room: string;
   recurrence?: string;
+  isRecurring?: boolean;
+  recurrencePattern?: {
+    type: string;
+    interval: number;
+    daysOfWeek: string[];
+    startDate?: Date;
+    endDate?: Date | null;
+    numberOfOccurences?: number | null;
+    firstDayOfWeek?: string;
+  };
 };
 
 
@@ -35,6 +45,7 @@ const HomePage = () => {
   const [freqValue, setFreqValue] = useState<string>("Never"); // Default frequency value
   const [inputEmailValue, setEmailValue] = useState(""); // Email input value
   const [inputDescriptionValue, setDescriptionValue] = useState(""); // Description input value
+  const [lastClickedDate, setLastClickedDate] = useState<Date | null>(null);
   
   const roomOptions = [
     "Serenity Room",
@@ -70,9 +81,11 @@ const HomePage = () => {
     try {
       const response = await fetch(`/api/retrieve/meeting/${meetingId}`, { method: 'GET' });
       if (response.ok) {
-        const data: MeetingDetails = await response.json(); // Ensure data matches MeetingDetails type
-        setSelectedMeeting(data);
+        const data: MeetingDetails = await response.json();
         console.log("Meeting Data:", data);
+        setSelectedMeeting(data);
+        // Store the date that was clicked when the meeting was selected
+        setLastClickedDate(new Date(selectedDate));
       } else {
         console.error("Failed to fetch meeting details");
       }
@@ -86,6 +99,7 @@ const HomePage = () => {
       fetchMeetingDetails(selectedMeetingID);
     } else {
       setSelectedMeeting(null);
+      setLastClickedDate(null);
     }
   }, [selectedMeetingID]);
 
@@ -93,24 +107,41 @@ const HomePage = () => {
     setSelectedMeeting(null);
     setSelectedMeetingID(null);
     setSelectedNewMeeting(false);
+    setLastClickedDate(null);
   };
 
   const handleEdit = () => console.log("Edit meeting");
 
-  const handleDelete = async (mid: string) => {
+  const handleDelete = async (mid: string, deleteOption?: 'this' | 'thisAndFollowing' | 'all') => {
     try {
+      const payload: any = { mid };
+  
+      if (deleteOption) {
+        payload.deleteOption = deleteOption;
+      }
+  
+      console.log("Calling DELETE with:", payload);
+  
       const response = await fetch("/api/delete/meeting", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mid }),
+        body: JSON.stringify(payload),
       });
-
+  
       if (!response.ok) {
         alert("Error: Unsuccessful delete");
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-
+  
       setSelectedMeeting(null);
+      setSelectedMeetingID(null);
+      setLastClickedDate(null);
+      const tempDate = new Date(selectedDate);
+      setSelectedDate(new Date(tempDate.getTime() + 1));
+      setTimeout(() => {
+        setSelectedDate(tempDate);
+      }, 100);
+  
       alert("Meeting deleted successfully!");
     } catch (error) {
       console.error("Error deleting the meeting:", error);
@@ -138,6 +169,10 @@ const HomePage = () => {
     Hybrid: true,
     Remote: true,
   });
+  const handleMeetingSelect = (meetingId: string) => {
+    setSelectedMeetingID(meetingId);
+    setLastClickedDate(new Date(selectedDate));
+  };
 
   return (
     <div className={styles.container}>
@@ -158,10 +193,13 @@ const HomePage = () => {
             type={selectedMeeting.type}
             room={selectedMeeting.room}
             recurrence={selectedMeeting.recurrence}
+            isRecurring={selectedMeeting.isRecurring ?? false}
+            recurrencePattern={selectedMeeting.recurrencePattern}
+            currentOccurrenceDate={lastClickedDate || undefined} // Pass the date when the meeting was clicked
             onBack={handleBack}
             onEdit={handleEdit}
-            onDelete={() => handleDelete(selectedMeeting.mid)}
-          />
+            onDelete={handleDelete} 
+          />    
         ) : (
           <CalendarSidebar 
             filters={filters}
@@ -182,7 +220,7 @@ const HomePage = () => {
           filters={filters}
           selectedDate={selectedDate} 
           setSelectedDate={setSelectedDate} 
-          setSelectedMeetingID={setSelectedMeetingID} 
+          setSelectedMeetingID={handleMeetingSelect}
           setSelectedNewMeeting={setSelectedNewMeeting} 
         />
       </div>
