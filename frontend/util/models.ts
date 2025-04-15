@@ -10,6 +10,18 @@ interface IAdmin extends IUser {
   email: string;
 }
 
+interface IRecurrencePattern {
+  id?: string;
+  meetingId?: string;
+  type: string; 
+  startDate: Date;
+  endDate?: Date | null;
+  numberOfOccurrences?: number | null;
+  daysOfWeek?: string[] | null;
+  firstDayOfWeek: string; 
+  interval: number; // 1 = weekly, 2 = biweekly, etc.
+}
+
 interface IMeeting {
   title: string;
   mid: string;
@@ -24,8 +36,10 @@ interface IMeeting {
   type: string;
   room: string;
   pandaDoc?: File | Buffer | GridFSBucketWriteStream | null;
+  
+  // Optional recurrence pattern (will be null if not recurring)
+  isRecurring?: boolean;
+  recurrencePattern?: IRecurrencePattern | null;
 }
 
-export type { IUser, IMeeting, IAdmin };
-
-
+export type { IUser, IMeeting, IAdmin, IRecurrencePattern };

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import { IMeeting } from '../../../../util/models'
+import { IMeeting, IRecurrencePattern } from '../../../../util/models'
 import TextButton from '../../atoms/textbutton';
 import TextField from '../../atoms/TextField';
 import DatePicker from '../../atoms/DatePicker';
@@ -15,6 +15,7 @@ import AddIcon from '@mui/icons-material/Add';
 import CloseIcon from '@mui/icons-material/Close';
 import IconButton from '@mui/material/IconButton';
 import RecurringMeetingForm from '../../molecules/RecurringMeeting';
+
 interface CalendarSidebarProps {
   filters: any;
   setFilters: any;
@@ -25,6 +26,11 @@ interface CalendarSidebarProps {
 const CalendarSidebar: React.FC<CalendarSidebarProps> = ({filters, setFilters, selectedDate, setSelectedDate}) => {
   // State declarations for New Meeting button
   const [isNewMeetingOpen, setIsNewMeetingOpen] = useState(false);
+  
+  // State for recurring meeting
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [recurrencePattern, setRecurrencePattern] = useState<IRecurrencePattern | null>(null);
+
   const handleMiniCalendarSelect = (date: Date) => {
     console.log("Selected Date:", date);
     setSelectedDate(date);
@@ -54,6 +60,15 @@ const CalendarSidebar: React.FC<CalendarSidebarProps> = ({filters, setFilters, s
     } else {
       console.log("No file selected");
     }
+  };
+
+  // Handler for recurring meeting form
+  const handleRecurringMeetingChange = (data: {
+    isRecurring: boolean;
+    recurrencePattern: IRecurrencePattern | null;
+  }) => {
+    setIsRecurring(data.isRecurring);
+    setRecurrencePattern(data.recurrencePattern);
   };
 
   // Update handlers for these dropdowns
@@ -108,68 +123,76 @@ const CalendarSidebar: React.FC<CalendarSidebarProps> = ({filters, setFilters, s
     return dateObject.toISOString().split('T')[0]; // Returns "YYYY-MM-DD"
   }
 
-  const createMeeting = async () => {
-    try {
+const createMeeting = async () => {
+  try {
+    const isoDateValue = convertToISODate(dateValue);
 
-      // Convert dateValue to ISO format
-      const isoDateValue = convertToISODate(dateValue);
-
-      if (!isoDateValue) {
-        console.error("Failed to convert dateValue to ISO format");
-      }
-
-      const [startTime, endTime] = timeValue?.split(' - ') || [];
-      if (!startTime || !endTime) {
-        console.error("Invalid timeValue format");
-        return;
-      }
-
-      const startDateString = `${isoDateValue}T${startTime}`
-      const endDateString = `${isoDateValue}T${endTime}`
-
-      if (!startDateString || !endDateString) {
-        console.error("Start or end date string could not be constructed");
-        return;
-      }
-
-      const startDateTime = new Date(startDateString);
-      const endDateTime = new Date(endDateString);
-
-      startDateTime.setHours(startDateTime.getHours() - 5);
-      endDateTime.setHours(endDateTime.getHours() - 5);
-
-      const newMeeting: IMeeting = {
-        title: inputMeetingTitleValue,
-        mid: generateMeetingId(),
-        description: inputDescriptionValue,
-        creator: 'Creator',
-        group: 'Group',
-        startDateTime: startDateTime,
-        endDateTime: endDateTime,
-        zoomAccount: selectedZoomAccount,
-        type: selectedMeetingType,
-        room: selectedRoom,
-      };
-      const response = await fetch('/api/write/meeting', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(
-          newMeeting
-        ),
-      });
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const meetingResponse = await response.json();
-      console.log(meetingResponse);
-      alert("Meeting created successfully! Please check the Meeting collection on MongoDB.");
-      handleCloseNewMeeting();
-    } catch (error) {
-      console.error('There was an error fetching the data:', error);
+    if (!isoDateValue) {
+      console.error("Failed to convert dateValue to ISO format");
+      return;
     }
-  };
+
+    const [startTime, endTime] = timeValue?.split(' - ') || [];
+    if (!startTime || !endTime) {
+      console.error("Invalid timeValue format");
+      return;
+    }
+
+    const startDateString = `${isoDateValue}T${startTime}`
+    const endDateString = `${isoDateValue}T${endTime}`
+
+    if (!startDateString || !endDateString) {
+      console.error("Start or end date string could not be constructed");
+      return;
+    }
+
+    const startDateTime = new Date(startDateString);
+    const endDateTime = new Date(endDateString);
+
+    startDateTime.setHours(startDateTime.getHours() - 5);
+    endDateTime.setHours(endDateTime.getHours() - 5);
+
+    const newMeeting: IMeeting = {
+      title: inputMeetingTitleValue,
+      mid: generateMeetingId(),
+      description: inputDescriptionValue,
+      creator: 'Creator',
+      group: 'Group',
+      startDateTime: startDateTime,
+      endDateTime: endDateTime,
+      zoomAccount: selectedZoomAccount,
+      type: selectedMeetingType,
+      room: selectedRoom,
+    };
+
+    if (isRecurring && recurrencePattern) {
+      newMeeting.recurrencePattern = {
+        ...recurrencePattern,
+        startDate: startDateTime
+      };
+    }
+
+    const response = await fetch('/api/write/meeting', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(newMeeting),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const meetingResponse = await response.json();
+    console.log(meetingResponse);
+
+    alert("Meeting created successfully! Please check the Meeting collection on MongoDB.");
+    handleCloseNewMeeting();
+  } catch (error) {
+    console.error('There was an error creating the meeting:', error);
+  }
+};
 
   const clearMeetingState = () => {
     setMeetingTitleValue("");
@@ -181,6 +204,8 @@ const CalendarSidebar: React.FC<CalendarSidebarProps> = ({filters, setFilters, s
     setSelectedRoom("");
     setSelectedMeetingType("");
     setSelectedZoomAccount("");
+    setIsRecurring(false);
+    setRecurrencePattern(null);
   };
 
   return (
@@ -214,7 +239,12 @@ const CalendarSidebar: React.FC<CalendarSidebarProps> = ({filters, setFilters, s
               disablePast={true}
               error={timeValue === '' ? 'Time is required' : undefined}
             />}
-            RecurringMeeting={<RecurringMeetingForm />}
+            RecurringMeeting={
+              <RecurringMeetingForm
+                onChange={handleRecurringMeetingChange}
+                startDate={dateValue}
+              />
+            }
             roomSelectionDropdown={
               <Dropdown
                 label={<img src="/svg/location-icon.svg" alt="Location Icon" />}
