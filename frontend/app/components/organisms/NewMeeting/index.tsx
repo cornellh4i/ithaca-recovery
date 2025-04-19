@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import TextButton from "../../atoms/textbutton"
 import styles from "../../../../styles/components/organisms/NewMeeting.module.scss";
 
@@ -29,6 +29,7 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({
   descriptionTextField,
   onCreateMeeting
 }) => {
+
   return (
     <div className={styles.newMeetingSidebar}>
       <div className={styles.dummyComponent}>
