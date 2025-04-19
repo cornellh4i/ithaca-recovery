@@ -41,7 +41,7 @@ const CalendarNavbar: React.FC<CalendarNavbarProps> = ({ selectedDate, onPreviou
         default:
           startDate = endDate = date; // Default to current date
       }
-  
+
       const startMonth = startDate.toLocaleDateString('en-US', { month: 'long' });
       const startDay = startDate.getDate();
       const startYear = startDate.getFullYear();
