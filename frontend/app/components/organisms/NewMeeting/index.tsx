@@ -29,11 +29,6 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({
   descriptionTextField,
   onCreateMeeting
 }) => {
-  const [selectedMeetingType, setSelectedMeetingType] = useState('Hybrid');
-
-  const handleButtonClick = (type: string) => {
-    setSelectedMeetingType(type);
-  };
 
   return (
     <div className={styles.newMeetingSidebar}>

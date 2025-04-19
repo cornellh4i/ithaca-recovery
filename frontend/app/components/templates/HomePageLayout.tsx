@@ -5,6 +5,7 @@ import CalendarNavbar from "../organisms/CalendarNavbar";
 import CalendarSidebar from "../organisms/CalendarSidebar";
 import ViewMeetingDetails from "../organisms/ViewMeeting";
 import DailyView from "../organisms/DailyView";
+import { convertUTCToET } from "../../../util/timeUtils";
 
 type MeetingDetails = {
   id: string;
@@ -23,44 +24,43 @@ type MeetingDetails = {
   recurrence?: string;
 };
 
-
 const HomePage = () => {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedMeeting, setSelectedMeeting] = useState<MeetingDetails | null>(null);
   const [selectedMeetingID, setSelectedMeetingID] = useState<string | null>(null);
-  const [selectedNewMeeting, setSelectedNewMeeting] = useState<boolean| null>(false); 
+  const [selectedNewMeeting, setSelectedNewMeeting] = useState<boolean | null>(false);
   const [inputMeetingTitleValue, setMeetingTitleValue] = useState(""); // Meeting title
   const [dateValue, setDateValue] = useState<string>(""); // Initial date value as empty
   const [timeValue, setTimeValue] = useState<string>(""); // Initial time range as empty
   const [freqValue, setFreqValue] = useState<string>("Never"); // Default frequency value
   const [inputEmailValue, setEmailValue] = useState(""); // Email input value
   const [inputDescriptionValue, setDescriptionValue] = useState(""); // Description input value
-  
+
   const roomOptions = [
     "Serenity Room",
     "Seeds of Hope",
     "Unity Room",
     "Room for Improvement",
     "Small but Powerful - Right",
-    "Small but Powerful - Left"
+    "Small but Powerful - Left",
   ];
+
   const meetingTypeOptions = [
     "AA",
     "Al-Anon",
-    "Other"
+    "Other",
   ];
 
   const zoomAccountOptions = [
     "Zoom Email 1",
     "Zoom Email 2",
     "Zoom Email 3",
-    "Zoom Email 4"
+    "Zoom Email 4",
   ];
 
   const handleFileSelect = (file: File | null) => {
     if (file) {
       console.log("File selected:", file);
-      // Handle the selected file (e.g., upload it or process it)
     } else {
       console.log("No file selected");
     }
@@ -72,7 +72,6 @@ const HomePage = () => {
       if (response.ok) {
         const data: MeetingDetails = await response.json(); // Ensure data matches MeetingDetails type
         setSelectedMeeting(data);
-        console.log("Meeting Data:", data);
       } else {
         console.error("Failed to fetch meeting details");
       }
@@ -139,6 +138,26 @@ const HomePage = () => {
     Remote: true,
   });
 
+  const convertESTStringToDate = (estDateString: string): Date => {
+    // Extract date and time parts from the EST string (e.g., "04/09/2025, 06:00:00 AM")
+    const [datePart, timePart] = estDateString.split(', ');
+    const [month, day, year] = datePart.split('/');
+    const [hour, minute, second] = timePart.split(':');
+    const [seconds, period] = second.split(' '); // Extract AM/PM
+
+    // Convert hour from 12-hour format to 24-hour format
+    let hours = parseInt(hour);
+    if (period === 'PM' && hours !== 12) {
+      hours += 12;
+    } else if (period === 'AM' && hours === 12) {
+      hours = 0;
+    }
+
+    // Build a formatted ISO date string and create a Date object
+    const isoDateString = `${year}-${month}-${day}T${hours.toString().padStart(2, '0')}:${minute}:${seconds}`;
+    return new Date(isoDateString);
+  };
+
   return (
     <div className={styles.container}>
       <div className={styles.sidebar}>
@@ -150,8 +169,23 @@ const HomePage = () => {
             description={selectedMeeting.description}
             creator={selectedMeeting.creator}
             group={selectedMeeting.group}
-            startDateTime={new Date(selectedMeeting.startDateTime)}
-            endDateTime={new Date(selectedMeeting.endDateTime)}
+
+            startDateTime={convertESTStringToDate(
+              convertUTCToET(
+                selectedMeeting.startDateTime instanceof Date
+                  ? selectedMeeting.startDateTime.toISOString()
+                  : selectedMeeting.startDateTime
+              )
+            )}
+            
+            endDateTime={convertESTStringToDate(
+              convertUTCToET(
+                selectedMeeting.endDateTime instanceof Date
+                  ? selectedMeeting.endDateTime.toISOString()
+                  : selectedMeeting.endDateTime
+              )
+            )}
+
             zoomAccount={selectedMeeting.zoomAccount}
             zoomLink={selectedMeeting.zoomLink}
             zid={selectedMeeting.zid}
