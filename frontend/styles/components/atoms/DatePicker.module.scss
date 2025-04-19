@@ -13,6 +13,11 @@
     align-items: center;
     font-size: 18px;
   }
+  
+  // New container for input and calendar
+  .date-picker-input-container {
+    position: relative; // Added for absolute positioning of popup
+  }
 
   .date-picker-input {
     font-size: 18px;
@@ -53,5 +58,16 @@
     margin-left: 10px; // Space between input and error message
     color: red;
     font-size: 14px;
+  }
+  
+  // New styles for calendar popup
+  .calendar-popup {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    z-index: 999; // High z-index to ensure visibility
+    background-color: white;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    border-radius: 4px;
   }
 }
