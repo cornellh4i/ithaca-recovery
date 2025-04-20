@@ -34,21 +34,19 @@ const Navbar: React.FC<NavbarProps> = ({ account, setShowSignIn }) => {
                 <p>Testing Endpoints</p>
               </Link>
             </li>
-          </ul>
-          <div className={styles.welcome}>
-            {account ? (
-              <p>Welcome, {account.name}</p>
-            ) : (
-              <div style={{ display: "flex", alignItems: "center", height: "100%" }}>
-                <button
-                  className={styles.signInButton}
-                  onClick={() => setShowSignIn && setShowSignIn(true)}
-                >
-                  Sign In
-                </button>
-              </div>
+            {!account && (
+              <li className="btn btn-ghost">
+                <a onClick={() => setShowSignIn && setShowSignIn(true)}>
+                  <p>Sign In</p>
+                </a>
+              </li>
             )}
-          </div>
+          </ul>
+          {account && (
+            <div className={styles.welcome}>
+              <p>Welcome, {account.name}</p>
+            </div>
+          )}
         </div>
       </div>
     </>
