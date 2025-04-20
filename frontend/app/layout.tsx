@@ -58,7 +58,6 @@
 //   );
 // };
 
-// export default RootLayout;
 import { redirect } from "next/navigation";
 import { PropsWithChildren } from "react";
 import { loginRequest } from "./auth/authConfig";
@@ -66,15 +65,19 @@ import { authProvider } from "../services/auth";
 import { getCurrentUrl } from "./auth/url";
 import Navigation from "./components/navigation";
 import React from "react";
+import { useState, useEffect } from "react";
 import { Inter } from "next/font/google";
 import styles from "../styles/MainLayout.module.scss";
+import type { AccountInfo } from "@azure/msal-browser";
 
 const inter = Inter({ subsets: ["latin"] });
 
 export default async function RootLayout({ children }: PropsWithChildren) {
-  const { account } = await authProvider.authenticate();
+  
+  const [account, setAccount] = useState<AccountInfo | null>(null);
+  const [showSignIn, setShowSignIn] = useState(false);
 
-  if (!account) {
+  if (!account && showSignIn) {
     redirect(await authProvider.getAuthCodeUrl(loginRequest, getCurrentUrl()));
   }
 
@@ -85,7 +88,7 @@ export default async function RootLayout({ children }: PropsWithChildren) {
       <body className={inter.className}>
           <div className={styles.mainlayout}>
             <div className={styles.navigation}>
-              <Navigation account={account}/>
+              <Navigation account={account} setShowSignIn={setShowSignIn} />
             </div>
             {children}
           </div>
