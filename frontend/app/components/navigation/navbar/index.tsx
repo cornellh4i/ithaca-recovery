@@ -39,12 +39,14 @@ const Navbar: React.FC<NavbarProps> = ({ account, setShowSignIn }) => {
             {account ? (
               <p>Welcome, {account.name}</p>
             ) : (
-              <button
-                className="btn btn-primary"
-                onClick={() => setShowSignIn && setShowSignIn(true)}
-              >
-                Sign In
-              </button>
+              <div style={{ display: "flex", alignItems: "center", height: "100%" }}>
+                <button
+                  className={styles.signInButton}
+                  onClick={() => setShowSignIn && setShowSignIn(true)}
+                >
+                  Sign In
+                </button>
+              </div>
             )}
           </div>
         </div>
