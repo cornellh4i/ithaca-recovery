@@ -58,41 +58,24 @@
 //   );
 // };
 
-import { redirect } from "next/navigation";
 import { PropsWithChildren } from "react";
 import { loginRequest } from "./auth/authConfig";
 import { authProvider } from "../services/auth";
 import { getCurrentUrl } from "./auth/url";
-import Navigation from "./components/navigation";
-import React from "react";
-import { useState, useEffect } from "react";
-import { Inter } from "next/font/google";
-import styles from "../styles/MainLayout.module.scss";
-import type { AccountInfo } from "@azure/msal-browser";
-
-const inter = Inter({ subsets: ["latin"] });
+import ClientLayout from "./ClientLayout";
 
 export default async function RootLayout({ children }: PropsWithChildren) {
-  
-  const [account, setAccount] = useState<AccountInfo | null>(null);
-  const [showSignIn, setShowSignIn] = useState(false);
 
-  if (!account && showSignIn) {
-    redirect(await authProvider.getAuthCodeUrl(loginRequest, getCurrentUrl()));
-  }
+  const { account } = await authProvider.authenticate();
+  
+  const authRedirectUrl = await authProvider.getAuthCodeUrl(loginRequest, getCurrentUrl());
 
   return (
-    <html lang="en">
-      <head>
-      </head>
-      <body className={inter.className}>
-          <div className={styles.mainlayout}>
-            <div className={styles.navigation}>
-              <Navigation account={account} setShowSignIn={setShowSignIn} />
-            </div>
-            {children}
-          </div>
-      </body>
-    </html>
+    <ClientLayout 
+      initialAccount={account} 
+      authRedirectUrl={authRedirectUrl}
+    >
+      {children}
+    </ClientLayout>
   );
 }
