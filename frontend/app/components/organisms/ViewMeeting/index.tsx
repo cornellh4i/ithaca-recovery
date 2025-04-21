@@ -5,9 +5,9 @@ import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import VideoCameraFrontIcon from '@mui/icons-material/VideoCameraFront';
 import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
 import DownloadForOfflineIcon from '@mui/icons-material/DownloadForOffline';
+import { convertUTCToET } from "../../../../util/timeUtils";
 
 type ViewMeetingDetailsProps = {
-  id: string; // Maps to 'id' in the model (ObjectId, but treated as string here)
   mid: string; // Maps to 'mid' in the model
   title: string; // Maps to 'title' in the model
   description?: string; // Maps to 'description' in the model
@@ -15,9 +15,9 @@ type ViewMeetingDetailsProps = {
   group: string; // Maps to 'group' in the model
   startDateTime: Date; // Maps to 'startDateTime' in the model (use string or Date, depending on your frontend handling)
   endDateTime: Date; // Maps to 'endDateTime' in the model
-  zoomAccount?: string; // Maps to 'zoomAccount' in the model (optional)
-  zoomLink?: string; // Maps to 'zoomLink' in the model (optional)
-  zid?: string; // Maps to 'zid' in the model (optional)
+  zoomAccount?: string | null; // Maps to 'zoomAccount' in the model (optional)
+  zoomLink?: string | null; // Maps to 'zoomLink' in the model (optional)
+  zid?: string | null; // Maps to 'zid' in the model (optional)
   type: string; // Maps to 'type' in the model
   room: string; // Maps to 'room' in the model
   recurrence?: string; // Remains as optional if required
@@ -27,7 +27,6 @@ type ViewMeetingDetailsProps = {
 };
 
 const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
-  id,
   mid,
   title,
   description,
@@ -50,6 +49,9 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
     onDelete(mid);
   }
 
+  const startDateEST = convertUTCToET(startDateTime.toISOString());
+  const endDateEST = convertUTCToET(endDateTime.toISOString());
+
   return (
     <div className={styles.meetingDetails}>
       <div className={styles.header}>
@@ -67,19 +69,17 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
       <div className={styles.details}>
         <p style={{ color: 'gray' }}>
           <CalendarTodayIcon />&nbsp;
-          {startDateTime.getDate()} {startDateTime.toLocaleString('default', { month: 'long' })} {startDateTime.getFullYear()}
+          {startDateEST}
           {!(
             startDateTime.getFullYear() === endDateTime.getFullYear() &&
             startDateTime.getMonth() === endDateTime.getMonth() &&
             startDateTime.getDate() === endDateTime.getDate()
           ) && (
-              <> - {endDateTime.getDate()} {endDateTime.toLocaleString('default', { month: 'long' })} {endDateTime.getFullYear()}</>
+              <> - {endDateEST}</>
             )}
         </p>
         <p style={{ color: 'gray' }}>
-          <AccessTimeIcon />&nbsp;{`${startDateTime.getHours()}:${startDateTime.getMinutes().toString().padStart(2, '0')}`}
-          -
-          {`${endDateTime.getHours()}:${endDateTime.getMinutes().toString().padStart(2, '0')}`}
+          <AccessTimeIcon />&nbsp;{`${startDateEST} - ${endDateEST}`}
         </p>
         {recurrence && <p>{recurrence}</p>}
         <hr className={styles.divider} />

@@ -4,24 +4,10 @@ import styles from "../../../styles/HomePageLayout.module.scss";
 import CalendarNavbar from "../organisms/CalendarNavbar";
 import CalendarSidebar from "../organisms/CalendarSidebar";
 import ViewMeetingDetails from "../organisms/ViewMeeting";
+import EditMeetingSidebar from "../organisms/EditMeeting";
 import DailyView from "../organisms/DailyView";
-
-type MeetingDetails = {
-  id: string;
-  mid: string;
-  title: string;
-  description?: string;
-  creator: string;
-  group: string;
-  startDateTime: Date;
-  endDateTime: Date;
-  zoomAccount?: string;
-  zoomLink?: string;
-  zid?: string;
-  type: string;
-  room: string;
-  recurrence?: string;
-};
+import { convertUTCToET } from "../../../util/timeUtils";
+import { IMeeting } from "../../../util/models";
 
 const HomePage = () => {
   // Add state for login status - default to logged in
@@ -44,53 +30,17 @@ const HomePage = () => {
   }, []);
 
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const [selectedMeeting, setSelectedMeeting] = useState<MeetingDetails | null>(null);
+  const [selectedMeeting, setSelectedMeeting] = useState<IMeeting | null>(null);
   const [selectedMeetingID, setSelectedMeetingID] = useState<string | null>(null);
   const [selectedNewMeeting, setSelectedNewMeeting] = useState<boolean | null>(false);
-  const [inputMeetingTitleValue, setMeetingTitleValue] = useState(""); // Meeting title
-  const [dateValue, setDateValue] = useState<string>(""); // Initial date value as empty
-  const [timeValue, setTimeValue] = useState<string>(""); // Initial time range as empty
-  const [freqValue, setFreqValue] = useState<string>("Never"); // Default frequency value
-  const [inputEmailValue, setEmailValue] = useState(""); // Email input value
-  const [inputDescriptionValue, setDescriptionValue] = useState(""); // Description input value
-
-  const roomOptions = [
-    "Serenity Room",
-    "Seeds of Hope",
-    "Unity Room",
-    "Room for Improvement",
-    "Small but Powerful - Right",
-    "Small but Powerful - Left"
-  ];
-  const meetingTypeOptions = [
-    "AA",
-    "Al-Anon",
-    "Other"
-  ];
-
-  const zoomAccountOptions = [
-    "Zoom Email 1",
-    "Zoom Email 2",
-    "Zoom Email 3",
-    "Zoom Email 4"
-  ];
-
-  const handleFileSelect = (file: File | null) => {
-    if (file) {
-      console.log("File selected:", file);
-      // Handle the selected file (e.g., upload it or process it)
-    } else {
-      console.log("No file selected");
-    }
-  };
+  const [showEditMeeting, setShowEditMeeting] = useState(false);
 
   const fetchMeetingDetails = async (meetingId: string) => {
     try {
       const response = await fetch(`/api/retrieve/meeting/${meetingId}`, { method: 'GET' });
       if (response.ok) {
-        const data: MeetingDetails = await response.json(); // Ensure data matches MeetingDetails type
+        const data: IMeeting = await response.json(); // Ensure data matches MeetingDetails type
         setSelectedMeeting(data);
-        console.log("Meeting Data:", data);
       } else {
         console.error("Failed to fetch meeting details");
       }
@@ -113,30 +63,43 @@ const HomePage = () => {
     setSelectedNewMeeting(false);
   };
 
-  const handleEdit = () => console.log("Edit meeting");
+  const handleOpenEdit = () => {
+    setShowEditMeeting(true);
+  };
 
-  const handleDelete = async (mid: string) => {
-    try {
-      const response = await fetch("/api/delete/meeting", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mid }),
-      });
-
-      if (!response.ok) {
-        alert("Error: Unsuccessful delete");
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      setSelectedMeeting(null);
-      alert("Meeting deleted successfully!");
-    } catch (error) {
-      console.error("Error deleting the meeting:", error);
-    }
+  const handleCloseEdit = () => {
+    setShowEditMeeting(false);
   };
 
   const handleCloseNewMeeting = () => {
     setSelectedNewMeeting(false);
+  };
+
+  const handleDelete = async (mid: string) => {
+    try {
+      const response = await fetch('/api/delete/meeting', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          mid
+        }),
+      });
+
+      if (!response.ok) {
+        alert("Error : Unsuccessful delete")
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      setSelectedMeeting(null);
+
+      const meetingResponse = await response.json();
+      console.log(meetingResponse);
+      alert("Meeting deleted successfully! Please check the Meeting collection on MongoDB.")
+
+    } catch (error) {
+      console.error('There was an error fetching the data:', error);
+    }
   };
 
   const [filters, setFilters] = useState({
@@ -158,60 +121,102 @@ const HomePage = () => {
     Remote: true,
   });
 
+  const convertESTStringToDate = (estDateString: string): Date => {
+    // Extract date and time parts from the EST string (e.g., "04/09/2025, 06:00:00 AM")
+    const [datePart, timePart] = estDateString.split(', ');
+    const [month, day, year] = datePart.split('/');
+    const [hour, minute, second] = timePart.split(':');
+    const [seconds, period] = second.split(' '); // Extract AM/PM
+
+    // Convert hour from 12-hour format to 24-hour format
+    let hours = parseInt(hour);
+    if (period === 'PM' && hours !== 12) {
+      hours += 12;
+    } else if (period === 'AM' && hours === 12) {
+      hours = 0;
+    }
+
+    // Build a formatted ISO date string and create a Date object
+    const isoDateString = `${year}-${month}-${day}T${hours.toString().padStart(2, '0')}:${minute}:${seconds}`;
+    return new Date(isoDateString);
+  };
+
   return (
-    <div>
-      <div className={styles.container}>
-        {/* Only render sidebar when logged in */}
-        {isLoggedIn && (
-          <div className={styles.sidebar}>
-            {selectedMeeting ? (
-              <ViewMeetingDetails
-                id={selectedMeeting.id}
-                mid={selectedMeeting.mid}
-                title={selectedMeeting.title}
-                description={selectedMeeting.description}
-                creator={selectedMeeting.creator}
-                group={selectedMeeting.group}
-                startDateTime={new Date(selectedMeeting.startDateTime)}
-                endDateTime={new Date(selectedMeeting.endDateTime)}
-                zoomAccount={selectedMeeting.zoomAccount}
-                zoomLink={selectedMeeting.zoomLink}
-                zid={selectedMeeting.zid}
-                type={selectedMeeting.type}
-                room={selectedMeeting.room}
-                recurrence={selectedMeeting.recurrence}
-                onBack={handleBack}
-                onEdit={handleEdit}
-                onDelete={() => handleDelete(selectedMeeting.mid)}
-              />
-            ) : (
-              <CalendarSidebar
-                filters={filters}
-                setFilters={setFilters}
-                selectedDate={selectedDate}
-                setSelectedDate={setSelectedDate} />
-            )}
-          </div>
-        )}
+    <div className={styles.container}>
+      {isLoggedIn && (
+      <div className={styles.sidebar}>
+        {showEditMeeting && selectedMeeting ? (
+            // TODO: Update Edit Meeting component
+            <EditMeetingSidebar
+              meeting={selectedMeeting}
+              onClose={handleCloseEdit}
+              onUpdateSuccess={() => {
+                console.log("Meeting updated!");
+                // Refresh the meeting data after successful update
+                if (selectedMeeting.mid) {
+                  fetchMeetingDetails(selectedMeeting.mid);
+                }
+              }}
+              />) :
+          selectedMeeting ? (
+            // TODO: Check Handle Delete in ViewMeetingDetails
+            <ViewMeetingDetails
+              mid={selectedMeeting.mid}
+              title={selectedMeeting.title}
+              description={selectedMeeting.description}
+              creator={selectedMeeting.creator}
+              group={selectedMeeting.group}
 
-        {/* Primary calendar area */}
-        <div className={styles.primaryCalendar}>
-          <CalendarNavbar
-            selectedDate={selectedDate}
-            onPreviousDay={() => setSelectedDate(new Date(selectedDate.setDate(selectedDate.getDate() - 1)))}
-            onNextDay={() => setSelectedDate(new Date(selectedDate.setDate(selectedDate.getDate() + 1)))}
-            onToday={() => setSelectedDate(new Date())}
-            onDateChange={setSelectedDate}
-          />
+              startDateTime={convertESTStringToDate(
+                convertUTCToET(
+                  selectedMeeting.startDateTime instanceof Date
+                    ? selectedMeeting.startDateTime.toISOString()
+                    : selectedMeeting.startDateTime
+                )
+              )}
+              
+              endDateTime={convertESTStringToDate(
+                convertUTCToET(
+                  selectedMeeting.endDateTime instanceof Date
+                    ? selectedMeeting.endDateTime.toISOString()
+                    : selectedMeeting.endDateTime
+                )
+              )}
 
-          <DailyView
-            filters={filters}
-            selectedDate={selectedDate}
-            setSelectedDate={setSelectedDate}
-            setSelectedMeetingID={isLoggedIn ? setSelectedMeetingID : () => { }} // Disable meeting selection when logged out
-            setSelectedNewMeeting={isLoggedIn ? setSelectedNewMeeting : () => { }} // Disable new meeting when logged out
-          />
-        </div>
+              zoomAccount={selectedMeeting.zoomAccount}
+              zoomLink={selectedMeeting.zoomLink}
+              zid={selectedMeeting.zid}
+              type={selectedMeeting.type}
+              room={selectedMeeting.room}
+              // recurrence={selectedMeeting.recurrence} // TODO: Update when merge with Recurring Meetings
+              onBack={handleBack}
+              onEdit={handleOpenEdit}
+              onDelete={handleDelete}
+            />
+          ) : (
+            <CalendarSidebar 
+              filters={filters}
+              setFilters={setFilters}
+              selectedDate={selectedDate} 
+              setSelectedDate={setSelectedDate} />
+          )}
+      </div>
+      )}
+      <div className={styles.primaryCalendar}>
+        <CalendarNavbar
+          selectedDate={selectedDate}
+          onPreviousDay={() => setSelectedDate(new Date(selectedDate.setDate(selectedDate.getDate() - 1)))}
+          onNextDay={() => setSelectedDate(new Date(selectedDate.setDate(selectedDate.getDate() + 1)))}
+          onToday={() => (setSelectedDate(new Date()))}
+          onDateChange={setSelectedDate}
+        />
+        <DailyView 
+          filters={filters}
+          selectedDate={selectedDate} 
+          setSelectedDate={setSelectedDate} 
+          setSelectedMeetingID={setSelectedMeetingID} 
+          setSelectedNewMeeting={setSelectedNewMeeting} 
+        />
       </div>
     </div>
   );
