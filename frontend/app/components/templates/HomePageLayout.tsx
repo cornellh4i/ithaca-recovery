@@ -10,6 +10,27 @@ import { convertUTCToET } from "../../../util/timeUtils";
 import { IMeeting } from "../../../util/models";
 
 const HomePage = () => {
+  // Add state for login status - default to logged in
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    const checkAuthStatus = async () => {
+      try {
+        const response = await fetch('/api/auth/status');
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        const data = await response.json();
+        setIsLoggedIn(data.isAuthenticated);
+      } catch (error) {
+        console.error("Error checking authentication status:", error);
+        setIsLoggedIn(false);
+      }
+    };
+    
+    checkAuthStatus();
+  }, []);
+
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedMeeting, setSelectedMeeting] = useState<IMeeting | null>(null);
   const [selectedMeetingID, setSelectedMeetingID] = useState<string | null>(null);
@@ -124,6 +145,7 @@ const HomePage = () => {
 
   return (
     <div className={styles.container}>
+      {isLoggedIn && (
       <div className={styles.sidebar}>
         {showEditMeeting && selectedMeeting ? (
             // TODO: Update Edit Meeting component
@@ -181,7 +203,7 @@ const HomePage = () => {
               setSelectedDate={setSelectedDate} />
           )}
       </div>
-
+      )}
       <div className={styles.primaryCalendar}>
         <CalendarNavbar
           selectedDate={selectedDate}
