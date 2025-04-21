@@ -1,3 +1,5 @@
+"use client";  // Mark this component as a Client Component
+
 import React, { useContext } from "react";
 import Link from "next/link";
 import Logo from "./logo"
@@ -5,10 +7,12 @@ import type { AccountInfo } from "@azure/msal-node";
 import styles from "../../../../styles/Navbar.module.scss"
 
 interface NavbarProps {
-  account: AccountInfo
+  account: AccountInfo | null;
+  setShowSignIn?: (val: boolean) => void;
 }
 
-const Navbar: React.FC<NavbarProps> = ({ account }) => {
+
+const Navbar: React.FC<NavbarProps> = ({ account, setShowSignIn }) => {
   return (
     <>
       <div className={styles.navbar}>
@@ -30,10 +34,19 @@ const Navbar: React.FC<NavbarProps> = ({ account }) => {
                 <p>Testing Endpoints</p>
               </Link>
             </li>
+            {!account && (
+              <li className="btn btn-ghost">
+                <a onClick={() => setShowSignIn && setShowSignIn(true)}>
+                  <p>Sign In</p>
+                </a>
+              </li>
+            )}
           </ul>
-          <div className={styles.welcome}>
-            <p>Welcome, {account.name}</p>
-          </div>
+          {account && (
+            <div className={styles.welcome}>
+              <p>Welcome, {account.name}</p>
+            </div>
+          )}
         </div>
       </div>
     </>
