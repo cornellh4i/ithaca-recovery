@@ -8,7 +8,6 @@ import DownloadForOfflineIcon from '@mui/icons-material/DownloadForOffline';
 import { convertUTCToET } from "../../../../util/timeUtils";
 
 type ViewMeetingDetailsProps = {
-  id: string; // Maps to 'id' in the model (ObjectId, but treated as string here)
   mid: string; // Maps to 'mid' in the model
   title: string; // Maps to 'title' in the model
   description?: string; // Maps to 'description' in the model
@@ -16,9 +15,9 @@ type ViewMeetingDetailsProps = {
   group: string; // Maps to 'group' in the model
   startDateTime: Date; // Maps to 'startDateTime' in the model (use string or Date, depending on your frontend handling)
   endDateTime: Date; // Maps to 'endDateTime' in the model
-  zoomAccount?: string; // Maps to 'zoomAccount' in the model (optional)
-  zoomLink?: string; // Maps to 'zoomLink' in the model (optional)
-  zid?: string; // Maps to 'zid' in the model (optional)
+  zoomAccount?: string | null; // Maps to 'zoomAccount' in the model (optional)
+  zoomLink?: string | null; // Maps to 'zoomLink' in the model (optional)
+  zid?: string | null; // Maps to 'zid' in the model (optional)
   type: string; // Maps to 'type' in the model
   room: string; // Maps to 'room' in the model
   recurrence?: string; // Remains as optional if required
@@ -28,7 +27,6 @@ type ViewMeetingDetailsProps = {
 };
 
 const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
-  id,
   mid,
   title,
   description,

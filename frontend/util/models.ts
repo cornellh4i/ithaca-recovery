@@ -10,6 +10,8 @@ interface IAdmin extends IUser {
   email: string;
 }
 
+// TODO: Add email for IMeeting?
+
 interface IMeeting {
   title: string;
   mid: string;
