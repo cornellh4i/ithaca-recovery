@@ -59,8 +59,8 @@
 // };
 
 import { PropsWithChildren } from "react";
-import { loginRequest } from "./auth/authConfig";
 import { authProvider } from "../services/auth";
+import { loginRequest } from "./auth/authConfig";
 import { getCurrentUrl } from "./auth/url";
 import ClientLayout from "./ClientLayout";
 

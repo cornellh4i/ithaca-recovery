@@ -14,10 +14,12 @@ const HomePage = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
-    // Call an API endpoint to check auth status
     const checkAuthStatus = async () => {
       try {
         const response = await fetch('/api/auth/status');
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }
         const data = await response.json();
         setIsLoggedIn(data.isAuthenticated);
       } catch (error) {
