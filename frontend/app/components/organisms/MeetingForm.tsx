@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
-import TextButton from "../../atoms/textbutton"
-import styles from "../../../../styles/components/organisms/NewMeeting.module.scss";
+import styles from "../../../styles/components/organisms/MeetingForm.module.scss";
 
-interface NewMeetingSidebarProps {
+export interface MeetingFormProps {
   meetingTitleTextField: React.ReactElement;
   DatePicker: React.ReactElement;
   TimePicker: React.ReactElement;
@@ -11,12 +10,11 @@ interface NewMeetingSidebarProps {
   meetingTypeDropdown: React.ReactElement;
   zoomAccountDropdown: React.ReactElement;
   emailTextField: React.ReactElement;
-  uploadPandaDocsForm: React.ReactElement;
   descriptionTextField: React.ReactElement;
   onCreateMeeting: () => Promise<void>;
 }
 
-const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({
+export const MeetingForm: React.FC<MeetingFormProps> = ({
   meetingTitleTextField,
   DatePicker,
   TimePicker,
@@ -25,7 +23,6 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({
   meetingTypeDropdown,
   zoomAccountDropdown,
   emailTextField,
-  uploadPandaDocsForm,
   descriptionTextField,
   onCreateMeeting
 }) => {
@@ -61,9 +58,9 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({
       <div className={styles.dummyComponent}>
         {emailTextField}
       </div>
-      <div className={styles.dummyComponent}>
+      {/* <div className={styles.dummyComponent}>
         {uploadPandaDocsForm}
-      </div>
+      </div> */}
       <div className={styles.dummyComponent}>
         {descriptionTextField}
       </div>
@@ -71,5 +68,3 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({
     </div>
   );
 };
-
-export default NewMeetingSidebar;
