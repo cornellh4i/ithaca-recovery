@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import styles from '../../../../styles/organisms/DailyView.module.scss';
 import BoxText from '../../atoms/BoxText';
 import DailyViewRow from "../../molecules/DailyViewRow";
@@ -79,7 +79,7 @@ const fetchMeetingsByDay = async (date: Date): Promise<Room[]> => {
 
 const formatTime = (hour: number): string => {
   const period = hour >= 12 ? "PM" : "AM";
-  const formattedHour = hour % 12 || 12; 
+  const formattedHour = hour % 12 || 12;
   return `${formattedHour} ${period}`;
 };
 
@@ -110,6 +110,7 @@ interface DailyViewProps {
 const DailyView: React.FC<DailyViewProps> = ({ filters, selectedDate, setSelectedDate, setSelectedMeetingID, setSelectedNewMeeting }) => {
   const [currentTimePosition, setCurrentTimePosition] = useState(0);
   const [meetings, setMeetings] = useState<Room[]>([]);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   function getTodayDate(): Date {
     const now = new Date();
@@ -127,7 +128,7 @@ const DailyView: React.FC<DailyViewProps> = ({ filters, selectedDate, setSelecte
     const data = await fetchMeetingsByDay(adjustedDate);
     setMeetings(data);
   };
-  
+
 
   const updateTimePosition = () => {
     const now = new Date(selectedDate); // Use selectedDate instead of current date
@@ -136,17 +137,40 @@ const DailyView: React.FC<DailyViewProps> = ({ filters, selectedDate, setSelecte
     const position = (currentHour * 60 + currentMinutes) * (155 / 60);
     setCurrentTimePosition(position);
   };
+  const scrollToCurrentTime = () => {
+    if (scrollContainerRef.current) {
+      const now = new Date();
+      const currentHour = now.getHours();
+      const currentMinutes = now.getMinutes();
 
+      // Calculate the scroll position - set it slightly to the left of the current time
+      // to ensure the current time is visible with some context
+      const scrollOffset = (currentHour * 155) - 300; // 155px per hour, scroll 300px to the left for context
+
+      // Ensure we don't scroll to a negative position
+      const scrollPosition = Math.max(0, scrollOffset);
+
+      scrollContainerRef.current.scrollLeft = scrollPosition;
+    }
+  };
   useEffect(() => {
     handleDateChange(selectedDate);
     updateTimePosition();
 
+    // Set up interval for updating time position
     const intervalId = setInterval(updateTimePosition, 60000);
+    // Scroll to current time after the component has fully rendered and data is loaded
+    const timeoutId = setTimeout(() => {
+      scrollToCurrentTime();
+    }, 300); // Small delay to ensure content is rendered
+
     return () => {
       clearInterval(intervalId);
+      clearTimeout(timeoutId);
     };
   }, [selectedDate]);
 
+  // Dummy function for onClick prop
   const handleBoxClick = (meetingId: string) => {
     console.log(`Meeting ${meetingId} clicked`);
   };
@@ -162,8 +186,6 @@ const DailyView: React.FC<DailyViewProps> = ({ filters, selectedDate, setSelecte
       const roomWithMeetings = meetings.find((meetingRoom) => meetingRoom.name === defaultRoom.name);
       return roomWithMeetings || { ...defaultRoom, meetings: [] }; 
     });
-
-  console.log("Combined rooms to render:", combinedRooms);
 
   return (
     <div className={styles.outerContainer}>
@@ -182,7 +204,7 @@ const DailyView: React.FC<DailyViewProps> = ({ filters, selectedDate, setSelecte
           ))}
         </div>
 
-        <div className={styles.scrollContainer}>
+        <div ref={scrollContainerRef} className={styles.scrollContainer}>
           <div className={styles.headerRow}>
             {timeSlots.map((time, index) => (
               <div key={index} className={styles.timeLabel}>{time}</div>
