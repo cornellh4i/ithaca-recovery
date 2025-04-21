@@ -28,7 +28,7 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
      * @returns time in HH:MM format (24-hour)
      */
     const formatTime = (date: Date): string => {
-      const etDateString = convertUTCToET(date.toUTCString());
+      const etDateString = convertUTCToET((new Date(date)).toUTCString());
       const timeMatch = etDateString.match(/(\d{1,2}):(\d{2}):\d{2}\s*(AM|PM)/i);
       if (timeMatch) {
         let hours = parseInt(timeMatch[1]);
@@ -51,7 +51,7 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
      */
     const formatDate = (date: Date): string => {
       // Convert the date to ET using your existing helper
-      const etDateString = convertUTCToET(date.toUTCString());
+      const etDateString = convertUTCToET((new Date(date)).toUTCString());
       
       // Extract MM/DD/YYYY from the formatted ET date string
       // The ET date string format is MM/DD/YYYY, hh:mm:ss AM/PM
@@ -240,6 +240,7 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
             roomSelectionDropdown={
               <Dropdown
                 label={<img src="/svg/location-icon.svg" alt="Location Icon" />}
+                value={selectedRoom}
                 isVisible={true}
                 elements={roomOptions}
                 name="Select Room"
@@ -249,6 +250,7 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
             meetingTypeDropdown={
               <Dropdown
                 label={<img src="svg/group-icon.svg" alt="Group Icon" />}
+                value={selectedMeetingType}
                 isVisible={true}
                 elements={meetingTypeOptions}
                 name="Select Meeting Type"
@@ -258,6 +260,7 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
             zoomAccountDropdown={
               <Dropdown
                 label={<img src="svg/person-icon.svg" alt="Person Icon" />}
+                value={selectedZoomAccount}
                 isVisible={true}
                 elements={zoomAccountOptions}
                 name="Select Zoom Account"
