@@ -9,28 +9,91 @@ import RecurringMeetingForm from '../molecules/RecurringMeeting';
 import CloseIcon from '@mui/icons-material/Close';
 import IconButton from '@mui/material/IconButton';
 
-import { v4 as uuidv4 } from 'uuid';
 import { IMeeting } from '../../../util/models'
-import { convertETToUTC } from "../../../util/timeUtils";
+import { convertUTCToET, convertETToUTC } from "../../../util/timeUtils";
 
 import styles from '../../../styles/components/organisms/MeetingForm.module.scss';
 
-interface NewMeetingSidebarProps {
-  setIsNewMeetingOpen: React.Dispatch<React.SetStateAction<boolean>>;
+interface EditMeetingSidebarProps {
+  meeting: IMeeting;
+  onClose: () => void;
+  onUpdateSuccess: () => void;
 }
 
-const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = 
-  ({setIsNewMeetingOpen}) => {
-    // State declarations for New Meeting form
-    const [inputMeetingTitleValue, setMeetingTitleValue] = useState(""); // Meeting title
-    const [dateValue, setDateValue] = useState<string>(""); // Initial date value as empty
-    const [timeValue, setTimeValue] = useState<string>(""); // Initial time range as empty
-    const [freqValue, setFreqValue] = useState<string>("Never"); // Default frequency value
-    const [inputEmailValue, setEmailValue] = useState(""); // Email input value
-    const [inputDescriptionValue, setDescriptionValue] = useState(""); // Description input value
-    const [selectedRoom, setSelectedRoom] = useState<string>("");
-    const [selectedMeetingType, setSelectedMeetingType] = useState<string>("");
-    const [selectedZoomAccount, setSelectedZoomAccount] = useState<string>("");
+const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> = 
+  ({meeting, onClose, onUpdateSuccess}) => {
+    /**
+     * Extracts time in HH:MM format from a date string
+     * @param date - date to extract time from
+     * @returns time in HH:MM format (24-hour)
+     */
+    const formatTime = (date: Date): string => {
+      const etDateString = convertUTCToET(date.toUTCString());
+      const timeMatch = etDateString.match(/(\d{1,2}):(\d{2}):\d{2}\s*(AM|PM)/i);
+      if (timeMatch) {
+        let hours = parseInt(timeMatch[1]);
+        const minutes = timeMatch[2];
+        const ampm = timeMatch[3].toUpperCase();
+        
+        // Convert to 24-hour format
+        if (ampm === 'PM' && hours < 12) hours += 12;
+        if (ampm === 'AM' && hours === 12) hours = 0;
+        
+        return `${hours.toString().padStart(2, '0')}:${minutes}`;
+      }
+      return '';
+    };
+
+    /**
+     * Formats a Date object to MM/DD/YYYY format in Eastern Time
+     * @param date - Date object to format
+     * @returns string in MM/DD/YYYY format in Eastern Time
+     */
+    const formatDate = (date: Date): string => {
+      // Convert the date to ET using your existing helper
+      const etDateString = convertUTCToET(date.toUTCString());
+      
+      // Extract MM/DD/YYYY from the formatted ET date string
+      // The ET date string format is MM/DD/YYYY, hh:mm:ss AM/PM
+      const dateMatch = etDateString.match(/(\d{2})\/(\d{2})\/(\d{4})/);
+      
+      if (dateMatch) {
+        const month = dateMatch[1];
+        const day = dateMatch[2];
+        const year = dateMatch[3];
+        
+        return `${month}/${day}/${year}`;
+      }
+      
+      return '';
+    };
+
+    // State declarations for Edit Meeting form
+    const formData = {
+      title: meeting.title,
+      mid: meeting.mid,
+      description: meeting.description || '',
+      creator: meeting.creator,
+      group: meeting.group,
+      date: formatDate(meeting.startDateTime),
+      startTime: formatTime(meeting.startDateTime),
+      endTime: formatTime(meeting.endDateTime),
+      zoomAccount: meeting.zoomAccount || '',
+      zoomLink: meeting.zoomLink || '',
+      zid: meeting.zid || '',
+      type: meeting.type,
+      room: meeting.room,
+    };
+
+    const [inputMeetingTitleValue, setMeetingTitleValue] = useState(formData.title); // Meeting title
+    const [dateValue, setDateValue] = useState<string>(formData.date); // Initial date value as empty
+    const [timeValue, setTimeValue] = useState<string>(`${formData.startTime} - ${formData.endTime}`); // Initial time range as empty
+    const [freqValue, setFreqValue] = useState<string>("Never"); // TODO: Update recurrence rules
+    const [inputEmailValue, setEmailValue] = useState(""); // TODO: Update Email after migrating IMeeting
+    const [inputDescriptionValue, setDescriptionValue] = useState(formData.description); // Description input value
+    const [selectedRoom, setSelectedRoom] = useState<string>(formData.room);
+    const [selectedMeetingType, setSelectedMeetingType] = useState<string>(formData.type);
+    const [selectedZoomAccount, setSelectedZoomAccount] = useState<string>(formData.zoomAccount);
     
     // Update handlers for these dropdowns
     const handleRoomChange = (value: string) => setSelectedRoom(value);
@@ -72,10 +135,6 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> =
       "Zoom Email 4"
     ];
 
-    const generateMeetingId = () => {
-      return uuidv4();
-    };
-    
     function convertToISODate(dateString: string) {
       const dateObject = new Date(dateString);
       if (isNaN(dateObject.getTime())) {
@@ -84,17 +143,8 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> =
       }
       return dateObject.toISOString().split('T')[0]; // Returns "YYYY-MM-DD"
     }
-
-    const handleOpenNewMeeting = () => {
-      setIsNewMeetingOpen(true);
-    };
-  
-    const handleCloseNewMeeting = () => {
-      clearMeetingState();
-      setIsNewMeetingOpen(false);
-    };
     
-    const createMeeting = async () => {
+    const updateMeeting = async () => {
       try {
     
         // Convert dateValue to ISO format
@@ -125,9 +175,9 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> =
         const startDateTimeUTC= new Date(startDateTimeUTCString);
         const endDateTimeUTC = new Date(endDateTimeUTCString);
     
-        const newMeeting: IMeeting = {
+        const updatedMeeting: IMeeting = {
           title: inputMeetingTitleValue,
-          mid: generateMeetingId(),
+          mid: formData.mid,
           description: inputDescriptionValue,
           creator: 'Creator',
           group: 'Group',
@@ -137,22 +187,23 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> =
           type: selectedMeetingType,
           room: selectedRoom,
         };
-        const response = await fetch('/api/write/meeting', {
-          method: 'POST',
+        
+        const response = await fetch('/api/update/meeting', {
+          method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify(
-            newMeeting
-          ),
+          body: JSON.stringify(updatedMeeting),
         });
+
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
         const meetingResponse = await response.json();
         console.log(meetingResponse);
-        alert("Meeting created successfully! Please check the Meeting collection on MongoDB.");
-        handleCloseNewMeeting();
+        alert("Meeting updated successfully! Please check the Meeting collection on MongoDB.");
+        onUpdateSuccess();
+        onClose();
       } catch (error) {
         console.error('There was an error fetching the data:', error);
       }
@@ -161,8 +212,8 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> =
     return (
       <div>
         <div className={styles.meetingHeader}>
-          <h3>New Meeting</h3>
-          <IconButton className={styles.iconButton} onClick={handleCloseNewMeeting}>
+          <h3>Edit Meeting</h3>
+          <IconButton className={styles.iconButton} onClick={onClose}>
             <CloseIcon sx={{ color: 'black' }} />
           </IconButton>
         </div>
@@ -225,11 +276,11 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> =
               value={inputDescriptionValue}
               onChange={setDescriptionValue}
             />}
-            handleMeetingSubmit={createMeeting}
-            buttonText={"Create Meeting"}
+            handleMeetingSubmit={updateMeeting}
+            buttonText={"Update Meeting"}
         />
       </div>
     );
 };
 
-export default NewMeetingSidebar;
+export default EditMeetingSidebar;
