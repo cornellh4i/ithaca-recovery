@@ -58,38 +58,24 @@
 //   );
 // };
 
-// export default RootLayout;
-import { redirect } from "next/navigation";
 import { PropsWithChildren } from "react";
 import { loginRequest } from "./auth/authConfig";
 import { authProvider } from "../services/auth";
 import { getCurrentUrl } from "./auth/url";
-import Navigation from "./components/navigation";
-import React from "react";
-import { Inter } from "next/font/google";
-import styles from "../styles/MainLayout.module.scss";
-
-const inter = Inter({ subsets: ["latin"] });
+import ClientLayout from "./ClientLayout";
 
 export default async function RootLayout({ children }: PropsWithChildren) {
-  const { account } = await authProvider.authenticate();
 
-  if (!account) {
-    redirect(await authProvider.getAuthCodeUrl(loginRequest, getCurrentUrl()));
-  }
+  const { account } = await authProvider.authenticate();
+  
+  const authRedirectUrl = await authProvider.getAuthCodeUrl(loginRequest, getCurrentUrl());
 
   return (
-    <html lang="en">
-      <head>
-      </head>
-      <body className={inter.className}>
-          <div className={styles.mainlayout}>
-            <div className={styles.navigation}>
-              <Navigation account={account}/>
-            </div>
-            {children}
-          </div>
-      </body>
-    </html>
+    <ClientLayout 
+      initialAccount={account} 
+      authRedirectUrl={authRedirectUrl}
+    >
+      {children}
+    </ClientLayout>
   );
 }
