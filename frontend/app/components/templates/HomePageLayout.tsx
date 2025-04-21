@@ -5,6 +5,7 @@ import CalendarNavbar from "../organisms/CalendarNavbar";
 import CalendarSidebar from "../organisms/CalendarSidebar";
 import ViewMeetingDetails from "../organisms/ViewMeeting";
 import DailyView from "../organisms/DailyView";
+import WeeklyViewColumn from "../molecules/WeeklyViewColumn";
 
 type MeetingDetails = {
   id: string;
@@ -28,6 +29,7 @@ const HomePage = () => {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedMeeting, setSelectedMeeting] = useState<MeetingDetails | null>(null);
   const [selectedMeetingID, setSelectedMeetingID] = useState<string | null>(null);
+  const [selectedView, setSelectedView] = useState<string>("Day")
   const [selectedNewMeeting, setSelectedNewMeeting] = useState<boolean| null>(false); 
   const [inputMeetingTitleValue, setMeetingTitleValue] = useState(""); // Meeting title
   const [dateValue, setDateValue] = useState<string>(""); // Initial date value as empty
@@ -177,14 +179,21 @@ const HomePage = () => {
           onNextDay={() => setSelectedDate(new Date(selectedDate.setDate(selectedDate.getDate() + 1)))}
           onToday={() => (setSelectedDate(new Date()))}
           onDateChange={setSelectedDate}
+          onViewChange={setSelectedView}
+          //pass a callback function that gets the value for the selectedView
         />
-        <DailyView 
-          filters={filters}
-          selectedDate={selectedDate} 
-          setSelectedDate={setSelectedDate} 
-          setSelectedMeetingID={setSelectedMeetingID} 
-          setSelectedNewMeeting={setSelectedNewMeeting} 
-        />
+        {selectedView === "Day" ? (
+          <DailyView 
+            filters={filters}
+            selectedDate={selectedDate} 
+            setSelectedDate={setSelectedDate} 
+            setSelectedMeetingID={setSelectedMeetingID} 
+            setSelectedNewMeeting={setSelectedNewMeeting} 
+          />
+        ): (
+          <WeeklyViewColumn/>
+        )}
+
       </div>
     </div>
   );
