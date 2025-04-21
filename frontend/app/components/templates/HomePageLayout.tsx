@@ -25,7 +25,23 @@ type MeetingDetails = {
 
 const HomePage = () => {
   // Add state for login status - default to logged in
-  const [isLoggedIn, setIsLoggedIn] = useState(true);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    // Call an API endpoint to check auth status
+    const checkAuthStatus = async () => {
+      try {
+        const response = await fetch('/api/auth/status');
+        const data = await response.json();
+        setIsLoggedIn(data.isAuthenticated);
+      } catch (error) {
+        console.error("Error checking authentication status:", error);
+        setIsLoggedIn(false);
+      }
+    };
+    
+    checkAuthStatus();
+  }, []);
 
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedMeeting, setSelectedMeeting] = useState<MeetingDetails | null>(null);
@@ -123,11 +139,6 @@ const HomePage = () => {
     setSelectedNewMeeting(false);
   };
 
-  // Test function to toggle login status
-  const toggleLoginStatus = () => {
-    setIsLoggedIn(!isLoggedIn);
-  };
-
   const [filters, setFilters] = useState({
     SerenityRoom: true,
     SeedsofHope: true,
@@ -147,52 +158,8 @@ const HomePage = () => {
     Remote: true,
   });
 
-  // Create a custom component to modify the Sign In/Out button text
-  const CustomCalendarNavbar = () => {
-    useEffect(() => {
-      // Find and modify the existing button after render
-      const observer = new MutationObserver((mutations, obs) => {
-        const navbarActions = document.querySelector(`.${styles.primaryCalendar} [class*="actions"]`);
-        if (navbarActions) {
-          const existingButton = navbarActions.querySelector('button');
-          if (existingButton) {
-            existingButton.textContent = isLoggedIn ? 'Sign Out' : 'Sign In';
-            obs.disconnect(); // Stop observing once we've updated
-          }
-        }
-      });
-
-      observer.observe(document.body, {
-        childList: true,
-        subtree: true
-      });
-
-      return () => observer.disconnect();
-    }, [isLoggedIn]);
-
-    return (
-      <CalendarNavbar
-        selectedDate={selectedDate}
-        onPreviousDay={() => setSelectedDate(new Date(selectedDate.setDate(selectedDate.getDate() - 1)))}
-        onNextDay={() => setSelectedDate(new Date(selectedDate.setDate(selectedDate.getDate() + 1)))}
-        onToday={() => setSelectedDate(new Date())}
-        onDateChange={setSelectedDate}
-      />
-    );
-  };
-
   return (
     <div>
-      {/* Test toggle button */}
-      <div style={{ position: 'absolute', top: '10px', right: '10px', zIndex: 100 }}>
-        <button
-          onClick={toggleLoginStatus}
-          style={{ padding: '8px 16px', backgroundColor: '#4a90e2', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
-        >
-          Test {isLoggedIn ? "Log Out" : "Log In"}
-        </button>
-      </div>
-
       <div className={styles.container}>
         {/* Only render sidebar when logged in */}
         {isLoggedIn && (
@@ -229,7 +196,13 @@ const HomePage = () => {
 
         {/* Primary calendar area */}
         <div className={styles.primaryCalendar}>
-          <CustomCalendarNavbar />
+          <CalendarNavbar
+            selectedDate={selectedDate}
+            onPreviousDay={() => setSelectedDate(new Date(selectedDate.setDate(selectedDate.getDate() - 1)))}
+            onNextDay={() => setSelectedDate(new Date(selectedDate.setDate(selectedDate.getDate() + 1)))}
+            onToday={() => setSelectedDate(new Date())}
+            onDateChange={setSelectedDate}
+          />
 
           <DailyView
             filters={filters}
