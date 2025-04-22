@@ -20,6 +20,7 @@ interface IMeeting {
   group: string; // group interface later on [optional]
   startDateTime: Date;
   endDateTime: Date;
+  email: string;
   zoomAccount?: string | null;
   zoomLink?: string | null;
   zid?: string | null;
