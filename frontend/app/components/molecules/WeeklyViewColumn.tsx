@@ -22,10 +22,10 @@ interface WeeklyViewColumnProps {
     date: string;
 }
 
-// 1 hour is 60px in height
+// 1 hour is 100px in height
 const timeToPixels = (time: string) => {
     const [hours, minutes] = time.split(':').map(Number);
-    return (hours * 60 + minutes); // Convert time to pixels (1px = 1min)
+    return (hours * 100 + minutes); // Convert time to pixels (1px = 1min)
 };
 
 const formatTime = (time: string) => {
@@ -63,7 +63,7 @@ const WeeklyViewColumn: React.FC<WeeklyViewColumnProps> = ({
                 style={{
                     position: 'relative',
                     width: '100%',
-                    height: '1440px', // 24 hours * 60px per hour
+                    height: '2400px', // 24 hours * 100px per hour
                     borderRight: '1px solid #e5e7eb',
                     cursor: "pointer"
                 }}
@@ -74,10 +74,10 @@ const WeeklyViewColumn: React.FC<WeeklyViewColumnProps> = ({
                         key={hourIndex}
                         style={{
                             position: 'absolute',
-                            top: `${hourIndex * 60}px`,
+                            top: `${hourIndex * 100}px`,
                             width: '100%',
                             borderTop: '1px solid #e5e7eb',
-                            height: '60px'
+                            height: '100px'
                         }}
                     />
                 ))}

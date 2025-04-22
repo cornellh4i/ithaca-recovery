@@ -76,14 +76,14 @@ const getDaysOfWeek = (startDate: Date): Date[] => {
     });
 };
 
-// Format date to display in column header
-const formatDate = (date: Date): string => {
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+// Format date to display in column header - just return the day number
+const formatDateNumber = (date: Date): string => {
+    return date.getDate().toString();
 };
 
-// Format day name
+// Format day name - just 3 letter abbreviation
 const formatDayName = (date: Date): string => {
-    return date.toLocaleDateString('en-US', { weekday: 'short' });
+    return date.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
 };
 
 // Default room colors
@@ -158,8 +158,9 @@ const WeeklyView: React.FC<WeeklyViewProps> = ({
         const now = new Date();
         const currentHour = now.getHours();
         const currentMinutes = now.getMinutes();
-        const position = (currentHour * 60 + currentMinutes); // Position in pixels based on 60px per hour
-        setCurrentTimePosition(position);
+        const basePosition = currentHour * 100 + currentMinutes * (100 / 60);
+        const offset = 40; // height of .dayHeader
+        setCurrentTimePosition(basePosition + offset);
     };
 
     // Get meetings for a specific day, filtered by room if applicable
@@ -216,9 +217,16 @@ const WeeklyView: React.FC<WeeklyViewProps> = ({
         return roomColors[meeting.room] || "#cecece"; // Default to gray if room not found
     };
 
+    // Check if a date is the current date
+    const isCurrentDate = (date: Date): boolean => {
+        const today = new Date();
+        return date.getDate() === today.getDate() &&
+            date.getMonth() === today.getMonth() &&
+            date.getFullYear() === today.getFullYear();
+    };
+
     return (
         <div className={styles.outerContainer}>
-
             <div className={styles.viewContainer}>
                 {/* Time column */}
                 <div className={styles.timeColumn}>
@@ -238,7 +246,18 @@ const WeeklyView: React.FC<WeeklyViewProps> = ({
                 <div className={styles.daysContainer}>
                     {daysOfWeek.map((day, index) => {
                         const dayMeetings = getMeetingsForDay(day);
-                        const isCurrentDay = day.toDateString() === new Date().toDateString();
+                        const isToday = isCurrentDate(day);
+
+                        // Create a custom header that only contains the day info directly
+                        const customHeader = (
+                            <div className={styles.dayHeader}>
+                                <span className={styles.dayName}>{formatDayName(day)}</span>
+                                {" "}
+                                <span className={isToday ? styles.currentDate : styles.dateNumber}>
+                                    {formatDateNumber(day)}
+                                </span>
+                            </div>
+                        );
 
                         return (
                             <div
@@ -249,9 +268,13 @@ const WeeklyView: React.FC<WeeklyViewProps> = ({
                                     setSelectedDate(day);
                                 }}
                             >
+                                {/* Only render our custom header */}
+                                {customHeader}
+
+                                {/* Preserve original meeting layout but pass customHeader to avoid double headers */}
                                 <WeeklyViewColumn
-                                    dayName={formatDayName(day)}
-                                    date={formatDate(day)}
+                                    dayName=""  // Empty string to prevent WeeklyViewColumn from rendering its own header
+                                    date=""     // Empty string for the same reason
                                     roomColor="#cecece" // Default color
                                     meetings={dayMeetings.map(meeting => ({
                                         ...meeting,
@@ -262,7 +285,7 @@ const WeeklyView: React.FC<WeeklyViewProps> = ({
                                 />
 
                                 {/* Current time indicator - only show for current day */}
-                                {isCurrentDay && (
+                                {isToday && (
                                     <div
                                         className={styles.currentTimeIndicator}
                                         style={{ top: `${currentTimePosition}px` }}
