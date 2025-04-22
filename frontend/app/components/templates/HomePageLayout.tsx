@@ -5,7 +5,7 @@ import CalendarNavbar from "../organisms/CalendarNavbar";
 import CalendarSidebar from "../organisms/CalendarSidebar";
 import ViewMeetingDetails from "../organisms/ViewMeeting";
 import DailyView from "../organisms/DailyView";
-import WeeklyViewColumn from "../molecules/WeeklyViewColumn";
+import WeeklyView from "../organisms/WeeklyView";
 
 type MeetingDetails = {
   id: string;
@@ -191,7 +191,7 @@ const HomePage = () => {
             setSelectedNewMeeting={setSelectedNewMeeting} 
           />
         ): (
-          <WeeklyViewColumn/>
+          <WeeklyView view={selectedView}/>
         )}
 
       </div>

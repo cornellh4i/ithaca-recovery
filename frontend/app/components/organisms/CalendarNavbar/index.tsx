@@ -101,7 +101,7 @@ const CalendarNavbar: React.FC<CalendarNavbarProps> = ({ selectedDate, onPreviou
     };
   
     const handleViewChange: React.ChangeEventHandler<HTMLSelectElement> = (event) => {
-      // setSelectedView(event.target.value);
+      setSelectedView(event.target.value);
       onViewChange(event.target.value); // Call the external function
       onDateChange(new Date());
     };
