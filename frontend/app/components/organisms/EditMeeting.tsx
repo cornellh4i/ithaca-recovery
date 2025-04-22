@@ -78,6 +78,7 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
       date: formatDate(meeting.startDateTime),
       startTime: formatTime(meeting.startDateTime),
       endTime: formatTime(meeting.endDateTime),
+      email: meeting.email,
       zoomAccount: meeting.zoomAccount || '',
       zoomLink: meeting.zoomLink || '',
       zid: meeting.zid || '',
