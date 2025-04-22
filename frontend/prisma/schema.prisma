@@ -29,6 +29,7 @@ model Meeting {
   group          String   
   startDateTime  DateTime
   endDateTime    DateTime
+  email          String
   zoomAccount    String?   
   zoomLink       String?
   zid            String?

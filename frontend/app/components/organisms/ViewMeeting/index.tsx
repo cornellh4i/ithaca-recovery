@@ -15,6 +15,7 @@ type ViewMeetingDetailsProps = {
   group: string; // Maps to 'group' in the model
   startDateTime: Date; // Maps to 'startDateTime' in the model (use string or Date, depending on your frontend handling)
   endDateTime: Date; // Maps to 'endDateTime' in the model
+  email: string;
   zoomAccount?: string | null; // Maps to 'zoomAccount' in the model (optional)
   zoomLink?: string | null; // Maps to 'zoomLink' in the model (optional)
   zid?: string | null; // Maps to 'zid' in the model (optional)
@@ -34,6 +35,7 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
   group,
   startDateTime,
   endDateTime,
+  email,
   zoomAccount,
   zoomLink,
   zid,
