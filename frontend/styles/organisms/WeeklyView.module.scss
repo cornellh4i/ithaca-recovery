@@ -1,0 +1,161 @@
+@import url('https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;600&display=swap');
+
+.outerContainer {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  font-family: 'Source Sans Pro', sans-serif;
+  height: 100%;
+  overflow: hidden;
+}
+
+.weekNavigation {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 20px;
+  border-bottom: 1px solid #ddd;
+}
+
+.navButton {
+  padding: 8px 16px;
+  background-color: #f3f4f6;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+
+  &:hover {
+    background-color: #e5e7eb;
+  }
+}
+
+.weekTitle {
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.viewContainer {
+  display: flex;
+  flex: 1;
+  width: 100%;
+  height: calc(100% - 60px); // Account for the navigation header
+  overflow: auto;
+  margin-top: 24px;
+}
+
+.timeColumn {
+  min-width: 60px;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid #ddd;
+  background-color: #f9fafb;
+  position: sticky;
+  left: 0;
+  z-index: 1;
+}
+
+.timeHeader {
+  height: 62px; // Match day column headers
+  border-bottom: 1px solid #ddd;
+}
+
+.timeSlots {
+  height: 1440px; // 24 hours * 60px
+}
+
+.timeSlot {
+  height: 60px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end; // aligns text to the right
+  padding-right: 8px; // adds a small gutter
+  padding-top: 2px; // subtle offset, or set to 0 if exact alignment needed
+  font-size: 0.8rem;
+  color: #6b7280;
+}
+
+
+.daysContainer {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+}
+
+.dayColumn {
+  flex: 1;
+  min-width: 155px; // Consistent with daily view's 155px column width
+  position: relative;
+  border-right: 1px solid #ddd;
+  scroll-snap-align: start;
+
+  &:last-child {
+    border-right: none;
+  }
+}
+
+.currentTimeIndicator {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background-color: #cc3366; // Matching the DailyView color
+  z-index: 20;
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: -5px;
+    top: -4px;
+    width: 10px;
+    height: 10px;
+    background-color: #cc3366;
+    border-radius: 50%;
+  }
+}
+
+// Additional styles to make the weekly view more consistent with daily view
+.dayHeader {
+  padding: 10px;
+  font-weight: 600;
+  border-bottom: 1px solid #ddd;
+  background-color: #fff;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  text-align: center;
+}
+
+.dayColumnContent {
+  position: relative;
+  height: 1440px; // 24 hours
+}
+
+.hourMarker {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: 1px;
+  background-color: #ddd;
+
+  &::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    height: 100%;
+    width: 1px;
+    background-color: #eee;
+    opacity: 0.5;
+  }
+}
+
+.meetingBlock {
+  position: absolute;
+  width: 90%;
+  left: 5%;
+  border-radius: 6px;
+  z-index: 5;
+  overflow: hidden;
+}

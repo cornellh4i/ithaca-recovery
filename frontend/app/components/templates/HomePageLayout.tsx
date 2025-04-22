@@ -24,20 +24,19 @@ type MeetingDetails = {
   recurrence?: string;
 };
 
-
 const HomePage = () => {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedMeeting, setSelectedMeeting] = useState<MeetingDetails | null>(null);
   const [selectedMeetingID, setSelectedMeetingID] = useState<string | null>(null);
-  const [selectedView, setSelectedView] = useState<string>("Day")
-  const [selectedNewMeeting, setSelectedNewMeeting] = useState<boolean| null>(false); 
-  const [inputMeetingTitleValue, setMeetingTitleValue] = useState(""); // Meeting title
-  const [dateValue, setDateValue] = useState<string>(""); // Initial date value as empty
-  const [timeValue, setTimeValue] = useState<string>(""); // Initial time range as empty
-  const [freqValue, setFreqValue] = useState<string>("Never"); // Default frequency value
-  const [inputEmailValue, setEmailValue] = useState(""); // Email input value
-  const [inputDescriptionValue, setDescriptionValue] = useState(""); // Description input value
-  
+  const [selectedView, setSelectedView] = useState<string>("Day");
+  const [selectedNewMeeting, setSelectedNewMeeting] = useState<boolean>(false);
+  const [inputMeetingTitleValue, setMeetingTitleValue] = useState("");
+  const [dateValue, setDateValue] = useState<string>("");
+  const [timeValue, setTimeValue] = useState<string>("");
+  const [freqValue, setFreqValue] = useState<string>("Never");
+  const [inputEmailValue, setEmailValue] = useState("");
+  const [inputDescriptionValue, setDescriptionValue] = useState("");
+
   const roomOptions = [
     "Serenity Room",
     "Seeds of Hope",
@@ -62,7 +61,6 @@ const HomePage = () => {
   const handleFileSelect = (file: File | null) => {
     if (file) {
       console.log("File selected:", file);
-      // Handle the selected file (e.g., upload it or process it)
     } else {
       console.log("No file selected");
     }
@@ -72,7 +70,7 @@ const HomePage = () => {
     try {
       const response = await fetch(`/api/retrieve/meeting/${meetingId}`, { method: 'GET' });
       if (response.ok) {
-        const data: MeetingDetails = await response.json(); // Ensure data matches MeetingDetails type
+        const data: MeetingDetails = await response.json();
         setSelectedMeeting(data);
         console.log("Meeting Data:", data);
       } else {
@@ -118,6 +116,7 @@ const HomePage = () => {
       console.error("Error deleting the meeting:", error);
     }
   };
+
   const handleCloseNewMeeting = () => {
     setSelectedNewMeeting(false);
   };
@@ -165,10 +164,10 @@ const HomePage = () => {
             onDelete={() => handleDelete(selectedMeeting.mid)}
           />
         ) : (
-          <CalendarSidebar 
+          <CalendarSidebar
             filters={filters}
             setFilters={setFilters}
-            selectedDate={selectedDate} 
+            selectedDate={selectedDate}
             setSelectedDate={setSelectedDate} />
         )}
       </div>
@@ -180,20 +179,24 @@ const HomePage = () => {
           onToday={() => (setSelectedDate(new Date()))}
           onDateChange={setSelectedDate}
           onViewChange={setSelectedView}
-          //pass a callback function that gets the value for the selectedView
         />
         {selectedView === "Day" ? (
-          <DailyView 
+          <DailyView
             filters={filters}
-            selectedDate={selectedDate} 
-            setSelectedDate={setSelectedDate} 
-            setSelectedMeetingID={setSelectedMeetingID} 
-            setSelectedNewMeeting={setSelectedNewMeeting} 
+            selectedDate={selectedDate}
+            setSelectedDate={setSelectedDate}
+            setSelectedMeetingID={setSelectedMeetingID}
+            setSelectedNewMeeting={setSelectedNewMeeting}
           />
-        ): (
-          <WeeklyView view={selectedView}/>
+        ) : (
+          <WeeklyView
+            filters={filters}
+            selectedDate={selectedDate}
+            setSelectedDate={setSelectedDate}
+            setSelectedMeetingID={setSelectedMeetingID}
+            setSelectedNewMeeting={setSelectedNewMeeting}
+          />
         )}
-
       </div>
     </div>
   );
