@@ -4,34 +4,63 @@ interface PandaDocButtonProps {
   className?: string;
 }
 
+//Grabs meeting data from first two weeks of July and filters July 1st - July 7th
+//API week filter gets Sun->Sat, so jul 1st and jul 8th weeks are grabbed to account for all cases :)
 const PandaDocButton: React.FC<PandaDocButtonProps> = ({ className }) => {
-  const fetchJulyFirstWeekMeetings = async () => {
+  const fetchMeetings = async () => {
     try {
       const currentYear = new Date().getFullYear();
       const julyFirst = new Date(currentYear, 6, 1);
       
-      const startDateStr = julyFirst.toISOString();
+      const julFirstStr = julyFirst.toISOString();
       
-      const response = await fetch(`/api/retrieve/meeting/week?startDate=${startDateStr}`, {
+      const firstWeekRes = await fetch(`/api/retrieve/meeting/week?startDate=${julFirstStr}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
         }
       });
       
-      if (!response.ok) {
-        throw new Error(`HTTP error! Status: ${response.status}`);
+      if (!firstWeekRes.ok) {
+        throw new Error(`HTTP error! Status: ${firstWeekRes.status}`);
       }
       
-      const meetings = await response.json();
+      const firstWeekMeetings = await firstWeekRes.json();
       
-      return meetings;
+      const julyEighth = new Date(currentYear, 6, 8);
+      const julEigthStr = julyEighth.toISOString();
+      
+      const secondWeekRes = await fetch(`/api/retrieve/meeting/week?startDate=${julEigthStr}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+      
+      if (!secondWeekRes.ok) {
+        throw new Error(`HTTP error! Status: ${secondWeekRes.status}`);
+      }
+      
+      const secondWeekMeetings = await secondWeekRes.json();
+      
+      const allMeetings = [...firstWeekMeetings, ...secondWeekMeetings];
+      
+      const julyFirst00 = new Date(currentYear, 6, 1, 0, 0, 0, 0);
+      const julySeventhEnd = new Date(currentYear, 6, 7, 23, 59, 59, 999);
+      
+      const filteredMeetings = allMeetings.filter(meeting => {
+        const meetingDate = new Date(meeting.startDateTime);
+        return meetingDate >= julyFirst00 && meetingDate <= julySeventhEnd;
+      });
+      
+      return filteredMeetings;
     } catch (error) {
       console.error('Error fetching meetings:', error);
       return [];
     }
   };
 
+  
   const determinePremiseType = (room: string, zoomAccount: string) => {
     if (room === "Zoom Only" || room === "") {
       return "Zoom Only";
@@ -137,7 +166,7 @@ const PandaDocButton: React.FC<PandaDocButtonProps> = ({ className }) => {
         "Client.City": "Ithaca",
         "Client.Company": meeting.title,
         "Client.Country": "US",
-        "Client.Email": meeting.email || `${meeting.title.replace(/\s+/g, '')}@518ICR.com`,
+        "Client.Email": "placeholder@email.com",
         "Client.PostalCode": "14850",
         "Client.State": "NY",
         "Client.StreetAddress": "518 W Seneca St",
@@ -207,7 +236,7 @@ const PandaDocButton: React.FC<PandaDocButtonProps> = ({ className }) => {
     try {
       console.log("Fetching meetings for CSV export...");
       
-      const meetings = await fetchJulyFirstWeekMeetings();
+      const meetings = await fetchMeetings();
       
       if (meetings.length === 0) {
         alert("No meetings found for the first week of July.");
