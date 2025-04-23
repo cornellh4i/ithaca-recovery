@@ -14,6 +14,7 @@ export interface MeetingFormProps {
   emailTextField: React.ReactElement;
   descriptionTextField: React.ReactElement;
   handleMeetingSubmit: () => Promise<void>;
+  generateMeetingLink: () => Promise<void>;
   buttonText: string
 }
 
@@ -27,6 +28,7 @@ export const MeetingForm: React.FC<MeetingFormProps> = ({
   zoomAccountDropdown,
   emailTextField,
   descriptionTextField,
+  generateMeetingLink,
   handleMeetingSubmit,
   buttonText
 }) => {
@@ -65,7 +67,14 @@ export const MeetingForm: React.FC<MeetingFormProps> = ({
         <div className={styles.dummyComponent}>
           {descriptionTextField}
         </div>
-        <button className={styles.createMeetingButton} onClick={handleMeetingSubmit}>{buttonText}</button>
+        <div className={styles.buttonGroup}>
+          <button className={styles.createMeetingButton} onClick={generateMeetingLink}>
+            Generate Meeting Link
+          </button>
+          <button className={styles.createMeetingButton} onClick={handleMeetingSubmit}>
+            Create Meeting
+          </button>
+        </div>
       </div>
   );
 };

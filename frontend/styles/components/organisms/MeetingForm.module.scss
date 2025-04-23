@@ -77,3 +77,9 @@
   width: auto;
   height: 40px;
 }
+
+.buttonGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
