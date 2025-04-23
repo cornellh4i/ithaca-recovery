@@ -32,8 +32,29 @@ const getTimeDifferenceInMinutes = (startTime: string, endTime: string): number 
 };
 
 const TimePicker = ({ label, value: propValue = '', disablePast, onChange, error, ...props }: TimePickerProps) => {
-  const [startTime, setStartTime] = useState<string>(''); // Start time in 24-hour format
-  const [endTime, setEndTime] = useState<string>(''); // End time in 24-hour format
+  
+  // Parse the initial value when component mounts
+  const parseTimeRange = (value: string): { startTime: string, endTime: string } => {
+    if (!value || value === '') {
+      return { startTime: '', endTime: '' };
+    }
+    
+    // Extract times from HH:MM - HH:MM format
+    const timeMatch = value.match(/(\d{2}:\d{2})\s*-\s*(\d{2}:\d{2})/);
+    if (timeMatch) {
+      return { 
+        startTime: timeMatch[1], 
+        endTime: timeMatch[2] 
+      };
+    }
+    
+    return { startTime: '', endTime: '' };
+  };
+  
+  // Initialize state with parsed value
+  const initialTimeRange = parseTimeRange(propValue);
+  const [startTime, setStartTime] = useState<string>(initialTimeRange.startTime);
+  const [endTime, setEndTime] = useState<string>(initialTimeRange.endTime);
   const [timeDifference, setTimeDifference] = useState<number>(60); // Default difference is 60 minutes
   const [minTime, setMinTime] = useState<string | undefined>(undefined);
   const [endTimeError, setEndTimeError] = useState<boolean>(false); // Track if there's an end time error

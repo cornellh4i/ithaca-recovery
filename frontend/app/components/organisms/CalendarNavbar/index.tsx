@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import styles from "../../../../styles/components/organisms/CalendarNavbar.module.scss";
+import PandaDocButton from '../../../components/molecules/PandaDocButton';
 
 type CalendarNavbarProps = {
     selectedDate: Date;
@@ -42,7 +43,7 @@ const CalendarNavbar: React.FC<CalendarNavbarProps> = ({ selectedDate, onPreviou
         default:
           startDate = endDate = date; // Default to current date
       }
-  
+
       const startMonth = startDate.toLocaleDateString('en-US', { month: 'long' });
       const startDay = startDate.getDate();
       const startYear = startDate.getFullYear();
@@ -121,12 +122,12 @@ const CalendarNavbar: React.FC<CalendarNavbarProps> = ({ selectedDate, onPreviou
       handleNext(); // Local function logic
       onNextDay(); // External function from DailyView
     };
-  
+
     return (
       <div className={styles.navbarContainer}>
         <h2 className={styles.navbarContainerRight}>{getDateRange(selectedDate)}</h2>
         <div className={styles.navbarContainerLeft}>
-          <img src="/search-icon.svg" alt="Search Icon" width={36} height={36} />
+          <PandaDocButton className={styles.box} />
           <div className={styles.box}>
             {/* Temporary dropdown component */}
             <select id="view-select" value={selectedView} onChange={handleViewChange}>
