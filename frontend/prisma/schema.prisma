@@ -19,6 +19,7 @@ model Meeting {
   id            String   @id @default(auto()) @map("_id") @db.ObjectId
   title         String
   mid           String   @unique
+  calType        String
   description   String
   creator       String
   group         String
@@ -30,6 +31,7 @@ model Meeting {
   zid           String?  // optional, needs to be added
   type          String
   room          String
+  modeType      String
 }
 
 
@@ -49,32 +51,5 @@ model RecurrencePattern {
 model User {
   id   String @id @default(auto()) @map("_id") @db.ObjectId
   name String
-<<<<<<< HEAD
-}
-
-model Admin {
-  id            String @id @default(auto()) @map("_id") @db.ObjectId
-  uid           String @unique
-  name          String
-  email         String @unique
-}
-
-model Meeting {
-  id             String   @id @default(auto()) @map("_id") @db.ObjectId
-  mid            String   @unique
-  title          String
-  description    String
-  creator        String   
-  group          String   
-  startDateTime  DateTime
-  endDateTime    DateTime
-  zoomAccount    String?   
-  zoomLink       String?
-  zid            String?
-  calType        String
-  room           String
-  modeType       String
-=======
   uid  String @unique
->>>>>>> origin/master
 }
