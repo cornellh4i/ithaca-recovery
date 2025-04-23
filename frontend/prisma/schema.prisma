@@ -1,16 +1,55 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
 datasource db {
   provider = "mongodb"
   url      = env("DATABASE_URL")
 }
 
-generator client {
-  provider = "prisma-client-js"
+model Admin {
+  id            String  @id @default(auto()) @map("_id") @db.ObjectId
+  email         String  @unique
+  name          String
+  privilegeMode String?
+  uid           String  @unique
+}
+
+model Meeting {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  title         String
+  mid           String   @unique
+  description   String
+  creator       String
+  group         String
+  startDateTime DateTime @db.Date
+  endDateTime   DateTime @db.Date
+  email         String
+  zoomAccount   String?  // optional
+  zoomLink      String?  // optional, needs to be added
+  zid           String?  // optional, needs to be added
+  type          String
+  room          String
+}
+
+
+model RecurrencePattern {
+  id                 String    @id @default(auto()) @map("_id") @db.ObjectId
+  daysOfWeek         String[]
+  endDate            DateTime? @db.Date
+  firstDayOfWeek     String
+  interval           Int
+  meetingId          String
+  /// Could not determine type: the field only had null or empty values in the sample set.
+  numberOfOccurences Json?
+  startDate          DateTime  @db.Date
+  type               String
 }
 
 model User {
   id   String @id @default(auto()) @map("_id") @db.ObjectId
-  uid  String @unique
   name String
+<<<<<<< HEAD
 }
 
 model Admin {
@@ -35,4 +74,7 @@ model Meeting {
   calType        String
   room           String
   modeType       String
+=======
+  uid  String @unique
+>>>>>>> origin/master
 }

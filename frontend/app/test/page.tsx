@@ -42,6 +42,7 @@ const App = () => {
     type: 'Virtual Meeting',
     room: 'Conference Room B',
     recurrence: 'Weekly',
+    email: 'test@email.com', // Added email property
     onBack: () => alert('Back button clicked'),
     onEdit: () => alert('Edit button clicked'),
     onDelete: () => alert('Delete Button Clicked'),
@@ -202,6 +203,7 @@ const App = () => {
         group: 'Group',
         startDateTime: new Date(),
         endDateTime: new Date(),
+        email: inputEmailValue,
         zoomAccount: 'Zoom Account',
         calType: "in-person",
         modeType: "Hybrid",
@@ -269,6 +271,7 @@ const App = () => {
         group: 'Group',
         startDateTime: new Date(),
         endDateTime: new Date(),
+        email: inputEmailValue,
         zoomAccount: 'Zoom Account',
         calType: "in-person",
         modeType: "Hybrid",
@@ -449,7 +452,7 @@ const App = () => {
       </div>
       <div className={styles.section}>
         <h2>Spinner Input</h2>
-        <SpinnerInput value={1} onChange={() => {}}></SpinnerInput>
+        <SpinnerInput value={1} onChange={() => { }}></SpinnerInput>
       </div>
       <div className={styles.section}>
         <h2>Admins</h2>
@@ -558,7 +561,7 @@ const App = () => {
         }} />
       </div>
 
-      {/* New Meeting Sidebar Section */}
+      {/* New Meeting Sidebar Section
       <div className={styles.section + ' ' + styles.newMeetingSidebar}>
         <h2>New Meeting Sidebar</h2>
         <NewMeetingSidebar
@@ -567,9 +570,7 @@ const App = () => {
             value={inputMeetingTitleValue}
             onChange={setMeetingTitleValue}
             />}
-          modeTypeButtons={<ModeTypeButtons 
-            onModeSelect={handleModeSelect}
-          />}
+          
           DatePicker={<DatePicker
             label={<TodayIcon />}
             value={dateValue}
@@ -636,7 +637,7 @@ const App = () => {
 
           onCreateMeeting={createMeeting}
         ></NewMeetingSidebar>
-      </div>
+      </div> */}
 
       <div className={styles.section}>
         <h1>Test Page for ViewMeetingDetails Component</h1>

@@ -1,15 +1,18 @@
 import React, { useState } from 'react';
 import styles from "../../../../styles/components/organisms/CalendarNavbar.module.scss";
+import PandaDocButton from '../../../components/molecules/PandaDocButton';
 
 type CalendarNavbarProps = {
     selectedDate: Date;
     onPreviousDay: () => void;
     onNextDay: () => void;
-    onDateChange: (date: Date) => void;
-
+    onDateChange: (date : Date) => void;
+    onToday: () => void;
+    onViewChange: (view: string) => void;
   };
   
-const CalendarNavbar: React.FC<CalendarNavbarProps> = ({ selectedDate, onPreviousDay, onNextDay, onDateChange }) => {
+const CalendarNavbar: React.FC<CalendarNavbarProps> = ({ selectedDate, onPreviousDay, onNextDay, onDateChange, onToday, onViewChange }) => {
+    const [currentDate, setCurrentDate] = useState(new Date());
     const [selectedView, setSelectedView] = useState('Day');
   
     const getDateRange = (date: Date) => {
@@ -40,7 +43,7 @@ const CalendarNavbar: React.FC<CalendarNavbarProps> = ({ selectedDate, onPreviou
         default:
           startDate = endDate = date; // Default to current date
       }
-  
+
       const startMonth = startDate.toLocaleDateString('en-US', { month: 'long' });
       const startDay = startDate.getDate();
       const startYear = startDate.getFullYear();
@@ -100,13 +103,14 @@ const CalendarNavbar: React.FC<CalendarNavbarProps> = ({ selectedDate, onPreviou
   
     const handleViewChange: React.ChangeEventHandler<HTMLSelectElement> = (event) => {
       setSelectedView(event.target.value);
+      onViewChange(event.target.value); // Call the external function
       onDateChange(new Date());
     };
   
     const handleToday = () => {
       setSelectedView("Day");
-      onDateChange(new Date());
-      // onToday(); // Call the external function as well
+      setCurrentDate(new Date());
+      onToday(); // Call the external function as well
     };
   
     const handleCombinedPrevious = () => {
@@ -118,18 +122,18 @@ const CalendarNavbar: React.FC<CalendarNavbarProps> = ({ selectedDate, onPreviou
       handleNext(); // Local function logic
       onNextDay(); // External function from DailyView
     };
-  
+
     return (
       <div className={styles.navbarContainer}>
         <h2 className={styles.navbarContainerRight}>{getDateRange(selectedDate)}</h2>
         <div className={styles.navbarContainerLeft}>
-          <img src="/search-icon.svg" alt="Search Icon" width={36} height={36} />
+          <PandaDocButton className={styles.box} />
           <div className={styles.box}>
             {/* Temporary dropdown component */}
             <select id="view-select" value={selectedView} onChange={handleViewChange}>
               <option value="Day">Day</option>
               <option value="Week">Week</option>
-              <option value="Month">Month</option>
+              {/* <option value="Month">Month</option> */}
             </select>
           </div>
           <div className={styles.box}>

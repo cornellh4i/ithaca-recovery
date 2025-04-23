@@ -3,6 +3,7 @@ import styles from "../../../../styles/Dropdown.module.scss";
 
 interface DropdownProps {
   label: string | React.ReactNode;
+  value?: string;
   isVisible: boolean;
   elements: string[]; 
   name: string; 
@@ -10,10 +11,24 @@ interface DropdownProps {
 }
 
 
-const Dropdown: React.FC<DropdownProps> = ({ label, isVisible, elements, name, onChange }) => {
+const Dropdown: React.FC<DropdownProps> = ({ 
+  label, 
+  value,
+  isVisible, 
+  elements, 
+  name, 
+  onChange,}) => {
   const [selectedElement, setselectedElement] = useState<string | null>(null);
 
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null); 
+
+  React.useEffect(() => {
+    if (value) {
+      setselectedElement(value);
+      onChange(value);
+      setActiveDropdown(null);
+    }
+  }, []);
 
   if (!isVisible) return null;
 
