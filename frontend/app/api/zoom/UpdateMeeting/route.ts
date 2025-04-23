@@ -1,13 +1,12 @@
 import axios from 'axios'
 import { NextResponse } from "next/server"
 import { NextApiRequest, NextApiResponse } from 'next/types'
-import { GET as getZoomToken } from '../generateToken'
+import { POST as getZoomToken } from '../generateToken'
 import { PrismaClient } from "@prisma/client"
 import getZoomMeeting from '../GetMeeting/asyncFunction'
 
 const prisma = new PrismaClient()
 
-// function for PATCH request to update a meeting
 const updateZoomMeeting = async (req: Request, res: NextApiResponse) => {
   try {
     const token = (await getZoomToken(req, res));

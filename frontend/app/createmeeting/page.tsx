@@ -44,6 +44,7 @@ const CreateMeetingPage = () => {
       timezone: "America/Los_Angeles",
       topic: title,
       type: 2,
+      zoomAccId: 3, //I added this line chat gpt
     };
 
     return requestBody;

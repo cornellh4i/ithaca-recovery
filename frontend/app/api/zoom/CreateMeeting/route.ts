@@ -1,17 +1,16 @@
 import axios from 'axios'
 import { NextResponse } from "next/server"
 import { NextApiRequest, NextApiResponse } from 'next/types'
-import { GET as getZoomToken } from '../generateToken'
+import { POST as getZoomToken } from '../generateToken'
 import getZoomMeeting from '../GetMeeting/asyncFunction'
 
-// function for POST request to create a zoom meeting
 const createZoomMeeting = async (req: Request, res: NextApiResponse) => {
   try {
-
-    const token = await getZoomToken(req, res);
+    const token = await getZoomToken(req.clone(), res);
     const tokenJSON = await token.json();
     const accessToken = tokenJSON.access_token;
     const reqBody = await req.json();
+
 
     const request = await axios.post(
       `${process.env.NEXT_PUBLIC_ZOOM_BASE_API}/users/me/meetings`,

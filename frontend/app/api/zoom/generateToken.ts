@@ -3,19 +3,27 @@ import { NextResponse } from "next/server";
 import { NextApiRequest, NextApiResponse } from 'next/types';
 import qs from 'query-string';
 
-// function to generate zoom access token 
-const generateZoomToken = async () => {
+interface zoomClient {
+  zoomAccId: number;
+};
+ 
+const generateZoomToken = async ({zoomAccId}: zoomClient) => {
   try {
-    const clientId = process.env.ZOOM1_CLIENT_ID;
-    const clientSecret = process.env.ZOOM1_CLIENT_SECRET;
-    const accountId = process.env.ZOOM1_ACCOUNT_ID;
+
+    // Throw error if the zoomAccId isn't 1,2,3 or 4
+    if (![1, 2, 3, 4].includes(zoomAccId)) {
+      throw new Error('Invalid zoomAccId. Must be 1, 2, 3, or 4.');
+    }
+    
+    const clientId = process.env[`ZOOM${zoomAccId}_CLIENT_ID`];
+    const clientSecret = process.env[`ZOOM${zoomAccId}_CLIENT_SECRET`];
+    const accountId = process.env[`ZOOM${zoomAccId}_ACCOUNT_ID`];
   
-    // check if the environment variables are set
+    // Check if the environment variables are set
     if (!clientId || !clientSecret || !accountId) {
       throw new Error('Environment variables not set');
     }
 
-    // make a post req to zoom api 
     const request = await axios.post(
       'https://zoom.us/oauth/token', 
       qs.stringify({ grant_type: 'account_credentials', account_id: accountId }), 
@@ -32,14 +40,18 @@ const generateZoomToken = async () => {
     return zoomToken;
   } catch (error) {
     console.error('Error generating zoom token:', error); 
+    throw error
   }
 }
 
-// function to export access token 
 const getZoomToken = async (req: Request, res: NextApiResponse) => {
   // if (req.method === 'GET') {
     try {
-      const zoomToken = await generateZoomToken();
+      const {zoomAccId} = await req.json();
+      if(!zoomAccId) {
+        return NextResponse.json({ error: 'Error finding zoomAccId' }, { status: 500 }); 
+      }
+      const zoomToken = await generateZoomToken({zoomAccId});
 
       if (!zoomToken) {
         return NextResponse.json({ error: 'Error generating Zoom token' }, { status: 500 });
@@ -55,4 +67,4 @@ const getZoomToken = async (req: Request, res: NextApiResponse) => {
   // }
 }
 
-export { getZoomToken as GET };
+export { getZoomToken as POST };
