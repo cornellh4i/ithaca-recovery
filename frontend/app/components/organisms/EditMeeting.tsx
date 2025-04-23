@@ -10,7 +10,7 @@ import RecurringMeetingForm from '../molecules/RecurringMeeting';
 import CloseIcon from '@mui/icons-material/Close';
 import IconButton from '@mui/material/IconButton';
 
-import { IMeeting } from '../../../util/models'
+import { IMeeting, IRecurrencePattern } from '../../../util/models'
 import { convertUTCToET, convertETToUTC } from "../../../util/timeUtils";
 
 import styles from '../../../styles/components/organisms/MeetingForm.module.scss';
@@ -92,29 +92,26 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
     const [selectedMode, setSelectedMode] = useState<string>(formData.modeType);
     const [dateValue, setDateValue] = useState<string>(formData.date); // Initial date value as empty
     const [timeValue, setTimeValue] = useState<string>(`${formData.startTime} - ${formData.endTime}`); // Initial time range as empty
-    const [freqValue, setFreqValue] = useState<string>("Never"); // TODO: Update recurrence rules
     const [inputEmailValue, setEmailValue] = useState(formData.email); // TODO: Update Email after migrating IMeeting
     const [inputDescriptionValue, setDescriptionValue] = useState(formData.description); // Description input value
     const [selectedRoom, setSelectedRoom] = useState<string>(formData.room);
     const [selectedMeetingType, setSelectedMeetingType] = useState<string>(formData.calType);
     const [selectedZoomAccount, setSelectedZoomAccount] = useState<string>(formData.zoomAccount);
 
-    // Update handlers for these dropdowns
+    const [isRecurring, setIsRecurring] = useState(false);
+    const [recurrencePattern, setRecurrencePattern] = useState<IRecurrencePattern | null>(null);
+
+    const handleRecurringMeetingChange = (data: {
+      isRecurring: boolean;
+      recurrencePattern: IRecurrencePattern | null;
+    }) => {
+      setIsRecurring(data.isRecurring);
+      setRecurrencePattern(data.recurrencePattern);
+    };
+
     const handleRoomChange = (value: string) => setSelectedRoom(value);
     const handleMeetingTypeChange = (value: string) => setSelectedMeetingType(value);
     const handleZoomAccountChange = (value: string) => setSelectedZoomAccount(value);
-
-    const clearMeetingState = () => {
-      setMeetingTitleValue("");
-      setDateValue("");
-      setTimeValue("");
-      setFreqValue("Never");
-      setEmailValue("");
-      setDescriptionValue("");
-      setSelectedRoom("");
-      setSelectedMeetingType("");
-      setSelectedZoomAccount("");
-    };
 
     // Room and Meeting Type options
     const roomOptions = [
@@ -194,6 +191,13 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
             room: selectedRoom,
           };
 
+        if (isRecurring && recurrencePattern) {
+          updatedMeeting.recurrencePattern = {
+            ...recurrencePattern,
+            startDate: startDateTimeUTC
+          };
+        }
+
         const response = await fetch('/api/update/meeting', {
           method: 'PUT',
           headers: {
@@ -245,7 +249,12 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
             disablePast={true}
             error={timeValue === '' ? 'Time is required' : undefined}
           />}
-          RecurringMeeting={<RecurringMeetingForm />}
+          RecurringMeeting={
+            <RecurringMeetingForm
+              onChange={handleRecurringMeetingChange}
+              startDate={dateValue}
+            />
+          }
           roomSelectionDropdown={
             <Dropdown
               label={<img src="/svg/location-icon.svg" alt="Location Icon" />}

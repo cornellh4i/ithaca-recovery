@@ -23,8 +23,19 @@ interface IMeeting {
   calType: string;
   modeType: string;
   room: string;
+  isRecurring?: boolean;
+  recurrencePattern?: IRecurrencePattern | null;
 }
 
-export type { IUser, IMeeting, IAdmin };
+interface IRecurrencePattern {
+  mid?: string;
+  type: string; 
+  startDate: Date;
+  endDate?: Date | null;
+  numberOfOccurrences?: number | null;
+  daysOfWeek?: string[] | null;
+  firstDayOfWeek: string; 
+  interval: number; // 1 = weekly, 2 = biweekly, etc.
+}
 
-
+export type { IUser, IAdmin, IMeeting, IRecurrencePattern };

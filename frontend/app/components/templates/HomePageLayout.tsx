@@ -6,6 +6,7 @@ import CalendarSidebar from "../organisms/CalendarSidebar";
 import ViewMeetingDetails from "../organisms/ViewMeeting";
 import EditMeetingSidebar from "../organisms/EditMeeting";
 import DailyView from "../organisms/DailyView";
+
 import WeeklyView from "../organisms/WeeklyView";
 import { convertUTCToET } from "../../../util/timeUtils";
 import { IMeeting } from "../../../util/models";
@@ -38,6 +39,7 @@ const HomePage = () => {
   const [selectedView, setSelectedView] = useState<string>("Day");
   const [selectedNewMeeting, setSelectedNewMeeting] = useState<boolean | null>(false);
   const [showEditMeeting, setShowEditMeeting] = useState(false);
+  const [lastClickedDate, setLastClickedDate] = useState<Date | null>(null);
 
   const fetchMeetingDetails = async (meetingId: string) => {
     try {
@@ -45,6 +47,8 @@ const HomePage = () => {
       if (response.ok) {
         const data: IMeeting = await response.json();
         setSelectedMeeting(data);
+        // Store the date that was clicked when the meeting was selected
+        setLastClickedDate(new Date(selectedDate));
       } else {
         console.error("Failed to fetch meeting details");
       }
@@ -58,6 +62,7 @@ const HomePage = () => {
       fetchMeetingDetails(selectedMeetingID);
     } else {
       setSelectedMeeting(null);
+      setLastClickedDate(null);
     }
   }, [selectedMeetingID]);
 
@@ -65,6 +70,7 @@ const HomePage = () => {
     setSelectedMeeting(null);
     setSelectedMeetingID(null);
     setSelectedNewMeeting(false);
+    setLastClickedDate(null);
   };
 
   const handleOpenEdit = () => {
@@ -79,7 +85,7 @@ const HomePage = () => {
     setSelectedNewMeeting(false);
   };
 
-  const handleDelete = async (mid: string) => {
+  const handleDelete = async (mid: string, deleteOption?: 'this' | 'thisAndFollowing' | 'all') => {
     try {
       const response = await fetch('/api/delete/meeting', {
         method: 'DELETE',
@@ -90,17 +96,20 @@ const HomePage = () => {
           mid
         }),
       });
-
+  
       if (!response.ok) {
         alert("Error : Unsuccessful delete")
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       setSelectedMeeting(null);
-
-      const meetingResponse = await response.json();
-      console.log(meetingResponse);
+      setSelectedMeetingID(null);
+      setLastClickedDate(null);
+      // const tempDate = new Date(selectedDate);
+      // setSelectedDate(new Date(tempDate.getTime() + 1));
+      // setTimeout(() => {
+      //   setSelectedDate(tempDate);
+      // }, 100);
       alert("Meeting deleted successfully! Please check the Meeting collection on MongoDB.")
-
     } catch (error) {
       console.error('There was an error fetching the data:', error);
     }
@@ -124,6 +133,10 @@ const HomePage = () => {
     Hybrid: true,
     Remote: true,
   });
+  const handleMeetingSelect = (meetingId: string) => {
+    setSelectedMeetingID(meetingId);
+    setLastClickedDate(new Date(selectedDate));
+  };
 
   const convertESTStringToDate = (estDateString: string): Date => {
     // Extract date and time parts from the EST string (e.g., "04/09/2025, 06:00:00 AM")
@@ -162,6 +175,28 @@ const HomePage = () => {
               }}
             />) :
             selectedMeeting ? (
+              //           <ViewMeetingDetails
+          //   id={selectedMeeting.id}
+          //   mid={selectedMeeting.mid}
+          //   title={selectedMeeting.title}
+          //   description={selectedMeeting.description}
+          //   creator={selectedMeeting.creator}
+          //   group={selectedMeeting.group}
+          //   startDateTime={new Date(selectedMeeting.startDateTime)}
+          //   endDateTime={new Date(selectedMeeting.endDateTime)}
+          //   zoomAccount={selectedMeeting.zoomAccount}
+          //   zoomLink={selectedMeeting.zoomLink}
+          //   zid={selectedMeeting.zid}
+          //   type={selectedMeeting.type}
+          //   room={selectedMeeting.room}
+          //   recurrence={selectedMeeting.recurrence}
+          //   isRecurring={selectedMeeting.isRecurring ?? false}
+          //   recurrencePattern={selectedMeeting.recurrencePattern}
+          //   currentOccurrenceDate={lastClickedDate || undefined} // Pass the date when the meeting was clicked
+          //   onBack={handleBack}
+          //   onEdit={handleEdit}
+          //   onDelete={handleDelete} 
+          // />    
               <ViewMeetingDetails
                 mid={selectedMeeting.mid}
                 title={selectedMeeting.title}
@@ -193,7 +228,9 @@ const HomePage = () => {
                 modeType={selectedMeeting.modeType}
                 calType={selectedMeeting.calType}
                 room={selectedMeeting.room}
-                // recurrence={selectedMeeting.recurrence} // TODO: Update when merge with Recurring Meetings
+                isRecurring={selectedMeeting.isRecurring ?? false}
+                recurrencePattern={selectedMeeting.recurrencePattern || undefined}
+                currentOccurrenceDate={lastClickedDate || undefined} // Pass the date when the meeting was clicked
                 onBack={handleBack}
                 onEdit={handleOpenEdit}
                 onDelete={handleDelete}
