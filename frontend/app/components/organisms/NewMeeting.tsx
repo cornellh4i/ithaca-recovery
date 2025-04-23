@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import {MeetingForm} from './MeetingForm';
+import { MeetingForm } from './MeetingForm';
 
 import TextField from '../atoms/TextField';
 import DatePicker from '../atoms/DatePicker';
@@ -19,8 +19,8 @@ interface NewMeetingSidebarProps {
   setIsNewMeetingOpen: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
-const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = 
-  ({setIsNewMeetingOpen}) => {
+const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> =
+  ({ setIsNewMeetingOpen }) => {
     // State declarations for New Meeting form
     const [inputMeetingTitleValue, setMeetingTitleValue] = useState(""); // Meeting title
     const [dateValue, setDateValue] = useState<string>(""); // Initial date value as empty
@@ -31,7 +31,7 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> =
     const [selectedRoom, setSelectedRoom] = useState<string>("");
     const [selectedMeetingType, setSelectedMeetingType] = useState<string>("");
     const [selectedZoomAccount, setSelectedZoomAccount] = useState<string>("");
-    
+
     // Update handlers for these dropdowns
     const handleRoomChange = (value: string) => setSelectedRoom(value);
     const handleMeetingTypeChange = (value: string) => setSelectedMeetingType(value);
@@ -75,7 +75,7 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> =
     const generateMeetingId = () => {
       return uuidv4();
     };
-    
+
     function convertToISODate(dateString: string) {
       const dateObject = new Date(dateString);
       if (isNaN(dateObject.getTime())) {
@@ -88,43 +88,43 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> =
     const handleOpenNewMeeting = () => {
       setIsNewMeetingOpen(true);
     };
-  
+
     const handleCloseNewMeeting = () => {
       clearMeetingState();
       setIsNewMeetingOpen(false);
     };
-    
+
     const createMeeting = async () => {
       try {
-    
+
         // Convert dateValue to ISO format
         const isoDateValue = convertToISODate(dateValue);
-    
+
         if (!isoDateValue) {
           console.error("Failed to convert dateValue to ISO format");
         }
-    
+
         const [startTime, endTime] = timeValue?.split(' - ') || [];
         if (!startTime || !endTime) {
           console.error("Invalid timeValue format");
           return;
         }
-    
+
         // in EST
         const startDateString = `${isoDateValue}T${startTime}`;
         const endDateString = `${isoDateValue}T${endTime}`;
-    
+
         if (!startDateString || !endDateString) {
           console.error("Start or end date string could not be constructed");
           return;
         }
-    
+
         const startDateTimeUTCString = convertETToUTC(startDateString);
         const endDateTimeUTCString = convertETToUTC(endDateString);
-    
-        const startDateTimeUTC= new Date(startDateTimeUTCString);
+
+        const startDateTimeUTC = new Date(startDateTimeUTCString);
         const endDateTimeUTC = new Date(endDateTimeUTCString);
-    
+
         const newMeeting: IMeeting = {
           title: inputMeetingTitleValue,
           mid: generateMeetingId(),
@@ -133,6 +133,7 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> =
           group: 'Group',
           startDateTime: startDateTimeUTC,
           endDateTime: endDateTimeUTC,
+          email: inputEmailValue,
           zoomAccount: selectedZoomAccount,
           type: selectedMeetingType,
           room: selectedRoom,
@@ -167,69 +168,69 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> =
           </IconButton>
         </div>
         <MeetingForm
-            meetingTitleTextField={<TextField
-              input="Meeting title"
-              value={inputMeetingTitleValue}
-              onChange={setMeetingTitleValue}
-            />}
-            DatePicker={<DatePicker
-              label={<img src='/svg/calendar-icon.svg' alt="Calendar Icon" />}
-              value={dateValue}
-              onChange={setDateValue}
-              error={dateValue === '' ? 'Date is required' : undefined}
-            />}
-            TimePicker={<TimePicker
-              label={<img src='/svg/clock-icon.svg' alt="Clock Icon" />}
-              value={timeValue}
-              onChange={setTimeValue}
-              disablePast={true}
-              error={timeValue === '' ? 'Time is required' : undefined}
-            />}
-            RecurringMeeting={<RecurringMeetingForm />}
-            roomSelectionDropdown={
-              <Dropdown
-                label={<img src="/svg/location-icon.svg" alt="Location Icon" />}
-                isVisible={true}
-                elements={roomOptions}
-                name="Select Room"
-                onChange={handleRoomChange}
-              />
-            }
-            meetingTypeDropdown={
-              <Dropdown
-                label={<img src="svg/group-icon.svg" alt="Group Icon" />}
-                isVisible={true}
-                elements={meetingTypeOptions}
-                name="Select Meeting Type"
-                onChange={handleMeetingTypeChange}
-              />
-            }
-            zoomAccountDropdown={
-              <Dropdown
-                label={<img src="svg/person-icon.svg" alt="Person Icon" />}
-                isVisible={true}
-                elements={zoomAccountOptions}
-                name="Select Zoom Account"
-                onChange={handleZoomAccountChange}
-              />
-            }
-            emailTextField={<TextField
-              input="Email"
-              label={<img src="svg/mail-icon.svg" alt="Mail Icon" />}
-              value={inputEmailValue}
-              onChange={setEmailValue}
-            />}
-            descriptionTextField={<TextField
-              input="Description"
-              label=""
-              value={inputDescriptionValue}
-              onChange={setDescriptionValue}
-            />}
-            handleMeetingSubmit={createMeeting}
-            buttonText={"Create Meeting"}
+          meetingTitleTextField={<TextField
+            input="Meeting title"
+            value={inputMeetingTitleValue}
+            onChange={setMeetingTitleValue}
+          />}
+          DatePicker={<DatePicker
+            label={<img src='/svg/calendar-icon.svg' alt="Calendar Icon" />}
+            value={dateValue}
+            onChange={setDateValue}
+            error={dateValue === '' ? 'Date is required' : undefined}
+          />}
+          TimePicker={<TimePicker
+            label={<img src='/svg/clock-icon.svg' alt="Clock Icon" />}
+            value={timeValue}
+            onChange={setTimeValue}
+            disablePast={true}
+            error={timeValue === '' ? 'Time is required' : undefined}
+          />}
+          RecurringMeeting={<RecurringMeetingForm />}
+          roomSelectionDropdown={
+            <Dropdown
+              label={<img src="/svg/location-icon.svg" alt="Location Icon" />}
+              isVisible={true}
+              elements={roomOptions}
+              name="Select Room"
+              onChange={handleRoomChange}
+            />
+          }
+          meetingTypeDropdown={
+            <Dropdown
+              label={<img src="svg/group-icon.svg" alt="Group Icon" />}
+              isVisible={true}
+              elements={meetingTypeOptions}
+              name="Select Meeting Type"
+              onChange={handleMeetingTypeChange}
+            />
+          }
+          zoomAccountDropdown={
+            <Dropdown
+              label={<img src="svg/person-icon.svg" alt="Person Icon" />}
+              isVisible={true}
+              elements={zoomAccountOptions}
+              name="Select Zoom Account"
+              onChange={handleZoomAccountChange}
+            />
+          }
+          emailTextField={<TextField
+            input="Email"
+            label={<img src="svg/mail-icon.svg" alt="Mail Icon" />}
+            value={inputEmailValue}
+            onChange={setEmailValue}
+          />}
+          descriptionTextField={<TextField
+            input="Description"
+            label=""
+            value={inputDescriptionValue}
+            onChange={setDescriptionValue}
+          />}
+          handleMeetingSubmit={createMeeting}
+          buttonText={"Create Meeting"}
         />
       </div>
     );
-};
+  };
 
 export default NewMeetingSidebar;

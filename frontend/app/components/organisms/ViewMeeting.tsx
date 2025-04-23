@@ -1,11 +1,11 @@
 import React from 'react'
-import styles from '../../../../styles/ViewMeeting.module.scss';
+import styles from '../../../styles/ViewMeeting.module.scss';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import VideoCameraFrontIcon from '@mui/icons-material/VideoCameraFront';
 import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
 import DownloadForOfflineIcon from '@mui/icons-material/DownloadForOffline';
-import { convertUTCToET } from "../../../../util/timeUtils";
+import { convertUTCToET } from "../../../util/timeUtils";
 
 type ViewMeetingDetailsProps = {
   mid: string; // Maps to 'mid' in the model
@@ -15,6 +15,7 @@ type ViewMeetingDetailsProps = {
   group: string; // Maps to 'group' in the model
   startDateTime: Date; // Maps to 'startDateTime' in the model (use string or Date, depending on your frontend handling)
   endDateTime: Date; // Maps to 'endDateTime' in the model
+  email: string;
   zoomAccount?: string | null; // Maps to 'zoomAccount' in the model (optional)
   zoomLink?: string | null; // Maps to 'zoomLink' in the model (optional)
   zid?: string | null; // Maps to 'zid' in the model (optional)
@@ -34,6 +35,7 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
   group,
   startDateTime,
   endDateTime,
+  email,
   zoomAccount,
   zoomLink,
   zid,
@@ -84,24 +86,13 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
         {recurrence && <p>{recurrence}</p>}
         <hr className={styles.divider} />
 
+        <p><strong>Email:</strong>&nbsp;{email}</p>
         <p><strong>Calendar:</strong>&nbsp;{group}</p>
         <p><strong>Location:</strong>&nbsp;{room}</p>
         {zoomAccount && <p><strong>Zoom Account:</strong>&nbsp;{zoomAccount}</p>}
         {zoomLink && <a href={zoomLink} target="_blank" rel="noopener noreferrer" className={styles.zoomLink}>
           <VideoCameraFrontIcon /> {zoomLink}
         </a>}
-        <p><strong>PandaDocs Form</strong></p>
-        <div className={styles.pandaDocs}>
-
-          <a href={'https://Google.com'} download className={styles.pandaDocsLink}>
-            <div className={styles.docsEmoji}><InsertDriveFileIcon /></div>
-            <div className={styles.pandaDocsText}>
-              <div className={styles.pandaDocsName}>{"Dummy Name"}</div>
-              <div className={styles.pandaDocsSize}>{"1.2 MB"}</div>
-            </div>
-            <div className={styles.downloadEmoji}><DownloadForOfflineIcon /></div>
-          </a>
-        </div>
 
         <hr className={styles.divider} />
 
