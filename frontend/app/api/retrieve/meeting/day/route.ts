@@ -10,7 +10,7 @@ const retrieveDayMeetings = async (request: NextRequest) => {
     try {
         const dateParam = request.nextUrl.searchParams.get("startDate") ?? new Date().toISOString();
 
-        let localDate;
+        let localDate : Date;
         if (dateParam.match(/^\d{4}-\d{2}-\d{2}$/)) {
             const [year, month, day] = dateParam.split('-').map(Number);
             localDate = new Date(Date.UTC(year, month - 1, day));
