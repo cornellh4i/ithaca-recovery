@@ -89,7 +89,7 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
     };
 
     const [inputMeetingTitleValue, setMeetingTitleValue] = useState(formData.title); // Meeting title
-    const [selectedMode, setSelectedMode] = useState<string>('Hybrid');
+    const [selectedMode, setSelectedMode] = useState<string>(formData.modeType);
     const [dateValue, setDateValue] = useState<string>(formData.date); // Initial date value as empty
     const [timeValue, setTimeValue] = useState<string>(`${formData.startTime} - ${formData.endTime}`); // Initial time range as empty
     const [freqValue, setFreqValue] = useState<string>("Never"); // TODO: Update recurrence rules
