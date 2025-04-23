@@ -27,7 +27,6 @@ const fetchMeetingsByDay = async (date: Date): Promise<Room[]> => {
   if (meetingCache.has(formattedDate)) {
     return meetingCache.get(formattedDate) || [];
   }
-
   try {
     const response = await fetch(`/api/retrieve/meeting/day?startDate=${formattedDate}`);
     const data = await response.json();
@@ -53,7 +52,7 @@ const fetchMeetingsByDay = async (date: Date): Promise<Room[]> => {
         title: meeting.title,
         startTime: startEDT,
         endTime: endEDT,
-        tags: [meeting.type, meeting.group],
+        tags: [meeting.calType, meeting.modeType],
       });
     });
 
@@ -129,7 +128,6 @@ const DailyView: React.FC<DailyViewProps> = ({ filters, selectedDate, setSelecte
     setMeetings(data);
   };
 
-
   const updateTimePosition = () => {
     const now = new Date(selectedDate); // Use selectedDate instead of current date
     const currentHour = now.getHours();
@@ -180,11 +178,41 @@ const DailyView: React.FC<DailyViewProps> = ({ filters, selectedDate, setSelecte
     console.log("Grid row clicked");
   };
 
+  // filter meetings based on meeting type and room filters
+  const filterMeetings = (room: Room): Room => {
+    // filter meetings based on  tags (meeting type)
+    const filteredMeetings = room.meetings.filter(meeting => {
+      // check if all tags for this meeting are enabled in filters
+      return meeting.tags.every(tag => {
+        // normalize tag name to match filter names (removing spaces and special chars)
+        const normalizedTag = tag.replace(/[-\s]+/g, '').replace(/\s+/g, '');
+        // ff filter for this tag exists and is true, or if filter doesn't exist, keep the meeting
+        return filters[normalizedTag] !== false;
+      });
+    });
+
+    // return the room with filtered meetings
+    return {
+      ...room,
+      meetings: filteredMeetings
+    };
+  };
+
+  // First filter rooms by room name, then filter meetings within each room by meeting type
   const combinedRooms = defaultRooms
-    .filter((defaultRoom) => filters[defaultRoom.name.replace(/[-\s]+/g, '').replace(/\s+/g, '')])
+    .filter((defaultRoom) => {
+      const normalizedRoomName = defaultRoom.name.replace(/[-\s]+/g, '').replace(/\s+/g, '');
+      return filters[normalizedRoomName] !== false;
+    })
     .map((defaultRoom) => {
       const roomWithMeetings = meetings.find((meetingRoom) => meetingRoom.name === defaultRoom.name);
-      return roomWithMeetings || { ...defaultRoom, meetings: [] }; 
+
+      if (roomWithMeetings) {
+        // Apply meeting type filters to the meetings in this room
+        return filterMeetings(roomWithMeetings);
+      } else {
+        return { ...defaultRoom, meetings: [] };
+      }
     });
 
   return (
