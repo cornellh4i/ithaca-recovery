@@ -41,6 +41,7 @@ const App = () => {
     type: 'Virtual Meeting',
     room: 'Conference Room B',
     recurrence: 'Weekly',
+    email: 'test@email.com', // Added email property
     onBack: () => alert('Back button clicked'),
     onEdit: () => alert('Edit button clicked'),
     onDelete: () => alert('Delete Button Clicked'),
@@ -196,6 +197,7 @@ const App = () => {
         group: 'Group',
         startDateTime: new Date(),
         endDateTime: new Date(),
+        email: inputEmailValue,
         zoomAccount: 'Zoom Account',
         type: "in-person",
         room: "sunflower"
@@ -262,6 +264,7 @@ const App = () => {
         group: 'Group',
         startDateTime: new Date(),
         endDateTime: new Date(),
+        email: inputEmailValue,
         zoomAccount: 'Zoom Account',
         type: "in-person",
         room: "sunflower"
@@ -441,7 +444,7 @@ const App = () => {
       </div>
       <div className={styles.section}>
         <h2>Spinner Input</h2>
-        <SpinnerInput value={1} onChange={() => {}}></SpinnerInput>
+        <SpinnerInput value={1} onChange={() => { }}></SpinnerInput>
       </div>
       <div className={styles.section}>
         <h2>Admins</h2>
