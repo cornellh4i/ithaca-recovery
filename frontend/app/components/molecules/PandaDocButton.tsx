@@ -11,49 +11,21 @@ const PandaDocButton: React.FC<PandaDocButtonProps> = ({ className }) => {
     try {
       const currentYear = new Date().getFullYear();
       const julyFirst = new Date(currentYear, 6, 1);
-      
       const julFirstStr = julyFirst.toLocaleString("en-US", {timeZone: "America/New_York"});
       
-      const firstWeekRes = await fetch(`/api/retrieve/meeting/week?startDate=${julFirstStr}`, {
+      const response = await fetch(`/api/retrieve/meeting/week?startDate=${julFirstStr}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
         }
       });
       
-      if (!firstWeekRes.ok) {
-        throw new Error(`HTTP error! Status: ${firstWeekRes.status}`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
       }
       
-      const firstWeekMeetings = await firstWeekRes.json();
-      
-      const julyEighth = new Date(currentYear, 6, 8);
-      const julEigthStr = julyEighth.toLocaleString("en-US", {timeZone: "America/New_York"});
-      
-      const secondWeekRes = await fetch(`/api/retrieve/meeting/week?startDate=${julEigthStr}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        }
-      });
-      
-      if (!secondWeekRes.ok) {
-        throw new Error(`HTTP error! Status: ${secondWeekRes.status}`);
-      }
-      
-      const secondWeekMeetings = await secondWeekRes.json();
-      
-      const allMeetings = [...firstWeekMeetings, ...secondWeekMeetings];
-      
-      const julyFirst00 = new Date(currentYear, 6, 1, 0, 0, 0, 0);
-      const julySeventhEnd = new Date(currentYear, 6, 7, 23, 59, 59, 999);
-      
-      const filteredMeetings = allMeetings.filter(meeting => {
-        const meetingDate = new Date(meeting.startDateTime);
-        return meetingDate >= julyFirst00 && meetingDate <= julySeventhEnd;
-      });
-      
-      return filteredMeetings;
+      const firstWeekMeetings = await response.json();
+      return firstWeekMeetings;
     } catch (error) {
       console.error('Error fetching meetings:', error);
       return [];
@@ -166,7 +138,7 @@ const PandaDocButton: React.FC<PandaDocButtonProps> = ({ className }) => {
         "Client.City": "Ithaca",
         "Client.Company": meeting.title,
         "Client.Country": "US",
-        "Client.Email": "placeholder@email.com",
+        "Client.Email": meeting.email,
         "Client.PostalCode": "14850",
         "Client.State": "NY",
         "Client.StreetAddress": "518 W Seneca St",
