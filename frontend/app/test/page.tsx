@@ -446,10 +446,10 @@ const App = () => {
       </div>
       <div>
       </div>
-      <div className={styles.section}>
+      {/* <div className={styles.section}>
         <h2>Reccuring Meeting</h2>
         <ReccuringMeeting></ReccuringMeeting>
-      </div>
+      </div> */}
       <div className={styles.section}>
         <h2>Spinner Input</h2>
         <SpinnerInput value={1} onChange={() => { }}></SpinnerInput>
