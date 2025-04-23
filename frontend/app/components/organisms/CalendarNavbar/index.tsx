@@ -132,7 +132,7 @@ const CalendarNavbar: React.FC<CalendarNavbarProps> = ({ selectedDate, onPreviou
             <select id="view-select" value={selectedView} onChange={handleViewChange}>
               <option value="Day">Day</option>
               <option value="Week">Week</option>
-              <option value="Month">Month</option>
+              {/* <option value="Month">Month</option> */}
             </select>
           </div>
           <div className={styles.box}>
