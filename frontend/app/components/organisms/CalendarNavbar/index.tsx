@@ -8,9 +8,10 @@ type CalendarNavbarProps = {
     onNextDay: () => void;
     onDateChange: (date : Date) => void;
     onToday: () => void;
+    onViewChange: (view: string) => void;
   };
   
-const CalendarNavbar: React.FC<CalendarNavbarProps> = ({ selectedDate, onPreviousDay, onNextDay, onDateChange, onToday }) => {
+const CalendarNavbar: React.FC<CalendarNavbarProps> = ({ selectedDate, onPreviousDay, onNextDay, onDateChange, onToday, onViewChange }) => {
     const [currentDate, setCurrentDate] = useState(new Date());
     const [selectedView, setSelectedView] = useState('Day');
   
@@ -102,6 +103,7 @@ const CalendarNavbar: React.FC<CalendarNavbarProps> = ({ selectedDate, onPreviou
   
     const handleViewChange: React.ChangeEventHandler<HTMLSelectElement> = (event) => {
       setSelectedView(event.target.value);
+      onViewChange(event.target.value); // Call the external function
       onDateChange(new Date());
     };
   
@@ -131,7 +133,7 @@ const CalendarNavbar: React.FC<CalendarNavbarProps> = ({ selectedDate, onPreviou
             <select id="view-select" value={selectedView} onChange={handleViewChange}>
               <option value="Day">Day</option>
               <option value="Week">Week</option>
-              <option value="Month">Month</option>
+              {/* <option value="Month">Month</option> */}
             </select>
           </div>
           <div className={styles.box}>

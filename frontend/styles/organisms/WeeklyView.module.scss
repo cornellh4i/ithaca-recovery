@@ -1,0 +1,206 @@
+@import url('https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;600&display=swap');
+
+.outerContainer {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  font-family: 'Source Sans Pro', sans-serif;
+  height: 100%;
+  overflow: hidden;
+}
+
+.weekNavigation {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 20px;
+  border-bottom: 1px solid #ddd;
+}
+
+.navButton {
+  padding: 8px 16px;
+  background-color: #f3f4f6;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+
+  &:hover {
+    background-color: #e5e7eb;
+  }
+}
+
+.weekTitle {
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.viewContainer {
+  display: flex;
+  flex: 1;
+  width: 100%;
+  height: calc(100% - 60px); // Account for the navigation header
+  overflow: auto; // This single scroll container will control both time and days
+  margin-top: 24px;
+
+  // Hide scrollbar for Chrome, Safari and Opera
+  &::-webkit-scrollbar {
+    display: none;
+  }
+
+  // Hide scrollbar for IE, Edge and Firefox
+  -ms-overflow-style: none; // IE and Edge
+  scrollbar-width: none; // Firefox
+}
+
+.timeColumn {
+  min-width: 60px;
+  display: flex;
+  flex-direction: column;
+  padding-top: 41px;
+  border-right: 1px solid #ddd;
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  height: 2400px;
+}
+
+.timeHeader {
+  height: 100px; // Match day column headers
+}
+
+.timeSlots {
+  height: 2400px; // 24 hours * 100px
+}
+
+.timeSlot {
+  height: 100px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end; // aligns text to the right
+  padding-right: 16px; // increased padding on the right
+  font-size: 1rem; // increased font size from 0.8rem
+  color: #6b7280;
+  background-color: #fff;
+}
+
+.daysContainer {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  scroll-snap-type: x mandatory;
+  height: 100%;
+}
+
+.dayColumn {
+  flex: 1;
+  min-width: 155px;
+  /* Consistent with daily view's 155px column width */
+  position: relative;
+  border-right: 1px solid #ddd;
+  scroll-snap-align: start;
+  height: 100%;
+  /* Ensure the column stretches the full height of its container */
+  display: flex;
+  flex-direction: column;
+  /* Allow children to expand properly */
+}
+
+.dayColumn:last-child {
+  border-right: none;
+}
+
+.currentTimeIndicator {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background-color: #cc3366; // Matching the DailyView color
+  z-index: 20;
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: -5px;
+    top: -4px;
+    width: 10px;
+    height: 10px;
+    background-color: #cc3366;
+    border-radius: 50%;
+  }
+}
+
+// Day header styles updated for the single line format
+.dayHeader {
+  padding: 10px;
+  font-weight: 700;
+  border-bottom: 1px solid #ddd;
+  background-color: #fff;
+  text-align: center;
+  height: 40px; // Fixed height to ensure consistent alignment
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+// New style for day name
+.dayName {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #000;
+}
+
+// New style for date number
+.dateNumber {
+  font-size: 1.1rem;
+  color: #6b7280;
+  margin-left: 9px;
+}
+
+// Style for current date - now a square without rounded edges
+.currentDate {
+  background-color: #cc3366;
+  color: white;
+  border-radius: 0; // No rounded edges
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 4px;
+  font-size: 0.8rem;
+  line-height: 1; // Ensure text is properly centered
+}
+
+.dayColumnContent {
+  position: relative;
+  height: 2400px; // 24 hours
+}
+
+.hourMarker {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: 1px;
+  background-color: #ddd;
+
+  &::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    height: 100%;
+    width: 1px;
+    background-color: #eee;
+    opacity: 0.5;
+  }
+}
+
+.meetingBlock {
+  position: absolute;
+  width: 90%;
+  left: 5%;
+  border-radius: 6px;
+  z-index: 5;
+  overflow: hidden;
+}
