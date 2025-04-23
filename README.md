@@ -77,6 +77,20 @@ This project aims to develop internal tooling and automation to streamline ICR's
 <!-- Developers -->
 ## Developers
 <details>
+  <summary>Spring 2025 Developers</summary>
+
+  - Tech Leads: Sophie L Wang & Tuni Le
+  - David Valarezo 
+  - Leane Ying
+  - Grace Matsuoka
+  - Samantha Cruz 
+  - Nathan Dang
+  - Sheki Okwayo
+  - Tanya Aravind
+  - Victoria Yu 
+</details>
+
+<details>
   <summary>Fall 2024 Developers</summary>
 
   - Tech Leads: Owen Chen & Tuni Le
