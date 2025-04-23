@@ -12,7 +12,7 @@ const PandaDocButton: React.FC<PandaDocButtonProps> = ({ className }) => {
       const currentYear = new Date().getFullYear();
       const julyFirst = new Date(currentYear, 6, 1);
       
-      const julFirstStr = julyFirst.toISOString();
+      const julFirstStr = julyFirst.toLocaleString("en-US", {timeZone: "America/New_York"});
       
       const firstWeekRes = await fetch(`/api/retrieve/meeting/week?startDate=${julFirstStr}`, {
         method: 'GET',
@@ -28,7 +28,7 @@ const PandaDocButton: React.FC<PandaDocButtonProps> = ({ className }) => {
       const firstWeekMeetings = await firstWeekRes.json();
       
       const julyEighth = new Date(currentYear, 6, 8);
-      const julEigthStr = julyEighth.toISOString();
+      const julEigthStr = julyEighth.toLocaleString("en-US", {timeZone: "America/New_York"});
       
       const secondWeekRes = await fetch(`/api/retrieve/meeting/week?startDate=${julEigthStr}`, {
         method: 'GET',
