@@ -6,6 +6,7 @@ import CalendarSidebar from "../organisms/CalendarSidebar";
 import ViewMeetingDetails from "../organisms/ViewMeeting";
 import EditMeetingSidebar from "../organisms/EditMeeting";
 import DailyView from "../organisms/DailyView";
+import WeeklyView from "../organisms/WeeklyView";
 import { convertUTCToET } from "../../../util/timeUtils";
 import { IMeeting } from "../../../util/models";
 
@@ -34,6 +35,7 @@ const HomePage = () => {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedMeeting, setSelectedMeeting] = useState<IMeeting | null>(null);
   const [selectedMeetingID, setSelectedMeetingID] = useState<string | null>(null);
+  const [selectedView, setSelectedView] = useState<string>("Day");
   const [selectedNewMeeting, setSelectedNewMeeting] = useState<boolean | null>(false);
   const [showEditMeeting, setShowEditMeeting] = useState(false);
 
@@ -41,7 +43,7 @@ const HomePage = () => {
     try {
       const response = await fetch(`/api/retrieve/meeting/${meetingId}`, { method: 'GET' });
       if (response.ok) {
-        const data: IMeeting = await response.json(); // Ensure data matches MeetingDetails type
+        const data: IMeeting = await response.json();
         setSelectedMeeting(data);
       } else {
         console.error("Failed to fetch meeting details");
@@ -148,7 +150,6 @@ const HomePage = () => {
       {isLoggedIn && (
         <div className={styles.sidebar}>
           {showEditMeeting && selectedMeeting ? (
-            // TODO: Update Edit Meeting component
             <EditMeetingSidebar
               meeting={selectedMeeting}
               onClose={handleCloseEdit}
@@ -161,7 +162,6 @@ const HomePage = () => {
               }}
             />) :
             selectedMeeting ? (
-              // TODO: Check Handle Delete in ViewMeetingDetails
               <ViewMeetingDetails
                 mid={selectedMeeting.mid}
                 title={selectedMeeting.title}
@@ -213,14 +213,25 @@ const HomePage = () => {
           onNextDay={() => setSelectedDate(new Date(selectedDate.setDate(selectedDate.getDate() + 1)))}
           onToday={() => (setSelectedDate(new Date()))}
           onDateChange={setSelectedDate}
+          onViewChange={setSelectedView}
         />
-        <DailyView
-          filters={filters}
-          selectedDate={selectedDate}
-          setSelectedDate={setSelectedDate}
-          setSelectedMeetingID={setSelectedMeetingID}
-          setSelectedNewMeeting={setSelectedNewMeeting}
-        />
+        {selectedView === "Day" ? (
+          <DailyView
+            filters={filters}
+            selectedDate={selectedDate}
+            setSelectedDate={setSelectedDate}
+            setSelectedMeetingID={setSelectedMeetingID}
+            setSelectedNewMeeting={setSelectedNewMeeting}
+          />
+        ) : (
+          <WeeklyView
+            filters={filters}
+            selectedDate={selectedDate}
+            setSelectedDate={setSelectedDate}
+            setSelectedMeetingID={setSelectedMeetingID}
+            setSelectedNewMeeting={setSelectedNewMeeting}
+          />
+        )}
       </div>
     </div>
   );
