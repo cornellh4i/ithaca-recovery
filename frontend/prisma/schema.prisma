@@ -19,6 +19,7 @@ model Meeting {
   id            String   @id @default(auto()) @map("_id") @db.ObjectId
   title         String
   mid           String   @unique
+  calType        String
   description   String
   creator       String
   group         String
@@ -28,8 +29,8 @@ model Meeting {
   zoomAccount   String?  // optional
   zoomLink      String?  // optional, needs to be added
   zid           String?  // optional, needs to be added
-  type          String
   room          String
+  modeType      String
 }
 
 

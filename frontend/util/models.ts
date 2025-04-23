@@ -1,5 +1,3 @@
-import { GridFSBucketWriteStream } from 'mongodb';
-
 // Please add models here
 interface IUser {
   uid: string;
@@ -9,8 +7,6 @@ interface IUser {
 interface IAdmin extends IUser {
   email: string;
 }
-
-// TODO: Add email for IMeeting?
 
 interface IMeeting {
   title: string;
@@ -24,7 +20,8 @@ interface IMeeting {
   zoomAccount?: string | null;
   zoomLink?: string | null;
   zid?: string | null;
-  type: string;
+  calType: string;
+  modeType: string;
   room: string;
 }
 

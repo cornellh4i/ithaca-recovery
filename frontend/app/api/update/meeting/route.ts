@@ -19,23 +19,13 @@ const updateMeeting = async (request: Request): Promise<Response> => {
       return NextResponse.json({ error: `Meeting with ID ${newMeeting.mid} not found` }, { status: 404 });
     }
 
+    const { mid, ...dataWithoutMid } = newMeeting;
+
     const updatedMeeting = await prisma.meeting.update({
       where: {
-        mid: newMeeting.mid,
+        mid: mid,
       },
-      data: {
-        title: newMeeting.title,
-        description: newMeeting.description,
-        creator: newMeeting.creator,
-        group: newMeeting.group,
-        startDateTime: newMeeting.startDateTime,
-        endDateTime: newMeeting.endDateTime,
-        zoomAccount: newMeeting.zoomAccount,
-        zoomLink: newMeeting.zoomLink,
-        zid: newMeeting.zid,
-        type: newMeeting.type,
-        room: newMeeting.room,
-      },
+      data: dataWithoutMid,
     });
 
     return NextResponse.json(updatedMeeting);

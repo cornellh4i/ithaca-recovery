@@ -190,7 +190,8 @@ const HomePage = () => {
                 zoomAccount={selectedMeeting.zoomAccount}
                 zoomLink={selectedMeeting.zoomLink}
                 zid={selectedMeeting.zid}
-                type={selectedMeeting.type}
+                modeType={selectedMeeting.modeType}
+                calType={selectedMeeting.calType}
                 room={selectedMeeting.room}
                 // recurrence={selectedMeeting.recurrence} // TODO: Update when merge with Recurring Meetings
                 onBack={handleBack}

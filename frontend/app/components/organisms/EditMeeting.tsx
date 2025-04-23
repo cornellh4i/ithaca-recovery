@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { MeetingForm } from './MeetingForm';
 
 import TextField from '../atoms/TextField';
+import ModeTypeButtons from '../atoms/ModeTypeButtons';
 import DatePicker from '../atoms/DatePicker';
 import TimePicker from '../atoms/TimePicker';
 import Dropdown from '../atoms/dropdown';
@@ -70,8 +71,9 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
 
     // State declarations for Edit Meeting form
     const formData = {
-      title: meeting.title,
       mid: meeting.mid,
+      title: meeting.title,
+      modeType: meeting.modeType,
       description: meeting.description || '',
       creator: meeting.creator,
       group: meeting.group,
@@ -82,18 +84,19 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
       zoomAccount: meeting.zoomAccount || '',
       zoomLink: meeting.zoomLink || '',
       zid: meeting.zid || '',
-      type: meeting.type,
+      calType: meeting.calType,
       room: meeting.room,
     };
 
     const [inputMeetingTitleValue, setMeetingTitleValue] = useState(formData.title); // Meeting title
+    const [selectedMode, setSelectedMode] = useState<string>(formData.modeType);
     const [dateValue, setDateValue] = useState<string>(formData.date); // Initial date value as empty
     const [timeValue, setTimeValue] = useState<string>(`${formData.startTime} - ${formData.endTime}`); // Initial time range as empty
     const [freqValue, setFreqValue] = useState<string>("Never"); // TODO: Update recurrence rules
     const [inputEmailValue, setEmailValue] = useState(formData.email); // TODO: Update Email after migrating IMeeting
     const [inputDescriptionValue, setDescriptionValue] = useState(formData.description); // Description input value
     const [selectedRoom, setSelectedRoom] = useState<string>(formData.room);
-    const [selectedMeetingType, setSelectedMeetingType] = useState<string>(formData.type);
+    const [selectedMeetingType, setSelectedMeetingType] = useState<string>(formData.calType);
     const [selectedZoomAccount, setSelectedZoomAccount] = useState<string>(formData.zoomAccount);
 
     // Update handlers for these dropdowns
@@ -177,18 +180,19 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
         const endDateTimeUTC = new Date(endDateTimeUTCString);
 
         const updatedMeeting: IMeeting = {
-          title: inputMeetingTitleValue,
-          mid: formData.mid,
-          description: inputDescriptionValue,
-          creator: 'Creator',
-          group: 'Group',
-          startDateTime: startDateTimeUTC,
-          endDateTime: endDateTimeUTC,
-          email: inputEmailValue,
-          zoomAccount: selectedZoomAccount,
-          type: selectedMeetingType,
-          room: selectedRoom,
-        };
+            mid: formData.mid,
+            title: inputMeetingTitleValue,
+            modeType: selectedMode, // Meeting Mode Type
+            description: inputDescriptionValue,
+            creator: 'Creator',
+            group: 'Group',
+            startDateTime: startDateTimeUTC,
+            endDateTime: endDateTimeUTC,
+            email: inputEmailValue,
+            zoomAccount: selectedZoomAccount,
+            calType: selectedMeetingType, // Room Type
+            room: selectedRoom,
+          };
 
         const response = await fetch('/api/update/meeting', {
           method: 'PUT',
@@ -224,6 +228,9 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
             input="Meeting title"
             value={inputMeetingTitleValue}
             onChange={setMeetingTitleValue}
+          />}
+          modeTypeButtons={<ModeTypeButtons 
+            onModeSelect={setSelectedMode}
           />}
           DatePicker={<DatePicker
             label={<img src='/svg/calendar-icon.svg' alt="Calendar Icon" />}

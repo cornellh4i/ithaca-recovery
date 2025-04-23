@@ -8,8 +8,6 @@ import NewMeetingSidebar from '../NewMeeting';
 import styles from '../../../../styles/components/organisms/CalendarSidebar.module.scss';
 import AddIcon from '@mui/icons-material/Add';
 
-
-
 interface CalendarSidebarProps {
   filters: any;
   setFilters: any;
@@ -34,15 +32,6 @@ const CalendarSidebar: React.FC<CalendarSidebarProps> = ({filters, setFilters, s
 
   const handleOpenNewMeeting = () => {
     setIsNewMeetingOpen(true);
-  };
-
-  const handleFileSelect = (file: File | null) => {
-    if (file) {
-      console.log("File selected:", file);
-      // Handle the selected file (e.g., upload it or process it)
-    } else {
-      console.log("No file selected");
-    }
   };
 
   return (

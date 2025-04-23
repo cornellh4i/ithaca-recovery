@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { MeetingForm } from './MeetingForm';
 
 import TextField from '../atoms/TextField';
+import ModeTypeButtons from '../atoms/ModeTypeButtons';
 import DatePicker from '../atoms/DatePicker';
 import TimePicker from '../atoms/TimePicker';
 import Dropdown from '../atoms/dropdown';
@@ -23,6 +24,7 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> =
   ({ setIsNewMeetingOpen }) => {
     // State declarations for New Meeting form
     const [inputMeetingTitleValue, setMeetingTitleValue] = useState(""); // Meeting title
+    const [selectedMode, setSelectedMode] = useState<string>('Hybrid');
     const [dateValue, setDateValue] = useState<string>(""); // Initial date value as empty
     const [timeValue, setTimeValue] = useState<string>(""); // Initial time range as empty
     const [freqValue, setFreqValue] = useState<string>("Never"); // Default frequency value
@@ -39,6 +41,7 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> =
 
     const clearMeetingState = () => {
       setMeetingTitleValue("");
+      setSelectedMode("Hybrid");
       setDateValue("");
       setTimeValue("");
       setFreqValue("Never");
@@ -126,8 +129,9 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> =
         const endDateTimeUTC = new Date(endDateTimeUTCString);
 
         const newMeeting: IMeeting = {
-          title: inputMeetingTitleValue,
           mid: generateMeetingId(),
+          title: inputMeetingTitleValue,
+          modeType: selectedMode, // Meeting Mode Type
           description: inputDescriptionValue,
           creator: 'Creator',
           group: 'Group',
@@ -135,7 +139,7 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> =
           endDateTime: endDateTimeUTC,
           email: inputEmailValue,
           zoomAccount: selectedZoomAccount,
-          type: selectedMeetingType,
+          calType: selectedMeetingType, // Room Type
           room: selectedRoom,
         };
         const response = await fetch('/api/write/meeting', {
@@ -172,6 +176,9 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> =
             input="Meeting title"
             value={inputMeetingTitleValue}
             onChange={setMeetingTitleValue}
+          />}
+          modeTypeButtons={<ModeTypeButtons 
+            onModeSelect={setSelectedMode}
           />}
           DatePicker={<DatePicker
             label={<img src='/svg/calendar-icon.svg' alt="Calendar Icon" />}
