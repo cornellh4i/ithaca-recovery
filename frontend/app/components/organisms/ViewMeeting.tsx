@@ -10,6 +10,7 @@ import { convertUTCToET } from "../../../util/timeUtils";
 type ViewMeetingDetailsProps = {
   mid: string; // Maps to 'mid' in the model
   title: string; // Maps to 'title' in the model
+  modeType: string; // Maps to 'modeType' in the model
   description?: string; // Maps to 'description' in the model
   creator: string; // Maps to 'creator' in the model
   group: string; // Maps to 'group' in the model
@@ -19,7 +20,7 @@ type ViewMeetingDetailsProps = {
   zoomAccount?: string | null; // Maps to 'zoomAccount' in the model (optional)
   zoomLink?: string | null; // Maps to 'zoomLink' in the model (optional)
   zid?: string | null; // Maps to 'zid' in the model (optional)
-  type: string; // Maps to 'type' in the model
+  calType: string; // Maps to 'calType' in the model
   room: string; // Maps to 'room' in the model
   recurrence?: string; // Remains as optional if required
   onBack: () => void;
@@ -30,6 +31,7 @@ type ViewMeetingDetailsProps = {
 const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
   mid,
   title,
+  modeType,
   description,
   creator,
   group,
@@ -39,7 +41,7 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
   zoomAccount,
   zoomLink,
   zid,
-  type,
+  calType,
   room,
   recurrence,
   onBack,
@@ -59,7 +61,7 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
       <div className={styles.header}>
         <button className={styles.backButton} onClick={onBack}>←</button>
         <h1>{title}</h1>
-        <span className={styles.settingLabel}>{type}</span>
+        <span className={styles.settingLabel}>{modeType}</span>
         <div className={styles.moreOptions}>
           <button>⋮</button>
           <div className={styles.optionsMenu}>
@@ -87,7 +89,8 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
         <hr className={styles.divider} />
 
         <p><strong>Email:</strong>&nbsp;{email}</p>
-        <p><strong>Calendar:</strong>&nbsp;{group}</p>
+        <p><strong>Meeting Mode:</strong>&nbsp;{modeType}</p>
+        <p><strong>Calendar:</strong>&nbsp;{calType}</p>
         <p><strong>Location:</strong>&nbsp;{room}</p>
         {zoomAccount && <p><strong>Zoom Account:</strong>&nbsp;{zoomAccount}</p>}
         {zoomLink && <a href={zoomLink} target="_blank" rel="noopener noreferrer" className={styles.zoomLink}>

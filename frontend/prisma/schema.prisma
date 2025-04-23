@@ -29,7 +29,6 @@ model Meeting {
   zoomAccount   String?  // optional
   zoomLink      String?  // optional, needs to be added
   zid           String?  // optional, needs to be added
-  type          String
   room          String
   modeType      String
 }
