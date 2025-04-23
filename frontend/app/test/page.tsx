@@ -639,10 +639,10 @@ const App = () => {
         ></NewMeetingSidebar>
       </div> */}
 
-      <div className={styles.section}>
+      {/* <div className={styles.section}>
         <h1>Test Page for ViewMeetingDetails Component</h1>
         <ViewMeetingDetails {...sampleMeeting} />
-      </div>
+      </div> */}
 
       {/* <div className={styles.section}>
         <h2>Mini Calendar</h2>
