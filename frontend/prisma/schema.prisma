@@ -16,36 +16,38 @@ model Admin {
 }
 
 model Meeting {
-  id            String   @id @default(auto()) @map("_id") @db.ObjectId
-  title         String
-  mid           String   @unique
-  calType        String
-  description   String
-  creator       String
-  group         String
-  startDateTime DateTime @db.Date
-  endDateTime   DateTime @db.Date
-  email         String
-  zoomAccount   String?  // optional
-  zoomLink      String?  // optional, needs to be added
-  zid           String?  // optional, needs to be added
-  room          String
-  modeType      String
+  id                String               @id @default(auto()) @map("_id") @db.ObjectId
+  mid               String               @unique
+  title             String
+  calType           String
+  description       String
+  creator           String
+  group             String
+  startDateTime     DateTime             @db.Date
+  endDateTime       DateTime             @db.Date
+  email             String
+  zoomAccount       String?              // optional
+  zoomLink          String?              // optional
+  zid               String?              // optional
+  room              String
+  modeType          String
+  isRecurring       Boolean              @default(false)
+  recurrencePattern RecurrencePattern?   @relation("MeetingToRecurrencePattern")
 }
-
 
 model RecurrencePattern {
-  id                 String    @id @default(auto()) @map("_id") @db.ObjectId
+  id                 String   @id @default(auto()) @map("_id") @db.ObjectId
+  mid                String   @unique
+  meeting            Meeting  @relation("MeetingToRecurrencePattern", fields: [mid], references: [mid])
+  type               String
+  startDate          DateTime
+  endDate            DateTime?
+  numberOfOccurences Int?
   daysOfWeek         String[]
-  endDate            DateTime? @db.Date
   firstDayOfWeek     String
   interval           Int
-  meetingId          String
-  /// Could not determine type: the field only had null or empty values in the sample set.
-  numberOfOccurences Json?
-  startDate          DateTime  @db.Date
-  type               String
 }
+
 
 model User {
   id   String @id @default(auto()) @map("_id") @db.ObjectId
