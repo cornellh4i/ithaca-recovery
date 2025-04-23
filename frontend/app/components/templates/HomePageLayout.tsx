@@ -27,7 +27,7 @@ const HomePage = () => {
         setIsLoggedIn(false);
       }
     };
-    
+
     checkAuthStatus();
   }, []);
 
@@ -146,8 +146,8 @@ const HomePage = () => {
   return (
     <div className={styles.container}>
       {isLoggedIn && (
-      <div className={styles.sidebar}>
-        {showEditMeeting && selectedMeeting ? (
+        <div className={styles.sidebar}>
+          {showEditMeeting && selectedMeeting ? (
             // TODO: Update Edit Meeting component
             <EditMeetingSidebar
               meeting={selectedMeeting}
@@ -159,50 +159,52 @@ const HomePage = () => {
                   fetchMeetingDetails(selectedMeeting.mid);
                 }
               }}
-              />) :
-          selectedMeeting ? (
-            // TODO: Check Handle Delete in ViewMeetingDetails
-            <ViewMeetingDetails
-              mid={selectedMeeting.mid}
-              title={selectedMeeting.title}
-              description={selectedMeeting.description}
-              creator={selectedMeeting.creator}
-              group={selectedMeeting.group}
+            />) :
+            selectedMeeting ? (
+              // TODO: Check Handle Delete in ViewMeetingDetails
+              <ViewMeetingDetails
+                mid={selectedMeeting.mid}
+                title={selectedMeeting.title}
+                description={selectedMeeting.description}
+                creator={selectedMeeting.creator}
+                group={selectedMeeting.group}
 
-              startDateTime={convertESTStringToDate(
-                convertUTCToET(
-                  selectedMeeting.startDateTime instanceof Date
-                    ? selectedMeeting.startDateTime.toISOString()
-                    : selectedMeeting.startDateTime
-                )
-              )}
-              
-              endDateTime={convertESTStringToDate(
-                convertUTCToET(
-                  selectedMeeting.endDateTime instanceof Date
-                    ? selectedMeeting.endDateTime.toISOString()
-                    : selectedMeeting.endDateTime
-                )
-              )}
+                startDateTime={convertESTStringToDate(
+                  convertUTCToET(
+                    selectedMeeting.startDateTime instanceof Date
+                      ? selectedMeeting.startDateTime.toISOString()
+                      : selectedMeeting.startDateTime
+                  )
+                )}
 
-              zoomAccount={selectedMeeting.zoomAccount}
-              zoomLink={selectedMeeting.zoomLink}
-              zid={selectedMeeting.zid}
-              type={selectedMeeting.type}
-              room={selectedMeeting.room}
-              // recurrence={selectedMeeting.recurrence} // TODO: Update when merge with Recurring Meetings
-              onBack={handleBack}
-              onEdit={handleOpenEdit}
-              onDelete={handleDelete}
-            />
-          ) : (
-            <CalendarSidebar 
-              filters={filters}
-              setFilters={setFilters}
-              selectedDate={selectedDate} 
-              setSelectedDate={setSelectedDate} />
-          )}
-      </div>
+                endDateTime={convertESTStringToDate(
+                  convertUTCToET(
+                    selectedMeeting.endDateTime instanceof Date
+                      ? selectedMeeting.endDateTime.toISOString()
+                      : selectedMeeting.endDateTime
+                  )
+                )}
+
+                email={selectedMeeting.email}
+
+                zoomAccount={selectedMeeting.zoomAccount}
+                zoomLink={selectedMeeting.zoomLink}
+                zid={selectedMeeting.zid}
+                type={selectedMeeting.type}
+                room={selectedMeeting.room}
+                // recurrence={selectedMeeting.recurrence} // TODO: Update when merge with Recurring Meetings
+                onBack={handleBack}
+                onEdit={handleOpenEdit}
+                onDelete={handleDelete}
+              />
+            ) : (
+              <CalendarSidebar
+                filters={filters}
+                setFilters={setFilters}
+                selectedDate={selectedDate}
+                setSelectedDate={setSelectedDate} />
+            )}
+        </div>
       )}
       <div className={styles.primaryCalendar}>
         <CalendarNavbar
@@ -212,12 +214,12 @@ const HomePage = () => {
           onToday={() => (setSelectedDate(new Date()))}
           onDateChange={setSelectedDate}
         />
-        <DailyView 
+        <DailyView
           filters={filters}
-          selectedDate={selectedDate} 
-          setSelectedDate={setSelectedDate} 
-          setSelectedMeetingID={setSelectedMeetingID} 
-          setSelectedNewMeeting={setSelectedNewMeeting} 
+          selectedDate={selectedDate}
+          setSelectedDate={setSelectedDate}
+          setSelectedMeetingID={setSelectedMeetingID}
+          setSelectedNewMeeting={setSelectedNewMeeting}
         />
       </div>
     </div>
