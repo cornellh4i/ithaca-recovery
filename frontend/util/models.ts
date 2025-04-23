@@ -26,7 +26,6 @@ interface IMeeting {
   zid?: string | null;
   type: string;
   room: string;
-  pandaDoc?: File | Buffer | GridFSBucketWriteStream | null;
 }
 
 export type { IUser, IMeeting, IAdmin };

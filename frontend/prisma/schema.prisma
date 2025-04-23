@@ -17,19 +17,21 @@ model Admin {
 
 model Meeting {
   id            String   @id @default(auto()) @map("_id") @db.ObjectId
-  creator       String
-  description   String
-  email         String?
-  endDateTime   DateTime @db.Date
-  group         String
-  isRecurring   Boolean?
-  mid           String   @unique
-  room          String
-  startDateTime DateTime @db.Date
   title         String
+  mid           String   @unique
+  description   String
+  creator       String
+  group         String
+  startDateTime DateTime @db.Date
+  endDateTime   DateTime @db.Date
+  email         String
+  zoomAccount   String?  // optional
+  zoomLink      String?  // optional, needs to be added
+  zid           String?  // optional, needs to be added
   type          String
-  zoomAccount   String
+  room          String
 }
+
 
 model RecurrencePattern {
   id                 String    @id @default(auto()) @map("_id") @db.ObjectId
