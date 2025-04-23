@@ -44,12 +44,18 @@
   background: #F1F1F1;
 }
 
+.button.active {
+  background: #F1F1F1;
+  border-radius: 8px;
+}
+
+
 .meetingButtons {
   display: flex;
   flex-direction: row;
   justify-content: space-between;
-  margin-bottom: 16px;
-  margin: 10px;
+  width: 100%;
+  margin-bottom: 10px;
 }
 
 /* Responsive adjustments */
@@ -59,4 +65,21 @@
     height: auto;
     padding: 20px;
   }
+}
+
+.meetingHeader {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  color: var(--Dark-Navy, #3A3E49);
+  font-family: "Source Sans Pro";
+  font-style: normal;
+  font-weight: 600;
+  background-color: white;
+}
+
+.iconButton {
+  width: auto;
+  height: 40px;
 }

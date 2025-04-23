@@ -7,24 +7,34 @@ const prisma = new PrismaClient();
 const updateMeeting = async (request: Request): Promise<Response> => {
   try {
     const newMeeting = await request.json() as IMeeting;
-    const updatedMeeting = await prisma.meeting.update({
+
+    const existingMeeting = await prisma.meeting.findUnique({
       where: {
         mid: newMeeting.mid,
       },
-      data: {
-        ...newMeeting
-      },
     });
 
-    return new Response(JSON.stringify(updatedMeeting), {
-      status: 200,
-      headers: {
-        'Content-Type': 'application/json',
+    if (!existingMeeting) {
+      console.error('Meeting not found:', newMeeting.mid);
+      return NextResponse.json({ error: `Meeting with ID ${newMeeting.mid} not found` }, { status: 404 });
+    }
+
+    const { mid, ...dataWithoutMid } = newMeeting;
+
+    const updatedMeeting = await prisma.meeting.update({
+      where: {
+        mid: mid,
       },
+      data: dataWithoutMid,
     });
+
+    return NextResponse.json(updatedMeeting);
   } catch (error) {
-    console.error(error);
-    return NextResponse.json({ error: "Meeting not found or update failed" }, { status: 500 });
+    console.error('Detailed error:', error);
+    return NextResponse.json({
+      error: error instanceof Error ? error.message : "Unknown error occurred",
+      details: error
+    }, { status: 500 });
   }
 };
 

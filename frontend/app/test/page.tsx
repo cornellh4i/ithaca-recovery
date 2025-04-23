@@ -18,6 +18,7 @@ import Dropdown from "../components/atoms/dropdown";
 import MeetingsFilter from '../components/molecules/MeetingsFilter';
 import NewMeetingSidebar from '../components/organisms/NewMeeting';
 import ViewMeetingDetails from '../components/organisms/ViewMeeting';
+import ModeTypeButtons from '../components/atoms/ModeTypeButtons';
 import TodayIcon from '@mui/icons-material/Today';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import ReccuringMeeting from "../components/molecules/RecurringMeeting";
@@ -41,6 +42,7 @@ const App = () => {
     type: 'Virtual Meeting',
     room: 'Conference Room B',
     recurrence: 'Weekly',
+    email: 'test@email.com', // Added email property
     onBack: () => alert('Back button clicked'),
     onEdit: () => alert('Edit button clicked'),
     onDelete: () => alert('Delete Button Clicked'),
@@ -58,6 +60,7 @@ const App = () => {
   const [selectedOption, setSelectedOption] = useState<string>("Never"); // Default radio option
   const [selectedZoomAccount, setSelectedZoomAccount] = useState<string | null>(null); // Initially no Zoom account selected
   const [inputDescriptionValue, setDescriptionValue] = useState(""); // Description input value
+  const [selectedMode, setSelectedMode] = useState<string>("Hybrid"); // Default mode
 
   // Room and Meeting Type options
   const roomOptions = [
@@ -107,6 +110,10 @@ const App = () => {
     setSelectedZoomAccount(email);
   };
 
+  const handleModeSelect = (mode: string) => {
+    console.log("Selected mode:", mode);
+    setSelectedMode(mode)
+  };
 
   const createAdmin = async () => {
     try {
@@ -196,8 +203,10 @@ const App = () => {
         group: 'Group',
         startDateTime: new Date(),
         endDateTime: new Date(),
+        email: inputEmailValue,
         zoomAccount: 'Zoom Account',
-        type: "in-person",
+        calType: "in-person",
+        modeType: "Hybrid",
         room: "sunflower"
       };
       const response = await fetch('/api/write/meeting', {
@@ -262,8 +271,10 @@ const App = () => {
         group: 'Group',
         startDateTime: new Date(),
         endDateTime: new Date(),
+        email: inputEmailValue,
         zoomAccount: 'Zoom Account',
-        type: "in-person",
+        calType: "in-person",
+        modeType: "Hybrid",
         room: "sunflower"
       };
 
@@ -441,7 +452,7 @@ const App = () => {
       </div>
       <div className={styles.section}>
         <h2>Spinner Input</h2>
-        <SpinnerInput value={1} onChange={() => {}}></SpinnerInput>
+        <SpinnerInput value={1} onChange={() => { }}></SpinnerInput>
       </div>
       <div className={styles.section}>
         <h2>Admins</h2>
@@ -550,7 +561,7 @@ const App = () => {
         }} />
       </div>
 
-      {/* New Meeting Sidebar Section */}
+      {/* New Meeting Sidebar Section
       <div className={styles.section + ' ' + styles.newMeetingSidebar}>
         <h2>New Meeting Sidebar</h2>
         <NewMeetingSidebar
@@ -559,6 +570,7 @@ const App = () => {
             value={inputMeetingTitleValue}
             onChange={setMeetingTitleValue}
             />}
+          
           DatePicker={<DatePicker
             label={<TodayIcon />}
             value={dateValue}
@@ -625,12 +637,12 @@ const App = () => {
 
           onCreateMeeting={createMeeting}
         ></NewMeetingSidebar>
-      </div>
+      </div> */}
 
-      <div className={styles.section}>
+      {/* <div className={styles.section}>
         <h1>Test Page for ViewMeetingDetails Component</h1>
         <ViewMeetingDetails {...sampleMeeting} />
-      </div>
+      </div> */}
 
       {/* <div className={styles.section}>
         <h2>Mini Calendar</h2>

@@ -5,33 +5,30 @@ import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import VideoCameraFrontIcon from '@mui/icons-material/VideoCameraFront';
 import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
 import DownloadForOfflineIcon from '@mui/icons-material/DownloadForOffline';
-import DeleteRecurringModal from '../../molecules/DeleteRecurringModal';
+import DeleteRecurringModal from '../molecules/DeleteRecurringModal';
+
+import { IRecurrencePattern } from '../../../util/models';
+import { convertUTCToET } from "../../../util/timeUtils";
+
 
 type ViewMeetingDetailsProps = {
-  id: string; // Maps to 'id' in the model (ObjectId, but treated as string here)
   mid: string; // Maps to 'mid' in the model
   title: string; // Maps to 'title' in the model
+  modeType: string; // Maps to 'modeType' in the model
   description?: string; // Maps to 'description' in the model
   creator: string; // Maps to 'creator' in the model
   group: string; // Maps to 'group' in the model
   startDateTime: Date; // Maps to 'startDateTime' in the model (use string or Date, depending on your frontend handling)
   endDateTime: Date; // Maps to 'endDateTime' in the model
-  zoomAccount?: string; // Maps to 'zoomAccount' in the model (optional)
-  zoomLink?: string; // Maps to 'zoomLink' in the model (optional)
-  zid?: string; // Maps to 'zid' in the model (optional)
-  type: string; // Maps to 'type' in the model
+  email: string;
+  zoomAccount?: string | null; // Maps to 'zoomAccount' in the model (optional)
+  zoomLink?: string | null; // Maps to 'zoomLink' in the model (optional)
+  zid?: string | null; // Maps to 'zid' in the model (optional)
+  calType: string; // Maps to 'calType' in the model
   room: string; // Maps to 'room' in the model
   recurrence?: string; // Remains as optional if required
   isRecurring: boolean;
-  recurrencePattern?: {
-    type: string;
-    interval: number;
-    daysOfWeek: string[];
-    startDate?: Date;
-    endDate?: Date | null;
-    numberOfOccurences?: number | null;
-    firstDayOfWeek?: string;
-  };
+  recurrencePattern?: IRecurrencePattern
   currentOccurrenceDate?: Date; // Handles the specific occurrence date
   onBack: () => void;
   onEdit: () => void;
@@ -39,18 +36,19 @@ type ViewMeetingDetailsProps = {
 };
 
 const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
-  id,
   mid,
   title,
+  modeType,
   description,
   creator,
   group,
   startDateTime,
   endDateTime,
+  email,
   zoomAccount,
   zoomLink,
   zid,
-  type,
+  calType,
   room,
   recurrence,
   isRecurring,
@@ -104,13 +102,13 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
     displayEndDate = new Date(displayStartDate.getTime() + duration);
   }
 
-  const handleDeleteClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+  const handleDelete = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
     e.stopPropagation();
     if (isRecurring) {
       setShowDeleteModal(true);
     } else {
-      onDelete(mid);
+      onDelete(mid); // TODO: Confirm window
     }
   };
 
@@ -120,7 +118,6 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
     setShowDeleteModal(false);
   };
 
-  
   const getRecurrenceText = () => {
     if (recurrencePattern) {
       const { type, interval, daysOfWeek } = recurrencePattern;
@@ -153,28 +150,37 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
     doesOccur: currentOccurrenceDate ? doesMeetingOccurOnDate(currentOccurrenceDate) : false
   });
 
+  const startDateEST = convertUTCToET(startDateTime.toISOString());
+  const endDateEST = convertUTCToET(endDateTime.toISOString());
+
+  const formatTime = (estString: string): string => {
+    const timePart = estString.split(',')[1]?.trim(); // "10:45:00 AM"
+    const [hh, mm] = timePart.split(':');
+    const ampm = timePart.split(' ')[1];
+    return `${hh}:${mm} ${ampm}`; // returns "10:45 AM"
+  };
+
   return (
     <div className={styles.meetingDetails}>
       <div className={styles.header}>
         <button className={styles.backButton} onClick={onBack}>←</button>
         <h1>{title}</h1>
-        <span className={styles.settingLabel}>{type}</span>
+        <span className={styles.settingLabel}>{modeType}</span>
         <div className={styles.moreOptions}>
           <button>⋮</button>
           <div className={styles.optionsMenu}>
             <button onClick={onEdit}>Edit Meeting</button>
-            <button onClick={handleDeleteClick}>Delete Meeting</button>
+            <button onClick={handleDelete}>Delete Meeting</button>
           </div>
         </div>
       </div>
       <div className={styles.details}>
       <p style={{ color: 'gray' }}>
           <CalendarTodayIcon />&nbsp;
-          {displayStartDate.getDate()} {displayStartDate.toLocaleString('default', { month: 'long' })} {displayStartDate.getFullYear()}
+          {startDateEST.split(',')[0]} 
         </p>
         <p style={{ color: 'gray' }}>
-          <AccessTimeIcon />&nbsp;
-          {`${displayStartDate.getHours()}:${displayStartDate.getMinutes().toString().padStart(2, '0')}`} - {`${displayEndDate.getHours()}:${displayEndDate.getMinutes().toString().padStart(2, '0')}`}
+          <AccessTimeIcon />&nbsp;{`${formatTime(startDateEST)} - ${formatTime(endDateEST)}`}
         </p>
 
         {isRecurring && (
@@ -185,24 +191,14 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
 
         <hr className={styles.divider} />
 
-        <p><strong>Calendar:</strong>&nbsp;{group}</p>
+        <p><strong>Email:</strong>&nbsp;{email}</p>
+        <p><strong>Meeting Mode:</strong>&nbsp;{modeType}</p>
+        <p><strong>Calendar:</strong>&nbsp;{calType}</p>
         <p><strong>Location:</strong>&nbsp;{room}</p>
         {zoomAccount && <p><strong>Zoom Account:</strong>&nbsp;{zoomAccount}</p>}
         {zoomLink && <a href={zoomLink} target="_blank" rel="noopener noreferrer" className={styles.zoomLink}> 
           <VideoCameraFrontIcon /> {zoomLink}
-          </a>}
-        <p><strong>PandaDocs Form</strong></p>
-        <div className={styles.pandaDocs}>
-
-          <a href={'https://Google.com'} download className={styles.pandaDocsLink}>
-            <div className={styles.docsEmoji}><InsertDriveFileIcon /></div>
-            <div className={styles.pandaDocsText}>
-              <div className={styles.pandaDocsName}>{"Dummy Name"}</div>
-              <div className={styles.pandaDocsSize}>{"1.2 MB"}</div>
-            </div>
-            <div className={styles.downloadEmoji}><DownloadForOfflineIcon /></div>
-          </a>
-        </div>
+        </a>}
 
         <hr className={styles.divider} />
 

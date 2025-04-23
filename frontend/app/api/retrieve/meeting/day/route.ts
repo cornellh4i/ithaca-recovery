@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { PrismaClient } from '@prisma/client';
 import { IMeeting, IRecurrencePattern } from "../../../../../util/models";
 import { NextRequest } from 'next/server';
@@ -137,13 +139,14 @@ const retrieveDayMeetings = async (request: NextRequest) => {
             ...adjustedPatternMeetings
         ];
         
-        const typedMeetings: IMeeting[] = allMeetings.map(meeting => {
-            if ('recurrencePattern' in meeting) {
-                const { recurrencePattern, ...meetingDetails } = meeting;
-                return { ...meetingDetails, recurrencePattern };
-            }
-            return { ...meeting };
-        });
+        const typedMeetings: IMeeting[] = allMeetings.map((meeting) => {
+            const { recurrencePattern, ...meetingDetails } = meeting;
+          
+            return {
+              ...meetingDetails,
+              recurrencePattern: recurrencePattern ?? null,
+            };
+          });          
         
         return new Response(JSON.stringify(typedMeetings), {
             status: 200,
@@ -151,6 +154,7 @@ const retrieveDayMeetings = async (request: NextRequest) => {
                 'Content-Type': 'application/json',
             },
         });
+
     } catch (error) {
         console.error("Error retrieving meetings: ", error);
         return new Response(JSON.stringify({ error: "Error retrieving meetings" }), {
