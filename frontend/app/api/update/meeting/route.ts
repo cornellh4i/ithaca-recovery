@@ -19,14 +19,41 @@ const updateMeeting = async (request: Request): Promise<Response> => {
       return NextResponse.json({ error: `Meeting with ID ${newMeeting.mid} not found` }, { status: 404 });
     }
 
-    const { mid, ...dataWithoutMid } = newMeeting;
+    const { mid, recurrencePattern, ...meetingFields } = newMeeting;
 
     const updatedMeeting = await prisma.meeting.update({
       where: {
         mid: mid,
       },
-      data: dataWithoutMid,
+      data: {
+        ...meetingFields,
+        recurrencePattern: recurrencePattern
+          ? {
+              upsert: {
+                update: {
+                  type: recurrencePattern.type,
+                  startDate: recurrencePattern.startDate,
+                  endDate: recurrencePattern.endDate ?? undefined,
+                  numberOfOccurences: recurrencePattern.numberOfOccurrences ?? undefined,
+                  daysOfWeek: recurrencePattern.daysOfWeek ?? [],
+                  firstDayOfWeek: recurrencePattern.firstDayOfWeek,
+                  interval: recurrencePattern.interval,
+                },
+                create: {
+                  type: recurrencePattern.type,
+                  startDate: recurrencePattern.startDate,
+                  endDate: recurrencePattern.endDate ?? undefined,
+                  numberOfOccurences: recurrencePattern.numberOfOccurrences ?? undefined,
+                  daysOfWeek: recurrencePattern.daysOfWeek ?? [],
+                  firstDayOfWeek: recurrencePattern.firstDayOfWeek,
+                  interval: recurrencePattern.interval,
+                },
+              },
+            }
+          : { delete: true },
+      },
     });
+    
 
     return NextResponse.json(updatedMeeting);
   } catch (error) {
