@@ -6,6 +6,7 @@ import LabeledCheckbox from '../atoms/checkbox';
 import SpinnerInput from '../atoms/SpinnerInput';
 import DatePicker from '../atoms/DatePicker';
 import styles from "../../../styles/components/molecules/RecurringMeeting.module.scss";
+import CheckButton from '../atoms/CheckButton';
 
 //This component accepts a function that accepts a dictionary of the following values as parameter
 interface RecurringMeetingFormProps {
@@ -117,15 +118,13 @@ const RecurringMeetingForm: React.FC<RecurringMeetingFormProps> = ({ onChange })
 
             <div className={styles.dayButtons}>
               <label style={{ marginRight: '5px'}}>On</label>
-              {days.map((day, index) => (
-                  <button
-                  key={day.id} 
-                  type="button"
-                  className={`${styles.dayButton} ${selectedDays.includes(day.id) ? styles.active : ''}`}
+              {days.map((day) => (
+                <CheckButton
+                  key={day.id}
+                  label={day.label}
+                  checked={selectedDays.includes(day.id)}
                   onClick={() => toggleDay(day.id)}
-                  >
-                    {day.label}
-                  </button>
+                />
               ))}
             </div>
 

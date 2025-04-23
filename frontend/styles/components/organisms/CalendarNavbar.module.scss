@@ -72,13 +72,15 @@
     cursor: pointer;
     font-family: 'Source Sans Pro', sans-serif;
     appearance: none;
+    padding-right: 24px;
     background-image: url('/drop-down-arrow.svg');
     background-repeat: no-repeat;
-    background-position: right 0 center;
+    background-position: right 10px center;
   }
-
+  
   select:focus {
     outline: none;
     border-color: $medium-grey-color;
   }
+  
 }

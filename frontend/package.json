@@ -32,11 +32,12 @@
     "prisma": "^5.10.2",
     "query-string": "^9.0.0",
     "react": "^18.2.0",
-    "react-day-picker": "^9.3.1",
+    "react-day-picker": "^9.3.0",
     "react-dom": "^18.2.0",
     "redis": "^4.6.13",
     "sass": "^1.72.0",
     "swr": "^2.2.5",
+    "uuid": "^11.1.0",
     "web-vitals": "^3.5.2"
   },
   "devDependencies": {
@@ -44,12 +45,12 @@
     "@types/react": "18.2.63",
     "@types/react-dom": "^18.2.22",
     "@types/testing-library__react": "^10.2.0",
-    "@types/uuid": "^10.0.0",
     "autoprefixer": "^10.0.1",
     "eslint": "^8",
     "eslint-config-next": "14.1.0",
     "postcss": "^8",
     "tailwindcss": "^3.3.0",
     "typescript": "5.3.3"
-  }
+  },
+  "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
 }

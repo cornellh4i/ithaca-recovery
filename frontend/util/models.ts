@@ -10,6 +10,8 @@ interface IAdmin extends IUser {
   email: string;
 }
 
+// TODO: Add email for IMeeting?
+
 interface IMeeting {
   title: string;
   mid: string;
@@ -18,6 +20,7 @@ interface IMeeting {
   group: string; // group interface later on [optional]
   startDateTime: Date;
   endDateTime: Date;
+  email: string;
   zoomAccount?: string | null;
   zoomLink?: string | null;
   zid?: string | null;

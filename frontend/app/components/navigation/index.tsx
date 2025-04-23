@@ -1,16 +1,16 @@
-import React from 'react';
+"use client";
+
+import React from "react";
 import Navbar from "./navbar";
-import { IAdmin } from "../../../util/models";
-import type { AccountInfo } from "@azure/msal-node";
+import type { AccountInfo } from "@azure/msal-browser";
 
 interface NavigationProps {
-  account: AccountInfo
+  account: AccountInfo | null;
+  setShowSignIn?: (val: boolean) => void;
 }
 
-const Navigation: React.FC<NavigationProps> = ({ account }) => {
-  return (
-    <Navbar account={account} />
-  );
+const Navigation: React.FC<NavigationProps> = ({ account, setShowSignIn }) => {
+  return <Navbar account={account} setShowSignIn={setShowSignIn} />;
 };
 
 export default Navigation;

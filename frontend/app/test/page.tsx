@@ -26,7 +26,6 @@ import { set } from 'mongoose';
 
 const App = () => {
 
-
   const sampleMeeting = {
     id: '1',
     mid: 'M123',
@@ -42,9 +41,10 @@ const App = () => {
     type: 'Virtual Meeting',
     room: 'Conference Room B',
     recurrence: 'Weekly',
+    email: 'test@email.com', // Added email property
     onBack: () => alert('Back button clicked'),
     onEdit: () => alert('Edit button clicked'),
-    onDelete: () => alert('Delete button clicked'),
+    onDelete: () => alert('Delete Button Clicked'),
   };
 
   // const createZoomMeetingRequestBody = () => {
@@ -255,6 +255,7 @@ const App = () => {
         group: 'Group',
         startDateTime: new Date(),
         endDateTime: new Date(),
+        email: inputEmailValue,
         zoomAccount: 'Zoom Account',
         type: "in-person",
         room: "sunflower",
@@ -285,7 +286,7 @@ const App = () => {
   const deleteMeeting = async () => {
     try {
       /* Configure to be a real mid */
-      const mid = "95992";
+      const mid = "84143";
 
       const response = await fetch('/api/delete/meeting', {
         method: 'DELETE',
@@ -321,6 +322,7 @@ const App = () => {
         group: 'Group',
         startDateTime: new Date(),
         endDateTime: new Date(),
+        email: inputEmailValue,
         zoomAccount: 'Zoom Account',
         type: "in-person",
         room: "sunflower"
@@ -610,7 +612,7 @@ const App = () => {
       </div>
       <div className={styles.section}>
         <h2>Spinner Input</h2>
-        <SpinnerInput value={1} onChange={() => {}}></SpinnerInput>
+        <SpinnerInput value={1} onChange={() => { }}></SpinnerInput>
       </div>
       <div className={styles.section}>
         <h2>Admins</h2>
@@ -699,11 +701,11 @@ const App = () => {
         <h1>Meetings Filter</h1>
         <MeetingsFilter filters={{
           SerenityRoom: false,
-          SeedsOfHope: false,
+          SeedsofHope: false,
           UnityRoom: false,
-          RoomForImprovement: false,
-          SmallButPowerfulRight: false,
-          SmallButPowerfulLeft: false,
+          RoomforImprovement: false,
+          SmallbutPowerfulRight: false,
+          SmallbutPowerfulLeft: false,
           ZoomAccount1: false,
           ZoomAccount2: false,
           ZoomAccount3: false,
@@ -806,10 +808,10 @@ const App = () => {
         <ViewMeetingDetails {...sampleMeeting} />
       </div>
 
-      <div className={styles.section}>
+      {/* <div className={styles.section}>
         <h2>Mini Calendar</h2>
         <MiniCalendar />
-      </div>
+      </div> */}
 
     </div>
   );
