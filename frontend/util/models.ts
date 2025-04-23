@@ -28,8 +28,7 @@ interface IMeeting {
 }
 
 interface IRecurrencePattern {
-  id?: string;
-  meetingId?: string;
+  mid: string;
   type: string; 
   startDate: Date;
   endDate?: Date | null;

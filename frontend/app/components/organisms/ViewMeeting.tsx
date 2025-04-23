@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import styles from '../../../../styles/ViewMeeting.module.scss';
+import styles from '../../../styles/ViewMeeting.module.scss';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import VideoCameraFrontIcon from '@mui/icons-material/VideoCameraFront';
@@ -72,9 +72,9 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
 
     if (recurrencePattern.type === "weekly") {
       const dayOfWeek = date.toLocaleDateString('en-US', { weekday: 'long' });
-      if (!recurrencePattern.daysOfWeek.includes(dayOfWeek)) {
+      if (!(recurrencePattern.daysOfWeek ?? []).includes(dayOfWeek)) {
         return false;
-      }
+      }      
 
       const originalDate = new Date(startDateTime);
       const diffTime = Math.abs(date.getTime() - originalDate.getTime());

@@ -32,7 +32,7 @@ const createMeeting = async (request: Request) => {
 
       await prisma.recurrencePattern.create({
         data: {
-          meetingId: newMeeting.id, 
+          mid: newMeeting.mid, 
           type: recurrencePattern.type,
           startDate: recurrencePattern.startDate,
           endDate: calculatedEndDate,
