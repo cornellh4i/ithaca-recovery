@@ -65,13 +65,20 @@ const retrieveDayMeetings = async (request: NextRequest) => {
         const patternDayMeetings = otherRecurringMeetings.filter(meeting => {
             const recurrence = meeting.recurrencePattern;
             if (!recurrence) return false;
-            
+
+            const isExcluded = recurrence.excludedDates?.some(excludedDate => {
+                return new Date(excludedDate).toISOString().slice(0, 10) === localDate.toISOString().slice(0, 10);
+              });
+              if (isExcluded) return false;
+              
             const isDayIncluded = recurrence.daysOfWeek && 
                                 recurrence.daysOfWeek.includes(requestedDayName);
             
             if (!isDayIncluded) return false;
             
             const patternStartDate = new Date(recurrence.startDate);
+            if (localDate == patternStartDate) return true;
+
             if (localDate < patternStartDate) return false;
             
             if (recurrence.endDate && localDate > new Date(recurrence.endDate)) return false;
@@ -103,6 +110,17 @@ const retrieveDayMeetings = async (request: NextRequest) => {
             
             return true;
         });
+
+        const filteredOriginals = originalDayRecurringMeetings.filter(meeting => {
+            const recurrence = meeting.recurrencePattern;
+            if (!recurrence) return true;
+          
+            const isExcluded = recurrence.excludedDates?.some(date =>
+              new Date(date).toISOString().slice(0, 10) === localDate.toISOString().slice(0, 10)
+            );
+          
+            return !isExcluded;
+          });
         
         const adjustedPatternMeetings = patternDayMeetings.map(meeting => {
             const originalStart = new Date(meeting.startDateTime);
@@ -135,7 +153,7 @@ const retrieveDayMeetings = async (request: NextRequest) => {
         
         const allMeetings = [
             ...regularMeetings, 
-            ...originalDayRecurringMeetings,
+            ...filteredOriginals,
             ...adjustedPatternMeetings
         ];
         
@@ -146,7 +164,7 @@ const retrieveDayMeetings = async (request: NextRequest) => {
               ...meetingDetails,
               recurrencePattern: recurrencePattern ?? null,
             };
-          });          
+          });   
         
         return new Response(JSON.stringify(typedMeetings), {
             status: 200,

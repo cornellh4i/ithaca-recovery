@@ -5,13 +5,17 @@ import TextButton from '../atoms/textbutton';
 interface DeleteRecurringModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onDelete: (option: 'this' | 'thisAndFollowing' | 'all') => void;
+  mid: string;
+  onDelete: (mid: string, option: 'this' | 'thisAndFollowing' | 'all', currentOccurrenceDate?: Date) => void;
+  currentOccurrenceDate?: Date; 
 }
 
 const DeleteRecurringModal: React.FC<DeleteRecurringModalProps> = ({
   isOpen,
   onClose,
+  mid,
   onDelete,
+  currentOccurrenceDate
 }) => {
   const [selectedOption, setSelectedOption] = useState<'this' | 'thisAndFollowing' | 'all'>('this');
 
@@ -22,7 +26,7 @@ const DeleteRecurringModal: React.FC<DeleteRecurringModalProps> = ({
   };
 
   const handleDelete = () => {
-    onDelete(selectedOption);
+    onDelete(mid, selectedOption, currentOccurrenceDate);
     onClose();
   };
   

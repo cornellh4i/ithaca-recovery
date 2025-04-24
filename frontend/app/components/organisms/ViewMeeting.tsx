@@ -32,7 +32,7 @@ type ViewMeetingDetailsProps = {
   currentOccurrenceDate?: Date; // Handles the specific occurrence date
   onBack: () => void;
   onEdit: () => void;
-  onDelete: (mid: string, deleteOption?: 'this' | 'thisAndFollowing' | 'all') => void;
+  onDelete: (mid: string, deleteOption?: 'this' | 'thisAndFollowing' | 'all', currentOccurrenceDate?: Date) => void;
 };
 
 const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
@@ -112,9 +112,9 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
     }
   };
 
-  const handleModalDelete = (option: 'this' | 'thisAndFollowing' | 'all') => {
+  const handleModalDelete = (mid: string, option: 'this' | 'thisAndFollowing' | 'all', currentOccurrenceDate?: Date) => {
     console.log("Deleting recurring meeting with option:", option); 
-    onDelete(mid, option);
+    onDelete(mid, option, currentOccurrenceDate);
     setShowDeleteModal(false);
   };
 
@@ -210,6 +210,8 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
         isOpen={showDeleteModal}
         onClose={() => setShowDeleteModal(false)}
         onDelete={handleModalDelete}
+        mid={mid}
+        currentOccurrenceDate={currentOccurrenceDate}
       />
     </div>
   );

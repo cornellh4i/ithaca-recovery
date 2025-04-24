@@ -5,9 +5,9 @@ const prisma = new PrismaClient();
 const deleteMeeting = async (request: Request) => {
   try {
     const body = await request.json();
-    const { mid, deleteOption } = body;
+    const { mid, deleteOption, currentOccurrenceDate } = body;
 
-    console.log('Delete request received:', { mid, deleteOption });
+    console.log('Delete request received:', { mid, deleteOption, currentOccurrenceDate });
 
     const meeting = await prisma.meeting.findUnique({
       where: { mid },
@@ -36,11 +36,87 @@ const deleteMeeting = async (request: Request) => {
 
       switch (deleteOption) {
         case 'this':
-          console.log('Deleting only this occurrence - PLACEHOLDER');
+          console.log('Deleting only this occurrence');
+
+          if (!currentOccurrenceDate) {
+            return new Response(JSON.stringify({ error: "Current occurrence date is required for this option" }), {
+              status: 400,
+              headers: {'Content-Type': 'application/json'},
+            });
+          }
+          if (meeting.recurrencePattern){
+            try {
+              await prisma.recurrencePattern.update({
+                where: { id: meeting.recurrencePattern.id },
+                data: {
+                  excludedDates: {
+                    push: new Date(currentOccurrenceDate)
+                  }
+                }
+              });
+            } catch (error) {
+              console.error("Error updating excludedDates:", error);
+              return new Response(JSON.stringify({ error: "Failed to update recurrence pattern" }), {
+                status: 500,
+                headers: { 'Content-Type': 'application/json' },
+              });
+            }
+          } else {
+            await prisma.meeting.delete({ where: { mid } });
+          }
           break;
 
         case 'thisAndFollowing':
-          console.log('Deleting this and following occurrences - PLACEHOLDER');
+          console.log('Deleting this and following occurrences');
+          if (!currentOccurrenceDate) {
+            return new Response(JSON.stringify({ error: "Current occurrence date is required for this option" }), {
+              status: 400,
+              headers: {'Content-Type': 'application/json'},
+            });
+          }
+          if (meeting.recurrencePattern){
+            try {
+                console.log("Current occurence date:", new Date(currentOccurrenceDate).toISOString().slice(0, 10));
+                console.log("meeting start date:", meeting.startDateTime);
+
+                if (new Date(currentOccurrenceDate).toISOString().slice(0, 10) === new Date(meeting.startDateTime).toISOString().slice(0, 10)) {
+                  try {
+                    await prisma.recurrencePattern.delete({
+                      where: {id: meeting.recurrencePattern.id}
+                    })
+      
+                    await prisma.meeting.delete({
+                      where: { mid }
+                    })
+                  } catch (error) {
+                    console.error("Error while deleting recurring meetings:", error);
+                    return new Response(JSON.stringify({ error: "Error while deleting recurring meetings" }), {
+                      status: 500,
+                      headers: { 'Content-Type': 'application/json' },
+                    });
+                  }
+                }
+                else {  
+                  await prisma.recurrencePattern.update({
+                    where: { id: meeting.recurrencePattern.id },
+                    data: {
+                      endDate: new Date(currentOccurrenceDate),
+                      excludedDates: {
+                        push: new Date(currentOccurrenceDate)
+                      }
+                    }
+                  });
+                }
+            } catch (error) {
+              console.error("Error changing end date", error);
+              return new Response(JSON.stringify({ error: "Failed to update recurrence pattern" }), {
+                status: 500,
+                headers: { 'Content-Type': 'application/json' },
+              });
+            }
+          } else {
+            await prisma.meeting.delete({ where: { mid } });
+          }
           break;
 
         case 'all':
@@ -48,44 +124,13 @@ const deleteMeeting = async (request: Request) => {
 
           if (meeting.recurrencePattern) {
             try {
-              const allMeetings = await prisma.meeting.findMany({
-                where: {
-                  recurrencePattern: {
-                    id: meeting.recurrencePattern.id
-                  }
-                }
-              });
-
-              console.log(`Found ${allMeetings.length} meetings to delete`);
-
-              for (const mtg of allMeetings) {
-                await prisma.meeting.update({
-                  where: { id: mtg.id },
-                  data: {
-                    recurrencePattern: {
-                      disconnect: true
-                    }
-                  }
-                });
-
-                await prisma.meeting.delete({
-                  where: { id: mtg.id }
-                });
-              }
-
-              console.log("Deleting recurrence pattern:", meeting.recurrencePattern.id);
               await prisma.recurrencePattern.delete({
-                where: {
-                  id: meeting.recurrencePattern.id
-                }
-              });
+                where: {id: meeting.recurrencePattern.id}
+              })
 
-              // Ensure the original meeting is deleted (if not already in list)
-              const isAlreadyDeleted = allMeetings.some(m => m.id === meeting.id);
-              if (!isAlreadyDeleted) {
-                await prisma.meeting.delete({ where: { mid } });
-              }
-
+              await prisma.meeting.delete({
+                where: { mid }
+              })
             } catch (error) {
               console.error("Error while deleting recurring meetings:", error);
               return new Response(JSON.stringify({ error: "Error while deleting recurring meetings" }), {

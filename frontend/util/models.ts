@@ -36,6 +36,7 @@ interface IRecurrencePattern {
   daysOfWeek?: string[] | null;
   firstDayOfWeek: string; 
   interval: number; // 1 = weekly, 2 = biweekly, etc.
+  excludedDates?: Date[] | null;
 }
 
 export type { IUser, IAdmin, IMeeting, IRecurrencePattern };

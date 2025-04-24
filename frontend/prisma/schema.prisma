@@ -46,6 +46,7 @@ model RecurrencePattern {
   daysOfWeek         String[]
   firstDayOfWeek     String
   interval           Int
+  excludedDates      DateTime[]
 }
 
 

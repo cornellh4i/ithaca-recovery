@@ -49,6 +49,7 @@ const HomePage = () => {
         setSelectedMeeting(data);
         // Store the date that was clicked when the meeting was selected
         setLastClickedDate(new Date(selectedDate));
+        console.log("Last clicked date:", lastClickedDate);
       } else {
         console.error("Failed to fetch meeting details");
       }
@@ -85,7 +86,7 @@ const HomePage = () => {
     setSelectedNewMeeting(false);
   };
 
-  const handleDelete = async (mid: string, deleteOption?: 'this' | 'thisAndFollowing' | 'all') => {
+  const handleDelete = async (mid: string, deleteOption?: 'this' | 'thisAndFollowing' | 'all', currentOccurrenceDate?: Date) => {
     try {
       const response = await fetch('/api/delete/meeting', {
         method: 'DELETE',
@@ -93,7 +94,9 @@ const HomePage = () => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          mid
+          mid,
+          deleteOption,
+          currentOccurrenceDate
         }),
       });
   
@@ -136,6 +139,7 @@ const HomePage = () => {
   const handleMeetingSelect = (meetingId: string) => {
     setSelectedMeetingID(meetingId);
     setLastClickedDate(new Date(selectedDate));
+    console.log("Last clicked date:", lastClickedDate);
   };
 
   const convertESTStringToDate = (estDateString: string): Date => {
