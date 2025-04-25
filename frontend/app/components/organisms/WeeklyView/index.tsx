@@ -1,6 +1,8 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import styles from '../../../../styles/organisms/WeeklyView.module.scss';
 import WeeklyViewColumn from "../../molecules/WeeklyViewColumn";
+import { convertUTCToET } from "../../../../util/timeUtils";
+import { IRecurrencePattern } from "../../../../util/models";
 
 type Meeting = {
     id: string;
@@ -9,49 +11,115 @@ type Meeting = {
     endTime: string;
     date: string; // Added date field to track which day the meeting belongs to
     tags: string[];
-    room: string; // Added room property to fix the error
+    room: string; // Added room property
+    isRecurring?: boolean; // Flag to indicate if this is a recurring meeting
+    recurrencePattern?: IRecurrencePattern; // The recurrence pattern details
+    primaryColor?: string; // Room color
+    positionIndex?: number; // For overlapping meetings
+    totalOverlapping?: number; // For overlapping meetings
 };
 
-type Room = {
-    name: string;
-    primaryColor: string;
-    meetings: Meeting[];
+// Default room colors
+const roomColors: { [key: string]: string } = {
+    'Serenity Room': '#b3ea75',
+    'Seeds of Hope': '#f7e57b',
+    'Unity Room': '#96dbfe',
+    'Room for Improvement': '#ffae73',
+    'Small but Powerful - Right': '#d2afff',
+    'Small but Powerful - Left': '#ffa3c2',
+    'Zoom Account 1': '#cecece',
+    'Zoom Account 2': '#cecece',
+    'Zoom Account 3': '#cecece',
+    'Zoom Account 4': '#cecece',
+};
+
+// Get room color for a meeting
+const getRoomColor = (roomName: string): string => {
+    return roomColors[roomName] || "#cecece"; // Default to gray if room not found
 };
 
 const meetingCache = new Map<string, Meeting[]>();
 
-const fetchMeetingsByWeek = async (startDate: Date, endDate: Date): Promise<Meeting[]> => {
-    const formattedStart = startDate.toISOString().split('T')[0];
-    const formattedEnd = endDate.toISOString().split('T')[0];
-    const cacheKey = `${formattedStart}-${formattedEnd}`;
+const fetchMeetingsByWeek = async (startDate: Date): Promise<Meeting[]> => {
+    // Format the date in local time to ensure correct calendar day
+    const formattedDate = startDate.toLocaleDateString("en-CA"); // e.g., "2025-04-09"
+    const cacheKey = `week-${formattedDate}`;
 
     if (meetingCache.has(cacheKey)) {
         console.log("Using cached data for week:", cacheKey);
         return meetingCache.get(cacheKey) || [];
     }
 
-    console.log("Fetching meetings for week:", cacheKey);
+    console.log("Fetching meetings for week:", formattedDate);
 
     try {
-        const response = await fetch(`/api/retrieve/meeting/week?startDate=${formattedStart}&endDate=${formattedEnd}`);
+        // Use the API endpoint with the start date
+        const response = await fetch(`/api/retrieve/meeting/week?startDate=${formattedDate}`);
+        if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        
         const data = await response.json();
         console.log("Raw API response:", data);
 
-        const meetings: Meeting[] = data.map((meeting: any) => {
-            const start = new Date(meeting.startDateTime.replace("Z", ""));
-            const end = new Date(meeting.endDateTime.replace("Z", ""));
+        const meetings: Meeting[] = data.map((meeting: Meeting) => {
+            try {
+                // Ensure startDateTime and endDateTime are valid
+                if (!meeting.startDateTime || !meeting.endDateTime) {
+                    console.error("Meeting missing datetime:", meeting);
+                    return null;
+                }
 
-            return {
-                id: meeting.mid,
-                title: meeting.title,
-                startTime: start.toLocaleTimeString("en-GB", { hour12: false }),
-                endTime: end.toLocaleTimeString("en-GB", { hour12: false }),
-                date: start.toISOString().split('T')[0], // Store the date of the meeting
-                tags: [meeting.type, meeting.group],
-                room: meeting.room,
-            };
-        });
-
+                // Convert UTC dates to Date objects
+                const startUTC = new Date(meeting.startDateTime);
+                const endUTC = new Date(meeting.endDateTime);
+                
+                // Validate dates
+                if (isNaN(startUTC.getTime()) || isNaN(endUTC.getTime())) {
+                    console.error("Invalid meeting dates:", meeting);
+                    return null;
+                }
+                
+                // Convert to ET timezone
+                const startEDT = convertUTCToET(startUTC.toISOString());
+                const endEDT = convertUTCToET(endUTC.toISOString());
+                
+                // Create Date objects from ET strings
+                const startDate = new Date(startEDT);
+                const endDate = new Date(endEDT);
+                
+                // Format times for display
+                const formattedStartTime = startDate.toLocaleTimeString("en-US", { 
+                    hour: '2-digit', 
+                    minute: '2-digit',
+                    hour12: true 
+                });
+                
+                const formattedEndTime = endDate.toLocaleTimeString("en-US", { 
+                    hour: '2-digit', 
+                    minute: '2-digit',
+                    hour12: true 
+                });
+                
+                return {
+                    id: meeting.mid,
+                    title: meeting.title || "Untitled Meeting",
+                    startTime: formattedStartTime,
+                    endTime: formattedEndTime,
+                    date: startDate.toISOString().split('T')[0], // Store the date of the meeting
+                    tags: [meeting.calType, meeting.modeType].filter(Boolean), // Filter out undefined values
+                    room: meeting.room || "Unknown Room",
+                    isRecurring: meeting.isRecurring || false,
+                    recurrencePattern: meeting.recurrencePattern || null,
+                    primaryColor: getRoomColor(meeting.room) // Add room color directly
+                };
+            } catch (error) {
+                console.error("Error processing meeting:", meeting, error);
+                return null;
+            }
+        }).filter(Boolean); // Remove null meetings
+        
+        console.log("Processed meetings:", meetings);
         meetingCache.set(cacheKey, meetings);
         return meetings;
     } catch (error) {
@@ -86,20 +154,6 @@ const formatDayName = (date: Date): string => {
     return date.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
 };
 
-// Default room colors
-const roomColors: { [key: string]: string } = {
-    'Serenity Room': '#b3ea75',
-    'Seeds of Hope': '#f7e57b',
-    'Unity Room': '#96dbfe',
-    'Room for Improvement': '#ffae73',
-    'Small but Powerful - Right': '#d2afff',
-    'Small but Powerful - Left': '#ffa3c2',
-    'Zoom Account 1': '#cecece',
-    'Zoom Account 2': '#cecece',
-    'Zoom Account 3': '#cecece',
-    'Zoom Account 4': '#cecece',
-};
-
 interface WeeklyViewProps {
     filters: any;
     selectedDate: Date;
@@ -119,6 +173,7 @@ const WeeklyView: React.FC<WeeklyViewProps> = ({
     const [weekStartDate, setWeekStartDate] = useState<Date>(getFirstDayOfWeek(selectedDate));
     const [allMeetings, setAllMeetings] = useState<Meeting[]>([]);
     const [daysOfWeek, setDaysOfWeek] = useState<Date[]>(getDaysOfWeek(weekStartDate));
+    const scrollContainerRef = useRef<HTMLDivElement>(null);
 
     // Format time slots for hour markers
     const formatTime = (hour: number): string => {
@@ -139,10 +194,7 @@ const WeeklyView: React.FC<WeeklyViewProps> = ({
     // Fetch meetings for the entire week
     useEffect(() => {
         const fetchWeekMeetings = async () => {
-            const endDate = new Date(weekStartDate);
-            endDate.setDate(weekStartDate.getDate() + 6);
-
-            const meetings = await fetchMeetingsByWeek(weekStartDate, endDate);
+            const meetings = await fetchMeetingsByWeek(weekStartDate);
             setAllMeetings(meetings);
         };
 
@@ -167,7 +219,7 @@ const WeeklyView: React.FC<WeeklyViewProps> = ({
     const getMeetingsForDay = (date: Date) => {
         const formattedDate = date.toISOString().split('T')[0];
 
-        // Filter meetings by date and apply room filters
+        // Filter meetings by date and apply room and tag filters
         const filteredMeetings = allMeetings.filter(meeting => {
             const matchesDate = meeting.date === formattedDate;
             const room = meeting.room;
@@ -176,7 +228,13 @@ const WeeklyView: React.FC<WeeklyViewProps> = ({
             const roomKey = room.replace(/[-\s]+/g, '').replace(/\s+/g, '');
             const isRoomIncluded = filters[roomKey] !== false;
 
-            return matchesDate && isRoomIncluded;
+            // Check if all tags are included
+            const areTagsIncluded = meeting.tags.every(tag => {
+                const normalizedTag = tag ? tag.replace(/[-\s]+/g, '').replace(/\s+/g, '') : '';
+                return normalizedTag === '' || filters[normalizedTag] !== false;
+            });
+
+            return matchesDate && isRoomIncluded && areTagsIncluded;
         });
 
         // Group meetings by time to handle overlapping events
@@ -199,8 +257,8 @@ const WeeklyView: React.FC<WeeklyViewProps> = ({
                     // Clone the meeting to avoid modifying the original
                     const processedMeeting = { ...meeting };
                     // Add metadata for rendering position
-                    (processedMeeting as any).positionIndex = index;
-                    (processedMeeting as any).totalOverlapping = totalMeetings;
+                    processedMeeting.positionIndex = index;
+                    processedMeeting.totalOverlapping = totalMeetings;
                     processedMeetings.push(processedMeeting);
                 });
             } else if (overlappingMeetings.length === 1) {
@@ -210,11 +268,6 @@ const WeeklyView: React.FC<WeeklyViewProps> = ({
         });
 
         return processedMeetings;
-    };
-
-    // Get room color for a meeting
-    const getRoomColor = (meeting: Meeting) => {
-        return roomColors[meeting.room] || "#cecece"; // Default to gray if room not found
     };
 
     // Check if a date is the current date
@@ -243,7 +296,10 @@ const WeeklyView: React.FC<WeeklyViewProps> = ({
                 </div>
 
                 {/* Day columns */}
-                <div className={styles.daysContainer}>
+                <div 
+                    ref={scrollContainerRef}
+                    className={styles.daysContainer}
+                >
                     {daysOfWeek.map((day, index) => {
                         const dayMeetings = getMeetingsForDay(day);
                         const isToday = isCurrentDate(day);
@@ -271,15 +327,12 @@ const WeeklyView: React.FC<WeeklyViewProps> = ({
                                 {/* Only render our custom header */}
                                 {customHeader}
 
-                                {/* Preserve original meeting layout but pass customHeader to avoid double headers */}
+                                {/* Render meetings with the improved component */}
                                 <WeeklyViewColumn
                                     dayName=""  // Empty string to prevent WeeklyViewColumn from rendering its own header
                                     date=""     // Empty string for the same reason
                                     roomColor="#cecece" // Default color
-                                    meetings={dayMeetings.map(meeting => ({
-                                        ...meeting,
-                                        primaryColor: getRoomColor(meeting)
-                                    }))}
+                                    meetings={dayMeetings}
                                     setSelectedMeetingID={setSelectedMeetingID}
                                     setSelectedNewMeeting={setSelectedNewMeeting}
                                 />
