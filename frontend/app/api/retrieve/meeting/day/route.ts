@@ -38,8 +38,8 @@ const retrieveDayMeetings = async (request: NextRequest) => {
         
         const directlyScheduledMeetings = await prisma.meeting.findMany({
             where: {
-                startDateTime: { gte: startOfDay },
-                endDateTime: { lte: endOfDay }
+                startDateTime: { lte: endOfDay },
+                endDateTime: { gte: startOfDay }
             },
             include: { 
                 recurrencePattern: true 
@@ -77,7 +77,7 @@ const retrieveDayMeetings = async (request: NextRequest) => {
             if (!isDayIncluded) return false;
             
             const patternStartDate = new Date(recurrence.startDate);
-            if (localDate == patternStartDate) return true;
+            if (localDate.toISOString().slice(0, 10) === patternStartDate.toISOString().slice(0, 10)) return true;
 
             if (localDate < patternStartDate) return false;
             
