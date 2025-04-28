@@ -17,15 +17,41 @@ interface RecurringMeetingFormProps {
     recurrencePattern: IRecurrencePattern | null;
   }) => void;
   startDate?: string;
+  defaultIsRecurring?: boolean;
+  defaultRecurrencePattern?: IRecurrencePattern | null;
 }
 
-const RecurringMeetingForm: React.FC<RecurringMeetingFormProps> = ({ onChange, startDate }) => {
-  const [isRecurring, setIsRecurring] = useState(false);
-  const [frequency, setFrequency] = useState(1);
-  const [selectedDays, setSelectedDays] = useState<string[]>([]);
-  const [endOption, setEndOption] = useState('Never');
-  const [endDate, setEndDate] = useState<string | undefined>("");
-  const [occurrences, setOccurrences] = useState(1);
+const RecurringMeetingForm: React.FC<RecurringMeetingFormProps> = ({ 
+  onChange, 
+  startDate,
+  defaultIsRecurring,
+  defaultRecurrencePattern
+}) => {
+    const [isRecurring, setIsRecurring] = useState(defaultIsRecurring ?? false);
+    const [frequency, setFrequency] = useState(defaultRecurrencePattern?.interval ?? 1);
+    const [selectedDays, setSelectedDays] = useState<string[]>(defaultRecurrencePattern?.daysOfWeek?.map(day => {
+      const reverseMapping: Record<string, string> = {
+        'Sunday': 'sun',
+        'Monday': 'mon',
+        'Tuesday': 'tue',
+        'Wednesday': 'wed',
+        'Thursday': 'thu',
+        'Friday': 'fri',
+        'Saturday': 'sat',
+      };
+      return reverseMapping[day];
+    }) ?? []);
+    const [endOption, setEndOption] = useState(
+      defaultRecurrencePattern?.endDate ? 'On' :
+      defaultRecurrencePattern?.numberOfOccurrences ? 'After' :
+      'Never'
+    );
+    const [endDate, setEndDate] = useState<string | undefined>(
+      defaultRecurrencePattern?.endDate ? new Date(defaultRecurrencePattern.endDate).toISOString().split('T')[0] : ""
+    );
+    const [occurrences, setOccurrences] = useState(
+      defaultRecurrencePattern?.numberOfOccurrences ?? 1
+    );
   
   // Map day abbreviations to full day names for Microsoft Graph API compatibility
   const dayMapping: Record<string, string> = {

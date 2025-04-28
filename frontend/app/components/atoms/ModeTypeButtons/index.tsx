@@ -3,6 +3,8 @@ import styles from '../../../../styles/components/organisms/MeetingForm.module.s
 
 interface ModeButtonsProps {
   onModeSelect: (mode: string) => void;
+
+  initialMode?: string;
 }
 
 const ModeButtons: React.FC<ModeButtonsProps> = ({ onModeSelect }) => {

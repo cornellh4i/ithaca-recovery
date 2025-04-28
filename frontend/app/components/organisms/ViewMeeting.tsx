@@ -5,8 +5,7 @@ import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import VideoCameraFrontIcon from '@mui/icons-material/VideoCameraFront';
 import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
 import DownloadForOfflineIcon from '@mui/icons-material/DownloadForOffline';
-import DeleteRecurringModal from '../molecules/DeleteRecurringModal';
-
+import RecurringModal from '../molecules/RecurringModal';
 import { IRecurrencePattern } from '../../../util/models';
 import { convertUTCToET } from "../../../util/timeUtils";
 
@@ -31,7 +30,7 @@ type ViewMeetingDetailsProps = {
   recurrencePattern?: IRecurrencePattern
   currentOccurrenceDate?: Date; // Handles the specific occurrence date
   onBack: () => void;
-  onEdit: () => void;
+  onEdit: (mid?: string, option?: 'this' | 'thisAndFollowing' | 'all', currentOccurrenceDate?: Date) => void;
   onDelete: (mid: string, deleteOption?: 'this' | 'thisAndFollowing' | 'all', currentOccurrenceDate?: Date) => void;
 };
 
@@ -58,7 +57,8 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
   onEdit,
   onDelete,
 }) => {
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showRecurringModal, setShowRecurringModal] = useState(false);
+  const [recurringActionType, setRecurringActionType] = useState<'delete' | 'edit'>('delete');
 
   const doesMeetingOccurOnDate = (date: Date): boolean => {
     if (!isRecurring || !recurrencePattern) {
@@ -102,21 +102,34 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
     displayEndDate = new Date(displayStartDate.getTime() + duration);
   }
 
+  const handleEdit = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    // For edit, we directly go to the edit sidebar without showing the modal
+    onEdit(mid, undefined, currentOccurrenceDate);
+  };
+  
   const handleDelete = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
     e.stopPropagation();
     if (isRecurring) {
-      setShowDeleteModal(true);
+      setRecurringActionType('delete');
+      setShowRecurringModal(true);
     } else {
-      onDelete(mid); // TODO: Confirm window
+      onDelete(mid); // normal delete if not recurring
     }
-  };
+  };  
 
-  const handleModalDelete = (mid: string, option: 'this' | 'thisAndFollowing' | 'all', currentOccurrenceDate?: Date) => {
-    console.log("Deleting recurring meeting with option:", option); 
-    onDelete(mid, option, currentOccurrenceDate);
-    setShowDeleteModal(false);
-  };
+  const handleRecurringModalConfirm = (mid: string, option: 'this' | 'thisAndFollowing' | 'all', currentOccurrenceDate?: Date) => {
+    if (recurringActionType === 'delete') {
+      console.log("Deleting with option:", option);
+      onDelete(mid, option, currentOccurrenceDate);
+    } else if (recurringActionType === 'edit') {
+      console.log("Editing with option:", option);
+      onEdit(mid, option, currentOccurrenceDate);
+    }
+    setShowRecurringModal(false);
+  };  
 
   const getRecurrenceText = () => {
     if (recurrencePattern) {
@@ -169,7 +182,7 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
         <div className={styles.moreOptions}>
           <button>⋮</button>
           <div className={styles.optionsMenu}>
-            <button onClick={onEdit}>Edit Meeting</button>
+            <button onClick={handleEdit}>Edit Meeting</button>
             <button onClick={handleDelete}>Delete Meeting</button>
           </div>
         </div>
@@ -206,12 +219,13 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
         <hr className={styles.divider} />
 
       </div>
-      <DeleteRecurringModal
-        isOpen={showDeleteModal}
-        onClose={() => setShowDeleteModal(false)}
-        onDelete={handleModalDelete}
-        mid={mid}
-        currentOccurrenceDate={currentOccurrenceDate}
+      <RecurringModal
+      isOpen={showRecurringModal}
+      onClose={() => setShowRecurringModal(false)}
+      onConfirm={handleRecurringModalConfirm}
+      mid={mid}
+      currentOccurrenceDate={currentOccurrenceDate}
+      actionType={recurringActionType}
       />
     </div>
   );

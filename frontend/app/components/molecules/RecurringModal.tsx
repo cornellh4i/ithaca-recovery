@@ -2,20 +2,22 @@ import React, { useState } from 'react';
 import styles from '../../../styles/components/molecules/DeleteRecurringModal.module.scss';
 import TextButton from '../atoms/textbutton';
 
-interface DeleteRecurringModalProps {
+interface RecurringModalProps {
   isOpen: boolean;
   onClose: () => void;
   mid: string;
-  onDelete: (mid: string, option: 'this' | 'thisAndFollowing' | 'all', currentOccurrenceDate?: Date) => void;
+  onConfirm: (mid: string, option: 'this' | 'thisAndFollowing' | 'all', currentOccurrenceDate?: Date) => void;
   currentOccurrenceDate?: Date; 
+  actionType: 'delete' | 'edit';
 }
 
-const DeleteRecurringModal: React.FC<DeleteRecurringModalProps> = ({
+const DeleteRecurringModal: React.FC<RecurringModalProps> = ({
   isOpen,
   onClose,
   mid,
-  onDelete,
-  currentOccurrenceDate
+  onConfirm,
+  currentOccurrenceDate,
+  actionType,
 }) => {
   const [selectedOption, setSelectedOption] = useState<'this' | 'thisAndFollowing' | 'all'>('this');
 
@@ -25,15 +27,17 @@ const DeleteRecurringModal: React.FC<DeleteRecurringModalProps> = ({
     setSelectedOption(option);
   };
 
-  const handleDelete = () => {
-    onDelete(mid, selectedOption, currentOccurrenceDate);
+  const handleConfirm = () => {
+    onConfirm(mid, selectedOption, currentOccurrenceDate);
     onClose();
   };
+
+  const actionWord = actionType === 'delete' ? 'Delete' : 'Edit';
   
   return (
     <div className={styles.modalOverlay}>
       <div className={styles.modalContent}>
-        <h2 className={styles.modalTitle}>Delete recurring event</h2>
+        <h2 className={styles.modalTitle}>{actionWord} recurring event</h2>
 
         <div className={styles.optionsContainer}>
           <div className={styles.optionItem}>
@@ -75,7 +79,7 @@ const DeleteRecurringModal: React.FC<DeleteRecurringModalProps> = ({
 
         <div className={styles.buttonContainer}>
           <TextButton label="Cancel" onClick={onClose} />
-          <TextButton label="OK" onClick={handleDelete} />
+          <TextButton label="OK" onClick={handleConfirm} />
         </div>
       </div>
     </div>

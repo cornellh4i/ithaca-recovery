@@ -7,6 +7,7 @@ import DatePicker from '../atoms/DatePicker';
 import TimePicker from '../atoms/TimePicker';
 import Dropdown from '../atoms/dropdown';
 import RecurringMeetingForm from '../molecules/RecurringMeeting';
+import RecurringModal from '../molecules/RecurringModal'; 
 import CloseIcon from '@mui/icons-material/Close';
 import IconButton from '@mui/material/IconButton';
 
@@ -19,10 +20,11 @@ interface EditMeetingSidebarProps {
   meeting: IMeeting;
   onClose: () => void;
   onUpdateSuccess: () => void;
+  currentOccurrenceDate?: Date; // Add this to handle specific occurrence
 }
 
 const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
-  ({ meeting, onClose, onUpdateSuccess }) => {
+  ({ meeting, onClose, onUpdateSuccess, currentOccurrenceDate }) => {
     /**
      * Extracts time in HH:MM format from a date string
      * @param date - date to extract time from
@@ -98,8 +100,13 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
     const [selectedMeetingType, setSelectedMeetingType] = useState<string>(formData.calType);
     const [selectedZoomAccount, setSelectedZoomAccount] = useState<string>(formData.zoomAccount);
 
-    const [isRecurring, setIsRecurring] = useState(false);
-    const [recurrencePattern, setRecurrencePattern] = useState<IRecurrencePattern | null>(null);
+    const [isRecurring, setIsRecurring] = useState(meeting.recurrencePattern ? true : false);
+    const [recurrencePattern, setRecurrencePattern] = useState<IRecurrencePattern | null>(
+      meeting.recurrencePattern || null
+    );
+
+    // State for the recurring modal
+    const [showRecurringModal, setShowRecurringModal] = useState(false);
 
     const handleRecurringMeetingChange = (data: {
       isRecurring: boolean;
@@ -145,14 +152,26 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
       return dateObject.toISOString().split('T')[0]; // Returns "YYYY-MM-DD"
     }
 
-    const updateMeeting = async () => {
-      try {
+    // This function will either update the meeting directly or show the modal for recurring meetings
+    const handleUpdateMeeting = async () => {
+      // If this is a recurring meeting, show the modal first
+      if (isRecurring && recurrencePattern) {
+        setShowRecurringModal(true);
+      } else {
+        // If not recurring, update directly
+        processMeetingUpdate('this');
+      }
+    };
 
+    // This function will be called after selecting an option from the modal or directly for non-recurring meetings
+    const processMeetingUpdate = async (option: 'this' | 'thisAndFollowing' | 'all') => {
+      try {
         // Convert dateValue to ISO format
         const isoDateValue = convertToISODate(dateValue);
 
         if (!isoDateValue) {
           console.error("Failed to convert dateValue to ISO format");
+          return;
         }
 
         const [startTime, endTime] = timeValue?.split(' - ') || [];
@@ -177,19 +196,19 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
         const endDateTimeUTC = new Date(endDateTimeUTCString);
 
         const updatedMeeting: IMeeting = {
-            mid: formData.mid,
-            title: inputMeetingTitleValue,
-            modeType: selectedMode, // Meeting Mode Type
-            description: inputDescriptionValue,
-            creator: 'Creator',
-            group: 'Group',
-            startDateTime: startDateTimeUTC,
-            endDateTime: endDateTimeUTC,
-            email: inputEmailValue,
-            zoomAccount: selectedZoomAccount,
-            calType: selectedMeetingType, // Room Type
-            room: selectedRoom,
-          };
+          mid: formData.mid,
+          title: inputMeetingTitleValue,
+          modeType: selectedMode,
+          description: inputDescriptionValue,
+          creator: 'Creator',
+          group: 'Group',
+          startDateTime: startDateTimeUTC,
+          endDateTime: endDateTimeUTC,
+          email: inputEmailValue,
+          zoomAccount: selectedZoomAccount,
+          calType: selectedMeetingType,
+          room: selectedRoom,
+        };
 
         if (isRecurring && recurrencePattern) {
           updatedMeeting.recurrencePattern = {
@@ -198,12 +217,19 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
           };
         }
 
+        // Add the recurring option and current occurrence date to the request
+        const requestBody = {
+          meeting: updatedMeeting,
+          recurringOption: option,
+          currentOccurrenceDate: currentOccurrenceDate
+        };
+
         const response = await fetch('/api/update/meeting', {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify(updatedMeeting),
+          body: JSON.stringify(updatedMeeting), 
         });
 
         if (!response.ok) {
@@ -215,8 +241,14 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
         onUpdateSuccess();
         onClose();
       } catch (error) {
-        console.error('There was an error fetching the data:', error);
+        console.error('There was an error updating the meeting:', error);
       }
+    };
+
+    // Handler for the recurring modal confirmation
+    const handleRecurringModalConfirm = (mid: string, option: 'this' | 'thisAndFollowing' | 'all') => {
+      processMeetingUpdate(option);
+      setShowRecurringModal(false);
     };
 
     return (
@@ -235,6 +267,7 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
           />}
           modeTypeButtons={<ModeTypeButtons 
             onModeSelect={setSelectedMode}
+            initialMode={selectedMode}
           />}
           DatePicker={<DatePicker
             label={<img src='/svg/calendar-icon.svg' alt="Calendar Icon" />}
@@ -253,6 +286,8 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
             <RecurringMeetingForm
               onChange={handleRecurringMeetingChange}
               startDate={dateValue}
+              defaultIsRecurring={isRecurring}
+              defaultRecurrencePattern={recurrencePattern}
             />
           }
           roomSelectionDropdown={
@@ -297,8 +332,18 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
             value={inputDescriptionValue}
             onChange={setDescriptionValue}
           />}
-          handleMeetingSubmit={updateMeeting}
+          handleMeetingSubmit={handleUpdateMeeting} // Changed to the new handler function
           buttonText={"Update Meeting"}
+        />
+
+        {/* Add the recurring modal */}
+        <RecurringModal
+          isOpen={showRecurringModal}
+          onClose={() => setShowRecurringModal(false)}
+          onConfirm={handleRecurringModalConfirm}
+          mid={formData.mid}
+          currentOccurrenceDate={currentOccurrenceDate}
+          actionType="edit"
         />
       </div>
     );

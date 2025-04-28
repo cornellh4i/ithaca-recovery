@@ -212,6 +212,8 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> =
             <RecurringMeetingForm
               onChange={handleRecurringMeetingChange}
               startDate={dateValue}
+              defaultIsRecurring={isRecurring}
+              defaultRecurrencePattern={recurrencePattern}
             />
           }
           roomSelectionDropdown={
