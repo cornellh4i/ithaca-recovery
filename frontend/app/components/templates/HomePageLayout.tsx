@@ -280,6 +280,7 @@ const HomePage = () => {
             setSelectedDate={setSelectedDate}
             setSelectedMeetingID={setSelectedMeetingID}
             setSelectedNewMeeting={setSelectedNewMeeting}
+            setLastClickedDate={setLastClickedDate}
           />
         )}
       </div>

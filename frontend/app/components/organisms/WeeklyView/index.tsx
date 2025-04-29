@@ -160,6 +160,7 @@ interface WeeklyViewProps {
     setSelectedDate: (date: Date) => void;
     setSelectedMeetingID: (meetingId: string) => void;
     setSelectedNewMeeting: (newMeetingExists: boolean) => void;
+    setLastClickedDate: (date: Date) => void;
 }
 
 const WeeklyView: React.FC<WeeklyViewProps> = ({
@@ -167,7 +168,8 @@ const WeeklyView: React.FC<WeeklyViewProps> = ({
     selectedDate,
     setSelectedDate,
     setSelectedMeetingID,
-    setSelectedNewMeeting
+    setSelectedNewMeeting,
+    setLastClickedDate 
 }) => {
     const [currentTimePosition, setCurrentTimePosition] = useState(0);
     const [weekStartDate, setWeekStartDate] = useState<Date>(getFirstDayOfWeek(selectedDate));
@@ -330,11 +332,12 @@ const WeeklyView: React.FC<WeeklyViewProps> = ({
                                 {/* Render meetings with the improved component */}
                                 <WeeklyViewColumn
                                     dayName=""  // Empty string to prevent WeeklyViewColumn from rendering its own header
-                                    date=""     // Empty string for the same reason
+                                    date={`${day.getFullYear()}-${(day.getMonth() + 1).toString().padStart(2, '0')}-${(day.getDate() +1).toString().padStart(2, '0')}`}
                                     roomColor="#cecece" // Default color
                                     meetings={dayMeetings}
                                     setSelectedMeetingID={setSelectedMeetingID}
                                     setSelectedNewMeeting={setSelectedNewMeeting}
+                                    setLastClickedDate={setLastClickedDate}
                                 />
 
                                 {/* Current time indicator - only show for current day */}

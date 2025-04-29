@@ -18,6 +18,7 @@ interface WeeklyViewColumnProps {
     meetings: Meeting[];
     setSelectedMeetingID: (meetingId: string) => void;
     setSelectedNewMeeting: (newMeetingExists: boolean) => void;
+    setLastClickedDate: (date: Date) => void; 
     dayName: string;
     date: string;
 }
@@ -106,6 +107,7 @@ const WeeklyViewColumn: React.FC<WeeklyViewColumnProps> = ({
     meetings,
     setSelectedMeetingID,
     setSelectedNewMeeting,
+    setLastClickedDate, 
     dayName,
     date,
 }) => {
@@ -113,6 +115,9 @@ const WeeklyViewColumn: React.FC<WeeklyViewColumnProps> = ({
         console.log(`Meeting ${meetingId} clicked`);
         setSelectedMeetingID(meetingId);
         setSelectedNewMeeting(false);
+
+        const clickedDate = new Date(date);
+        setLastClickedDate(clickedDate);
     };
 
     // Filter out invalid meetings
@@ -165,6 +170,7 @@ const WeeklyViewColumn: React.FC<WeeklyViewColumnProps> = ({
                     />
                 ))}
 
+                {/* Render meetings */}
                 {validMeetings.map((meeting, index) => {
                     // Calculate positioning with improved error handling
                     const topOffset = timeToPixels(meeting.startTime);
@@ -172,6 +178,7 @@ const WeeklyViewColumn: React.FC<WeeklyViewColumnProps> = ({
                     
                     // Ensure height is positive and at least 30px
                     let height = bottomOffset - topOffset;
+
                     if (height <= 0) {
                         // Handle case where end time is earlier than start time (overnight meeting)
                         height = (2400 - topOffset) + bottomOffset;
