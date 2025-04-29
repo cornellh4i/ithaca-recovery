@@ -163,11 +163,14 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
     doesOccur: currentOccurrenceDate ? doesMeetingOccurOnDate(currentOccurrenceDate) : false
   });
 
-  const startDateEST = convertUTCToET(startDateTime.toISOString());
-  const endDateEST = convertUTCToET(endDateTime.toISOString());
+  // Convert the display dates to EST/EDT for rendering
+  const displayStartDateEST = convertUTCToET(displayStartDate.toISOString());
+  const displayEndDateEST = convertUTCToET(displayEndDate.toISOString());
 
   const formatTime = (estString: string): string => {
     const timePart = estString.split(',')[1]?.trim(); // "10:45:00 AM"
+    if (!timePart) return "";
+    
     const [hh, mm] = timePart.split(':');
     const ampm = timePart.split(' ')[1];
     return `${hh}:${mm} ${ampm}`; // returns "10:45 AM"
@@ -190,10 +193,10 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
       <div className={styles.details}>
       <p style={{ color: 'gray' }}>
           <CalendarTodayIcon />&nbsp;
-          {startDateEST.split(',')[0]} 
+          {displayStartDateEST.split(',')[0]} 
         </p>
         <p style={{ color: 'gray' }}>
-          <AccessTimeIcon />&nbsp;{`${formatTime(startDateEST)} - ${formatTime(endDateEST)}`}
+          <AccessTimeIcon />&nbsp;{`${formatTime(displayStartDateEST)} - ${formatTime(displayEndDateEST)}`}
         </p>
 
         {isRecurring && (
