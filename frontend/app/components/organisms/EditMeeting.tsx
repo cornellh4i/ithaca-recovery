@@ -100,7 +100,7 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
     const [selectedMeetingType, setSelectedMeetingType] = useState<string>(formData.calType);
     const [selectedZoomAccount, setSelectedZoomAccount] = useState<string>(formData.zoomAccount);
 
-    const [isRecurring, setIsRecurring] = useState(meeting.recurrencePattern ? true : false);
+    const [isRecurring, setIsRecurring] = useState(meeting.isRecurring || meeting.recurrencePattern ? true : false);
     const [recurrencePattern, setRecurrencePattern] = useState<IRecurrencePattern | null>(
       meeting.recurrencePattern || null
     );
@@ -155,7 +155,7 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
     // This function will either update the meeting directly or show the modal for recurring meetings
     const handleUpdateMeeting = async () => {
       // If this is a recurring meeting, show the modal first
-      if (isRecurring && recurrencePattern) {
+      if (isRecurring && (recurrencePattern || meeting.recurrencePattern)) {
         setShowRecurringModal(true);
       } else {
         // If not recurring, update directly
@@ -208,6 +208,7 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
           zoomAccount: selectedZoomAccount,
           calType: selectedMeetingType,
           room: selectedRoom,
+          isRecurring: isRecurring,
         };
 
         if (isRecurring && recurrencePattern) {
@@ -229,19 +230,20 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify(updatedMeeting), 
+          body: JSON.stringify(requestBody), 
         });
 
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
         const meetingResponse = await response.json();
-        console.log(meetingResponse);
+        console.log("Update response:", meetingResponse);
         alert("Meeting updated successfully! Please check the Meeting collection on MongoDB.");
         onUpdateSuccess();
         onClose();
       } catch (error) {
         console.error('There was an error updating the meeting:', error);
+        alert("Error updating meeting: " + (error instanceof Error ? error.message : String(error)));
       }
     };
 

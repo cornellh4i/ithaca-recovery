@@ -6,29 +6,191 @@ const prisma = new PrismaClient();
 
 const updateMeeting = async (request: Request): Promise<Response> => {
   try {
-    const newMeeting = await request.json() as IMeeting;
+    const body = await request.json();
+    const { meeting, recurringOption, currentOccurrenceDate } = body;
 
+    // If no meeting data is provided, return an error
+    if (!meeting) {
+      return NextResponse.json({ error: "No meeting data provided" }, { status: 400 });
+    }
+
+    const { mid, ...dataWithoutMid } = meeting;
+
+    // Find the existing meeting
     const existingMeeting = await prisma.meeting.findUnique({
-      where: {
-        mid: newMeeting.mid,
-      },
+      where: { mid },
+      include: { recurrencePattern: true }
     });
 
     if (!existingMeeting) {
-      console.error('Meeting not found:', newMeeting.mid);
-      return NextResponse.json({ error: `Meeting with ID ${newMeeting.mid} not found` }, { status: 404 });
+      console.error('Meeting not found:', mid);
+      return NextResponse.json({ error: `Meeting with ID ${mid} not found` }, { status: 404 });
     }
 
-    const { mid, ...dataWithoutMid } = newMeeting;
+    const isRecurring = !!existingMeeting.recurrencePattern || existingMeeting.isRecurring;
 
-    const updatedMeeting = await prisma.meeting.update({
-      where: {
-        mid: mid,
-      },
-      data: dataWithoutMid,
-    });
+    // Fix for the recurrence pattern data
+    let recurrencePatternData = null;
+    if (dataWithoutMid.recurrencePattern) {
+      // Create a copy of the recurrence pattern without 'id' and fix numberOfOccurrences -> numberOfOccurences
+      const { id, numberOfOccurrences, ...patternWithoutId } = dataWithoutMid.recurrencePattern;
+      recurrencePatternData = {
+        ...patternWithoutId,
+        // Fix the typo in the field name
+        numberOfOccurences: numberOfOccurrences
+      };
+    }
 
-    return NextResponse.json(updatedMeeting);
+    if (isRecurring) {
+      if (!recurringOption) {
+        return NextResponse.json({ error: "Update option is required for recurring meetings" }, { status: 400 });
+      }
+
+      console.log('Handling recurring meeting update with option:', recurringOption);
+
+      switch (recurringOption) {
+        case 'this':
+          console.log('Updating only this occurrence');
+
+          if (!currentOccurrenceDate) {
+            return NextResponse.json({ error: "Current occurrence date is required for this option" }, { status: 400 });
+          }
+
+          if (existingMeeting.recurrencePattern) {
+            try {
+              // If updating only this instance, we need to add it to the excludedDates
+              // and create a new non-recurring instance with the updated properties
+              await prisma.recurrencePattern.update({
+                where: { id: existingMeeting.recurrencePattern.id },
+                data: {
+                  excludedDates: {
+                    push: new Date(currentOccurrenceDate)
+                  }
+                }
+              });
+
+              // Create a new meeting instance for this occurrence
+              const newOccurrence = await prisma.meeting.create({
+                data: {
+                  ...dataWithoutMid,
+                  isRecurring: false, // This is now a one-time meeting
+                  recurrencePattern: undefined, // Remove the recurrence pattern reference
+                  mid: undefined // Let Prisma generate a new mid
+                }
+              });
+
+              return NextResponse.json(newOccurrence);
+            } catch (error) {
+              console.error("Error updating single occurrence:", error);
+              return NextResponse.json({ error: "Failed to update recurrence pattern" }, { status: 500 });
+            }
+          } else {
+            // If it's marked as recurring but has no pattern, just update it directly
+            const updatedMeeting = await prisma.meeting.update({
+              where: { mid },
+              data: dataWithoutMid
+            });
+            return NextResponse.json(updatedMeeting);
+          }
+          break;
+
+        case 'thisAndFollowing':
+          console.log('Updating this and following occurrences');
+          
+          if (!currentOccurrenceDate) {
+            return NextResponse.json({ error: "Current occurrence date is required for this option" }, { status: 400 });
+          }
+          
+          if (existingMeeting.recurrencePattern) {
+            try {
+              const currentDate = new Date(currentOccurrenceDate);
+              const startDate = new Date(existingMeeting.startDateTime);
+              
+              // If we're modifying the first occurrence, update the main meeting
+              if (currentDate.toISOString().slice(0, 10) === startDate.toISOString().slice(0, 10)) {
+                // Update the recurring meeting and its pattern
+                const updatedMeeting = await prisma.meeting.update({
+                  where: { mid },
+                  data: {
+                    ...dataWithoutMid,
+                    recurrencePattern: {
+                      update: recurrencePatternData
+                    }
+                  },
+                  include: { recurrencePattern: true }
+                });
+                return NextResponse.json(updatedMeeting);
+              } else {
+                // End the original series right before this occurrence
+                await prisma.recurrencePattern.update({
+                  where: { id: existingMeeting.recurrencePattern.id },
+                  data: {
+                    endDate: new Date(currentDate.setDate(currentDate.getDate() - 1))
+                  }
+                });
+                
+                // Create a new recurring meeting starting from this occurrence
+                // Make sure to not include mid in the data
+                const newRecurringMeeting = await prisma.meeting.create({
+                  data: {
+                    ...dataWithoutMid,
+                    recurrencePattern: {
+                      create: {
+                        ...recurrencePatternData,
+                        startDate: new Date(currentOccurrenceDate)
+                      }
+                    }
+                  },
+                  include: { recurrencePattern: true }
+                });
+                
+                return NextResponse.json(newRecurringMeeting);
+              }
+            } catch (error) {
+              console.error("Error updating this and following occurrences:", error);
+              return NextResponse.json({ error: "Failed to update recurrence pattern: " + error.message }, { status: 500 });
+            }
+          } else {
+            // If it's marked as recurring but has no pattern, just update it directly
+            const updatedMeeting = await prisma.meeting.update({
+              where: { mid },
+              data: dataWithoutMid
+            });
+            return NextResponse.json(updatedMeeting);
+          }
+          break;
+
+        case 'all':
+          console.log('Updating all occurrences');
+          
+          // Simply update the recurring meeting
+          const updatedMeeting = await prisma.meeting.update({
+            where: { mid },
+            data: {
+              ...dataWithoutMid,
+              recurrencePattern: existingMeeting.recurrencePattern ? {
+                update: recurrencePatternData
+              } : undefined
+            },
+            include: { recurrencePattern: true }
+          });
+          
+          return NextResponse.json(updatedMeeting);
+          break;
+
+        default:
+          return NextResponse.json({ error: "Invalid update option" }, { status: 400 });
+      }
+    } else {
+      // For non-recurring meetings, just update directly
+      console.log('Updating non-recurring meeting');
+      const updatedMeeting = await prisma.meeting.update({
+        where: { mid },
+        data: dataWithoutMid
+      });
+      
+      return NextResponse.json(updatedMeeting);
+    }
   } catch (error) {
     console.error('Detailed error:', error);
     return NextResponse.json({

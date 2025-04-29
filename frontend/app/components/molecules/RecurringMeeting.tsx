@@ -43,14 +43,14 @@ const RecurringMeetingForm: React.FC<RecurringMeetingFormProps> = ({
     }) ?? []);
     const [endOption, setEndOption] = useState(
       defaultRecurrencePattern?.endDate ? 'On' :
-      defaultRecurrencePattern?.numberOfOccurrences ? 'After' :
+      defaultRecurrencePattern?.numberOfOccurences ? 'After' :
       'Never'
     );
     const [endDate, setEndDate] = useState<string | undefined>(
       defaultRecurrencePattern?.endDate ? new Date(defaultRecurrencePattern.endDate).toISOString().split('T')[0] : ""
     );
     const [occurrences, setOccurrences] = useState(
-      defaultRecurrencePattern?.numberOfOccurrences ?? 1
+      defaultRecurrencePattern?.numberOfOccurences ?? 1
     );
   
   // Map day abbreviations to full day names for Microsoft Graph API compatibility
@@ -93,7 +93,7 @@ const RecurringMeetingForm: React.FC<RecurringMeetingFormProps> = ({
           firstDayOfWeek: "Sunday",
           daysOfWeek: selectedDays.map(day => dayMapping[day]),
           endDate: endOption === 'On' && endDate ? new Date(endDate) : null,
-          numberOfOccurrences: endOption === 'After' ? occurrences : null,
+          numberOfOccurences: endOption === 'After' ? occurrences : null,
         }
       : null;
 

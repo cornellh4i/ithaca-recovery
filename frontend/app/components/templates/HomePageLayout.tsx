@@ -40,6 +40,7 @@ const HomePage = () => {
   const [selectedNewMeeting, setSelectedNewMeeting] = useState<boolean | null>(false);
   const [showEditMeeting, setShowEditMeeting] = useState(false);
   const [lastClickedDate, setLastClickedDate] = useState<Date | null>(null);
+  const [editOption, setEditOption] = useState<'this' | 'thisAndFollowing' | 'all' | undefined>(undefined);
 
   const fetchMeetingDetails = async (meetingId: string) => {
     try {
@@ -72,14 +73,19 @@ const HomePage = () => {
     setSelectedMeetingID(null);
     setSelectedNewMeeting(false);
     setLastClickedDate(null);
+    setShowEditMeeting(false);
+    setEditOption(undefined);
   };
 
-  const handleOpenEdit = () => {
+  const handleOpenEdit = (mid?: string, option?: 'this' | 'thisAndFollowing' | 'all', currentOccurrenceDate?: Date) => {
+    console.log(`Editing meeting ${mid} with option ${option}`, { currentOccurrenceDate });
+    setEditOption(option);
     setShowEditMeeting(true);
   };
 
   const handleCloseEdit = () => {
     setShowEditMeeting(false);
+    setEditOption(undefined);
   };
 
   const handleCloseNewMeeting = () => {
@@ -114,7 +120,7 @@ const HomePage = () => {
       // }, 100);
       alert("Meeting deleted successfully! Please check the Meeting collection on MongoDB.")
     } catch (error) {
-      console.error('There was an error fetching the data:', error);
+      console.error('There was an error deleting the meeting:', error);
     }
   };
 
@@ -170,12 +176,14 @@ const HomePage = () => {
             <EditMeetingSidebar
               meeting={selectedMeeting}
               onClose={handleCloseEdit}
+              currentOccurrenceDate={lastClickedDate || undefined}
               onUpdateSuccess={() => {
                 console.log("Meeting updated!");
                 // Refresh the meeting data after successful update
                 if (selectedMeeting.mid) {
                   fetchMeetingDetails(selectedMeeting.mid);
                 }
+                setShowEditMeeting(false);
               }}
             />) :
             selectedMeeting ? (

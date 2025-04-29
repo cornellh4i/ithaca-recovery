@@ -7,11 +7,11 @@ interface RecurringModalProps {
   onClose: () => void;
   mid: string;
   onConfirm: (mid: string, option: 'this' | 'thisAndFollowing' | 'all', currentOccurrenceDate?: Date) => void;
-  currentOccurrenceDate?: Date; 
+  currentOccurrenceDate?: Date;
   actionType: 'delete' | 'edit';
 }
 
-const DeleteRecurringModal: React.FC<RecurringModalProps> = ({
+const RecurringModal: React.FC<RecurringModalProps> = ({
   isOpen,
   onClose,
   mid,
@@ -33,57 +33,64 @@ const DeleteRecurringModal: React.FC<RecurringModalProps> = ({
   };
 
   const actionWord = actionType === 'delete' ? 'Delete' : 'Edit';
+  const actionText = actionType === 'delete' ? 'Delete' : 'Update';
   
   return (
     <div className={styles.modalOverlay}>
       <div className={styles.modalContent}>
         <h2 className={styles.modalTitle}>{actionWord} recurring event</h2>
-
+        
         <div className={styles.optionsContainer}>
           <div className={styles.optionItem}>
             <input
               type="radio"
               id="this-event"
-              name="delete-option"
+              name="recurring-option"
               checked={selectedOption === 'this'}
               onChange={() => handleOptionSelect('this')}
               className={styles.radioInput}
             />
-            <label htmlFor="this-event" className={styles.radioLabel}>This event</label>
+            <label htmlFor="this-event" className={styles.radioLabel}>
+              This event only
+            </label>
           </div>
-
+          
           <div className={styles.optionItem}>
             <input
               type="radio"
               id="this-and-following"
-              name="delete-option"
+              name="recurring-option"
               checked={selectedOption === 'thisAndFollowing'}
               onChange={() => handleOptionSelect('thisAndFollowing')}
               className={styles.radioInput}
             />
-            <label htmlFor="this-and-following" className={styles.radioLabel}>This and following events</label>
+            <label htmlFor="this-and-following" className={styles.radioLabel}>
+              This and following events
+            </label>
           </div>
-
+          
           <div className={styles.optionItem}>
             <input
               type="radio"
               id="all-events"
-              name="delete-option"
+              name="recurring-option"
               checked={selectedOption === 'all'}
               onChange={() => handleOptionSelect('all')}
               className={styles.radioInput}
             />
-            <label htmlFor="all-events" className={styles.radioLabel}>All events</label>
+            <label htmlFor="all-events" className={styles.radioLabel}>
+              All events
+            </label>
           </div>
         </div>
-
+        
         <div className={styles.buttonContainer}>
           <TextButton label="Cancel" onClick={onClose} />
-          <TextButton label="OK" onClick={handleConfirm} />
+          <TextButton label={actionText} onClick={handleConfirm} />
         </div>
       </div>
     </div>
   );
 };
 
-export default DeleteRecurringModal;
+export default RecurringModal;

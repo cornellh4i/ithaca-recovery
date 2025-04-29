@@ -32,7 +32,7 @@ interface IRecurrencePattern {
   type: string; 
   startDate: Date;
   endDate?: Date | null;
-  numberOfOccurrences?: number | null;
+  numberOfOccurences?: number | null;
   daysOfWeek?: string[] | null;
   firstDayOfWeek: string; 
   interval: number; // 1 = weekly, 2 = biweekly, etc.
