@@ -14,6 +14,7 @@ interface NewMeetingSidebarProps {
   uploadPandaDocsForm: React.ReactElement;
   descriptionTextField: React.ReactElement;
   onCreateMeeting: () => Promise<void>;
+  groupId: string;
 }
 
 const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({
@@ -27,8 +28,41 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({
   emailTextField,
   uploadPandaDocsForm,
   descriptionTextField,
-  onCreateMeeting
+  onCreateMeeting,
+  groupId
 }) => {
+  const handleCreateMeeting = async () => {
+    try {
+      await onCreateMeeting();
+
+      const eventData = {
+        title: meetingTitleTextField.props.value,
+        description: descriptionTextField.props.value,
+        startDateTime: new Date(DatePicker.props.value).toISOString(),
+        endDateTime: new Date(TimePicker.props.value).toISOString(),
+        groupId: groupId,
+        attendees: [{ email: emailTextField.props.value }]
+      };
+
+      const response = await fetch('/api/microsoft/calendars/createEvent', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(eventData)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Failed to create meeting:',errorData);
+        alert('Meeting failed to add to calendar.');
+      }
+    } catch (error) {
+      console.error('Error creating meeting:', error);
+      alert('Error creating meeting.');
+    }
+  };
+
   return (
     <div className={styles.newMeetingSidebar}>
       <div className={styles.dummyComponent}>
@@ -66,7 +100,7 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({
       <div className={styles.dummyComponent}>
         {descriptionTextField}
       </div>
-      <button className={styles.createMeetingButton} onClick={onCreateMeeting}>Create Meeting</button>
+      <button className={styles.createMeetingButton} onClick={handleCreateMeeting}>Create Meeting</button>
     </div>
   );
 };

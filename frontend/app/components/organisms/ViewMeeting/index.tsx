@@ -24,6 +24,7 @@ type ViewMeetingDetailsProps = {
   onBack: () => void;
   onEdit: () => void;
   onDelete: (mid: string) => void;
+  groupId: string; // Add groupId prop
 };
 
 const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
@@ -44,10 +45,35 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
   onBack,
   onEdit,
   onDelete,
+  groupId
 }) => {
 
-  const handleDelete = () => {
-    onDelete(mid);
+  const handleDelete = async () => {
+    try {
+      // First delete from our database
+      onDelete(mid);
+
+      // Then delete from Microsoft Graph calendar
+      const response = await fetch('/api/microsoft/calendars/deleteEvent', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          eventId: id,
+          groupId: groupId
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Failed to delete calendar event:', errorData);
+        alert('Failed to remove from calendar. Please try removing it manually.');
+      }
+    } catch (error) {
+      console.error('Error deleting meeting:', error);
+      alert('Error deleting meeting.');
+    }
   }
 
   return (

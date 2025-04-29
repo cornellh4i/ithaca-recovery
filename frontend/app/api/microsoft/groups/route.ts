@@ -42,5 +42,4 @@ const getGroups = async (req: Request) => {
     );
   }
 }
-
 export { getGroups as GET }

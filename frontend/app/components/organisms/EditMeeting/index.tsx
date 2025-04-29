@@ -39,9 +39,11 @@ interface EditMeetingProps {
   onClose: () => void;
   /** Called after a successful update */
   onUpdateSuccess?: () => void;
+  /** The group ID for the calendar */
+  groupId: string;
 }
 
-const EditMeeting: React.FC<EditMeetingProps> = ({ meeting, onClose, onUpdateSuccess }) => {
+const EditMeeting: React.FC<EditMeetingProps> = ({ meeting, onClose, onUpdateSuccess, groupId }) => {
   // Helper function to format time as HH:MM
   const formatTime = (date: Date) => {
     const hours = new Date(date).getHours().toString().padStart(2, '0');
@@ -143,6 +145,30 @@ const EditMeeting: React.FC<EditMeetingProps> = ({ meeting, onClose, onUpdateSuc
           throw new Error('Meeting not found. It may have been deleted.');
         }
         throw new Error('Failed to update meeting');
+      }
+
+      // Update the calendar event in Microsoft Graph
+      const calendarUpdatePayload = {
+        eventId: meeting.id,
+        groupId: groupId,
+        title: formData.title,
+        description: formData.description,
+        startDateTime: startDateTimeUTC.toISOString(),
+        endDateTime: endDateTimeUTC.toISOString()
+      };
+
+      const calendarResponse = await fetch('/api/microsoft/calendars/updateEvent', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(calendarUpdatePayload),
+      });
+
+      if (!calendarResponse.ok) {
+        const errorData = await calendarResponse.json();
+        console.error('Failed to update calendar event:', errorData);
+        alert('Failed to update calendar event. ');
       }
 
       alert('Meeting updated successfully!');

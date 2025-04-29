@@ -1,6 +1,36 @@
 export const dynamic = 'force-dynamic';
+import { ConfidentialClientApplication } from '@azure/msal-node';
 import { authProvider } from "../../../../../services/auth";
-import getAccessToken from "../../AccessToken";
+
+// Configure MSAL
+const cca = new ConfidentialClientApplication({
+  auth: {
+    clientId: process.env.CLIENT_ID!,
+    authority: `${process.env.CLOUD_INSTANCE}${process.env.TENANT_ID}`,
+    clientSecret: process.env.CLIENT_SECRET!
+  }
+});
+
+// Get access token for Microsoft Graph API
+const getAccessToken = async (): Promise<string | null> => {
+  try {
+    console.log("[AccessToken] Getting token with scopes:", ['https://graph.microsoft.com/.default']);
+    const result = await cca.acquireTokenByClientCredential({
+      scopes: ['https://graph.microsoft.com/.default']
+    });
+
+    if (!result?.accessToken) {
+      console.error("[AccessToken] No token returned");
+      return null;
+    }
+
+    console.log("[AccessToken] Token acquired successfully");
+    return result.accessToken;
+  } catch (err) {
+    console.error("[AccessToken] Error getting token:", err);
+    return null;
+  }
+};
 
 interface EventUpdateBody {
   eventId: string;
@@ -13,9 +43,13 @@ interface EventUpdateBody {
 }
 
 export async function PUT(req: Request) {
+  console.log("PUT request received");
+
   try {
+    // Get access token
     const accessToken = await getAccessToken();
     if (accessToken === null) {
+      console.error("Failed to get access token");
       return new Response(
         JSON.stringify({ error: "Unable to retrieve access token" }),
         {
@@ -25,9 +59,26 @@ export async function PUT(req: Request) {
       );
     }
 
+    // Parse request body
     const body: EventUpdateBody = await req.json();
+    console.log("Request body:", body);
 
-    // Construct the update object with only provided fields
+    // Validate required fields
+    if (!body.eventId || !body.groupId) {
+      console.error("Missing required fields");
+      return new Response(
+        JSON.stringify({
+          error: "Invalid request",
+          details: "eventId and groupId are required"
+        }),
+        {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
+    // Construct the update object for Microsoft Graph API
     const updateEvent: any = {};
 
     if (body.title) {
@@ -56,10 +107,18 @@ export async function PUT(req: Request) {
     }
 
     if (body.attendees) {
-      updateEvent.attendees = body.attendees;
+      updateEvent.attendees = body.attendees.map(attendee => ({
+        emailAddress: {
+          address: attendee.email
+        },
+        type: "required"
+      }));
     }
 
-    const endpoint = `${process.env.NEXT_PUBLIC_GRAPH_API_ENDPOINT}/groups/${body.groupId}/calendar/events/${body.eventId}`;
+    // Make request to Microsoft Graph API
+    const endpoint = `https://graph.microsoft.com/v1.0/groups/${body.groupId}/calendar/events/${body.eventId}`;
+    console.log("[updateEvent] Making request to:", endpoint);
+
     const response = await fetch(endpoint, {
       method: 'PATCH',
       headers: {
@@ -69,19 +128,69 @@ export async function PUT(req: Request) {
       body: JSON.stringify(updateEvent)
     });
 
+    // Handle error response
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || 'Failed to update calendar event');
+      console.error("Error response:", response.status, response.statusText);
+
+      try {
+        const errorData = await response.json();
+        console.error("Error data:", errorData);
+        return new Response(
+          JSON.stringify({
+            error: 'Error updating calendar event',
+            details: errorData.error ? errorData.error.message : 'Unknown error',
+            status: response.status
+          }),
+          {
+            status: 500,
+            headers: { 'Content-Type': 'application/json' },
+          }
+        );
+      } catch (e) {
+        return new Response(
+          JSON.stringify({
+            error: 'Error updating calendar event',
+            details: `HTTP error ${response.status}: ${response.statusText}`,
+            status: response.status
+          }),
+          {
+            status: 500,
+            headers: { 'Content-Type': 'application/json' },
+          }
+        );
+      }
     }
 
-    const data = await response.json();
-    return new Response(JSON.stringify(data), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    // Handle the response
+    try {
+      // Try to parse as JSON if there's content
+      const responseText = await response.text();
+      let data = {};
+      if (responseText) {
+        data = JSON.parse(responseText);
+      }
+
+      console.log("Success:", data);
+
+      return new Response(JSON.stringify(data), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    } catch (error) {
+      // If we can't parse the response, assume it was successful but empty
+      console.log("Empty or non-JSON response, treating as success");
+      return new Response(
+        JSON.stringify({ message: "Event updated successfully" }),
+        {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
+    }
 
   } catch (error) {
-    console.error('Error updating calendar event:', error);
+    console.error('[updateEvent] Error:', error);
+
     return new Response(
       JSON.stringify({
         error: 'Error updating calendar event',

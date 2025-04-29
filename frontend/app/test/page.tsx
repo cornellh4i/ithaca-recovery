@@ -1,5 +1,5 @@
 "use client";
-import React, { useContext, useState, useEffect } from 'react';
+import React, { useContext, useState } from 'react';
 import { IAdmin, IUser } from '../../util/models'
 import { IMeeting } from '../../util/models'
 import styles from "../../styles/TestPage.module.scss";
@@ -33,7 +33,7 @@ import { MsalProvider, AuthenticatedTemplate, UnauthenticatedTemplate, useMsal }
 // MSAL configuration
 const msalConfig = {
   auth: {
-    clientId: process.env.LIENT_ID || "",
+    clientId: process.env.CLIENT_ID || "",
     authority: `https://login.microsoftonline.com/${process.env.TENANT_ID}`,
     redirectUri: window.location.origin,
   },
@@ -48,75 +48,359 @@ const msalInstance = new PublicClientApplication(msalConfig);
 const TestPage = () => {
   const testCreateCalendarEvent = async () => {
     try {
+      console.log('Starting calendar event creation...');
+
+      // First, get the list of available groups
+      console.log('Fetching available groups...');
+      const groupsResponse = await fetch('/api/microsoft/groups', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!groupsResponse.ok) {
+        console.error('Failed to fetch groups:', groupsResponse.status);
+        alert('Unable to fetch Microsoft groups. Check console for details.');
+        return;
+      }
+
+      const groupsData = await groupsResponse.json();
+      console.log('Available groups:', groupsData);
+
+      // If no groups are available, show an error
+      if (!groupsData.value || groupsData.value.length === 0) {
+        console.error('No groups available');
+        alert('No Microsoft groups available. Please create a group first.');
+        return;
+      }
+
+      // Use the first available group
+      const firstGroup = groupsData.value[0];
+      console.log('Using group:', firstGroup.displayName, 'with ID:', firstGroup.id);
+
+      const eventData = {
+        title: "Test Calendar Event",
+        description: "This is a test event created using API",
+        startDateTime: new Date(Date.now() + 3600000).toISOString(),
+        endDateTime: new Date(Date.now() + 7200000).toISOString(),
+        groupId: firstGroup.id,
+        attendees: [{ email: "test@example.com" }]
+      };
+      console.log('Event data:', eventData);
+
       const response = await fetch('/api/microsoft/calendars/createEvent', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({
-          title: "Test Calendar Event",
-          description: "This is a test event created using API",
-          startDateTime: new Date(Date.now() + 3600000).toISOString(),
-          endDateTime: new Date(Date.now() + 7200000).toISOString(),
-          groupId: "19477",
-          attendees: [{ email: "test@example.com" }]
-        })
+        body: JSON.stringify(eventData)
       });
-      const data = await response.json();
-      console.log('Create Calendar Event Response:', data);
-      alert(response.ok ? "Calendar event created successfully!" : `Failed to create event: ${data.error}`);
-    } catch (error) {
+
+      console.log('Response status:', response.status);
+
+      // Handle response
+      const responseText = await response.text();
+      console.log('Raw response:', responseText);
+
+      let data;
+      try {
+        data = responseText ? JSON.parse(responseText) : {};
+      } catch (error) {
+        console.error('Error parsing response:', error);
+        alert(`Response could not be parsed as JSON: ${responseText}`);
+        return;
+      }
+
+      console.log('Response data:', data);
+
+      if (!response.ok) {
+        const errorDetail = data.error_description || data.message || data.details || JSON.stringify(data);
+        alert(`Failed to create event: ${data.error}\nDetails: ${errorDetail}\nStatus: ${response.status}`);
+      } else {
+        alert("Calendar event created successfully!");
+      }
+    } catch (error: any) {
       console.error('Error creating calendar event:', error);
-      alert('Error creating calendar event. Check console for details.');
+      alert(`Error creating calendar event: ${error?.message || 'Unknown error'}\nCheck console for details.`);
     }
   };
 
   const testUpdateCalendarEvent = async () => {
     try {
+      console.log('Starting calendar event update...');
+
+      // First, get the list of available groups
+      console.log('Fetching available groups...');
+      const groupsResponse = await fetch('/api/microsoft/groups', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!groupsResponse.ok) {
+        console.error('Failed to fetch groups:', groupsResponse.status);
+        alert('Unable to fetch Microsoft groups. Check console for details.');
+        return;
+      }
+
+      const groupsData = await groupsResponse.json();
+      console.log('Available groups:', groupsData);
+
+      // If no groups are available, show an error
+      if (!groupsData.value || groupsData.value.length === 0) {
+        console.error('No groups available');
+        alert('No Microsoft groups available. Please create a group first.');
+        return;
+      }
+
+      // Use the first available group
+      const firstGroup = groupsData.value[0];
+      console.log('Using group:', firstGroup.displayName, 'with ID:', firstGroup.id);
+
+      // First, let's try to create an event that we can then update
+      console.log('Creating an event first...');
+      const createEventData = {
+        title: "Test Event for Update",
+        description: "This event will be updated",
+        startDateTime: new Date(Date.now() + 3600000).toISOString(),
+        endDateTime: new Date(Date.now() + 7200000).toISOString(),
+        groupId: firstGroup.id,
+        attendees: [{ email: "test@example.com" }]
+      };
+
+      console.log('Create event data:', createEventData);
+
+      const createResponse = await fetch('/api/microsoft/calendars/createEvent', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(createEventData)
+      });
+
+      console.log('Create response status:', createResponse.status);
+
+      // Handle response with extra care to avoid JSON parsing errors
+      const createResponseText = await createResponse.text();
+      console.log('Create raw response:', createResponseText);
+
+      // Only try to parse if there's actual content
+      if (!createResponseText) {
+        console.error('Empty response from create event API');
+        alert('Failed to create event: Empty response from server');
+        return;
+      }
+
+      let createData;
+      try {
+        createData = JSON.parse(createResponseText);
+      } catch (parseError: any) {
+        console.error('Error parsing create response:', parseError);
+        alert(`Failed to parse create event response: ${parseError?.message || 'Unknown parsing error'}`);
+        return;
+      }
+
+      if (!createResponse.ok) {
+        console.error('Failed to create event for update:', createData);
+        alert(`Could not create event to update: ${createData.error || 'Unknown error'}`);
+        return;
+      }
+
+      console.log('Created event for update:', createData);
+
+      // Check if we have an event ID in the response
+      const eventId = createData.id;
+      if (!eventId) {
+        console.error('No event ID in create response');
+        alert('Created event does not have an ID');
+        return;
+      }
+
+      // Now update the event we just created
+      const eventData = {
+        eventId: eventId,
+        groupId: firstGroup.id,
+        title: "Updated Test Event",
+        description: "This event was updated via API"
+      };
+      console.log('Update data:', eventData);
+
       const response = await fetch('/api/microsoft/calendars/updateEvent', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({
-          eventId: "test-event-id",
-          groupId: "19477",
-          title: "Updated Test Event",
-          description: "This event was updated via API"
-        })
+        body: JSON.stringify(eventData)
       });
-      const data = await response.json();
-      console.log('Update Calendar Event Response:', data);
-      alert(response.ok ? "Calendar event updated successfully!" : `Failed to update event: ${data.error}`);
-    } catch (error) {
+
+      console.log('Update response status:', response.status);
+
+      // Handle the response carefully
+      const responseText = await response.text();
+      console.log('Update raw response:', responseText);
+
+      let data;
+      try {
+        data = responseText ? JSON.parse(responseText) : {};
+      } catch (jsonError: any) {
+        console.error('Error parsing update response:', jsonError);
+        alert(`Update response could not be parsed as JSON: ${responseText}`);
+        return;
+      }
+
+      console.log('Update response data:', data);
+
+      if (!response.ok) {
+        const errorDetail = data.error_description || data.message || data.details || JSON.stringify(data);
+        alert(`Failed to update event: ${data.error}\nDetails: ${errorDetail}\nStatus: ${response.status}`);
+      } else {
+        alert("Calendar event updated successfully!");
+      }
+    } catch (error: any) {
       console.error('Error updating calendar event:', error);
-      alert('Error updating calendar event. Check console for details.');
+      alert(`Error updating calendar event: ${error?.message || 'Unknown error'}\nCheck console for details.`);
     }
   };
 
   const testDeleteCalendarEvent = async () => {
     try {
+      console.log('Starting calendar event deletion process...');
+
+      // First, get the list of available groups
+      console.log('Fetching available groups...');
+      const groupsResponse = await fetch('/api/microsoft/groups', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!groupsResponse.ok) {
+        console.error('Failed to fetch groups:', groupsResponse.status);
+        alert('Unable to fetch Microsoft groups. Check console for details.');
+        return;
+      }
+
+      const groupsData = await groupsResponse.json();
+      console.log('Available groups:', groupsData);
+
+      // If no groups are available, show an error
+      if (!groupsData.value || groupsData.value.length === 0) {
+        console.error('No groups available');
+        alert('No Microsoft groups available. Please create a group first.');
+        return;
+      }
+
+      // Use the first available group
+      const firstGroup = groupsData.value[0];
+      console.log('Using group:', firstGroup.displayName, 'with ID:', firstGroup.id);
+
+      // First create an event that we can then delete
+      console.log('Creating an event to delete...');
+      const createEventData = {
+        title: "Test Event for Deletion",
+        description: "This event will be deleted",
+        startDateTime: new Date(Date.now() + 3600000).toISOString(),
+        endDateTime: new Date(Date.now() + 7200000).toISOString(),
+        groupId: firstGroup.id,
+        attendees: [{ email: "test@example.com" }]
+      };
+
+      console.log('Create event data:', createEventData);
+
+      const createResponse = await fetch('/api/microsoft/calendars/createEvent', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(createEventData)
+      });
+
+      console.log('Create response status:', createResponse.status);
+
+      // Handle response with extra care to avoid JSON parsing errors
+      const createResponseText = await createResponse.text();
+      console.log('Create raw response:', createResponseText);
+
+      // Only try to parse if there's actual content
+      if (!createResponseText) {
+        console.error('Empty response from create event API');
+        alert('Failed to create event: Empty response from server');
+        return;
+      }
+
+      let createData;
+      try {
+        createData = JSON.parse(createResponseText);
+      } catch (parseError: any) {
+        console.error('Error parsing create response:', parseError);
+        alert(`Failed to parse create event response: ${parseError?.message || 'Unknown parsing error'}`);
+        return;
+      }
+
+      if (!createResponse.ok) {
+        console.error('Failed to create event for deletion:', createData);
+        alert(`Could not create event to delete: ${createData.error || 'Unknown error'}`);
+        return;
+      }
+
+      console.log('Created event for deletion:', createData);
+
+      // Check if we have an event ID in the response
+      const eventId = createData.id;
+      if (!eventId) {
+        console.error('No event ID in create response');
+        alert('Created event does not have an ID');
+        return;
+      }
+
+      // Now delete the event we just created
+      console.log('Starting calendar event deletion...');
+      const deleteData = {
+        eventId: eventId,
+        groupId: firstGroup.id
+      };
+      console.log('Delete data:', deleteData);
+
       const response = await fetch('/api/microsoft/calendars/deleteEvent', {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({
-          eventId: "test-event-id",
-          groupId: "19477"
-        })
+        body: JSON.stringify(deleteData)
       });
+
+      console.log('Delete response status:', response.status);
+
       if (response.status === 204) {
         console.log('Calendar event deleted successfully');
         alert('Calendar event deleted successfully!');
       } else {
-        const data = await response.json();
-        console.error('Delete Calendar Event Error:', data);
-        alert(`Failed to delete event: ${data.error}`);
+        try {
+          const responseText = await response.text();
+          console.log('Delete raw response:', responseText);
+
+          let data;
+          try {
+            data = responseText ? JSON.parse(responseText) : {};
+          } catch (jsonError: any) {
+            console.error('Error parsing delete response:', jsonError);
+            alert(`Delete response could not be parsed as JSON: ${responseText}`);
+            return;
+          }
+
+          console.error('Delete Calendar Event Error:', data);
+          const errorDetail = data.error_description || data.message || data.details || JSON.stringify(data);
+          alert(`Failed to delete event: ${data.error}\nDetails: ${errorDetail}\nStatus: ${response.status}`);
+        } catch (parseError: any) {
+          alert(`Failed to delete event with status: ${response.status}\nCouldn't parse response body: ${parseError?.message || 'Unknown error'}`);
+        }
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error deleting calendar event:', error);
-      alert('Error deleting calendar event. Check console for details.');
+      alert(`Error deleting calendar event: ${error?.message || 'Unknown error'}\nCheck console for details.`);
     }
   };
 
@@ -152,7 +436,7 @@ const MicrosoftCalendarOperations = () => {
           description: "This is a test event created using API",
           startDateTime: new Date(Date.now() + 3600000).toISOString(),
           endDateTime: new Date(Date.now() + 7200000).toISOString(),
-          groupId: "123",
+          groupId: "ad5a4776-6e1e-41f3-8a1e-7d9737bff0d1",
           attendees: [{ email: "test@example.com" }]
         })
       });
@@ -175,7 +459,7 @@ const MicrosoftCalendarOperations = () => {
         },
         body: JSON.stringify({
           eventId: "test-event-id",
-          groupId: "123",
+          groupId: "ad5a4776-6e1e-41f3-8a1e-7d9737bff0d1",
           title: "Updated Test Event",
           description: "This event was updated via API"
         })
@@ -199,7 +483,7 @@ const MicrosoftCalendarOperations = () => {
         },
         body: JSON.stringify({
           eventId: "test-event-id",
-          groupId: "123"
+          groupId: "ad5a4776-6e1e-41f3-8a1e-7d9737bff0d1"
         })
       });
       if (response.status === 204) {
@@ -457,8 +741,8 @@ const App = () => {
     try {
       /* mid must correspond to a meeting existing in the collection */
       const newMeeting: IMeeting = {
-        title: 'Meeting Title',
-        mid: '36650',
+        title: 'Changed Meeting title',
+        mid: '689655a8-5acf-4127-a342-6b96ca9140d3',
         description: 'Meeting Description',
         creator: 'Creator',
         group: 'Group',
@@ -485,7 +769,7 @@ const App = () => {
 
       const meetingResponse = await response.json();
       console.log(meetingResponse);
-      alert("Meeting updated successfully! Please check the Meeting collection on MongoDB.")
+      alert("Meeting updated successfully!")
     } catch (error) {
       console.error('There was an error fetching the data:', error);
     }
@@ -603,16 +887,13 @@ const App = () => {
 
   const getCalendars = async () => {
     try {
-      const groupId = "123";
+      const groupId = "ad5a4776-6e1e-41f3-8a1e-7d9737bff0d1";
 
-      const groupCal = await fetch('/api/microsoft/calendars/getCalendars', {
-        method: "GET",
+      const groupCal = await fetch(`/api/microsoft/calendars/getCalendars?groupId=${groupId}`, {
+        method: 'GET',
         headers: {
           'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          groupId
-        }),
+        }
       });
       const groupData = await groupCal.json();
       console.log('Group calendar: ', groupData);
@@ -643,7 +924,7 @@ const App = () => {
       </div>
       <div className={styles.section}>
         <h2>Spinner Input</h2>
-        <SpinnerInput value={1} onChange={() => {}}></SpinnerInput>
+        <SpinnerInput value={1} onChange={() => { }}></SpinnerInput>
       </div>
       <div className={styles.section}>
         <h2>Admins</h2>
@@ -774,7 +1055,7 @@ const App = () => {
             disablePast={true}
             error={timeValue === '' ? 'Time is required' : undefined} // Example error handling
           />}
-          RecurringMeeting={<ReccuringMeeting/>}
+          RecurringMeeting={<ReccuringMeeting />}
           roomSelectionDropdown={ // For room selection dropdown
             <Dropdown
               label={<svg width="28" height="29" viewBox="0 0 28 29" fill="none" xmlns="http://www.w3.org/2000/svg">
