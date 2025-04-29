@@ -1,6 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { IMeeting } from "../../../../util/models";
+import { v4 as uuidv4 } from 'uuid';
 
 const prisma = new PrismaClient();
 
@@ -69,13 +70,16 @@ const updateMeeting = async (request: Request): Promise<Response> => {
                 }
               });
 
+              // Generate a new UUID for the mid field
+              const newMid = uuidv4();
+
               // Create a new meeting instance for this occurrence
               const newOccurrence = await prisma.meeting.create({
                 data: {
                   ...dataWithoutMid,
+                  mid: newMid,
                   isRecurring: false, // This is now a one-time meeting
                   recurrencePattern: undefined, // Remove the recurrence pattern reference
-                  mid: undefined // Let Prisma generate a new mid
                 }
               });
 
@@ -107,39 +111,64 @@ const updateMeeting = async (request: Request): Promise<Response> => {
               const startDate = new Date(existingMeeting.startDateTime);
               
               // If we're modifying the first occurrence, update the main meeting
-              if (currentDate.toISOString().slice(0, 10) === startDate.toISOString().slice(0, 10)) {
+              if (currentDate.toISOString().split('T')[0] === startDate.toISOString().split('T')[0]) {
                 // Update the recurring meeting and its pattern
                 const updatedMeeting = await prisma.meeting.update({
                   where: { mid },
                   data: {
                     ...dataWithoutMid,
-                    recurrencePattern: {
+                    recurrencePattern: recurrencePatternData ? {
                       update: recurrencePatternData
-                    }
+                    } : undefined
                   },
                   include: { recurrencePattern: true }
                 });
                 return NextResponse.json(updatedMeeting);
               } else {
-                // End the original series right before this occurrence
+                // End the original series at the day before this occurrence
+                const dayBeforeCurrent = new Date(currentDate);
+                dayBeforeCurrent.setDate(currentDate.getDate() - 1);
+                
                 await prisma.recurrencePattern.update({
                   where: { id: existingMeeting.recurrencePattern.id },
                   data: {
-                    endDate: new Date(currentDate.setDate(currentDate.getDate() - 1))
+                    endDate: dayBeforeCurrent
                   }
                 });
                 
+                // Create a new meeting with times adjusted to the occurrence date
+                const startTime = new Date(existingMeeting.startDateTime);
+                const endTime = new Date(existingMeeting.endDateTime);
+                
+                // Calculate time difference in hours and minutes to preserve meeting duration
+                const hoursDiff = startTime.getUTCHours();
+                const minutesDiff = startTime.getUTCMinutes();
+                
+                // Create new start and end times for the new meeting
+                const newStartDateTime = new Date(currentDate);
+                newStartDateTime.setUTCHours(hoursDiff, minutesDiff, 0, 0);
+                
+                // Calculate meeting duration in milliseconds
+                const meetingDuration = endTime.getTime() - startTime.getTime();
+                const newEndDateTime = new Date(newStartDateTime.getTime() + meetingDuration);
+                
+                // Generate a new UUID for the mid field
+                const newMid = uuidv4();
+                
                 // Create a new recurring meeting starting from this occurrence
-                // Make sure to not include mid in the data
                 const newRecurringMeeting = await prisma.meeting.create({
                   data: {
                     ...dataWithoutMid,
-                    recurrencePattern: {
+                    mid: newMid,
+                    startDateTime: newStartDateTime,
+                    endDateTime: newEndDateTime,
+                    isRecurring: true,
+                    recurrencePattern: recurrencePatternData ? {
                       create: {
                         ...recurrencePatternData,
-                        startDate: new Date(currentOccurrenceDate)
+                        startDate: currentDate
                       }
-                    }
+                    } : undefined
                   },
                   include: { recurrencePattern: true }
                 });
@@ -148,7 +177,9 @@ const updateMeeting = async (request: Request): Promise<Response> => {
               }
             } catch (error) {
               console.error("Error updating this and following occurrences:", error);
-              return NextResponse.json({ error: "Failed to update recurrence pattern: " + error.message }, { status: 500 });
+              return NextResponse.json({ 
+                error: "Failed to update recurrence pattern: " + (error instanceof Error ? error.message : String(error))
+              }, { status: 500 });
             }
           } else {
             // If it's marked as recurring but has no pattern, just update it directly
