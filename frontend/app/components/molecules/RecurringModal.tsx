@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import styles from '../../../styles/components/molecules/DeleteRecurringModal.module.scss';
 import TextButton from '../atoms/textbutton';
 
@@ -9,6 +9,7 @@ interface RecurringModalProps {
   onConfirm: (mid: string, option: 'this' | 'thisAndFollowing' | 'all', currentOccurrenceDate?: Date) => void;
   currentOccurrenceDate?: Date;
   actionType: 'delete' | 'edit';
+  isRecurrenceChanged?: boolean; 
 }
 
 const RecurringModal: React.FC<RecurringModalProps> = ({
@@ -18,8 +19,17 @@ const RecurringModal: React.FC<RecurringModalProps> = ({
   onConfirm,
   currentOccurrenceDate,
   actionType,
+  isRecurrenceChanged = false, 
 }) => {
-  const [selectedOption, setSelectedOption] = useState<'this' | 'thisAndFollowing' | 'all'>('this');
+  const [selectedOption, setSelectedOption] = useState<'this' | 'thisAndFollowing' | 'all'>(
+    isRecurrenceChanged ? 'thisAndFollowing' : 'this'
+  );
+
+  useEffect(() => {
+    if (isRecurrenceChanged && selectedOption === 'this') {
+      setSelectedOption('thisAndFollowing');
+    }
+  }, [isRecurrenceChanged, selectedOption]);
 
   if (!isOpen) return null;
 
@@ -34,56 +44,56 @@ const RecurringModal: React.FC<RecurringModalProps> = ({
 
   const actionWord = actionType === 'delete' ? 'Delete' : 'Edit';
   const actionText = actionType === 'delete' ? 'Delete' : 'Update';
-  
+
   return (
     <div className={styles.modalOverlay}>
       <div className={styles.modalContent}>
         <h2 className={styles.modalTitle}>{actionWord} recurring event</h2>
-        
+
         <div className={styles.optionsContainer}>
+          {!isRecurrenceChanged && (
+            <div className={styles.optionItem}>
+              <input 
+                type="radio" 
+                id="this-event" 
+                name="recurring-option" 
+                checked={selectedOption === 'this'} 
+                onChange={() => handleOptionSelect('this')} 
+                className={styles.radioInput} 
+              />
+              <label htmlFor="this-event" className={styles.radioLabel}>This event only</label>
+            </div>
+          )}
+
           <div className={styles.optionItem}>
-            <input
-              type="radio"
-              id="this-event"
-              name="recurring-option"
-              checked={selectedOption === 'this'}
-              onChange={() => handleOptionSelect('this')}
-              className={styles.radioInput}
-            />
-            <label htmlFor="this-event" className={styles.radioLabel}>
-              This event only
-            </label>
-          </div>
-          
-          <div className={styles.optionItem}>
-            <input
-              type="radio"
-              id="this-and-following"
-              name="recurring-option"
-              checked={selectedOption === 'thisAndFollowing'}
-              onChange={() => handleOptionSelect('thisAndFollowing')}
-              className={styles.radioInput}
+            <input 
+              type="radio" 
+              id="this-and-following" 
+              name="recurring-option" 
+              checked={selectedOption === 'thisAndFollowing'} 
+              onChange={() => handleOptionSelect('thisAndFollowing')} 
+              className={styles.radioInput} 
             />
             <label htmlFor="this-and-following" className={styles.radioLabel}>
               This and following events
-            </label>
+              </label>
           </div>
-          
+
           <div className={styles.optionItem}>
-            <input
-              type="radio"
-              id="all-events"
-              name="recurring-option"
-              checked={selectedOption === 'all'}
-              onChange={() => handleOptionSelect('all')}
-              className={styles.radioInput}
+            <input 
+              type="radio" 
+              id="all-events" 
+              name="recurring-option" 
+              checked={selectedOption === 'all'} 
+              onChange={() => handleOptionSelect('all')} 
+              className={styles.radioInput} 
             />
             <label htmlFor="all-events" className={styles.radioLabel}>
               All events
-            </label>
+              </label>
           </div>
         </div>
-        
+
         <div className={styles.buttonContainer}>
           <TextButton label="Cancel" onClick={onClose} />
           <TextButton label={actionText} onClick={handleConfirm} />

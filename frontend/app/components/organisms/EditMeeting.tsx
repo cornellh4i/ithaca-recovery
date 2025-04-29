@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { MeetingForm } from './MeetingForm';
 
 import TextField from '../atoms/TextField';
@@ -89,6 +89,20 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
       calType: meeting.calType,
       room: meeting.room,
     };
+    // Store original values for later comparison
+    const [originalValues, setOriginalValues] = useState({
+      title: formData.title,
+      modeType: formData.modeType,
+      date: formData.date,
+      timeValue: `${formData.startTime} - ${formData.endTime}`,
+      email: formData.email,
+      description: formData.description,
+      room: formData.room,
+      meetingType: formData.calType,
+      zoomAccount: formData.zoomAccount,
+      isRecurring: meeting.isRecurring || false,
+      recurrencePattern: meeting.recurrencePattern || null
+    });
 
     const [inputMeetingTitleValue, setMeetingTitleValue] = useState(formData.title); // Meeting title
     const [selectedMode, setSelectedMode] = useState<string>(formData.modeType);
@@ -107,6 +121,8 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
 
     // State for the recurring modal
     const [showRecurringModal, setShowRecurringModal] = useState(false);
+    const [editReccurance, setRecurrenceChanged] = useState(false);
+    const [onlyRecurrenceChanged, setOnlyRecurrenceChanged] = useState(false);
 
     const handleRecurringMeetingChange = (data: {
       isRecurring: boolean;
@@ -114,6 +130,11 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
     }) => {
       setIsRecurring(data.isRecurring);
       setRecurrencePattern(data.recurrencePattern);
+      // Mark that recurrence has changed
+      if (data.isRecurring !== originalValues.isRecurring || 
+          JSON.stringify(data.recurrencePattern) !== JSON.stringify(originalValues.recurrencePattern)) {
+        setRecurrenceChanged(true);
+      }
     };
 
     const handleRoomChange = (value: string) => setSelectedRoom(value);
@@ -151,9 +172,35 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
       }
       return dateObject.toISOString().split('T')[0]; // Returns "YYYY-MM-DD"
     }
+    // Function to check what has changed
+    const checkChanges = () => {
+      // Check if only recurrence settings changed
+      const recurrenceChanged = 
+        isRecurring !== originalValues.isRecurring || 
+        JSON.stringify(recurrencePattern) !== JSON.stringify(originalValues.recurrencePattern);
+      
+      // Check if other fields changed
+      const otherFieldsChanged = 
+        inputMeetingTitleValue !== originalValues.title ||
+        selectedMode !== originalValues.modeType ||
+        dateValue !== originalValues.date ||
+        timeValue !== originalValues.timeValue ||
+        inputEmailValue !== originalValues.email ||
+        inputDescriptionValue !== originalValues.description ||
+        selectedRoom !== originalValues.room ||
+        selectedMeetingType !== originalValues.meetingType ||
+        selectedZoomAccount !== originalValues.zoomAccount;
+      // Set state based on what changed
+      setRecurrenceChanged(recurrenceChanged);
+      setOnlyRecurrenceChanged(recurrenceChanged && !otherFieldsChanged);
+      
+      return { recurrenceChanged, otherFieldsChanged };
+    };
 
     // This function will either update the meeting directly or show the modal for recurring meetings
     const handleUpdateMeeting = async () => {
+      // Check what has changed
+      const { recurrenceChanged, otherFieldsChanged } = checkChanges();
       // If this is a recurring meeting, show the modal first
       if (isRecurring && (recurrencePattern || meeting.recurrencePattern)) {
         setShowRecurringModal(true);
@@ -346,6 +393,7 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
           mid={formData.mid}
           currentOccurrenceDate={currentOccurrenceDate}
           actionType="edit"
+          isRecurrenceChanged={onlyRecurrenceChanged}
         />
       </div>
     );
