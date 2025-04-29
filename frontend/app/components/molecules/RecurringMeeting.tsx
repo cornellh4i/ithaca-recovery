@@ -85,25 +85,28 @@ const RecurringMeetingForm: React.FC<RecurringMeetingFormProps> = ({
   }, [isRecurring]);
 
   useEffect(() => {
-    const recurrencePattern: IRecurrencePattern | null = isRecurring 
-      ? {
-          type: "weekly",
-          interval: frequency,
-          startDate: startDate ? new Date(startDate) : new Date(),
-          firstDayOfWeek: "Sunday",
-          daysOfWeek: selectedDays.map(day => dayMapping[day]),
-          endDate: endOption === 'On' && endDate ? new Date(endDate) : null,
-          numberOfOccurences: endOption === 'After' ? occurrences : null, 
-        }
-      : null;
-
-    onChange({
-      isRecurring,
-      recurrencePattern
-    });
-    
-  }, [isRecurring, frequency, selectedDays, endOption, endDate, occurrences, onChange, startDate, dayMapping]);
-
+    const timer = setTimeout(() => {
+      const recurrencePattern: IRecurrencePattern | null = isRecurring 
+        ? {
+            type: "weekly",
+            interval: frequency,
+            startDate: startDate ? new Date(startDate) : new Date(),
+            firstDayOfWeek: "Sunday",
+            daysOfWeek: selectedDays.map(day => dayMapping[day]),
+            endDate: endOption === 'On' && endDate ? new Date(endDate) : null,
+            numberOfOccurences: endOption === 'After' ? occurrences : null, 
+          }
+        : null;
+  
+      onChange({
+        isRecurring,
+        recurrencePattern
+      });
+    }, 100); 
+  
+    return () => clearTimeout(timer);
+  }, [isRecurring, frequency, selectedDays, endOption, endDate, occurrences, onChange, startDate]);
+  
   const handleRecurringChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setIsRecurring(e.target.checked);
   };
