@@ -93,7 +93,7 @@ const RecurringMeetingForm: React.FC<RecurringMeetingFormProps> = ({
           firstDayOfWeek: "Sunday",
           daysOfWeek: selectedDays.map(day => dayMapping[day]),
           endDate: endOption === 'On' && endDate ? new Date(endDate) : null,
-          numberOfOccurences: endOption === 'After' ? occurrences : null,
+          numberOfOccurences: endOption === 'After' ? occurrences : null, 
         }
       : null;
 
@@ -101,7 +101,8 @@ const RecurringMeetingForm: React.FC<RecurringMeetingFormProps> = ({
       isRecurring,
       recurrencePattern
     });
-  }, [isRecurring, frequency, selectedDays, endOption, endDate, occurrences, onChange, startDate]);
+    
+  }, [isRecurring, frequency, selectedDays, endOption, endDate, occurrences, onChange, startDate, dayMapping]);
 
   const handleRecurringChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setIsRecurring(e.target.checked);
