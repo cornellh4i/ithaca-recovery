@@ -21,11 +21,11 @@ const createMeeting = async (request: Request) => {
       // Calculate end date based on the recurrence pattern (DOES NOT ACCOUNT FOR THE DAY ITS CREATED IF NOT A RECURRENCE)
       let calculatedEndDate = recurrencePattern.endDate;
       
-      if (recurrencePattern.numberOfOccurrences && !recurrencePattern.endDate) {
+      if (recurrencePattern.numberOfOccurences && !recurrencePattern.endDate) {
         calculatedEndDate = calculateEndDateFromOccurrences(
           recurrencePattern.startDate,
           recurrencePattern.daysOfWeek || [],
-          recurrencePattern.numberOfOccurrences,
+          recurrencePattern.numberOfOccurences,
           recurrencePattern.interval || 1
         );
       }
@@ -36,7 +36,7 @@ const createMeeting = async (request: Request) => {
           type: recurrencePattern.type,
           startDate: recurrencePattern.startDate,
           endDate: calculatedEndDate,
-          numberOfOccurences: recurrencePattern.numberOfOccurrences,
+          numberOfOccurences: recurrencePattern.numberOfOccurences,
           daysOfWeek: recurrencePattern.daysOfWeek || [],
           firstDayOfWeek: recurrencePattern.firstDayOfWeek || "Sunday",
           interval: recurrencePattern.interval || 1
@@ -72,19 +72,19 @@ const createMeeting = async (request: Request) => {
  * Calculate the end date based on a specific number of occurrences
  * @param startDate The start date of the recurrence pattern
  * @param daysOfWeek Array of days on which the meeting recurs
- * @param numberOfOccurrences The number of occurrences after which to end
+ * @param numberOfOccurences The number of occurrences after which to end
  * @param interval The interval between recurrences (e.g., 1 = every week, 2 = every other week)
  * @returns The calculated end date
  */
 function calculateEndDateFromOccurrences(
   startDate: Date, 
   daysOfWeek: string[], 
-  numberOfOccurrences: number,
+  numberOfOccurences: number,
   interval: number
 ): Date {
   const patternStartDate = new Date(startDate);
   
-  if (daysOfWeek.length === 0 || numberOfOccurrences <= 0) {
+  if (daysOfWeek.length === 0 || numberOfOccurences <= 0) {
     return patternStartDate;
   }
   
@@ -112,7 +112,7 @@ function calculateEndDateFromOccurrences(
   if (recurrenceDays.includes(startDayOfWeek)) {
     occurrenceCount++;
     
-    if (occurrenceCount >= numberOfOccurrences) {
+    if (occurrenceCount >= numberOfOccurences) {
       return patternStartDate;
     }
   }
@@ -124,7 +124,7 @@ function calculateEndDateFromOccurrences(
     currentWeek++;    
   }
   
-  while (occurrenceCount < numberOfOccurrences) {
+  while (occurrenceCount < numberOfOccurences) {
     if (currentWeek % interval === 0) {
       while (nextDayIndex < recurrenceDays.length) {
         const daysToAdd = (currentWeek * 7) + 
@@ -134,7 +134,7 @@ function calculateEndDateFromOccurrences(
         occurrenceCount++;
         nextDayIndex++;
         
-        if (occurrenceCount >= numberOfOccurrences) {
+        if (occurrenceCount >= numberOfOccurences) {
           return endDate;
         }
       }
