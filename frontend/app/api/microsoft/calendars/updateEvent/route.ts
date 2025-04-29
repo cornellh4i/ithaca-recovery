@@ -43,13 +43,13 @@ interface EventUpdateBody {
 }
 
 export async function PUT(req: Request) {
-  console.log("PUT request received");
+  console.log("[updateEvent] PUT request received");
 
   try {
     // Get access token
     const accessToken = await getAccessToken();
     if (accessToken === null) {
-      console.error("Failed to get access token");
+      console.error("[updateEvent] Failed to get access token");
       return new Response(
         JSON.stringify({ error: "Unable to retrieve access token" }),
         {
@@ -61,11 +61,11 @@ export async function PUT(req: Request) {
 
     // Parse request body
     const body: EventUpdateBody = await req.json();
-    console.log("Request body:", body);
+    console.log("[updateEvent] Request body:", body);
 
     // Validate required fields
     if (!body.eventId || !body.groupId) {
-      console.error("Missing required fields");
+      console.error("[updateEvent] Missing required fields");
       return new Response(
         JSON.stringify({
           error: "Invalid request",
@@ -130,11 +130,11 @@ export async function PUT(req: Request) {
 
     // Handle error response
     if (!response.ok) {
-      console.error("Error response:", response.status, response.statusText);
+      console.error("[updateEvent] Error response:", response.status, response.statusText);
 
       try {
         const errorData = await response.json();
-        console.error("Error data:", errorData);
+        console.error("[updateEvent] Error data:", errorData);
         return new Response(
           JSON.stringify({
             error: 'Error updating calendar event',
@@ -178,7 +178,7 @@ export async function PUT(req: Request) {
       });
     } catch (error) {
       // If we can't parse the response, assume it was successful but empty
-      console.log("Empty or non-JSON response, treating as success");
+      console.log("[updateEvent] Empty or non-JSON response, treating as success");
       return new Response(
         JSON.stringify({ message: "Event updated successfully" }),
         {

@@ -20,48 +20,66 @@ const getAccessToken = async (): Promise<string | null> => {
     });
 
     if (!result?.accessToken) {
-      console.error("No token returned");
+      console.error("[AccessToken] No token returned");
       return null;
     }
 
-    console.log("Token acquired successfully");
+    console.log("[AccessToken] Token acquired successfully");
     return result.accessToken;
   } catch (err) {
-    console.error("Error getting token:", err);
+    console.error("[AccessToken] Error getting token:", err);
     return null;
   }
 };
 
-export async function GET(request: Request) {
-  try {
-    console.log('Starting getCalendars API call...');
+export async function GET(req: Request) {
+  console.log("[getCalendars] GET request received");
 
-    // Get the access token
+  try {
+    // Get access token
     const accessToken = await getAccessToken();
-    if (!accessToken) {
-      console.error('Failed to get access token');
-      return new Response(JSON.stringify({ error: 'Failed to get access token' }), { status: 401 });
+    if (accessToken === null) {
+      console.error("[getCalendars] Failed to get access token");
+      return new Response(
+        JSON.stringify({ error: "Unable to retrieve access token" }),
+        {
+          status: 500,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
     }
 
-    // Get groupId from query parameters
-    const url = new URL(request.url);
+    // Get groupId from URL parameters
+    const url = new URL(req.url);
     const groupId = url.searchParams.get('groupId');
 
     if (!groupId) {
-      console.error('No groupId provided in query parameters');
-      return new Response(JSON.stringify({ error: 'groupId is required' }), { status: 400 });
+      console.error("[getCalendars] Missing groupId parameter");
+      return new Response(
+        JSON.stringify({
+          error: "Invalid request",
+          details: "groupId is required as a query parameter"
+        }),
+        {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
     }
 
-    console.log('Making request to Microsoft Graph API for calendars...');
-    const response = await fetch(
-      `${process.env.NEXT_PUBLIC_GRAPH_API_ENDPOINT}/groups/${groupId}/calendar`,
-      {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
-        },
+    console.log("[getCalendars] Getting calendars for group:", groupId);
+
+    // Make request to Microsoft Graph API
+    const endpoint = `https://graph.microsoft.com/v1.0/groups/${groupId}/calendar`;
+    console.log("[getCalendars] Making request to:", endpoint);
+
+    const response = await fetch(endpoint, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json'
       }
-    );
+    });
 
     // Handle error response
     if (!response.ok) {

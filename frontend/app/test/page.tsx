@@ -99,7 +99,6 @@ const TestPage = () => {
 
       console.log('Response status:', response.status);
 
-      // Handle response
       const responseText = await response.text();
       console.log('Raw response:', responseText);
 
