@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import styles from '../../../../styles/components/organisms/MeetingForm.module.scss';
+import { useEffect } from 'react';
 
 interface ModeButtonsProps {
   onModeSelect: (mode: string) => void;
@@ -7,8 +8,14 @@ interface ModeButtonsProps {
   initialMode?: string;
 }
 
-const ModeButtons: React.FC<ModeButtonsProps> = ({ onModeSelect }) => {
-  const [selectedMode, setSelectedMode] = useState<string>("");
+const ModeButtons: React.FC<ModeButtonsProps> = ({ onModeSelect, initialMode = "" }) => {
+  const [selectedMode, setSelectedMode] = useState<string>(initialMode);
+
+  useEffect(() => {
+    if (initialMode) {
+      setSelectedMode(initialMode);
+    }
+  }, [initialMode]);
 
   const handleModeClick = (mode: string) => {
     setSelectedMode(mode);

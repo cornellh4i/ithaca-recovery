@@ -79,7 +79,7 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
       description: meeting.description || '',
       creator: meeting.creator,
       group: meeting.group,
-      date: formatDate(meeting.startDateTime),
+      date: formatDate(currentOccurrenceDate || new Date()),
       startTime: formatTime(meeting.startDateTime),
       endTime: formatTime(meeting.endDateTime),
       email: meeting.email,
