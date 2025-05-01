@@ -8,11 +8,21 @@ interface BoxProps {
   time?: string; // For Meeting Block
   tags?: string[]; // For badges like "Hybrid", "AA"
   meetingId: string;
+  meetingType?: 'Hybrid' | 'In Person' | 'Remote'; 
   onClick: (meetingId: string, e: React.MouseEvent<HTMLDivElement, MouseEvent>) => void;
   [key: string]: any;
 };
 
-const BoxText: React.FC<BoxProps> = ({ boxType, title, primaryColor, time, tags, meetingId, onClick }) => {
+const BoxText: React.FC<BoxProps> = ({ 
+  boxType, 
+  title, 
+  primaryColor, 
+  time, 
+  tags, 
+  meetingId, 
+  meetingType = 'Hybrid', // Default to Hybrid if not specified
+  onClick 
+}) => {
 
   // Function to convert hex to RGB
   const hexToRgb = (hex: string) => {
@@ -60,6 +70,16 @@ const BoxText: React.FC<BoxProps> = ({ boxType, title, primaryColor, time, tags,
       ? toPastelColor(primaryColor)
       : primaryColor;
 
+  const processedTags = tags?.map(tag => {
+    if (tag.toLowerCase() === 'group' || 
+        tag.toLowerCase() === 'hybrid' || 
+        tag.toLowerCase() === 'in person' ||
+        tag.toLowerCase() === 'remote') {
+      return meetingType;
+    }
+    return tag;
+  });
+
   return (
     <div
       className={`${styles.box} ${boxType === 'Meeting Block' ? styles.meeting : styles.room}`}
@@ -69,9 +89,9 @@ const BoxText: React.FC<BoxProps> = ({ boxType, title, primaryColor, time, tags,
       <h3 className={styles.title}>{title}</h3>
 
       {boxType === 'Meeting Block' && <p className={styles.time}>{time}</p>}
-      {tags && tags.length > 0 && (
+      {processedTags && processedTags.length > 0 && (
         <div className={styles.tags}>
-          {tags.map((tag, index) => (
+          {processedTags.map((tag, index) => (
             <span key={index}
               style={{ backgroundColor: primaryColor }}
               className={styles.tag}>
