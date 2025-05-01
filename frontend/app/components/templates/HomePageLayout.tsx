@@ -8,6 +8,7 @@ import EditMeetingSidebar from "../organisms/EditMeeting";
 import DailyView from "../organisms/DailyView";
 import { convertUTCToET } from "../../../util/timeUtils";
 import { IMeeting } from "../../../util/models";
+import { fetchMeetingsByDay } from "../organisms/DailyView"
 
 const HomePage = () => {
   // Add state for login status - default to logged in
@@ -98,6 +99,9 @@ const HomePage = () => {
       const meetingResponse = await response.json();
       console.log(meetingResponse);
       alert("Meeting deleted successfully! Please check the Meeting collection on MongoDB.")
+      fetchMeetingsByDay(selectedDate);
+      fetchMeetingDetails(mid);
+      console.log("calling");
 
     } catch (error) {
       console.error('There was an error fetching the data:', error);

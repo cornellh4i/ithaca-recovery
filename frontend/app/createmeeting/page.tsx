@@ -10,9 +10,9 @@ import TextField from '@mui/material/TextField';
 import dayjs, { Dayjs } from 'dayjs';
 import styles from "../../styles/CreateMeetingPage.module.scss";
 
-
 const CreateMeetingPage = () => {
 
+  const [meetingData, setMeetingData] = useState(null);
   const [title, setTitle] = React.useState('');
   const [value, setValue] = useState<Dayjs | null>(dayjs('2024-08-24'));
   const [time, setTime] = useState<DateRange<Dayjs>>(() => [
@@ -58,18 +58,24 @@ const CreateMeetingPage = () => {
         },
         body: JSON.stringify(createZoomMeetingRequestBody()),
       });
-
+  
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-
+  
       const zoomResponse = await response.json();
       console.log(zoomResponse);
       alert("Zoom meeting created! Please check the console & the icr Zoom account.");
+  
+      // Re-fetch the meeting data after creation
+      const updatedMeetingData = await fetch(`/api/zoom/GetMeeting?id=${zoomResponse.id}`);
+      const updatedData = await updatedMeetingData.json();
+      setMeetingData(updatedData);  // Update meeting data state
+  
     } catch (error) {
       console.error('Error creating Zoom meeting:', error);
     }
-  };
+  };  
 
   const handleUpdateMeeting = async () => {
     try {
@@ -77,7 +83,7 @@ const CreateMeetingPage = () => {
         meetingId: meetingId,
         ...createZoomMeetingRequestBody()
       };
-
+  
       const response = await fetch('/api/zoom/UpdateMeeting', {
         method: 'PATCH',
         headers: {
@@ -89,38 +95,48 @@ const CreateMeetingPage = () => {
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-
+  
       const zoomResponse = await response.json();
       console.log(zoomResponse);
       alert("Zoom meeting updated! Please check the console & the icr Zoom account.");
+  
+      // Re-fetch the updated meeting data
+      const updatedMeetingData = await fetch(`/api/zoom/GetMeeting?id=${meetingId}`);
+      const updatedData = await updatedMeetingData.json();
+      setMeetingData(updatedData);  // Update meeting data state
+  
     } catch (error) {
       console.error('Error updating Zoom meeting:', error);
     }
-  }
+  };  
 
   const handleDeleteMeeting = async () => {
     try {
       const url = new URL('/api/zoom/DeleteMeeting', window.location.origin);
       url.searchParams.append('id', meetingId);
-
+  
       const response = await fetch(url, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
         }
       });
-
+  
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-
+  
       const zoomResponse = await response.json();
       console.log(zoomResponse);
       alert("Zoom meeting deleted! Please check the console & the icr Zoom account.");
+  
+      // Clear the meeting data after deletion
+      setMeetingData(null);  // Clear the meeting data state
+  
     } catch (error) {
-      console.error('Error updating Zoom meeting:', error);
+      console.error('Error deleting Zoom meeting:', error);
     }
-  }
+  };  
 
   return (
     <div className={styles.base}>
