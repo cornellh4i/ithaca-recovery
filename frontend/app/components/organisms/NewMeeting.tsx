@@ -197,7 +197,8 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> =
               selectedMode={selectedMode}
               onModeSelect={setSelectedMode}
             />
-          }          
+          }
+          selectedMode={selectedMode}       
           DatePicker={<DatePicker
             label={<img src='/svg/calendar-icon.svg' alt="Calendar Icon" />}
             value={dateValue}

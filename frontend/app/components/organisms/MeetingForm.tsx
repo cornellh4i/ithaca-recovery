@@ -6,6 +6,7 @@ import styles from "../../../styles/components/organisms/MeetingForm.module.scss
 export interface MeetingFormProps {
   meetingTitleTextField: React.ReactElement;
   modeTypeButtons: React.ReactElement;
+  selectedMode: string;
   DatePicker: React.ReactElement;
   TimePicker: React.ReactElement;
   RecurringMeeting: React.ReactElement;
@@ -21,6 +22,7 @@ export interface MeetingFormProps {
 export const MeetingForm: React.FC<MeetingFormProps> = ({
   meetingTitleTextField,
   modeTypeButtons,
+  selectedMode,
   DatePicker,
   TimePicker,
   RecurringMeeting,
@@ -56,9 +58,11 @@ export const MeetingForm: React.FC<MeetingFormProps> = ({
         <div className={styles.dummyComponent}>
           {meetingTypeDropdown}
         </div>
+        {(selectedMode === "Hybrid" || selectedMode === "Remote") && (
         <div className={styles.dummyComponent}>
           {zoomAccountDropdown}
         </div>
+        )}
         <div className={styles.dummyComponent}>
           {emailTextField}
         </div>
