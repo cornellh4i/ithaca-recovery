@@ -58,6 +58,8 @@ const TimePicker = ({ label, value: propValue = '', disablePast, onChange, error
   const [timeDifference, setTimeDifference] = useState<number>(60); // Default difference is 60 minutes
   const [minTime, setMinTime] = useState<string | undefined>(undefined);
   const [endTimeError, setEndTimeError] = useState<boolean>(false); // Track if there's an end time error
+  const [hasInteracted, setHasInteracted] = useState<boolean>(false);
+  const [touched, setTouched] = useState<boolean>(false);
 
   // Effect to disable past times
   useEffect(() => {
@@ -71,6 +73,8 @@ const TimePicker = ({ label, value: propValue = '', disablePast, onChange, error
 
   // Handle change for start time
   const handleStartTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setHasInteracted(true);
+    setTouched(true);
     const newStartTime = e.target.value;
     setStartTime(newStartTime);
 
@@ -83,6 +87,8 @@ const TimePicker = ({ label, value: propValue = '', disablePast, onChange, error
 
   // Handle change for end time
   const handleEndTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setHasInteracted(true);
+    setTouched(true);
     const newEndTime = e.target.value;
     setEndTime(newEndTime);
 
@@ -97,6 +103,16 @@ const TimePicker = ({ label, value: propValue = '', disablePast, onChange, error
     onChange && onChange(`${startTime} - ${newEndTime}`);
   };
 
+  const handleFocus = () => {
+    setHasInteracted(true);
+  };
+
+  const handleBlur = () => {
+    setTouched(true);
+  };
+
+  const shouldShowRequiredError = touched && error && (!startTime || !endTime);
+
   return (
     <div className={styles['time-picker-wrapper']}>
       <label className={styles['time-picker-label']}>
@@ -107,6 +123,8 @@ const TimePicker = ({ label, value: propValue = '', disablePast, onChange, error
         value={startTime}
         min={disablePast ? minTime : undefined}
         onChange={handleStartTimeChange}
+        onFocus={handleFocus}
+        onBlur={handleBlur}
         className={styles['time-picker-input']}
         {...props}
       />
@@ -115,11 +133,13 @@ const TimePicker = ({ label, value: propValue = '', disablePast, onChange, error
         type="time"
         value={endTime}
         onChange={handleEndTimeChange}
+        onFocus={handleFocus}
+        onBlur={handleBlur}
         className={`${styles['time-picker-input']} ${endTimeError ? styles['error-input'] : ''}`} // Apply error class conditionally
         {...props}
       />
       {endTimeError && <div className={styles['error-message']}>End time must be later than start time.</div>} {/* Display error message */}
-      {error && <div className={styles['error-message']}>{error}</div>}
+      {shouldShowRequiredError && <div className={styles['error-message']}>{error}</div>}
     </div>
   );
 };
