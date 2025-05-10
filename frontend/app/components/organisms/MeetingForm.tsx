@@ -52,9 +52,11 @@ export const MeetingForm: React.FC<MeetingFormProps> = ({
         <div className={styles.dummyComponent}>
           {RecurringMeeting}
         </div>
+        {(selectedMode === "Hybrid" || selectedMode === "In Person") && (
         <div className={styles.dummyComponent}>
           {roomSelectionDropdown}
         </div>
+        )}
         <div className={styles.dummyComponent}>
           {meetingTypeDropdown}
         </div>

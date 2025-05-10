@@ -17,9 +17,14 @@ interface RecurringMeetingFormProps {
     recurrencePattern: IRecurrencePattern | null;
   }) => void;
   startDate?: string;
+  showValidation?: boolean;
 }
 
-const RecurringMeetingForm: React.FC<RecurringMeetingFormProps> = ({ onChange, startDate }) => {
+const RecurringMeetingForm: React.FC<RecurringMeetingFormProps> = ({ 
+  onChange, 
+  startDate,
+  showValidation = false 
+}) => {
   const [isRecurring, setIsRecurring] = useState(false);
   const [frequency, setFrequency] = useState(1);
   const [selectedDays, setSelectedDays] = useState<string[]>([]);
@@ -47,6 +52,27 @@ const RecurringMeetingForm: React.FC<RecurringMeetingFormProps> = ({ onChange, s
     { id: 'fri', label: 'F' },
     { id: 'sat', label: 'S' },
   ];
+
+  // Set default day when recurring mode is enabled and startDate changes
+  useEffect(() => {
+    if (isRecurring && startDate) {
+      try {
+        const date = new Date(startDate);
+        // Check if date is valid
+        if (!isNaN(date.getTime())) {
+          const dayOfWeek = date.getDay(); // 0 = Sunday, 1 = Monday, etc.
+          const dayId = days[dayOfWeek].id;
+          
+          // Only set the day if no days are selected yet
+          if (selectedDays.length === 0) {
+            setSelectedDays([dayId]);
+          }
+        }
+      } catch (error) {
+        console.error("Error parsing date:", error);
+      }
+    }
+  }, [isRecurring, startDate]);
 
   useEffect(() => {
     if (!isRecurring) {
@@ -82,9 +108,13 @@ const RecurringMeetingForm: React.FC<RecurringMeetingFormProps> = ({ onChange, s
   };
 
   const toggleDay = (dayId: string) => {
-    setSelectedDays((prev) =>
-      prev.includes(dayId) ? prev.filter((id) => id !== dayId) : [...prev, dayId]
-    );
+    setSelectedDays((prev) => {
+      const newSelectedDays = prev.includes(dayId) 
+        ? prev.filter((id) => id !== dayId) 
+        : [...prev, dayId];
+      
+      return newSelectedDays;
+    });
   };
 
   const handleFrequencyChange = (value: number) => {
@@ -93,8 +123,20 @@ const RecurringMeetingForm: React.FC<RecurringMeetingFormProps> = ({ onChange, s
 
   const handleEndOptionChange = (option: string) => {
     setEndOption(option);
-    if (option !== 'On') setEndDate("");
-    if (option !== "After") setOccurrences(1);
+    
+    if (option !== 'On') {
+      setEndDate("");
+    }
+    
+    if (option !== "After") {
+      setOccurrences(1);
+    } else {
+      setOccurrences(1);
+    }
+  };
+
+  const handleEndDateChange = (value: string) => {
+    setEndDate(value);
   };
 
   const endOptions = ['Never', 'On', 'After'];
@@ -123,6 +165,19 @@ const RecurringMeetingForm: React.FC<RecurringMeetingFormProps> = ({ onChange, s
               />
               <label style={{ marginLeft: '5px'}}>week(s)</label>
             </div>
+            
+            {showValidation && (!frequency || frequency < 1) && (
+              <div style={{ 
+                color: 'red', 
+                fontSize: '14px', 
+                marginTop: '-10px', 
+                marginBottom: '10px',
+                textAlign: 'center',
+                width: '100%'
+              }}>
+                Please specify a number of weeks
+              </div>
+            )}
 
             <div className={styles.dayButtons}>
               <label style={{ marginRight: '5px'}}>On</label>
@@ -135,6 +190,19 @@ const RecurringMeetingForm: React.FC<RecurringMeetingFormProps> = ({ onChange, s
                 />
               ))}
             </div>
+            
+            {showValidation && selectedDays.length === 0 && (
+              <div style={{ 
+                color: 'red', 
+                fontSize: '14px', 
+                marginTop: '5px', 
+                marginBottom: '10px',
+                textAlign: 'center',
+                width: '100%'
+              }}>
+                Please select at least one day
+              </div>
+            )}
 
             <RadioGroup
               label="Ends"
@@ -145,25 +213,53 @@ const RecurringMeetingForm: React.FC<RecurringMeetingFormProps> = ({ onChange, s
             />
 
             {endOption === 'On' && (
-              <DatePicker
-                label={"Ends On:"}
-                value={endDate}
-                onChange={setEndDate}
-                error={endDate === '' ? 'Date is required' : undefined}
-              />
+              <>
+                <DatePicker
+                  label={"Ends On:"}
+                  value={endDate}
+                  onChange={handleEndDateChange}
+                  error={showValidation && !endDate ? 'Date is required' : undefined}
+                />
+                {showValidation && !endDate && (
+                  <div style={{ 
+                    color: 'red', 
+                    fontSize: '14px', 
+                    marginTop: '5px', 
+                    marginBottom: '10px',
+                    textAlign: 'center',
+                    width: '100%'
+                  }}>
+                    Please select an end date
+                  </div>
+                )}
+              </>
             )}
 
             {endOption === 'After' && (
-              <div style={{ display: 'flex', alignItems: 'center'}}>
-                <label style={{ marginRight: '5px'}}>Ends after</label>
-                <SpinnerInput
-                  value={occurrences}
-                  min={1}
-                  step={1}
-                  onChange={setOccurrences}
-                />
-                <label style={{ marginLeft: '5px'}}>occurrences(s)</label>
-              </div>
+              <>
+                <div style={{ display: 'flex', alignItems: 'center'}}>
+                  <label style={{ marginRight: '5px'}}>Ends after</label>
+                  <SpinnerInput
+                    value={occurrences}
+                    min={1}
+                    step={1}
+                    onChange={setOccurrences}
+                  />
+                  <label style={{ marginLeft: '5px'}}>occurrences(s)</label>
+                </div>
+                {showValidation && (!occurrences || occurrences < 1) && (
+                  <div style={{ 
+                    color: 'red', 
+                    fontSize: '14px', 
+                    marginTop: '5px', 
+                    marginBottom: '10px',
+                    textAlign: 'center',
+                    width: '100%'
+                  }}>
+                    Please enter at least 1 occurrence
+                  </div>
+                )}
+              </>
             )}
           </div>
           <div className={styles.separator}></div>
