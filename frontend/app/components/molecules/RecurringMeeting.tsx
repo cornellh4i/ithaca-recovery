@@ -165,6 +165,19 @@ const RecurringMeetingForm: React.FC<RecurringMeetingFormProps> = ({
               />
               <label style={{ marginLeft: '5px'}}>week(s)</label>
             </div>
+            
+            {showValidation && (!frequency || frequency < 1) && (
+              <div style={{ 
+                color: 'red', 
+                fontSize: '14px', 
+                marginTop: '-10px', 
+                marginBottom: '10px',
+                textAlign: 'center',
+                width: '100%'
+              }}>
+                Please specify a number of weeks
+              </div>
+            )}
 
             <div className={styles.dayButtons}>
               <label style={{ marginRight: '5px'}}>On</label>
@@ -207,20 +220,46 @@ const RecurringMeetingForm: React.FC<RecurringMeetingFormProps> = ({
                   onChange={handleEndDateChange}
                   error={showValidation && !endDate ? 'Date is required' : undefined}
                 />
+                {showValidation && !endDate && (
+                  <div style={{ 
+                    color: 'red', 
+                    fontSize: '14px', 
+                    marginTop: '5px', 
+                    marginBottom: '10px',
+                    textAlign: 'center',
+                    width: '100%'
+                  }}>
+                    Please select an end date
+                  </div>
+                )}
               </>
             )}
 
             {endOption === 'After' && (
-              <div style={{ display: 'flex', alignItems: 'center'}}>
-                <label style={{ marginRight: '5px'}}>Ends after</label>
-                <SpinnerInput
-                  value={occurrences}
-                  min={1}
-                  step={1}
-                  onChange={setOccurrences}
-                />
-                <label style={{ marginLeft: '5px'}}>occurrences(s)</label>
-              </div>
+              <>
+                <div style={{ display: 'flex', alignItems: 'center'}}>
+                  <label style={{ marginRight: '5px'}}>Ends after</label>
+                  <SpinnerInput
+                    value={occurrences}
+                    min={1}
+                    step={1}
+                    onChange={setOccurrences}
+                  />
+                  <label style={{ marginLeft: '5px'}}>occurrences(s)</label>
+                </div>
+                {showValidation && (!occurrences || occurrences < 1) && (
+                  <div style={{ 
+                    color: 'red', 
+                    fontSize: '14px', 
+                    marginTop: '5px', 
+                    marginBottom: '10px',
+                    textAlign: 'center',
+                    width: '100%'
+                  }}>
+                    Please enter at least 1 occurrence
+                  </div>
+                )}
+              </>
             )}
           </div>
           <div className={styles.separator}></div>
