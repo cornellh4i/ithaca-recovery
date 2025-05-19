@@ -32,9 +32,41 @@ const fetchMeetingsByDay = async (date: Date): Promise<Room[]> => {
     const data = await response.json();
     console.log("Raw API response:", data);
 
+    const dayStart = new Date(date);
+    dayStart.setHours(0, 0, 0, 0);
+    const dayEnd = new Date(date);
+    dayEnd.setHours(23, 59, 59, 999);
+
+    const clipped: IMeeting[] = data.flatMap(meeting => {
+      const start = new Date(meeting.startDateTime);
+      const end   = new Date(meeting.endDateTime);
+
+      // Case 1: meeting spans into today from before; start it at 12:00 AM today
+      if (start < dayStart && end > dayStart) {
+        return [{
+          ...meeting,
+          startDateTime: dayStart.toISOString(),
+          endDateTime:   end < dayEnd ? meeting.endDateTime : dayEnd.toISOString(),
+        }];
+      }
+      // Case 2: starts today, goes past midnight; end it at 11:59 PM today
+      if (start < dayEnd && end > dayEnd) {
+        return [{
+          ...meeting,
+          startDateTime: meeting.startDateTime,
+          endDateTime:   dayEnd.toISOString(),
+        }];
+      }
+      // Case 3: fully inside today
+      if (start >= dayStart && end <= dayEnd) {
+        return [meeting];
+      }
+      return [];
+    });
+
     const groupedRooms: { [key: string]: Meeting[] } = {};
 
-    data.forEach((meeting: any) => {
+    clipped.forEach((meeting: any) => {
       const roomName = meeting.room;
       if (!groupedRooms[roomName]) {
         groupedRooms[roomName] = [];
@@ -65,8 +97,6 @@ const fetchMeetingsByDay = async (date: Date): Promise<Room[]> => {
       };
     });
 
-    // Cache result
-    meetingCache.set(formattedDate, structuredData);
     return structuredData;
   } catch (error) {
     console.error("Error fetching meetings:", error);
