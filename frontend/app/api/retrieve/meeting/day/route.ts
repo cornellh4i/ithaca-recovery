@@ -22,14 +22,15 @@ const retrieveDayMeetings = async (request: NextRequest) => {
             localDate.getUTCFullYear(),
             localDate.getUTCMonth(),
             localDate.getUTCDate(),
-            0, 0, 0, 0
+            4, 0, 0, 0 //this is 12:00am in EST
         ));
         
         const endOfDay = new Date(Date.UTC(
             localDate.getUTCFullYear(),
             localDate.getUTCMonth(),
-            localDate.getUTCDate(),
-            23, 59, 59, 999
+            localDate.getUTCDate()+1,
+            // 23, 59, 59, 999
+            3, 59, 59, 999 // this is 11:59pm in EST
         ));
 
         const dayOfWeek = localDate.getUTCDay();
@@ -38,8 +39,8 @@ const retrieveDayMeetings = async (request: NextRequest) => {
         
         const directlyScheduledMeetings = await prisma.meeting.findMany({
             where: {
-                startDateTime: { gte: startOfDay },
-                endDateTime: { lte: endOfDay }
+                startDateTime: { lte: endOfDay },
+                endDateTime: { gte: startOfDay }
             },
             include: { 
                 recurrencePattern: true 

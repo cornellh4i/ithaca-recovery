@@ -121,10 +121,10 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> =
           console.error("Invalid timeValue format");
           return;
         }
-
+      
         // in EST
         const startDateString = `${isoDateValue}T${startTime}`;
-        const endDateString = `${isoDateValue}T${endTime}`;
+        let endDateString = `${isoDateValue}T${endTime}`;
 
         if (!startDateString || !endDateString) {
           console.error("Start or end date string could not be constructed");
@@ -136,6 +136,11 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> =
 
         const startDateTimeUTC = new Date(startDateTimeUTCString);
         const endDateTimeUTC = new Date(endDateTimeUTCString);
+
+         // If endTime < startTime, add one calendar day to endDateTime (e.g., 10:00 PM - 2:00 AM)
+        if (endDateTimeUTC <= startDateTimeUTC) {
+          endDateTimeUTC.setUTCDate(endDateTimeUTC.getUTCDate() + 1);
+        }
 
         const newMeeting: IMeeting = {
           mid: generateMeetingId(),
