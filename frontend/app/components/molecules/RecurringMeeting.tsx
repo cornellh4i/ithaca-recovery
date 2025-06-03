@@ -53,17 +53,14 @@ const RecurringMeetingForm: React.FC<RecurringMeetingFormProps> = ({
     { id: 'sat', label: 'S' },
   ];
 
-  // Set default day when recurring mode is enabled and startDate changes
   useEffect(() => {
     if (isRecurring && startDate) {
       try {
         const date = new Date(startDate);
-        // Check if date is valid
         if (!isNaN(date.getTime())) {
-          const dayOfWeek = date.getDay(); // 0 = Sunday, 1 = Monday, etc.
+          const dayOfWeek = date.getDay();
           const dayId = days[dayOfWeek].id;
           
-          // Only set the day if no days are selected yet
           if (selectedDays.length === 0) {
             setSelectedDays([dayId]);
           }
@@ -130,8 +127,6 @@ const RecurringMeetingForm: React.FC<RecurringMeetingFormProps> = ({
     
     if (option !== "After") {
       setOccurrences(1);
-    } else {
-      setOccurrences(1);
     }
   };
 
@@ -165,7 +160,7 @@ const RecurringMeetingForm: React.FC<RecurringMeetingFormProps> = ({
               />
               <label style={{ marginLeft: '5px'}}>week(s)</label>
             </div>
-            
+
             {showValidation && (!frequency || frequency < 1) && (
               <div style={{ 
                 color: 'red', 
@@ -175,7 +170,7 @@ const RecurringMeetingForm: React.FC<RecurringMeetingFormProps> = ({
                 textAlign: 'center',
                 width: '100%'
               }}>
-                Please specify a number of weeks
+                Please specify a number of weeks.
               </div>
             )}
 
@@ -200,7 +195,7 @@ const RecurringMeetingForm: React.FC<RecurringMeetingFormProps> = ({
                 textAlign: 'center',
                 width: '100%'
               }}>
-                Please select at least one day
+                Please select at least one day.
               </div>
             )}
 
@@ -213,30 +208,15 @@ const RecurringMeetingForm: React.FC<RecurringMeetingFormProps> = ({
             />
 
             {endOption === 'On' && (
-              <>
-                <DatePicker
-                  label={"Ends On:"}
-                  value={endDate}
-                  onChange={handleEndDateChange}
-                  error={showValidation && !endDate ? 'Date is required' : undefined}
-                />
-                {showValidation && !endDate && (
-                  <div style={{ 
-                    color: 'red', 
-                    fontSize: '14px', 
-                    marginTop: '5px', 
-                    marginBottom: '10px',
-                    textAlign: 'center',
-                    width: '100%'
-                  }}>
-                    Please select an end date
-                  </div>
-                )}
-              </>
+              <DatePicker
+                label={"Ends On:"}
+                value={endDate}
+                onChange={handleEndDateChange}
+              />
             )}
 
             {endOption === 'After' && (
-              <>
+              <div>
                 <div style={{ display: 'flex', alignItems: 'center'}}>
                   <label style={{ marginRight: '5px'}}>Ends after</label>
                   <SpinnerInput
@@ -256,10 +236,10 @@ const RecurringMeetingForm: React.FC<RecurringMeetingFormProps> = ({
                     textAlign: 'center',
                     width: '100%'
                   }}>
-                    Please enter at least 1 occurrence
+                    Please enter at least 1 occurrence.
                   </div>
                 )}
-              </>
+              </div>
             )}
           </div>
           <div className={styles.separator}></div>

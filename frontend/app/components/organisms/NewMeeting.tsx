@@ -34,22 +34,7 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> =
     const [selectedZoomAccount, setSelectedZoomAccount] = useState<string>("");
     const [isRecurring, setIsRecurring] = useState(false);
     const [recurrencePattern, setRecurrencePattern] = useState<IRecurrencePattern | null>(null);
-    const [showValidation, setShowValidation] = useState(false);
-    
-    // Field interaction tracking
-    const [touched, setTouched] = useState({
-      date: false,
-      time: false
-    });
-    
-    // Handle blur events to mark fields as touched
-    const handleDateBlur = () => {
-      setTouched(prev => ({ ...prev, date: true }));
-    };
-    
-    const handleTimeBlur = () => {
-      setTouched(prev => ({ ...prev, time: true }));
-    };
+    const [recurringValidation, setRecurringValidation] = useState(false);
     
     const handleRecurringMeetingChange = (data: {
       isRecurring: boolean;
@@ -75,8 +60,7 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> =
       setSelectedZoomAccount("");
       setIsRecurring(false);
       setRecurrencePattern(null);
-      setShowValidation(false);
-      setTouched({ date: false, time: false });
+      setRecurringValidation(false);
     };
 
     // Room and Meeting Type options
@@ -121,14 +105,12 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> =
     };
 
     const validateForm = () => {
-      setShowValidation(true);
-      
-      setTouched({ date: true, time: true });
-      
+      setRecurringValidation(true);
+
       if (selectedMode !== "Zoom" && !selectedRoom) {
         return false;
       }
-      
+
       if (isRecurring && recurrencePattern === null) {
         return false;
       }
@@ -242,20 +224,19 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> =
             label={<img src='/svg/calendar-icon.svg' alt="Calendar Icon" />}
             value={dateValue}
             onChange={setDateValue}
-            error={touched.date && dateValue === '' ? 'Date is required' : undefined}
           />}
           TimePicker={<TimePicker
             label={<img src='/svg/clock-icon.svg' alt="Clock Icon" />}
             value={timeValue}
             onChange={setTimeValue}
             disablePast={true}
-            error={touched.time && timeValue === '' ? 'Time is required' : undefined}
+            error={'Time is required'}
           />}
           RecurringMeeting={
             <RecurringMeetingForm
               onChange={handleRecurringMeetingChange}
               startDate={dateValue}
-              showValidation={showValidation}
+              showValidation={recurringValidation}
             />
           }
           roomSelectionDropdown={
