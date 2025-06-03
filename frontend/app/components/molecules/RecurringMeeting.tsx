@@ -17,13 +17,11 @@ interface RecurringMeetingFormProps {
     recurrencePattern: IRecurrencePattern | null;
   }) => void;
   startDate?: string;
-  showValidation?: boolean;
 }
 
 const RecurringMeetingForm: React.FC<RecurringMeetingFormProps> = ({ 
   onChange, 
   startDate,
-  showValidation = false 
 }) => {
   const [isRecurring, setIsRecurring] = useState(false);
   const [frequency, setFrequency] = useState(1);
@@ -31,6 +29,7 @@ const RecurringMeetingForm: React.FC<RecurringMeetingFormProps> = ({
   const [endOption, setEndOption] = useState('Never');
   const [endDate, setEndDate] = useState<string | undefined>("");
   const [occurrences, setOccurrences] = useState(1);
+  const [touched, setTouched] = useState<boolean>(false);
   
   // Map day abbreviations to full day names for Microsoft Graph API compatibility
   const dayMapping: Record<string, string> = {
@@ -105,6 +104,7 @@ const RecurringMeetingForm: React.FC<RecurringMeetingFormProps> = ({
   };
 
   const toggleDay = (dayId: string) => {
+    setTouched(true);
     setSelectedDays((prev) => {
       const newSelectedDays = prev.includes(dayId) 
         ? prev.filter((id) => id !== dayId) 
@@ -161,16 +161,9 @@ const RecurringMeetingForm: React.FC<RecurringMeetingFormProps> = ({
               <label style={{ marginLeft: '5px'}}>week(s)</label>
             </div>
 
-            {showValidation && (!frequency || frequency < 1) && (
-              <div style={{ 
-                color: 'red', 
-                fontSize: '14px', 
-                marginTop: '-10px', 
-                marginBottom: '10px',
-                textAlign: 'center',
-                width: '100%'
-              }}>
-                Please specify a number of weeks.
+            {(!frequency || frequency < 1) && (
+              <div className={styles['error-message']}>
+              Please specify a number of weeks.
               </div>
             )}
 
@@ -186,17 +179,10 @@ const RecurringMeetingForm: React.FC<RecurringMeetingFormProps> = ({
               ))}
             </div>
             
-            {showValidation && selectedDays.length === 0 && (
-              <div style={{ 
-                color: 'red', 
-                fontSize: '14px', 
-                marginTop: '5px', 
-                marginBottom: '10px',
-                textAlign: 'center',
-                width: '100%'
-              }}>
-                Please select at least one day.
-              </div>
+            {touched && selectedDays.length === 0 && (
+              <div className={styles['error-message']}>
+              Please select at least one day. 
+            </div>
             )}
 
             <RadioGroup
@@ -216,8 +202,8 @@ const RecurringMeetingForm: React.FC<RecurringMeetingFormProps> = ({
             )}
 
             {endOption === 'After' && (
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center'}}>
+              <div className={styles['spinner-group']}>
+                <div className={styles['spinner-container']}>
                   <label style={{ marginRight: '5px'}}>Ends after</label>
                   <SpinnerInput
                     value={occurrences}
@@ -227,16 +213,9 @@ const RecurringMeetingForm: React.FC<RecurringMeetingFormProps> = ({
                   />
                   <label style={{ marginLeft: '5px'}}>occurrences(s)</label>
                 </div>
-                {showValidation && (!occurrences || occurrences < 1) && (
-                  <div style={{ 
-                    color: 'red', 
-                    fontSize: '14px', 
-                    marginTop: '5px', 
-                    marginBottom: '10px',
-                    textAlign: 'center',
-                    width: '100%'
-                  }}>
-                    Please enter at least 1 occurrence.
+                { (!occurrences || occurrences < 1) && (
+                  <div className={styles['error-message']}>
+                  Please enter at least one occurrence.
                   </div>
                 )}
               </div>

@@ -34,7 +34,6 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> =
     const [selectedZoomAccount, setSelectedZoomAccount] = useState<string>("");
     const [isRecurring, setIsRecurring] = useState(false);
     const [recurrencePattern, setRecurrencePattern] = useState<IRecurrencePattern | null>(null);
-    const [recurringValidation, setRecurringValidation] = useState(false);
     
     const handleRecurringMeetingChange = (data: {
       isRecurring: boolean;
@@ -60,7 +59,6 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> =
       setSelectedZoomAccount("");
       setIsRecurring(false);
       setRecurrencePattern(null);
-      setRecurringValidation(false);
     };
 
     // Room and Meeting Type options
@@ -105,8 +103,6 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> =
     };
 
     const validateForm = () => {
-      setRecurringValidation(true);
-
       if (selectedMode !== "Zoom" && !selectedRoom) {
         return false;
       }
@@ -236,7 +232,7 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> =
             <RecurringMeetingForm
               onChange={handleRecurringMeetingChange}
               startDate={dateValue}
-              showValidation={recurringValidation}
+              showValidation={true}
             />
           }
           roomSelectionDropdown={

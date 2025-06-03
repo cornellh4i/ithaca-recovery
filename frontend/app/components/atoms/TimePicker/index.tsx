@@ -51,7 +51,6 @@ const TimePicker = ({ label, value: propValue = '', disablePast, onChange, error
     return { startTime: '', endTime: '' };
   };
   
-  // Initialize state with parsed value
   const initialTimeRange = parseTimeRange(propValue);
   const [startTime, setStartTime] = useState<string>(initialTimeRange.startTime);
   const [endTime, setEndTime] = useState<string>(initialTimeRange.endTime);
@@ -70,7 +69,6 @@ const TimePicker = ({ label, value: propValue = '', disablePast, onChange, error
     }
   }, [disablePast]);
 
-  // Handle change for start time
   const handleStartTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setTouched(true);
     const newStartTime = e.target.value;
@@ -83,7 +81,6 @@ const TimePicker = ({ label, value: propValue = '', disablePast, onChange, error
     setEndTimeError(false); // Reset error state when start time changes
   };
 
-  // Handle change for end time
   const handleEndTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setTouched(true);
     const newEndTime = e.target.value;
@@ -104,7 +101,7 @@ const TimePicker = ({ label, value: propValue = '', disablePast, onChange, error
     setTouched(true);
   };
 
-  const shouldShowRequiredError = touched && error && (!startTime || !endTime);
+  const requiredError = touched && error && (!startTime || !endTime);
 
   return (
     <div className={styles['time-picker-wrapper']}>
@@ -129,8 +126,8 @@ const TimePicker = ({ label, value: propValue = '', disablePast, onChange, error
         className={`${styles['time-picker-input']} ${endTimeError ? styles['error-input'] : ''}`} // Apply error class conditionally
         {...props}
       />
-      {endTimeError && <div className={styles['error-message']}>End time must be later than start time.</div>} {/* Display error message */}
-      {shouldShowRequiredError && <div className={styles['error-message']}>{error}</div>}
+      {endTimeError && <div className={styles['error-message']}>End time must be later than start time.</div>}
+      {requiredError && <div className={styles['error-message']}>{error}</div>}
     </div>
   );
 };
