@@ -34,7 +34,7 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> =
     const [selectedZoomAccount, setSelectedZoomAccount] = useState<string>("");
     const [isRecurring, setIsRecurring] = useState(false);
     const [recurrencePattern, setRecurrencePattern] = useState<IRecurrencePattern | null>(null);
-
+    
     const handleRecurringMeetingChange = (data: {
       isRecurring: boolean;
       recurrencePattern: IRecurrencePattern | null;
@@ -97,16 +97,28 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> =
       return dateObject.toISOString().split('T')[0]; // Returns "YYYY-MM-DD"
     }
 
-    const handleOpenNewMeeting = () => {
-      setIsNewMeetingOpen(true);
-    };
-
     const handleCloseNewMeeting = () => {
       clearMeetingState();
       setIsNewMeetingOpen(false);
     };
 
+    const validateForm = () => {
+      if (selectedMode !== "Zoom" && !selectedRoom) {
+        return false;
+      }
+
+      if (isRecurring && recurrencePattern === null) {
+        return false;
+      }
+      
+      return true;
+    };
+
     const createMeeting = async () => {
+      if (!validateForm()) {
+        return;
+      }
+      
       try {
 
         // Convert dateValue to ISO format
@@ -114,6 +126,7 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> =
 
         if (!isoDateValue) {
           console.error("Failed to convert dateValue to ISO format");
+          return;
         }
 
         const [startTime, endTime] = timeValue?.split(' - ') || [];
@@ -151,12 +164,14 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> =
           calType: selectedMeetingType, // Room Type
           room: selectedRoom,
         };
+        
         if (isRecurring && recurrencePattern) {
           newMeeting.recurrencePattern = {
             ...recurrencePattern,
             startDate: startDateTimeUTC
           };
         }
+        
         const response = await fetch('/api/write/meeting', {
           method: 'POST',
           headers: {
@@ -166,9 +181,11 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> =
             newMeeting
           ),
         });
+        
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
+        
         const meetingResponse = await response.json();
         console.log(meetingResponse);
         alert("Meeting created successfully! Please check the Meeting collection on MongoDB.");
@@ -203,25 +220,25 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> =
             label={<img src='/svg/calendar-icon.svg' alt="Calendar Icon" />}
             value={dateValue}
             onChange={setDateValue}
-            error={dateValue === '' ? 'Date is required' : undefined}
           />}
           TimePicker={<TimePicker
             label={<img src='/svg/clock-icon.svg' alt="Clock Icon" />}
             value={timeValue}
             onChange={setTimeValue}
             disablePast={true}
-            error={timeValue === '' ? 'Time is required' : undefined}
+            error={'Time is required'}
           />}
           RecurringMeeting={
             <RecurringMeetingForm
               onChange={handleRecurringMeetingChange}
               startDate={dateValue}
+              showValidation={true}
             />
           }
           roomSelectionDropdown={
             <Dropdown
               label={<img src="/svg/location-icon.svg" alt="Location Icon" />}
-              isVisible={true}
+              isVisible={selectedMode !== "Zoom"}
               elements={roomOptions}
               name="Select Room"
               onChange={handleRoomChange}
@@ -239,7 +256,7 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> =
           zoomAccountDropdown={
             <Dropdown
               label={<img src="svg/person-icon.svg" alt="Person Icon" />}
-              isVisible={true}
+              isVisible={selectedMode !== "In-Person"}
               elements={zoomAccountOptions}
               name="Select Zoom Account"
               onChange={handleZoomAccountChange}
