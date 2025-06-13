@@ -71,11 +71,13 @@ const BoxText: React.FC<BoxProps> = ({
       : primaryColor;
 
   const processedTags = tags?.map(tag => {
-    if (tag.toLowerCase() === 'group' || 
-        tag.toLowerCase() === 'hybrid' || 
-        tag.toLowerCase() === 'in person' ||
-        tag.toLowerCase() === 'remote') {
-      return meetingType;
+    if (tag !== undefined) {
+      if (tag.toLowerCase() === 'group' || 
+          tag.toLowerCase() === 'hybrid' || 
+          tag.toLowerCase() === 'in person' ||
+          tag.toLowerCase() === 'remote') {
+        return meetingType;
+      }
     }
     return tag;
   });
