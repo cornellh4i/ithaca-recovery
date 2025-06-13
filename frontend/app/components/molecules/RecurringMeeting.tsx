@@ -19,13 +19,17 @@ interface RecurringMeetingFormProps {
   startDate?: string;
 }
 
-const RecurringMeetingForm: React.FC<RecurringMeetingFormProps> = ({ onChange, startDate }) => {
+const RecurringMeetingForm: React.FC<RecurringMeetingFormProps> = ({ 
+  onChange, 
+  startDate,
+}) => {
   const [isRecurring, setIsRecurring] = useState(false);
   const [frequency, setFrequency] = useState(1);
   const [selectedDays, setSelectedDays] = useState<string[]>([]);
   const [endOption, setEndOption] = useState('Never');
   const [endDate, setEndDate] = useState<string | undefined>("");
   const [occurrences, setOccurrences] = useState(1);
+  const [touched, setTouched] = useState<boolean>(false);
   
   // Map day abbreviations to full day names for Microsoft Graph API compatibility
   const dayMapping: Record<string, string> = {
@@ -47,6 +51,24 @@ const RecurringMeetingForm: React.FC<RecurringMeetingFormProps> = ({ onChange, s
     { id: 'fri', label: 'F' },
     { id: 'sat', label: 'S' },
   ];
+
+  useEffect(() => {
+    if (isRecurring && startDate) {
+      try {
+        const date = new Date(startDate);
+        if (!isNaN(date.getTime())) {
+          const dayOfWeek = date.getDay();
+          const dayId = days[dayOfWeek].id;
+          
+          if (selectedDays.length === 0) {
+            setSelectedDays([dayId]);
+          }
+        }
+      } catch (error) {
+        console.error("Error parsing date:", error);
+      }
+    }
+  }, [isRecurring, startDate]);
 
   useEffect(() => {
     if (!isRecurring) {
@@ -82,9 +104,14 @@ const RecurringMeetingForm: React.FC<RecurringMeetingFormProps> = ({ onChange, s
   };
 
   const toggleDay = (dayId: string) => {
-    setSelectedDays((prev) =>
-      prev.includes(dayId) ? prev.filter((id) => id !== dayId) : [...prev, dayId]
-    );
+    setTouched(true);
+    setSelectedDays((prev) => {
+      const newSelectedDays = prev.includes(dayId) 
+        ? prev.filter((id) => id !== dayId) 
+        : [...prev, dayId];
+      
+      return newSelectedDays;
+    });
   };
 
   const handleFrequencyChange = (value: number) => {
@@ -93,8 +120,18 @@ const RecurringMeetingForm: React.FC<RecurringMeetingFormProps> = ({ onChange, s
 
   const handleEndOptionChange = (option: string) => {
     setEndOption(option);
-    if (option !== 'On') setEndDate("");
-    if (option !== "After") setOccurrences(1);
+    
+    if (option !== 'On') {
+      setEndDate("");
+    }
+    
+    if (option !== "After") {
+      setOccurrences(1);
+    }
+  };
+
+  const handleEndDateChange = (value: string) => {
+    setEndDate(value);
   };
 
   const endOptions = ['Never', 'On', 'After'];
@@ -124,6 +161,12 @@ const RecurringMeetingForm: React.FC<RecurringMeetingFormProps> = ({ onChange, s
               <label style={{ marginLeft: '5px'}}>week(s)</label>
             </div>
 
+            {(!frequency || frequency < 1) && (
+              <div className={styles['error-message']}>
+              Please specify a number of weeks.
+              </div>
+            )}
+
             <div className={styles.dayButtons}>
               <label style={{ marginRight: '5px'}}>On</label>
               {days.map((day) => (
@@ -135,6 +178,12 @@ const RecurringMeetingForm: React.FC<RecurringMeetingFormProps> = ({ onChange, s
                 />
               ))}
             </div>
+            
+            {touched && selectedDays.length === 0 && (
+              <div className={styles['error-message']}>
+              Please select at least one day. 
+            </div>
+            )}
 
             <RadioGroup
               label="Ends"
@@ -148,21 +197,27 @@ const RecurringMeetingForm: React.FC<RecurringMeetingFormProps> = ({ onChange, s
               <DatePicker
                 label={"Ends On:"}
                 value={endDate}
-                onChange={setEndDate}
-                error={endDate === '' ? 'Date is required' : undefined}
+                onChange={handleEndDateChange}
               />
             )}
 
             {endOption === 'After' && (
-              <div style={{ display: 'flex', alignItems: 'center'}}>
-                <label style={{ marginRight: '5px'}}>Ends after</label>
-                <SpinnerInput
-                  value={occurrences}
-                  min={1}
-                  step={1}
-                  onChange={setOccurrences}
-                />
-                <label style={{ marginLeft: '5px'}}>occurrences(s)</label>
+              <div className={styles['spinner-group']}>
+                <div className={styles['spinner-container']}>
+                  <label style={{ marginRight: '5px'}}>Ends after</label>
+                  <SpinnerInput
+                    value={occurrences}
+                    min={1}
+                    step={1}
+                    onChange={setOccurrences}
+                  />
+                  <label style={{ marginLeft: '5px'}}>occurrences(s)</label>
+                </div>
+                { (!occurrences || occurrences < 1) && (
+                  <div className={styles['error-message']}>
+                  Please enter at least one occurrence.
+                  </div>
+                )}
               </div>
             )}
           </div>
