@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import styles from "../../../../styles/components/organisms/CalendarNavbar.module.scss";
-import PandaDocButton from '../../../components/molecules/PandaDocButton';
+import styles from "../../../styles/components/organisms/CalendarNavbar.module.scss";
+import PandaDocButton from '../molecules/PandaDocButton';
 
 type CalendarNavbarProps = {
     selectedDate: Date;
@@ -86,8 +86,6 @@ const CalendarNavbar: React.FC<CalendarNavbarProps> = ({ selectedDate, onDateCha
         default:
           break;
       }
-      console.log("Selected Date:", selectedDate);
-      console.log("New Date:", newDate);
       onDateChange(newDate);
     };
   
@@ -106,8 +104,6 @@ const CalendarNavbar: React.FC<CalendarNavbarProps> = ({ selectedDate, onDateCha
         default:
           break;
       }
-      console.log("Selected Date:", selectedDate);
-      console.log("New Date:", newDate);
       onDateChange(newDate);
     };
 
