@@ -247,9 +247,6 @@ const HomePage = () => {
       <div className={styles.primaryCalendar}>
         <CalendarNavbar
           selectedDate={selectedDate}
-          onPreviousDay={() => setSelectedDate(new Date(selectedDate.setDate(selectedDate.getDate() - 1)))}
-          onNextDay={() => setSelectedDate(new Date(selectedDate.setDate(selectedDate.getDate() + 1)))}
-          onToday={() => (setSelectedDate(new Date()))}
           onDateChange={setSelectedDate}
           onViewChange={setSelectedView}
         />

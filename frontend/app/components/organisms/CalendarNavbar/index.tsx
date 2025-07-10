@@ -4,14 +4,11 @@ import PandaDocButton from '../../../components/molecules/PandaDocButton';
 
 type CalendarNavbarProps = {
     selectedDate: Date;
-    onPreviousDay: () => void;
-    onNextDay: () => void;
     onDateChange: (date : Date) => void;
-    onToday: () => void;
     onViewChange: (view: string) => void;
   };
   
-const CalendarNavbar: React.FC<CalendarNavbarProps> = ({ selectedDate, onPreviousDay, onNextDay, onDateChange, onToday, onViewChange }) => {
+const CalendarNavbar: React.FC<CalendarNavbarProps> = ({ selectedDate, onDateChange, onViewChange }) => {
     const [currentDate, setCurrentDate] = useState(new Date());
     const [selectedView, setSelectedView] = useState('Day');
   
@@ -64,6 +61,18 @@ const CalendarNavbar: React.FC<CalendarNavbarProps> = ({ selectedDate, onPreviou
       }
     };
   
+    const handleViewChange: React.ChangeEventHandler<HTMLSelectElement> = (event) => {
+      setSelectedView(event.target.value);
+      onViewChange(event.target.value); // Call the external function
+      onDateChange(new Date());
+    };
+  
+    const handleToday = () => {
+      setSelectedView("Day");
+      setCurrentDate(new Date());
+      onDateChange(currentDate); // Call the external function as well
+    };
+
     const handlePrevious = () => {
       const newDate = new Date(selectedDate);
       switch (selectedView) {
@@ -79,8 +88,8 @@ const CalendarNavbar: React.FC<CalendarNavbarProps> = ({ selectedDate, onPreviou
         default:
           break;
       }
+      setCurrentDate(newDate);
       onDateChange(newDate);
-
     };
   
     const handleNext = () => {
@@ -98,29 +107,8 @@ const CalendarNavbar: React.FC<CalendarNavbarProps> = ({ selectedDate, onPreviou
         default:
           break;
       }
+      setCurrentDate(newDate);
       onDateChange(newDate);
-    };
-  
-    const handleViewChange: React.ChangeEventHandler<HTMLSelectElement> = (event) => {
-      setSelectedView(event.target.value);
-      onViewChange(event.target.value); // Call the external function
-      onDateChange(new Date());
-    };
-  
-    const handleToday = () => {
-      setSelectedView("Day");
-      setCurrentDate(new Date());
-      onToday(); // Call the external function as well
-    };
-  
-    const handleCombinedPrevious = () => {
-      handlePrevious(); // Local function logic
-      onPreviousDay(); // External function from DailyView
-    };
-  
-    const handleCombinedNext = () => {
-      handleNext(); // Local function logic
-      onNextDay(); // External function from DailyView
     };
 
     return (
@@ -133,15 +121,14 @@ const CalendarNavbar: React.FC<CalendarNavbarProps> = ({ selectedDate, onPreviou
             <select id="view-select" value={selectedView} onChange={handleViewChange}>
               <option value="Day">Day</option>
               <option value="Week">Week</option>
-              {/* <option value="Month">Month</option> */}
             </select>
           </div>
           <div className={styles.box}>
-            <a href="#" onClick={() => onDateChange(new Date())}>Today</a>
+            <a href="#" onClick={() => handleToday()}>Today</a>
           </div>
           <div className={styles.dateToggle}>
-            <img src="/left-arrow.svg" alt="Left Arrow" width={24} height={24} onClick={handleCombinedPrevious} />
-            <img src="/right-arrow.svg" alt="Right Arrow" width={24} height={24} onClick={handleCombinedNext} />
+            <img src="/left-arrow.svg" alt="Left Arrow" width={24} height={24} onClick={handlePrevious} />
+            <img src="/right-arrow.svg" alt="Right Arrow" width={24} height={24} onClick={handleNext} />
           </div>
         </div>
       </div>
