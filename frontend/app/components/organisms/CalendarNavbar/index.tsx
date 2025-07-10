@@ -9,7 +9,6 @@ type CalendarNavbarProps = {
   };
   
 const CalendarNavbar: React.FC<CalendarNavbarProps> = ({ selectedDate, onDateChange, onViewChange }) => {
-    const [currentDate, setCurrentDate] = useState(new Date());
     const [selectedView, setSelectedView] = useState('Day');
   
     const getDateRange = (date: Date) => {
@@ -69,8 +68,7 @@ const CalendarNavbar: React.FC<CalendarNavbarProps> = ({ selectedDate, onDateCha
   
     const handleToday = () => {
       setSelectedView("Day");
-      setCurrentDate(new Date());
-      onDateChange(currentDate); // Call the external function as well
+      onDateChange(new Date()); // Call the external function as well
     };
 
     const handlePrevious = () => {
@@ -88,7 +86,8 @@ const CalendarNavbar: React.FC<CalendarNavbarProps> = ({ selectedDate, onDateCha
         default:
           break;
       }
-      setCurrentDate(newDate);
+      console.log("Selected Date:", selectedDate);
+      console.log("New Date:", newDate);
       onDateChange(newDate);
     };
   
@@ -107,7 +106,8 @@ const CalendarNavbar: React.FC<CalendarNavbarProps> = ({ selectedDate, onDateCha
         default:
           break;
       }
-      setCurrentDate(newDate);
+      console.log("Selected Date:", selectedDate);
+      console.log("New Date:", newDate);
       onDateChange(newDate);
     };
 
@@ -124,7 +124,7 @@ const CalendarNavbar: React.FC<CalendarNavbarProps> = ({ selectedDate, onDateCha
             </select>
           </div>
           <div className={styles.box}>
-            <a href="#" onClick={() => handleToday()}>Today</a>
+            <a href="#" onClick={handleToday}>Today</a>
           </div>
           <div className={styles.dateToggle}>
             <img src="/left-arrow.svg" alt="Left Arrow" width={24} height={24} onClick={handlePrevious} />
