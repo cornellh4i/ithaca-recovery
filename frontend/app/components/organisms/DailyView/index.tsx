@@ -21,7 +21,7 @@ type Room = {
 const meetingCache = new Map<string, Room[]>();
 
 export const fetchMeetingsByDay = async (date: Date): Promise<Room[]> => {
-  const formattedDate = date.toLocaleDateString("en-CA"); // e.g., "2025-04-09"
+  const formattedDate = date.toLocaleDateString("en-US"); // e.g., "2025-04-09"
 
   // If cache exists, return it. Otherwise, fetch new data.
   if (meetingCache.has(formattedDate)) {
@@ -77,7 +77,7 @@ export const fetchMeetingsByDay = async (date: Date): Promise<Room[]> => {
 
 // Function to invalidate the cache for a specific date
 export const invalidateCache = (date: Date) => {
-  const formattedDate = date.toLocaleDateString("en-CA");
+  const formattedDate = date.toLocaleDateString("en-US");
   console.log(`Invalidating cache for ${formattedDate}`);
   meetingCache.delete(formattedDate); // Delete the cache for this date
 };
@@ -109,21 +109,34 @@ interface DailyViewProps {
   setSelectedDate: (date: Date) => void;
   setSelectedMeetingID: (meetingId: string) => void;
   setSelectedNewMeeting: (newMeetingExists: boolean) => void;
+  refreshTrigger?: number;
 }
 
-const DailyView: React.FC<DailyViewProps> = ({ filters, selectedDate, setSelectedDate, setSelectedMeetingID, setSelectedNewMeeting }) => {
+const DailyView: React.FC<DailyViewProps> = ({ 
+  filters, 
+  selectedDate, 
+  setSelectedDate, 
+  setSelectedMeetingID, 
+  setSelectedNewMeeting,
+  refreshTrigger = 0
+}) => {
   const [currentTimePosition, setCurrentTimePosition] = useState(0);
   const [meetings, setMeetings] = useState<Room[]>([]);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      const data = await fetchMeetingsByDay(selectedDate);
-      setMeetings(data);
-      updateTimePosition();
-      scrollToCurrentTime();
-    };
+  const fetchData = async (forceFetch = false) => {
+    // If forceFetch is true, invalidate cache first
+    if (forceFetch) {
+      invalidateCache(selectedDate);
+    }
+    
+    const data = await fetchMeetingsByDay(selectedDate);
+    setMeetings(data);
+    updateTimePosition();
+    scrollToCurrentTime();
+  };
 
+  useEffect(() => {
     fetchData();
 
     const intervalId = setInterval(updateTimePosition, 60000);
@@ -132,6 +145,13 @@ const DailyView: React.FC<DailyViewProps> = ({ filters, selectedDate, setSelecte
       clearInterval(intervalId);
     };
   }, [selectedDate]);
+
+  useEffect(() => {
+    if (refreshTrigger > 0) {
+      console.log("Refreshing calendar due to trigger change:", refreshTrigger);
+      fetchData(true); // Force fetch (invalidate cache)
+    }
+  }, [refreshTrigger]);
 
   const updateTimePosition = () => {
     const now = new Date(selectedDate);
@@ -150,15 +170,6 @@ const DailyView: React.FC<DailyViewProps> = ({ filters, selectedDate, setSelecte
       const scrollPosition = Math.max(0, scrollOffset);
       scrollContainerRef.current.scrollLeft = scrollPosition;
     }
-  };
-
-  const handleMeetingChange = (meetingId: string) => {
-    console.log("inside handleMeetingCache!!");
-    // This function would be called when a meeting is updated, created, or deleted.
-    // After a change, invalidate the cache.
-    console.log(`Meeting ${meetingId} changed. Invalidating cache.`);
-    invalidateCache(selectedDate);
-    fetchMeetingsByDay(selectedDate).then(setMeetings);
   };
 
   // filter meetings based on meeting type and room filters
@@ -208,7 +219,8 @@ const DailyView: React.FC<DailyViewProps> = ({ filters, selectedDate, setSelecte
                 title={room.name}
                 primaryColor={room.primaryColor}
                 meetingId={room.meetings[0]?.id || ""}
-                onClick={() => handleMeetingChange(room.meetings[0]?.id || "")}
+                // onClick={() => handleMeetingChange(room.meetings[0]?.id || "")}
+                onClick={() => console.log(`Clicked on room: ${room.name}`)}
               />
             </div>
           ))}

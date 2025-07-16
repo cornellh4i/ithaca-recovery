@@ -60,6 +60,15 @@ const fetchMeetingsByWeek = async (startDate: Date, endDate: Date): Promise<Meet
     }
 };
 
+// Function to invalidate the cache for a specific week
+export const invalidateWeekCache = (startDate: Date, endDate: Date) => {
+    const formattedStart = startDate.toISOString().split('T')[0];
+    const formattedEnd = endDate.toISOString().split('T')[0];
+    const cacheKey = `${formattedStart}-${formattedEnd}`;
+    console.log(`Invalidating cache for week: ${cacheKey}`);
+    meetingCache.delete(cacheKey);
+};
+
 // Get the first day (Sunday) of the week containing the provided date
 const getFirstDayOfWeek = (date: Date): Date => {
     const day = date.getDay();
@@ -106,6 +115,7 @@ interface WeeklyViewProps {
     setSelectedDate: (date: Date) => void;
     setSelectedMeetingID: (meetingId: string) => void;
     setSelectedNewMeeting: (newMeetingExists: boolean) => void;
+    refreshTrigger?: number;
 }
 
 const WeeklyView: React.FC<WeeklyViewProps> = ({
@@ -113,7 +123,8 @@ const WeeklyView: React.FC<WeeklyViewProps> = ({
     selectedDate,
     setSelectedDate,
     setSelectedMeetingID,
-    setSelectedNewMeeting
+    setSelectedNewMeeting,
+    refreshTrigger = 0
 }) => {
     const [currentTimePosition, setCurrentTimePosition] = useState(0);
     const [weekStartDate, setWeekStartDate] = useState<Date>(getFirstDayOfWeek(selectedDate));
@@ -129,6 +140,20 @@ const WeeklyView: React.FC<WeeklyViewProps> = ({
 
     const timeSlots = Array.from({ length: 24 }, (_, i) => formatTime(i));
 
+    // Function to fetch week meetings with optional cache invalidation
+    const fetchWeekMeetings = async (forceFetch = false) => {
+        const endDate = new Date(weekStartDate);
+        endDate.setDate(weekStartDate.getDate() + 6);
+
+        // If forceFetch is true, invalidate cache first
+        if (forceFetch) {
+            invalidateWeekCache(weekStartDate, endDate);
+        }
+
+        const meetings = await fetchMeetingsByWeek(weekStartDate, endDate);
+        setAllMeetings(meetings);
+    };
+
     // Update the week when selected date changes
     useEffect(() => {
         const newWeekStartDate = getFirstDayOfWeek(selectedDate);
@@ -138,20 +163,20 @@ const WeeklyView: React.FC<WeeklyViewProps> = ({
 
     // Fetch meetings for the entire week
     useEffect(() => {
-        const fetchWeekMeetings = async () => {
-            const endDate = new Date(weekStartDate);
-            endDate.setDate(weekStartDate.getDate() + 6);
-
-            const meetings = await fetchMeetingsByWeek(weekStartDate, endDate);
-            setAllMeetings(meetings);
-        };
-
         fetchWeekMeetings();
         updateTimePosition();
 
         const intervalId = setInterval(updateTimePosition, 60000);
         return () => clearInterval(intervalId);
     }, [weekStartDate]);
+
+    // Watch for refresh trigger changes
+    useEffect(() => {
+        if (refreshTrigger > 0) {
+            console.log("Refreshing weekly view due to trigger change:", refreshTrigger);
+            fetchWeekMeetings(true); // Force fetch (invalidate cache)
+        }
+    }, [refreshTrigger]);
 
     // Update current time indicator position
     const updateTimePosition = () => {

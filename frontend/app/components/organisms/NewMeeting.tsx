@@ -232,7 +232,6 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> =
             <RecurringMeetingForm
               onChange={handleRecurringMeetingChange}
               startDate={dateValue}
-              showValidation={true}
             />
           }
           roomSelectionDropdown={
