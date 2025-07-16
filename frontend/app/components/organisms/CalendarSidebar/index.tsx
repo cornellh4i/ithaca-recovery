@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-
 import TextButton from '../../atoms/textbutton';
 
 import MiniCalendar from '../../atoms/MiniCalendar';
@@ -7,9 +6,6 @@ import MeetingsFilter from '../../molecules/MeetingsFilter';
 import NewMeetingSidebar from '../NewMeeting';
 import styles from '../../../../styles/components/organisms/CalendarSidebar.module.scss';
 import AddIcon from '@mui/icons-material/Add';
-
-
-
 interface CalendarSidebarProps {
   filters: any;
   setFilters: any;
@@ -20,6 +16,7 @@ interface CalendarSidebarProps {
 const CalendarSidebar: React.FC<CalendarSidebarProps> = ({filters, setFilters, selectedDate, setSelectedDate}) => {
   // State declarations for New Meeting button
   const [isNewMeetingOpen, setIsNewMeetingOpen] = useState(false);
+
   const handleMiniCalendarSelect = (date: Date) => {
     setSelectedDate(date);
   };
@@ -34,15 +31,6 @@ const CalendarSidebar: React.FC<CalendarSidebarProps> = ({filters, setFilters, s
 
   const handleOpenNewMeeting = () => {
     setIsNewMeetingOpen(true);
-  };
-
-  const handleFileSelect = (file: File | null) => {
-    if (file) {
-      console.log("File selected:", file);
-      // Handle the selected file (e.g., upload it or process it)
-    } else {
-      console.log("No file selected");
-    }
   };
 
   return (

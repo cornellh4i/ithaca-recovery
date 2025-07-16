@@ -5,6 +5,8 @@ import styles from "../../../styles/components/organisms/MeetingForm.module.scss
 
 export interface MeetingFormProps {
   meetingTitleTextField: React.ReactElement;
+  modeTypeButtons: React.ReactElement;
+  selectedMode: string;
   DatePicker: React.ReactElement;
   TimePicker: React.ReactElement;
   RecurringMeeting: React.ReactElement;
@@ -19,6 +21,8 @@ export interface MeetingFormProps {
 
 export const MeetingForm: React.FC<MeetingFormProps> = ({
   meetingTitleTextField,
+  modeTypeButtons,
+  selectedMode,
   DatePicker,
   TimePicker,
   RecurringMeeting,
@@ -37,9 +41,7 @@ export const MeetingForm: React.FC<MeetingFormProps> = ({
           {meetingTitleTextField}
         </div>
         <div className={styles.meetingButtons}>
-          <button className={styles.button} autoFocus>Hybrid</button>
-          <button className={styles.button}>In Person</button>
-          <button className={styles.button}>Remote</button>
+          {modeTypeButtons}
         </div>
         <div className={styles.dummyComponent}>
           {DatePicker}
@@ -50,15 +52,19 @@ export const MeetingForm: React.FC<MeetingFormProps> = ({
         <div className={styles.dummyComponent}>
           {RecurringMeeting}
         </div>
+        {(selectedMode === "Hybrid" || selectedMode === "In Person") && (
         <div className={styles.dummyComponent}>
           {roomSelectionDropdown}
         </div>
+        )}
         <div className={styles.dummyComponent}>
           {meetingTypeDropdown}
         </div>
+        {(selectedMode === "Hybrid" || selectedMode === "Remote") && (
         <div className={styles.dummyComponent}>
           {zoomAccountDropdown}
         </div>
+        )}
         <div className={styles.dummyComponent}>
           {emailTextField}
         </div>

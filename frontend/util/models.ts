@@ -1,5 +1,3 @@
-import { GridFSBucketWriteStream } from 'mongodb';
-
 // Please add models here
 interface IUser {
   uid: string;
@@ -10,8 +8,6 @@ interface IAdmin extends IUser {
   email: string;
 }
 
-// TODO: Add email for IMeeting?
-
 interface IMeeting {
   title: string;
   mid: string;
@@ -20,14 +16,26 @@ interface IMeeting {
   group: string; // group interface later on [optional]
   startDateTime: Date;
   endDateTime: Date;
+  email: string;
   zoomAccount?: string | null;
   zoomLink?: string | null;
   zid?: string | null;
-  type: string;
+  calType: string;
+  modeType: string;
   room: string;
-  pandaDoc?: File | Buffer | GridFSBucketWriteStream | null;
+  isRecurring?: boolean;
+  recurrencePattern?: IRecurrencePattern | null;
 }
 
-export type { IUser, IMeeting, IAdmin };
+interface IRecurrencePattern {
+  mid?: string;
+  type: string; 
+  startDate: Date;
+  endDate?: Date | null;
+  numberOfOccurrences?: number | null;
+  daysOfWeek?: string[] | null;
+  firstDayOfWeek: string; 
+  interval: number; // 1 = weekly, 2 = biweekly, etc.
+}
 
-
+export type { IUser, IAdmin, IMeeting, IRecurrencePattern };

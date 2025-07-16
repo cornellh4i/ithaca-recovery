@@ -44,12 +44,17 @@
   background: #F1F1F1;
 }
 
+.button.selected {
+  background: #F1F1F1;
+  border-radius: 8px;
+}
+
 .meetingButtons {
   display: flex;
   flex-direction: row;
   justify-content: space-between;
-  margin-bottom: 16px;
-  margin: 10px;
+  width: 100%;
+  margin-bottom: 10px;
 }
 
 /* Responsive adjustments */

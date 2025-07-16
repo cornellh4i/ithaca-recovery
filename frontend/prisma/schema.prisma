@@ -1,37 +1,56 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
 datasource db {
   provider = "mongodb"
   url      = env("DATABASE_URL")
 }
 
-generator client {
-  provider = "prisma-client-js"
-}
-
-model User {
-  id   String @id @default(auto()) @map("_id") @db.ObjectId
-  uid  String @unique
-  name String
-}
-
 model Admin {
-  id            String @id @default(auto()) @map("_id") @db.ObjectId
-  uid           String @unique
+  id            String  @id @default(auto()) @map("_id") @db.ObjectId
+  email         String  @unique
   name          String
-  email         String @unique
+  privilegeMode String?
+  uid           String  @unique
 }
 
 model Meeting {
-  id             String   @id @default(auto()) @map("_id") @db.ObjectId
-  mid            String   @unique
-  title          String
-  description    String
-  creator        String   
-  group          String   
-  startDateTime  DateTime
-  endDateTime    DateTime
-  zoomAccount    String?   
-  zoomLink       String?
-  zid            String?
-  type           String
-  room           String
+  id                String               @id @default(auto()) @map("_id") @db.ObjectId
+  mid               String               @unique
+  title             String
+  calType           String
+  description       String
+  creator           String
+  group             String
+  startDateTime     DateTime             @db.Date
+  endDateTime       DateTime             @db.Date
+  email             String
+  zoomAccount       String?              // optional
+  zoomLink          String?              // optional
+  zid               String?              // optional
+  room              String
+  modeType          String
+  isRecurring       Boolean              @default(false)
+  recurrencePattern RecurrencePattern?   @relation("MeetingToRecurrencePattern")
+}
+
+model RecurrencePattern {
+  id                 String   @id @default(auto()) @map("_id") @db.ObjectId
+  mid                String   @unique
+  meeting            Meeting  @relation("MeetingToRecurrencePattern", fields: [mid], references: [mid])
+  type               String
+  startDate          DateTime
+  endDate            DateTime?
+  numberOfOccurences Int?
+  daysOfWeek         String[]
+  firstDayOfWeek     String
+  interval           Int
+}
+
+
+model User {
+  id   String @id @default(auto()) @map("_id") @db.ObjectId
+  name String
+  uid  String @unique
 }

@@ -67,12 +67,13 @@ import ClientLayout from "./ClientLayout";
 export default async function RootLayout({ children }: PropsWithChildren) {
 
   const { account } = await authProvider.authenticate();
-  
+
+
   const authRedirectUrl = await authProvider.getAuthCodeUrl(loginRequest, getCurrentUrl());
 
   return (
-    <ClientLayout 
-      initialAccount={account} 
+    <ClientLayout
+      initialAccount={account}
       authRedirectUrl={authRedirectUrl}
     >
       {children}

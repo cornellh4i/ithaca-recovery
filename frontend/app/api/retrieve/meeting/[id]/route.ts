@@ -1,7 +1,4 @@
 import { PrismaClient } from "@prisma/client";
-import { NextResponse } from "next/server";
-import { NextApiRequest } from "next";
-import { IMeeting } from "../../../../../util/models";
 import { NextRequest } from "next/server";
 
 const prisma = new PrismaClient();
@@ -14,6 +11,9 @@ const getMeeting = async(request: NextRequest) => {
       where: {
         mid: String(mid),
       },
+      include: {
+        recurrencePattern: true,
+      },
     });
 
     if (!meeting) {
@@ -25,8 +25,7 @@ const getMeeting = async(request: NextRequest) => {
       });
     }
 
-    const typedMeeting: IMeeting = { ...meeting };
-    return new Response(JSON.stringify(typedMeeting), {
+    return new Response(JSON.stringify(meeting), {
       status: 200,
       headers: {
         'Content-Type': 'application/json',
@@ -41,6 +40,6 @@ const getMeeting = async(request: NextRequest) => {
       },
     });
   }
-}
+};
 
-export {getMeeting as GET}
+export {getMeeting as GET};
