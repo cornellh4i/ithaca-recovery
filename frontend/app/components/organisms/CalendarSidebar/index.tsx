@@ -11,9 +11,10 @@ interface CalendarSidebarProps {
   setFilters: any;
   selectedDate: Date;
   setSelectedDate: React.Dispatch<React.SetStateAction<Date>>;
+  triggerCalendarRefresh: () => void;
 }
 
-const CalendarSidebar: React.FC<CalendarSidebarProps> = ({filters, setFilters, selectedDate, setSelectedDate}) => {
+const CalendarSidebar: React.FC<CalendarSidebarProps> = ({filters, setFilters, selectedDate, setSelectedDate, triggerCalendarRefresh}) => {
   // State declarations for New Meeting button
   const [isNewMeetingOpen, setIsNewMeetingOpen] = useState(false);
 
@@ -38,6 +39,7 @@ const CalendarSidebar: React.FC<CalendarSidebarProps> = ({filters, setFilters, s
       {isNewMeetingOpen ? (
         <NewMeetingSidebar
           setIsNewMeetingOpen={setIsNewMeetingOpen}
+          triggerCalendarRefresh={triggerCalendarRefresh}
         />
       ) : (
         <>

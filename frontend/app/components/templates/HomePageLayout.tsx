@@ -175,10 +175,6 @@ const HomePage = () => {
               onClose={handleCloseEdit}
               onUpdateSuccess={() => {
                 console.log("Meeting updated!");
-                // Refresh the meeting data after successful update
-                // if (selectedMeeting.mid) {
-                //   fetchMeetingDetails(selectedMeeting.mid);
-                // }
                 triggerCalendarRefresh();
               }}
             />) :
@@ -226,7 +222,9 @@ const HomePage = () => {
                 filters={filters}
                 setFilters={setFilters}
                 selectedDate={selectedDate}
-                setSelectedDate={setSelectedDate} />
+                setSelectedDate={setSelectedDate}
+                triggerCalendarRefresh={triggerCalendarRefresh}
+              />
             )}
         </div>
       )}
