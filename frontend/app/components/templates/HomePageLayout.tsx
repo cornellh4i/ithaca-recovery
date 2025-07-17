@@ -6,14 +6,24 @@ import CalendarSidebar from "../organisms/CalendarSidebar";
 import ViewMeetingDetails from "../organisms/ViewMeeting";
 import EditMeetingSidebar from "../organisms/EditMeeting";
 import DailyView from "../organisms/DailyView";
-
 import WeeklyView from "../organisms/WeeklyView";
+
 import { convertUTCToET } from "../../../util/timeUtils";
 import { IMeeting } from "../../../util/models";
 
 const HomePage = () => {
-  // Add state for login status - default to logged in
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      console.log("Auto-refreshing calendar (30s interval)");
+      triggerCalendarRefresh();
+    }, 30000); // 30 seconds
+
+    return () => clearInterval(intervalId);
+  }, []);
 
   useEffect(() => {
     const checkAuthStatus = async () => {
@@ -55,6 +65,10 @@ const HomePage = () => {
     } catch (error) {
       console.error('Error fetching meeting details:', error);
     }
+  };
+  
+  const triggerCalendarRefresh = () => {
+    setRefreshTrigger(prev => prev + 1);
   };
 
   useEffect(() => {
@@ -101,15 +115,18 @@ const HomePage = () => {
         alert("Error : Unsuccessful delete")
         throw new Error(`HTTP error! status: ${response.status}`);
       }
+
+      // Clear selected meeting state
+
       setSelectedMeeting(null);
       setSelectedMeetingID(null);
       setLastClickedDate(null);
-      // const tempDate = new Date(selectedDate);
-      // setSelectedDate(new Date(tempDate.getTime() + 1));
-      // setTimeout(() => {
-      //   setSelectedDate(tempDate);
-      // }, 100);
+      
+       // Trigger calendar refresh
+      triggerCalendarRefresh();
+      
       alert("Meeting deleted successfully! Please check the Meeting collection on MongoDB.")
+
     } catch (error) {
       console.error('There was an error fetching the data:', error);
     }
@@ -168,35 +185,10 @@ const HomePage = () => {
               onClose={handleCloseEdit}
               onUpdateSuccess={() => {
                 console.log("Meeting updated!");
-                // Refresh the meeting data after successful update
-                if (selectedMeeting.mid) {
-                  fetchMeetingDetails(selectedMeeting.mid);
-                }
+                triggerCalendarRefresh();
               }}
             />) :
             selectedMeeting ? (
-              //           <ViewMeetingDetails
-          //   id={selectedMeeting.id}
-          //   mid={selectedMeeting.mid}
-          //   title={selectedMeeting.title}
-          //   description={selectedMeeting.description}
-          //   creator={selectedMeeting.creator}
-          //   group={selectedMeeting.group}
-          //   startDateTime={new Date(selectedMeeting.startDateTime)}
-          //   endDateTime={new Date(selectedMeeting.endDateTime)}
-          //   zoomAccount={selectedMeeting.zoomAccount}
-          //   zoomLink={selectedMeeting.zoomLink}
-          //   zid={selectedMeeting.zid}
-          //   type={selectedMeeting.type}
-          //   room={selectedMeeting.room}
-          //   recurrence={selectedMeeting.recurrence}
-          //   isRecurring={selectedMeeting.isRecurring ?? false}
-          //   recurrencePattern={selectedMeeting.recurrencePattern}
-          //   currentOccurrenceDate={lastClickedDate || undefined} // Pass the date when the meeting was clicked
-          //   onBack={handleBack}
-          //   onEdit={handleEdit}
-          //   onDelete={handleDelete} 
-          // />    
               <ViewMeetingDetails
                 mid={selectedMeeting.mid}
                 title={selectedMeeting.title}
@@ -240,7 +232,9 @@ const HomePage = () => {
                 filters={filters}
                 setFilters={setFilters}
                 selectedDate={selectedDate}
-                setSelectedDate={setSelectedDate} />
+                setSelectedDate={setSelectedDate}
+                triggerCalendarRefresh={triggerCalendarRefresh}
+              />
             )}
         </div>
       )}
@@ -257,6 +251,7 @@ const HomePage = () => {
             setSelectedDate={setSelectedDate}
             setSelectedMeetingID={setSelectedMeetingID}
             setSelectedNewMeeting={setSelectedNewMeeting}
+            refreshTrigger={refreshTrigger}
           />
         ) : (
           <WeeklyView
@@ -265,6 +260,7 @@ const HomePage = () => {
             setSelectedDate={setSelectedDate}
             setSelectedMeetingID={setSelectedMeetingID}
             setSelectedNewMeeting={setSelectedNewMeeting}
+            refreshTrigger={refreshTrigger}
           />
         )}
       </div>

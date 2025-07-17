@@ -18,10 +18,13 @@ import styles from '../../../styles/components/organisms/MeetingForm.module.scss
 
 interface NewMeetingSidebarProps {
   setIsNewMeetingOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  triggerCalendarRefresh: () => void;
 }
 
-const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> =
-  ({ setIsNewMeetingOpen }) => {
+const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({ 
+  setIsNewMeetingOpen, 
+  triggerCalendarRefresh 
+}) => {
     // State declarations for New Meeting form
     const [inputMeetingTitleValue, setMeetingTitleValue] = useState(""); // Meeting title
     const [selectedMode, setSelectedMode] = useState<string>('Hybrid');
@@ -188,6 +191,9 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> =
         
         const meetingResponse = await response.json();
         console.log(meetingResponse);
+
+        triggerCalendarRefresh(); // Trigger calendar refresh after meeting creation
+
         alert("Meeting created successfully! Please check the Meeting collection on MongoDB.");
         handleCloseNewMeeting();
       } catch (error) {
@@ -232,7 +238,6 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> =
             <RecurringMeetingForm
               onChange={handleRecurringMeetingChange}
               startDate={dateValue}
-              showValidation={true}
             />
           }
           roomSelectionDropdown={

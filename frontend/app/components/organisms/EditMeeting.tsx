@@ -234,8 +234,10 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
             onChange={setMeetingTitleValue}
           />}
           modeTypeButtons={<ModeTypeButtons 
+            selectedMode={selectedMode}
             onModeSelect={setSelectedMode}
           />}
+          selectedMode= {selectedMode}
           DatePicker={<DatePicker
             label={<img src='/svg/calendar-icon.svg' alt="Calendar Icon" />}
             value={dateValue}

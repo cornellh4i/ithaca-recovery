@@ -20,11 +20,12 @@ type Room = {
 
 const meetingCache = new Map<string, Room[]>();
 
-const fetchMeetingsByDay = async (date: Date): Promise<Room[]> => {
-  // Step 1: Format the date in local time (EDT) to ensure correct calendar day
-  const formattedDate = date.toLocaleDateString("en-CA"); // e.g., "2025-04-09"
+export const fetchMeetingsByDay = async (date: Date): Promise<Room[]> => {
+  const formattedDate = date.toLocaleDateString("en-US"); // e.g., "2025-04-09"
 
+  // If cache exists, return it. Otherwise, fetch new data.
   if (meetingCache.has(formattedDate)) {
+    console.log("Using cached data for date:", formattedDate);
     return meetingCache.get(formattedDate) || [];
   }
   try {
@@ -65,7 +66,7 @@ const fetchMeetingsByDay = async (date: Date): Promise<Room[]> => {
       };
     });
 
-    // Cache result
+    // Cache the fetched data
     meetingCache.set(formattedDate, structuredData);
     return structuredData;
   } catch (error) {
@@ -74,7 +75,12 @@ const fetchMeetingsByDay = async (date: Date): Promise<Room[]> => {
   }
 };
 
-
+// Function to invalidate the cache for a specific date
+export const invalidateCache = (date: Date) => {
+  const formattedDate = date.toLocaleDateString("en-US");
+  console.log(`Invalidating cache for ${formattedDate}`);
+  meetingCache.delete(formattedDate); // Delete the cache for this date
+};
 
 const formatTime = (hour: number): string => {
   const period = hour >= 12 ? "PM" : "AM";
@@ -84,7 +90,6 @@ const formatTime = (hour: number): string => {
 
 const timeSlots = Array.from({ length: 24 }, (_, i) => formatTime(i));
 
-// Default room layout
 const defaultRooms = [
   { name: 'Serenity Room', primaryColor: '#b3ea75' },
   { name: 'Seeds of Hope', primaryColor: '#f7e57b' },
@@ -104,78 +109,67 @@ interface DailyViewProps {
   setSelectedDate: (date: Date) => void;
   setSelectedMeetingID: (meetingId: string) => void;
   setSelectedNewMeeting: (newMeetingExists: boolean) => void;
+  refreshTrigger?: number;
 }
 
-const DailyView: React.FC<DailyViewProps> = ({ filters, selectedDate, setSelectedDate, setSelectedMeetingID, setSelectedNewMeeting }) => {
+const DailyView: React.FC<DailyViewProps> = ({ 
+  filters, 
+  selectedDate, 
+  setSelectedDate, 
+  setSelectedMeetingID, 
+  setSelectedNewMeeting,
+  refreshTrigger = 0
+}) => {
   const [currentTimePosition, setCurrentTimePosition] = useState(0);
   const [meetings, setMeetings] = useState<Room[]>([]);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-  function getTodayDate(): Date {
-    const now = new Date();
-    now.setHours(0, 0, 0, 0);
-    return now;
-  }
-
-  const handleDateChange = async (selected: Date) => {
-    const adjustedDate = new Date(
-      selected.getFullYear(),
-      selected.getMonth(),
-      selected.getDate()
-    ); // this creates local midnight
-  
-    const data = await fetchMeetingsByDay(adjustedDate);
+  const fetchData = async (forceFetch = false) => {
+    // If forceFetch is true, invalidate cache first
+    if (forceFetch) {
+      invalidateCache(selectedDate);
+    }
+    
+    const data = await fetchMeetingsByDay(selectedDate);
     setMeetings(data);
+    updateTimePosition();
+    scrollToCurrentTime();
   };
 
+  useEffect(() => {
+    fetchData();
+
+    const intervalId = setInterval(updateTimePosition, 60000);
+
+    return () => {
+      clearInterval(intervalId);
+    };
+  }, [selectedDate]);
+
+  useEffect(() => {
+    if (refreshTrigger > 0) {
+      console.log("Refreshing calendar due to trigger change:", refreshTrigger);
+      fetchData(true); // Force fetch (invalidate cache)
+    }
+  }, [refreshTrigger]);
+
   const updateTimePosition = () => {
-    const now = new Date(selectedDate); // Use selectedDate instead of current date
+    const now = new Date(selectedDate);
     const currentHour = now.getHours();
     const currentMinutes = now.getMinutes();
     const position = (currentHour * 60 + currentMinutes) * (155 / 60);
     setCurrentTimePosition(position);
   };
+
   const scrollToCurrentTime = () => {
     if (scrollContainerRef.current) {
       const now = new Date();
       const currentHour = now.getHours();
       const currentMinutes = now.getMinutes();
-
-      // Calculate the scroll position - set it slightly to the left of the current time
-      // to ensure the current time is visible with some context
-      const scrollOffset = (currentHour * 155) - 300; // 155px per hour, scroll 300px to the left for context
-
-      // Ensure we don't scroll to a negative position
+      const scrollOffset = (currentHour * 155) - 300;
       const scrollPosition = Math.max(0, scrollOffset);
-
       scrollContainerRef.current.scrollLeft = scrollPosition;
     }
-  };
-  useEffect(() => {
-    handleDateChange(selectedDate);
-    updateTimePosition();
-
-    // Set up interval for updating time position
-    const intervalId = setInterval(updateTimePosition, 60000);
-    // Scroll to current time after the component has fully rendered and data is loaded
-    const timeoutId = setTimeout(() => {
-      scrollToCurrentTime();
-    }, 300); // Small delay to ensure content is rendered
-
-    return () => {
-      clearInterval(intervalId);
-      clearTimeout(timeoutId);
-    };
-  }, [selectedDate]);
-
-  // Dummy function for onClick prop
-  const handleBoxClick = (meetingId: string) => {
-    console.log(`Meeting ${meetingId} clicked`);
-  };
-
-  const handleRowNotBoxClick = () => {
-    // TODO: Check if the target is a BoxText element
-    console.log("Grid row clicked");
   };
 
   // filter meetings based on meeting type and room filters
@@ -206,7 +200,6 @@ const DailyView: React.FC<DailyViewProps> = ({ filters, selectedDate, setSelecte
     })
     .map((defaultRoom) => {
       const roomWithMeetings = meetings.find((meetingRoom) => meetingRoom.name === defaultRoom.name);
-
       if (roomWithMeetings) {
         // Apply meeting type filters to the meetings in this room
         return filterMeetings(roomWithMeetings);
@@ -226,7 +219,8 @@ const DailyView: React.FC<DailyViewProps> = ({ filters, selectedDate, setSelecte
                 title={room.name}
                 primaryColor={room.primaryColor}
                 meetingId={room.meetings[0]?.id || ""}
-                onClick={handleBoxClick}
+                // onClick={() => handleMeetingChange(room.meetings[0]?.id || "")}
+                onClick={() => console.log(`Clicked on room: ${room.name}`)}
               />
             </div>
           ))}
@@ -240,7 +234,7 @@ const DailyView: React.FC<DailyViewProps> = ({ filters, selectedDate, setSelecte
           </div>
 
           {combinedRooms.map((room, rowIndex) => (
-            <div key={rowIndex} className={styles.gridRow} onClick={handleRowNotBoxClick}>
+            <div key={rowIndex} className={styles.gridRow}>
               <div className={styles.gridMeetingRow}>
                 <DailyViewRow roomColor={room.primaryColor} meetings={room.meetings} setSelectedMeetingID={setSelectedMeetingID} setSelectedNewMeeting={setSelectedNewMeeting}/>
               </div>
