@@ -15,6 +15,16 @@ const HomePage = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
+
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      console.log("Auto-refreshing calendar (30s interval)");
+      triggerCalendarRefresh();
+    }, 30000); // 30 seconds
+
+    return () => clearInterval(intervalId);
+  }, []);
+
   useEffect(() => {
     const checkAuthStatus = async () => {
       try {
