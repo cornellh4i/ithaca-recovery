@@ -6,9 +6,9 @@ import qs from 'query-string';
 // function to generate zoom access token 
 const generateZoomToken = async () => {
   try {
-    const clientId = process.env.ZOOM1_CLIENT_ID;
-    const clientSecret = process.env.ZOOM1_CLIENT_SECRET;
-    const accountId = process.env.ZOOM1_ACCOUNT_ID;
+    const accountId = process.env.ZOOM_ACCOUNT_ID;
+    const clientId = process.env.ZOOM_CLIENT_ID;
+    const clientSecret = process.env.ZOOM_CLIENT_SECRET;
   
     // check if the environment variables are set
     if (!clientId || !clientSecret || !accountId) {
