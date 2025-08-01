@@ -32,6 +32,7 @@ const CreateMeetingPage = () => {
     }
 
     const requestBody = {
+      room_name: "Test",
       agenda: title,
       default_password: false,
       duration: duration,
