@@ -2,7 +2,6 @@ import axios from 'axios'
 import { NextResponse } from "next/server"
 import { NextApiRequest, NextApiResponse } from 'next/types'
 import { GET as getZoomToken } from '../generateToken'
-import getZoomMeeting from '../GetMeeting/asyncFunction'
 
 
 const rooms = [
@@ -57,8 +56,8 @@ const createZoomMeeting = async (req: Request, res: NextApiResponse) => {
 
     // call get function on the response we got
     const response = request.data;
-    const { id: meetingId } = response;
-    return await getZoomMeeting(meetingId, accessToken);
+
+    return NextResponse.json(response, { status: 200 });
   } catch (error) {
     console.error(`Error creating Zoom meeting: for ${room_name}`, error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

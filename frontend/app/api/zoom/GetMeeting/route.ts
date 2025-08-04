@@ -1,36 +1,35 @@
 import axios from 'axios'
 import { NextRequest, NextResponse } from "next/server"
-import { NextApiRequest, NextApiResponse } from 'next/types'
+import { NextApiResponse } from 'next/types'
 import { GET as getZoomToken } from '../generateToken'
-import { GET as getZoomMeeting } from '../GetMeeting/route'
 
-// function for PATCH request to update a meeting
-const updateZoomMeeting = async (req: Request, res: NextApiResponse) => {
+
+// function for GET request for a meeting
+export async function GET(req: NextRequest, res: NextApiResponse) {
+  const meetingId = req.nextUrl.searchParams.get("id");
   try {
+    if (!meetingId) {
+      return NextResponse.json({ error: 'Meeting ID is required.' }, { status: 400 });
+    }
+
     const token = (await getZoomToken(req, res));
     const tokenJSON = await token.json();
     const accessToken = tokenJSON.access_token;
-    const reqBody = await req.json();
-    const { meetingId, ...rest } = reqBody;
 
-    const request = await axios.patch(
+    const request = await axios.get(
       `${process.env.NEXT_PUBLIC_ZOOM_BASE_API}/meetings/${meetingId}`,
-      rest,
       {
         headers: {
           'Authorization': `Bearer ${accessToken}`,
           'Content-Type': 'application/json',
         }
       }
-    )
+    );
 
     const response = request.data;
-
     return NextResponse.json(response, { status: 200 });
   } catch (error) {
-    console.error(`Error updating Zoom meeting: for ${process.env.NEXT_PUBLIC_ZOOM1_EMAIL}`, error);
+    console.error(`Error getting Zoom meeting: ${meetingId}`, error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
-
-export { updateZoomMeeting as PATCH };
