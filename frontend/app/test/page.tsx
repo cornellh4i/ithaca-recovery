@@ -79,10 +79,10 @@ const App = () => {
   ];
 
   const zoomAccountOptions = [
-    "Zoom Email 1",
-    "Zoom Email 2",
-    "Zoom Email 3",
-    "Zoom Email 4"
+    "Zoom - Serenity Room",
+    "Zoom - Seeds of Hope",
+    "Zoom - Unity Room",
+    "Zoom - Room for Improvement"
   ];
 
   // Handlers

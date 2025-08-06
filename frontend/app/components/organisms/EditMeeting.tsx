@@ -130,10 +130,10 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
     ];
 
     const zoomAccountOptions = [
-      "Zoom Email 1",
-      "Zoom Email 2",
-      "Zoom Email 3",
-      "Zoom Email 4"
+      "Zoom - Serenity Room",
+      "Zoom - Seeds of Hope",
+      "Zoom - Unity Room",
+      "Zoom - Room for Improvement"
     ];
 
     function convertToISODate(dateString: string) {
