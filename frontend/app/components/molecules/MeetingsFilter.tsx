@@ -12,10 +12,10 @@ interface MeetingsFilterProps {
         RoomforImprovement: boolean;
         SmallbutPowerfulRight: boolean;
         SmallbutPowerfulLeft: boolean;
-        ZoomAccount1: boolean;
-        ZoomAccount2: boolean;
-        ZoomAccount3: boolean;
-        ZoomAccount4: boolean;
+        ZoomSerenityRoom: boolean;
+        ZoomSeedsofHope: boolean;
+        ZoomUnityRoom: boolean;
+        ZoomRoomforImprovement: boolean;
         AA: boolean;
         AlAnon: boolean;
         Other: boolean;
@@ -87,33 +87,33 @@ const MeetingsFilter: React.FC<MeetingsFilterProps> = ({ filters, onFilterChange
             </div>
             <div className={styles.checkbox}>
                 <LabeledCheckbox
-                    label="Zoom Account 1"
-                    checked={filters.ZoomAccount1}
-                    onChange={handleCheckboxChange('ZoomAccount1')}
+                    label="Zoom - Serenity Room"
+                    checked={filters.ZoomSerenityRoom}
+                    onChange={handleCheckboxChange('ZoomSerenityRoom')}
                     color="#CECECE"
                 />
             </div>
             <div className={styles.checkbox}>
                 <LabeledCheckbox
-                    label="Zoom Account 2"
-                    checked={filters.ZoomAccount2}
-                    onChange={handleCheckboxChange('ZoomAccount2')}
+                    label="Zoom - Seeds of Hope"
+                    checked={filters.ZoomSeedsofHope}
+                    onChange={handleCheckboxChange('ZoomSeedsofHope')}
                     color="#CECECE"
                 />
             </div>
             <div className={styles.checkbox}>
                 <LabeledCheckbox
-                    label="Zoom Account 3"
-                    checked={filters.ZoomAccount3}
-                    onChange={handleCheckboxChange('ZoomAccount3')}
+                    label="Zoom - Unity Room"
+                    checked={filters.ZoomUnityRoom}
+                    onChange={handleCheckboxChange('ZoomUnityRoom')}
                     color="#CECECE"
                 />
             </div>
             <div className={styles.checkbox}>
                 <LabeledCheckbox
-                    label="Zoom Account 4"
-                    checked={filters.ZoomAccount4}
-                    onChange={handleCheckboxChange('ZoomAccount4')}
+                    label="Zoom - Room for Improvement"
+                    checked={filters.ZoomRoomforImprovement}
+                    onChange={handleCheckboxChange('ZoomRoomforImprovement')}
                     color="#CECECE"
                 />
             </div>

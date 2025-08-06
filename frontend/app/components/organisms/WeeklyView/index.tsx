@@ -103,10 +103,10 @@ const roomColors: { [key: string]: string } = {
     'Room for Improvement': '#ffae73',
     'Small but Powerful - Right': '#d2afff',
     'Small but Powerful - Left': '#ffa3c2',
-    'Zoom Account 1': '#cecece',
-    'Zoom Account 2': '#cecece',
-    'Zoom Account 3': '#cecece',
-    'Zoom Account 4': '#cecece',
+    'Zoom - Serenity Room': '#cecece',
+    'Zoom - Seeds of Hope': '#cecece',
+    'Zoom - Unity Room': '#cecece',
+    'Zoom - Room for Improvement': '#cecece',
 };
 
 interface WeeklyViewProps {

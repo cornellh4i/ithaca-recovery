@@ -97,10 +97,10 @@ const defaultRooms = [
   { name: 'Room for Improvement', primaryColor: '#ffae73' },
   { name: 'Small but Powerful - Right', primaryColor: '#d2afff' },
   { name: 'Small but Powerful - Left', primaryColor: '#ffa3c2' },
-  { name: 'Zoom Account 1', primaryColor: '#cecece' },
-  { name: 'Zoom Account 2', primaryColor: '#cecece' },
-  { name: 'Zoom Account 3', primaryColor: '#cecece' },
-  { name: 'Zoom Account 4', primaryColor: '#cecece' },
+  { name: 'Zoom - Serenity Room', primaryColor: '#cecece' },
+  { name: 'Zoom - Seeds of Hope', primaryColor: '#cecece' },
+  { name: 'Zoom - Unity Room', primaryColor: '#cecece' },
+  { name: 'Zoom - Room for Improvement', primaryColor: '#cecece' },
 ];
 
 interface DailyViewProps {
