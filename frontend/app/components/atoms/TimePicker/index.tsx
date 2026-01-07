@@ -88,7 +88,7 @@ const TimePicker = ({ label, value: propValue = '', disablePast, onChange, error
 
     // Validate end time against start time
     const newTimeDifference = getTimeDifferenceInMinutes(startTime, newEndTime);
-    if (newTimeDifference <= 0) {
+    if (newTimeDifference == 0) {
       setEndTimeError(true); // Set error state if end time is not later than start time
     } else {
       setEndTimeError(false); // Clear error state if valid
@@ -126,7 +126,7 @@ const TimePicker = ({ label, value: propValue = '', disablePast, onChange, error
         className={`${styles['time-picker-input']} ${endTimeError ? styles['error-input'] : ''}`} // Apply error class conditionally
         {...props}
       />
-      {endTimeError && <div className={styles['error-message']}>End time must be later than start time.</div>}
+      {endTimeError && <div className={styles['error-message']}>End time cannot be less than start time.</div>}
       {requiredError && <div className={styles['error-message']}>{error}</div>}
     </div>
   );
