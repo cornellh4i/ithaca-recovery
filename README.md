@@ -1,7 +1,7 @@
 <!-- PROJECT LOGO -->
 <br />
 <div>
-  <a href="https://github.com/github_username/repo_name">
+  <a href="https://github.com/cornellh4i/ithaca-recovery">
     <img src="https://chambermaster.blob.core.windows.net/images/members/1313/4585/MemLogo_Ithaca%20Community%20Recovery.png" alt="Logo" width="120" height="120">
     <img src="https://www.ithacacommunityrecovery.org/wp-content/uploads/cropped-new_logo_4.png" alt="Logo" width="120" height="120">
   </a>
@@ -50,29 +50,47 @@ This project aims to develop internal tooling and automation to streamline ICR's
 
 ### Built With
 
-* ![React](https://img.shields.io/badge/react-%2320232a.svg?style=for-the-badge&logo=react&logoColor=%2361DAFB)
+* [![React][React.js]][React-url]
 * [![Next][Next.js]][Next-url]
-* ![MongoDB](https://img.shields.io/badge/MongoDB-%234ea94b.svg?style=for-the-badge&logo=mongodb&logoColor=white)
-* ![Vercel](https://img.shields.io/badge/vercel-%23000000.svg?style=for-the-badge&logo=vercel&logoColor=white)
+* [![MongoDB][MongoDB]][MongoDB-url]
+* [![Vercel][Vercel]][Vercel-url]
 
 <!-- Setup -->
-## Documents
-[ICR Development Setup](https://docs.google.com/document/d/1bucVpOUzu9ySimDKaqEE1Pol_J8ZBy5BoTddIoZb8EY/edit)
-<br><br>
-[ICR Tech Spec](https://docs.google.com/document/d/1reZL2JN5EETC5tPHWooDAVCn5CvzYXGyiyf_3lPw-HM/edit)
+## Getting Started
+
+### Prerequisites
+* Yarn
+* Redis
+* MongoDB Compass (Recommended)
+
+### Installation
+
+1. Clone the repo
+```bash
+   git clone https://github.com/cornellh4i/ithaca-recovery.git
+   cd ithaca-recovery
+```
+2. Set up environment variables in `/frontend/.env`
+
+3. Install dependencies and start the development server
+```bash
+   cd frontend
+   yarn install
+   yarn run dev
+```
+
+4. Open [http://localhost:3000](http://localhost:3000)
+
+5. Login with authenticated Microsoft account
 
 ### Project Structure
 
 > Folder structure 
 
     .
+    ├── docs/         # Documentation
     ├── frontend      # Next.js App Router (leveraging server and client sided environments)
     └── README.md
-
-### Prerequisites
-* Yarn
-* Redis
-* MongoDB Compass (Recommended)
 
 <!-- Developers -->
 ## Developers
@@ -120,7 +138,7 @@ This project aims to develop internal tooling and automation to streamline ICR's
 [Next-url]: https://nextjs.org/
 [React.js]: https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB
 [React-url]: https://reactjs.org/
-[Prisma.io]: https://img.shields.io/badge/Prisma-3982CE?style=for-the-badge&logo=Prisma&logoColor=white
-[Express.js]: https://img.shields.io/badge/express.js-%23404d59.svg?style=for-the-badge&logo=express&logoColor=%2361DAFB
-[Express-url]: https://expressjs.com/
-[Prisma-url]: https://www.prisma.io/
+[MongoDB]: https://img.shields.io/badge/MongoDB-%234ea94b.svg?style=for-the-badge&logo=mongodb&logoColor=white
+[MongoDB-url]: https://www.mongodb.com/
+[Vercel]: https://img.shields.io/badge/vercel-%23000000.svg?style=for-the-badge&logo=vercel&logoColor=white
+[Vercel-url]: https://vercel.com/
