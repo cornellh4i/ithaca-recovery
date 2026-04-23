@@ -6,16 +6,16 @@
 
 > **How to use this document:** Work through each test case in order. Mark each step as ✅ Pass, ❌ Fail, or ⚠️ Partial. If a step fails, note the actual behavior in the "Notes" column. Screenshots are encouraged for any failures.
 
-> **Run tests here:** [Google Sheet](link) [TODO: Attach link when make one] — duplicate a tab for each test run.
+> **Run tests here:** [Google Sheet](link) <!-- [TODO: Attach link when make one]  -->— duplicate a tab for each test run.
 
 > This markdown file is the source of truth. Update it when features change, then sync the Sheet.
 ---
 
-## Test Environment Setup [TODO]
+## Test Environment Setup <!-- [TODO] -->
 
-- **URL:** [https://ithaca-recovery-deployment.vercel.app/](https://ithaca-recovery-deployment.vercel.app/) [TODO: Replace with real URL after migration.]
+- **URL:** [https://ithaca-recovery-deployment.vercel.app/](https://ithaca-recovery-deployment.vercel.app/) <!-- [TODO: Replace with real URL after migration.] -->
 - **Browser:** Chrome (latest), also verify in Firefox and Safari
-- **Test Account:** [Google test account email] [TODO: Fill in info from Sophie]
+- **Test Account:** [Google test account email] <!-- [TODO: Fill in info from Sophie] -->
 - **Zoom Accounts:** See `.env` file
 - **Tester Name:** _______________
 - **Date Tested:** _______________
@@ -32,7 +32,7 @@
 | 1.4 | Click "Sign In" | Redirected to Google login page | | |
 | 1.5 | Enter valid ICR Google credentials | Successfully authenticated, redirected to dashboard with full admin controls visible | | |
 | 1.6 | Refresh the page after login | Session persists, still logged in | | |
-| 1.7 | Click "Log Out" | Session cleared, reverts to public view | | [TODO: Implementing "Log Out"] |
+| 1.7 | Click "Log Out" | Session cleared, reverts to public view | | <!-- [TODO: Implementing "Log Out"]  --> |
 | 1.8 | Sign in with a non-ICR Google account | Access denied with clear error message | | |
 
 ---
@@ -45,7 +45,7 @@
 | 2.2 | Fill in all required fields: title, date, time, meeting type (in-person), meeting room, contact email, Zoom account, description | All fields accept input, no errors | | |
 | 2.3 | Submit the form | Success confirmation shown, modal closes | | |
 | 2.4 | Verify the new meeting appears in the database | Meeting is visible with correct details | | |
-| 2.5 | Verify the new meeting appears on the calendar view | Meeting block shows on the correct date/time | | [TODO: refresh?] |
+| 2.5 | Verify the new meeting appears on the calendar view | Meeting block shows on the correct date/time | | <!-- [TODO: refresh?]  -->|
 | 2.6 | Try submitting the form with a missing required field (e.g., no title) | Validation error shown, form does not submit | | |
 | 2.7 | Create a meeting with type "hybrid" | Zoom link is automatically generated and attached | | |
 | 2.8 | Create a meeting with type "virtual" | Zoom link is automatically generated and attached | | |
@@ -139,16 +139,16 @@
 
 | # | Step | Expected Result | Pass/Fail | Notes |
 |---|------|-----------------|-----------|-------|
-| 9.1 | Submit a meeting with a past date/time | System warns the user | | [TODO: Implement said warning...] |
-| 9.2 | Enter extremely long text in the title field | Character limit warning below title field | | [TODO: Check if our platform will past this]|
-| 9.3 | Open the platform in two tabs, edit the same meeting in both | No data corruption; last save wins or conflict is flagged | | [TODO: Can our platform do this...Need to double check] |
-| 9.4 | Lose internet connection while creating a meeting | Error message shown, data is not silently lost | | [TODO: Check this] |
-| 9.5 | Rapidly click "Submit" multiple times | Only one meeting is created (no duplicates) | | [TODO: Check this] |
+| 9.1 | Submit a meeting with a past date/time | System warns the user | | <!-- [TODO: Implement said warning...]  -->|
+| 9.2 | Enter extremely long text in the title field | Character limit warning below title field | | <!-- [TODO: Check if our platform will past this] -->|
+| 9.3 | Open the platform in two tabs, edit the same meeting in both | No data corruption; last save wins or conflict is flagged | | <!-- [TODO: Can our platform do this...Need to double check]  -->|
+| 9.4 | Lose internet connection while creating a meeting | Error message shown, data is not silently lost | | <!-- [TODO: Check this]  -->|
+| 9.5 | Rapidly click "Submit" multiple times | Only one meeting is created (no duplicates) | | <!-- [TODO: Check this]  -->|
 | 9.6 | Access the platform on a tablet-sized screen | Layout is usable (note any issues for mobile responsiveness backlog) | | |
 
 ---
 
-## 10. Recurring Meetings [TODO: Expand on this after done with logic]
+## 10. Recurring Meetings <!-- [TODO: Expand on this after done with logic] -->
 
 | # | Step | Expected Result | Pass/Fail | Notes |
 |---|------|-----------------|-----------|-------|
