@@ -32,7 +32,7 @@ export const authOptions: NextAuthOptions = {
                 token.expiresAt = account.expires_at;
 
                 if (account.refresh_token && token.email) {
-                    await prisma.admin.update({
+                    await prisma.admin.updateMany({
                         where: { email: token.email },
                         data: { refreshToken: account.refresh_token },
                     });
