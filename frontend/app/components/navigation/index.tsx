@@ -2,15 +2,14 @@
 
 import React from "react";
 import Navbar from "./navbar";
-import type { AccountInfo } from "@azure/msal-browser";
+import type { Session } from "next-auth";
 
 interface NavigationProps {
-  account: AccountInfo | null;
-  setShowSignIn?: (val: boolean) => void;
+    session: Session | null;
 }
 
-const Navigation: React.FC<NavigationProps> = ({ account, setShowSignIn }) => {
-  return <Navbar account={account} setShowSignIn={setShowSignIn} />;
+const Navigation: React.FC<NavigationProps> = ({ session }) => {
+    return <Navbar session={session} />;
 };
 
 export default Navigation;

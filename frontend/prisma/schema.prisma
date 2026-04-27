@@ -13,6 +13,7 @@ model Admin {
   name          String
   privilegeMode String?
   uid           String  @unique
+  refreshToken  String?
 }
 
 model Meeting {

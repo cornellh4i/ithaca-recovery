@@ -1,56 +1,61 @@
-"use client";  // Mark this component as a Client Component
+"use client";
 
-import React, { useContext } from "react";
+import React from "react";
 import Link from "next/link";
-import Logo from "./logo"
-import type { AccountInfo } from "@azure/msal-node";
-import styles from "../../../../styles/Navbar.module.scss"
+import Logo from "./logo";
+import type { Session } from "next-auth";
+import styles from "../../../../styles/Navbar.module.scss";
 
 interface NavbarProps {
-  account: AccountInfo | null;
-  setShowSignIn?: (val: boolean) => void;
+    session: Session | null;
 }
 
-
-const Navbar: React.FC<NavbarProps> = ({ account, setShowSignIn }) => {
-  return (
-    <>
-      <div className={styles.navbar}>
-        <div className={styles.navcontainer}>
-          <Logo />
-          <ul className={styles.navigationlist}>
-            <li className="btn btn-ghost">
-              <Link href="/meetings">
-                <p>Meetings</p>
-              </Link>
-            </li>
-            <li className="btn btn-ghost">
-              <Link href="/createmeeting">
-                <p>Create a Meeting</p>
-              </Link>
-            </li>
-            <li className="btn btn-ghost">
-              <Link href="/test">
-                <p>Testing Endpoints</p>
-              </Link>
-            </li>
-            {!account && (
-              <li className="btn btn-ghost">
-                <a onClick={() => setShowSignIn && setShowSignIn(true)}>
-                  <p>Sign In</p>
-                </a>
-              </li>
-            )}
-          </ul>
-          {account && (
-            <div className={styles.welcome}>
-              <p>Welcome, {account.name}</p>
+const Navbar: React.FC<NavbarProps> = ({ session }) => {
+    return (
+        <>
+            <div className={styles.navbar}>
+                <div className={styles.navcontainer}>
+                    <Logo />
+                    <ul className={styles.navigationlist}>
+                        <li className="btn btn-ghost">
+                            <Link href="/meetings">
+                                <p>Meetings</p>
+                            </Link>
+                        </li>
+                        <li className="btn btn-ghost">
+                            <Link href="/createmeeting">
+                                <p>Create a Meeting</p>
+                            </Link>
+                        </li>
+                        <li className="btn btn-ghost">
+                            <Link href="/test">
+                                <p>Testing Endpoints</p>
+                            </Link>
+                        </li>
+                        {!session && (
+                            <li className="btn btn-ghost">
+                                <a href="/api/auth/signin/google">
+                                    <p>Sign In</p>
+                                </a>
+                            </li>
+                        )}
+                        {session && (
+                            <li className="btn btn-ghost">
+                                <a href="/api/auth/signout">
+                                    <p>Sign Out</p>
+                                </a>
+                            </li>
+                        )}
+                    </ul>
+                    {session?.user && (
+                        <div className={styles.welcome}>
+                            <p>Welcome, {session.user.name}</p>
+                        </div>
+                    )}
+                </div>
             </div>
-          )}
-        </div>
-      </div>
-    </>
-  );
+        </>
+    );
 };
 
 export default Navbar;
