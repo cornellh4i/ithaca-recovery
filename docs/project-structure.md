@@ -18,6 +18,8 @@
 
 ## Top-Level Layout
 
+<!-- [TODO: Ticket #180] -->
+
 ```
 ithaca-recovery/
 ├── frontend/          # Next.js application (all source code lives here)
@@ -35,6 +37,8 @@ ithaca-recovery/
 ---
 
 ## Frontend (`frontend/`)
+
+<!-- [TODO: Ticket #180] -->
 
 ### `app/` — App Router
 

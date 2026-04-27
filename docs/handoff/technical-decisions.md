@@ -103,9 +103,9 @@ This document answers "why did we build it this way?" for every significant tech
 
 ---
 
-## Leasing Documents: CSV Export (not PandaDocs API)
+## Leasing Documents: CSV Export
 
-**Decision:** The "PandaDocs" button exports a CSV file rather than calling the PandaDocs API directly.
+**Decision:** The "Export CSV" button exports a CSV file rather than calling the PandaDocs API directly.
 
 **Why:**
 - PandaDocs has a bulk-send feature that accepts a CSV to generate multiple lease documents at once. The workflow is: export CSV from the platform → upload to PandaDocs → PandaDocs sends leases to groups.
@@ -130,5 +130,4 @@ This document answers "why did we build it this way?" for every significant tech
 - No Docker or server management required.
 
 **Trade-offs:**
-- The System Design document mentions Docker for backend deployment, but that approach was not adopted. The current app is entirely serverless on Vercel.
 - Vercel's free tier has function execution time limits (10s per invocation). Long-running operations (e.g., bulk calendar sync) may need to be broken into smaller requests or moved to a background job.

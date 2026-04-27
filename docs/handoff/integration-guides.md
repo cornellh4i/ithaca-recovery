@@ -18,7 +18,8 @@ Step-by-step setup instructions for every external service the platform depends 
 
 ---
 
-## 1. Environment Variables Reference
+## 1. Environment Variables Reference 
+<!-- [TODO: Ticket #180] -->
 
 Create a `.env` file in `frontend/` (never commit it). All variables used by the app:
 
@@ -98,7 +99,9 @@ Opens a browser-based data browser at `http://localhost:5555`.
 
 ---
 
-## 3. Azure AD / Microsoft MSAL
+## 3. Azure AD / Microsoft MSAL 
+
+<!-- [TODO: Ticket #180] -->
 
 ### What it does
 Azure AD authenticates board members via Microsoft SSO. The same token is used to call Microsoft Graph API (groups, calendars).
@@ -146,6 +149,7 @@ const token = await getAccessToken(); // returns string | null
 
 ---
 
+<!-- [TODO: Ticket #180] -->
 ## 4. Redis
 
 ### What it does
@@ -230,6 +234,8 @@ Set via `NEXT_PUBLIC_ZOOM_BASE_API="https://api.zoom.us/v2"`.
 
 ## 6. Microsoft Graph API
 
+<!-- [TODO: Ticket #180] -->
+
 ### What it does
 Fetches the list of Azure AD groups (representing recovery groups) and their associated calendars. Intended to enable bidirectional calendar sync between the platform's MongoDB records and each group's Microsoft calendar.
 
@@ -295,8 +301,6 @@ If ICR changes rates, update the `roomRates` object in that file.
 1. Export the CSV from the platform.
 2. In PandaDocs, go to **Bulk Send** → upload the CSV → select the lease template → send.
 
-### Future work
-A direct PandaDocs API integration would remove the manual upload step. The PandaDocs API supports programmatic document creation and sending. This is listed as a Priority 2 item.
 
 ---
 
