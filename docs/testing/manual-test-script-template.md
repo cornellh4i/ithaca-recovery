@@ -15,7 +15,7 @@
 
 - **URL:** [https://ithaca-recovery-deployment.vercel.app/](https://ithaca-recovery-deployment.vercel.app/) <!-- [TODO: Replace with real URL after migration.] -->
 - **Browser:** Chrome (latest), also verify in Firefox and Safari
-- **Test Account:** [Google test account email] <!-- [TODO: Fill in info from Sophie] -->
+- **Test Account:** ithacacommunityrecoverytest@gmail.com
 - **Zoom Accounts:** See `.env` file
 - **Tester Name:** _______________
 - **Date Tested:** _______________
