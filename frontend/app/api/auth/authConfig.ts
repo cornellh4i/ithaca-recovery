@@ -25,16 +25,29 @@ export const authOptions: NextAuthOptions = {
         }),
     ],
     callbacks: {
-        async jwt({ token, account }) {
+        async jwt({ token, account, profile }) {
             if (account) {
                 token.accessToken = account.access_token;
                 token.refreshToken = account.refresh_token;
                 token.expiresAt = account.expires_at;
 
-                if (account.refresh_token && token.email) {
-                    await prisma.admin.updateMany({
+                if (token.email) {
+                    await prisma.admin.upsert({
                         where: { email: token.email },
-                        data: { refreshToken: account.refresh_token },
+                        update: {
+                            googleId: account.providerAccountId,
+                            refreshToken: account.refresh_token ?? undefined,
+                            accessToken: account.access_token ?? undefined,
+                            tokenExpiresAt: account.expires_at ?? undefined,
+                        },
+                        create: {
+                            email: token.email,
+                            name: token.name ?? (profile as { name?: string })?.name ?? "",
+                            googleId: account.providerAccountId,
+                            refreshToken: account.refresh_token ?? undefined,
+                            accessToken: account.access_token ?? undefined,
+                            tokenExpiresAt: account.expires_at ?? undefined,
+                        },
                     });
                 }
             }

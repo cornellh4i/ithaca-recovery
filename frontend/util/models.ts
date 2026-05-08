@@ -1,11 +1,14 @@
 // Please add models here
 interface IUser {
-  uid: string;
   name: string;
 }
 
 interface IAdmin extends IUser {
   email: string;
+  googleId?: string | null;
+  refreshToken?: string | null;
+  accessToken?: string | null;
+  tokenExpiresAt?: number | null;
 }
 
 interface IMeeting {
