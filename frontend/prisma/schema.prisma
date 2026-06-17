@@ -8,12 +8,14 @@ datasource db {
 }
 
 model Admin {
-  id            String  @id @default(auto()) @map("_id") @db.ObjectId
-  email         String  @unique
-  name          String
-  privilegeMode String?
-  uid           String  @unique
-  refreshToken  String?
+  id             String   @id @default(auto()) @map("_id") @db.ObjectId
+  email          String   @unique
+  name           String
+  privilegeMode  String?
+  googleId       String? 
+  refreshToken   String?
+  accessToken    String?
+  tokenExpiresAt Int?
 }
 
 model Meeting {
