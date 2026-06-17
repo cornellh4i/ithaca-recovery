@@ -43,9 +43,9 @@ model Meeting {
 }
 
 model RecurrencePattern {
-  id                 String   @id @default(auto()) @map("_id") @db.ObjectId
-  mid                String   @unique
-  meeting            Meeting  @relation("MeetingToRecurrencePattern", fields: [mid], references: [mid])
+  id                 String     @id @default(auto()) @map("_id") @db.ObjectId
+  mid                String     @unique
+  meeting            Meeting    @relation("MeetingToRecurrencePattern", fields: [mid], references: [mid])
   type               String
   startDate          DateTime
   endDate            DateTime?
@@ -53,6 +53,7 @@ model RecurrencePattern {
   daysOfWeek         String[]
   firstDayOfWeek     String
   interval           Int
+  excludedDates      DateTime[] @default([])
 }
 
 

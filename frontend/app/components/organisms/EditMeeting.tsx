@@ -98,8 +98,10 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
     const [selectedMeetingType, setSelectedMeetingType] = useState<string>(formData.calType);
     const [selectedZoomAccount, setSelectedZoomAccount] = useState<string>(formData.zoomAccount);
 
-    const [isRecurring, setIsRecurring] = useState(false);
-    const [recurrencePattern, setRecurrencePattern] = useState<IRecurrencePattern | null>(null);
+    const [isRecurring, setIsRecurring] = useState(!!meeting.recurrencePattern);
+    const [recurrencePattern, setRecurrencePattern] = useState<IRecurrencePattern | null>(
+      meeting.recurrencePattern ?? null
+    );
 
     const handleRecurringMeetingChange = (data: {
       isRecurring: boolean;
@@ -255,6 +257,10 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
             <RecurringMeetingForm
               onChange={handleRecurringMeetingChange}
               startDate={dateValue}
+              initialValue={{
+                isRecurring: !!meeting.recurrencePattern,
+                recurrencePattern: meeting.recurrencePattern ?? null,
+              }}
             />
           }
           roomSelectionDropdown={

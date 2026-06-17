@@ -31,18 +31,19 @@ interface IMeeting {
   googleCalendarEventId?: string | null;
   syncStatus?: string | null;
   deletedAt?: Date | null;
-  updatedAt?: Date;
+  updatedAt?: Date | null;
 }
 
 interface IRecurrencePattern {
   mid?: string;
-  type: string; 
+  type: string;
   startDate: Date;
   endDate?: Date | null;
   numberOfOccurrences?: number | null;
   daysOfWeek?: string[] | null;
-  firstDayOfWeek: string; 
+  firstDayOfWeek: string;
   interval: number; // 1 = weekly, 2 = biweekly, etc.
+  excludedDates?: Date[] | null;
 }
 
 export type { IUser, IAdmin, IMeeting, IRecurrencePattern };

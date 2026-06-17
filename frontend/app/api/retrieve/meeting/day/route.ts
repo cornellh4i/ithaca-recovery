@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic';
 
 import { PrismaClient } from '@prisma/client';
-import { IMeeting, IRecurrencePattern } from "../../../../../util/models";
+import { IMeeting } from "../../../../../util/models";
 import { getETDayBounds } from "../../../../../util/timeUtils";
 import { NextRequest } from 'next/server';
 
@@ -29,18 +29,29 @@ const retrieveDayMeetings = async (request: NextRequest) => {
         const daysOfWeek = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
         const requestedDayName = daysOfWeek[dayOfWeek];
         
+        // Returns true if the given ET date string appears in the excludedDates list.
+        const isDateExcluded = (excludedDates: Date[], dateStr: string): boolean =>
+            excludedDates.some(excl =>
+                new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' }).format(new Date(excl)) === dateStr
+            );
+
         const directlyScheduledMeetings = await prisma.meeting.findMany({
             where: {
                 AND: [notDeleted, { startDateTime: { lte: endOfDay }, endDateTime: { gte: startOfDay } }]
             },
-            include: { 
-                recurrencePattern: true 
+            include: {
+                recurrencePattern: true
             }
         });
-        
+
         const regularMeetings = directlyScheduledMeetings.filter(meeting => !meeting.isRecurring);
-        const originalDayRecurringMeetings = directlyScheduledMeetings.filter(meeting => meeting.isRecurring);
-        
+        const originalDayRecurringMeetings = directlyScheduledMeetings.filter(meeting => {
+            if (!meeting.isRecurring) return false;
+            const excl = meeting.recurrencePattern?.excludedDates;
+            if (excl?.length && isDateExcluded(excl, etDateStr)) return false;
+            return true;
+        });
+
         const otherRecurringMeetings = await prisma.meeting.findMany({
             where: {
                 AND: [
@@ -51,46 +62,48 @@ const retrieveDayMeetings = async (request: NextRequest) => {
             },
             include: { recurrencePattern: true }
         });
-        
+
         const patternDayMeetings = otherRecurringMeetings.filter(meeting => {
             const recurrence = meeting.recurrencePattern;
             if (!recurrence) return false;
-            
-            const isDayIncluded = recurrence.daysOfWeek && 
+
+            const isDayIncluded = recurrence.daysOfWeek &&
                                 recurrence.daysOfWeek.includes(requestedDayName);
-            
+
             if (!isDayIncluded) return false;
-            
+
             const patternStartDate = new Date(recurrence.startDate);
             if (localDate < patternStartDate) return false;
-            
+
             if (recurrence.endDate && localDate > new Date(recurrence.endDate)) return false;
-            
+
+            if (recurrence.excludedDates?.length && isDateExcluded(recurrence.excludedDates, etDateStr)) return false;
+
             if (recurrence.type === "weekly") {
                 // Get the day of week of the pattern start date (0-6)
                 const startDayOfWeek = patternStartDate.getUTCDay();
-                
+
                 // Calculate the start of the week containing the pattern start date
                 const patternStartWeekStart = new Date(patternStartDate);
                 patternStartWeekStart.setUTCDate(patternStartDate.getUTCDate() - startDayOfWeek);
                 patternStartWeekStart.setUTCHours(0, 0, 0, 0);
-                
+
                 // Calculate the start of the week containing the requested date
                 const requestedDateWeekStart = new Date(localDate);
                 requestedDateWeekStart.setUTCDate(localDate.getUTCDate() - dayOfWeek);
                 requestedDateWeekStart.setUTCHours(0, 0, 0, 0);
-                
+
                 // Calculate complete weeks between the start week and the requested week
                 const msPerWeek = 7 * 24 * 60 * 60 * 1000;
                 const weeksBetween = Math.round(
                     (requestedDateWeekStart.getTime() - patternStartWeekStart.getTime()) / msPerWeek
                 );
-                
+
                 // Check if the number of weeks matches the interval pattern
                 const isIntervalMatch = weeksBetween % recurrence.interval === 0;
                 if (!isIntervalMatch) return false;
             }
-            
+
             return true;
         });
         

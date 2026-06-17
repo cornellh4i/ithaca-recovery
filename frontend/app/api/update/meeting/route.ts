@@ -12,6 +12,7 @@ const updateMeeting = async (request: Request): Promise<Response> => {
       where: {
         mid: newMeeting.mid,
       },
+      include: { recurrencePattern: true },
     });
 
     if (!existingMeeting) {
@@ -50,7 +51,9 @@ const updateMeeting = async (request: Request): Promise<Response> => {
                 },
               },
             }
-          : { delete: true },
+          : existingMeeting.recurrencePattern
+            ? { delete: true }
+            : undefined,
       },
     });
     
