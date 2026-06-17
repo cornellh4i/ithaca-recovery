@@ -6,6 +6,8 @@ import { NextRequest } from 'next/server';
 
 const prisma = new PrismaClient();
 
+const notDeleted = { OR: [{ deletedAt: null }, { deletedAt: { isSet: false } }] } as const;
+
 const retrieveDayMeetings = async (request: NextRequest) => {
     try {
         const dateParam = request.nextUrl.searchParams.get("startDate") ?? new Date().toISOString();
@@ -39,8 +41,7 @@ const retrieveDayMeetings = async (request: NextRequest) => {
         
         const directlyScheduledMeetings = await prisma.meeting.findMany({
             where: {
-                startDateTime: { lte: endOfDay },
-                endDateTime: { gte: startOfDay }
+                AND: [notDeleted, { startDateTime: { lte: endOfDay }, endDateTime: { gte: startOfDay } }]
             },
             include: { 
                 recurrencePattern: true 
@@ -51,14 +52,12 @@ const retrieveDayMeetings = async (request: NextRequest) => {
         const originalDayRecurringMeetings = directlyScheduledMeetings.filter(meeting => meeting.isRecurring);
         
         const otherRecurringMeetings = await prisma.meeting.findMany({
-            where: { 
-                isRecurring: true,
-                NOT: {
-                    AND: [
-                        { startDateTime: { gte: startOfDay } },
-                        { endDateTime: { lte: endOfDay } }
-                    ]
-                }
+            where: {
+                AND: [
+                    notDeleted,
+                    { isRecurring: true },
+                    { NOT: { AND: [{ startDateTime: { gte: startOfDay } }, { endDateTime: { lte: endOfDay } }] } }
+                ]
             },
             include: { recurrencePattern: true }
         });

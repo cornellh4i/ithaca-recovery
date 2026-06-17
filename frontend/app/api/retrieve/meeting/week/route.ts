@@ -5,6 +5,8 @@ import { NextRequest } from 'next/server';
 
 const prisma = new PrismaClient();
 
+const notDeleted = { OR: [{ deletedAt: null }, { deletedAt: { isSet: false } }] } as const;
+
 const retrieveWeekMeetings = async (request: NextRequest) => {
     try {
         const date = request.nextUrl.searchParams.get("startDate") ?? new Date().toISOString();
@@ -13,6 +15,7 @@ const retrieveWeekMeetings = async (request: NextRequest) => {
         const endDate = new Date(Date.UTC(standardDate.getUTCFullYear(), standardDate.getUTCMonth(), (standardDate.getUTCDate() + (6 - standardDate.getUTCDay())), 23, 59, 59, 999))
         const meetings = await prisma.meeting.findMany({
             where: {
+                ...notDeleted,
                 startDateTime: {
                     gte: startDate,
                 },

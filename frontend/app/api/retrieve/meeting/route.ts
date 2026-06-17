@@ -3,9 +3,11 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
+const notDeleted = { OR: [{ deletedAt: null }, { deletedAt: { isSet: false } }] } as const;
+
 const retrieveMeetings = async (request: Request) => {
   try {
-    const meetings = await prisma.meeting.findMany();
+    const meetings = await prisma.meeting.findMany({ where: notDeleted });
     const typedMeetings: IMeeting[] = meetings.map(meeting => ({ ...meeting }))
     return new Response(JSON.stringify(typedMeetings), {
       status: 200,

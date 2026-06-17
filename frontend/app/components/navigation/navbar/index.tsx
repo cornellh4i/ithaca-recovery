@@ -4,6 +4,7 @@ import React from "react";
 import Link from "next/link";
 import Logo from "./logo";
 import type { Session } from "next-auth";
+import { signOut } from "next-auth/react";
 import styles from "../../../../styles/Navbar.module.scss";
 
 interface NavbarProps {
@@ -41,9 +42,9 @@ const Navbar: React.FC<NavbarProps> = ({ session }) => {
                         )}
                         {session && (
                             <li className="btn btn-ghost">
-                                <a href="/api/auth/signout">
+                                <button onClick={() => signOut({ callbackUrl: "/" })}>
                                     <p>Sign Out</p>
-                                </a>
+                                </button>
                             </li>
                         )}
                     </ul>

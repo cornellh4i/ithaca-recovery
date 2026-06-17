@@ -40,9 +40,11 @@
             padding: 5px 10px;
             border: 2px solid transparent;
             border-radius: 8px;
-            text-decoration: none; 
+            text-decoration: none;
             color: #000;
-            background-color: transparent; 
+            background-color: transparent;
+            font: inherit;
+            cursor: pointer;
             transition: background-color 0.3s, color 0.3s, border-color 0.3s;
 
             &:hover,

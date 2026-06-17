@@ -28,6 +28,10 @@ interface IMeeting {
   room: string;
   isRecurring?: boolean;
   recurrencePattern?: IRecurrencePattern | null;
+  googleCalendarEventId?: string | null;
+  syncStatus?: string | null;
+  deletedAt?: Date | null;
+  updatedAt?: Date;
 }
 
 interface IRecurrencePattern {
