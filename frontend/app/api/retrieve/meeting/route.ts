@@ -3,7 +3,7 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-const notDeleted = { OR: [{ deletedAt: null }, { deletedAt: { isSet: false } }] } as const;
+const notDeleted = { OR: [{ deletedAt: null }, { deletedAt: { isSet: false } }] };
 
 const retrieveMeetings = async (request: Request) => {
   try {

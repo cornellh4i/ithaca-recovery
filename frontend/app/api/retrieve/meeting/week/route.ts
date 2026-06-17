@@ -1,18 +1,26 @@
 export const dynamic = 'force-dynamic';
 import { PrismaClient } from '@prisma/client';
 import { IMeeting } from "../../../../../util/models";
+import { getETDayBounds } from "../../../../../util/timeUtils";
 import { NextRequest } from 'next/server';
 
 const prisma = new PrismaClient();
 
-const notDeleted = { OR: [{ deletedAt: null }, { deletedAt: { isSet: false } }] } as const;
+const notDeleted = { OR: [{ deletedAt: null }, { deletedAt: { isSet: false } }] };
 
 const retrieveWeekMeetings = async (request: NextRequest) => {
     try {
         const date = request.nextUrl.searchParams.get("startDate") ?? new Date().toISOString();
-        const standardDate = new Date(date)
-        const startDate = new Date(Date.UTC(standardDate.getUTCFullYear(), standardDate.getUTCMonth(), (standardDate.getUTCDate() - standardDate.getUTCDay())))
-        const endDate = new Date(Date.UTC(standardDate.getUTCFullYear(), standardDate.getUTCMonth(), (standardDate.getUTCDate() + (6 - standardDate.getUTCDay())), 23, 59, 59, 999))
+        const standardDate = new Date(date);
+        const dow = standardDate.getUTCDay();
+
+        // Compute Sunday and Saturday of the week as UTC-midnight calendar dates,
+        // then get DST-correct ET day bounds for each.
+        const fmtDate = (d: Date) => d.toISOString().slice(0, 10);
+        const sundayUTC = new Date(Date.UTC(standardDate.getUTCFullYear(), standardDate.getUTCMonth(), standardDate.getUTCDate() - dow));
+        const saturdayUTC = new Date(Date.UTC(standardDate.getUTCFullYear(), standardDate.getUTCMonth(), standardDate.getUTCDate() + (6 - dow)));
+        const [startDate] = getETDayBounds(fmtDate(sundayUTC));
+        const [, endDate] = getETDayBounds(fmtDate(saturdayUTC));
         const meetings = await prisma.meeting.findMany({
             where: {
                 ...notDeleted,

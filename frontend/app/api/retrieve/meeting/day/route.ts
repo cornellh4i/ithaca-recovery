@@ -2,38 +2,28 @@ export const dynamic = 'force-dynamic';
 
 import { PrismaClient } from '@prisma/client';
 import { IMeeting, IRecurrencePattern } from "../../../../../util/models";
+import { getETDayBounds } from "../../../../../util/timeUtils";
 import { NextRequest } from 'next/server';
 
 const prisma = new PrismaClient();
 
-const notDeleted = { OR: [{ deletedAt: null }, { deletedAt: { isSet: false } }] } as const;
+const notDeleted = { OR: [{ deletedAt: null }, { deletedAt: { isSet: false } }] };
 
 const retrieveDayMeetings = async (request: NextRequest) => {
     try {
         const dateParam = request.nextUrl.searchParams.get("startDate") ?? new Date().toISOString();
 
-        let localDate : Date;
-        if (dateParam.match(/^\d{4}-\d{2}-\d{2}$/)) {
-            const [year, month, day] = dateParam.split('-').map(Number);
-            localDate = new Date(Date.UTC(year, month - 1, day));
-        } else {
-            localDate = new Date(dateParam);
-        }
-        
-        const startOfDay = new Date(Date.UTC(
-            localDate.getUTCFullYear(),
-            localDate.getUTCMonth(),
-            localDate.getUTCDate(),
-            4, 0, 0, 0 //12:00 AM in EST
-        ));
-        
-        const endOfDay = new Date(Date.UTC(
-            localDate.getUTCFullYear(),
-            localDate.getUTCMonth(),
-            localDate.getUTCDate()+1,
-            //23, 59, 59, 999
-            3, 59, 59, 999 //11:59 PM in EST
-        ));
+        // Normalise to a "YYYY-MM-DD" ET calendar date string
+        const etDateStr = dateParam.match(/^\d{4}-\d{2}-\d{2}$/)
+            ? dateParam
+            : new Date(dateParam).toISOString().slice(0, 10);
+
+        const [startOfDay, endOfDay] = getETDayBounds(etDateStr);
+
+        // localDate is used only for day-of-week and recurring-pattern comparisons;
+        // represent the ET calendar date as UTC midnight so getUTCDay() is correct.
+        const [etYear, etMonth, etDay] = etDateStr.split('-').map(Number);
+        const localDate = new Date(Date.UTC(etYear, etMonth - 1, etDay));
 
         const dayOfWeek = localDate.getUTCDay();
         const daysOfWeek = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
