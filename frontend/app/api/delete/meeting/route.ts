@@ -1,5 +1,12 @@
 import { PrismaClient } from '@prisma/client';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '../../auth/authConfig';
 import { getETDayBounds } from '../../../../util/timeUtils';
+import {
+  deleteCalendarEvent,
+  deleteCalendarOccurrence,
+  trimCalendarEventSeries,
+} from '../../../../services/googleCalendar';
 
 const prisma = new PrismaClient();
 
@@ -47,6 +54,11 @@ const deleteMeeting = async (request: Request) => {
       });
     }
 
+    // Google Calendar sync — fire before or alongside MongoDB changes; errors are logged, not thrown
+    const session = await getServerSession(authOptions);
+    const accessToken = session?.accessToken;
+    const gcalEventId = meeting.googleCalendarEventId;
+
     if (deleteOption === 'this') {
       if (!meeting.recurrencePattern) {
         return new Response(JSON.stringify({ error: "Meeting has no recurrence pattern" }), {
@@ -54,12 +66,17 @@ const deleteMeeting = async (request: Request) => {
           headers: { 'Content-Type': 'application/json' },
         });
       }
+      // MongoDB: record excluded date
       const etDateStr = toETDateStr(new Date(occurrenceDate));
       const [excludedDate] = getETDayBounds(etDateStr);
       await prisma.recurrencePattern.update({
         where: { mid },
         data: { excludedDates: { push: excludedDate } },
       });
+      // Google Calendar: add EXDATE for this occurrence
+      if (accessToken && gcalEventId) {
+        await deleteCalendarOccurrence(accessToken, gcalEventId, meeting.startDateTime, occurrenceDate);
+      }
     } else if (deleteOption === 'thisAndFollowing') {
       if (!meeting.recurrencePattern) {
         return new Response(JSON.stringify({ error: "Meeting has no recurrence pattern" }), {
@@ -67,8 +84,7 @@ const deleteMeeting = async (request: Request) => {
           headers: { 'Content-Type': 'application/json' },
         });
       }
-      // Set endDate to 1ms before the UTC start of the occurrence's ET day,
-      // so the day route's `localDate > endDate` check excludes it and all following dates.
+      // MongoDB: trim the series end date
       const etDateStr = toETDateStr(new Date(occurrenceDate));
       const [occurrenceUTCStart] = getETDayBounds(etDateStr);
       const newEndDate = new Date(occurrenceUTCStart.getTime() - 1);
@@ -76,12 +92,20 @@ const deleteMeeting = async (request: Request) => {
         where: { mid },
         data: { endDate: newEndDate },
       });
+      // Google Calendar: update the RRULE UNTIL
+      if (accessToken && gcalEventId) {
+        await trimCalendarEventSeries(accessToken, gcalEventId, occurrenceDate);
+      }
     } else {
       // 'all' or non-recurring: soft-delete the master meeting record
       await prisma.meeting.update({
         where: { mid },
         data: { deletedAt: new Date() },
       });
+      // Google Calendar: delete the entire event
+      if (accessToken && gcalEventId) {
+        await deleteCalendarEvent(accessToken, gcalEventId);
+      }
     }
 
     return new Response(JSON.stringify({ message: "Meeting deleted successfully" }), {
