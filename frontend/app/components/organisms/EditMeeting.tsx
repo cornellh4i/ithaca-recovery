@@ -191,12 +191,16 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
             zoomAccount: selectedZoomAccount,
             calType: selectedMeetingType, // Room Type
             room: selectedRoom,
+            isRecurring: isRecurring,
           };
 
         if (isRecurring && recurrencePattern) {
+          // Use UTC start of the ET calendar day, not the meeting's start time,
+          // so the patternStartDate boundary check in the day route works correctly.
+          const recurrenceStartDate = new Date(convertETToUTC(`${isoDateValue}T00:00`));
           updatedMeeting.recurrencePattern = {
             ...recurrencePattern,
-            startDate: startDateTimeUTC
+            startDate: recurrenceStartDate,
           };
         }
 

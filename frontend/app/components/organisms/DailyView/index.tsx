@@ -161,9 +161,9 @@ const DailyView: React.FC<DailyViewProps> = ({
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const fetchData = async (forceFetch = false) => {
-    // If forceFetch is true, invalidate cache first
+    // Clear the entire cache so stale data on other dates is also dropped.
     if (forceFetch) {
-      invalidateCache(selectedDate);
+      meetingCache.clear();
     }
     
     const data = await fetchMeetingsByDay(selectedDate);

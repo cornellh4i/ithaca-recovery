@@ -50,7 +50,7 @@ function buildEventBody(meeting: IMeeting) {
         end: { dateTime: new Date(meeting.endDateTime).toISOString(), timeZone: "America/New_York" },
     };
 
-    if (meeting.isRecurring && meeting.recurrencePattern) {
+    if (meeting.recurrencePattern) {
         event.recurrence = [toRRule(meeting.recurrencePattern)];
     }
 

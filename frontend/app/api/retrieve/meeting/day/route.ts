@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic';
 
 import { PrismaClient } from '@prisma/client';
 import { IMeeting } from "../../../../../util/models";
-import { getETDayBounds } from "../../../../../util/timeUtils";
+import { getETDayBounds, convertETToUTC } from "../../../../../util/timeUtils";
 import { NextRequest } from 'next/server';
 
 const prisma = new PrismaClient();
@@ -29,11 +29,18 @@ const retrieveDayMeetings = async (request: NextRequest) => {
         const daysOfWeek = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
         const requestedDayName = daysOfWeek[dayOfWeek];
         
+        const etFmt = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' });
+
         // Returns true if the given ET date string appears in the excludedDates list.
         const isDateExcluded = (excludedDates: Date[], dateStr: string): boolean =>
-            excludedDates.some(excl =>
-                new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' }).format(new Date(excl)) === dateStr
-            );
+            excludedDates.some(excl => etFmt.format(new Date(excl)) === dateStr);
+
+        // Returns true if the given ET date string is past the series end date.
+        // Compares ET date strings to avoid UTC-midnight vs ET-midnight mismatches.
+        const isAfterSeriesEnd = (endDate: Date | null, dateStr: string): boolean => {
+            if (!endDate) return false;
+            return dateStr > etFmt.format(new Date(endDate));
+        };
 
         const directlyScheduledMeetings = await prisma.meeting.findMany({
             where: {
@@ -47,8 +54,9 @@ const retrieveDayMeetings = async (request: NextRequest) => {
         const regularMeetings = directlyScheduledMeetings.filter(meeting => !meeting.isRecurring);
         const originalDayRecurringMeetings = directlyScheduledMeetings.filter(meeting => {
             if (!meeting.isRecurring) return false;
-            const excl = meeting.recurrencePattern?.excludedDates;
-            if (excl?.length && isDateExcluded(excl, etDateStr)) return false;
+            const recurrence = meeting.recurrencePattern;
+            if (isAfterSeriesEnd(recurrence?.endDate ?? null, etDateStr)) return false;
+            if (recurrence?.excludedDates?.length && isDateExcluded(recurrence.excludedDates, etDateStr)) return false;
             return true;
         });
 
@@ -73,9 +81,11 @@ const retrieveDayMeetings = async (request: NextRequest) => {
             if (!isDayIncluded) return false;
 
             const patternStartDate = new Date(recurrence.startDate);
-            if (localDate < patternStartDate) return false;
+            // Compare in ET (not UTC) to avoid late-night ET meetings whose UTC timestamp
+            // falls on the next calendar day causing the boundary check to fail.
+            if (etDateStr < etFmt.format(patternStartDate)) return false;
 
-            if (recurrence.endDate && localDate > new Date(recurrence.endDate)) return false;
+            if (isAfterSeriesEnd(recurrence.endDate ?? null, etDateStr)) return false;
 
             if (recurrence.excludedDates?.length && isDateExcluded(recurrence.excludedDates, etDateStr)) return false;
 
@@ -107,28 +117,23 @@ const retrieveDayMeetings = async (request: NextRequest) => {
             return true;
         });
         
+        // Extract ET wall-clock time (HH:MM) so that late-night meetings whose UTC
+        // timestamp crosses midnight are placed at the correct ET hour on the target date.
+        const etTimeFmt = new Intl.DateTimeFormat('en-GB', {
+            timeZone: 'America/New_York',
+            hour: '2-digit', minute: '2-digit', hour12: false,
+        });
+
         const adjustedPatternMeetings = patternDayMeetings.map(meeting => {
             const originalStart = new Date(meeting.startDateTime);
             const originalEnd = new Date(meeting.endDateTime);
-            
-            const adjustedStart = new Date(Date.UTC(
-                localDate.getUTCFullYear(),
-                localDate.getUTCMonth(),
-                localDate.getUTCDate(),
-                originalStart.getUTCHours(),
-                originalStart.getUTCMinutes(),
-                originalStart.getUTCSeconds()
-            ));
-            
-            const adjustedEnd = new Date(Date.UTC(
-                localDate.getUTCFullYear(),
-                localDate.getUTCMonth(),
-                localDate.getUTCDate(),
-                originalEnd.getUTCHours(),
-                originalEnd.getUTCMinutes(),
-                originalEnd.getUTCSeconds()
-            ));
-            
+
+            const startETTime = etTimeFmt.format(originalStart); // "HH:MM"
+            const endETTime   = etTimeFmt.format(originalEnd);
+
+            const adjustedStart = new Date(convertETToUTC(`${etDateStr}T${startETTime}`));
+            const adjustedEnd   = new Date(convertETToUTC(`${etDateStr}T${endETTime}`));
+
             return {
                 ...meeting,
                 startDateTime: adjustedStart,
