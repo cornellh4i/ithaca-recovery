@@ -75,11 +75,6 @@ const retrieveDayMeetings = async (request: NextRequest) => {
             const recurrence = meeting.recurrencePattern;
             if (!recurrence) return false;
 
-            const isDayIncluded = recurrence.daysOfWeek &&
-                                recurrence.daysOfWeek.includes(requestedDayName);
-
-            if (!isDayIncluded) return false;
-
             const patternStartDate = new Date(recurrence.startDate);
             // Compare in ET (not UTC) to avoid late-night ET meetings whose UTC timestamp
             // falls on the next calendar day causing the boundary check to fail.
@@ -89,7 +84,35 @@ const retrieveDayMeetings = async (request: NextRequest) => {
 
             if (recurrence.excludedDates?.length && isDateExcluded(recurrence.excludedDates, etDateStr)) return false;
 
+            if (recurrence.type === "monthly") {
+                const interval = recurrence.interval ?? 1;
+                const startYear = patternStartDate.getUTCFullYear();
+                const startMonth = patternStartDate.getUTCMonth();
+                const reqYear = localDate.getUTCFullYear();
+                const reqMonth = localDate.getUTCMonth();
+                const monthsElapsed = (reqYear - startYear) * 12 + (reqMonth - startMonth);
+                if (monthsElapsed % interval !== 0) return false;
+
+                if (recurrence.dayOfMonth != null) {
+                    return localDate.getUTCDate() === recurrence.dayOfMonth;
+                }
+
+                if (recurrence.weekOfMonth != null) {
+                    if (!(recurrence.daysOfWeek ?? []).includes(requestedDayName)) return false;
+                    const daysInMonth = new Date(Date.UTC(reqYear, reqMonth + 1, 0)).getUTCDate();
+                    const dateNum = localDate.getUTCDate();
+                    if (recurrence.weekOfMonth === -1) {
+                        return dateNum + 7 > daysInMonth;
+                    }
+                    return Math.ceil(dateNum / 7) === recurrence.weekOfMonth;
+                }
+
+                return false;
+            }
+
             if (recurrence.type === "weekly") {
+                if (!recurrence.daysOfWeek?.includes(requestedDayName)) return false;
+
                 // Get the day of week of the pattern start date (0-6)
                 const startDayOfWeek = patternStartDate.getUTCDay();
 
@@ -109,12 +132,10 @@ const retrieveDayMeetings = async (request: NextRequest) => {
                     (requestedDateWeekStart.getTime() - patternStartWeekStart.getTime()) / msPerWeek
                 );
 
-                // Check if the number of weeks matches the interval pattern
-                const isIntervalMatch = weeksBetween % recurrence.interval === 0;
-                if (!isIntervalMatch) return false;
+                return weeksBetween % recurrence.interval === 0;
             }
 
-            return true;
+            return false;
         });
         
         // Extract ET wall-clock time (HH:MM) so that late-night meetings whose UTC

@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import RadioGroup from '../atoms/RadioGroup';
 import LabeledCheckbox from '../atoms/checkbox';
 import SpinnerInput from '../atoms/SpinnerInput';
 import DatePicker from '../atoms/DatePicker';
+import Dropdown from '../atoms/dropdown';
 import styles from "../../../styles/components/molecules/RecurringMeeting.module.scss";
 
 import CheckButton from '../atoms/CheckButton';
@@ -29,6 +30,9 @@ const fullDayToId: Record<string, string> = {
   Thursday: 'thu', Friday: 'fri', Saturday: 'sat',
 };
 
+const ordinals = ["1st", "2nd", "3rd", "4th"];
+const weekdayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
 function inferEndOption(pattern: IRecurrencePattern | null): string {
   if (pattern?.numberOfOccurrences != null) return 'After';
   if (pattern?.endDate != null) return 'On';
@@ -43,6 +47,37 @@ function toDatePickerString(date: Date | string | null | undefined): string {
   return `${String(d.getUTCMonth() + 1).padStart(2, '0')}/${String(d.getUTCDate()).padStart(2, '0')}/${d.getUTCFullYear()}`;
 }
 
+// Derives the dropdown options for monthly recurrence from the meeting's start date.
+// A 5th weekday is always the last, so we show "last" instead of "5th".
+function getMonthlyOptions(startDateStr: string): string[] {
+  const date = new Date(startDateStr);
+  if (isNaN(date.getTime())) return [];
+  const dayOfMonth = date.getDate();
+  const weekdayName = weekdayNames[date.getDay()];
+  const nth = Math.ceil(dayOfMonth / 7);
+  const daysInMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+  const isLast = dayOfMonth + 7 > daysInMonth;
+
+  const options: string[] = [`Monthly on day ${dayOfMonth}`];
+  if (nth <= 4) options.push(`Monthly on the ${ordinals[nth - 1]} ${weekdayName}`);
+  if (isLast) options.push(`Monthly on the last ${weekdayName}`);
+  return options;
+}
+
+function inferMonthlyOption(pattern: IRecurrencePattern): string {
+  if (pattern.weekOfMonth === -1) {
+    return `Monthly on the last ${(pattern.daysOfWeek ?? [])[0] ?? ""}`;
+  }
+  if (pattern.weekOfMonth != null) {
+    const ordinal = ordinals[pattern.weekOfMonth - 1] ?? `${pattern.weekOfMonth}th`;
+    return `Monthly on the ${ordinal} ${(pattern.daysOfWeek ?? [])[0] ?? ""}`;
+  }
+  if (pattern.dayOfMonth != null) {
+    return `Monthly on day ${pattern.dayOfMonth}`;
+  }
+  return "";
+}
+
 const RecurringMeetingForm: React.FC<RecurringMeetingFormProps> = ({
   onChange,
   startDate,
@@ -51,55 +86,61 @@ const RecurringMeetingForm: React.FC<RecurringMeetingFormProps> = ({
   const initPattern = initialValue?.recurrencePattern ?? null;
 
   const [isRecurring, setIsRecurring] = useState(initialValue?.isRecurring ?? false);
+  const [recurrenceType, setRecurrenceType] = useState<string>(initPattern?.type ?? "weekly");
   const [frequency, setFrequency] = useState(initPattern?.interval ?? 1);
   const [selectedDays, setSelectedDays] = useState<string[]>(
     (initPattern?.daysOfWeek ?? []).map(d => fullDayToId[d] ?? d)
   );
-  const [endOption, setEndOption] = useState(inferEndOption(initPattern ?? null));
-  const [endDate, setEndDate] = useState<string | undefined>(toDatePickerString(initPattern?.endDate));
-  const [occurrences, setOccurrences] = useState(
-    initPattern?.numberOfOccurrences ?? 1
+  const [monthlyOption, setMonthlyOption] = useState<string>(
+    initPattern?.type === "monthly" ? inferMonthlyOption(initPattern) : ""
   );
+  const [endOption, setEndOption] = useState(inferEndOption(initPattern));
+  const [endDate, setEndDate] = useState<string | undefined>(toDatePickerString(initPattern?.endDate));
+  const [occurrences, setOccurrences] = useState(initPattern?.numberOfOccurrences ?? 1);
   const [touched, setTouched] = useState<boolean>(false);
-  
-  // Map day abbreviations to full day names for Microsoft Graph API compatibility
+  const isFirstRender = useRef(true);
+
   const dayMapping: Record<string, string> = {
-    'sun': 'Sunday',
-    'mon': 'Monday',
-    'tue': 'Tuesday',
-    'wed': 'Wednesday',
-    'thu': 'Thursday',
-    'fri': 'Friday',
-    'sat': 'Saturday',
+    'sun': 'Sunday', 'mon': 'Monday', 'tue': 'Tuesday', 'wed': 'Wednesday',
+    'thu': 'Thursday', 'fri': 'Friday', 'sat': 'Saturday',
   };
 
   const days = [
-    { id: 'sun', label: 'S' },
-    { id: 'mon', label: 'M' },
-    { id: 'tue', label: 'T' },
-    { id: 'wed', label: 'W' },
-    { id: 'thu', label: 'T' },
-    { id: 'fri', label: 'F' },
+    { id: 'sun', label: 'S' }, { id: 'mon', label: 'M' }, { id: 'tue', label: 'T' },
+    { id: 'wed', label: 'W' }, { id: 'thu', label: 'T' }, { id: 'fri', label: 'F' },
     { id: 'sat', label: 'S' },
   ];
 
+  // Seed default day when enabling weekly recurrence
   useEffect(() => {
-    if (isRecurring && startDate) {
+    if (isRecurring && recurrenceType === "weekly" && startDate) {
       try {
         const date = new Date(startDate);
-        if (!isNaN(date.getTime())) {
-          const dayOfWeek = date.getDay();
-          const dayId = days[dayOfWeek].id;
-          
-          if (selectedDays.length === 0) {
-            setSelectedDays([dayId]);
-          }
+        if (!isNaN(date.getTime()) && selectedDays.length === 0) {
+          setSelectedDays([days[date.getDay()].id]);
         }
       } catch (error) {
         console.error("Error parsing date:", error);
       }
     }
-  }, [isRecurring, startDate]);
+  }, [isRecurring, recurrenceType, startDate]);
+
+  // Seed default monthly option when switching to monthly
+  useEffect(() => {
+    if (isRecurring && recurrenceType === "monthly" && !monthlyOption && startDate) {
+      const options = getMonthlyOptions(startDate);
+      if (options.length > 0) setMonthlyOption(options[0]);
+    }
+  }, [isRecurring, recurrenceType, startDate]);
+
+  // Reset monthly option when startDate changes so stale options don't persist
+  useEffect(() => {
+    if (isFirstRender.current) { isFirstRender.current = false; return; }
+    if (recurrenceType === "monthly" && startDate) {
+      const options = getMonthlyOptions(startDate);
+      if (options.length > 0) setMonthlyOption(options[0]);
+    }
+  }, [startDate]);
 
   useEffect(() => {
     if (!isRecurring) {
@@ -112,8 +153,39 @@ const RecurringMeetingForm: React.FC<RecurringMeetingFormProps> = ({
   }, [isRecurring]);
 
   useEffect(() => {
-    const recurrencePattern: IRecurrencePattern | null = isRecurring 
-      ? {
+    let recurrencePattern: IRecurrencePattern | null = null;
+
+    if (isRecurring) {
+      if (recurrenceType === "monthly") {
+        let weekOfMonth: number | null = null;
+        let dayOfMonth: number | null = null;
+        let daysOfWeek: string[] = [];
+
+        if (monthlyOption.startsWith("Monthly on day ")) {
+          dayOfMonth = parseInt(monthlyOption.replace("Monthly on day ", ""), 10);
+        } else if (monthlyOption.startsWith("Monthly on the last ")) {
+          weekOfMonth = -1;
+          daysOfWeek = [monthlyOption.replace("Monthly on the last ", "")];
+        } else if (monthlyOption.startsWith("Monthly on the ")) {
+          const rest = monthlyOption.replace("Monthly on the ", "");
+          const spaceIdx = rest.indexOf(" ");
+          weekOfMonth = ordinals.indexOf(rest.slice(0, spaceIdx)) + 1;
+          daysOfWeek = [rest.slice(spaceIdx + 1)];
+        }
+
+        recurrencePattern = {
+          type: "monthly",
+          interval: 1,
+          startDate: startDate ? new Date(startDate) : new Date(),
+          firstDayOfWeek: "Sunday",
+          daysOfWeek,
+          weekOfMonth,
+          dayOfMonth,
+          endDate: endOption === 'On' && endDate ? new Date(endDate) : null,
+          numberOfOccurrences: endOption === 'After' ? occurrences : null,
+        };
+      } else {
+        recurrencePattern = {
           type: "weekly",
           interval: frequency,
           startDate: startDate ? new Date(startDate) : new Date(),
@@ -121,14 +193,12 @@ const RecurringMeetingForm: React.FC<RecurringMeetingFormProps> = ({
           daysOfWeek: selectedDays.map(day => dayMapping[day]),
           endDate: endOption === 'On' && endDate ? new Date(endDate) : null,
           numberOfOccurrences: endOption === 'After' ? occurrences : null,
-        }
-      : null;
+        };
+      }
+    }
 
-    onChange({
-      isRecurring,
-      recurrencePattern
-    });
-  }, [isRecurring, frequency, selectedDays, endOption, endDate, occurrences, onChange, startDate]);
+    onChange({ isRecurring, recurrencePattern });
+  }, [isRecurring, recurrenceType, frequency, selectedDays, monthlyOption, endOption, endDate, occurrences, onChange, startDate]);
 
   const handleRecurringChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setIsRecurring(e.target.checked);
@@ -136,36 +206,19 @@ const RecurringMeetingForm: React.FC<RecurringMeetingFormProps> = ({
 
   const toggleDay = (dayId: string) => {
     setTouched(true);
-    setSelectedDays((prev) => {
-      const newSelectedDays = prev.includes(dayId) 
-        ? prev.filter((id) => id !== dayId) 
-        : [...prev, dayId];
-      
-      return newSelectedDays;
-    });
-  };
-
-  const handleFrequencyChange = (value: number) => {
-    setFrequency(value);
+    setSelectedDays((prev) =>
+      prev.includes(dayId) ? prev.filter((id) => id !== dayId) : [...prev, dayId]
+    );
   };
 
   const handleEndOptionChange = (option: string) => {
     setEndOption(option);
-    
-    if (option !== 'On') {
-      setEndDate("");
-    }
-    
-    if (option !== "After") {
-      setOccurrences(1);
-    }
-  };
-
-  const handleEndDateChange = (value: string) => {
-    setEndDate(value);
+    if (option !== 'On') setEndDate("");
+    if (option !== "After") setOccurrences(1);
   };
 
   const endOptions = ['Never', 'On', 'After'];
+  const monthlyOptions = startDate ? getMonthlyOptions(startDate) : [];
 
   return (
     <div className={styles.container}>
@@ -177,43 +230,75 @@ const RecurringMeetingForm: React.FC<RecurringMeetingFormProps> = ({
           color="#848484"
         />
       </div>
-    
+
       {isRecurring && (
         <div>
           <div className={styles.isRecurring}>
-            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '18px' }}>
-              <label style={{ marginRight: '5px'}}>Every</label>
-              <SpinnerInput
-                value={frequency}
-                min={1}
-                step={1}
-                onChange={handleFrequencyChange}
-              />
-              <label style={{ marginLeft: '5px'}}>week(s)</label>
-            </div>
+            <Dropdown
+              label="Repeats"
+              value={recurrenceType === "monthly" ? "Monthly" : "Weekly"}
+              isVisible={true}
+              elements={['Weekly', 'Monthly']}
+              name="Select frequency"
+              onChange={(val) => {
+                const type = val.toLowerCase();
+                setRecurrenceType(type);
+                if (type === "monthly" && startDate && !monthlyOption) {
+                  const opts = getMonthlyOptions(startDate);
+                  if (opts.length > 0) setMonthlyOption(opts[0]);
+                }
+              }}
+            />
 
-            {(!frequency || frequency < 1) && (
-              <div className={styles['error-message']}>
-              Please specify a number of weeks.
-              </div>
+            {recurrenceType === "weekly" && (
+              <>
+                <div style={{ display: 'flex', alignItems: 'center', marginBottom: '18px' }}>
+                  <label style={{ marginRight: '5px' }}>Every</label>
+                  <SpinnerInput
+                    value={frequency}
+                    min={1}
+                    step={1}
+                    onChange={setFrequency}
+                  />
+                  <label style={{ marginLeft: '5px' }}>week(s)</label>
+                </div>
+
+                {(!frequency || frequency < 1) && (
+                  <div className={styles['error-message']}>
+                    Please specify a number of weeks.
+                  </div>
+                )}
+
+                <div className={styles.dayButtons}>
+                  <label style={{ marginRight: '5px' }}>On</label>
+                  {days.map((day) => (
+                    <CheckButton
+                      key={day.id}
+                      label={day.label}
+                      checked={selectedDays.includes(day.id)}
+                      onClick={() => toggleDay(day.id)}
+                    />
+                  ))}
+                </div>
+
+                {touched && selectedDays.length === 0 && (
+                  <div className={styles['error-message']}>
+                    Please select at least one day.
+                  </div>
+                )}
+              </>
             )}
 
-            <div className={styles.dayButtons}>
-              <label style={{ marginRight: '5px'}}>On</label>
-              {days.map((day) => (
-                <CheckButton
-                  key={day.id}
-                  label={day.label}
-                  checked={selectedDays.includes(day.id)}
-                  onClick={() => toggleDay(day.id)}
-                />
-              ))}
-            </div>
-            
-            {touched && selectedDays.length === 0 && (
-              <div className={styles['error-message']}>
-              Please select at least one day. 
-            </div>
+            {recurrenceType === "monthly" && (
+              <Dropdown
+                key={startDate}
+                label=""
+                value={monthlyOption}
+                isVisible={true}
+                elements={monthlyOptions}
+                name="Select recurrence"
+                onChange={setMonthlyOption}
+              />
             )}
 
             <RadioGroup
@@ -228,25 +313,25 @@ const RecurringMeetingForm: React.FC<RecurringMeetingFormProps> = ({
               <DatePicker
                 label={"Ends On:"}
                 value={endDate}
-                onChange={handleEndDateChange}
+                onChange={(val) => setEndDate(val)}
               />
             )}
 
             {endOption === 'After' && (
               <div className={styles['spinner-group']}>
                 <div className={styles['spinner-container']}>
-                  <label style={{ marginRight: '5px'}}>Ends after</label>
+                  <label style={{ marginRight: '5px' }}>Ends after</label>
                   <SpinnerInput
                     value={occurrences}
                     min={1}
                     step={1}
                     onChange={setOccurrences}
                   />
-                  <label style={{ marginLeft: '5px'}}>occurrences(s)</label>
+                  <label style={{ marginLeft: '5px' }}>occurrences(s)</label>
                 </div>
-                { (!occurrences || occurrences < 1) && (
+                {(!occurrences || occurrences < 1) && (
                   <div className={styles['error-message']}>
-                  Please enter at least one occurrence.
+                    Please enter at least one occurrence.
                   </div>
                 )}
               </div>

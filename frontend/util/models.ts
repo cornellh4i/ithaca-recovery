@@ -42,7 +42,9 @@ interface IRecurrencePattern {
   numberOfOccurrences?: number | null;
   daysOfWeek?: string[] | null;
   firstDayOfWeek: string;
-  interval: number; // 1 = weekly, 2 = biweekly, etc.
+  interval: number; // number of frequency units between occurrences (e.g. 2 = biweekly or every 2 months)
+  weekOfMonth?: number | null; // 1–4 for Nth weekday, -1 for last; paired with daysOfWeek
+  dayOfMonth?: number | null; // 1–31 for fixed day of month
   excludedDates?: Date[] | null;
 }
 

@@ -30,9 +30,11 @@ type ViewMeetingDetailsProps = {
   isRecurring: boolean;
   recurrencePattern?: IRecurrencePattern
   currentOccurrenceDate?: Date; // Handles the specific occurrence date
+  syncStatus?: string | null;
   onBack: () => void;
   onEdit: () => void;
   onDelete: (mid: string, deleteOption?: 'this' | 'thisAndFollowing' | 'all') => void;
+  onSyncSuccess?: () => void;
 };
 
 const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
@@ -53,12 +55,34 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
   recurrence,
   isRecurring,
   recurrencePattern,
-  currentOccurrenceDate, // This is the selected date from the calendar view
+  currentOccurrenceDate,
+  syncStatus: initialSyncStatus,
   onBack,
   onEdit,
   onDelete,
+  onSyncSuccess,
 }) => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [syncStatus, setSyncStatus] = useState(initialSyncStatus ?? null);
+  const [syncing, setSyncing] = useState(false);
+
+  const handleRetrySync = async () => {
+    setSyncing(true);
+    try {
+      const res = await fetch('/api/update/meeting/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mid }),
+      });
+      const data = await res.json();
+      setSyncStatus(data.syncStatus ?? 'error');
+      if (data.syncStatus === 'synced') onSyncSuccess?.();
+    } catch {
+      setSyncStatus('error');
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   const doesMeetingOccurOnDate = (date: Date): boolean => {
     if (!isRecurring || !recurrencePattern) {
@@ -119,26 +143,36 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
   };
 
   const getRecurrenceText = () => {
-    if (recurrencePattern) {
-      const { type, interval, daysOfWeek } = recurrencePattern;
+    if (!recurrencePattern) return "Repeats regularly";
 
-      let intervalText = "regularly";
-      if (type === "weekly") {
-        if (interval === 1) intervalText = "weekly";
-        else if (interval === 2) intervalText = "biweekly";
-        else if (interval === 3) intervalText = "triweekly";
-        else intervalText = `every ${interval} weeks`;
+    const { type, interval, daysOfWeek, weekOfMonth, dayOfMonth } = recurrencePattern;
+
+    if (type === "monthly") {
+      const ordinals = ["1st", "2nd", "3rd", "4th"];
+      if (weekOfMonth === -1) {
+        return `Repeats monthly on the last ${(daysOfWeek ?? [])[0] ?? ""}`;
       }
-
-      let daysText = "";
-      if (Array.isArray(daysOfWeek) && daysOfWeek.length > 0) {
-        daysText = ` on ${daysOfWeek.join(', ')}`;
+      if (weekOfMonth != null) {
+        const ordinal = ordinals[weekOfMonth - 1] ?? `${weekOfMonth}th`;
+        return `Repeats monthly on the ${ordinal} ${(daysOfWeek ?? [])[0] ?? ""}`;
       }
-
-      return `Repeats ${intervalText}${daysText}`;
+      if (dayOfMonth != null) {
+        return `Repeats monthly on day ${dayOfMonth}`;
+      }
+      return "Repeats monthly";
     }
 
-    return "Repeats regularly";
+    let intervalText = "";
+    if (interval === 1) intervalText = "weekly";
+    else if (interval === 2) intervalText = "biweekly";
+    else if (interval === 3) intervalText = "triweekly";
+    else intervalText = `every ${interval} weeks`;
+
+    const daysText = Array.isArray(daysOfWeek) && daysOfWeek.length > 0
+      ? ` on ${daysOfWeek.join(', ')}`
+      : "";
+
+    return `Repeats ${intervalText}${daysText}`;
   };
 
   console.log("Rendering ViewMeetingDetails with dates:", {
@@ -194,6 +228,28 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
         <p><strong>Email:</strong>&nbsp;{email}</p>
         <p><strong>Meeting Mode:</strong>&nbsp;{modeType}</p>
         <p><strong>Calendar:</strong>&nbsp;{calType}</p>
+        {syncStatus === 'synced' && (
+          <p style={{ color: '#3a9e3a', fontSize: '13px', margin: '2px 0 8px' }}>
+            Synced to Google Calendar ✓
+          </p>
+        )}
+        {syncStatus === 'error' && (
+          <p style={{ color: '#e07000', fontSize: '13px', margin: '2px 0 4px' }}>
+            Google Calendar sync failed ⚠
+          </p>
+        )}
+        {syncStatus === 'error' && (
+          <button
+            onClick={handleRetrySync}
+            disabled={syncing}
+            style={{
+              fontSize: '12px', padding: '3px 10px', marginBottom: '8px',
+              cursor: syncing ? 'not-allowed' : 'pointer', opacity: syncing ? 0.6 : 1,
+            }}
+          >
+            {syncing ? 'Retrying…' : 'Retry sync'}
+          </button>
+        )}
         <p><strong>Location:</strong>&nbsp;{room}</p>
         {zoomAccount && <p><strong>Zoom Account:</strong>&nbsp;{zoomAccount}</p>}
         {zoomLink && <a href={zoomLink} target="_blank" rel="noopener noreferrer" className={styles.zoomLink}> 

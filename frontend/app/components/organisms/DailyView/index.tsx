@@ -11,6 +11,7 @@ type Meeting = {
   startTime: string;
   endTime: string;
   tags: string[];
+  syncError?: boolean;
 };
 
 type Room = {
@@ -90,6 +91,7 @@ export const fetchMeetingsByDay = async (date: Date): Promise<Room[]> => {
         startTime: startEDT,
         endTime: endEDT,
         tags: [meeting.calType, meeting.modeType],
+        syncError: meeting.syncStatus === 'error',
       });
     });
 

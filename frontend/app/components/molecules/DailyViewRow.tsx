@@ -8,6 +8,7 @@ interface Meeting {
   endTime: string;   // Raw UTC timestamp (ISO 8601 format)
   tags?: string[];
   id: string;
+  syncError?: boolean;
 }
 
 // DailyViewRowProps Interface
@@ -96,12 +97,13 @@ const DailyViewRow: React.FC<DailyViewRowProps> = ({
                 boxType="Meeting Block"
                 title={meeting.title}
                 primaryColor={roomColor}
-                time={`${startTimeEDT} - ${endTimeEDT}`}  // Display start and end time in EDT
+                time={`${startTimeEDT} - ${endTimeEDT}`}
                 tags={meeting.tags}
                 meetingId={meeting.id}
+                syncError={meeting.syncError}
                 onClick={(meetingId, e) => {
                   handleBoxClick(meetingId);
-                  e.stopPropagation(); // Prevent row click handler from firing
+                  e.stopPropagation();
                 }}
               />
             </div>

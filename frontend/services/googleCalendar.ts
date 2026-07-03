@@ -17,9 +17,22 @@ function toRRule(pattern: IRecurrencePattern): string {
         Thursday: "TH", Friday: "FR", Saturday: "SA",
     };
 
-    const byDay = (pattern.daysOfWeek ?? []).map((d) => dayMap[d]).join(",");
-    const freq = `FREQ=WEEKLY;INTERVAL=${pattern.interval ?? 1}`;
-    const byday = byDay ? `;BYDAY=${byDay}` : "";
+    let freq: string;
+    let byday = "";
+
+    if (pattern.type === "monthly") {
+        freq = `FREQ=MONTHLY;INTERVAL=${pattern.interval ?? 1}`;
+        if (pattern.weekOfMonth != null) {
+            const day = dayMap[(pattern.daysOfWeek ?? [])[0]] ?? "";
+            byday = `;BYDAY=${pattern.weekOfMonth}${day}`;
+        } else if (pattern.dayOfMonth != null) {
+            byday = `;BYMONTHDAY=${pattern.dayOfMonth}`;
+        }
+    } else {
+        const byDay = (pattern.daysOfWeek ?? []).map((d) => dayMap[d]).join(",");
+        freq = `FREQ=WEEKLY;INTERVAL=${pattern.interval ?? 1}`;
+        byday = byDay ? `;BYDAY=${byDay}` : "";
+    }
 
     if (pattern.numberOfOccurrences) {
         return `RRULE:${freq}${byday};COUNT=${pattern.numberOfOccurrences}`;
