@@ -1,7 +1,7 @@
 import "server-only";
 import { google } from "googleapis";
 import { IMeeting, IRecurrencePattern } from "../util/models";
-import { getETDayBounds } from "../util/timeUtils";
+import { getETDayBounds, convertETToUTC } from "../util/timeUtils";
 
 const CALENDAR_ID = process.env.GOOGLE_MASTER_CALENDAR_ID!;
 
@@ -18,17 +18,18 @@ function toRRule(pattern: IRecurrencePattern): string {
     };
 
     const byDay = (pattern.daysOfWeek ?? []).map((d) => dayMap[d]).join(",");
-    const freq = `FREQ=WEEKLY;INTERVAL=${pattern.interval}`;
+    const freq = `FREQ=WEEKLY;INTERVAL=${pattern.interval ?? 1}`;
     const byday = byDay ? `;BYDAY=${byDay}` : "";
 
     if (pattern.numberOfOccurrences) {
         return `RRULE:${freq}${byday};COUNT=${pattern.numberOfOccurrences}`;
     }
     if (pattern.endDate) {
-        const until = new Date(pattern.endDate)
-            .toISOString()
-            .replace(/[-:]/g, "")
-            .split(".")[0] + "Z";
+        // Use 23:59:59 ET so the end date is inclusive — midnight UTC = previous evening ET.
+        const etDate = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' })
+            .format(new Date(pattern.endDate));
+        const until = new Date(convertETToUTC(`${etDate}T23:59:59`))
+            .toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
         return `RRULE:${freq}${byday};UNTIL=${until}`;
     }
     return `RRULE:${freq}${byday}`;
@@ -37,8 +38,8 @@ function toRRule(pattern: IRecurrencePattern): string {
 function buildEventBody(meeting: IMeeting) {
     const descriptionLines = [
         meeting.description,
-        `Type: ${meeting.calType}`,
-        `Mode: ${meeting.modeType}`,
+        meeting.calType ? `Type: ${meeting.calType}` : null,
+        meeting.modeType ? `Mode: ${meeting.modeType}` : null,
         meeting.room ? `Room: ${meeting.room}` : null,
         meeting.zoomLink ? `Zoom: ${meeting.zoomLink}` : null,
     ].filter(Boolean);

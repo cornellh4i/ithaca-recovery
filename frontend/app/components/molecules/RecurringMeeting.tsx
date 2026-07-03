@@ -48,10 +48,7 @@ const RecurringMeetingForm: React.FC<RecurringMeetingFormProps> = ({
   startDate,
   initialValue,
 }) => {
-  // IRecurrencePattern uses numberOfOccurrences but the Prisma schema has numberOfOccurences
-  // (typo). Cast to access the actual runtime field name when coming from DB.
-  type RawPattern = IRecurrencePattern & { numberOfOccurences?: number };
-  const initPattern = initialValue?.recurrencePattern as RawPattern | null;
+  const initPattern = initialValue?.recurrencePattern ?? null;
 
   const [isRecurring, setIsRecurring] = useState(initialValue?.isRecurring ?? false);
   const [frequency, setFrequency] = useState(initPattern?.interval ?? 1);
@@ -61,7 +58,7 @@ const RecurringMeetingForm: React.FC<RecurringMeetingFormProps> = ({
   const [endOption, setEndOption] = useState(inferEndOption(initPattern ?? null));
   const [endDate, setEndDate] = useState<string | undefined>(toDatePickerString(initPattern?.endDate));
   const [occurrences, setOccurrences] = useState(
-    initPattern?.numberOfOccurrences ?? initPattern?.numberOfOccurences ?? 1
+    initPattern?.numberOfOccurrences ?? 1
   );
   const [touched, setTouched] = useState<boolean>(false);
   

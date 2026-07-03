@@ -26,7 +26,7 @@ interface IMeeting {
   calType: string;
   modeType: string;
   room: string;
-  isRecurring?: boolean;
+  isRecurring: boolean;
   recurrencePattern?: IRecurrencePattern | null;
   googleCalendarEventId?: string | null;
   syncStatus?: string | null;
@@ -37,7 +37,7 @@ interface IMeeting {
 interface IRecurrencePattern {
   mid?: string;
   type: string;
-  startDate: Date;
+  startDate: Date; // UTC timestamp of midnight ET on the day the series starts; used for calendar-day boundary checks.
   endDate?: Date | null;
   numberOfOccurrences?: number | null;
   daysOfWeek?: string[] | null;

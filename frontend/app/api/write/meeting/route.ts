@@ -40,7 +40,7 @@ const createMeeting = async (request: Request) => {
           type: recurrencePattern.type,
           startDate: recurrencePattern.startDate,
           endDate: calculatedEndDate,
-          numberOfOccurences: recurrencePattern.numberOfOccurrences,
+          numberOfOccurrences: recurrencePattern.numberOfOccurrences,
           daysOfWeek: recurrencePattern.daysOfWeek || [],
           firstDayOfWeek: recurrencePattern.firstDayOfWeek || "Sunday",
           interval: recurrencePattern.interval || 1
@@ -115,6 +115,7 @@ function calculateEndDateFromOccurrences(
 
   const startDayOfWeek = patternStartDate.getUTCDay();
 
+  // The start date only counts as an occurrence if its weekday is in daysOfWeek.
   if (recurrenceDays.includes(startDayOfWeek)) {
     occurrenceCount++;
 

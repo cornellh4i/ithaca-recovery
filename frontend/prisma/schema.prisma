@@ -49,7 +49,7 @@ model RecurrencePattern {
   type               String
   startDate          DateTime
   endDate            DateTime?
-  numberOfOccurences Int?
+  numberOfOccurrences Int?
   daysOfWeek         String[]
   firstDayOfWeek     String
   interval           Int
