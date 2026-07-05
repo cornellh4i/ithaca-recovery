@@ -3,7 +3,20 @@ import { google } from "googleapis";
 import { IMeeting, IRecurrencePattern } from "../util/models";
 import { getETDayBounds, convertETToUTC } from "../util/timeUtils";
 
-const CALENDAR_ID = process.env.GOOGLE_MASTER_CALENDAR_ID!;
+const calendarIdForCategory: Record<string, string> = {
+    AA:        process.env.GOOGLE_CALENDAR_AA ?? "",
+    "Al-Anon": process.env.GOOGLE_CALENDAR_ALANON ?? "",
+    Other:     process.env.GOOGLE_CALENDAR_OTHER ?? "",
+};
+
+// Returns { category: calendarId } for each category in calType that has an env var configured.
+export function calendarIdsForMeeting(calType: string[]): Record<string, string> {
+    const result: Record<string, string> = {};
+    for (const cat of calType) {
+        if (calendarIdForCategory[cat]) result[cat] = calendarIdForCategory[cat];
+    }
+    return result;
+}
 
 function getCalendarClient(accessToken: string) {
     const auth = new google.auth.OAuth2();
@@ -73,12 +86,13 @@ function buildEventBody(meeting: IMeeting) {
 
 export async function createCalendarEvent(
     accessToken: string,
-    meeting: IMeeting
+    meeting: IMeeting,
+    calendarId: string,
 ): Promise<string | null> {
     try {
         const calendar = getCalendarClient(accessToken);
         const res = await calendar.events.insert({
-            calendarId: CALENDAR_ID,
+            calendarId,
             requestBody: buildEventBody(meeting),
         });
         return res.data.id ?? null;
@@ -91,12 +105,13 @@ export async function createCalendarEvent(
 export async function updateCalendarEvent(
     accessToken: string,
     googleCalendarEventId: string,
-    meeting: IMeeting
+    meeting: IMeeting,
+    calendarId: string,
 ): Promise<boolean> {
     try {
         const calendar = getCalendarClient(accessToken);
         await calendar.events.update({
-            calendarId: CALENDAR_ID,
+            calendarId,
             eventId: googleCalendarEventId,
             requestBody: buildEventBody(meeting),
         });
@@ -109,12 +124,13 @@ export async function updateCalendarEvent(
 
 export async function deleteCalendarEvent(
     accessToken: string,
-    googleCalendarEventId: string
+    googleCalendarEventId: string,
+    calendarId: string,
 ): Promise<boolean> {
     try {
         const calendar = getCalendarClient(accessToken);
         await calendar.events.delete({
-            calendarId: CALENDAR_ID,
+            calendarId,
             eventId: googleCalendarEventId,
         });
         return true;
@@ -131,6 +147,7 @@ export async function deleteCalendarOccurrence(
     googleCalendarEventId: string,
     meetingStartDateTime: Date | string,
     occurrenceISODate: string,
+    calendarId: string,
 ): Promise<boolean> {
     try {
         const calendar = getCalendarClient(accessToken);
@@ -148,11 +165,11 @@ export async function deleteCalendarOccurrence(
         const get = (t: string) => etTimeParts.find(p => p.type === t)?.value?.padStart(2, '0') ?? '00';
         const exdateStr = `EXDATE;TZID=America/New_York:${etDateCompact}T${get('hour')}${get('minute')}${get('second')}`;
 
-        const event = await calendar.events.get({ calendarId: CALENDAR_ID, eventId: googleCalendarEventId });
+        const event = await calendar.events.get({ calendarId, eventId: googleCalendarEventId });
         const currentRecurrence = event.data.recurrence ?? [];
 
         await calendar.events.patch({
-            calendarId: CALENDAR_ID,
+            calendarId,
             eventId: googleCalendarEventId,
             requestBody: { recurrence: [...currentRecurrence, exdateStr] },
         });
@@ -169,6 +186,7 @@ export async function trimCalendarEventSeries(
     accessToken: string,
     googleCalendarEventId: string,
     occurrenceISODate: string,
+    calendarId: string,
 ): Promise<boolean> {
     try {
         const calendar = getCalendarClient(accessToken);
@@ -180,7 +198,7 @@ export async function trimCalendarEventSeries(
         const untilStr = new Date(occurrenceUTCStart.getTime() - 1)
             .toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
 
-        const event = await calendar.events.get({ calendarId: CALENDAR_ID, eventId: googleCalendarEventId });
+        const event = await calendar.events.get({ calendarId, eventId: googleCalendarEventId });
         const currentRecurrence = event.data.recurrence ?? [];
 
         // Replace or set UNTIL; drop COUNT so they don't conflict
@@ -193,7 +211,7 @@ export async function trimCalendarEventSeries(
         });
 
         await calendar.events.patch({
-            calendarId: CALENDAR_ID,
+            calendarId,
             eventId: googleCalendarEventId,
             requestBody: { recurrence: updatedRecurrence },
         });
@@ -201,31 +219,5 @@ export async function trimCalendarEventSeries(
     } catch (error) {
         console.error("Google Calendar trimCalendarEventSeries error:", error);
         return false;
-    }
-}
-
-export async function listChangedEvents(
-    accessToken: string,
-    updatedMin: Date
-): Promise<{ id: string; status: string; summary?: string; start?: string; end?: string; description?: string }[]> {
-    try {
-        const calendar = getCalendarClient(accessToken);
-        const res = await calendar.events.list({
-            calendarId: CALENDAR_ID,
-            updatedMin: updatedMin.toISOString(),
-            showDeleted: true,
-            singleEvents: false,
-        });
-        return (res.data.items ?? []).map((e) => ({
-            id: e.id ?? "",
-            status: e.status ?? "",
-            summary: e.summary ?? undefined,
-            start: e.start?.dateTime ?? e.start?.date ?? undefined,
-            end: e.end?.dateTime ?? e.end?.date ?? undefined,
-            description: e.description ?? undefined,
-        }));
-    } catch (error) {
-        console.error("Google Calendar listChangedEvents error:", error);
-        return [];
     }
 }

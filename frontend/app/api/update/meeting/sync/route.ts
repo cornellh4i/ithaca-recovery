@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../../../auth/authConfig";
 import { IMeeting } from "../../../../../util/models";
-import { createCalendarEvent, updateCalendarEvent } from "../../../../../services/googleCalendar";
+import { createCalendarEvent, updateCalendarEvent, calendarIdsForMeeting } from "../../../../../services/googleCalendar";
 
 const prisma = new PrismaClient();
 
@@ -30,25 +30,32 @@ const syncMeeting = async (request: Request): Promise<Response> => {
             recurrencePattern: meeting.recurrencePattern ?? null,
         };
 
-        let synced: boolean;
-        let newEventId: string | null = null;
+        const calendarIds = calendarIdsForMeeting(meeting.calType ?? []);
+        const existingEventIds = (meeting.googleCalendarEventIds ?? {}) as Record<string, string>;
+        const updatedEventIds: Record<string, string> = { ...existingEventIds };
+        let allSynced = true;
 
-        if (meeting.googleCalendarEventId) {
-            synced = await updateCalendarEvent(session.accessToken, meeting.googleCalendarEventId, meetingForCalendar);
-        } else {
-            newEventId = await createCalendarEvent(session.accessToken, meetingForCalendar);
-            synced = !!newEventId;
+        for (const [cat, calId] of Object.entries(calendarIds)) {
+            const existingId = existingEventIds[cat];
+            if (existingId) {
+                const ok = await updateCalendarEvent(session.accessToken, existingId, meetingForCalendar, calId);
+                if (!ok) allSynced = false;
+            } else {
+                const newId = await createCalendarEvent(session.accessToken, meetingForCalendar, calId);
+                if (newId) updatedEventIds[cat] = newId;
+                else allSynced = false;
+            }
         }
 
         await prisma.meeting.update({
             where: { mid },
             data: {
-                ...(newEventId ? { googleCalendarEventId: newEventId } : {}),
-                syncStatus: synced ? 'synced' : 'error',
+                googleCalendarEventIds: updatedEventIds,
+                syncStatus: allSynced ? 'synced' : 'error',
             },
         });
 
-        return NextResponse.json({ syncStatus: synced ? 'synced' : 'error' });
+        return NextResponse.json({ syncStatus: allSynced ? 'synced' : 'error' });
     } catch (error) {
         console.error("Sync retry error:", error);
         return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });

@@ -23,12 +23,14 @@ interface IMeeting {
   zoomAccount?: string | null;
   zoomLink?: string | null;
   zid?: string | null;
-  calType: string;
+  calType: string[];
   modeType: string;
   room: string;
+  status?: string;
   isRecurring: boolean;
   recurrencePattern?: IRecurrencePattern | null;
   googleCalendarEventId?: string | null;
+  googleCalendarEventIds?: Record<string, string> | null;
   syncStatus?: string | null;
   deletedAt?: Date | null;
   updatedAt?: Date | null;

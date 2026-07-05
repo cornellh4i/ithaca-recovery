@@ -19,27 +19,33 @@ model Admin {
 }
 
 model Meeting {
-  id                    String               @id @default(auto()) @map("_id") @db.ObjectId
-  mid                   String               @unique
-  title                 String
-  calType               String
-  description           String
-  creator               String
-  group                 String
-  startDateTime         DateTime             @db.Date
-  endDateTime           DateTime             @db.Date
-  email                 String
-  zoomAccount           String?
-  zoomLink              String?
-  zid                   String?
-  room                  String
-  modeType              String
-  isRecurring           Boolean              @default(false)
-  recurrencePattern     RecurrencePattern?   @relation("MeetingToRecurrencePattern")
-  googleCalendarEventId String?
-  syncStatus            String?
-  deletedAt             DateTime?
-  updatedAt             DateTime?            @updatedAt
+  id                     String               @id @default(auto()) @map("_id") @db.ObjectId
+  mid                    String               @unique
+  title                  String
+  calType                String[]
+  description            String
+  creator                String
+  group                  String
+  startDateTime          DateTime             @db.Date
+  endDateTime            DateTime             @db.Date
+  email                  String
+  zoomAccount            String?
+  zoomLink               String?
+  zid                    String?
+  room                   String
+  modeType               String
+  status                 String               @default("Active")
+  isRecurring            Boolean              @default(false)
+  recurrencePattern      RecurrencePattern?   @relation("MeetingToRecurrencePattern")
+  googleCalendarEventId  String?
+  googleCalendarEventIds Json?
+  syncStatus             String?
+  deletedAt              DateTime?
+  updatedAt              DateTime?            @updatedAt
+
+  @@index([startDateTime, endDateTime])
+  @@index([isRecurring, deletedAt])
+  @@index([googleCalendarEventId])
 }
 
 model RecurrencePattern {
