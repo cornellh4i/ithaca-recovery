@@ -6,6 +6,7 @@ import ModeTypeButtons from '../atoms/ModeTypeButtons';
 import DatePicker from '../atoms/DatePicker';
 import TimePicker from '../atoms/TimePicker';
 import Dropdown from '../atoms/dropdown';
+import LabeledCheckbox from '../atoms/checkbox';
 import RecurringMeetingForm from '../molecules/RecurringMeeting';
 import CloseIcon from '@mui/icons-material/Close';
 import IconButton from '@mui/material/IconButton';
@@ -21,13 +22,36 @@ interface EditMeetingSidebarProps {
   onUpdateSuccess: () => void;
 }
 
+const physicalRoomOptions = [
+  "Serenity Room",
+  "Seeds of Hope Room",
+  "Unity Room",
+  "Room for Improvement",
+  "Room for Acceptance",
+  "Room for Gratitude",
+];
+
+const zoomRoomOptions = [
+  "Serenity Room - Zoom",
+  "Seeds of Hope Room - Zoom",
+  "Unity Room - Zoom",
+  "Room for Improvement - Zoom",
+  "Children's Room @ 518 - Zoom",
+];
+
+const roomToZoomRoom: Record<string, string> = {
+  "Serenity Room": "Serenity Room - Zoom",
+  "Seeds of Hope Room": "Seeds of Hope Room - Zoom",
+  "Unity Room": "Unity Room - Zoom",
+  "Room for Improvement": "Room for Improvement - Zoom",
+};
+
+const calTypeOptions = ["AA", "Al-Anon", "Other"];
+const calTypeColor = "#CC3366";
+
 const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
   ({ meeting, onClose, onUpdateSuccess }) => {
-    /**
-     * Extracts time in HH:MM format from a date string
-     * @param date - date to extract time from
-     * @returns time in HH:MM format (24-hour)
-     */
+
     const formatTime = (date: Date): string => {
       const etDateString = convertUTCToET((new Date(date)).toUTCString());
       const timeMatch = etDateString.match(/(\d{1,2}):(\d{2}):\d{2}\s*(AM|PM)/i);
@@ -35,68 +59,33 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
         let hours = parseInt(timeMatch[1]);
         const minutes = timeMatch[2];
         const ampm = timeMatch[3].toUpperCase();
-
-        // Convert to 24-hour format
         if (ampm === 'PM' && hours < 12) hours += 12;
         if (ampm === 'AM' && hours === 12) hours = 0;
-
         return `${hours.toString().padStart(2, '0')}:${minutes}`;
       }
       return '';
     };
 
-    /**
-     * Formats a Date object to MM/DD/YYYY format in Eastern Time
-     * @param date - Date object to format
-     * @returns string in MM/DD/YYYY format in Eastern Time
-     */
     const formatDate = (date: Date): string => {
-      // Convert the date to ET using your existing helper
       const etDateString = convertUTCToET((new Date(date)).toUTCString());
-
-      // Extract MM/DD/YYYY from the formatted ET date string
-      // The ET date string format is MM/DD/YYYY, hh:mm:ss AM/PM
       const dateMatch = etDateString.match(/(\d{2})\/(\d{2})\/(\d{4})/);
-
       if (dateMatch) {
-        const month = dateMatch[1];
-        const day = dateMatch[2];
-        const year = dateMatch[3];
-
-        return `${month}/${day}/${year}`;
+        return `${dateMatch[1]}/${dateMatch[2]}/${dateMatch[3]}`;
       }
-
       return '';
     };
 
-    // State declarations for Edit Meeting form
-    const formData = {
-      mid: meeting.mid,
-      title: meeting.title,
-      modeType: meeting.modeType,
-      description: meeting.description || '',
-      creator: meeting.creator,
-      group: meeting.group,
-      date: formatDate(meeting.startDateTime),
-      startTime: formatTime(meeting.startDateTime),
-      endTime: formatTime(meeting.endDateTime),
-      email: meeting.email,
-      zoomAccount: meeting.zoomAccount || '',
-      zoomLink: meeting.zoomLink || '',
-      zid: meeting.zid || '',
-      calType: meeting.calType,
-      room: meeting.room,
-    };
-
-    const [inputMeetingTitleValue, setMeetingTitleValue] = useState(formData.title); // Meeting title
-    const [selectedMode, setSelectedMode] = useState<string>(formData.modeType);
-    const [dateValue, setDateValue] = useState<string>(formData.date); // Initial date value as empty
-    const [timeValue, setTimeValue] = useState<string>(`${formData.startTime} - ${formData.endTime}`); // Initial time range as empty
-    const [inputEmailValue, setEmailValue] = useState(formData.email); // TODO: Update Email after migrating IMeeting
-    const [inputDescriptionValue, setDescriptionValue] = useState(formData.description); // Description input value
-    const [selectedRoom, setSelectedRoom] = useState<string>(formData.room);
-    const [selectedMeetingType, setSelectedMeetingType] = useState<string>(formData.calType);
-    const [selectedZoomAccount, setSelectedZoomAccount] = useState<string>(formData.zoomAccount);
+    const [inputMeetingTitleValue, setMeetingTitleValue] = useState(meeting.title);
+    const [selectedMode, setSelectedMode] = useState<string>(meeting.modeType);
+    const [dateValue, setDateValue] = useState<string>(formatDate(meeting.startDateTime));
+    const [timeValue, setTimeValue] = useState<string>(`${formatTime(meeting.startDateTime)} - ${formatTime(meeting.endDateTime)}`);
+    const [inputEmailValue, setEmailValue] = useState(meeting.email);
+    const [inputDescriptionValue, setDescriptionValue] = useState(meeting.description || '');
+    const [selectedRoom, setSelectedRoom] = useState<string>(meeting.room);
+    const [selectedCalTypes, setSelectedCalTypes] = useState<string[]>(
+      Array.isArray(meeting.calType) ? meeting.calType : meeting.calType ? [meeting.calType as unknown as string] : []
+    );
+    const [selectedZoomRoom, setSelectedZoomRoom] = useState<string>(meeting.zoomAccount || '');
 
     const [isRecurring, setIsRecurring] = useState(!!meeting.recurrencePattern);
     const [recurrencePattern, setRecurrencePattern] = useState<IRecurrencePattern | null>(
@@ -111,50 +100,33 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
       setRecurrencePattern(data.recurrencePattern);
     };
 
-    const handleRoomChange = (value: string) => setSelectedRoom(value);
-    const handleMeetingTypeChange = (value: string) => setSelectedMeetingType(value);
-    const handleZoomAccountChange = (value: string) => setSelectedZoomAccount(value);
+    const handleRoomChange = (value: string) => {
+      setSelectedRoom(value);
+      const zoom = roomToZoomRoom[value];
+      if (zoom) setSelectedZoomRoom(zoom);
+    };
 
-    // Room and Meeting Type options
-    const roomOptions = [
-      "Serenity Room",
-      "Seeds of Hope",
-      "Unity Room",
-      "Room for Improvement",
-      "Small but Powerful - Right",
-      "Small but Powerful - Left"
-    ];
-
-    const meetingTypeOptions = [
-      "AA",
-      "Al-Anon",
-      "Other"
-    ];
-
-    const zoomAccountOptions = [
-      "Zoom Email 1",
-      "Zoom Email 2",
-      "Zoom Email 3",
-      "Zoom Email 4"
-    ];
+    const handleCalTypeToggle = (type: string) => {
+      setSelectedCalTypes(prev =>
+        prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]
+      );
+    };
 
     function convertToISODate(dateString: string) {
       const dateObject = new Date(dateString);
       if (isNaN(dateObject.getTime())) {
-        console.error("Invalid date string:", dateString)
+        console.error("Invalid date string:", dateString);
         return null;
       }
-      return dateObject.toISOString().split('T')[0]; // Returns "YYYY-MM-DD"
+      return dateObject.toISOString().split('T')[0];
     }
 
     const updateMeeting = async () => {
       try {
-
-        // Convert dateValue to ISO format
         const isoDateValue = convertToISODate(dateValue);
-
         if (!isoDateValue) {
           console.error("Failed to convert dateValue to ISO format");
+          return;
         }
 
         const [startTime, endTime] = timeValue?.split(' - ') || [];
@@ -163,40 +135,30 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
           return;
         }
 
-        // in EST
-        const startDateString = `${isoDateValue}T${startTime}`;
-        const endDateString = `${isoDateValue}T${endTime}`;
-
-        if (!startDateString || !endDateString) {
-          console.error("Start or end date string could not be constructed");
-          return;
-        }
-
-        const startDateTimeUTCString = convertETToUTC(startDateString);
-        const endDateTimeUTCString = convertETToUTC(endDateString);
+        const startDateTimeUTCString = convertETToUTC(`${isoDateValue}T${startTime}`);
+        const endDateTimeUTCString = convertETToUTC(`${isoDateValue}T${endTime}`);
 
         const startDateTimeUTC = new Date(startDateTimeUTCString);
         const endDateTimeUTC = new Date(endDateTimeUTCString);
 
         const updatedMeeting: IMeeting = {
-            mid: formData.mid,
-            title: inputMeetingTitleValue,
-            modeType: selectedMode, // Meeting Mode Type
-            description: inputDescriptionValue,
-            creator: 'Creator',
-            group: 'Group',
-            startDateTime: startDateTimeUTC,
-            endDateTime: endDateTimeUTC,
-            email: inputEmailValue,
-            zoomAccount: selectedZoomAccount,
-            calType: selectedMeetingType, // Room Type
-            room: selectedRoom,
-            isRecurring: isRecurring,
-          };
+          mid: meeting.mid,
+          title: inputMeetingTitleValue,
+          modeType: selectedMode,
+          description: inputDescriptionValue,
+          creator: 'Creator',
+          group: 'Group',
+          startDateTime: startDateTimeUTC,
+          endDateTime: endDateTimeUTC,
+          email: inputEmailValue,
+          zoomAccount: selectedZoomRoom,
+          calType: selectedCalTypes,
+          status: meeting.status ?? 'Active',
+          room: selectedRoom,
+          isRecurring: isRecurring,
+        };
 
         if (isRecurring && recurrencePattern) {
-          // Use UTC start of the ET calendar day, not the meeting's start time,
-          // so the patternStartDate boundary check in the day route works correctly.
           const recurrenceStartDate = new Date(convertETToUTC(`${isoDateValue}T00:00`));
           updatedMeeting.recurrencePattern = {
             ...recurrencePattern,
@@ -206,15 +168,14 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
 
         const response = await fetch('/api/update/meeting', {
           method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(updatedMeeting),
         });
 
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
+
         const meetingResponse = await response.json();
         console.log(meetingResponse);
         alert("Meeting updated successfully! Please check the Meeting collection on MongoDB.");
@@ -239,11 +200,11 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
             value={inputMeetingTitleValue}
             onChange={setMeetingTitleValue}
           />}
-          modeTypeButtons={<ModeTypeButtons 
+          modeTypeButtons={<ModeTypeButtons
             selectedMode={selectedMode}
             onModeSelect={setSelectedMode}
           />}
-          selectedMode= {selectedMode}
+          selectedMode={selectedMode}
           DatePicker={<DatePicker
             label={<img src='/svg/calendar-icon.svg' alt="Calendar Icon" />}
             value={dateValue}
@@ -272,29 +233,38 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
               label={<img src="/svg/location-icon.svg" alt="Location Icon" />}
               value={selectedRoom}
               isVisible={true}
-              elements={roomOptions}
+              elements={physicalRoomOptions}
               name="Select Room"
               onChange={handleRoomChange}
             />
           }
           meetingTypeDropdown={
-            <Dropdown
-              label={<img src="svg/group-icon.svg" alt="Group Icon" />}
-              value={selectedMeetingType}
-              isVisible={true}
-              elements={meetingTypeOptions}
-              name="Select Meeting Type"
-              onChange={handleMeetingTypeChange}
-            />
+            <div style={{ display: 'flex', alignItems: 'center' }}>
+              <span style={{ marginRight: '6px', display: 'flex', alignItems: 'center' }}>
+                <img src="svg/group-icon.svg" alt="Group Icon" />
+              </span>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                {calTypeOptions.map(type => (
+                  <LabeledCheckbox
+                    key={type}
+                    label={type}
+                    checked={selectedCalTypes.includes(type)}
+                    onChange={(_e) => handleCalTypeToggle(type)}
+                    color={calTypeColor}
+                  />
+                ))}
+              </div>
+            </div>
           }
           zoomAccountDropdown={
             <Dropdown
+              key={selectedZoomRoom}
               label={<img src="svg/person-icon.svg" alt="Person Icon" />}
-              value={selectedZoomAccount}
+              value={selectedZoomRoom}
               isVisible={true}
-              elements={zoomAccountOptions}
-              name="Select Zoom Account"
-              onChange={handleZoomAccountChange}
+              elements={zoomRoomOptions}
+              name="Select Zoom Room"
+              onChange={setSelectedZoomRoom}
             />
           }
           emailTextField={<TextField

@@ -90,7 +90,7 @@ export const fetchMeetingsByDay = async (date: Date): Promise<Room[]> => {
         title: meeting.title,
         startTime: startEDT,
         endTime: endEDT,
-        tags: [meeting.calType, meeting.modeType],
+        tags: [...meeting.calType, meeting.modeType],
         syncError: meeting.syncStatus === 'error',
       });
     });
@@ -130,15 +130,16 @@ const timeSlots = Array.from({ length: 24 }, (_, i) => formatTime(i));
 
 const defaultRooms = [
   { name: 'Serenity Room', primaryColor: '#b3ea75' },
-  { name: 'Seeds of Hope', primaryColor: '#f7e57b' },
+  { name: 'Seeds of Hope Room', primaryColor: '#f7e57b' },
   { name: 'Unity Room', primaryColor: '#96dbfe' },
   { name: 'Room for Improvement', primaryColor: '#ffae73' },
-  { name: 'Small but Powerful - Right', primaryColor: '#d2afff' },
-  { name: 'Small but Powerful - Left', primaryColor: '#ffa3c2' },
-  { name: 'Zoom Account 1', primaryColor: '#cecece' },
-  { name: 'Zoom Account 2', primaryColor: '#cecece' },
-  { name: 'Zoom Account 3', primaryColor: '#cecece' },
-  { name: 'Zoom Account 4', primaryColor: '#cecece' },
+  { name: 'Room for Acceptance', primaryColor: '#ffa3c2' },
+  { name: 'Room for Gratitude', primaryColor: '#d2afff' },
+  { name: 'Serenity Room - Zoom', primaryColor: '#cecece' },
+  { name: 'Seeds of Hope Room - Zoom', primaryColor: '#cecece' },
+  { name: 'Unity Room - Zoom', primaryColor: '#cecece' },
+  { name: 'Room for Improvement - Zoom', primaryColor: '#cecece' },
+  { name: "Children's Room @ 518 - Zoom", primaryColor: '#cecece' },
 ];
 
 interface DailyViewProps {
@@ -192,7 +193,7 @@ const DailyView: React.FC<DailyViewProps> = ({
   }, [refreshTrigger]);
 
   const updateTimePosition = () => {
-    const now = new Date(selectedDate);
+    const now = new Date();
     const currentHour = now.getHours();
     const currentMinutes = now.getMinutes();
     const position = (currentHour * 60 + currentMinutes) * (155 / 60);
@@ -271,20 +272,29 @@ const DailyView: React.FC<DailyViewProps> = ({
             ))}
           </div>
 
-          {combinedRooms.map((room, rowIndex) => (
-            <div key={rowIndex} className={styles.gridRow}>
-              <div className={styles.gridMeetingRow}>
-                <DailyViewRow roomColor={room.primaryColor} meetings={room.meetings} setSelectedMeetingID={setSelectedMeetingID} setSelectedNewMeeting={setSelectedNewMeeting}/>
+          {combinedRooms.map((room, rowIndex) => {
+            const today = new Date();
+            const isToday =
+              selectedDate.getFullYear() === today.getFullYear() &&
+              selectedDate.getMonth() === today.getMonth() &&
+              selectedDate.getDate() === today.getDate();
+            return (
+              <div key={rowIndex} className={styles.gridRow}>
+                <div className={styles.gridMeetingRow}>
+                  <DailyViewRow roomColor={room.primaryColor} meetings={room.meetings} setSelectedMeetingID={setSelectedMeetingID} setSelectedNewMeeting={setSelectedNewMeeting}/>
+                </div>
+                {timeSlots.map((_, colIndex) => (
+                  <div key={colIndex} className={styles.gridCell}></div>
+                ))}
+                {isToday && (
+                  <div
+                    className={styles.currentTimeLine}
+                    style={{ left: `${currentTimePosition}px` }}
+                  />
+                )}
               </div>
-              {timeSlots.map((_, colIndex) => (
-                <div key={colIndex} className={styles.gridCell}></div>
-              ))}
-              <div
-                className={styles.currentTimeLine}
-                style={{ left: `${currentTimePosition}px` }}
-              />
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </div>
