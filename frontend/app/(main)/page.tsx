@@ -1,6 +1,6 @@
 'use client'
 import React from 'react';
-import HomePage from "./components/templates/HomePageLayout";
+import HomePage from "../components/templates/HomePageLayout";
 
 
 // const MainPage = () => {
