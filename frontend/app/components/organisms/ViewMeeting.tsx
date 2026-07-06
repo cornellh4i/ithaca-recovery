@@ -250,7 +250,7 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
             {syncing ? 'Retrying…' : 'Retry sync'}
           </button>
         )}
-        <p><strong>Location:</strong>&nbsp;{room}</p>
+        {room && <p><strong>Location:</strong>&nbsp;{room}</p>}
         {zoomAccount && <p><strong>Zoom Account:</strong>&nbsp;{zoomAccount}</p>}
         {zoomLink && <a href={zoomLink} target="_blank" rel="noopener noreferrer" className={styles.zoomLink}> 
           <VideoCameraFrontIcon /> {zoomLink}

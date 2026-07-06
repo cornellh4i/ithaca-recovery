@@ -79,6 +79,13 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({
       if (zoom) setSelectedZoomRoom(zoom);
     };
 
+    const handleModeSelect = (mode: string) => {
+      setSelectedMode(mode);
+      // Clear the fields the new mode doesn't use, so stale selections aren't submitted
+      if (mode === "In Person") setSelectedZoomRoom("");
+      if (mode === "Remote") setSelectedRoom("");
+    };
+
     const handleCalTypeToggle = (type: string) => {
       setSelectedCalTypes(prev =>
         prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]
@@ -113,18 +120,42 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({
       setIsNewMeetingOpen(false);
     };
 
-    const validateForm = () => {
-      if (selectedMode !== "Zoom" && !selectedRoom) {
-        return false;
+    const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
+    const getValidationErrors = (): string[] => {
+      const errors: string[] = [];
+
+      if (!inputMeetingTitleValue.trim()) errors.push("Meeting title is required.");
+      if (!dateValue) errors.push("Date is required.");
+
+      const [startTime, endTime] = timeValue?.split(' - ') || [];
+      if (!startTime || !endTime) errors.push("Start and end time are required.");
+
+      if (!inputEmailValue.trim()) {
+        errors.push("Email is required.");
+      } else if (!isValidEmail(inputEmailValue)) {
+        errors.push("Email must be a valid email address.");
       }
+
+      if (selectedMode === "Hybrid" && (!selectedRoom || !selectedZoomRoom)) {
+        errors.push("Hybrid meetings require both a physical room and a Zoom room.");
+      } else if (selectedMode === "In Person" && !selectedRoom) {
+        errors.push("In Person meetings require a physical room.");
+      } else if (selectedMode === "Remote" && !selectedZoomRoom) {
+        errors.push("Remote meetings require a Zoom room.");
+      }
+
       if (isRecurring && recurrencePattern === null) {
-        return false;
+        errors.push("Recurrence details are required for recurring meetings.");
       }
-      return true;
+
+      return errors;
     };
 
     const createMeeting = async () => {
-      if (!validateForm()) {
+      const validationErrors = getValidationErrors();
+      if (validationErrors.length > 0) {
+        alert(validationErrors.join('\n'));
         return;
       }
 
@@ -222,7 +253,7 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({
           modeTypeButtons={
             <ModeTypeButtons
               selectedMode={selectedMode}
-              onModeSelect={setSelectedMode}
+              onModeSelect={handleModeSelect}
             />
           }
           selectedMode={selectedMode}
@@ -247,7 +278,7 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({
           roomSelectionDropdown={
             <Dropdown
               label={<img src="/svg/location-icon.svg" alt="Location Icon" />}
-              isVisible={selectedMode !== "Zoom"}
+              isVisible={selectedMode !== "Remote"}
               elements={physicalRoomOptions}
               name="Select Room"
               onChange={handleRoomChange}
@@ -276,7 +307,7 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({
               key={selectedZoomRoom}
               label={<img src="svg/person-icon.svg" alt="Person Icon" />}
               value={selectedZoomRoom}
-              isVisible={selectedMode !== "In-Person"}
+              isVisible={selectedMode !== "In Person"}
               elements={zoomRoomOptions}
               name="Select Zoom Room"
               onChange={setSelectedZoomRoom}
