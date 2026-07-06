@@ -73,11 +73,6 @@ export const fetchMeetingsByDay = async (date: Date): Promise<Room[]> => {
     const groupedRooms: { [key: string]: Meeting[] } = {};
 
     clipped.forEach((meeting: any) => {
-      const roomName = meeting.room;
-      if (!groupedRooms[roomName]) {
-        groupedRooms[roomName] = [];
-      }
-
       // Convert meeting times from UTC to EDT for display
       const startUTC = new Date(meeting.startDateTime);
       const endUTC = new Date(meeting.endDateTime);
@@ -85,13 +80,23 @@ export const fetchMeetingsByDay = async (date: Date): Promise<Room[]> => {
       const startEDT = convertUTCToET(startUTC.toISOString());
       const endEDT = convertUTCToET(endUTC.toISOString());
 
-      groupedRooms[roomName].push({
+      const meetingEntry: Meeting = {
         id: meeting.mid,
         title: meeting.title,
         startTime: startEDT,
         endTime: endEDT,
         tags: [...meeting.calType, meeting.modeType],
         syncError: meeting.syncStatus === 'error',
+      };
+
+      // A Hybrid meeting occupies both its physical room and its Zoom room;
+      // Remote only has a Zoom room, In Person only has a physical room.
+      const roomNames: string[] = [meeting.room, meeting.zoomAccount].filter(Boolean);
+      roomNames.forEach((roomName: string) => {
+        if (!groupedRooms[roomName]) {
+          groupedRooms[roomName] = [];
+        }
+        groupedRooms[roomName].push(meetingEntry);
       });
     });
 

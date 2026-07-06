@@ -3,7 +3,7 @@ import { google } from "googleapis";
 import { IMeeting, IRecurrencePattern } from "../util/models";
 import { getETDayBounds, convertETToUTC } from "../util/timeUtils";
 
-const calendarIdForCategory: Record<string, string> = {
+export const calendarIdForCategory: Record<string, string> = {
     AA:        process.env.GOOGLE_CALENDAR_AA ?? "",
     "Al-Anon": process.env.GOOGLE_CALENDAR_ALANON ?? "",
     Other:     process.env.GOOGLE_CALENDAR_OTHER ?? "",
@@ -64,7 +64,7 @@ function toRRule(pattern: IRecurrencePattern): string {
 function buildEventBody(meeting: IMeeting) {
     const descriptionLines = [
         meeting.description,
-        meeting.calType ? `Type: ${meeting.calType}` : null,
+        meeting.calType?.length ? `Type: ${meeting.calType.join(', ')}` : null,
         meeting.modeType ? `Mode: ${meeting.modeType}` : null,
         meeting.room ? `Room: ${meeting.room}` : null,
         meeting.zoomLink ? `Zoom: ${meeting.zoomLink}` : null,

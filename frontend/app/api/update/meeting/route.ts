@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../../auth/authConfig";
 import { IMeeting } from "../../../../util/models";
-import { createCalendarEvent, updateCalendarEvent, calendarIdsForMeeting } from "../../../../services/googleCalendar";
+import { createCalendarEvent, updateCalendarEvent, deleteCalendarEvent, calendarIdsForMeeting, calendarIdForCategory } from "../../../../services/googleCalendar";
 
 const prisma = new PrismaClient();
 
@@ -72,6 +72,18 @@ const updateMeeting = async (request: Request): Promise<Response> => {
       const existingEventIds = (existingMeeting.googleCalendarEventIds ?? {}) as Record<string, string>;
       const updatedEventIds: Record<string, string> = { ...existingEventIds };
       let allSynced = true;
+
+      // Remove events from calendars whose category is no longer part of this meeting's calType
+      for (const cat of Object.keys(existingEventIds)) {
+        if (calendarIds[cat]) continue;
+        const calId = calendarIdForCategory[cat];
+        const eventId = existingEventIds[cat];
+        if (calId && eventId) {
+          const ok = await deleteCalendarEvent(session.accessToken, eventId, calId);
+          if (!ok) allSynced = false;
+        }
+        delete updatedEventIds[cat];
+      }
 
       for (const [cat, calId] of Object.entries(calendarIds)) {
         const existingId = existingEventIds[cat];
