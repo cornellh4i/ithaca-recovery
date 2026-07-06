@@ -128,6 +128,9 @@ const formatTime = (hour: number): string => {
 
 const timeSlots = Array.from({ length: 24 }, (_, i) => formatTime(i));
 
+// Mode tags are mutually exclusive per meeting (unlike calendar tags, which can be combined)
+const modeTagNames = new Set(['InPerson', 'Hybrid', 'Remote']);
+
 const defaultRooms = [
   { name: 'Serenity Room', primaryColor: '#b3ea75' },
   { name: 'Seeds of Hope Room', primaryColor: '#f7e57b' },
@@ -213,15 +216,23 @@ const DailyView: React.FC<DailyViewProps> = ({
 
   // filter meetings based on meeting type and room filters
   const filterMeetings = (room: Room): Room => {
-    // filter meetings based on  tags (meeting type)
+    // filter meetings based on tags (meeting type)
     const filteredMeetings = room.meetings.filter(meeting => {
-      // check if all tags for this meeting are enabled in filters
-      return meeting.tags.every(tag => {
-        // normalize tag name to match filter names (removing spaces and special chars)
-        const normalizedTag = tag.replace(/[-\s]+/g, '').replace(/\s+/g, '');
-        // ff filter for this tag exists and is true, or if filter doesn't exist, keep the meeting
-        return filters[normalizedTag] !== false;
-      });
+      // normalize tag names to match filter names (removing spaces and special chars)
+      const normalizedTags = meeting.tags.map(tag => tag.replace(/[-\s]+/g, ''));
+      // mode tags (In Person / Hybrid / Remote) are mutually exclusive per meeting,
+      // but calendar tags (AA / Al-Anon / Other) can apply multiple at once
+      const modeTags = normalizedTags.filter(tag => modeTagNames.has(tag));
+      const calendarTags = normalizedTags.filter(tag => !modeTagNames.has(tag));
+
+      // a meeting with multiple calendar tags should only be filtered out
+      // once every one of its calendar tags has been unchecked
+      const passesCalendarFilter =
+        calendarTags.length === 0 || calendarTags.some(tag => filters[tag] !== false);
+      // mode is a single tag, so it must remain enabled to keep the meeting
+      const passesModeFilter = modeTags.every(tag => filters[tag] !== false);
+
+      return passesCalendarFilter && passesModeFilter;
     });
 
     // return the room with filtered meetings

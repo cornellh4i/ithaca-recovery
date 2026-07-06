@@ -1,6 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;600&display=swap');
 
 .box {
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   font-family: "Source Sans Pro";
@@ -10,7 +11,8 @@
   &.meeting {
     // Width for a 15 minute Meeting
     min-width: 16px;
-    height: 85px;
+    height: 105px;
+    overflow: hidden;
     padding: 8px 16px;
     border-radius: 6px;
 
@@ -30,7 +32,7 @@
 
   &.room {
     width: 155px;
-    height: 88px;
+    height: 105px;
     padding: 10px 12px;
     margin: 0px;
     border-radius: 4px;
@@ -60,13 +62,12 @@
 
   .tags {
     display: flex;
-    flex-wrap: nowrap;
-    margin-top: 16px;
+    flex-wrap: wrap;
+    // Anchors to the bottom of the box
+    margin-top: auto;
     padding: 0px;
     gap: 4px;
     align-items: center;
-    overflow-x: hidden;
-    white-space: nowrap;
 
     .tag {
       padding: 2px 12px;
