@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+export const dynamic = "force-dynamic";
+
+import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Logo from "../../components/navigation/navbar/logo";
 import CalendarNavbar from "../../components/organisms/CalendarNavbar";
@@ -15,6 +17,14 @@ const MIDNIGHT_CHECK_INTERVAL_MS = 30 * 1000;
 const roomNames = defaultRooms.map(room => room.name);
 
 export default function SignagePage() {
+  return (
+    <Suspense fallback={null}>
+      <SignageContent />
+    </Suspense>
+  );
+}
+
+function SignageContent() {
   const searchParams = useSearchParams();
   const filters = useMemo(
     () => parseSignageFilters(searchParams, roomNames),
