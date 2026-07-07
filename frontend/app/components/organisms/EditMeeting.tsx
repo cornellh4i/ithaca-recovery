@@ -98,8 +98,10 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
     const [selectedMeetingType, setSelectedMeetingType] = useState<string>(formData.calType);
     const [selectedZoomAccount, setSelectedZoomAccount] = useState<string>(formData.zoomAccount);
 
-    const [isRecurring, setIsRecurring] = useState(false);
-    const [recurrencePattern, setRecurrencePattern] = useState<IRecurrencePattern | null>(null);
+    const [isRecurring, setIsRecurring] = useState(!!meeting.recurrencePattern);
+    const [recurrencePattern, setRecurrencePattern] = useState<IRecurrencePattern | null>(
+      meeting.recurrencePattern ?? null
+    );
 
     const handleRecurringMeetingChange = (data: {
       isRecurring: boolean;
@@ -189,12 +191,16 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
             zoomAccount: selectedZoomAccount,
             calType: selectedMeetingType, // Room Type
             room: selectedRoom,
+            isRecurring: isRecurring,
           };
 
         if (isRecurring && recurrencePattern) {
+          // Use UTC start of the ET calendar day, not the meeting's start time,
+          // so the patternStartDate boundary check in the day route works correctly.
+          const recurrenceStartDate = new Date(convertETToUTC(`${isoDateValue}T00:00`));
           updatedMeeting.recurrencePattern = {
             ...recurrencePattern,
-            startDate: startDateTimeUTC
+            startDate: recurrenceStartDate,
           };
         }
 
@@ -255,6 +261,10 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
             <RecurringMeetingForm
               onChange={handleRecurringMeetingChange}
               startDate={dateValue}
+              initialValue={{
+                isRecurring: !!meeting.recurrencePattern,
+                recurrencePattern: meeting.recurrencePattern ?? null,
+              }}
             />
           }
           roomSelectionDropdown={

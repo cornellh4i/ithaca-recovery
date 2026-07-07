@@ -1,6 +1,9 @@
 import { PrismaClient } from "@prisma/client";
 import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "../../auth/authConfig";
 import { IMeeting } from "../../../../util/models";
+import { createCalendarEvent, updateCalendarEvent } from "../../../../services/googleCalendar";
 
 const prisma = new PrismaClient();
 
@@ -12,6 +15,7 @@ const updateMeeting = async (request: Request): Promise<Response> => {
       where: {
         mid: newMeeting.mid,
       },
+      include: { recurrencePattern: true },
     });
 
     if (!existingMeeting) {
@@ -34,7 +38,7 @@ const updateMeeting = async (request: Request): Promise<Response> => {
                   type: recurrencePattern.type,
                   startDate: recurrencePattern.startDate,
                   endDate: recurrencePattern.endDate ?? undefined,
-                  numberOfOccurences: recurrencePattern.numberOfOccurrences ?? undefined,
+                  numberOfOccurrences: recurrencePattern.numberOfOccurrences ?? undefined,
                   daysOfWeek: recurrencePattern.daysOfWeek ?? [],
                   firstDayOfWeek: recurrencePattern.firstDayOfWeek,
                   interval: recurrencePattern.interval,
@@ -43,17 +47,42 @@ const updateMeeting = async (request: Request): Promise<Response> => {
                   type: recurrencePattern.type,
                   startDate: recurrencePattern.startDate,
                   endDate: recurrencePattern.endDate ?? undefined,
-                  numberOfOccurences: recurrencePattern.numberOfOccurrences ?? undefined,
+                  numberOfOccurrences: recurrencePattern.numberOfOccurrences ?? undefined,
                   daysOfWeek: recurrencePattern.daysOfWeek ?? [],
                   firstDayOfWeek: recurrencePattern.firstDayOfWeek,
                   interval: recurrencePattern.interval,
                 },
               },
             }
-          : { delete: true },
+          : existingMeeting.recurrencePattern
+            ? { delete: true }
+            : undefined,
       },
     });
     
+
+    // Google Calendar sync — failure updates syncStatus but does not fail the request
+    const session = await getServerSession(authOptions);
+    if (session?.accessToken) {
+      const existingEventId = existingMeeting.googleCalendarEventId;
+      let synced: boolean;
+      let newEventId: string | null = null;
+
+      if (existingEventId) {
+        synced = await updateCalendarEvent(session.accessToken, existingEventId, newMeeting);
+      } else {
+        newEventId = await createCalendarEvent(session.accessToken, newMeeting);
+        synced = !!newEventId;
+      }
+
+      await prisma.meeting.update({
+        where: { mid },
+        data: {
+          ...(newEventId ? { googleCalendarEventId: newEventId } : {}),
+          syncStatus: synced ? 'synced' : 'error',
+        },
+      });
+    }
 
     return NextResponse.json(updatedMeeting);
   } catch (error) {

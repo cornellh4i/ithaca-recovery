@@ -3,6 +3,7 @@ import styles from '../../../../styles/organisms/DailyView.module.scss';
 import BoxText from '../../atoms/BoxText';
 import DailyViewRow from "../../molecules/DailyViewRow";
 import { convertUTCToET } from "../../../../util/timeUtils";
+import { IMeeting } from "../../../../util/models";
 
 type Meeting = {
   id: string;
@@ -30,7 +31,7 @@ export const fetchMeetingsByDay = async (date: Date): Promise<Room[]> => {
   }
   try {
     const response = await fetch(`/api/retrieve/meeting/day?startDate=${formattedDate}`);
-    const data = await response.json();
+    const data: IMeeting[] = await response.json();
     console.log("Raw API response:", data);
 
     const dayStart = new Date(date); 
@@ -43,12 +44,12 @@ export const fetchMeetingsByDay = async (date: Date): Promise<Room[]> => {
       const end = new Date(meeting.endDateTime);
       console.log("End time:", meeting.endDateTime);
 
-      //Case 1: Meeting spans into today from before; start it at 12:00 AM today 
+      //Case 1: Meeting spans into today from before; start it at 12:00 AM today
       if (start < dayStart && end > dayStart) {
         return [{
           ...meeting,
-          startDateTime: dayStart.toISOString(),
-          endDateTime: end < dayEnd ? meeting.endDateTime : dayEnd.toISOString(),
+          startDateTime: dayStart,
+          endDateTime: end < dayEnd ? meeting.endDateTime : dayEnd,
         }];
       }
 
@@ -57,8 +58,8 @@ export const fetchMeetingsByDay = async (date: Date): Promise<Room[]> => {
         return [{
           ...meeting,
           startDateTime: meeting.startDateTime,
-          endDateTime: dayEnd.toISOString(),
-        }]
+          endDateTime: dayEnd,
+        }];
       }
 
       //Case 3: Fully inside today
@@ -160,9 +161,9 @@ const DailyView: React.FC<DailyViewProps> = ({
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const fetchData = async (forceFetch = false) => {
-    // If forceFetch is true, invalidate cache first
+    // Clear the entire cache so stale data on other dates is also dropped.
     if (forceFetch) {
-      invalidateCache(selectedDate);
+      meetingCache.clear();
     }
     
     const data = await fetchMeetingsByDay(selectedDate);

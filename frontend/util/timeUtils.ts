@@ -27,32 +27,61 @@ export const convertUTCToET = (utcDateString: string): string => {
 };
 
 /**
- * Converts an EST (Eastern Standard Time) date string to UTC.
- * 
- * @param estDateString the ET date string to be converted (in MM/DD/YYYY, hh:mm:ss AM/PM format)
+ * Converts an ET date string to UTC.
+ * Handles DST automatically — works regardless of the host machine's local timezone.
+ *
+ * @param etDateString - ET date string in "YYYY-MM-DDTHH:mm" or "YYYY-MM-DDTHH:mm:ss" format
  * @returns corresponding UTC date string in ISO 8601 format
  */
-export const convertETToUTC = (estDateString: string): string => {
-  const estDate = new Date(estDateString);
+export const convertETToUTC = (etDateString: string): string => {
+  const [datePart, timePart = '00:00:00'] = etDateString.split('T');
+  const [year, month, day] = datePart.split('-').map(Number);
+  const [hour = 0, minute = 0, second = 0] = timePart.split(':').map(Number);
 
-  if (isNaN(estDate.getTime())) {
-    throw new Error('Invalid EST date string');
-  }
+  // Create a UTC probe with the same numeric values as the ET input, then ask
+  // Intl what ET wall time that probe corresponds to.  The difference between
+  // the target ET time and the probe's ET time equals the ET→UTC offset at
+  // that moment — correcting for DST automatically.
+  const probe = new Date(Date.UTC(year, month - 1, day, hour, minute, second));
 
-  const formatter = new Intl.DateTimeFormat('en-US', {
+  const etParts = new Intl.DateTimeFormat('en-US', {
     timeZone: 'America/New_York',
-    hour12: false,
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
     hour: '2-digit',
     minute: '2-digit',
     second: '2-digit',
-  });
+    hour12: false,
+  }).formatToParts(probe);
 
-  const estFormattedDate = formatter.format(estDate);
+  const get = (type: Intl.DateTimeFormatPartTypes) =>
+    parseInt(etParts.find(p => p.type === type)?.value ?? '0');
 
-  const utcDate = new Date(estFormattedDate).toISOString();
+  // Use the full ET datetime (including day) from Intl so that day-boundary
+  // cases work correctly — e.g. UTC midnight = previous day 8 PM ET, and the
+  // hours-only diff would go negative without the date component.
+  const probeEtAsUTC = Date.UTC(
+    get('year'), get('month') - 1, get('day'),
+    get('hour') % 24, get('minute'), get('second'),
+  );
+  const targetEtAsUTC = Date.UTC(year, month - 1, day, hour, minute, second);
+  const diffMs = targetEtAsUTC - probeEtAsUTC;
 
-  return utcDate;
+  return new Date(probe.getTime() + diffMs).toISOString();
+};
+
+/**
+ * Returns the UTC start (midnight ET) and end (23:59:59.999 ET) for a given
+ * ET calendar date.  Use this for day-boundary queries so DST is handled
+ * correctly without hardcoded hour offsets.
+ *
+ * @param etDateStr - Calendar date in "YYYY-MM-DD" format (interpreted as ET)
+ * @returns [startOfDay, endOfDay] as UTC Date objects
+ */
+export const getETDayBounds = (etDateStr: string): [Date, Date] => {
+  const start = new Date(convertETToUTC(`${etDateStr}T00:00:00`));
+  const end = new Date(convertETToUTC(`${etDateStr}T23:59:59`));
+  end.setUTCMilliseconds(999);
+  return [start, end];
 };

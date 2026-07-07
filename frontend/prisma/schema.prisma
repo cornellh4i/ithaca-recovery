@@ -19,36 +19,41 @@ model Admin {
 }
 
 model Meeting {
-  id                String               @id @default(auto()) @map("_id") @db.ObjectId
-  mid               String               @unique
-  title             String
-  calType           String
-  description       String
-  creator           String
-  group             String
-  startDateTime     DateTime             @db.Date
-  endDateTime       DateTime             @db.Date
-  email             String
-  zoomAccount       String?              // optional
-  zoomLink          String?              // optional
-  zid               String?              // optional
-  room              String
-  modeType          String
-  isRecurring       Boolean              @default(false)
-  recurrencePattern RecurrencePattern?   @relation("MeetingToRecurrencePattern")
+  id                    String               @id @default(auto()) @map("_id") @db.ObjectId
+  mid                   String               @unique
+  title                 String
+  calType               String
+  description           String
+  creator               String
+  group                 String
+  startDateTime         DateTime             @db.Date
+  endDateTime           DateTime             @db.Date
+  email                 String
+  zoomAccount           String?
+  zoomLink              String?
+  zid                   String?
+  room                  String
+  modeType              String
+  isRecurring           Boolean              @default(false)
+  recurrencePattern     RecurrencePattern?   @relation("MeetingToRecurrencePattern")
+  googleCalendarEventId String?
+  syncStatus            String?
+  deletedAt             DateTime?
+  updatedAt             DateTime?            @updatedAt
 }
 
 model RecurrencePattern {
-  id                 String   @id @default(auto()) @map("_id") @db.ObjectId
-  mid                String   @unique
-  meeting            Meeting  @relation("MeetingToRecurrencePattern", fields: [mid], references: [mid])
+  id                 String     @id @default(auto()) @map("_id") @db.ObjectId
+  mid                String     @unique
+  meeting            Meeting    @relation("MeetingToRecurrencePattern", fields: [mid], references: [mid])
   type               String
   startDate          DateTime
   endDate            DateTime?
-  numberOfOccurences Int?
+  numberOfOccurrences Int?
   daysOfWeek         String[]
   firstDayOfWeek     String
   interval           Int
+  excludedDates      DateTime[] @default([])
 }
 
 

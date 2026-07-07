@@ -7,9 +7,9 @@ const getMeeting = async(request: NextRequest) => {
     const mid = request.nextUrl.pathname.split('/').pop() as string;
     console.log("Requested meeting ID:", mid);
 
-    const meeting = await prisma.meeting.findUnique({
+    const meeting = await prisma.meeting.findFirst({
       where: {
-        mid: String(mid),
+        AND: [{ mid: String(mid) }, { OR: [{ deletedAt: null }, { deletedAt: { isSet: false } }] }],
       },
       include: {
         recurrencePattern: true,

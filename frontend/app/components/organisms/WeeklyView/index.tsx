@@ -145,9 +145,9 @@ const WeeklyView: React.FC<WeeklyViewProps> = ({
         const endDate = new Date(weekStartDate);
         endDate.setDate(weekStartDate.getDate() + 6);
 
-        // If forceFetch is true, invalidate cache first
+        // Clear the entire cache so stale data on other weeks is also dropped.
         if (forceFetch) {
-            invalidateWeekCache(weekStartDate, endDate);
+            meetingCache.clear();
         }
 
         const meetings = await fetchMeetingsByWeek(weekStartDate, endDate);

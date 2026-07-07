@@ -1,13 +1,23 @@
 import { PrismaClient } from '@prisma/client';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '../../auth/authConfig';
+import { getETDayBounds } from '../../../../util/timeUtils';
+import {
+  deleteCalendarEvent,
+  deleteCalendarOccurrence,
+  trimCalendarEventSeries,
+} from '../../../../services/googleCalendar';
 
 const prisma = new PrismaClient();
+
+// Returns "YYYY-MM-DD" in Eastern Time for the given UTC timestamp.
+const toETDateStr = (date: Date): string =>
+  new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' }).format(date);
 
 const deleteMeeting = async (request: Request) => {
   try {
     const body = await request.json();
-    const { mid, deleteOption } = body;
-
-    console.log('Delete request received:', { mid, deleteOption });
+    const { mid, deleteOption, occurrenceDate } = body;
 
     const meeting = await prisma.meeting.findUnique({
       where: { mid },
@@ -15,7 +25,6 @@ const deleteMeeting = async (request: Request) => {
     });
 
     if (!meeting) {
-      console.error('Meeting not found:', mid);
       return new Response(JSON.stringify({ error: "Meeting not found" }), {
         status: 404,
         headers: { 'Content-Type': 'application/json' },
@@ -24,89 +33,74 @@ const deleteMeeting = async (request: Request) => {
 
     const isRecurring = !!meeting.recurrencePattern || meeting.isRecurring;
 
-    if (isRecurring) {
-      if (!deleteOption) {
-        return new Response(JSON.stringify({ error: "Delete option is required for recurring meetings" }), {
-          status: 400,
-          headers: { 'Content-Type': 'application/json' },
-        });
+    if (isRecurring && !deleteOption) {
+      return new Response(JSON.stringify({ error: "Delete option is required for recurring meetings" }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (isRecurring && !['this', 'thisAndFollowing', 'all'].includes(deleteOption)) {
+      return new Response(JSON.stringify({ error: "Invalid delete option" }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    if ((deleteOption === 'this' || deleteOption === 'thisAndFollowing') && !occurrenceDate) {
+      return new Response(JSON.stringify({ error: "occurrenceDate is required for this delete option" }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Google Calendar sync — fire before or alongside MongoDB changes; errors are logged, not thrown
+    const session = await getServerSession(authOptions);
+    const accessToken = session?.accessToken;
+    const gcalEventId = meeting.googleCalendarEventId;
+
+    if ((deleteOption === 'this' || deleteOption === 'thisAndFollowing') && !meeting.recurrencePattern) {
+      return new Response(JSON.stringify({ error: "Meeting has no recurrence pattern" }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (deleteOption === 'this') {
+      // MongoDB: record excluded date
+      const etDateStr = toETDateStr(new Date(occurrenceDate));
+      const [excludedDate] = getETDayBounds(etDateStr);
+      await prisma.recurrencePattern.update({
+        where: { mid },
+        data: { excludedDates: { push: excludedDate } },
+      });
+      // Google Calendar: add EXDATE for this occurrence
+      if (accessToken && gcalEventId) {
+        await deleteCalendarOccurrence(accessToken, gcalEventId, meeting.startDateTime, occurrenceDate);
       }
-
-      console.log('Handling recurring meeting deletion with option:', deleteOption);
-
-      switch (deleteOption) {
-        case 'this':
-          console.log('Deleting only this occurrence - PLACEHOLDER');
-          break;
-
-        case 'thisAndFollowing':
-          console.log('Deleting this and following occurrences - PLACEHOLDER');
-          break;
-
-        case 'all':
-          console.log('Deleting all occurrences');
-
-          if (meeting.recurrencePattern) {
-            try {
-              const allMeetings = await prisma.meeting.findMany({
-                where: {
-                  recurrencePattern: {
-                    id: meeting.recurrencePattern.id
-                  }
-                }
-              });
-
-              console.log(`Found ${allMeetings.length} meetings to delete`);
-
-              for (const mtg of allMeetings) {
-                await prisma.meeting.update({
-                  where: { id: mtg.id },
-                  data: {
-                    recurrencePattern: {
-                      disconnect: true
-                    }
-                  }
-                });
-
-                await prisma.meeting.delete({
-                  where: { id: mtg.id }
-                });
-              }
-
-              console.log("Deleting recurrence pattern:", meeting.recurrencePattern.id);
-              await prisma.recurrencePattern.delete({
-                where: {
-                  id: meeting.recurrencePattern.id
-                }
-              });
-
-              // Ensure the original meeting is deleted (if not already in list)
-              const isAlreadyDeleted = allMeetings.some(m => m.id === meeting.id);
-              if (!isAlreadyDeleted) {
-                await prisma.meeting.delete({ where: { mid } });
-              }
-
-            } catch (error) {
-              console.error("Error while deleting recurring meetings:", error);
-              return new Response(JSON.stringify({ error: "Error while deleting recurring meetings" }), {
-                status: 500,
-                headers: { 'Content-Type': 'application/json' },
-              });
-            }
-          } else {
-            await prisma.meeting.delete({ where: { mid } });
-          }
-          break;
-
-        default:
-          return new Response(JSON.stringify({ error: "Invalid delete option" }), {
-            status: 400,
-            headers: { 'Content-Type': 'application/json' },
-          });
+    } else if (deleteOption === 'thisAndFollowing') {
+      // MongoDB: trim the series end date
+      const etDateStr = toETDateStr(new Date(occurrenceDate));
+      const [occurrenceUTCStart] = getETDayBounds(etDateStr);
+      const newEndDate = new Date(occurrenceUTCStart.getTime() - 1);
+      await prisma.recurrencePattern.update({
+        where: { mid },
+        data: { endDate: newEndDate },
+      });
+      // Google Calendar: update the RRULE UNTIL
+      if (accessToken && gcalEventId) {
+        await trimCalendarEventSeries(accessToken, gcalEventId, occurrenceDate);
       }
     } else {
-      console.log('Deleting non-recurring meeting');
-      await prisma.meeting.delete({ where: { mid } });
+      // 'all' or non-recurring: soft-delete the master meeting record
+      await prisma.meeting.update({
+        where: { mid },
+        data: { deletedAt: new Date() },
+      });
+      // Google Calendar: delete the entire event
+      if (accessToken && gcalEventId) {
+        await deleteCalendarEvent(accessToken, gcalEventId);
+      }
     }
 
     return new Response(JSON.stringify({ message: "Meeting deleted successfully" }), {

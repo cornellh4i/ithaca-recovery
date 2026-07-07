@@ -26,6 +26,7 @@
     "@testing-library/react": "^14.2.2",
     "axios": "^1.6.8",
     "dayjs": "^1.11.10",
+    "googleapis": "^173.0.0",
     "mongoose": "^8.2.1",
     "next": "^14.1.1",
     "next-auth": "^4.24.14",

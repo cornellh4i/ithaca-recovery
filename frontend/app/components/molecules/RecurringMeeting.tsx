@@ -17,18 +17,49 @@ interface RecurringMeetingFormProps {
     recurrencePattern: IRecurrencePattern | null;
   }) => void;
   startDate?: string;
+  initialValue?: {
+    isRecurring: boolean;
+    recurrencePattern: IRecurrencePattern | null;
+  };
 }
 
-const RecurringMeetingForm: React.FC<RecurringMeetingFormProps> = ({ 
-  onChange, 
+// Full day name → abbreviated ID used by the day-picker buttons
+const fullDayToId: Record<string, string> = {
+  Sunday: 'sun', Monday: 'mon', Tuesday: 'tue', Wednesday: 'wed',
+  Thursday: 'thu', Friday: 'fri', Saturday: 'sat',
+};
+
+function inferEndOption(pattern: IRecurrencePattern | null): string {
+  if (pattern?.numberOfOccurrences != null) return 'After';
+  if (pattern?.endDate != null) return 'On';
+  return 'Never';
+}
+
+// Format a Date (or ISO string) to "MM/DD/YYYY" for the DatePicker
+function toDatePickerString(date: Date | string | null | undefined): string {
+  if (!date) return "";
+  const d = new Date(date as string);
+  if (isNaN(d.getTime())) return "";
+  return `${String(d.getUTCMonth() + 1).padStart(2, '0')}/${String(d.getUTCDate()).padStart(2, '0')}/${d.getUTCFullYear()}`;
+}
+
+const RecurringMeetingForm: React.FC<RecurringMeetingFormProps> = ({
+  onChange,
   startDate,
+  initialValue,
 }) => {
-  const [isRecurring, setIsRecurring] = useState(false);
-  const [frequency, setFrequency] = useState(1);
-  const [selectedDays, setSelectedDays] = useState<string[]>([]);
-  const [endOption, setEndOption] = useState('Never');
-  const [endDate, setEndDate] = useState<string | undefined>("");
-  const [occurrences, setOccurrences] = useState(1);
+  const initPattern = initialValue?.recurrencePattern ?? null;
+
+  const [isRecurring, setIsRecurring] = useState(initialValue?.isRecurring ?? false);
+  const [frequency, setFrequency] = useState(initPattern?.interval ?? 1);
+  const [selectedDays, setSelectedDays] = useState<string[]>(
+    (initPattern?.daysOfWeek ?? []).map(d => fullDayToId[d] ?? d)
+  );
+  const [endOption, setEndOption] = useState(inferEndOption(initPattern ?? null));
+  const [endDate, setEndDate] = useState<string | undefined>(toDatePickerString(initPattern?.endDate));
+  const [occurrences, setOccurrences] = useState(
+    initPattern?.numberOfOccurrences ?? 1
+  );
   const [touched, setTouched] = useState<boolean>(false);
   
   // Map day abbreviations to full day names for Microsoft Graph API compatibility
