@@ -170,12 +170,13 @@ const retrieveDayMeetings = async (request: NextRequest) => {
         
         const typedMeetings: IMeeting[] = allMeetings.map((meeting) => {
             const { recurrencePattern, ...meetingDetails } = meeting;
-          
+
             return {
               ...meetingDetails,
+              googleCalendarEventIds: (meeting.googleCalendarEventIds ?? {}) as Record<string, string>,
               recurrencePattern: recurrencePattern ?? null,
             };
-          });          
+          });
         
         return new Response(JSON.stringify(typedMeetings), {
             status: 200,

@@ -34,7 +34,10 @@ const retrieveWeekMeetings = async (request: NextRequest) => {
         }
         );
 
-        const typedMeetings: IMeeting[] = meetings.map(meeting => ({ ...meeting }))
+        const typedMeetings: IMeeting[] = meetings.map(meeting => ({
+            ...meeting,
+            googleCalendarEventIds: (meeting.googleCalendarEventIds ?? {}) as Record<string, string>,
+        }))
         return new Response(JSON.stringify(typedMeetings), {
             status: 200,
             headers: {
