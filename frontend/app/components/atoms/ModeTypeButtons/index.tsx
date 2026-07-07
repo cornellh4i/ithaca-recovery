@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import styles from '../../../../styles/components/organisms/MeetingForm.module.scss';
+import styles from '../../../../styles/components/atoms/ModeTypeButtons.module.scss';
 
 interface ModeButtonsProps {
   selectedMode: string;

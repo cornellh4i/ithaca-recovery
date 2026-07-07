@@ -1,4 +1,4 @@
-import styles from "../../../../styles/UploadPandaDocs.module.scss"
+import styles from "../../../../styles/components/atoms/UploadPandaDocs.module.scss"
 import React, { useState, useCallback } from 'react';
 
 interface UploadProps {

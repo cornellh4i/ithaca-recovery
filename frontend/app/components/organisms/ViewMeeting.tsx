@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import styles from '../../../styles/ViewMeeting.module.scss';
+import styles from '../../../styles/components/organisms/ViewMeeting.module.scss';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import VideoCameraFrontIcon from '@mui/icons-material/VideoCameraFront';

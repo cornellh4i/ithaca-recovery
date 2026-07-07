@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import styles from '../../../../styles/organisms/WeeklyView.module.scss';
+import styles from '../../../../styles/components/organisms/WeeklyView.module.scss';
 import WeeklyViewColumn from "../../molecules/WeeklyViewColumn";
 
 type Meeting = {

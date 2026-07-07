@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
-import styles from '../../../../styles/organisms/DailyView.module.scss';
+import styles from '../../../../styles/components/organisms/DailyView.module.scss';
 import BoxText from '../../atoms/BoxText';
 import DailyViewRow from "../../molecules/DailyViewRow";
 import { convertUTCToET } from "../../../../util/timeUtils";
