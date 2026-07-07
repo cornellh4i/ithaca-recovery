@@ -25,13 +25,15 @@ const syncMeeting = async (request: Request): Promise<Response> => {
             return NextResponse.json({ error: "Meeting not found" }, { status: 404 });
         }
 
+        const existingEventIds = (meeting.googleCalendarEventIds ?? {}) as Record<string, string>;
+
         const meetingForCalendar: IMeeting = {
             ...meeting,
+            googleCalendarEventIds: existingEventIds,
             recurrencePattern: meeting.recurrencePattern ?? null,
         };
 
         const calendarIds = calendarIdsForMeeting(meeting.calType ?? []);
-        const existingEventIds = (meeting.googleCalendarEventIds ?? {}) as Record<string, string>;
         const updatedEventIds: Record<string, string> = { ...existingEventIds };
         let allSynced = true;
 
