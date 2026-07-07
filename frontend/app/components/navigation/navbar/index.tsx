@@ -18,21 +18,6 @@ const Navbar: React.FC<NavbarProps> = ({ session }) => {
                 <div className={styles.navcontainer}>
                     <Logo />
                     <ul className={styles.navigationlist}>
-                        <li className="btn btn-ghost">
-                            <Link href="/meetings">
-                                <p>Meetings</p>
-                            </Link>
-                        </li>
-                        <li className="btn btn-ghost">
-                            <Link href="/createmeeting">
-                                <p>Create a Meeting</p>
-                            </Link>
-                        </li>
-                        <li className="btn btn-ghost">
-                            <Link href="/test">
-                                <p>Testing Endpoints</p>
-                            </Link>
-                        </li>
                         {!session && (
                             <li className="btn btn-ghost">
                                 <a href="/api/auth/signin/google">
