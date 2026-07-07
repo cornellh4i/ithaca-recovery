@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import styles from "../../../../styles/components/atoms/TextField.module.scss";
+import styles from "../../../styles/components/atoms/TextField.module.scss";
 
 interface TextFieldProps {
   input: string; // Placeholder or label text

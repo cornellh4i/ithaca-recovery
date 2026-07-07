@@ -2,10 +2,10 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import RadioGroup from '../atoms/RadioGroup';
-import LabeledCheckbox from '../atoms/checkbox';
+import LabeledCheckbox from '../atoms/CheckBox';
 import SpinnerInput from '../atoms/SpinnerInput';
 import DatePicker from '../atoms/DatePicker';
-import Dropdown from '../atoms/dropdown';
+import Dropdown from '../atoms/Dropdown';
 import styles from "../../../styles/components/molecules/RecurringMeeting.module.scss";
 
 import CheckButton from '../atoms/CheckButton';

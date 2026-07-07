@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import styles from '../../../../styles/components/atoms/RadioGroup.module.scss';
+import styles from '../../../styles/components/atoms/RadioGroup.module.scss';
 
 interface RadioGroupProps {
     label: string;

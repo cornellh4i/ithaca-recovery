@@ -1,9 +1,9 @@
 import React, { useEffect, useState, useRef } from "react";
-import styles from '../../../../styles/components/organisms/DailyView.module.scss';
-import BoxText from '../../atoms/BoxText';
-import DailyViewRow from "../../molecules/DailyViewRow";
-import { convertUTCToET } from "../../../../util/timeUtils";
-import { IMeeting } from "../../../../util/models";
+import styles from '../../../styles/components/organisms/DailyView.module.scss';
+import BoxText from '../atoms/BoxText';
+import DailyViewRow from "../molecules/DailyViewRow";
+import { convertUTCToET } from "../../../util/timeUtils";
+import { IMeeting } from "../../../util/models";
 
 type Meeting = {
   id: string;

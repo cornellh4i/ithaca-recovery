@@ -123,8 +123,8 @@ const CalendarNavbar: React.FC<CalendarNavbarProps> = ({ selectedDate, onDateCha
             <a href="#" onClick={handleToday}>Today</a>
           </div>
           <div className={styles.dateToggle}>
-            <img src="/left-arrow.svg" alt="Left Arrow" width={24} height={24} onClick={handlePrevious} />
-            <img src="/right-arrow.svg" alt="Right Arrow" width={24} height={24} onClick={handleNext} />
+            <img src="/svg/left-arrow.svg" alt="Left Arrow" width={24} height={24} onClick={handlePrevious} />
+            <img src="/svg/right-arrow.svg" alt="Right Arrow" width={24} height={24} onClick={handleNext} />
           </div>
         </div>
       </div>

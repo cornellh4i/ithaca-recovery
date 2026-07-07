@@ -2,16 +2,16 @@
 
 import React from "react";
 import Link from "next/link";
-import Logo from "./logo";
+import Logo from "../atoms/Logo";
 import type { Session } from "next-auth";
 import { signOut } from "next-auth/react";
-import styles from "../../../../styles/Navbar.module.scss";
+import styles from "../../../styles/components/organisms/AppNavbar.module.scss";
 
-interface NavbarProps {
+interface AppNavbarProps {
     session: Session | null;
 }
 
-const Navbar: React.FC<NavbarProps> = ({ session }) => {
+const AppNavbar: React.FC<AppNavbarProps> = ({ session }) => {
     return (
         <>
             <div className={styles.navbar}>
@@ -44,4 +44,4 @@ const Navbar: React.FC<NavbarProps> = ({ session }) => {
     );
 };
 
-export default Navbar;
+export default AppNavbar;

@@ -1,7 +1,7 @@
 "use client"
 
 import { PropsWithChildren } from "react";
-import Navigation from "./components/navigation";
+import AppNavbar from "./components/organisms/AppNavbar";
 import { Inter } from "next/font/google";
 import styles from "../styles/MainLayout.module.scss";
 import type { Session } from "next-auth";
@@ -23,7 +23,7 @@ export default function ClientLayout({
             <body className={inter.className}>
                 <div className={styles.mainlayout}>
                     <div className={styles.navigation}>
-                        <Navigation session={session} />
+                        <AppNavbar session={session} />
                     </div>
                     {children}
                 </div>

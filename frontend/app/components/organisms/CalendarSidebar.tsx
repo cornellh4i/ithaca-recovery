@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import TextButton from '../../atoms/textbutton';
+import TextButton from '../atoms/TextButton';
 
-import MiniCalendar from '../../atoms/MiniCalendar';
-import MeetingsFilter from '../../molecules/MeetingsFilter';
-import NewMeetingSidebar from '../NewMeeting';
-import styles from '../../../../styles/components/organisms/CalendarSidebar.module.scss';
+import MiniCalendar from '../atoms/MiniCalendar';
+import MeetingsFilter from '../molecules/MeetingsFilter';
+import NewMeetingSidebar from './NewMeeting';
+import styles from '../../../styles/components/organisms/CalendarSidebar.module.scss';
 import AddIcon from '@mui/icons-material/Add';
 interface CalendarSidebarProps {
   filters: any;

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
-import styles from '../../../../styles/components/organisms/WeeklyView.module.scss';
-import WeeklyViewColumn from "../../molecules/WeeklyViewColumn";
+import styles from '../../../styles/components/organisms/WeeklyView.module.scss';
+import WeeklyViewColumn from "../molecules/WeeklyViewColumn";
 
 type Meeting = {
     id: string;

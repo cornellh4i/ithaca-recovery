@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import styles from "../../../../styles/components/atoms/TextButton.module.scss";
+import styles from "../../../styles/components/atoms/TextButton.module.scss";
 
 interface ButtonProps {
   label: string;              // Text to display inside the button
