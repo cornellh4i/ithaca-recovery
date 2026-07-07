@@ -32,14 +32,14 @@ const retrieveDayMeetings = async (request: NextRequest) => {
         const etFmt = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' });
 
         // Returns true if the given ET date string appears in the excludedDates list.
-        const isDateExcluded = (excludedDates: Date[], dateStr: string): boolean =>
-            excludedDates.some(excl => etFmt.format(new Date(excl)) === dateStr);
+        const isDateExcluded = (excludedDates: Date[], etDateStr: string): boolean =>
+            excludedDates.some(excl => etFmt.format(excl) === etDateStr);
 
         // Returns true if the given ET date string is past the series end date.
         // Compares ET date strings to avoid UTC-midnight vs ET-midnight mismatches.
-        const isAfterSeriesEnd = (endDate: Date | null, dateStr: string): boolean => {
+        const isAfterSeriesEnd = (endDate: Date | null, etDateStr: string): boolean => {
             if (!endDate) return false;
-            return dateStr > etFmt.format(new Date(endDate));
+            return etDateStr > etFmt.format(endDate);
         };
 
         const directlyScheduledMeetings = await prisma.meeting.findMany({
