@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import styles from "../../../styles/components/organisms/CalendarNavbar.module.scss";
-import PandaDocButton from '../molecules/PandaDocButton';
 
 type CalendarNavbarProps = {
     selectedDate: Date;
@@ -111,7 +110,6 @@ const CalendarNavbar: React.FC<CalendarNavbarProps> = ({ selectedDate, onDateCha
       <div className={styles.navbarContainer}>
         <h2 className={styles.navbarContainerRight}>{getDateRange(selectedDate)}</h2>
         <div className={styles.navbarContainerLeft}>
-          <PandaDocButton className={styles.box} />
           <div className={styles.box}>
             {/* Temporary dropdown component */}
             <select id="view-select" value={selectedView} onChange={handleViewChange}>
