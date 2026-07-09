@@ -284,7 +284,7 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
             />
           }
           meetingTypeDropdown={
-            <div style={{ display: 'flex', alignItems: 'center' }}>
+            <div style={{ display: 'flex', flexDirection: 'row', gap: '4px', flex: 1, justifyContent: 'space-between' }}>
               <span style={{ marginRight: '6px', display: 'flex', alignItems: 'center' }}>
                 <img src="svg/group-icon.svg" alt="Group Icon" />
               </span>
