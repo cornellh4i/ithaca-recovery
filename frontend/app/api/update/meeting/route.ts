@@ -1,7 +1,6 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, Role } from "@prisma/client";
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "../../auth/authConfig";
+import { requireRole } from "../../../../services/auth";
 import { IMeeting } from "../../../../util/models";
 import { createCalendarEvent, updateCalendarEvent, deleteCalendarEvent, calendarIdsForMeeting, calendarIdForCategory } from "../../../../services/googleCalendar";
 
@@ -9,6 +8,9 @@ const prisma = new PrismaClient();
 
 const updateMeeting = async (request: Request): Promise<Response> => {
   try {
+    const auth = await requireRole(Role.ADMIN);
+    if (auth instanceof Response) return auth;
+
     const newMeeting = await request.json() as IMeeting;
 
     const existingMeeting = await prisma.meeting.findUnique({
@@ -66,8 +68,7 @@ const updateMeeting = async (request: Request): Promise<Response> => {
     
 
     // Google Calendar sync — failure updates syncStatus but does not fail the request
-    const session = await getServerSession(authOptions);
-    if (session?.accessToken && newMeeting.status !== 'Suspended') {
+    if (auth.accessToken && newMeeting.status !== 'Suspended') {
       const calendarIds = calendarIdsForMeeting(newMeeting.calType ?? []);
       const existingEventIds = (existingMeeting.googleCalendarEventIds ?? {}) as Record<string, string>;
       const updatedEventIds: Record<string, string> = { ...existingEventIds };
@@ -79,7 +80,7 @@ const updateMeeting = async (request: Request): Promise<Response> => {
         const calId = calendarIdForCategory[cat];
         const eventId = existingEventIds[cat];
         if (calId && eventId) {
-          const ok = await deleteCalendarEvent(session.accessToken, eventId, calId);
+          const ok = await deleteCalendarEvent(auth.accessToken, eventId, calId);
           if (!ok) allSynced = false;
         }
         delete updatedEventIds[cat];
@@ -88,10 +89,10 @@ const updateMeeting = async (request: Request): Promise<Response> => {
       for (const [cat, calId] of Object.entries(calendarIds)) {
         const existingId = existingEventIds[cat];
         if (existingId) {
-          const ok = await updateCalendarEvent(session.accessToken, existingId, newMeeting, calId);
+          const ok = await updateCalendarEvent(auth.accessToken, existingId, newMeeting, calId);
           if (!ok) allSynced = false;
         } else {
-          const newId = await createCalendarEvent(session.accessToken, newMeeting, calId);
+          const newId = await createCalendarEvent(auth.accessToken, newMeeting, calId);
           if (newId) updatedEventIds[cat] = newId;
           else allSynced = false;
         }

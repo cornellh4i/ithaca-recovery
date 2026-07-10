@@ -1,14 +1,16 @@
 import { IMeeting } from '../../../../util/models';
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, Role } from "@prisma/client";
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "../../auth/authConfig";
+import { requireRole } from "../../../../services/auth";
 import { createCalendarEvent, calendarIdsForMeeting } from "../../../../services/googleCalendar";
 
 const prisma = new PrismaClient();
 
 const createMeeting = async (request: Request) => {
   try {
+    const auth = await requireRole(Role.ADMIN);
+    if (auth instanceof Response) return auth;
+
     const meetingData = await request.json() as IMeeting;
 
     const { recurrencePattern, ...meetingDetails } = meetingData;
@@ -61,13 +63,12 @@ const createMeeting = async (request: Request) => {
     }
 
     // Google Calendar sync — non-blocking: failure sets syncStatus but does not fail the request
-    const session = await getServerSession(authOptions);
-    if (session?.accessToken && meetingData.status !== 'Suspended') {
+    if (auth.accessToken && meetingData.status !== 'Suspended') {
       const meetingForCalendar: IMeeting = { ...meetingData, isRecurring: !!recurrencePattern };
       const calendarIds = calendarIdsForMeeting(meetingData.calType ?? []);
       const eventIds: Record<string, string> = {};
       for (const [cat, calId] of Object.entries(calendarIds)) {
-        const id = await createCalendarEvent(session.accessToken, meetingForCalendar, calId);
+        const id = await createCalendarEvent(auth.accessToken, meetingForCalendar, calId);
         if (id) eventIds[cat] = id;
       }
       const synced = Object.keys(eventIds).length === Object.keys(calendarIds).length && Object.keys(calendarIds).length > 0;

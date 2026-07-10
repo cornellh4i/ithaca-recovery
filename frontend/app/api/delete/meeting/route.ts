@@ -1,6 +1,5 @@
-import { PrismaClient } from '@prisma/client';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '../../auth/authConfig';
+import { PrismaClient, Role } from '@prisma/client';
+import { requireRole } from '../../../../services/auth';
 import { getETDayBounds } from '../../../../util/timeUtils';
 import {
   deleteCalendarEvent,
@@ -17,6 +16,9 @@ const toETDateStr = (date: Date): string =>
 
 const deleteMeeting = async (request: Request) => {
   try {
+    const auth = await requireRole(Role.ADMIN);
+    if (auth instanceof Response) return auth;
+
     const body = await request.json();
     const { mid, deleteOption, occurrenceDate } = body;
 
@@ -56,8 +58,7 @@ const deleteMeeting = async (request: Request) => {
     }
 
     // Google Calendar sync — fire before or alongside MongoDB changes; errors are logged, not thrown
-    const session = await getServerSession(authOptions);
-    const accessToken = session?.accessToken;
+    const accessToken = auth.accessToken;
     const calendarIds = calendarIdsForMeeting(meeting.calType ?? []);
     const eventIds = (meeting.googleCalendarEventIds ?? {}) as Record<string, string>;
 

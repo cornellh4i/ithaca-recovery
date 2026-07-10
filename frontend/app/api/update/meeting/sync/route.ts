@@ -1,7 +1,6 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, Role } from "@prisma/client";
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "../../../auth/authConfig";
+import { requireRole } from "../../../../../services/auth";
 import { IMeeting } from "../../../../../util/models";
 import { createCalendarEvent, updateCalendarEvent, calendarIdsForMeeting } from "../../../../../services/googleCalendar";
 
@@ -9,8 +8,9 @@ const prisma = new PrismaClient();
 
 const syncMeeting = async (request: Request): Promise<Response> => {
     try {
-        const session = await getServerSession(authOptions);
-        if (!session?.accessToken) {
+        const auth = await requireRole(Role.ADMIN);
+        if (auth instanceof Response) return auth;
+        if (!auth.accessToken) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
@@ -40,10 +40,10 @@ const syncMeeting = async (request: Request): Promise<Response> => {
         for (const [cat, calId] of Object.entries(calendarIds)) {
             const existingId = existingEventIds[cat];
             if (existingId) {
-                const ok = await updateCalendarEvent(session.accessToken, existingId, meetingForCalendar, calId);
+                const ok = await updateCalendarEvent(auth.accessToken, existingId, meetingForCalendar, calId);
                 if (!ok) allSynced = false;
             } else {
-                const newId = await createCalendarEvent(session.accessToken, meetingForCalendar, calId);
+                const newId = await createCalendarEvent(auth.accessToken, meetingForCalendar, calId);
                 if (newId) updatedEventIds[cat] = newId;
                 else allSynced = false;
             }

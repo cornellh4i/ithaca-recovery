@@ -1,12 +1,15 @@
-import { NextApiRequest } from "next";
 import { IAdmin } from "../../../../util/models";
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Role } from '@prisma/client';
 import { NextRequest } from "next/server";
+import { requireRole } from "../../../../services/auth";
 
 const prisma = new PrismaClient();
 
 const getAdminByEmail = async (request: NextRequest) => {
   try {
+    const auth = await requireRole(Role.SUPER_ADMIN);
+    if (auth instanceof Response) return auth;
+
     const email = request.nextUrl.searchParams.get("email")
     const user: (IAdmin | null) = await prisma.admin.findUnique({
       where: {
