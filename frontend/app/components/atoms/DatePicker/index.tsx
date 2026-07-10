@@ -49,8 +49,7 @@ const DatePicker = ({ label, value: propValue = '', onChange, underlineOnFocus =
 
   const formatDate = (dateString: string): string => {
     const [month, day, year] = dateString.split('/').map(Number);
-    const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-    return `${monthNames[month - 1]} ${day}, ${year}`;
+    return `${String(month).padStart(2, '0')}/${String(day).padStart(2, '0')}/${year}`;
   };
 
   /**
