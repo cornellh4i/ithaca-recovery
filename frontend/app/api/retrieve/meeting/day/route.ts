@@ -11,12 +11,16 @@ const notDeleted = { OR: [{ deletedAt: null }, { deletedAt: { isSet: false } }] 
 
 const retrieveDayMeetings = async (request: NextRequest) => {
     try {
-        const dateParam = request.nextUrl.searchParams.get("startDate") ?? new Date().toISOString();
+        const etFmt = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' });
+        const dateParam = request.nextUrl.searchParams.get("startDate");
 
-        // Normalise to a "YYYY-MM-DD" ET calendar date string
-        const etDateStr = dateParam.match(/^\d{4}-\d{2}-\d{2}$/)
+        // Normalise to a "YYYY-MM-DD" ET calendar date string. Falls back to
+        // "now" formatted in ET (not raw UTC) so the ~4-5 evening hours where
+        // UTC's calendar date has already rolled to tomorrow still resolve to
+        // today; same for any non-date-only startDate param.
+        const etDateStr = dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam)
             ? dateParam
-            : new Date(dateParam).toISOString().slice(0, 10);
+            : etFmt.format(dateParam ? new Date(dateParam) : new Date());
 
         const [startOfDay, endOfDay] = getETDayBounds(etDateStr);
 
@@ -28,8 +32,6 @@ const retrieveDayMeetings = async (request: NextRequest) => {
         const dayOfWeek = localDate.getUTCDay();
         const daysOfWeek = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
         const requestedDayName = daysOfWeek[dayOfWeek];
-        
-        const etFmt = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' });
 
         // Returns true if the given ET date string appears in the excludedDates list.
         const isDateExcluded = (excludedDates: Date[], etDateStr: string): boolean =>

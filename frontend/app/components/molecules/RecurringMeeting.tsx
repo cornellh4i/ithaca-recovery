@@ -10,6 +10,7 @@ import styles from "../../../styles/components/molecules/RecurringMeeting.module
 
 import CheckButton from '../atoms/CheckButton';
 import { IRecurrencePattern } from "../../../util/models";
+import { convertETToUTC } from "../../../util/timeUtils";
 
 
 interface RecurringMeetingFormProps {
@@ -45,6 +46,15 @@ function toDatePickerString(date: Date | string | null | undefined): string {
   const d = new Date(date as string);
   if (isNaN(d.getTime())) return "";
   return `${String(d.getUTCMonth() + 1).padStart(2, '0')}/${String(d.getUTCDate()).padStart(2, '0')}/${d.getUTCFullYear()}`;
+}
+
+// Parses a DatePicker "MM/DD/YYYY" value as an ET calendar date via
+// convertETToUTC. new Date("MM/DD/YYYY") parses in the browser's local
+// timezone, which can roll the date back a day once read back in ET for
+// browsers ahead of ET (e.g. UTC, Europe).
+function parseETDatePickerValue(value: string): Date {
+  const [month, day, year] = value.split('/');
+  return new Date(convertETToUTC(`${year}-${month}-${day}T00:00:00`));
 }
 
 // Derives the dropdown options for monthly recurrence from the meeting's start date.
@@ -159,7 +169,7 @@ const RecurringMeetingForm: React.FC<RecurringMeetingFormProps> = ({
       if (recurrenceType === "monthly") {
         let weekOfMonth: number | null = null;
         let dayOfMonth: number | null = null;
-        let daysOfWeek: string[] = [];
+        let daysOfWeek: string[] = []; // For monthly we only have one day of week chosen
 
         if (monthlyOption.startsWith("Monthly on day ")) {
           dayOfMonth = parseInt(monthlyOption.replace("Monthly on day ", ""), 10);
@@ -181,7 +191,7 @@ const RecurringMeetingForm: React.FC<RecurringMeetingFormProps> = ({
           daysOfWeek,
           weekOfMonth,
           dayOfMonth,
-          endDate: endOption === 'On' && endDate ? new Date(endDate) : null,
+          endDate: endOption === 'On' && endDate ? parseETDatePickerValue(endDate) : null,
           numberOfOccurrences: endOption === 'After' ? occurrences : null,
         };
       } else {
@@ -191,7 +201,7 @@ const RecurringMeetingForm: React.FC<RecurringMeetingFormProps> = ({
           startDate: startDate ? new Date(startDate) : new Date(),
           firstDayOfWeek: "Sunday",
           daysOfWeek: selectedDays.map(day => dayMapping[day]),
-          endDate: endOption === 'On' && endDate ? new Date(endDate) : null,
+          endDate: endOption === 'On' && endDate ? parseETDatePickerValue(endDate) : null,
           numberOfOccurrences: endOption === 'After' ? occurrences : null,
         };
       }
