@@ -112,8 +112,10 @@ function calculateEndDateFromOccurrences(
     const targetYear = patternStartDate.getUTCFullYear() + Math.floor(rawMonth / 12);
     const targetMonth = rawMonth % 12;
 
+    // 23:59:59 ET so the end date is inclusive of its full day
+    // even against a naive instant comparison (e.g. `meetingStart <= endDate`).
     const toETDate = (day: number) => new Date(convertETToUTC(
-      `${targetYear}-${String(targetMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}T00:00:00`
+      `${targetYear}-${String(targetMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}T23:59:59`
     ));
 
     if (dayOfMonth != null) {

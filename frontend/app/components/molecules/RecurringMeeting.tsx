@@ -40,21 +40,27 @@ function inferEndOption(pattern: IRecurrencePattern | null): string {
   return 'Never';
 }
 
-// Format a Date (or ISO string) to "MM/DD/YYYY" for the DatePicker
+// Format a Date (or ISO string) to "MM/DD/YYYY" for the DatePicker. Formats
+// in ET (not raw UTC getters) so the displayed day is correct regardless of
+// what time of day the underlying timestamp carries — e.g. an endDate stored
+// at 23:59:59 ET would otherwise read back as the following day via UTC getters.
 function toDatePickerString(date: Date | string | null | undefined): string {
   if (!date) return "";
   const d = new Date(date as string);
   if (isNaN(d.getTime())) return "";
-  return `${String(d.getUTCMonth() + 1).padStart(2, '0')}/${String(d.getUTCDate()).padStart(2, '0')}/${d.getUTCFullYear()}`;
+  return new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit',
+  }).format(d);
 }
 
-// Parses a DatePicker "MM/DD/YYYY" value as an ET calendar date via
-// convertETToUTC. new Date("MM/DD/YYYY") parses in the browser's local
-// timezone, which can roll the date back a day once read back in ET for
-// browsers ahead of ET (e.g. UTC, Europe).
+// Parses a DatePicker "MM/DD/YYYY" value as 23:59:59 ET on that calendar date
+// via convertETToUTC, so the end date is inclusive of its full day even
+// against a naive instant comparison. new Date("MM/DD/YYYY") parses in the
+// browser's local timezone, which can roll the date back a day once read back
+// in ET for browsers ahead of ET (e.g. UTC, Europe).
 function parseETDatePickerValue(value: string): Date {
   const [month, day, year] = value.split('/');
-  return new Date(convertETToUTC(`${year}-${month}-${day}T00:00:00`));
+  return new Date(convertETToUTC(`${year}-${month}-${day}T23:59:59`));
 }
 
 // Derives the dropdown options for monthly recurrence from the meeting's start date.
