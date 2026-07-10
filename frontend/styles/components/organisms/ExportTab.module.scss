@@ -1,0 +1,32 @@
+@import '../../Variables.module.scss';
+
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.card {
+  background: #fff;
+  border: 1.5px solid #E5E5E5;
+  border-radius: 8px;
+  padding: 20px 24px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.sectionLabel {
+  font-size: 16px;
+  font-weight: 600;
+  color: $medium-grey-color;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  margin-bottom: 16px;
+}
+
+.emptyState {
+  color: $medium-grey-color;
+  font-size: 14px;
+}

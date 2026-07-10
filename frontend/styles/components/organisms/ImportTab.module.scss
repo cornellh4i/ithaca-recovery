@@ -1,0 +1,65 @@
+@import '../../Variables.module.scss';
+
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.card {
+  background: #fff;
+  border: 1.5px solid #E5E5E5;
+  border-radius: 8px;
+  padding: 20px 24px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.sectionLabel {
+  font-size: 16px;
+  font-weight: 600;
+  color: $medium-grey-color;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  margin-bottom: 16px;
+}
+
+.dropzone {
+  border: 1.5px dashed $light-grey-color;
+  border-radius: 8px;
+  padding: 40px 20px;
+  text-align: center;
+  font-size: 14px;
+  color: #555;
+  margin-bottom: 16px;
+}
+
+.dropzoneActive {
+  border-color: $dark-pink-color;
+  background: #FBE1E7;
+}
+
+.chooseFile {
+  color: $dark-pink-color;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.uploadButton {
+  background: $dark-pink-color;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 20px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+
+  &:disabled {
+    background: $light-grey-color;
+    cursor: not-allowed;
+  }
+}

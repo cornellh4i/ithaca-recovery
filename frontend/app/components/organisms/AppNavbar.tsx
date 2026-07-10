@@ -12,35 +12,47 @@ interface AppNavbarProps {
 }
 
 const AppNavbar: React.FC<AppNavbarProps> = ({ session }) => {
+    const isAdmin = session?.user?.role === "ADMIN" || session?.user?.role === "SUPER_ADMIN";
+
     return (
-        <>
-            <div className={styles.navbar}>
-                <div className={styles.navcontainer}>
-                    <Logo />
-                    <ul className={styles.navigationlist}>
-                        {!session && (
-                            <li className="btn btn-ghost">
-                                <a href="/api/auth/signin/google">
-                                    <p>Sign In</p>
-                                </a>
-                            </li>
-                        )}
-                        {session && (
-                            <li className="btn btn-ghost">
+        <div className={styles.navbar}>
+            <div className={styles.navcontainer}>
+                <Logo />
+                <ul className={styles.navigationlist}>
+                    <li className="btn btn-ghost">
+                        <Link href="/">
+                            <p>Main</p>
+                        </Link>
+                    </li>
+                    <li className="btn btn-ghost">
+                        <Link href="/signage">
+                            <p>Signage</p>
+                        </Link>
+                    </li>
+                    {isAdmin && (
+                        <li className="btn btn-ghost">
+                            <Link href="/admin">
+                                <p>Admin</p>
+                            </Link>
+                        </li>
+                    )}
+                    <li>
+                        {session ? (
+                            <div className={styles.accountGroup}>
+                                <span className={styles.welcome}>Welcome, {session.user?.name}</span>
                                 <button onClick={() => signOut({ callbackUrl: "/" })}>
                                     <p>Sign Out</p>
                                 </button>
-                            </li>
+                            </div>
+                        ) : (
+                            <a href="/api/auth/signin/google">
+                                <p>Sign In</p>
+                            </a>
                         )}
-                    </ul>
-                    {session?.user && (
-                        <div className={styles.welcome}>
-                            <p>Welcome, {session.user.name}</p>
-                        </div>
-                    )}
-                </div>
+                    </li>
+                </ul>
             </div>
-        </>
+        </div>
     );
 };
 

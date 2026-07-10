@@ -13,7 +13,7 @@ export const PUT = async (request: Request) => {
 
     const { email, role } = await request.json() as { email: string; role: Role };
 
-    if (role !== Role.SUPER_ADMIN && role !== Role.ADMIN) {
+    if (role !== Role.SUPER_ADMIN && role !== Role.ADMIN && role !== Role.USER) {
       return NextResponse.json({ error: "Invalid role" }, { status: 400 });
     }
 

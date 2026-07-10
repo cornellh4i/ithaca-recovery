@@ -18,11 +18,16 @@ export const POST = async (request: Request) => {
       return NextResponse.json({ error: "email is required" }, { status: 400 });
     }
 
+    const resolvedRole = role ?? Role.ADMIN;
+    if (resolvedRole !== Role.SUPER_ADMIN && resolvedRole !== Role.ADMIN && resolvedRole !== Role.USER) {
+      return NextResponse.json({ error: "Invalid role" }, { status: 400 });
+    }
+
     const createdUser = await prisma.admin.create({
       data: {
         email,
         name: "",
-        role: role === Role.SUPER_ADMIN ? Role.SUPER_ADMIN : Role.ADMIN,
+        role: resolvedRole,
       },
     });
 

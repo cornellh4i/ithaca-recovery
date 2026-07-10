@@ -24,6 +24,20 @@ function getCalendarClient(accessToken: string) {
     return google.calendar({ version: "v3", auth });
 }
 
+export async function checkCalendarReachable(accessToken: string, calendarId: string): Promise<boolean> {
+    if (!calendarId) return false;
+    try {
+        const calendar = getCalendarClient(accessToken);
+        // events.list (not calendars.get) — calendars.get needs the broader "calendar" scope,
+        // which this app doesn't request; calendar.events covers events.list.
+        await calendar.events.list({ calendarId, maxResults: 1 });
+        return true;
+    } catch (error) {
+        console.error(`Google Calendar reachability check failed for ${calendarId}:`, error);
+        return false;
+    }
+}
+
 function toRRule(pattern: IRecurrencePattern): string {
     const dayMap: Record<string, string> = {
         Sunday: "SU", Monday: "MO", Tuesday: "TU", Wednesday: "WE",

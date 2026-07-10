@@ -1,0 +1,156 @@
+@import '../../Variables.module.scss';
+
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.card {
+  background: #fff;
+  border: 1.5px solid #E5E5E5;
+  border-radius: 8px;
+  padding: 20px 24px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.sectionLabel {
+  font-size: 16px;
+  font-weight: 600;
+  color: $medium-grey-color;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  margin-bottom: 16px;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+
+  th {
+    text-align: left;
+    font-size: 13px;
+    font-weight: 600;
+    color: $medium-grey-color;
+    border-bottom: 1.5px solid #E5E5E5;
+    padding: 0 8px 10px;
+  }
+
+  td {
+    padding: 12px 8px;
+    border-bottom: 1px solid #F1F1F1;
+    font-size: 15px;
+    color: $black-color;
+  }
+
+  tr:last-child td {
+    border-bottom: none;
+  }
+}
+
+.emailCell {
+  font-size: 14px;
+  color: #555;
+}
+
+.roleCell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.roleSelect {
+  font-family: inherit;
+  font-size: 14px;
+  color: $black-color;
+  background: #fff;
+  border: 1.5px solid #E5E5E5;
+  border-radius: 6px;
+  padding: 6px 10px;
+  cursor: pointer;
+
+  &:disabled {
+    color: $light-grey-color;
+    cursor: not-allowed;
+  }
+}
+
+.updatedBadge {
+  font-size: 13px;
+  font-weight: 600;
+  color: #4CAF50;
+}
+
+.menuCaption {
+  font-size: 12px;
+  color: $medium-grey-color;
+  padding-top: 4px;
+}
+
+.actionCell {
+  text-align: right;
+}
+
+.removeButton,
+.removeButtonDisabled {
+  background: none;
+  border: 1.5px solid #E5E5E5;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 13px;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+
+.removeButton {
+  color: $dark-pink-color;
+
+  &:hover {
+    background: #FBE1E7;
+    border-color: $dark-pink-color;
+  }
+}
+
+.removeButtonDisabled {
+  color: $light-grey-color;
+  cursor: not-allowed;
+}
+
+.emptyState {
+  color: $medium-grey-color;
+  font-size: 14px;
+}
+
+.inviteRow {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.inviteButton {
+  background: $dark-pink-color;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 20px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+
+  &:disabled {
+    background: $light-grey-color;
+    cursor: not-allowed;
+  }
+}
+
+.inviteHelp {
+  margin-top: 12px;
+  font-size: 13px;
+  color: $medium-grey-color;
+}

@@ -20,16 +20,16 @@
 .navcontainer {
     display: flex;
     flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
 }
 
 .navigationlist {
-    display: flex;
-    gap: 24px;
+    display: contents;
     color: #000;
     list-style-type: none;
     padding: 0;
-    width: 100%;
-    justify-content: space-around;
     margin: 0px;
 
     li {
@@ -49,8 +49,8 @@
 
             &:hover,
             &:focus {
-                color: #000; 
-                border-color: #000; 
+                color: #000;
+                border-color: #000;
             }
         }
 
@@ -62,11 +62,15 @@
             }
         }
     }
-    }
+}
+
+.accountGroup {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
 
 .welcome {
-    padding: 7px 12px;
     font-size: 16px;
-    width: 15%;
+    white-space: nowrap;
 }
-  

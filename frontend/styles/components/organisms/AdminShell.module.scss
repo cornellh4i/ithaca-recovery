@@ -1,0 +1,59 @@
+@import '../../Variables.module.scss';
+
+.container {
+  width: 100%;
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: 32px 24px 80px;
+  box-sizing: border-box;
+  font-family: 'Source Sans Pro', sans-serif;
+}
+
+.title {
+  font-size: 28px;
+  font-weight: 600;
+  color: $black-color;
+  margin: 0 0 24px;
+}
+
+.tabRow {
+  display: flex;
+  gap: 24px;
+  border-bottom: 1.5px solid #E5E5E5;
+  margin-bottom: 24px;
+}
+
+.tab {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 16px;
+  color: #3A3E49;
+  padding: 0 0 10px;
+  border-bottom: 2.5px solid transparent;
+}
+
+.tabActive {
+  color: $dark-pink-color;
+  border-bottom-color: $dark-pink-color;
+}
+
+.tabLocked {
+  color: $light-grey-color;
+  cursor: not-allowed;
+}
+
+.lockIcon {
+  color: $light-grey-color;
+}
+
+.tabContent {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+}
