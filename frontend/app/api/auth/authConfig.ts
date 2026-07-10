@@ -43,6 +43,7 @@ export const authOptions: NextAuthOptions = {
                         create: {
                             email: token.email,
                             name: token.name ?? (profile as { name?: string })?.name ?? "",
+                            role: "ADMIN",
                             googleId: account.providerAccountId,
                             refreshToken: account.refresh_token ?? undefined,
                             accessToken: account.access_token ?? undefined,

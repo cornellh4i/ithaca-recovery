@@ -7,12 +7,18 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum Role {
+  SUPER_ADMIN
+  ADMIN
+  USER
+}
+
 model Admin {
   id             String   @id @default(auto()) @map("_id") @db.ObjectId
   email          String   @unique
   name           String
-  privilegeMode  String?
-  googleId       String? 
+  role           Role
+  googleId       String?
   refreshToken   String?
   accessToken    String?
   tokenExpiresAt Int?

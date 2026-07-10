@@ -1,10 +1,10 @@
 // Please add models here
-interface IUser {
-  name: string;
-}
+import type { Role } from "@prisma/client";
 
-interface IAdmin extends IUser {
+interface IAdmin {
+  name: string;
   email: string;
+  role: Role;
   googleId?: string | null;
   refreshToken?: string | null;
   accessToken?: string | null;
@@ -50,4 +50,4 @@ interface IRecurrencePattern {
   excludedDates?: Date[] | null;
 }
 
-export type { IUser, IAdmin, IMeeting, IRecurrencePattern };
+export type { IAdmin, IMeeting, IRecurrencePattern };
