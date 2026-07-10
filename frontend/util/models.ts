@@ -50,4 +50,26 @@ interface IRecurrencePattern {
   excludedDates?: Date[] | null;
 }
 
-export type { IAdmin, IMeeting, IRecurrencePattern };
+interface IRoomRate {
+  room: string;
+  rate: number;
+  unit: "hr" | "month";
+}
+
+interface ILeaseSettings {
+  leaseStartDate: Date;
+  leaseEndDate: Date;
+  rooms: IRoomRate[];
+  agentFirstName: string;
+  agentLastName: string;
+  agentTitle: string;
+  agentEmail: string;
+  agentPhone: string;
+  agentStreetAddress: string;
+  agentCity: string;
+  agentState: string;
+  agentZip: string;
+  emailTemplate: string;
+}
+
+export type { IAdmin, IMeeting, IRecurrencePattern, IRoomRate, ILeaseSettings };

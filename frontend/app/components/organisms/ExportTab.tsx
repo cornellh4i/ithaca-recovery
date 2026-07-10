@@ -1,16 +1,513 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useMemo, useState } from "react";
+import BackupIcon from "@mui/icons-material/Backup";
+import DescriptionIcon from "@mui/icons-material/Description";
+import MoreVertIcon from "@mui/icons-material/MoreVert";
+import TvIcon from "@mui/icons-material/Tv";
+import {
+  SIGNAGE_CAL_TYPES,
+  SIGNAGE_MODE_TYPES,
+  SIGNAGE_ROOM_SLUGS,
+  SIGNAGE_ZOOM_SLUGS,
+} from "../../../util/signageFilters";
+import type { ILeaseSettings, IRoomRate } from "../../../util/models";
 import styles from "../../../styles/components/organisms/ExportTab.module.scss";
 
-// Placeholder — full XLSX/lease-CSV export UI is built in Ticket B.1 step 6.
+type ExportKind = "meetings" | "lease";
+
+const LOCATION_ROOMS = Object.keys(SIGNAGE_ROOM_SLUGS);
+const ZOOM_ROOMS = Object.keys(SIGNAGE_ZOOM_SLUGS);
+
+const allChecked = (names: string[]): Record<string, boolean> =>
+  Object.fromEntries(names.map((name) => [name, true]));
+
+const todayISO = () =>
+  new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York" }).format(new Date());
+
+function formatDateShort(value: Date | string): string {
+  return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" })
+    .format(new Date(value));
+}
+
+function toDateInputValue(value: Date | string): string {
+  return new Date(value).toISOString().slice(0, 10);
+}
+
+async function downloadExport(url: string, fallbackFilename: string) {
+  const response = await fetch(url);
+  if (!response.ok) {
+    const json = await response.json().catch(() => ({}));
+    throw new Error(json.error ?? "Export failed.");
+  }
+  const disposition = response.headers.get("Content-Disposition") ?? "";
+  const filename = disposition.match(/filename="([^"]+)"/)?.[1] ?? fallbackFilename;
+  const blob = await response.blob();
+  const blobUrl = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = blobUrl;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(blobUrl);
+}
+
+interface LeaseConfigModalProps {
+  initial: ILeaseSettings;
+  onCancel: () => void;
+  onSave: (next: ILeaseSettings) => Promise<void>;
+}
+
+const LeaseConfigModal: React.FC<LeaseConfigModalProps> = ({ initial, onCancel, onSave }) => {
+  const [draft, setDraft] = useState<ILeaseSettings>(initial);
+  const [saving, setSaving] = useState(false);
+
+  const dateError = new Date(draft.leaseStartDate) >= new Date(draft.leaseEndDate)
+    ? "Lease start date must be before the end date."
+    : null;
+
+  const updateRoom = (index: number, patch: Partial<IRoomRate>) => {
+    setDraft((prev) => ({
+      ...prev,
+      rooms: prev.rooms.map((room, i) => (i === index ? { ...room, ...patch } : room)),
+    }));
+  };
+
+  const handleSave = async () => {
+    if (dateError) return;
+    setSaving(true);
+    try {
+      await onSave(draft);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className={styles.modalOverlay} onClick={onCancel}>
+      <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+        <h3 className={styles.modalTitle}>Configure PandaDocs lease export</h3>
+        <p className={styles.modalIntro}>
+          These settings control the lease period, rates, rental agent contact, and email wording used when
+          generating the export. Per-meeting details (group name, contact email, schedule) always come from the
+          meeting itself and aren&apos;t set here.
+        </p>
+
+        <div className={styles.sectionLabel}>Lease period</div>
+        <div className={styles.dateRow}>
+          <label className={styles.fieldLabel}>
+            Start
+            <input
+              type="date"
+              className={styles.input}
+              value={toDateInputValue(draft.leaseStartDate)}
+              onChange={(e) => setDraft((prev) => ({ ...prev, leaseStartDate: new Date(`${e.target.value}T00:00:00Z`) }))}
+            />
+          </label>
+          <label className={styles.fieldLabel}>
+            End
+            <input
+              type="date"
+              className={styles.input}
+              value={toDateInputValue(draft.leaseEndDate)}
+              onChange={(e) => setDraft((prev) => ({ ...prev, leaseEndDate: new Date(`${e.target.value}T00:00:00Z`) }))}
+            />
+          </label>
+        </div>
+        {dateError && <p className={styles.dateError}>{dateError}</p>}
+
+        <div className={styles.sectionLabel}>Rooms &amp; rates</div>
+        <table className={styles.ratesTable}>
+          <thead>
+            <tr>
+              <th>Room / Zoom account</th>
+              <th>Rate</th>
+              <th>Unit</th>
+            </tr>
+          </thead>
+          <tbody>
+            {draft.rooms.map((room, i) => (
+              <tr key={room.room}>
+                <td>{room.room}</td>
+                <td>
+                  <input
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    className={styles.rateInput}
+                    value={room.rate}
+                    onChange={(e) => updateRoom(i, { rate: Number(e.target.value) })}
+                  />
+                </td>
+                <td>
+                  <select
+                    className={styles.input}
+                    value={room.unit}
+                    onChange={(e) => updateRoom(i, { unit: e.target.value as IRoomRate["unit"] })}
+                  >
+                    <option value="hr">/hr</option>
+                    <option value="month">/month</option>
+                  </select>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+
+        <div className={styles.sectionLabel}>Rental agent contact</div>
+        <p className={styles.fieldHint}>Printed on every lease as the ICR contact — update when staff changes.</p>
+        <div className={styles.contactGrid}>
+          <label className={styles.fieldLabel}>
+            First name
+            <input className={styles.input} value={draft.agentFirstName} onChange={(e) => setDraft((p) => ({ ...p, agentFirstName: e.target.value }))} />
+          </label>
+          <label className={styles.fieldLabel}>
+            Last name
+            <input className={styles.input} value={draft.agentLastName} onChange={(e) => setDraft((p) => ({ ...p, agentLastName: e.target.value }))} />
+          </label>
+          <label className={styles.fieldLabel}>
+            Title
+            <input className={styles.input} value={draft.agentTitle} onChange={(e) => setDraft((p) => ({ ...p, agentTitle: e.target.value }))} />
+          </label>
+          <label className={styles.fieldLabel}>
+            Email
+            <input className={styles.input} value={draft.agentEmail} onChange={(e) => setDraft((p) => ({ ...p, agentEmail: e.target.value }))} />
+          </label>
+          <label className={styles.fieldLabel}>
+            Phone
+            <input className={styles.input} value={draft.agentPhone} onChange={(e) => setDraft((p) => ({ ...p, agentPhone: e.target.value }))} />
+          </label>
+          <label className={styles.fieldLabel}>
+            Street address
+            <input className={styles.input} value={draft.agentStreetAddress} onChange={(e) => setDraft((p) => ({ ...p, agentStreetAddress: e.target.value }))} />
+          </label>
+          <label className={styles.fieldLabel}>
+            City
+            <input className={styles.input} value={draft.agentCity} onChange={(e) => setDraft((p) => ({ ...p, agentCity: e.target.value }))} />
+          </label>
+          <label className={styles.fieldLabel}>
+            State
+            <input className={styles.input} value={draft.agentState} onChange={(e) => setDraft((p) => ({ ...p, agentState: e.target.value }))} />
+          </label>
+          <label className={styles.fieldLabel}>
+            ZIP
+            <input className={styles.input} value={draft.agentZip} onChange={(e) => setDraft((p) => ({ ...p, agentZip: e.target.value }))} />
+          </label>
+        </div>
+
+        <div className={styles.sectionLabel}>Email message template</div>
+        <textarea
+          className={styles.textarea}
+          rows={5}
+          value={draft.emailTemplate}
+          onChange={(e) => setDraft((p) => ({ ...p, emailTemplate: e.target.value }))}
+        />
+        <p className={styles.fieldHint}>
+          Sent with every lease. <code className={styles.code}>{"{group}"}</code> is replaced with each group&apos;s name.
+        </p>
+
+        <div className={styles.modalActions}>
+          <button className={styles.cancelButton} onClick={onCancel} disabled={saving}>Cancel</button>
+          <button className={styles.saveButton} onClick={handleSave} disabled={saving || !!dateError}>
+            {saving ? "Saving…" : "Save"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+interface FilterGroupProps {
+  label: string;
+  names: string[];
+  checked: Record<string, boolean>;
+  onChange: (next: Record<string, boolean>) => void;
+}
+
+const FilterGroup: React.FC<FilterGroupProps> = ({ label, names, checked, onChange }) => {
+  const allOn = names.every((name) => checked[name]);
+  return (
+    <div className={styles.filterGroup}>
+      <div className={styles.filterGroupHeader}>
+        <span className={styles.filterGroupLabel}>{label}</span>
+        <button
+          className={styles.groupToggle}
+          onClick={() => onChange({ ...checked, ...Object.fromEntries(names.map((n) => [n, !allOn])) })}
+        >
+          {allOn ? "Clear all" : "Select all"}
+        </button>
+      </div>
+      {names.map((name) => (
+        <label key={name} className={styles.checkboxRow}>
+          <input
+            type="checkbox"
+            className={styles.checkbox}
+            checked={!!checked[name]}
+            onChange={() => onChange({ ...checked, [name]: !checked[name] })}
+          />
+          {name}
+        </label>
+      ))}
+    </div>
+  );
+};
+
+const SignageUrlCard: React.FC = () => {
+  const [checkedRooms, setCheckedRooms] = useState<Record<string, boolean>>(() =>
+    allChecked([...LOCATION_ROOMS, ...ZOOM_ROOMS]));
+  const [checkedTypes, setCheckedTypes] = useState<Record<string, boolean>>(() => allChecked(SIGNAGE_CAL_TYPES));
+  const [checkedModes, setCheckedModes] = useState<Record<string, boolean>>(() => allChecked(SIGNAGE_MODE_TYPES));
+  const [view, setView] = useState<"day" | "week">("day");
+  const [origin, setOrigin] = useState("");
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    setOrigin(window.location.origin);
+  }, []);
+
+  const { generatedUrl, isFullyOpen } = useMemo(() => {
+    const buildParam = (
+      allNames: string[],
+      checked: Record<string, boolean>,
+      slugs: Record<string, string> = {},
+    ): string | null => {
+      const on = allNames.filter((name) => checked[name]);
+      if (on.length === allNames.length) return null;
+      return on.map((name) => slugs[name] ?? name).join(",");
+    };
+
+    const roomsParam = buildParam(LOCATION_ROOMS, checkedRooms, SIGNAGE_ROOM_SLUGS);
+    const zoomParam = buildParam(ZOOM_ROOMS, checkedRooms, SIGNAGE_ZOOM_SLUGS);
+    const typesParam = buildParam(SIGNAGE_CAL_TYPES, checkedTypes);
+    const modesParam = buildParam(SIGNAGE_MODE_TYPES, checkedModes);
+
+    const params = new URLSearchParams();
+    if (roomsParam !== null) params.set("rooms", roomsParam);
+    if (zoomParam !== null) params.set("zoom", zoomParam);
+    if (typesParam !== null) params.set("types", typesParam);
+    if (modesParam !== null) params.set("modes", modesParam);
+    params.set("view", view);
+
+    return {
+      generatedUrl: `${origin}/signage?${params.toString()}`,
+      isFullyOpen: roomsParam === null && zoomParam === null && typesParam === null && modesParam === null,
+    };
+  }, [checkedRooms, checkedTypes, checkedModes, view, origin]);
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(generatedUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
+    } catch (err) {
+      console.error("Error copying signage link:", err);
+    }
+  };
+
+  return (
+    <div className={styles.card}>
+      <div className={styles.cardHeader}>
+        <TvIcon className={styles.cardIcon} />
+        <div className={styles.cardTitle}>Generate Signage URL</div>
+      </div>
+      <div className={styles.cardDesc}>
+        Build a filtered link for digital signage display. Pick which locations, calendars, and
+        meeting modes it should show, then copy the link into the signage device.
+      </div>
+
+      <div className={styles.filterGrid}>
+        <FilterGroup label="LOCATION" names={LOCATION_ROOMS} checked={checkedRooms} onChange={setCheckedRooms} />
+        <FilterGroup label="ZOOM ROOMS" names={ZOOM_ROOMS} checked={checkedRooms} onChange={setCheckedRooms} />
+        <FilterGroup label="CALENDAR" names={SIGNAGE_CAL_TYPES} checked={checkedTypes} onChange={setCheckedTypes} />
+        <FilterGroup label="MODE" names={SIGNAGE_MODE_TYPES} checked={checkedModes} onChange={setCheckedModes} />
+      </div>
+
+      <div className={styles.sectionLabel}>Display view</div>
+      <div className={styles.viewToggle}>
+        <button
+          className={`${styles.viewButton} ${view === "day" ? styles.viewButtonActive : ""}`}
+          onClick={() => setView("day")}
+        >
+          Daily
+        </button>
+        <button
+          className={`${styles.viewButton} ${view === "week" ? styles.viewButtonActive : ""}`}
+          onClick={() => setView("week")}
+        >
+          Weekly
+        </button>
+      </div>
+
+      <div className={styles.sectionLabel}>Generated link</div>
+      <div className={styles.linkRow}>
+        <input readOnly className={styles.linkField} value={generatedUrl} onFocus={(e) => e.target.select()} />
+        <button className={styles.copyButton} onClick={handleCopy}>
+          {copied ? "Copied ✓" : "Copy Link"}
+        </button>
+      </div>
+      <div className={styles.linkCaption}>
+        {isFullyOpen
+          ? "Everything is checked, so this link shows all locations, calendars, and modes — the same as leaving filters off."
+          : "Only the checked locations, calendars, and modes will show on this link."}
+      </div>
+    </div>
+  );
+};
+
 const ExportTab: React.FC = () => {
+  const [leaseSettings, setLeaseSettings] = useState<ILeaseSettings | null>(null);
+  const [settingsError, setSettingsError] = useState<string | null>(null);
+  const [configOpen, setConfigOpen] = useState(false);
+  const [ratesOpen, setRatesOpen] = useState(false);
+  const [downloading, setDownloading] = useState<ExportKind | null>(null);
+  const [downloaded, setDownloaded] = useState<ExportKind | null>(null);
+  const [exportError, setExportError] = useState<string | null>(null);
+
+  const loadLeaseSettings = async () => {
+    try {
+      const response = await fetch("/api/retrieve/lease-settings");
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+      const json: ILeaseSettings = await response.json();
+      setLeaseSettings(json);
+      setSettingsError(null);
+    } catch (err) {
+      console.error("Error loading lease settings:", err);
+      setSettingsError("Failed to load lease settings.");
+    }
+  };
+
+  useEffect(() => {
+    loadLeaseSettings();
+  }, []);
+
+  const handleExport = async (kind: ExportKind) => {
+    setDownloading(kind);
+    setExportError(null);
+    try {
+      if (kind === "meetings") {
+        await downloadExport("/api/export/meetings", `ithaca-recovery-meetings-${todayISO()}.xlsx`);
+      } else {
+        await downloadExport("/api/export/lease", "Bulk Send Lease.csv");
+      }
+      setDownloaded(kind);
+      setTimeout(() => setDownloaded((curr) => (curr === kind ? null : curr)), 1800);
+    } catch (err) {
+      console.error(`Error exporting ${kind}:`, err);
+      setExportError(err instanceof Error ? err.message : "Export failed.");
+    } finally {
+      setDownloading(null);
+    }
+  };
+
+  const handleSaveSettings = async (next: ILeaseSettings) => {
+    const response = await fetch("/api/update/lease-settings", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(next),
+    });
+    if (!response.ok) {
+      const json = await response.json().catch(() => ({}));
+      alert(json.error ?? "Failed to save lease settings.");
+      return;
+    }
+    const saved: ILeaseSettings = await response.json();
+    setLeaseSettings(saved);
+    setConfigOpen(false);
+  };
+
+  const meetingsFilename = `ithaca-recovery-meetings-${todayISO()}.xlsx`;
+  const leaseFilename = leaseSettings
+    ? `${new Date(leaseSettings.leaseStartDate).getUTCFullYear()} - ${new Date(leaseSettings.leaseEndDate).getUTCFullYear()} Bulk Send Lease.csv`
+    : "Bulk Send Lease.csv";
+  const leaseSummary = leaseSettings
+    ? `Currently: ${formatDateShort(leaseSettings.leaseStartDate)} – ${formatDateShort(leaseSettings.leaseEndDate)} · ${leaseSettings.rooms.length} room rates configured`
+    : "Loading settings…";
+
   return (
     <div className={styles.container}>
-      <div className={styles.card}>
-        <div className={styles.sectionLabel}>EXPORT</div>
-        <div className={styles.emptyState}>Coming soon.</div>
+      {exportError && <div className={styles.errorBanner}>{exportError}</div>}
+      {settingsError && <div className={styles.errorBanner}>{settingsError}</div>}
+
+      <div className={styles.grid}>
+        <div className={`${styles.card} ${styles.exportCard}`}>
+          <div className={styles.cardHeader}>
+            <BackupIcon className={styles.cardIcon} />
+            <div className={styles.cardTitle}>Export Meetings (XLSX)</div>
+          </div>
+          <div className={styles.cardDesc}>
+            Full backup of every meeting. Include meeting mode, room, contact, and schedule fields.
+          </div>
+          <div className={styles.cardFooter}>
+            <div className={styles.filename}>{meetingsFilename}</div>
+            <button
+              className={styles.exportButton}
+              onClick={() => handleExport("meetings")}
+              disabled={downloading === "meetings"}
+            >
+              {downloaded === "meetings" ? "Downloaded ✓" : downloading === "meetings" ? "Exporting…" : "Export Meetings"}
+            </button>
+          </div>
+        </div>
+
+        <div className={`${styles.card} ${styles.exportCard}`}>
+          <div className={styles.cardHeader}>
+            <DescriptionIcon className={styles.cardIcon} />
+            <div className={styles.cardTitle}>Export PandaDocs Lease (CSV)</div>
+            <button
+              className={styles.menuButton}
+              aria-label="Configure export"
+              title="Configure export…"
+              onClick={() => setConfigOpen(true)}
+              disabled={!leaseSettings}
+            >
+              <MoreVertIcon fontSize="small" />
+            </button>
+          </div>
+          <div className={styles.cardDesc}>
+            Billing fields formatted for the PandaDocs lease-renewal mail merge. 
+            Include room rate, billable time, rent charge, and client contact per group.
+          </div>
+          {leaseSettings && (
+            <div className={styles.summaryRow}>
+              <span className={styles.summaryText}>{leaseSummary}</span>
+              <button className={styles.viewRatesButton} onClick={() => setRatesOpen((v) => !v)}>
+                View rates
+              </button>
+              {ratesOpen && (
+                <div className={styles.ratesPopover}>
+                  {leaseSettings.rooms.map((room) => (
+                    <div key={room.room} className={styles.ratesPopoverRow}>
+                      <span>{room.room}</span>
+                      <span>${room.rate}/{room.unit}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+          <div className={styles.cardFooter}>
+            <div className={styles.filename}>{leaseFilename}</div>
+            <button
+              className={styles.exportButton}
+              onClick={() => handleExport("lease")}
+              disabled={downloading === "lease" || !leaseSettings}
+            >
+              {downloaded === "lease" ? "Downloaded ✓" : downloading === "lease" ? "Exporting…" : "Export Lease CSV"}
+            </button>
+          </div>
+        </div>
       </div>
+
+      <SignageUrlCard />
+
+      {configOpen && leaseSettings && (
+        <LeaseConfigModal
+          initial={leaseSettings}
+          onCancel={() => setConfigOpen(false)}
+          onSave={handleSaveSettings}
+        />
+      )}
     </div>
   );
 };
