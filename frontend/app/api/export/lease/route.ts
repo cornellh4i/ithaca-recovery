@@ -1,6 +1,7 @@
 import { PrismaClient, Role } from "@prisma/client";
 import { requireRole } from "../../../../services/auth";
 import { defaultLeaseSettings } from "../../../../services/leaseDefaults";
+import { formatDayColumn } from "../../../../util/recurrenceDisplay";
 import type { ILeaseSettings, IRoomRate } from "../../../../util/models";
 
 const prisma = new PrismaClient();
@@ -28,11 +29,6 @@ function calculateRentCharge(premiseType: string, billableHours: number, roomRat
 
 function formatRoomDisplay(room: string, roomRate: IRoomRate): string {
   return `${room} ($${roomRate.rate}/${roomRate.unit})`;
-}
-
-const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-function formatDayOfWeek(date: Date): string {
-  return DAY_NAMES[date.getUTCDay()];
 }
 
 function formatTime(date: Date): string {
@@ -83,6 +79,7 @@ export const GET = async () => {
 
     const meetings = await prisma.meeting.findMany({
       where: { ...notDeleted, status: "Active" },
+      include: { recurrencePattern: true },
       orderBy: { title: "asc" },
     });
 
@@ -130,7 +127,7 @@ export const GET = async () => {
         "Group Name": meeting.title,
         "Lease End Date": formatLeaseDate(leaseEnd),
         "Lease Start Date": formatLeaseDate(leaseStart),
-        "Meeting Day": formatDayOfWeek(start),
+        "Meeting Day": formatDayColumn(meeting.recurrencePattern),
         "Meeting Type": meeting.calType.join(", "),
         "Premise and Use": premiseType,
         "Rent Charge": `$${rentCharge.toFixed(2)}`,

@@ -1,13 +1,11 @@
 import * as XLSX from "xlsx";
 import { PrismaClient, Role } from "@prisma/client";
 import { requireRole } from "../../../../services/auth";
+import { formatDayColumn, formatFrequencyColumn } from "../../../../util/recurrenceDisplay";
 
 const prisma = new PrismaClient();
 
 const notDeleted = { OR: [{ deletedAt: null }, { deletedAt: { isSet: false } }] };
-
-const DAY_ORDER = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-const WEEK_OF_MONTH_ORDINALS = ["1st", "2nd", "3rd", "4th"];
 
 const CATEGORY_LABELS: Record<string, string> = {
   "Al-Anon": "AL_ANON",
@@ -22,52 +20,6 @@ const LOCATION_TYPE_LABELS: Record<string, string> = {
 
 type MeetingWithRecurrence = Awaited<ReturnType<typeof loadMeetings>>[number];
 
-// Collapses a set of weekday names into ranges in week order, e.g.
-// [Monday, Tuesday, Wednesday, Friday] -> "Monday-Wednesday, Friday".
-function collapseDayRuns(days: string[]): string {
-  const sorted = [...days].sort((a, b) => DAY_ORDER.indexOf(a) - DAY_ORDER.indexOf(b));
-  const runs: string[][] = [];
-  for (const day of sorted) {
-    const dayIndex = DAY_ORDER.indexOf(day);
-    const currentRun = runs[runs.length - 1];
-    const runEndIndex = currentRun ? DAY_ORDER.indexOf(currentRun[currentRun.length - 1]) : -2;
-    if (currentRun && dayIndex === runEndIndex + 1) {
-      currentRun.push(day);
-    } else {
-      runs.push([day]);
-    }
-  }
-  return runs.map((run) => (run.length >= 2 ? `${run[0]}-${run[run.length - 1]}` : run[0])).join(", ");
-}
-
-function formatDayColumn(pattern: MeetingWithRecurrence["recurrencePattern"]): string {
-  if (!pattern) return "One-time";
-
-  if (pattern.type === "monthly") {
-    if (pattern.weekOfMonth != null) {
-      const ordinal = pattern.weekOfMonth === -1
-        ? "Last"
-        : WEEK_OF_MONTH_ORDINALS[pattern.weekOfMonth - 1] ?? `${pattern.weekOfMonth}th`;
-      const day = (pattern.daysOfWeek ?? [])[0] ?? "";
-      return `${ordinal} ${day}`.trim();
-    }
-    if (pattern.dayOfMonth != null) return `Day ${pattern.dayOfMonth}`;
-    return "Monthly";
-  }
-
-  const days = pattern.daysOfWeek ?? [];
-  if (days.length === 7) return "Daily";
-  if (days.length === 0) return "";
-  return collapseDayRuns(days);
-}
-
-function formatFrequencyColumn(pattern: MeetingWithRecurrence["recurrencePattern"]): string {
-  if (!pattern) return "";
-  if (pattern.type === "monthly") return "Monthly";
-  if (pattern.type === "weekly") return "Weekly";
-  return "";
-}
-
 function formatETDate(date: Date): string {
   return new Intl.DateTimeFormat("en-US", {
     timeZone: "America/New_York",
@@ -75,6 +27,18 @@ function formatETDate(date: Date): string {
     day: "2-digit",
     year: "numeric",
   }).format(date);
+}
+
+// Combines the per-category GCal event ID map into one cell (e.g. "AA: abc123, Al-Anon: def456").
+// Falls back to the legacy singular googleCalendarEventId for meetings synced before the
+// per-category map existed, since a "full backup" should still capture those IDs.
+function formatGoogleCalendarEventIds(meeting: MeetingWithRecurrence): string {
+  const map = (meeting.googleCalendarEventIds ?? {}) as Record<string, string>;
+  const entries = Object.entries(map).filter(([, id]) => id);
+  if (entries.length > 0) {
+    return entries.map(([category, id]) => `${category}: ${id}`).join(", ");
+  }
+  return meeting.googleCalendarEventId ?? "";
 }
 
 function formatETTime(date: Date): string {
@@ -121,6 +85,8 @@ export const GET = async () => {
       "Zoom Room": meeting.zoomAccount ?? "",
       "Contact Email": meeting.email,
       Description: meeting.description,
+      "Google Calendar Event ID": formatGoogleCalendarEventIds(meeting),
+      "Zoom Meeting ID": meeting.zid ?? "",
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(rows);
