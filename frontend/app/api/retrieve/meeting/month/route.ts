@@ -10,10 +10,17 @@ const notDeleted = { OR: [{ deletedAt: null }, { deletedAt: { isSet: false } }] 
 
 const retrieveMonthMeetings = async (request: NextRequest) => {
     try {
-        const date = request.nextUrl.searchParams.get("startDate") ?? new Date().toISOString();
-        const standardDate = new Date(date);
-        const year = standardDate.getUTCFullYear();
-        const month = standardDate.getUTCMonth(); // 0-indexed
+        const etFmt = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' });
+        const dateParam = request.nextUrl.searchParams.get("startDate");
+
+        // Normalise to a "YYYY-MM-DD" ET calendar date string before reading
+        // year/month, so the "now" default and non-date-only params resolve
+        // to today in ET rather than UTC's (possibly already-next-day) date.
+        const etDateStr = dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam)
+            ? dateParam
+            : etFmt.format(dateParam ? new Date(dateParam) : new Date());
+        const [year, etMonth] = etDateStr.split('-').map(Number);
+        const month = etMonth - 1; // 0-indexed
 
         // First and last day of the month as UTC-midnight calendar dates,
         // then get DST-correct ET day bounds for each.

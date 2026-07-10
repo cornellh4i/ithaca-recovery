@@ -224,10 +224,12 @@ const HomePage = () => {
                 room={selectedMeeting.room}
                 isRecurring={selectedMeeting.isRecurring ?? false}
                 recurrencePattern={selectedMeeting.recurrencePattern || undefined}
+                syncStatus={selectedMeeting.syncStatus}
                 currentOccurrenceDate={lastClickedDate || undefined} // Pass the date when the meeting was clicked
                 onBack={handleBack}
                 onEdit={handleOpenEdit}
                 onDelete={handleDelete}
+                onSyncSuccess={triggerCalendarRefresh}
               />
             ) : (
               <CalendarSidebar

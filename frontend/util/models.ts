@@ -37,12 +37,14 @@ interface IMeeting {
 interface IRecurrencePattern {
   mid?: string;
   type: string;
-  startDate: Date; // UTC timestamp of midnight ET on the day the series starts; used for calendar-day boundary checks.
-  endDate?: Date | null;
+  startDate: Date; // UTC timestamp of midnight ET on the day the series starts
+  endDate?: Date | null; // UTC timestamp of 23:59:59 ET on the inclusive last day of the series
   numberOfOccurrences?: number | null;
   daysOfWeek?: string[] | null;
   firstDayOfWeek: string;
-  interval: number; // 1 = weekly, 2 = biweekly, etc.
+  interval: number; // number of frequency units between occurrences (e.g. 2 = biweekly or every 2 months)
+  weekOfMonth?: number | null; // 1–4 for Nth weekday, -1 for last; paired with daysOfWeek
+  dayOfMonth?: number | null; // 1–31 for fixed day of month
   excludedDates?: Date[] | null;
 }
 

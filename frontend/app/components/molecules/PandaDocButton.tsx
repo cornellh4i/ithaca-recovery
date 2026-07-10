@@ -10,9 +10,8 @@ const PandaDocButton: React.FC<PandaDocButtonProps> = ({ className }) => {
   const fetchMeetings = async () => {
     try {
       const currentYear = new Date().getFullYear();
-      const julyFirst = new Date(currentYear, 6, 1);
-      const julFirstStr = julyFirst.toLocaleString("en-US", {timeZone: "America/New_York"});
-      
+      const julFirstStr = `${currentYear}-07-01`;
+
       const response = await fetch(`/api/retrieve/meeting/week?startDate=${julFirstStr}`, {
         method: 'GET',
         headers: {

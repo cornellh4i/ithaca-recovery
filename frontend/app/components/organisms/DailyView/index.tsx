@@ -11,6 +11,7 @@ type Meeting = {
   startTime: string;
   endTime: string;
   tags: string[];
+  syncError?: boolean;
 };
 
 type Room = {
@@ -21,8 +22,15 @@ type Room = {
 
 const meetingCache = new Map<string, Room[]>();
 
+// Formats a Date's local calendar day as "YYYY-MM-DD". Uses local (not UTC)
+// getters since the rest of this component treats `date` as the browser's
+// local wall-clock day (see dayStart/dayEnd below) — matches the day-retrieve
+// route's expected date-only format unambiguously, unlike locale strings.
+const toLocalDateStr = (date: Date): string =>
+  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+
 export const fetchMeetingsByDay = async (date: Date): Promise<Room[]> => {
-  const formattedDate = date.toLocaleDateString("en-US"); // e.g., "2025-04-09"
+  const formattedDate = toLocalDateStr(date);
 
   // If cache exists, return it. Otherwise, fetch new data.
   if (meetingCache.has(formattedDate)) {
@@ -90,6 +98,7 @@ export const fetchMeetingsByDay = async (date: Date): Promise<Room[]> => {
         startTime: startEDT,
         endTime: endEDT,
         tags: [meeting.calType, meeting.modeType],
+        syncError: meeting.syncStatus === 'error',
       });
     });
 
@@ -113,7 +122,7 @@ export const fetchMeetingsByDay = async (date: Date): Promise<Room[]> => {
 
 // Function to invalidate the cache for a specific date
 export const invalidateCache = (date: Date) => {
-  const formattedDate = date.toLocaleDateString("en-US");
+  const formattedDate = toLocalDateStr(date);
   console.log(`Invalidating cache for ${formattedDate}`);
   meetingCache.delete(formattedDate); // Delete the cache for this date
 };

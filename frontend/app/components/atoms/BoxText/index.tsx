@@ -8,20 +8,22 @@ interface BoxProps {
   time?: string; // For Meeting Block
   tags?: string[]; // For badges like "Hybrid", "AA"
   meetingId: string;
-  meetingType?: 'Hybrid' | 'In Person' | 'Remote'; 
+  meetingType?: 'Hybrid' | 'In Person' | 'Remote';
+  syncError?: boolean;
   onClick: (meetingId: string, e: React.MouseEvent<HTMLDivElement, MouseEvent>) => void;
   [key: string]: any;
 };
 
-const BoxText: React.FC<BoxProps> = ({ 
-  boxType, 
-  title, 
-  primaryColor, 
-  time, 
-  tags, 
-  meetingId, 
-  meetingType = 'Hybrid', // Default to Hybrid if not specified
-  onClick 
+const BoxText: React.FC<BoxProps> = ({
+  boxType,
+  title,
+  primaryColor,
+  time,
+  tags,
+  meetingId,
+  meetingType = 'Hybrid',
+  syncError = false,
+  onClick
 }) => {
 
   // Function to convert hex to RGB
@@ -85,9 +87,20 @@ const BoxText: React.FC<BoxProps> = ({
   return (
     <div
       className={`${styles.box} ${boxType === 'Meeting Block' ? styles.meeting : styles.room}`}
-      style={{ backgroundColor: bgColor, borderLeft: `7px solid ${primaryColor}` }}
+      style={{ backgroundColor: bgColor, borderLeft: `7px solid ${primaryColor}`, position: 'relative' }}
       onClick={(e) => onClick(meetingId, e)}
     >
+      {syncError && (
+        <span
+          title="Google Calendar sync failed"
+          style={{
+            position: 'absolute', top: '4px', right: '4px',
+            fontSize: '11px', color: '#e07000', lineHeight: 1,
+          }}
+        >
+          ⚠
+        </span>
+      )}
       <h3 className={styles.title}>{title}</h3>
 
       {boxType === 'Meeting Block' && <p className={styles.time}>{time}</p>}

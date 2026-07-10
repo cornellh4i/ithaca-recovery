@@ -42,6 +42,8 @@ const updateMeeting = async (request: Request): Promise<Response> => {
                   daysOfWeek: recurrencePattern.daysOfWeek ?? [],
                   firstDayOfWeek: recurrencePattern.firstDayOfWeek,
                   interval: recurrencePattern.interval,
+                  weekOfMonth: recurrencePattern.weekOfMonth ?? null,
+                  dayOfMonth: recurrencePattern.dayOfMonth ?? null,
                 },
                 create: {
                   type: recurrencePattern.type,
@@ -51,6 +53,8 @@ const updateMeeting = async (request: Request): Promise<Response> => {
                   daysOfWeek: recurrencePattern.daysOfWeek ?? [],
                   firstDayOfWeek: recurrencePattern.firstDayOfWeek,
                   interval: recurrencePattern.interval,
+                  weekOfMonth: recurrencePattern.weekOfMonth ?? null,
+                  dayOfMonth: recurrencePattern.dayOfMonth ?? null,
                 },
               },
             }

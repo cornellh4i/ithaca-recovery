@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../../auth/authConfig";
 import { createCalendarEvent } from "../../../../services/googleCalendar";
+import { convertETToUTC } from "../../../../util/timeUtils";
 
 const prisma = new PrismaClient();
 
@@ -30,7 +31,10 @@ const createMeeting = async (request: Request) => {
           recurrencePattern.startDate,
           recurrencePattern.daysOfWeek || [],
           recurrencePattern.numberOfOccurrences,
-          recurrencePattern.interval || 1
+          recurrencePattern.interval || 1,
+          recurrencePattern.type,
+          recurrencePattern.weekOfMonth ?? null,
+          recurrencePattern.dayOfMonth ?? null,
         );
       }
 
@@ -43,7 +47,9 @@ const createMeeting = async (request: Request) => {
           numberOfOccurrences: recurrencePattern.numberOfOccurrences,
           daysOfWeek: recurrencePattern.daysOfWeek || [],
           firstDayOfWeek: recurrencePattern.firstDayOfWeek || "Sunday",
-          interval: recurrencePattern.interval || 1
+          interval: recurrencePattern.interval || 1,
+          weekOfMonth: recurrencePattern.weekOfMonth ?? null,
+          dayOfMonth: recurrencePattern.dayOfMonth ?? null,
         }
       });
 
@@ -86,67 +92,96 @@ function calculateEndDateFromOccurrences(
   startDate: Date,
   daysOfWeek: string[],
   numberOfOccurrences: number,
-  interval: number
+  interval: number,
+  type: string,
+  weekOfMonth: number | null = null,
+  dayOfMonth: number | null = null,
 ): Date {
   const patternStartDate = new Date(startDate);
 
-  if (daysOfWeek.length === 0 || numberOfOccurrences <= 0) {
-    return patternStartDate;
-  }
+  if (numberOfOccurrences <= 0) return patternStartDate;
 
   const dayNameToIndex: Record<string, number> = {
     "Sunday": 0, "Monday": 1, "Tuesday": 2, "Wednesday": 3,
-    "Thursday": 4, "Friday": 5, "Saturday": 6
+    "Thursday": 4, "Friday": 5, "Saturday": 6,
   };
+
+  if (type === "monthly") {
+    // The Nth occurrence is (N-1) intervals after the start month
+    const rawMonth = patternStartDate.getUTCMonth() + (numberOfOccurrences - 1) * interval;
+    const targetYear = patternStartDate.getUTCFullYear() + Math.floor(rawMonth / 12);
+    const targetMonth = rawMonth % 12;
+
+    // 23:59:59 ET so the end date is inclusive of its full day
+    // even against a naive instant comparison (e.g. `meetingStart <= endDate`).
+    const toETDate = (day: number) => new Date(convertETToUTC(
+      `${targetYear}-${String(targetMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}T23:59:59`
+    ));
+
+    if (dayOfMonth != null) {
+      return toETDate(dayOfMonth);
+    }
+
+    if (weekOfMonth != null && daysOfWeek.length > 0) {
+      const targetDay = dayNameToIndex[daysOfWeek[0]];
+      const daysInMonth = new Date(Date.UTC(targetYear, targetMonth + 1, 0)).getUTCDate();
+
+      if (weekOfMonth === -1) {
+        for (let d = daysInMonth; d >= 1; d--) {
+          if (new Date(Date.UTC(targetYear, targetMonth, d)).getUTCDay() === targetDay) {
+            return toETDate(d);
+          }
+        }
+      } else {
+        let count = 0;
+        for (let d = 1; d <= daysInMonth; d++) {
+          if (new Date(Date.UTC(targetYear, targetMonth, d)).getUTCDay() === targetDay) {
+            if (++count === weekOfMonth) {
+              return toETDate(d);
+            }
+          }
+        }
+      }
+    }
+
+    return toETDate(patternStartDate.getUTCDate());
+  }
+
+  // Weekly
+  if (daysOfWeek.length === 0) return patternStartDate;
 
   const recurrenceDays = daysOfWeek
     .map(day => dayNameToIndex[day])
     .filter(index => index !== undefined)
     .sort((a, b) => a - b);
 
-  if (recurrenceDays.length === 0) {
-    return patternStartDate;
-  }
+  if (recurrenceDays.length === 0) return patternStartDate;
 
   const endDate = new Date(patternStartDate);
-
   let occurrenceCount = 0;
   let currentWeek = 0;
-
   const startDayOfWeek = patternStartDate.getUTCDay();
 
   // The start date only counts as an occurrence if its weekday is in daysOfWeek.
   if (recurrenceDays.includes(startDayOfWeek)) {
     occurrenceCount++;
-
-    if (occurrenceCount >= numberOfOccurrences) {
-      return patternStartDate;
-    }
+    if (occurrenceCount >= numberOfOccurrences) return patternStartDate;
   }
 
   let nextDayIndex = recurrenceDays.findIndex(day => day > startDayOfWeek);
-
-  if (nextDayIndex === -1) {
-    nextDayIndex = 0;
-    currentWeek++;
-  }
+  if (nextDayIndex === -1) { nextDayIndex = 0; currentWeek++; }
 
   while (occurrenceCount < numberOfOccurrences) {
     if (currentWeek % interval === 0) {
       while (nextDayIndex < recurrenceDays.length) {
         const daysToAdd = (currentWeek * 7) +
           (recurrenceDays[nextDayIndex] - startDayOfWeek + 7) % 7;
-
         endDate.setUTCDate(patternStartDate.getUTCDate() + daysToAdd);
         occurrenceCount++;
         nextDayIndex++;
-
-        if (occurrenceCount >= numberOfOccurrences) {
-          return endDate;
-        }
+        if (occurrenceCount >= numberOfOccurrences) return endDate;
       }
     }
-
     currentWeek++;
     nextDayIndex = 0;
   }
