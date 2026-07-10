@@ -103,7 +103,8 @@ const retrieveDayMeetings = async (request: NextRequest) => {
                     if (!(recurrence.daysOfWeek ?? []).includes(requestedDayName)) return false;
                     const daysInMonth = new Date(Date.UTC(reqYear, reqMonth + 1, 0)).getUTCDate();
                     const dateNum = localDate.getUTCDate();
-                    if (recurrence.weekOfMonth === -1) { // Checking last occurence of this weekday of the month
+                    if (recurrence.weekOfMonth === -1) { 
+                        // Check whether the date is the last occurrence of this weekday in the month
                         return dateNum + 7 > daysInMonth;
                     }
                     return Math.ceil(dateNum / 7) === recurrence.weekOfMonth;
