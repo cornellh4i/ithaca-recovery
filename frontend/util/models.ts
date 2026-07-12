@@ -29,7 +29,6 @@ interface IMeeting {
   status?: string;
   isRecurring: boolean;
   recurrencePattern?: IRecurrencePattern | null;
-  googleCalendarEventId?: string | null;
   googleCalendarEventIds?: Record<string, string> | null;
   syncStatus?: string | null;
   deletedAt?: Date | null;
