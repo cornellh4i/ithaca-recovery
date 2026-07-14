@@ -7,9 +7,10 @@ type Meeting = {
     title: string;
     startTime: string;
     endTime: string;
-    date: string; // Added date field to track which day the meeting belongs to
+    date: string; // ET calendar date this occurrence belongs to, as returned by the week API
     tags: string[];
-    room: string; // Added room property to fix the error
+    room: string;
+    zoomAccount?: string | null;
 };
 
 type Room = {
@@ -19,6 +20,12 @@ type Room = {
 };
 
 const meetingCache = new Map<string, Meeting[]>();
+
+// Extracts ET wall-clock time as "HH:MM" (24hr), which is what WeeklyViewColumn expects.
+const etTimeFmt = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'America/New_York',
+    hour: '2-digit', minute: '2-digit', hour12: false,
+});
 
 const fetchMeetingsByWeek = async (startDate: Date, endDate: Date): Promise<Meeting[]> => {
     const formattedStart = startDate.toISOString().split('T')[0];
@@ -37,20 +44,16 @@ const fetchMeetingsByWeek = async (startDate: Date, endDate: Date): Promise<Meet
         const data = await response.json();
         console.log("Raw API response:", data);
 
-        const meetings: Meeting[] = data.map((meeting: any) => {
-            const start = new Date(meeting.startDateTime.replace("Z", ""));
-            const end = new Date(meeting.endDateTime.replace("Z", ""));
-
-            return {
-                id: meeting.mid,
-                title: meeting.title,
-                startTime: start.toLocaleTimeString("en-GB", { hour12: false }),
-                endTime: end.toLocaleTimeString("en-GB", { hour12: false }),
-                date: start.toISOString().split('T')[0], // Store the date of the meeting
-                tags: [meeting.type, meeting.group],
-                room: meeting.room,
-            };
-        });
+        const meetings: Meeting[] = data.map((meeting: any) => ({
+            id: meeting.mid,
+            title: meeting.title,
+            startTime: etTimeFmt.format(new Date(meeting.startDateTime)),
+            endTime: etTimeFmt.format(new Date(meeting.endDateTime)),
+            date: meeting.date, // ET calendar date, set by the week API's per-day expansion
+            tags: [...meeting.calType, meeting.modeType],
+            room: meeting.room,
+            zoomAccount: meeting.zoomAccount,
+        }));
 
         meetingCache.set(cacheKey, meetings);
         return meetings;
