@@ -26,8 +26,7 @@ const CalendarSidebar: React.FC<CalendarSidebarProps> = ({filters, setFilters, s
   const filterKey = 'meetingFilterState';
 
   const handleFilterChange = (name: string, value: boolean) => {
-    const updatedFilters = { ...filters, [name]: value };
-    setFilters(updatedFilters);
+    setFilters((prev: typeof filters) => ({ ...prev, [name]: value }));
   };
 
   const handleOpenNewMeeting = () => {

@@ -9,11 +9,7 @@
 // from .filterGrid's grid gap, but stacked usages (e.g. the calendar sidebar) have no
 // such gap between groups, so they need their own margin.
 .groupSpaced {
-  margin-bottom: 20px;
-
-  &:last-child {
-    margin-bottom: 0;
-  }
+  margin-top: 20px;
 }
 
 .header {
