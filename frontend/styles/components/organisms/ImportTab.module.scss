@@ -26,24 +26,6 @@
   margin-bottom: 16px;
 }
 
-.cardHeader {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 10px;
-}
-
-.cardIcon {
-  color: $dark-pink-color;
-}
-
-.cardTitle {
-  font-size: 16px;
-  font-weight: 600;
-  color: $black-color;
-  flex: 1;
-}
-
 .cardDesc {
   font-size: 14px;
   color: #555;
@@ -106,35 +88,6 @@
   flex-wrap: wrap;
   gap: 10px;
   margin-bottom: 20px;
-}
-
-.pill {
-  display: inline-block;
-  font-size: 13px;
-  font-weight: 600;
-  padding: 4px 10px;
-  border-radius: 10.593px;
-  white-space: nowrap;
-}
-
-.pillCreated {
-  background: #D4F4D2;
-  color: #4CAF50;
-}
-
-.pillConflict {
-  background: #FDECC8;
-  color: #B8860B;
-}
-
-.pillSkipped {
-  background: #F1F1F1;
-  color: $medium-grey-color;
-}
-
-.pillErrored {
-  background: #FBE1E7;
-  color: $dark-pink-color;
 }
 
 .resultsTable {

@@ -65,44 +65,6 @@
   font-size: 14px;
 }
 
-.cardHeader {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 10px;
-}
-
-.cardIcon {
-  color: $dark-pink-color;
-}
-
-.cardTitle {
-  font-size: 16px;
-  font-weight: 600;
-  color: $black-color;
-  flex: 1;
-}
-
-.menuButton {
-  background: none;
-  border: none;
-  color: $medium-grey-color;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  padding: 4px;
-  border-radius: 6px;
-
-  &:hover:not(:disabled) {
-    background: #F1F1F1;
-  }
-
-  &:disabled {
-    cursor: not-allowed;
-    opacity: 0.5;
-  }
-}
-
 .cardDesc {
   font-size: 14px;
   color: #555;
@@ -371,58 +333,6 @@
   @media (max-width: 560px) {
     grid-template-columns: 1fr;
   }
-}
-
-.filterGroup {
-  display: flex;
-  flex-direction: column;
-}
-
-.filterGroupHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 8px;
-}
-
-.filterGroupLabel {
-  font-size: 12px;
-  font-weight: 600;
-  color: $medium-grey-color;
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
-}
-
-.groupToggle {
-  background: none;
-  border: none;
-  color: $dark-pink-color;
-  font-family: inherit;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  padding: 0;
-
-  &:hover {
-    text-decoration: underline;
-  }
-}
-
-.checkboxRow {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 14px;
-  color: $black-color;
-  padding: 4px 0;
-  cursor: pointer;
-}
-
-.checkbox {
-  width: 16px;
-  height: 16px;
-  accent-color: $dark-pink-color;
-  cursor: pointer;
 }
 
 .viewToggle {

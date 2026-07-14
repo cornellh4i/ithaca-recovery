@@ -11,13 +11,37 @@ import {
   SIGNAGE_ROOM_SLUGS,
   SIGNAGE_ZOOM_SLUGS,
 } from "../../../util/signageFilters";
+import { ROOM_COLORS, ZOOM_ROOM_COLOR, CATEGORY_COLOR } from "../../../util/filterColors";
 import type { ILeaseSettings, IRoomRate } from "../../../util/models";
+import FilterGroup, { FilterGroupItem } from "../molecules/FilterGroup";
+import CardHeader from "../molecules/CardHeader";
 import styles from "../../../styles/components/organisms/ExportTab.module.scss";
 
 type ExportKind = "meetings" | "lease";
 
 const LOCATION_ROOMS = Object.keys(SIGNAGE_ROOM_SLUGS);
 const ZOOM_ROOMS = Object.keys(SIGNAGE_ZOOM_SLUGS);
+
+const LOCATION_ITEMS: FilterGroupItem[] = LOCATION_ROOMS.map((name) => ({
+  key: name,
+  label: name,
+  color: ROOM_COLORS[name],
+}));
+const ZOOM_ITEMS: FilterGroupItem[] = ZOOM_ROOMS.map((name) => ({
+  key: name,
+  label: name,
+  color: ZOOM_ROOM_COLOR,
+}));
+const CAL_TYPE_ITEMS: FilterGroupItem[] = SIGNAGE_CAL_TYPES.map((name) => ({
+  key: name,
+  label: name,
+  color: CATEGORY_COLOR,
+}));
+const MODE_ITEMS: FilterGroupItem[] = SIGNAGE_MODE_TYPES.map((name) => ({
+  key: name,
+  label: name,
+  color: CATEGORY_COLOR,
+}));
 
 const allChecked = (names: string[]): Record<string, boolean> =>
   Object.fromEntries(names.map((name) => [name, true]));
@@ -218,41 +242,6 @@ const LeaseConfigModal: React.FC<LeaseConfigModalProps> = ({ initial, onCancel, 
   );
 };
 
-interface FilterGroupProps {
-  label: string;
-  names: string[];
-  checked: Record<string, boolean>;
-  onChange: (next: Record<string, boolean>) => void;
-}
-
-const FilterGroup: React.FC<FilterGroupProps> = ({ label, names, checked, onChange }) => {
-  const allOn = names.every((name) => checked[name]);
-  return (
-    <div className={styles.filterGroup}>
-      <div className={styles.filterGroupHeader}>
-        <span className={styles.filterGroupLabel}>{label}</span>
-        <button
-          className={styles.groupToggle}
-          onClick={() => onChange({ ...checked, ...Object.fromEntries(names.map((n) => [n, !allOn])) })}
-        >
-          {allOn ? "Clear all" : "Select all"}
-        </button>
-      </div>
-      {names.map((name) => (
-        <label key={name} className={styles.checkboxRow}>
-          <input
-            type="checkbox"
-            className={styles.checkbox}
-            checked={!!checked[name]}
-            onChange={() => onChange({ ...checked, [name]: !checked[name] })}
-          />
-          {name}
-        </label>
-      ))}
-    </div>
-  );
-};
-
 const SignageUrlCard: React.FC = () => {
   const [checkedRooms, setCheckedRooms] = useState<Record<string, boolean>>(() =>
     allChecked([...LOCATION_ROOMS, ...ZOOM_ROOMS]));
@@ -305,22 +294,23 @@ const SignageUrlCard: React.FC = () => {
     }
   };
 
+  const toggleRoom = (key: string, value: boolean) => setCheckedRooms((prev) => ({ ...prev, [key]: value }));
+  const toggleType = (key: string, value: boolean) => setCheckedTypes((prev) => ({ ...prev, [key]: value }));
+  const toggleMode = (key: string, value: boolean) => setCheckedModes((prev) => ({ ...prev, [key]: value }));
+
   return (
     <div className={styles.card}>
-      <div className={styles.cardHeader}>
-        <TvIcon className={styles.cardIcon} />
-        <div className={styles.cardTitle}>Generate Signage URL</div>
-      </div>
+      <CardHeader icon={<TvIcon />} title="Generate Signage URL" />
       <div className={styles.cardDesc}>
         Build a filtered link for digital signage display. Pick which locations, calendars, and
         meeting modes it should show, then copy the link into the signage device.
       </div>
 
       <div className={styles.filterGrid}>
-        <FilterGroup label="LOCATION" names={LOCATION_ROOMS} checked={checkedRooms} onChange={setCheckedRooms} />
-        <FilterGroup label="ZOOM ROOMS" names={ZOOM_ROOMS} checked={checkedRooms} onChange={setCheckedRooms} />
-        <FilterGroup label="CALENDAR" names={SIGNAGE_CAL_TYPES} checked={checkedTypes} onChange={setCheckedTypes} />
-        <FilterGroup label="MODE" names={SIGNAGE_MODE_TYPES} checked={checkedModes} onChange={setCheckedModes} />
+        <FilterGroup title="LOCATION" items={LOCATION_ITEMS} checked={checkedRooms} onToggle={toggleRoom} />
+        <FilterGroup title="ZOOM ROOMS" items={ZOOM_ITEMS} checked={checkedRooms} onToggle={toggleRoom} />
+        <FilterGroup title="CALENDAR" items={CAL_TYPE_ITEMS} checked={checkedTypes} onToggle={toggleType} />
+        <FilterGroup title="MODE" items={MODE_ITEMS} checked={checkedModes} onToggle={toggleMode} />
       </div>
 
       <div className={styles.sectionLabel}>Display view</div>
@@ -431,10 +421,7 @@ const ExportTab: React.FC = () => {
 
       <div className={styles.grid}>
         <div className={`${styles.card} ${styles.exportCard}`}>
-          <div className={styles.cardHeader}>
-            <BackupIcon className={styles.cardIcon} />
-            <div className={styles.cardTitle}>Export Meetings (XLSX)</div>
-          </div>
+          <CardHeader icon={<BackupIcon />} title="Export Meetings (XLSX)" />
           <div className={styles.cardDesc}>
             Full backup of every meeting. Include meeting mode, room, contact, and schedule fields.
           </div>
@@ -451,19 +438,17 @@ const ExportTab: React.FC = () => {
         </div>
 
         <div className={`${styles.card} ${styles.exportCard}`}>
-          <div className={styles.cardHeader}>
-            <DescriptionIcon className={styles.cardIcon} />
-            <div className={styles.cardTitle}>Export PandaDocs Lease (CSV)</div>
-            <button
-              className={styles.menuButton}
-              aria-label="Configure export"
-              title="Configure export…"
-              onClick={() => setConfigOpen(true)}
-              disabled={!leaseSettings}
-            >
-              <MoreVertIcon fontSize="small" />
-            </button>
-          </div>
+          <CardHeader
+            icon={<DescriptionIcon />}
+            title="Export PandaDocs Lease (CSV)"
+            action={{
+              icon: <MoreVertIcon fontSize="small" />,
+              onClick: () => setConfigOpen(true),
+              ariaLabel: "Configure export",
+              title: "Configure export…",
+              disabled: !leaseSettings,
+            }}
+          />
           <div className={styles.cardDesc}>
             Billing fields formatted for the PandaDocs lease-renewal mail merge. 
             Include room rate, billable time, rent charge, and client contact per group.

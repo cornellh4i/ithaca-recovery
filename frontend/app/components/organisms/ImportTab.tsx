@@ -2,6 +2,8 @@
 
 import React, { useState } from "react";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
+import CardHeader from "../molecules/CardHeader";
+import StatusPill, { StatusPillVariant } from "../atoms/StatusPill";
 import styles from "../../../styles/components/organisms/ImportTab.module.scss";
 
 type ImportStatus = "created" | "conflict" | "skipped" | "errored";
@@ -21,11 +23,11 @@ const STATUS_LABEL: Record<ImportStatus, string> = {
   errored: "✕ Errored",
 };
 
-const STATUS_PILL_CLASS: Record<ImportStatus, string> = {
-  created: styles.pillCreated,
-  conflict: styles.pillConflict,
-  skipped: styles.pillSkipped,
-  errored: styles.pillErrored,
+const STATUS_VARIANT: Record<ImportStatus, StatusPillVariant> = {
+  created: "success",
+  conflict: "warning",
+  skipped: "neutral",
+  errored: "error",
 };
 
 // Stands in for a parsed spreadsheet so the Results UI can be reviewed before the
@@ -72,10 +74,7 @@ const ImportTab: React.FC = () => {
   return (
     <div className={styles.container}>
       <div className={styles.card}>
-        <div className={styles.cardHeader}>
-          <UploadFileIcon className={styles.cardIcon} />
-          <div className={styles.cardTitle}>Import Meetings (XLSX)</div>
-        </div>
+        <CardHeader icon={<UploadFileIcon />} title="Import Meetings (XLSX)" />
         <div className={styles.cardDesc}>
           Upload a spreadsheet of meetings to add them all at once. A preview of the result will be shown.
         </div>
@@ -116,9 +115,9 @@ const ImportTab: React.FC = () => {
           <div className={styles.resultsHeader}>Results: {results.length} rows processed</div>
           <div className={styles.pillRow}>
             {STATUS_ORDER.map((status) => (
-              <span key={status} className={`${styles.pill} ${STATUS_PILL_CLASS[status]}`}>
+              <StatusPill key={status} variant={STATUS_VARIANT[status]}>
                 {STATUS_LABEL[status]} ({counts[status]})
-              </span>
+              </StatusPill>
             ))}
           </div>
           <table className={styles.resultsTable}>
@@ -135,9 +134,7 @@ const ImportTab: React.FC = () => {
                   <td>{formatMeetingId(i)}</td>
                   <td>{r.meeting}</td>
                   <td>
-                    <span className={`${styles.pill} ${STATUS_PILL_CLASS[r.status]}`}>
-                      {STATUS_LABEL[r.status]}
-                    </span>
+                    <StatusPill variant={STATUS_VARIANT[r.status]}>{STATUS_LABEL[r.status]}</StatusPill>
                     {r.note && <div className={styles.resultNote}>{r.note}</div>}
                   </td>
                 </tr>

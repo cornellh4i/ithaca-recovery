@@ -1,8 +1,8 @@
 "use client";
 
 import React from 'react';
-import LabeledCheckbox from '../atoms/CheckBox';
-import styles from '../../../styles/components/molecules/MeetingsFilter.module.scss';
+import FilterGroup, { FilterGroupItem } from './FilterGroup';
+import { ROOM_COLORS, ZOOM_ROOM_COLOR, CATEGORY_COLOR } from '../../../util/filterColors';
 
 interface MeetingsFilterProps {
     filters: {
@@ -27,71 +27,42 @@ interface MeetingsFilterProps {
     onFilterChange: (name: string, value: boolean) => void;
 }
 
-const MeetingsFilter: React.FC<MeetingsFilterProps> = ({ filters, onFilterChange }) => {
-    const handleCheckboxChange = (name: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
-        onFilterChange(name, e.target.checked);
-    };
+const LOCATION_ITEMS: FilterGroupItem[] = [
+    { key: 'SerenityRoom', label: 'Serenity Room', color: ROOM_COLORS['Serenity Room'] },
+    { key: 'SeedsofHopeRoom', label: 'Seeds of Hope Room', color: ROOM_COLORS['Seeds of Hope Room'] },
+    { key: 'UnityRoom', label: 'Unity Room', color: ROOM_COLORS['Unity Room'] },
+    { key: 'RoomforImprovement', label: 'Room for Improvement', color: ROOM_COLORS['Room for Improvement'] },
+    { key: 'RoomforAcceptance', label: 'Room for Acceptance', color: ROOM_COLORS['Room for Acceptance'] },
+    { key: 'RoomforGratitude', label: 'Room for Gratitude', color: ROOM_COLORS['Room for Gratitude'] },
+];
 
+const ZOOM_ITEMS: FilterGroupItem[] = [
+    { key: 'SerenityRoomZoom', label: 'Serenity Room - Zoom', color: ZOOM_ROOM_COLOR },
+    { key: 'SeedsofHopeRoomZoom', label: 'Seeds of Hope Room - Zoom', color: ZOOM_ROOM_COLOR },
+    { key: 'UnityRoomZoom', label: 'Unity Room - Zoom', color: ZOOM_ROOM_COLOR },
+    { key: 'RoomforImprovementZoom', label: 'Room for Improvement - Zoom', color: ZOOM_ROOM_COLOR },
+    { key: "Children'sRoom@518Zoom", label: "Children's Room @ 518 - Zoom", color: ZOOM_ROOM_COLOR },
+];
+
+const CALENDAR_ITEMS: FilterGroupItem[] = [
+    { key: 'AA', label: 'AA', color: CATEGORY_COLOR },
+    { key: 'AlAnon', label: 'Al-Anon', color: CATEGORY_COLOR },
+    { key: 'Other', label: 'Other', color: CATEGORY_COLOR },
+];
+
+const MODE_ITEMS: FilterGroupItem[] = [
+    { key: 'InPerson', label: 'In Person', color: CATEGORY_COLOR },
+    { key: 'Hybrid', label: 'Hybrid', color: CATEGORY_COLOR },
+    { key: 'Remote', label: 'Remote', color: CATEGORY_COLOR },
+];
+
+const MeetingsFilter: React.FC<MeetingsFilterProps> = ({ filters, onFilterChange }) => {
     return (
         <div>
-            <h3>Location</h3>
-            <div className={styles.checkbox}>
-                <LabeledCheckbox label="Serenity Room" checked={filters.SerenityRoom} onChange={handleCheckboxChange('SerenityRoom')} color="#B3EA75" />
-            </div>
-            <div className={styles.checkbox}>
-                <LabeledCheckbox label="Seeds of Hope Room" checked={filters.SeedsofHopeRoom} onChange={handleCheckboxChange('SeedsofHopeRoom')} color="#F7E57B" />
-            </div>
-            <div className={styles.checkbox}>
-                <LabeledCheckbox label="Unity Room" checked={filters.UnityRoom} onChange={handleCheckboxChange('UnityRoom')} color="#96DBFE" />
-            </div>
-            <div className={styles.checkbox}>
-                <LabeledCheckbox label="Room for Improvement" checked={filters.RoomforImprovement} onChange={handleCheckboxChange('RoomforImprovement')} color="#FFAE73" />
-            </div>
-            <div className={styles.checkbox}>
-                <LabeledCheckbox label="Room for Acceptance" checked={filters.RoomforAcceptance} onChange={handleCheckboxChange('RoomforAcceptance')} color="#FFA3C2" />
-            </div>
-            <div className={styles.checkbox}>
-                <LabeledCheckbox label="Room for Gratitude" checked={filters.RoomforGratitude} onChange={handleCheckboxChange('RoomforGratitude')} color="#D2AFFF" />
-            </div>
-
-            <h3>Zoom Rooms</h3>
-            <div className={styles.checkbox}>
-                <LabeledCheckbox label="Serenity Room - Zoom" checked={filters.SerenityRoomZoom} onChange={handleCheckboxChange('SerenityRoomZoom')} color="#CECECE" />
-            </div>
-            <div className={styles.checkbox}>
-                <LabeledCheckbox label="Seeds of Hope Room - Zoom" checked={filters.SeedsofHopeRoomZoom} onChange={handleCheckboxChange('SeedsofHopeRoomZoom')} color="#CECECE" />
-            </div>
-            <div className={styles.checkbox}>
-                <LabeledCheckbox label="Unity Room - Zoom" checked={filters.UnityRoomZoom} onChange={handleCheckboxChange('UnityRoomZoom')} color="#CECECE" />
-            </div>
-            <div className={styles.checkbox}>
-                <LabeledCheckbox label="Room for Improvement - Zoom" checked={filters.RoomforImprovementZoom} onChange={handleCheckboxChange('RoomforImprovementZoom')} color="#CECECE" />
-            </div>
-            <div className={styles.checkbox}>
-                <LabeledCheckbox label="Children's Room @ 518 - Zoom" checked={filters["Children'sRoom@518Zoom"]} onChange={handleCheckboxChange("Children'sRoom@518Zoom")} color="#CECECE" />
-            </div>
-
-            <h3>Calendar</h3>
-            <div className={styles.checkbox}>
-                <LabeledCheckbox label="AA" checked={filters.AA} onChange={handleCheckboxChange('AA')} color="#CC3366" />
-            </div>
-            <div className={styles.checkbox}>
-                <LabeledCheckbox label="Al-Anon" checked={filters.AlAnon} onChange={handleCheckboxChange('AlAnon')} color="#CC3366" />
-            </div>
-            <div className={styles.checkbox}>
-                <LabeledCheckbox label="Other" checked={filters.Other} onChange={handleCheckboxChange('Other')} color="#CC3366" />
-            </div>
-
-            <h3>Mode</h3>
-            <div className={styles.checkbox}>
-                <LabeledCheckbox label="In Person" checked={filters.InPerson} onChange={handleCheckboxChange('InPerson')} color="#CC3366" />
-            </div>
-            <div className={styles.checkbox}>
-                <LabeledCheckbox label="Hybrid" checked={filters.Hybrid} onChange={handleCheckboxChange('Hybrid')} color="#CC3366" />
-            </div>
-            <div className={styles.checkbox}>
-                <LabeledCheckbox label="Remote" checked={filters.Remote} onChange={handleCheckboxChange('Remote')} color="#CC3366" />
-            </div>
+            <FilterGroup title="Location" items={LOCATION_ITEMS} checked={filters} onToggle={onFilterChange} />
+            <FilterGroup title="Zoom Rooms" items={ZOOM_ITEMS} checked={filters} onToggle={onFilterChange} />
+            <FilterGroup title="Calendar" items={CALENDAR_ITEMS} checked={filters} onToggle={onFilterChange} />
+            <FilterGroup title="Mode" items={MODE_ITEMS} checked={filters} onToggle={onFilterChange} />
         </div>
     );
 };

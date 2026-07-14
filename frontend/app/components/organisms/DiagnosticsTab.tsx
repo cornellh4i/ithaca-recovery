@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import type { Role } from "@prisma/client";
+import StatCounter from "../atoms/StatCounter";
 import styles from "../../../styles/components/organisms/DiagnosticsTab.module.scss";
 
 interface DiagnosticsTabProps {
@@ -105,20 +106,9 @@ const DiagnosticsTab: React.FC<DiagnosticsTabProps> = ({ email, role }) => {
       <div className={styles.card}>
         <div className={styles.sectionLabel}>MEETING COUNTS</div>
         <div className={styles.countsRow}>
-          <div className={styles.countBlock}>
-            <div className={styles.countNumber}>{data.meetingCounts.total}</div>
-            <div className={styles.countCaption}>Total</div>
-          </div>
-          <div className={styles.countBlock}>
-            <div className={styles.countNumber}>{data.meetingCounts.active}</div>
-            <div className={styles.countCaption}>Active</div>
-          </div>
-          <div className={styles.countBlock}>
-            <div className={`${styles.countNumber} ${styles.countSuspended}`}>
-              {data.meetingCounts.suspended}
-            </div>
-            <div className={styles.countCaption}>Suspended</div>
-          </div>
+          <StatCounter value={data.meetingCounts.total} label="Total" />
+          <StatCounter value={data.meetingCounts.active} label="Active" />
+          <StatCounter value={data.meetingCounts.suspended} label="Suspended" variant="warning" />
         </div>
         <div className={styles.countsSecondaryRow}>
           <span>

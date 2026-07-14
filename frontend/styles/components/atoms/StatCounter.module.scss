@@ -1,0 +1,21 @@
+@import '../../Variables.module.scss';
+
+.block {
+  display: flex;
+  flex-direction: column;
+}
+
+.number {
+  font-size: 22px;
+  font-weight: 600;
+  color: $black-color;
+}
+
+.warning {
+  color: $dark-pink-color;
+}
+
+.caption {
+  font-size: 13px;
+  color: $medium-grey-color;
+}

@@ -1,0 +1,40 @@
+@import '../../Variables.module.scss';
+
+.group {
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.captionLabel {
+  font-size: 12px;
+  font-weight: 600;
+  color: $medium-grey-color;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.selectAllToggle {
+  background: none;
+  border: none;
+  color: $dark-pink-color;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.coloredRow {
+  margin-bottom: 10px;
+}

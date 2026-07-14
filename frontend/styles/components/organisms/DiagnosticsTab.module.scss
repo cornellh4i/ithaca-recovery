@@ -83,26 +83,6 @@
   margin-bottom: 12px;
 }
 
-.countBlock {
-  display: flex;
-  flex-direction: column;
-}
-
-.countNumber {
-  font-size: 22px;
-  font-weight: 600;
-  color: $black-color;
-}
-
-.countSuspended {
-  color: $dark-pink-color;
-}
-
-.countCaption {
-  font-size: 13px;
-  color: $medium-grey-color;
-}
-
 .countsSecondaryRow {
   display: flex;
   justify-content: space-between;

@@ -1,0 +1,30 @@
+@import '../../Variables.module.scss';
+
+.pill {
+  display: inline-block;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 10.593px;
+  white-space: nowrap;
+}
+
+.success {
+  background: #D4F4D2;
+  color: #4CAF50;
+}
+
+.warning {
+  background: #FDECC8;
+  color: #B8860B;
+}
+
+.neutral {
+  background: #F1F1F1;
+  color: $medium-grey-color;
+}
+
+.error {
+  background: #FBE1E7;
+  color: $dark-pink-color;
+}
