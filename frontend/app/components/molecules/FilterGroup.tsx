@@ -15,15 +15,20 @@ interface FilterGroupProps {
   items: FilterGroupItem[];
   checked: Record<string, boolean>;
   onToggle: (key: string, value: boolean) => void;
+  // "caption" (default) is small uppercase label; "title" is a bigger,
+  // bolder heading for contexts like the calendar sidebar.
+  headingVariant?: "caption" | "title";
 }
 
-const FilterGroup: React.FC<FilterGroupProps> = ({ title, items, checked, onToggle }) => {
+const FilterGroup: React.FC<FilterGroupProps> = ({ title, items, checked, onToggle, headingVariant = "caption" }) => {
   const allOn = items.every((item) => checked[item.key]);
+  const labelClass = headingVariant === "title" ? styles.titleLabel : styles.captionLabel;
+  const groupClass = headingVariant === "title" ? `${styles.group} ${styles.groupSpaced}` : styles.group;
 
   return (
-    <div className={styles.group}>
+    <div className={groupClass}>
       <div className={styles.header}>
-        <span className={styles.captionLabel}>{title}</span>
+        <span className={labelClass}>{title}</span>
         <button
           type="button"
           className={styles.selectAllToggle}

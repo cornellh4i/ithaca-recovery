@@ -59,10 +59,10 @@ const MODE_ITEMS: FilterGroupItem[] = [
 const MeetingsFilter: React.FC<MeetingsFilterProps> = ({ filters, onFilterChange }) => {
     return (
         <div>
-            <FilterGroup title="Location" items={LOCATION_ITEMS} checked={filters} onToggle={onFilterChange} />
-            <FilterGroup title="Zoom Rooms" items={ZOOM_ITEMS} checked={filters} onToggle={onFilterChange} />
-            <FilterGroup title="Calendar" items={CALENDAR_ITEMS} checked={filters} onToggle={onFilterChange} />
-            <FilterGroup title="Mode" items={MODE_ITEMS} checked={filters} onToggle={onFilterChange} />
+            <FilterGroup title="Location" items={LOCATION_ITEMS} checked={filters} onToggle={onFilterChange} headingVariant="title" />
+            <FilterGroup title="Zoom Rooms" items={ZOOM_ITEMS} checked={filters} onToggle={onFilterChange} headingVariant="title" />
+            <FilterGroup title="Calendar" items={CALENDAR_ITEMS} checked={filters} onToggle={onFilterChange} headingVariant="title" />
+            <FilterGroup title="Mode" items={MODE_ITEMS} checked={filters} onToggle={onFilterChange} headingVariant="title" />
         </div>
     );
 };
