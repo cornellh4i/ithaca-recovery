@@ -10,6 +10,7 @@ import WeeklyView from "../components/organisms/WeeklyView";
 
 import { convertUTCToET } from "../../util/timeUtils";
 import { IMeeting } from "../../util/models";
+import { createDefaultFilters } from "../../util/meetingFilters";
 
 export default function HomePage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -134,25 +135,12 @@ export default function HomePage() {
     }
   };
 
-  const [filters, setFilters] = useState({
-    SerenityRoom: true,
-    SeedsofHopeRoom: true,
-    UnityRoom: true,
-    RoomforImprovement: true,
-    RoomforAcceptance: true,
-    RoomforGratitude: true,
-    SerenityRoomZoom: true,
-    SeedsofHopeRoomZoom: true,
-    UnityRoomZoom: true,
-    RoomforImprovementZoom: true,
-    "Children'sRoom@518Zoom": true,
-    AA: true,
-    AlAnon: true,
-    Other: true,
-    InPerson: true,
-    Hybrid: true,
-    Remote: true,
-  });
+  // Day view defaults to all rooms visible; Week defaults to none (opt-in), since
+  // showing every room at once in Week view produces too many overlapping meetings.
+  const [dayFilters, setDayFilters] = useState(() => createDefaultFilters(true));
+  const [weekFilters, setWeekFilters] = useState(() => createDefaultFilters(false));
+  const filters = selectedView === "Day" ? dayFilters : weekFilters;
+  const setFilters = selectedView === "Day" ? setDayFilters : setWeekFilters;
   const handleMeetingSelect = (meetingId: string) => {
     setSelectedMeetingID(meetingId);
     setLastClickedDate(new Date(selectedDate));

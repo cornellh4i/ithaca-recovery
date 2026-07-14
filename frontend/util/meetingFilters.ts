@@ -1,6 +1,30 @@
 // Shared calendar/mode-tag and room-key filtering logic used by both DailyView and
 // WeeklyView, so the two views can't drift apart on what a filter key or tag means.
 
+export type MeetingFilters = Record<string, boolean>;
+
+// Keys mirror MeetingsFilter's Location + Zoom Rooms groups.
+const ROOM_FILTER_KEYS = [
+    'SerenityRoom', 'SeedsofHopeRoom', 'UnityRoom', 'RoomforImprovement', 'RoomforAcceptance', 'RoomforGratitude',
+    'SerenityRoomZoom', 'SeedsofHopeRoomZoom', 'UnityRoomZoom', 'RoomforImprovementZoom', "Children'sRoom@518Zoom",
+];
+
+// Keys mirror MeetingsFilter's Calendar + Mode groups.
+const CATEGORY_FILTER_KEYS = ['AA', 'AlAnon', 'Other', 'InPerson', 'Hybrid', 'Remote'];
+
+/**
+ * Builds a default MeetingsFilter state. Category filters always default on; room
+ * filters default per `roomsEnabled` — Week view defaults rooms off (opt-in) since
+ * showing every room at once produces too many overlapping meetings, while Day view
+ * defaults rooms on.
+ */
+export const createDefaultFilters = (roomsEnabled: boolean): MeetingFilters => {
+    const filters: MeetingFilters = {};
+    ROOM_FILTER_KEYS.forEach(key => { filters[key] = roomsEnabled; });
+    CATEGORY_FILTER_KEYS.forEach(key => { filters[key] = true; });
+    return filters;
+};
+
 // Mode tags (In Person / Hybrid / Remote) are mutually exclusive per meeting, unlike
 // calendar tags (AA / Al-Anon / Other), which can apply multiple at once.
 const modeTagNames = new Set(['InPerson', 'Hybrid', 'Remote']);
