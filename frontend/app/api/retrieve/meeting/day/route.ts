@@ -1,16 +1,13 @@
 export const dynamic = 'force-dynamic';
 
 import { getMeetingsForDate } from "../../../../../util/meetingOccurrences";
+import { toETDateString } from "../../../../../util/timeUtils";
 import { NextRequest } from 'next/server';
 
 const retrieveDayMeetings = async (request: NextRequest) => {
     try {
         const dateParam = request.nextUrl.searchParams.get("startDate") ?? new Date().toISOString();
-
-        // Normalise to a "YYYY-MM-DD" ET calendar date string
-        const etDateStr = dateParam.match(/^\d{4}-\d{2}-\d{2}$/)
-            ? dateParam
-            : new Date(dateParam).toISOString().slice(0, 10);
+        const etDateStr = toETDateString(dateParam);
 
         const meetings = await getMeetingsForDate(etDateStr);
 

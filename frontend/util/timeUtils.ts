@@ -85,3 +85,24 @@ export const getETDayBounds = (etDateStr: string): [Date, Date] => {
   end.setUTCMilliseconds(999);
   return [start, end];
 };
+
+/**
+ * Normalises a "startDate" request param (either a plain "YYYY-MM-DD" or a full
+ * date/ISO string) into a "YYYY-MM-DD" ET calendar date string.
+ */
+export const toETDateString = (dateParam: string): string =>
+  dateParam.match(/^\d{4}-\d{2}-\d{2}$/) ? dateParam : new Date(dateParam).toISOString().slice(0, 10);
+
+/**
+ * Returns the 7 ET calendar date strings (Sunday through Saturday) for the week
+ * containing the given ET date string.
+ */
+export const getWeekDatesET = (etDateStr: string): string[] => {
+  const [year, month, day] = etDateStr.split('-').map(Number);
+  const base = new Date(Date.UTC(year, month - 1, day));
+  const dow = base.getUTCDay();
+  return Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(Date.UTC(year, month - 1, day - dow + i));
+    return d.toISOString().slice(0, 10);
+  });
+};
