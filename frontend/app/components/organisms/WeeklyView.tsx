@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import styles from '../../../styles/components/organisms/WeeklyView.module.scss';
 import WeeklyViewColumn from "../molecules/WeeklyViewColumn";
 import { passesTagFilters, passesRoomFilter } from "../../../util/meetingFilters";
+import { ROOM_COLORS, ZOOM_ROOM_COLOR } from "../../../util/filterColors";
 
 type Meeting = {
     id: string;
@@ -99,19 +100,6 @@ const formatDayName = (date: Date): string => {
     return date.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
 };
 
-// Default room colors
-const roomColors: { [key: string]: string } = {
-    'Serenity Room': '#b3ea75',
-    'Seeds of Hope': '#f7e57b',
-    'Unity Room': '#96dbfe',
-    'Room for Improvement': '#ffae73',
-    'Small but Powerful - Right': '#d2afff',
-    'Small but Powerful - Left': '#ffa3c2',
-    'Zoom Account 1': '#cecece',
-    'Zoom Account 2': '#cecece',
-    'Zoom Account 3': '#cecece',
-    'Zoom Account 4': '#cecece',
-};
 
 interface WeeklyViewProps {
     filters: any;
@@ -242,9 +230,9 @@ const WeeklyView: React.FC<WeeklyViewProps> = ({
         return processedMeetings;
     };
 
-    // Get room color for a meeting
+    // Get room color for a meeting (physical rooms have distinct colors; Zoom rooms are all gray)
     const getRoomColor = (meeting: Meeting) => {
-        return roomColors[meeting.room] || "#cecece"; // Default to gray if room not found
+        return ROOM_COLORS[meeting.room] ?? ZOOM_ROOM_COLOR;
     };
 
     // Check if a date is the current date
@@ -305,7 +293,7 @@ const WeeklyView: React.FC<WeeklyViewProps> = ({
                                 <WeeklyViewColumn
                                     dayName=""  // Empty string to prevent WeeklyViewColumn from rendering its own header
                                     date=""     // Empty string for the same reason
-                                    roomColor="#cecece" // Default color
+                                    roomColor={ZOOM_ROOM_COLOR} // Unused fallback: every meeting sets primaryColor via getRoomColor
                                     meetings={dayMeetings.map(meeting => ({
                                         ...meeting,
                                         primaryColor: getRoomColor(meeting)
