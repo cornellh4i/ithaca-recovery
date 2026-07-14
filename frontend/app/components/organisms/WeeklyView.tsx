@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import styles from '../../../styles/components/organisms/WeeklyView.module.scss';
 import WeeklyViewColumn from "../molecules/WeeklyViewColumn";
+import { passesTagFilters, passesRoomFilter } from "../../../util/meetingFilters";
 
 type Meeting = {
     id: string;
@@ -195,16 +196,17 @@ const WeeklyView: React.FC<WeeklyViewProps> = ({
     const getMeetingsForDay = (date: Date) => {
         const formattedDate = date.toISOString().split('T')[0];
 
-        // Filter meetings by date and apply room filters
+        // Filter meetings by date, room/zoom-room, and calType/mode tags
         const filteredMeetings = allMeetings.filter(meeting => {
             const matchesDate = meeting.date === formattedDate;
-            const room = meeting.room;
 
-            // Check if room is in filters
-            const roomKey = room.replace(/[-\s]+/g, '').replace(/\s+/g, '');
-            const isRoomIncluded = filters[roomKey] !== false;
+            // A Hybrid meeting occupies both its physical room and its Zoom room, so it
+            // should stay visible if either resource's filter is enabled.
+            const isRoomIncluded =
+                passesRoomFilter(meeting.room, filters) ||
+                (!!meeting.zoomAccount && passesRoomFilter(meeting.zoomAccount, filters));
 
-            return matchesDate && isRoomIncluded;
+            return matchesDate && isRoomIncluded && passesTagFilters(meeting.tags, filters);
         });
 
         // Group meetings by time to handle overlapping events

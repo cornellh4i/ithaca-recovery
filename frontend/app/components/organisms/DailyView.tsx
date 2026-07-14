@@ -4,6 +4,7 @@ import BoxText from '../atoms/BoxText';
 import DailyViewRow from "../molecules/DailyViewRow";
 import { convertUTCToET } from "../../../util/timeUtils";
 import { IMeeting } from "../../../util/models";
+import { passesTagFilters, passesRoomFilter } from "../../../util/meetingFilters";
 
 type Meeting = {
   id: string;
@@ -133,9 +134,6 @@ const formatTime = (hour: number): string => {
 
 const timeSlots = Array.from({ length: 24 }, (_, i) => formatTime(i));
 
-// Mode tags are mutually exclusive per meeting (unlike calendar tags, which can be combined)
-const modeTagNames = new Set(['InPerson', 'Hybrid', 'Remote']);
-
 export const defaultRooms = [
   { name: 'Serenity Room', primaryColor: '#b3ea75' },
   { name: 'Seeds of Hope Room', primaryColor: '#f7e57b' },
@@ -220,39 +218,14 @@ const DailyView: React.FC<DailyViewProps> = ({
   };
 
   // filter meetings based on meeting type and room filters
-  const filterMeetings = (room: Room): Room => {
-    // filter meetings based on tags (meeting type)
-    const filteredMeetings = room.meetings.filter(meeting => {
-      // normalize tag names to match filter names (removing spaces and special chars)
-      const normalizedTags = meeting.tags.map(tag => tag.replace(/[-\s]+/g, ''));
-      // mode tags (In Person / Hybrid / Remote) are mutually exclusive per meeting,
-      // but calendar tags (AA / Al-Anon / Other) can apply multiple at once
-      const modeTags = normalizedTags.filter(tag => modeTagNames.has(tag));
-      const calendarTags = normalizedTags.filter(tag => !modeTagNames.has(tag));
-
-      // a meeting with multiple calendar tags should only be filtered out
-      // once every one of its calendar tags has been unchecked
-      const passesCalendarFilter =
-        calendarTags.length === 0 || calendarTags.some(tag => filters[tag] !== false);
-      // mode is a single tag, so it must remain enabled to keep the meeting
-      const passesModeFilter = modeTags.every(tag => filters[tag] !== false);
-
-      return passesCalendarFilter && passesModeFilter;
-    });
-
-    // return the room with filtered meetings
-    return {
-      ...room,
-      meetings: filteredMeetings
-    };
-  };
+  const filterMeetings = (room: Room): Room => ({
+    ...room,
+    meetings: room.meetings.filter(meeting => passesTagFilters(meeting.tags, filters)),
+  });
 
   // First filter rooms by room name, then filter meetings within each room by meeting type
   const combinedRooms = defaultRooms
-    .filter((defaultRoom) => {
-      const normalizedRoomName = defaultRoom.name.replace(/[-\s]+/g, '').replace(/\s+/g, '');
-      return filters[normalizedRoomName] !== false;
-    })
+    .filter((defaultRoom) => passesRoomFilter(defaultRoom.name, filters))
     .map((defaultRoom) => {
       const roomWithMeetings = meetings.find((meetingRoom) => meetingRoom.name === defaultRoom.name);
       if (roomWithMeetings) {
