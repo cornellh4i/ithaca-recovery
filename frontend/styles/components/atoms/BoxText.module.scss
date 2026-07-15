@@ -22,8 +22,11 @@
       margin-bottom: 0px;
       font-weight: 600;
       padding: 0px;
-      // Adds an ellipses for titles when there is no space
-      overflow-x: hidden;
+      // box-sizing isn't inherited from .box
+      box-sizing: border-box;
+      // Adds an ellipses for titles when there is no space.
+      min-width: 0;
+      overflow: hidden;
       white-space: nowrap;
       text-overflow: ellipsis;
       flex-shrink: 0;
@@ -65,6 +68,48 @@
   // duration. Must come after &.meeting so it wins the height tie-break.
   &.fillHeight {
     height: 100%;
+
+    // .tags's margin-top:auto anchors it to the bottom of the box, which is invisible
+    // on DailyView's fixed-height cards but drifts badges far below the time line on
+    // WeeklyView's longer (taller) meetings. Keep them right under the time line here,
+    // matching where they'd sit in a 1-hour box, regardless of actual duration.
+    .tags {
+      margin-top: 4px;
+    }
+  }
+
+  .syncError {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    font-size: 11px;
+    color: #e07000;
+    line-height: 1;
+  }
+
+  // Flags a Hybrid meeting whose Zoom room isn't the default pairing for its physical
+  // room — floats in the top-right corner with the Zoom icon.
+  .zoomTag {
+    position: absolute;
+    top: 6px;
+    right: 8px;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    background: #fff;
+    border: 1px solid #999;
+    padding: 1px 10px;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 400;
+    color: #3A3E49;
+    white-space: nowrap;
+    z-index: 1;
+  }
+
+  .zoomTagIcon {
+    width: 10px;
+    height: 10px;
   }
 
   .tags {

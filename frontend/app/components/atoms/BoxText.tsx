@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useLayoutEffect, useRef, useState } from "react";
 import styles from '../../../styles/components/atoms/BoxText.module.scss';
 
 interface BoxProps {
@@ -8,12 +8,13 @@ interface BoxProps {
   time?: string; // For Meeting Block
   tags?: string[]; // For badges like "Hybrid", "AA"
   meetingId: string;
-  meetingType?: 'Hybrid' | 'In Person' | 'Remote';
   syncError?: boolean;
   // Stretch to fill the parent's height instead of the fixed Meeting Block height —
   // used by WeeklyView, where the wrapping div's height already encodes the meeting's
   // duration (DailyView instead encodes duration as width, on a fixed-height row).
   fillHeight?: boolean;
+  // Extra badge alongside tags, e.g. flagging a Zoom-room mismatch.
+  zoomTag?: string;
   onClick: (meetingId: string, e: React.MouseEvent<HTMLDivElement, MouseEvent>) => void;
   [key: string]: any;
 };
@@ -25,9 +26,9 @@ const BoxText: React.FC<BoxProps> = ({
   time,
   tags,
   meetingId,
-  meetingType = 'Hybrid',
   syncError = false,
   fillHeight = false,
+  zoomTag,
   onClick
 }) => {
 
@@ -77,17 +78,28 @@ const BoxText: React.FC<BoxProps> = ({
       ? toPastelColor(primaryColor)
       : primaryColor;
 
-  const processedTags = tags?.map(tag => {
-    if (tag !== undefined) {
-      if (tag.toLowerCase() === 'group' || 
-          tag.toLowerCase() === 'hybrid' || 
-          tag.toLowerCase() === 'in person' ||
-          tag.toLowerCase() === 'remote') {
-        return meetingType;
-      }
+  // Measures the zoomTag badge's actual rendered width so the title reserves exactly
+  // that much space (plus its own right offset).
+  const zoomTagRef = useRef<HTMLSpanElement>(null);
+  const [titlePaddingRight, setTitlePaddingRight] = useState<number>();
+
+  useLayoutEffect(() => {
+    if (!zoomTag || !zoomTagRef.current) {
+      setTitlePaddingRight(undefined);
+      return;
     }
-    return tag;
-  });
+
+    const zoomTagEl = zoomTagRef.current;
+    // The title already stretches to (box right edge - .meeting's 16px right padding),
+    // while .zoomTag sits at (box right edge - its own 8px `right` offset).
+    const headStart = 16 - 8;
+    const updatePadding = () => setTitlePaddingRight(zoomTagEl.offsetWidth - headStart);
+
+    updatePadding();
+    const observer = new ResizeObserver(updatePadding);
+    observer.observe(zoomTagEl);
+    return () => observer.disconnect();
+  }, [zoomTag]);
 
   return (
     <div
@@ -96,22 +108,24 @@ const BoxText: React.FC<BoxProps> = ({
       onClick={(e) => onClick(meetingId, e)}
     >
       {syncError && (
-        <span
-          title="Google Calendar sync failed"
-          style={{
-            position: 'absolute', top: '4px', right: '4px',
-            fontSize: '11px', color: '#e07000', lineHeight: 1,
-          }}
-        >
+        <span title="Google Calendar sync failed" className={styles.syncError}>
           ⚠
         </span>
       )}
-      <h3 className={styles.title}>{title}</h3>
+      {zoomTag && (
+        <span ref={zoomTagRef} className={styles.zoomTag} title={`Zoom room: ${zoomTag}`}>
+          <img src="/svg/zoom-icon.svg" alt="" className={styles.zoomTagIcon} />
+          {zoomTag}
+        </span>
+      )}
+      <h3 className={styles.title} style={titlePaddingRight ? { paddingRight: titlePaddingRight } : undefined}>
+        {title}
+      </h3>
 
       {boxType === 'Meeting Block' && <p className={styles.time}>{time}</p>}
-      {processedTags && processedTags.length > 0 && (
+      {tags && tags.length > 0 && (
         <div className={styles.tags}>
-          {processedTags.map((tag, index) => (
+          {tags.map((tag, index) => (
             <span key={index}
               style={{ backgroundColor: primaryColor }}
               className={styles.tag}>

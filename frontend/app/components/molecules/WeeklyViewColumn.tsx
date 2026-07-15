@@ -1,6 +1,8 @@
 import React from 'react';
 import BoxText from '../atoms/BoxText';
 import styles from '../../../styles/components/molecules/WeeklyViewColumn.module.scss';
+import { isZoomRoomMismatched } from '../../../util/rooms';
+import { formatCompactTimeRange } from '../../../util/timeFormat';
 
 interface Meeting {
     id: string;
@@ -9,10 +11,16 @@ interface Meeting {
     endTime: string;
     tags?: string[];
     room?: string; // Added room property
+    zoomAccount?: string | null;
     primaryColor?: string; // Added to support different colored meetings
     positionIndex?: number; // For handling overlapping meetings
     totalOverlapping?: number; // For handling overlapping meetings
+    isOverflowIndicator?: boolean; // "+N more" pseudo-entry, rendered as a small pill instead of a meeting card
+    overflowCount?: number;
 }
+
+// Drops the " - Zoom" suffix for a more compact badge label
+const formatZoomRoomLabel = (zoomAccount: string) => zoomAccount.replace(/ - Zoom$/, '');
 
 interface WeeklyViewColumnProps {
     roomColor: string;
@@ -25,14 +33,6 @@ interface WeeklyViewColumnProps {
 const timeToPixels = (time: string) => {
     const [hours, minutes] = time.split(':').map(Number);
     return hours * 100 + minutes * (100 / 60);
-};
-
-const formatTime = (time: string) => {
-    const [hours, minutes] = time.split(':').map(Number);
-    const period = hours >= 12 ? 'PM' : 'AM';
-    const formattedHours = hours % 12 || 12;
-    const formattedMinutes = minutes < 10 ? '0' + minutes : minutes;
-    return `${formattedHours}:${formattedMinutes} ${period}`;
 };
 
 const WeeklyViewColumn: React.FC<WeeklyViewColumnProps> = ({
@@ -60,7 +60,25 @@ const WeeklyViewColumn: React.FC<WeeklyViewColumnProps> = ({
                 ))}
 
                 {meetings.map((meeting, index) => {
+                    // Remote-only meetings have no physical room, so fall back to the
+                    // Zoom room — otherwise the location line would be blank.
+                    const locationLabel = meeting.room || meeting.zoomAccount || '';
                     const topOffset = timeToPixels(meeting.startTime);
+
+                    if (meeting.isOverflowIndicator) {
+                        return (
+                            <div
+                                key={index}
+                                className={styles.overflowIndicator}
+                                style={{ top: `${topOffset}px` }}
+                                title={`${meeting.overflowCount} more meeting${meeting.overflowCount === 1 ? '' : 's'} at this time 
+                                    — either switch to Day view or switch off some filters to see them`}
+                            >
+                                +{meeting.overflowCount}
+                            </div>
+                        );
+                    }
+
                     const bottomOffset = timeToPixels(meeting.endTime);
                     const height = bottomOffset - topOffset;
 
@@ -85,9 +103,14 @@ const WeeklyViewColumn: React.FC<WeeklyViewColumnProps> = ({
                                 boxType="Meeting Block"
                                 title={meeting.title}
                                 primaryColor={meeting.primaryColor || roomColor}
-                                time={`${formatTime(meeting.startTime)} - ${formatTime(meeting.endTime)}`}
+                                time={`${locationLabel ? `${locationLabel} · ` : ''}${formatCompactTimeRange(meeting.startTime, meeting.endTime)}`}
                                 tags={meeting.tags}
                                 meetingId={meeting.id}
+                                zoomTag={
+                                    meeting.room && isZoomRoomMismatched(meeting.room, meeting.zoomAccount)
+                                        ? formatZoomRoomLabel(meeting.zoomAccount!)
+                                        : undefined
+                                }
                                 fillHeight
                                 onClick={(meetingId, e) => {
                                     handleBoxClick(meetingId);

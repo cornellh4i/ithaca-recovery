@@ -2,6 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import Logo from "../atoms/Logo";
 import type { Session } from "next-auth";
 import { signOut } from "next-auth/react";
@@ -13,24 +14,26 @@ interface AppNavbarProps {
 
 const AppNavbar: React.FC<AppNavbarProps> = ({ session }) => {
     const isAdmin = session?.user?.role === "ADMIN" || session?.user?.role === "SUPER_ADMIN";
+    const pathname = usePathname();
+    const navItemClass = (isActive: boolean) => `btn btn-ghost ${isActive ? styles.active : ""}`;
 
     return (
         <div className={styles.navbar}>
             <div className={styles.navcontainer}>
                 <Logo />
                 <ul className={styles.navigationlist}>
-                    <li className="btn btn-ghost">
+                    <li className={navItemClass(pathname === "/")}>
                         <Link href="/">
-                            <p>Main</p>
+                            <p>Main Calendar</p>
                         </Link>
                     </li>
-                    <li className="btn btn-ghost">
+                    <li className={navItemClass(pathname === "/signage")}>
                         <Link href="/signage">
                             <p>Signage</p>
                         </Link>
                     </li>
                     {isAdmin && (
-                        <li className="btn btn-ghost">
+                        <li className={navItemClass(pathname?.startsWith("/admin") ?? false)}>
                             <Link href="/admin">
                                 <p>Admin</p>
                             </Link>

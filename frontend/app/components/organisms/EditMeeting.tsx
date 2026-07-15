@@ -13,6 +13,7 @@ import IconButton from '@mui/material/IconButton';
 
 import { IMeeting, IRecurrencePattern } from '../../../util/models'
 import { convertUTCToET, convertETToUTC } from "../../../util/timeUtils";
+import { physicalRoomOptions, zoomRoomOptions, roomToZoomRoom } from "../../../util/rooms";
 
 import styles from '../../../styles/components/organisms/MeetingForm.module.scss';
 
@@ -21,30 +22,6 @@ interface EditMeetingSidebarProps {
   onClose: () => void;
   onUpdateSuccess: () => void;
 }
-
-const physicalRoomOptions = [
-  "Serenity Room",
-  "Seeds of Hope Room",
-  "Unity Room",
-  "Room for Improvement",
-  "Room for Acceptance",
-  "Room for Gratitude",
-];
-
-const zoomRoomOptions = [
-  "Serenity Room - Zoom",
-  "Seeds of Hope Room - Zoom",
-  "Unity Room - Zoom",
-  "Room for Improvement - Zoom",
-  "Children's Room @ 518 - Zoom",
-];
-
-const roomToZoomRoom: Record<string, string> = {
-  "Serenity Room": "Serenity Room - Zoom",
-  "Seeds of Hope Room": "Seeds of Hope Room - Zoom",
-  "Unity Room": "Unity Room - Zoom",
-  "Room for Improvement": "Room for Improvement - Zoom",
-};
 
 const calTypeOptions = ["AA", "Al-Anon", "Other"];
 const calTypeColor = "#CC3366";

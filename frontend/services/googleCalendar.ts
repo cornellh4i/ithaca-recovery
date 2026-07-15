@@ -75,6 +75,22 @@ function toRRule(pattern: IRecurrencePattern): string {
     return `RRULE:${freq}${byday}`;
 }
 
+// Suffix appended to the GCal event title so the mode is visible at a glance;
+// "Remote" reads as "Zoom Only" since ICR's meetings are never fully unattended.
+const modeTitleSuffix: Record<string, string> = {
+    Hybrid: "Hybrid",
+    "In Person": "In Person",
+    Remote: "Zoom Only",
+};
+
+const MEETING_LOCATION_URL =
+    "https://maps.google.com/maps?hl=en&q=518%20W%20Seneca%20St%2C%20Ithaca%2C%20NY%2014850%2C%20USA";
+
+function buildEventTitle(meeting: IMeeting): string {
+    const suffix = modeTitleSuffix[meeting.modeType];
+    return suffix ? `${meeting.title} - ${suffix}` : meeting.title;
+}
+
 function buildEventBody(meeting: IMeeting) {
     const descriptionLines = [
         meeting.description,
@@ -85,8 +101,9 @@ function buildEventBody(meeting: IMeeting) {
     ].filter(Boolean);
 
     const event: Record<string, unknown> = {
-        summary: meeting.title,
+        summary: buildEventTitle(meeting),
         description: descriptionLines.join("\n"),
+        location: MEETING_LOCATION_URL,
         start: { dateTime: new Date(meeting.startDateTime).toISOString(), timeZone: "America/New_York" },
         end: { dateTime: new Date(meeting.endDateTime).toISOString(), timeZone: "America/New_York" },
     };

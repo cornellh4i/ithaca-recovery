@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import styles from '../../../styles/components/organisms/WeeklyView.module.scss';
 import WeeklyViewColumn from "../molecules/WeeklyViewColumn";
 import { passesTagFilters, passesRoomFilter } from "../../../util/meetingFilters";
@@ -13,6 +13,10 @@ type Meeting = {
     tags: string[];
     room: string;
     zoomAccount?: string | null;
+    positionIndex?: number; // Column index among overlapping meetings, assigned by layoutOverlappingMeetings
+    totalOverlapping?: number; // Column count among overlapping meetings, assigned by layoutOverlappingMeetings
+    isOverflowIndicator?: boolean; // "+N more" pseudo-entry standing in for meetings past MAX_VISIBLE_OVERLAP
+    overflowCount?: number;
 };
 
 type Room = {
@@ -84,6 +88,107 @@ const getFirstDayOfWeek = (date: Date): Date => {
     return result;
 };
 
+const toMinutes = (time: string): number => {
+    const [hours, minutes] = time.split(':').map(Number);
+    return hours * 60 + minutes;
+};
+
+const minutesToTime = (totalMinutes: number): string => {
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+};
+
+// At most this many meetings render as full columns per overlapping cluster; any more
+// are folded into a single "+N more" indicator instead of shrinking columns further.
+const MAX_VISIBLE_OVERLAP = 2;
+
+/**
+ * Lays out a day's meetings so partially-overlapping ones share the column instead of
+ * fully covering each other. Two passes:
+ * 1. Sweep left to right by start time, splitting meetings into clusters of mutually
+ *    (possibly transitively) overlapping meetings.
+ * 2. Within each cluster, greedily assign each meeting to the first column whose current
+ *    occupant has already ended (classic interval-graph-coloring calendar layout) — the
+ *    cluster's column count becomes every meeting's totalOverlapping/width divisor.
+ */
+const layoutOverlappingMeetings = (meetings: Meeting[]): Meeting[] => {
+    // Title as a tiebreaker keeps column/overflow assignment consistent across renders
+    // and across days — meetings sharing a start time would otherwise fall back to
+    // whatever order the database happened to return them in, which isn't guaranteed
+    // stable (each day's meetings come from a separate query in the week route).
+    const sorted = [...meetings].sort((a, b) =>
+        toMinutes(a.startTime) - toMinutes(b.startTime) || a.title.localeCompare(b.title)
+    );
+
+    const clusters: Meeting[][] = [];
+    let currentCluster: Meeting[] = [];
+    let clusterEnd = -Infinity;
+
+    sorted.forEach(meeting => {
+        const start = toMinutes(meeting.startTime);
+        if (currentCluster.length > 0 && start >= clusterEnd) {
+            clusters.push(currentCluster);
+            currentCluster = [];
+            clusterEnd = -Infinity;
+        }
+        currentCluster.push(meeting);
+        clusterEnd = Math.max(clusterEnd, toMinutes(meeting.endTime));
+    });
+    if (currentCluster.length > 0) clusters.push(currentCluster);
+
+    const result: Meeting[] = [];
+    clusters.forEach(cluster => {
+        const columnEnds: number[] = []; // end time (minutes) currently occupying each column
+        const positioned = cluster.map(meeting => {
+            const start = toMinutes(meeting.startTime);
+            const end = toMinutes(meeting.endTime);
+            let column = columnEnds.findIndex(columnEnd => columnEnd <= start);
+            if (column === -1) {
+                column = columnEnds.length;
+                columnEnds.push(end);
+            } else {
+                columnEnds[column] = end;
+            }
+            return { ...meeting, positionIndex: column } as Meeting;
+        });
+
+        const totalOverlapping = columnEnds.length;
+
+        if (totalOverlapping <= MAX_VISIBLE_OVERLAP) {
+            positioned.forEach(meeting => {
+                result.push(totalOverlapping > 1 ? { ...meeting, totalOverlapping } : meeting);
+            });
+            return;
+        }
+
+        // Cap at MAX_VISIBLE_OVERLAP full columns; fold the rest into one "+N more"
+        // indicator spanning their combined time range.
+        const shown = positioned.filter(m => (m.positionIndex ?? 0) < MAX_VISIBLE_OVERLAP);
+        const overflow = positioned.filter(m => (m.positionIndex ?? 0) >= MAX_VISIBLE_OVERLAP);
+
+        shown.forEach(meeting => {
+            result.push({ ...meeting, totalOverlapping: MAX_VISIBLE_OVERLAP });
+        });
+
+        const overflowStart = Math.min(...overflow.map(m => toMinutes(m.startTime)));
+        const overflowEnd = Math.max(...overflow.map(m => toMinutes(m.endTime)));
+        result.push({
+            id: `overflow-${cluster[0].date}-${overflowStart}`,
+            title: '',
+            startTime: minutesToTime(overflowStart),
+            endTime: minutesToTime(overflowEnd),
+            date: cluster[0].date,
+            tags: [],
+            room: '',
+            isOverflowIndicator: true,
+            overflowCount: overflow.length,
+        });
+    });
+
+    return result;
+};
+
 // Generate an array of dates for the entire week
 const getDaysOfWeek = (startDate: Date): Date[] => {
     return Array.from({ length: 7 }, (_, i) => {
@@ -125,6 +230,7 @@ const WeeklyView: React.FC<WeeklyViewProps> = ({
     const [weekStartDate, setWeekStartDate] = useState<Date>(getFirstDayOfWeek(selectedDate));
     const [allMeetings, setAllMeetings] = useState<Meeting[]>([]);
     const [daysOfWeek, setDaysOfWeek] = useState<Date[]>(getDaysOfWeek(weekStartDate));
+    const viewContainerRef = useRef<HTMLDivElement>(null);
 
     // Format time slots for hour markers
     const formatTime = (hour: number): string => {
@@ -160,6 +266,7 @@ const WeeklyView: React.FC<WeeklyViewProps> = ({
     useEffect(() => {
         fetchWeekMeetings();
         updateTimePosition();
+        scrollToCurrentTime();
 
         const intervalId = setInterval(updateTimePosition, 60000);
         return () => clearInterval(intervalId);
@@ -183,6 +290,18 @@ const WeeklyView: React.FC<WeeklyViewProps> = ({
         setCurrentTimePosition(basePosition + offset);
     };
 
+    // Scroll the grid so the current time starts ~2 hours into the visible area
+    const scrollToCurrentTime = () => {
+        if (viewContainerRef.current) {
+            const now = new Date();
+            const currentHour = now.getHours();
+            const currentMinutes = now.getMinutes();
+            const dayHeaderOffset = 40; // height of .dayHeader, see updateTimePosition
+            const scrollOffset = dayHeaderOffset + (currentHour * 100 + currentMinutes * (100 / 60)) - 200;
+            viewContainerRef.current.scrollTop = Math.max(0, scrollOffset);
+        }
+    };
+
     // Get meetings for a specific day, filtered by room if applicable
     const getMeetingsForDay = (date: Date) => {
         const formattedDate = date.toISOString().split('T')[0];
@@ -200,37 +319,7 @@ const WeeklyView: React.FC<WeeklyViewProps> = ({
             return matchesDate && isRoomIncluded && passesTagFilters(meeting.tags, filters);
         });
 
-        // Group meetings by time to handle overlapping events
-        const meetingsByTime: { [key: string]: Meeting[] } = {};
-        filteredMeetings.forEach(meeting => {
-            const timeKey = `${meeting.startTime}-${meeting.endTime}`;
-            if (!meetingsByTime[timeKey]) {
-                meetingsByTime[timeKey] = [];
-            }
-            meetingsByTime[timeKey].push(meeting);
-        });
-
-        // Process overlapping meetings to position them side-by-side
-        const processedMeetings: Meeting[] = [];
-        Object.values(meetingsByTime).forEach(overlappingMeetings => {
-            if (overlappingMeetings.length > 1) {
-                // Calculate width adjustment for overlapping meetings
-                const totalMeetings = overlappingMeetings.length;
-                overlappingMeetings.forEach((meeting, index) => {
-                    // Clone the meeting to avoid modifying the original
-                    const processedMeeting = { ...meeting };
-                    // Add metadata for rendering position
-                    (processedMeeting as any).positionIndex = index;
-                    (processedMeeting as any).totalOverlapping = totalMeetings;
-                    processedMeetings.push(processedMeeting);
-                });
-            } else if (overlappingMeetings.length === 1) {
-                // If it's a single meeting, no adjustments needed
-                processedMeetings.push(overlappingMeetings[0]);
-            }
-        });
-
-        return processedMeetings;
+        return layoutOverlappingMeetings(filteredMeetings);
     };
 
     // Get room color for a meeting (physical rooms have distinct colors; Zoom rooms are all gray)
@@ -248,7 +337,7 @@ const WeeklyView: React.FC<WeeklyViewProps> = ({
 
     return (
         <div className={styles.outerContainer}>
-            <div className={styles.viewContainer}>
+            <div className={styles.viewContainer} ref={viewContainerRef}>
                 {/* Time column */}
                 <div className={styles.timeColumn}>
                     <div className={styles.timeHeader}>

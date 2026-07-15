@@ -25,3 +25,20 @@
   border-radius: 6px;
   z-index: 10;
 }
+
+// Stands in for meetings beyond MAX_VISIBLE_OVERLAP columns — a small pill rather
+// than a shrunk-further column, which would be too narrow to show anything readable.
+.overflowIndicator {
+  position: absolute;
+  right: 4px;
+  z-index: 12;
+  background: #3A3E49;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1;
+  padding: 3px 6px;
+  border-radius: 999px;
+  white-space: nowrap;
+  cursor: default;
+}
