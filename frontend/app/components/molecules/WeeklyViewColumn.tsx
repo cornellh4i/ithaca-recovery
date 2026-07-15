@@ -1,5 +1,6 @@
 import React from 'react';
 import BoxText from '../atoms/BoxText';
+import styles from '../../../styles/components/molecules/WeeklyViewColumn.module.scss';
 
 interface Meeting {
     id: string;
@@ -18,14 +19,12 @@ interface WeeklyViewColumnProps {
     meetings: Meeting[];
     setSelectedMeetingID: (meetingId: string) => void;
     setSelectedNewMeeting: (newMeetingExists: boolean) => void;
-    dayName: string;
-    date: string;
 }
 
-// 1 hour is 100px in height
+// 1 hour is 100px in height (100/60 px per minute), matching .timeSlot's 100px row height
 const timeToPixels = (time: string) => {
     const [hours, minutes] = time.split(':').map(Number);
-    return (hours * 100 + minutes); // Convert time to pixels (1px = 1min)
+    return hours * 100 + minutes * (100 / 60);
 };
 
 const formatTime = (time: string) => {
@@ -41,8 +40,6 @@ const WeeklyViewColumn: React.FC<WeeklyViewColumnProps> = ({
     meetings,
     setSelectedMeetingID,
     setSelectedNewMeeting,
-    dayName,
-    date,
 }) => {
     const handleBoxClick = (meetingId: string) => {
         console.log(`Meeting ${meetingId} clicked`);
@@ -51,34 +48,14 @@ const WeeklyViewColumn: React.FC<WeeklyViewColumnProps> = ({
     };
 
     return (
-        <div className="flex flex-col h-full w-full">
-            {/* Day header */}
-            <div className="text-center py-2 font-medium border-b border-gray-200">
-                <div>{dayName}</div>
-                <div className="text-sm text-gray-500">{date}</div>
-            </div>
-
-            {/* Column body */}
-            <div
-                style={{
-                    position: 'relative',
-                    width: '100%',
-                    height: '2400px', // 24 hours * 100px per hour
-                    borderRight: '1px solid #e5e7eb',
-                    cursor: "pointer"
-                }}
-            >
+        <div className={styles.columnWrapper}>
+            <div className={styles.columnBody}>
                 {/* Render hour markers */}
                 {Array.from({ length: 24 }).map((_, hourIndex) => (
                     <div
                         key={hourIndex}
-                        style={{
-                            position: 'absolute',
-                            top: `${hourIndex * 100}px`,
-                            width: '100%',
-                            borderTop: '1px solid #e5e7eb',
-                            height: '100px'
-                        }}
+                        className={styles.hourMarker}
+                        style={{ top: `${hourIndex * 100}px` }}
                     />
                 ))}
 
@@ -87,31 +64,21 @@ const WeeklyViewColumn: React.FC<WeeklyViewColumnProps> = ({
                     const bottomOffset = timeToPixels(meeting.endTime);
                     const height = bottomOffset - topOffset;
 
-                    // Handle overlapping meetings
-                    let width = '90%';
-                    let left = '5%';
+                    // A single meeting fills the column exactly; overlapping meetings split it evenly
+                    let width = '100%';
+                    let left = '0%';
 
                     if (meeting.totalOverlapping && meeting.totalOverlapping > 1) {
-                        const singleWidth = 90 / meeting.totalOverlapping; // Percentage width for each meeting
+                        const singleWidth = 100 / meeting.totalOverlapping;
                         width = `${singleWidth}%`;
-
-                        // Calculate left position based on index
-                        const leftPosition = 5 + (meeting.positionIndex || 0) * singleWidth;
-                        left = `${leftPosition}%`;
+                        left = `${(meeting.positionIndex || 0) * singleWidth}%`;
                     }
 
                     return (
                         <div
                             key={index}
-                            style={{
-                                position: 'absolute',
-                                top: `${topOffset}px`,
-                                height: `${height}px`,
-                                width: width,
-                                left: left,
-                                borderRadius: '6px',
-                                zIndex: 10
-                            }}
+                            className={styles.meetingWrapper}
+                            style={{ top: `${topOffset}px`, height: `${height}px`, width, left }}
                             onClick={(e) => e.stopPropagation()} // Prevent column click handler from firing
                         >
                             <BoxText
@@ -121,6 +88,7 @@ const WeeklyViewColumn: React.FC<WeeklyViewColumnProps> = ({
                                 time={`${formatTime(meeting.startTime)} - ${formatTime(meeting.endTime)}`}
                                 tags={meeting.tags}
                                 meetingId={meeting.id}
+                                fillHeight
                                 onClick={(meetingId, e) => {
                                     handleBoxClick(meetingId);
                                     e.stopPropagation(); // Prevent column click handler from firing

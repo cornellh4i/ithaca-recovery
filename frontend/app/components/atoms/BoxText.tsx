@@ -10,6 +10,10 @@ interface BoxProps {
   meetingId: string;
   meetingType?: 'Hybrid' | 'In Person' | 'Remote';
   syncError?: boolean;
+  // Stretch to fill the parent's height instead of the fixed Meeting Block height —
+  // used by WeeklyView, where the wrapping div's height already encodes the meeting's
+  // duration (DailyView instead encodes duration as width, on a fixed-height row).
+  fillHeight?: boolean;
   onClick: (meetingId: string, e: React.MouseEvent<HTMLDivElement, MouseEvent>) => void;
   [key: string]: any;
 };
@@ -23,6 +27,7 @@ const BoxText: React.FC<BoxProps> = ({
   meetingId,
   meetingType = 'Hybrid',
   syncError = false,
+  fillHeight = false,
   onClick
 }) => {
 
@@ -86,7 +91,7 @@ const BoxText: React.FC<BoxProps> = ({
 
   return (
     <div
-      className={`${styles.box} ${boxType === 'Meeting Block' ? styles.meeting : styles.room}`}
+      className={`${styles.box} ${boxType === 'Meeting Block' ? styles.meeting : styles.room} ${fillHeight ? styles.fillHeight : ''}`}
       style={{ backgroundColor: bgColor, borderLeft: `7px solid ${primaryColor}`, position: 'relative' }}
       onClick={(e) => onClick(meetingId, e)}
     >

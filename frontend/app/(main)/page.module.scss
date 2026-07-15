@@ -10,8 +10,9 @@
 }
 
 .primaryCalendar {
-  flex: 1; 
-  background-color: #ffffff; 
+  flex: 1;
+  min-height: 0;
+  background-color: #ffffff;
   padding: 10px;
   overflow-x: hidden;
 }

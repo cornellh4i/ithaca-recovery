@@ -74,11 +74,14 @@ export const invalidateWeekCache = (startDate: Date, endDate: Date) => {
     meetingCache.delete(cacheKey);
 };
 
-// Get the first day (Sunday) of the week containing the provided date
+// Get the first day (Sunday) of the week containing the provided date. Operates on a
+// copy — selectedDate is shared state owned by the parent, and Dates are mutable, so
+// mutating the input here would silently corrupt that state without going through
+// setSelectedDate (surfacing as a stale/wrong date on the next unrelated re-render).
 const getFirstDayOfWeek = (date: Date): Date => {
-    const day = date.getDay();
-    const diff = date.getDate() - day;
-    return new Date(date.setDate(diff));
+    const result = new Date(date);
+    result.setDate(result.getDate() - result.getDay());
+    return result;
 };
 
 // Generate an array of dates for the entire week
@@ -286,13 +289,9 @@ const WeeklyView: React.FC<WeeklyViewProps> = ({
                                     setSelectedDate(day);
                                 }}
                             >
-                                {/* Only render our custom header */}
                                 {customHeader}
 
-                                {/* Preserve original meeting layout but pass customHeader to avoid double headers */}
                                 <WeeklyViewColumn
-                                    dayName=""  // Empty string to prevent WeeklyViewColumn from rendering its own header
-                                    date=""     // Empty string for the same reason
                                     roomColor={ZOOM_ROOM_COLOR} // Unused fallback: every meeting sets primaryColor via getRoomColor
                                     meetings={dayMeetings.map(meeting => ({
                                         ...meeting,

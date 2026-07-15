@@ -60,6 +60,13 @@
     flex-shrink: 0;
   }
 
+  // Stretch to fill the parent's height instead of the fixed Meeting Block height —
+  // used by WeeklyView, where the wrapping div's height already encodes the meeting's
+  // duration. Must come after &.meeting so it wins the height tie-break.
+  &.fillHeight {
+    height: 100%;
+  }
+
   .tags {
     display: flex;
     flex-wrap: wrap;

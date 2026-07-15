@@ -50,6 +50,11 @@ export const passesTagFilters = (tags: string[], filters: Record<string, boolean
     return passesCalendarFilter && passesModeFilter;
 };
 
-/** Returns true if the given room name's filter is enabled (unset/true counts as enabled). */
-export const passesRoomFilter = (roomName: string, filters: Record<string, boolean>): boolean =>
-    filters[normalizeFilterKey(roomName)] !== false;
+/**
+ * Returns true if the given room name's filter is enabled. 
+ * Unrecognized room names are treated as not passing.
+ */
+export const passesRoomFilter = (roomName: string, filters: Record<string, boolean>): boolean => {
+    const key = normalizeFilterKey(roomName);
+    return key in filters && filters[key] !== false;
+};

@@ -57,7 +57,6 @@
   min-width: 60px;
   display: flex;
   flex-direction: column;
-  padding-top: 41px;
   border-right: 1px solid #ddd;
   position: sticky;
   left: 0;
@@ -67,8 +66,15 @@
 
 }
 
+// Matches .dayHeader's rendered height exactly (40px + 1px border) so time labels
+// in .timeSlots line up with the meeting grid below the day headers. Sticky so it
+// stays visible (as a blank corner) alongside the sticky day headers on scroll.
 .timeHeader {
-  height: 100px; // Match day column headers
+  height: 41px;
+  position: sticky;
+  top: 0;
+  z-index: 21;
+  background-color: #fff;
 }
 
 .timeSlots {
@@ -91,7 +97,9 @@
   flex: 1;
   min-width: 0;
   scroll-snap-type: x mandatory;
-  height: 100%;
+  height: 2400px; // 24 hours * 100px — matches .timeColumn's explicit height so
+                  // .viewContainer's overflow:auto can scroll through all 24 hours,
+                  // instead of clamping to the (now correctly bounded) viewport height.
 }
 
 .dayColumn {
@@ -101,8 +109,7 @@
   position: relative;
   border-right: 1px solid #ddd;
   scroll-snap-align: start;
-  height: 100%;
-  /* Ensure the column stretches the full height of its container */
+  height: 2400px;
   display: flex;
   flex-direction: column;
   /* Allow children to expand properly */
@@ -118,7 +125,8 @@
   width: 100%;
   height: 2px;
   background-color: #cc3366; // Matching the DailyView color
-  z-index: 20;
+  z-index: 12; // Above meeting boxes (10), below the sticky .dayHeader (15) so it
+               // doesn't draw over the day header when they overlap during scroll.
 
   &::before {
     content: '';
@@ -144,6 +152,9 @@
   align-items: center;
   justify-content: center;
   box-sizing: border-box;
+  position: sticky;
+  top: 0;
+  z-index: 15;
 }
 
 // New style for day name
