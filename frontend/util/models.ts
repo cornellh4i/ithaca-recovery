@@ -23,12 +23,13 @@ interface IMeeting {
   zoomAccount?: string | null;
   zoomLink?: string | null;
   zid?: string | null;
-  calType: string;
+  calType: string[];
   modeType: string;
   room: string;
+  status?: string;
   isRecurring: boolean;
   recurrencePattern?: IRecurrencePattern | null;
-  googleCalendarEventId?: string | null;
+  googleCalendarEventIds?: Record<string, string> | null;
   syncStatus?: string | null;
   deletedAt?: Date | null;
   updatedAt?: Date | null;
@@ -37,7 +38,7 @@ interface IMeeting {
 interface IRecurrencePattern {
   mid?: string;
   type: string;
-  startDate: Date; // UTC timestamp of midnight ET on the day the series starts
+  startDate: Date; // UTC timestamp of midnight ET on the day the series starts; used for calendar-day boundary checks.
   endDate?: Date | null; // UTC timestamp of 23:59:59 ET on the inclusive last day of the series
   numberOfOccurrences?: number | null;
   daysOfWeek?: string[] | null;

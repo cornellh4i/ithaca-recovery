@@ -8,7 +8,10 @@ const notDeleted = { OR: [{ deletedAt: null }, { deletedAt: { isSet: false } }] 
 const retrieveMeetings = async (request: Request) => {
   try {
     const meetings = await prisma.meeting.findMany({ where: notDeleted });
-    const typedMeetings: IMeeting[] = meetings.map(meeting => ({ ...meeting }))
+    const typedMeetings: IMeeting[] = meetings.map(meeting => ({
+      ...meeting,
+      googleCalendarEventIds: (meeting.googleCalendarEventIds ?? {}) as Record<string, string>,
+    }))
     return new Response(JSON.stringify(typedMeetings), {
       status: 200,
       headers: {

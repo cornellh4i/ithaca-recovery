@@ -9,7 +9,7 @@
 
 .roomContainer {
   display: grid;
-  grid-template-rows: repeat(10, min-content);
+  grid-template-rows: repeat(11, 118px);
   width: 180px;
   padding-top: 42px;
   position: sticky;
@@ -39,7 +39,7 @@
 
 .scrollContainer {
   display: grid;
-  grid-template-rows: auto repeat(10, 118px);
+  grid-template-rows: auto repeat(11, 118px);
   overflow-x: auto;
   width: calc(100% - 180px);
   scroll-snap-type: x mandatory;
@@ -101,4 +101,7 @@
   display: flex;
   align-items: center;
   padding: 5px 10px;
+  height: 118px;
+  box-sizing: border-box;
+  border-bottom: 1px solid #ddd;
 }

@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../../auth/authConfig";
 import { IMeeting } from "../../../../util/models";
-import { createCalendarEvent, updateCalendarEvent } from "../../../../services/googleCalendar";
+import { reconcileMeetingCalendars } from "../../../../services/googleCalendar";
 
 const prisma = new PrismaClient();
 
@@ -67,23 +67,19 @@ const updateMeeting = async (request: Request): Promise<Response> => {
 
     // Google Calendar sync — failure updates syncStatus but does not fail the request
     const session = await getServerSession(authOptions);
-    if (session?.accessToken) {
-      const existingEventId = existingMeeting.googleCalendarEventId;
-      let synced: boolean;
-      let newEventId: string | null = null;
-
-      if (existingEventId) {
-        synced = await updateCalendarEvent(session.accessToken, existingEventId, newMeeting);
-      } else {
-        newEventId = await createCalendarEvent(session.accessToken, newMeeting);
-        synced = !!newEventId;
-      }
+    if (session?.accessToken && newMeeting.status !== 'Suspended') {
+      const existingEventIds = (existingMeeting.googleCalendarEventIds ?? {}) as Record<string, string>;
+      const { updatedEventIds, allSynced } = await reconcileMeetingCalendars(
+        session.accessToken,
+        newMeeting,
+        existingEventIds,
+      );
 
       await prisma.meeting.update({
         where: { mid },
         data: {
-          ...(newEventId ? { googleCalendarEventId: newEventId } : {}),
-          syncStatus: synced ? 'synced' : 'error',
+          googleCalendarEventIds: updatedEventIds,
+          syncStatus: allSynced ? 'synced' : 'error',
         },
       });
     }

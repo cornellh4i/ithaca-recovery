@@ -6,6 +6,7 @@ import {
   deleteCalendarEvent,
   deleteCalendarOccurrence,
   trimCalendarEventSeries,
+  calendarIdsForMeeting,
 } from '../../../../services/googleCalendar';
 
 const prisma = new PrismaClient();
@@ -57,7 +58,8 @@ const deleteMeeting = async (request: Request) => {
     // Google Calendar sync — fire before or alongside MongoDB changes; errors are logged, not thrown
     const session = await getServerSession(authOptions);
     const accessToken = session?.accessToken;
-    const gcalEventId = meeting.googleCalendarEventId;
+    const calendarIds = calendarIdsForMeeting(meeting.calType ?? []);
+    const eventIds = (meeting.googleCalendarEventIds ?? {}) as Record<string, string>;
 
     if ((deleteOption === 'this' || deleteOption === 'thisAndFollowing') && !meeting.recurrencePattern) {
       return new Response(JSON.stringify({ error: "Meeting has no recurrence pattern" }), {
@@ -74,9 +76,12 @@ const deleteMeeting = async (request: Request) => {
         where: { mid },
         data: { excludedDates: { push: excludedDate } },
       });
-      // Google Calendar: add EXDATE for this occurrence
-      if (accessToken && gcalEventId) {
-        await deleteCalendarOccurrence(accessToken, gcalEventId, meeting.startDateTime, occurrenceDate);
+      // Google Calendar: add EXDATE for this occurrence on each calendar
+      if (accessToken) {
+        for (const [cat, calId] of Object.entries(calendarIds)) {
+          const eventId = eventIds[cat];
+          if (eventId) await deleteCalendarOccurrence(accessToken, eventId, meeting.startDateTime, occurrenceDate, calId);
+        }
       }
     } else if (deleteOption === 'thisAndFollowing') {
       // MongoDB: trim the series end date
@@ -87,9 +92,12 @@ const deleteMeeting = async (request: Request) => {
         where: { mid },
         data: { endDate: newEndDate },
       });
-      // Google Calendar: update the RRULE UNTIL
-      if (accessToken && gcalEventId) {
-        await trimCalendarEventSeries(accessToken, gcalEventId, occurrenceDate);
+      // Google Calendar: trim RRULE UNTIL on each calendar
+      if (accessToken) {
+        for (const [cat, calId] of Object.entries(calendarIds)) {
+          const eventId = eventIds[cat];
+          if (eventId) await trimCalendarEventSeries(accessToken, eventId, occurrenceDate, calId);
+        }
       }
     } else {
       // 'all' or non-recurring: soft-delete the master meeting record
@@ -97,9 +105,12 @@ const deleteMeeting = async (request: Request) => {
         where: { mid },
         data: { deletedAt: new Date() },
       });
-      // Google Calendar: delete the entire event
-      if (accessToken && gcalEventId) {
-        await deleteCalendarEvent(accessToken, gcalEventId);
+      // Google Calendar: delete from each calendar
+      if (accessToken) {
+        for (const [cat, calId] of Object.entries(calendarIds)) {
+          const eventId = eventIds[cat];
+          if (eventId) await deleteCalendarEvent(accessToken, eventId, calId);
+        }
       }
     }
 

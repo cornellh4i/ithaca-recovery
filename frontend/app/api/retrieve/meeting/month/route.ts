@@ -22,6 +22,7 @@ const retrieveMonthMeetings = async (request: NextRequest) => {
         const [year, etMonth] = etDateStr.split('-').map(Number);
         const month = etMonth - 1; // 0-indexed
 
+
         // First and last day of the month as UTC-midnight calendar dates,
         // then get DST-correct ET day bounds for each.
         const fmtDate = (d: Date) => d.toISOString().slice(0, 10);
@@ -41,7 +42,10 @@ const retrieveMonthMeetings = async (request: NextRequest) => {
                 }
             }
         })
-        const typedMeetings: IMeeting[] = meetings.map(meeting => ({ ...meeting }))
+        const typedMeetings: IMeeting[] = meetings.map(meeting => ({
+            ...meeting,
+            googleCalendarEventIds: (meeting.googleCalendarEventIds ?? {}) as Record<string, string>,
+        }))
         return new Response(JSON.stringify(typedMeetings), {
             status: 200,
             headers: {

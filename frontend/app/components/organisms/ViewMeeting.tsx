@@ -24,7 +24,7 @@ type ViewMeetingDetailsProps = {
   zoomAccount?: string | null; // Maps to 'zoomAccount' in the model (optional)
   zoomLink?: string | null; // Maps to 'zoomLink' in the model (optional)
   zid?: string | null; // Maps to 'zid' in the model (optional)
-  calType: string; // Maps to 'calType' in the model
+  calType: string[]; // Maps to 'calType' in the model
   room: string; // Maps to 'room' in the model
   recurrence?: string; // Remains as optional if required
   isRecurring: boolean;
@@ -227,7 +227,7 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
 
         <p><strong>Email:</strong>&nbsp;{email}</p>
         <p><strong>Meeting Mode:</strong>&nbsp;{modeType}</p>
-        <p><strong>Calendar:</strong>&nbsp;{calType}</p>
+        <p><strong>Calendar:</strong>&nbsp;{Array.isArray(calType) ? calType.join(', ') : calType}</p>
         {syncStatus === 'synced' && (
           <p style={{ color: '#3a9e3a', fontSize: '13px', margin: '2px 0 8px' }}>
             Synced to Google Calendar ✓
@@ -250,7 +250,7 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
             {syncing ? 'Retrying…' : 'Retry sync'}
           </button>
         )}
-        <p><strong>Location:</strong>&nbsp;{room}</p>
+        {room && <p><strong>Location:</strong>&nbsp;{room}</p>}
         {zoomAccount && <p><strong>Zoom Account:</strong>&nbsp;{zoomAccount}</p>}
         {zoomLink && <a href={zoomLink} target="_blank" rel="noopener noreferrer" className={styles.zoomLink}> 
           <VideoCameraFrontIcon /> {zoomLink}

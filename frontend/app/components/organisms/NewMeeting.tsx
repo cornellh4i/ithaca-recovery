@@ -6,6 +6,7 @@ import ModeTypeButtons from '../atoms/ModeTypeButtons';
 import DatePicker from '../atoms/DatePicker';
 import TimePicker from '../atoms/TimePicker';
 import Dropdown from '../atoms/dropdown';
+import LabeledCheckbox from '../atoms/checkbox';
 import RecurringMeetingForm from '../molecules/RecurringMeeting';
 import CloseIcon from '@mui/icons-material/Close';
 import IconButton from '@mui/material/IconButton';
@@ -21,23 +22,49 @@ interface NewMeetingSidebarProps {
   triggerCalendarRefresh: () => void;
 }
 
-const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({ 
-  setIsNewMeetingOpen, 
-  triggerCalendarRefresh 
+const physicalRoomOptions = [
+  "Serenity Room",
+  "Seeds of Hope Room",
+  "Unity Room",
+  "Room for Improvement",
+  "Room for Acceptance",
+  "Room for Gratitude",
+];
+
+const zoomRoomOptions = [
+  "Serenity Room - Zoom",
+  "Seeds of Hope Room - Zoom",
+  "Unity Room - Zoom",
+  "Room for Improvement - Zoom",
+  "Children's Room @ 518 - Zoom",
+];
+
+const roomToZoomRoom: Record<string, string> = {
+  "Serenity Room": "Serenity Room - Zoom",
+  "Seeds of Hope Room": "Seeds of Hope Room - Zoom",
+  "Unity Room": "Unity Room - Zoom",
+  "Room for Improvement": "Room for Improvement - Zoom",
+};
+
+const calTypeOptions = ["AA", "Al-Anon", "Other"];
+const calTypeColor = "#CC3366";
+
+const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({
+  setIsNewMeetingOpen,
+  triggerCalendarRefresh
 }) => {
-    // State declarations for New Meeting form
-    const [inputMeetingTitleValue, setMeetingTitleValue] = useState(""); // Meeting title
+    const [inputMeetingTitleValue, setMeetingTitleValue] = useState("");
     const [selectedMode, setSelectedMode] = useState<string>('Hybrid');
-    const [dateValue, setDateValue] = useState<string>(""); // Initial date value as empty
-    const [timeValue, setTimeValue] = useState<string>(""); // Initial time range as empty
-    const [inputEmailValue, setEmailValue] = useState(""); // Email input value
-    const [inputDescriptionValue, setDescriptionValue] = useState(""); // Description input value
+    const [dateValue, setDateValue] = useState<string>("");
+    const [timeValue, setTimeValue] = useState<string>("");
+    const [inputEmailValue, setEmailValue] = useState("");
+    const [inputDescriptionValue, setDescriptionValue] = useState("");
     const [selectedRoom, setSelectedRoom] = useState<string>("");
-    const [selectedMeetingType, setSelectedMeetingType] = useState<string>("");
-    const [selectedZoomAccount, setSelectedZoomAccount] = useState<string>("");
+    const [selectedCalTypes, setSelectedCalTypes] = useState<string[]>([]);
+    const [selectedZoomRoom, setSelectedZoomRoom] = useState<string>("");
     const [isRecurring, setIsRecurring] = useState(false);
     const [recurrencePattern, setRecurrencePattern] = useState<IRecurrencePattern | null>(null);
-    
+
     const handleRecurringMeetingChange = (data: {
       isRecurring: boolean;
       recurrencePattern: IRecurrencePattern | null;
@@ -46,9 +73,24 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({
       setRecurrencePattern(data.recurrencePattern);
     };
 
-    const handleRoomChange = (value: string) => setSelectedRoom(value);
-    const handleMeetingTypeChange = (value: string) => setSelectedMeetingType(value);
-    const handleZoomAccountChange = (value: string) => setSelectedZoomAccount(value);
+    const handleRoomChange = (value: string) => {
+      setSelectedRoom(value);
+      const zoom = roomToZoomRoom[value];
+      if (zoom) setSelectedZoomRoom(zoom);
+    };
+
+    const handleModeSelect = (mode: string) => {
+      setSelectedMode(mode);
+      // Clear the fields the new mode doesn't use, so stale selections aren't submitted
+      if (mode === "In Person") setSelectedZoomRoom("");
+      if (mode === "Remote") setSelectedRoom("");
+    };
+
+    const handleCalTypeToggle = (type: string) => {
+      setSelectedCalTypes(prev =>
+        prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]
+      );
+    };
 
     const clearMeetingState = () => {
       setMeetingTitleValue("");
@@ -58,37 +100,10 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({
       setEmailValue("");
       setDescriptionValue("");
       setSelectedRoom("");
-      setSelectedMeetingType("");
-      setSelectedZoomAccount("");
+      setSelectedCalTypes([]);
+      setSelectedZoomRoom("");
       setIsRecurring(false);
       setRecurrencePattern(null);
-    };
-
-    // Room and Meeting Type options
-    const roomOptions = [
-      "Serenity Room",
-      "Seeds of Hope",
-      "Unity Room",
-      "Room for Improvement",
-      "Small but Powerful - Right",
-      "Small but Powerful - Left"
-    ];
-
-    const meetingTypeOptions = [
-      "AA",
-      "Al-Anon",
-      "Other"
-    ];
-
-    const zoomAccountOptions = [
-      "Zoom Email 1",
-      "Zoom Email 2",
-      "Zoom Email 3",
-      "Zoom Email 4"
-    ];
-
-    const generateMeetingId = () => {
-      return uuidv4();
     };
 
     function convertToISODate(dateString: string) {
@@ -97,7 +112,7 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({
         console.error("Invalid date string:", dateString)
         return null;
       }
-      return dateObject.toISOString().split('T')[0]; // Returns "YYYY-MM-DD"
+      return dateObject.toISOString().split('T')[0];
     }
 
     const handleCloseNewMeeting = () => {
@@ -105,26 +120,46 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({
       setIsNewMeetingOpen(false);
     };
 
-    const validateForm = () => {
-      if (selectedMode !== "Zoom" && !selectedRoom) {
-        return false;
+    const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
+    const getValidationErrors = (): string[] => {
+      const errors: string[] = [];
+
+      if (!inputMeetingTitleValue.trim()) errors.push("Meeting title is required.");
+      if (!dateValue) errors.push("Date is required.");
+
+      const [startTime, endTime] = timeValue?.split(' - ') || [];
+      if (!startTime || !endTime) errors.push("Start and end time are required.");
+
+      if (!inputEmailValue.trim()) {
+        errors.push("Email is required.");
+      } else if (!isValidEmail(inputEmailValue)) {
+        errors.push("Email must be a valid email address.");
+      }
+
+      if (selectedMode === "Hybrid" && (!selectedRoom || !selectedZoomRoom)) {
+        errors.push("Hybrid meetings require both a physical room and a Zoom room.");
+      } else if (selectedMode === "In Person" && !selectedRoom) {
+        errors.push("In Person meetings require a physical room.");
+      } else if (selectedMode === "Remote" && !selectedZoomRoom) {
+        errors.push("Remote meetings require a Zoom room.");
       }
 
       if (isRecurring && recurrencePattern === null) {
-        return false;
+        errors.push("Recurrence details are required for recurring meetings.");
       }
-      
-      return true;
+
+      return errors;
     };
 
     const createMeeting = async () => {
-      if (!validateForm()) {
+      const validationErrors = getValidationErrors();
+      if (validationErrors.length > 0) {
+        alert(validationErrors.join('\n'));
         return;
       }
-      
-      try {
 
-        // Convert dateValue to ISO format
+      try {
         const isoDateValue = convertToISODate(dateValue);
 
         if (!isoDateValue) {
@@ -138,7 +173,6 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({
           return;
         }
 
-        // in EST
         const startDateString = `${isoDateValue}T${startTime}`;
         let endDateString = `${isoDateValue}T${endTime}`;
 
@@ -159,46 +193,43 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({
         }
 
         const newMeeting: IMeeting = {
-          mid: generateMeetingId(),
+          mid: uuidv4(),
           title: inputMeetingTitleValue,
-          modeType: selectedMode, // Meeting Mode Type
+          modeType: selectedMode,
           description: inputDescriptionValue,
           creator: 'Creator',
           group: 'Group',
           startDateTime: startDateTimeUTC,
           endDateTime: endDateTimeUTC,
           email: inputEmailValue,
-          zoomAccount: selectedZoomAccount,
-          calType: selectedMeetingType, // Room Type
+          zoomAccount: selectedZoomRoom,
+          calType: selectedCalTypes,
+          status: 'Active',
           room: selectedRoom,
+          isRecurring: isRecurring,
         };
-        
+
         if (isRecurring && recurrencePattern) {
           newMeeting.recurrencePattern = {
             ...recurrencePattern,
             startDate: startDateTimeUTC
           };
         }
-        
+
         const response = await fetch('/api/write/meeting', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(
-            newMeeting
-          ),
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(newMeeting),
         });
-        
+
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
-        
+
         const meetingResponse = await response.json();
         console.log(meetingResponse);
 
-        triggerCalendarRefresh(); // Trigger calendar refresh after meeting creation
-
+        triggerCalendarRefresh();
         alert("Meeting created successfully! Please check the Meeting collection on MongoDB.");
         handleCloseNewMeeting();
       } catch (error) {
@@ -223,10 +254,10 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({
           modeTypeButtons={
             <ModeTypeButtons
               selectedMode={selectedMode}
-              onModeSelect={setSelectedMode}
+              onModeSelect={handleModeSelect}
             />
           }
-          selectedMode={selectedMode}       
+          selectedMode={selectedMode}
           DatePicker={<DatePicker
             label={<img src='/svg/calendar-icon.svg' alt="Calendar Icon" />}
             value={dateValue}
@@ -248,28 +279,39 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({
           roomSelectionDropdown={
             <Dropdown
               label={<img src="/svg/location-icon.svg" alt="Location Icon" />}
-              isVisible={selectedMode !== "Zoom"}
-              elements={roomOptions}
+              isVisible={selectedMode !== "Remote"}
+              elements={physicalRoomOptions}
               name="Select Room"
               onChange={handleRoomChange}
             />
           }
           meetingTypeDropdown={
-            <Dropdown
-              label={<img src="svg/group-icon.svg" alt="Group Icon" />}
-              isVisible={true}
-              elements={meetingTypeOptions}
-              name="Select Meeting Type"
-              onChange={handleMeetingTypeChange}
-            />
+            <div style={{ display: 'flex', alignItems: 'center' }}>
+              <span style={{ marginRight: '6px', display: 'flex', alignItems: 'center' }}>
+                <img src="svg/group-icon.svg" alt="Group Icon" />
+              </span>
+              <div style={{ display: 'flex', flexDirection: 'row', gap: '4px', flex: 1, justifyContent: 'space-between' }}>
+                {calTypeOptions.map(type => (
+                  <LabeledCheckbox
+                    key={type}
+                    label={type}
+                    checked={selectedCalTypes.includes(type)}
+                    onChange={(_e) => handleCalTypeToggle(type)}
+                    color={calTypeColor}
+                  />
+                ))}
+              </div>
+            </div>
           }
           zoomAccountDropdown={
             <Dropdown
+              key={selectedZoomRoom}
               label={<img src="svg/person-icon.svg" alt="Person Icon" />}
-              isVisible={selectedMode !== "In-Person"}
-              elements={zoomAccountOptions}
-              name="Select Zoom Account"
-              onChange={handleZoomAccountChange}
+              value={selectedZoomRoom}
+              isVisible={selectedMode !== "In Person"}
+              elements={zoomRoomOptions}
+              name="Select Zoom Room"
+              onChange={setSelectedZoomRoom}
             />
           }
           emailTextField={<TextField

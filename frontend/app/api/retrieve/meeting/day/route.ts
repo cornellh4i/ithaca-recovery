@@ -103,7 +103,7 @@ const retrieveDayMeetings = async (request: NextRequest) => {
                     if (!(recurrence.daysOfWeek ?? []).includes(requestedDayName)) return false;
                     const daysInMonth = new Date(Date.UTC(reqYear, reqMonth + 1, 0)).getUTCDate();
                     const dateNum = localDate.getUTCDate();
-                    if (recurrence.weekOfMonth === -1) { 
+                    if (recurrence.weekOfMonth === -1) {
                         // Check whether the date is the last occurrence of this weekday in the month
                         return dateNum + 7 > daysInMonth;
                     }
@@ -173,12 +173,13 @@ const retrieveDayMeetings = async (request: NextRequest) => {
         
         const typedMeetings: IMeeting[] = allMeetings.map((meeting) => {
             const { recurrencePattern, ...meetingDetails } = meeting;
-          
+
             return {
               ...meetingDetails,
+              googleCalendarEventIds: (meeting.googleCalendarEventIds ?? {}) as Record<string, string>,
               recurrencePattern: recurrencePattern ?? null,
             };
-          });          
+          });
         
         return new Response(JSON.stringify(typedMeetings), {
             status: 200,

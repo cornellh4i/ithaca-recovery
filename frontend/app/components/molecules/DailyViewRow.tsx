@@ -78,9 +78,15 @@ const DailyViewRow: React.FC<DailyViewRowProps> = ({
           const endOffset = timeToPixels(meeting.endTime);
           const width = endOffset - startOffset;
 
-          // Convert startTime and endTime to EDT for display
-          const startTimeEDT = new Date(meeting.startTime).toLocaleString("en-US", { timeZone: "America/New_York" });
-          const endTimeEDT = new Date(meeting.endTime).toLocaleString("en-US", { timeZone: "America/New_York" });
+          // Convert startTime and endTime to EDT for display (e.g. "9:00 AM")
+          const timeFormatOptions: Intl.DateTimeFormatOptions = {
+            timeZone: "America/New_York",
+            hour: "numeric",
+            minute: "2-digit",
+            hour12: true,
+          };
+          const startTimeEDT = new Date(meeting.startTime).toLocaleTimeString("en-US", timeFormatOptions);
+          const endTimeEDT = new Date(meeting.endTime).toLocaleTimeString("en-US", timeFormatOptions);
 
           return (
             <div

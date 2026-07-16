@@ -80,11 +80,6 @@ export const fetchMeetingsByDay = async (date: Date): Promise<Room[]> => {
     const groupedRooms: { [key: string]: Meeting[] } = {};
 
     clipped.forEach((meeting: any) => {
-      const roomName = meeting.room;
-      if (!groupedRooms[roomName]) {
-        groupedRooms[roomName] = [];
-      }
-
       // Convert meeting times from UTC to EDT for display
       const startUTC = new Date(meeting.startDateTime);
       const endUTC = new Date(meeting.endDateTime);
@@ -92,13 +87,23 @@ export const fetchMeetingsByDay = async (date: Date): Promise<Room[]> => {
       const startEDT = convertUTCToET(startUTC.toISOString());
       const endEDT = convertUTCToET(endUTC.toISOString());
 
-      groupedRooms[roomName].push({
+      const meetingEntry: Meeting = {
         id: meeting.mid,
         title: meeting.title,
         startTime: startEDT,
         endTime: endEDT,
-        tags: [meeting.calType, meeting.modeType],
+        tags: [...meeting.calType, meeting.modeType],
         syncError: meeting.syncStatus === 'error',
+      };
+
+      // A Hybrid meeting occupies both its physical room and its Zoom room;
+      // Remote only has a Zoom room, In Person only has a physical room.
+      const roomNames: string[] = [meeting.room, meeting.zoomAccount].filter(Boolean);
+      roomNames.forEach((roomName: string) => {
+        if (!groupedRooms[roomName]) {
+          groupedRooms[roomName] = [];
+        }
+        groupedRooms[roomName].push(meetingEntry);
       });
     });
 
@@ -135,17 +140,21 @@ const formatTime = (hour: number): string => {
 
 const timeSlots = Array.from({ length: 24 }, (_, i) => formatTime(i));
 
+// Mode tags are mutually exclusive per meeting (unlike calendar tags, which can be combined)
+const modeTagNames = new Set(['InPerson', 'Hybrid', 'Remote']);
+
 const defaultRooms = [
   { name: 'Serenity Room', primaryColor: '#b3ea75' },
-  { name: 'Seeds of Hope', primaryColor: '#f7e57b' },
+  { name: 'Seeds of Hope Room', primaryColor: '#f7e57b' },
   { name: 'Unity Room', primaryColor: '#96dbfe' },
   { name: 'Room for Improvement', primaryColor: '#ffae73' },
-  { name: 'Small but Powerful - Right', primaryColor: '#d2afff' },
-  { name: 'Small but Powerful - Left', primaryColor: '#ffa3c2' },
-  { name: 'Zoom Account 1', primaryColor: '#cecece' },
-  { name: 'Zoom Account 2', primaryColor: '#cecece' },
-  { name: 'Zoom Account 3', primaryColor: '#cecece' },
-  { name: 'Zoom Account 4', primaryColor: '#cecece' },
+  { name: 'Room for Acceptance', primaryColor: '#ffa3c2' },
+  { name: 'Room for Gratitude', primaryColor: '#d2afff' },
+  { name: 'Serenity Room - Zoom', primaryColor: '#cecece' },
+  { name: 'Seeds of Hope Room - Zoom', primaryColor: '#cecece' },
+  { name: 'Unity Room - Zoom', primaryColor: '#cecece' },
+  { name: 'Room for Improvement - Zoom', primaryColor: '#cecece' },
+  { name: "Children's Room @ 518 - Zoom", primaryColor: '#cecece' },
 ];
 
 interface DailyViewProps {
@@ -199,7 +208,7 @@ const DailyView: React.FC<DailyViewProps> = ({
   }, [refreshTrigger]);
 
   const updateTimePosition = () => {
-    const now = new Date(selectedDate);
+    const now = new Date();
     const currentHour = now.getHours();
     const currentMinutes = now.getMinutes();
     const position = (currentHour * 60 + currentMinutes) * (155 / 60);
@@ -219,15 +228,23 @@ const DailyView: React.FC<DailyViewProps> = ({
 
   // filter meetings based on meeting type and room filters
   const filterMeetings = (room: Room): Room => {
-    // filter meetings based on  tags (meeting type)
+    // filter meetings based on tags (meeting type)
     const filteredMeetings = room.meetings.filter(meeting => {
-      // check if all tags for this meeting are enabled in filters
-      return meeting.tags.every(tag => {
-        // normalize tag name to match filter names (removing spaces and special chars)
-        const normalizedTag = tag.replace(/[-\s]+/g, '').replace(/\s+/g, '');
-        // ff filter for this tag exists and is true, or if filter doesn't exist, keep the meeting
-        return filters[normalizedTag] !== false;
-      });
+      // normalize tag names to match filter names (removing spaces and special chars)
+      const normalizedTags = meeting.tags.map(tag => tag.replace(/[-\s]+/g, ''));
+      // mode tags (In Person / Hybrid / Remote) are mutually exclusive per meeting,
+      // but calendar tags (AA / Al-Anon / Other) can apply multiple at once
+      const modeTags = normalizedTags.filter(tag => modeTagNames.has(tag));
+      const calendarTags = normalizedTags.filter(tag => !modeTagNames.has(tag));
+
+      // a meeting with multiple calendar tags should only be filtered out
+      // once every one of its calendar tags has been unchecked
+      const passesCalendarFilter =
+        calendarTags.length === 0 || calendarTags.some(tag => filters[tag] !== false);
+      // mode is a single tag, so it must remain enabled to keep the meeting
+      const passesModeFilter = modeTags.every(tag => filters[tag] !== false);
+
+      return passesCalendarFilter && passesModeFilter;
     });
 
     // return the room with filtered meetings
@@ -278,20 +295,29 @@ const DailyView: React.FC<DailyViewProps> = ({
             ))}
           </div>
 
-          {combinedRooms.map((room, rowIndex) => (
-            <div key={rowIndex} className={styles.gridRow}>
-              <div className={styles.gridMeetingRow}>
-                <DailyViewRow roomColor={room.primaryColor} meetings={room.meetings} setSelectedMeetingID={setSelectedMeetingID} setSelectedNewMeeting={setSelectedNewMeeting}/>
+          {combinedRooms.map((room, rowIndex) => {
+            const today = new Date();
+            const isToday =
+              selectedDate.getFullYear() === today.getFullYear() &&
+              selectedDate.getMonth() === today.getMonth() &&
+              selectedDate.getDate() === today.getDate();
+            return (
+              <div key={rowIndex} className={styles.gridRow}>
+                <div className={styles.gridMeetingRow}>
+                  <DailyViewRow roomColor={room.primaryColor} meetings={room.meetings} setSelectedMeetingID={setSelectedMeetingID} setSelectedNewMeeting={setSelectedNewMeeting}/>
+                </div>
+                {timeSlots.map((_, colIndex) => (
+                  <div key={colIndex} className={styles.gridCell}></div>
+                ))}
+                {isToday && (
+                  <div
+                    className={styles.currentTimeLine}
+                    style={{ left: `${currentTimePosition}px` }}
+                  />
+                )}
               </div>
-              {timeSlots.map((_, colIndex) => (
-                <div key={colIndex} className={styles.gridCell}></div>
-              ))}
-              <div
-                className={styles.currentTimeLine}
-                style={{ left: `${currentTimePosition}px` }}
-              />
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </div>
