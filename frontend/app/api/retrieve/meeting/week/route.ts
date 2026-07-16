@@ -10,9 +10,9 @@ const retrieveWeekMeetings = async (request: NextRequest) => {
         const etDateStr = toETDateString(dateParam);
         const weekDates = getWeekDatesET(etDateStr);
 
-        // Expand recurrence per day of the week (same rules the day route uses), tagging
-        // each occurrence with the ET calendar date it was expanded onto so the client
-        // doesn't have to re-derive it from a UTC timestamp.
+        // Expand recurrence per day of the week, tagging each occurrence with the ET date it
+        // was expanded onto. An overnight meeting overlaps two days, so it's tagged onto both —
+        // the client clips/labels each day's card (see WeeklyView.tsx), not this route.
         const meetingsByDay = await Promise.all(
             weekDates.map(async (date) => {
                 const dayMeetings = await getMeetingsForDate(date);

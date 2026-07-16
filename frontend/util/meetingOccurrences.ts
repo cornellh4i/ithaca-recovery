@@ -126,12 +126,17 @@ export const getMeetingsForDate = async (etDateStr: string): Promise<IMeeting[]>
         return true;
     });
 
+    // "Other" occurrences of a recurring series — i.e. every occurrence except the one
+    // already covered by directlyScheduledMeetings above. Must exclude by the same overlap
+    // condition as that query (not just "fully contained in today"), or an overnight
+    // occurrence (whose anchor overlaps today without being contained in it) slips through
+    // and gets counted twice: once via originalDayRecurringMeetings, once again here.
     const otherRecurringMeetings = await prisma.meeting.findMany({
         where: {
             AND: [
                 notDeleted,
                 { isRecurring: true },
-                { NOT: { AND: [{ startDateTime: { gte: startOfDay } }, { endDateTime: { lte: endOfDay } }] } }
+                { NOT: { AND: [{ startDateTime: { lte: endOfDay } }, { endDateTime: { gte: startOfDay } }] } }
             ]
         },
         include: { recurrencePattern: true }

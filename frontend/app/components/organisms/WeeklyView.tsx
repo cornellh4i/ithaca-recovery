@@ -3,21 +3,11 @@ import styles from '../../../styles/components/organisms/WeeklyView.module.scss'
 import WeeklyViewColumn from "../molecules/WeeklyViewColumn";
 import { passesTagFilters, passesRoomFilter } from "../../../util/meetingFilters";
 import { ROOM_COLORS, ZOOM_ROOM_COLOR } from "../../../util/filterColors";
+import { formatETDateString } from "../../../util/timeUtils";
+import { layoutOverlappingMeetings, OverlapMeeting } from "../../../util/meetingOverlapLayout";
+import { createCache } from "../../../util/simpleCache";
 
-type Meeting = {
-    id: string;
-    title: string;
-    startTime: string;
-    endTime: string;
-    date: string; // ET calendar date this occurrence belongs to, as returned by the week API
-    tags: string[];
-    room: string;
-    zoomAccount?: string | null;
-    positionIndex?: number; // Column index among overlapping meetings, assigned by layoutOverlappingMeetings
-    totalOverlapping?: number; // Column count among overlapping meetings, assigned by layoutOverlappingMeetings
-    isOverflowIndicator?: boolean; // "+N more" pseudo-entry standing in for meetings past MAX_VISIBLE_OVERLAP
-    overflowCount?: number;
-};
+type Meeting = OverlapMeeting;
 
 type Room = {
     name: string;
@@ -25,7 +15,7 @@ type Room = {
     meetings: Meeting[];
 };
 
-const meetingCache = new Map<string, Meeting[]>();
+const weekMeetingCache = createCache<Meeting[]>();
 
 // Extracts ET wall-clock time as "HH:MM" (24hr), which is what WeeklyViewColumn expects.
 const etTimeFmt = new Intl.DateTimeFormat('en-GB', {
@@ -34,158 +24,60 @@ const etTimeFmt = new Intl.DateTimeFormat('en-GB', {
 });
 
 const fetchMeetingsByWeek = async (startDate: Date, endDate: Date): Promise<Meeting[]> => {
-    const formattedStart = startDate.toISOString().split('T')[0];
-    const formattedEnd = endDate.toISOString().split('T')[0];
+    const formattedStart = formatETDateString(startDate);
+    const formattedEnd = formatETDateString(endDate);
     const cacheKey = `${formattedStart}-${formattedEnd}`;
 
-    if (meetingCache.has(cacheKey)) {
-        console.log("Using cached data for week:", cacheKey);
-        return meetingCache.get(cacheKey) || [];
-    }
+    return weekMeetingCache.getOrFetch(cacheKey, async () => {
+        console.log("Fetching meetings for week:", cacheKey);
 
-    console.log("Fetching meetings for week:", cacheKey);
+        try {
+            const response = await fetch(`/api/retrieve/meeting/week?startDate=${formattedStart}&endDate=${formattedEnd}`);
+            const data = await response.json();
+            console.log("Raw API response:", data);
 
-    try {
-        const response = await fetch(`/api/retrieve/meeting/week?startDate=${formattedStart}&endDate=${formattedEnd}`);
-        const data = await response.json();
-        console.log("Raw API response:", data);
+            // startTime/endTime clip to this day (for layout); displayStartTime/displayEndTime
+            // keep the true times, so an overnight meeting's cards both label as "11PM-1AM".
+            const meetings: Meeting[] = data.map((meeting: any) => {
+                const trueStart = new Date(meeting.startDateTime);
+                const trueEnd = new Date(meeting.endDateTime);
+                const startsToday = formatETDateString(trueStart) === meeting.date;
+                const endsToday = formatETDateString(trueEnd) === meeting.date;
 
-        const meetings: Meeting[] = data.map((meeting: any) => ({
-            id: meeting.mid,
-            title: meeting.title,
-            startTime: etTimeFmt.format(new Date(meeting.startDateTime)),
-            endTime: etTimeFmt.format(new Date(meeting.endDateTime)),
-            date: meeting.date, // ET calendar date, set by the week API's per-day expansion
-            tags: [...meeting.calType, meeting.modeType],
-            room: meeting.room,
-            zoomAccount: meeting.zoomAccount,
-        }));
+                return {
+                    id: meeting.mid,
+                    title: meeting.title,
+                    startTime: startsToday ? etTimeFmt.format(trueStart) : "00:00",
+                    endTime: endsToday ? etTimeFmt.format(trueEnd) : "24:00",
+                    displayStartTime: etTimeFmt.format(trueStart),
+                    displayEndTime: etTimeFmt.format(trueEnd),
+                    date: meeting.date,
+                    tags: [...meeting.calType, meeting.modeType],
+                    room: meeting.room,
+                    zoomAccount: meeting.zoomAccount,
+                };
+            });
 
-        meetingCache.set(cacheKey, meetings);
-        return meetings;
-    } catch (error) {
-        console.error("Error fetching weekly meetings:", error);
-        return [];
-    }
+            return meetings;
+        } catch (error) {
+            console.error("Error fetching weekly meetings:", error);
+            return [];
+        }
+    });
 };
 
 // Function to invalidate the cache for a specific week
 export const invalidateWeekCache = (startDate: Date, endDate: Date) => {
-    const formattedStart = startDate.toISOString().split('T')[0];
-    const formattedEnd = endDate.toISOString().split('T')[0];
-    const cacheKey = `${formattedStart}-${formattedEnd}`;
-    console.log(`Invalidating cache for week: ${cacheKey}`);
-    meetingCache.delete(cacheKey);
+    const formattedStart = formatETDateString(startDate);
+    const formattedEnd = formatETDateString(endDate);
+    weekMeetingCache.invalidate(`${formattedStart}-${formattedEnd}`);
 };
 
-// Get the first day (Sunday) of the week containing the provided date. Operates on a
-// copy — selectedDate is shared state owned by the parent, and Dates are mutable, so
-// mutating the input here would silently corrupt that state without going through
-// setSelectedDate (surfacing as a stale/wrong date on the next unrelated re-render).
+// Get the first day (Sunday) of the week containing the provided date. Operates on a copy —
+// selectedDate is shared state owned by the parent, and mutating it would corrupt that state.
 const getFirstDayOfWeek = (date: Date): Date => {
     const result = new Date(date);
     result.setDate(result.getDate() - result.getDay());
-    return result;
-};
-
-const toMinutes = (time: string): number => {
-    const [hours, minutes] = time.split(':').map(Number);
-    return hours * 60 + minutes;
-};
-
-const minutesToTime = (totalMinutes: number): string => {
-    const hours = Math.floor(totalMinutes / 60);
-    const minutes = totalMinutes % 60;
-    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
-};
-
-// At most this many meetings render as full columns per overlapping cluster; any more
-// are folded into a single "+N more" indicator instead of shrinking columns further.
-const MAX_VISIBLE_OVERLAP = 2;
-
-/**
- * Lays out a day's meetings so partially-overlapping ones share the column instead of
- * fully covering each other. Two passes:
- * 1. Sweep left to right by start time, splitting meetings into clusters of mutually
- *    (possibly transitively) overlapping meetings.
- * 2. Within each cluster, greedily assign each meeting to the first column whose current
- *    occupant has already ended (classic interval-graph-coloring calendar layout) — the
- *    cluster's column count becomes every meeting's totalOverlapping/width divisor.
- */
-const layoutOverlappingMeetings = (meetings: Meeting[]): Meeting[] => {
-    // Title as a tiebreaker keeps column/overflow assignment consistent across renders
-    // and across days — meetings sharing a start time would otherwise fall back to
-    // whatever order the database happened to return them in, which isn't guaranteed
-    // stable (each day's meetings come from a separate query in the week route).
-    const sorted = [...meetings].sort((a, b) =>
-        toMinutes(a.startTime) - toMinutes(b.startTime) || a.title.localeCompare(b.title)
-    );
-
-    const clusters: Meeting[][] = [];
-    let currentCluster: Meeting[] = [];
-    let clusterEnd = -Infinity;
-
-    sorted.forEach(meeting => {
-        const start = toMinutes(meeting.startTime);
-        if (currentCluster.length > 0 && start >= clusterEnd) {
-            clusters.push(currentCluster);
-            currentCluster = [];
-            clusterEnd = -Infinity;
-        }
-        currentCluster.push(meeting);
-        clusterEnd = Math.max(clusterEnd, toMinutes(meeting.endTime));
-    });
-    if (currentCluster.length > 0) clusters.push(currentCluster);
-
-    const result: Meeting[] = [];
-    clusters.forEach(cluster => {
-        const columnEnds: number[] = []; // end time (minutes) currently occupying each column
-        const positioned = cluster.map(meeting => {
-            const start = toMinutes(meeting.startTime);
-            const end = toMinutes(meeting.endTime);
-            let column = columnEnds.findIndex(columnEnd => columnEnd <= start);
-            if (column === -1) {
-                column = columnEnds.length;
-                columnEnds.push(end);
-            } else {
-                columnEnds[column] = end;
-            }
-            return { ...meeting, positionIndex: column } as Meeting;
-        });
-
-        const totalOverlapping = columnEnds.length;
-
-        if (totalOverlapping <= MAX_VISIBLE_OVERLAP) {
-            positioned.forEach(meeting => {
-                result.push(totalOverlapping > 1 ? { ...meeting, totalOverlapping } : meeting);
-            });
-            return;
-        }
-
-        // Cap at MAX_VISIBLE_OVERLAP full columns; fold the rest into one "+N more"
-        // indicator spanning their combined time range.
-        const shown = positioned.filter(m => (m.positionIndex ?? 0) < MAX_VISIBLE_OVERLAP);
-        const overflow = positioned.filter(m => (m.positionIndex ?? 0) >= MAX_VISIBLE_OVERLAP);
-
-        shown.forEach(meeting => {
-            result.push({ ...meeting, totalOverlapping: MAX_VISIBLE_OVERLAP });
-        });
-
-        const overflowStart = Math.min(...overflow.map(m => toMinutes(m.startTime)));
-        const overflowEnd = Math.max(...overflow.map(m => toMinutes(m.endTime)));
-        result.push({
-            id: `overflow-${cluster[0].date}-${overflowStart}`,
-            title: '',
-            startTime: minutesToTime(overflowStart),
-            endTime: minutesToTime(overflowEnd),
-            date: cluster[0].date,
-            tags: [],
-            room: '',
-            isOverflowIndicator: true,
-            overflowCount: overflow.length,
-        });
-    });
-
     return result;
 };
 
@@ -248,17 +140,22 @@ const WeeklyView: React.FC<WeeklyViewProps> = ({
 
         // Clear the entire cache so stale data on other weeks is also dropped.
         if (forceFetch) {
-            meetingCache.clear();
+            weekMeetingCache.clear();
         }
 
         const meetings = await fetchMeetingsByWeek(weekStartDate, endDate);
         setAllMeetings(meetings);
     };
 
-    // Update the week when selected date changes
+    // Only replace weekStartDate's identity when the ET week actually changes — otherwise
+    // picking a different day in the same week would re-trigger the fetch+scroll effect below.
     useEffect(() => {
         const newWeekStartDate = getFirstDayOfWeek(selectedDate);
-        setWeekStartDate(newWeekStartDate);
+        setWeekStartDate(prevWeekStartDate =>
+            formatETDateString(prevWeekStartDate) === formatETDateString(newWeekStartDate)
+                ? prevWeekStartDate
+                : newWeekStartDate
+        );
         setDaysOfWeek(getDaysOfWeek(newWeekStartDate));
     }, [selectedDate]);
 
@@ -304,7 +201,7 @@ const WeeklyView: React.FC<WeeklyViewProps> = ({
 
     // Get meetings for a specific day, filtered by room if applicable
     const getMeetingsForDay = (date: Date) => {
-        const formattedDate = date.toISOString().split('T')[0];
+        const formattedDate = formatETDateString(date);
 
         // Filter meetings by date, room/zoom-room, and calType/mode tags
         const filteredMeetings = allMeetings.filter(meeting => {
@@ -328,12 +225,8 @@ const WeeklyView: React.FC<WeeklyViewProps> = ({
     };
 
     // Check if a date is the current date
-    const isCurrentDate = (date: Date): boolean => {
-        const today = new Date();
-        return date.getDate() === today.getDate() &&
-            date.getMonth() === today.getMonth() &&
-            date.getFullYear() === today.getFullYear();
-    };
+    const isCurrentDate = (date: Date): boolean =>
+        formatETDateString(date) === formatETDateString(new Date());
 
     return (
         <div className={styles.outerContainer}>
@@ -384,7 +277,11 @@ const WeeklyView: React.FC<WeeklyViewProps> = ({
                                     roomColor={ZOOM_ROOM_COLOR} // Unused fallback: every meeting sets primaryColor via getRoomColor
                                     meetings={dayMeetings.map(meeting => ({
                                         ...meeting,
-                                        primaryColor: getRoomColor(meeting)
+                                        primaryColor: getRoomColor(meeting),
+                                        overflowMeetings: meeting.overflowMeetings?.map(m => ({
+                                            ...m,
+                                            primaryColor: getRoomColor(m)
+                                        })),
                                     }))}
                                     setSelectedMeetingID={setSelectedMeetingID}
                                     setSelectedNewMeeting={setSelectedNewMeeting}

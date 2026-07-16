@@ -11,8 +11,10 @@ const et24HourFmt = new Intl.DateTimeFormat('en-GB', {
 // Meeting Interface
 interface Meeting {
   title: string;
-  startTime: string; // Raw UTC timestamp (ISO 8601 format)
-  endTime: string;   // Raw UTC timestamp (ISO 8601 format)
+  startTime: string; // clipped to this day, for positioning
+  endTime: string; // clipped to this day, for positioning
+  displayStartTime?: string; // true time, for the label
+  displayEndTime?: string; // true time, for the label
   tags?: string[];
   id: string;
   syncError?: boolean;
@@ -85,10 +87,11 @@ const DailyViewRow: React.FC<DailyViewRowProps> = ({
           const endOffset = timeToPixels(meeting.endTime);
           const width = endOffset - startOffset;
 
-          // Compact ET display (e.g. "9-10AM", "9-9:30AM", "11AM-12:30PM")
+          // Compact ET display (e.g. "9-10AM", "9-9:30AM", "11AM-12:30PM") — uses the true,
+          // unclipped time so a split overnight meeting still labels the same on both halves.
           const compactTime = formatCompactTimeRange(
-            et24HourFmt.format(new Date(meeting.startTime)),
-            et24HourFmt.format(new Date(meeting.endTime)),
+            et24HourFmt.format(new Date(meeting.displayStartTime ?? meeting.startTime)),
+            et24HourFmt.format(new Date(meeting.displayEndTime ?? meeting.endTime)),
           );
 
           return (

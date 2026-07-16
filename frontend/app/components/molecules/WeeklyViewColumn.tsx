@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import BoxText from '../atoms/BoxText';
+import OverlapMeetingsModal from './OverlapMeetingsModal';
 import styles from '../../../styles/components/molecules/WeeklyViewColumn.module.scss';
 import { isZoomRoomMismatched } from '../../../util/rooms';
 import { formatCompactTimeRange } from '../../../util/timeFormat';
@@ -7,8 +8,10 @@ import { formatCompactTimeRange } from '../../../util/timeFormat';
 interface Meeting {
     id: string;
     title: string;
-    startTime: string;
-    endTime: string;
+    startTime: string; // clipped to this day, for layout/positioning
+    endTime: string; // clipped to this day, for layout/positioning
+    displayStartTime?: string; // true time, for the label
+    displayEndTime?: string; // true time, for the label
     tags?: string[];
     room?: string; // Added room property
     zoomAccount?: string | null;
@@ -17,6 +20,7 @@ interface Meeting {
     totalOverlapping?: number; // For handling overlapping meetings
     isOverflowIndicator?: boolean; // "+N more" pseudo-entry, rendered as a small pill instead of a meeting card
     overflowCount?: number;
+    overflowMeetings?: Meeting[]; // Full overlapping cluster, shown in the "+N" popup
 }
 
 // Drops the " - Zoom" suffix for a more compact badge label
@@ -41,6 +45,8 @@ const WeeklyViewColumn: React.FC<WeeklyViewColumnProps> = ({
     setSelectedMeetingID,
     setSelectedNewMeeting,
 }) => {
+    const [overlapModalMeetings, setOverlapModalMeetings] = useState<Meeting[] | null>(null);
+
     const handleBoxClick = (meetingId: string) => {
         console.log(`Meeting ${meetingId} clicked`);
         setSelectedMeetingID(meetingId);
@@ -71,8 +77,11 @@ const WeeklyViewColumn: React.FC<WeeklyViewColumnProps> = ({
                                 key={index}
                                 className={styles.overflowIndicator}
                                 style={{ top: `${topOffset}px` }}
-                                title={`${meeting.overflowCount} more meeting${meeting.overflowCount === 1 ? '' : 's'} at this time 
-                                    — either switch to Day view or switch off some filters to see them`}
+                                title={`${meeting.overflowCount} more meeting${meeting.overflowCount === 1 ? '' : 's'} at this time — click to see all meetings`}
+                                onClick={(e) => {
+                                    e.stopPropagation(); // Prevent column click handler from firing
+                                    setOverlapModalMeetings(meeting.overflowMeetings ?? []);
+                                }}
                             >
                                 +{meeting.overflowCount}
                             </div>
@@ -103,7 +112,7 @@ const WeeklyViewColumn: React.FC<WeeklyViewColumnProps> = ({
                                 boxType="Meeting Block"
                                 title={meeting.title}
                                 primaryColor={meeting.primaryColor || roomColor}
-                                time={`${locationLabel ? `${locationLabel} · ` : ''}${formatCompactTimeRange(meeting.startTime, meeting.endTime)}`}
+                                time={`${locationLabel ? `${locationLabel} · ` : ''}${formatCompactTimeRange(meeting.displayStartTime ?? meeting.startTime, meeting.displayEndTime ?? meeting.endTime)}`}
                                 tags={meeting.tags}
                                 meetingId={meeting.id}
                                 zoomTag={
@@ -121,6 +130,16 @@ const WeeklyViewColumn: React.FC<WeeklyViewColumnProps> = ({
                     );
                 })}
             </div>
+
+            <OverlapMeetingsModal
+                isOpen={overlapModalMeetings !== null}
+                meetings={overlapModalMeetings ?? []}
+                onClose={() => setOverlapModalMeetings(null)}
+                onSelectMeeting={(meetingId) => {
+                    handleBoxClick(meetingId);
+                    setOverlapModalMeetings(null);
+                }}
+            />
         </div>
     );
 };

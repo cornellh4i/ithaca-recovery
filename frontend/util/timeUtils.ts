@@ -86,12 +86,24 @@ export const getETDayBounds = (etDateStr: string): [Date, Date] => {
   return [start, end];
 };
 
+// en-CA formats as "YYYY-MM-DD", which is what we want directly out of Intl.
+const etDateFmt = new Intl.DateTimeFormat('en-CA', {
+  timeZone: 'America/New_York',
+  year: 'numeric', month: '2-digit', day: '2-digit',
+});
+
+/**
+ * ET calendar date ("YYYY-MM-DD") for a given instant — not `.toISOString().slice(0,10)`,
+ * which reads the UTC date and rolls a day ahead for evening ET instants.
+ */
+export const formatETDateString = (date: Date): string => etDateFmt.format(date);
+
 /**
  * Normalises a "startDate" request param (either a plain "YYYY-MM-DD" or a full
  * date/ISO string) into a "YYYY-MM-DD" ET calendar date string.
  */
 export const toETDateString = (dateParam: string): string =>
-  dateParam.match(/^\d{4}-\d{2}-\d{2}$/) ? dateParam : new Date(dateParam).toISOString().slice(0, 10);
+  dateParam.match(/^\d{4}-\d{2}-\d{2}$/) ? dateParam : formatETDateString(new Date(dateParam));
 
 /**
  * Returns the 7 ET calendar date strings (Sunday through Saturday) for the week
