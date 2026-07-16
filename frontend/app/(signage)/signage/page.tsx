@@ -9,6 +9,7 @@ import CalendarNavbar from "../../components/organisms/CalendarNavbar";
 import DailyView, { defaultRooms } from "../../components/organisms/DailyView";
 import WeeklyView from "../../components/organisms/WeeklyView";
 import { parseSignageFilters, parseSignageView } from "../../../util/signageFilters";
+import { formatETDateString } from "../../../util/timeUtils";
 import navbarStyles from "../../../styles/components/organisms/AppNavbar.module.scss";
 
 const REFRESH_INTERVAL_MS = 2 * 60 * 1000;
@@ -74,7 +75,8 @@ function SignageContent() {
     const id = setInterval(() => {
       setSelectedDate(prev => {
         const now = new Date();
-        return now.toDateString() !== prev.toDateString() ? now : prev;
+        // ET calendar date, not toDateString() — rolls over at ET midnight regardless of the kiosk's OS timezone.
+        return formatETDateString(now) !== formatETDateString(prev) ? now : prev;
       });
     }, MIDNIGHT_CHECK_INTERVAL_MS);
     return () => clearInterval(id);

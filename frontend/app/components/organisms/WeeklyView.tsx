@@ -1,16 +1,13 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import styles from '../../../styles/components/organisms/WeeklyView.module.scss';
 import WeeklyViewColumn from "../molecules/WeeklyViewColumn";
+import { passesTagFilters, passesRoomFilter } from "../../../util/meetingFilters";
+import { ROOM_COLORS, ZOOM_ROOM_COLOR } from "../../../util/filterColors";
+import { formatETDateString } from "../../../util/timeUtils";
+import { layoutOverlappingMeetings, OverlapMeeting } from "../../../util/meetingOverlapLayout";
+import { createCache } from "../../../util/simpleCache";
 
-type Meeting = {
-    id: string;
-    title: string;
-    startTime: string;
-    endTime: string;
-    date: string; // Added date field to track which day the meeting belongs to
-    tags: string[];
-    room: string; // Added room property to fix the error
-};
+type Meeting = OverlapMeeting;
 
 type Room = {
     name: string;
@@ -18,62 +15,70 @@ type Room = {
     meetings: Meeting[];
 };
 
-const meetingCache = new Map<string, Meeting[]>();
+const weekMeetingCache = createCache<Meeting[]>();
+
+// Extracts ET wall-clock time as "HH:MM" (24hr), which is what WeeklyViewColumn expects.
+const etTimeFmt = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'America/New_York',
+    hour: '2-digit', minute: '2-digit', hour12: false,
+});
 
 const fetchMeetingsByWeek = async (startDate: Date, endDate: Date): Promise<Meeting[]> => {
-    const formattedStart = startDate.toISOString().split('T')[0];
-    const formattedEnd = endDate.toISOString().split('T')[0];
+    const formattedStart = formatETDateString(startDate);
+    const formattedEnd = formatETDateString(endDate);
     const cacheKey = `${formattedStart}-${formattedEnd}`;
 
-    if (meetingCache.has(cacheKey)) {
-        console.log("Using cached data for week:", cacheKey);
-        return meetingCache.get(cacheKey) || [];
-    }
+    return weekMeetingCache.getOrFetch(cacheKey, async () => {
+        console.log("Fetching meetings for week:", cacheKey);
 
-    console.log("Fetching meetings for week:", cacheKey);
+        try {
+            const response = await fetch(`/api/retrieve/meeting/week?startDate=${formattedStart}&endDate=${formattedEnd}`);
+            const data = await response.json();
+            console.log("Raw API response:", data);
 
-    try {
-        const response = await fetch(`/api/retrieve/meeting/week?startDate=${formattedStart}&endDate=${formattedEnd}`);
-        const data = await response.json();
-        console.log("Raw API response:", data);
+            // startTime/endTime clip to this day (for layout); displayStartTime/displayEndTime
+            // keep the true times, so an overnight meeting's cards both label as "11PM-1AM".
+            const meetings: Meeting[] = data.map((meeting: any) => {
+                const trueStart = new Date(meeting.startDateTime);
+                const trueEnd = new Date(meeting.endDateTime);
+                const startsToday = formatETDateString(trueStart) === meeting.date;
+                const endsToday = formatETDateString(trueEnd) === meeting.date;
 
-        const meetings: Meeting[] = data.map((meeting: any) => {
-            const start = new Date(meeting.startDateTime.replace("Z", ""));
-            const end = new Date(meeting.endDateTime.replace("Z", ""));
+                return {
+                    id: meeting.mid,
+                    title: meeting.title,
+                    startTime: startsToday ? etTimeFmt.format(trueStart) : "00:00",
+                    endTime: endsToday ? etTimeFmt.format(trueEnd) : "24:00",
+                    displayStartTime: etTimeFmt.format(trueStart),
+                    displayEndTime: etTimeFmt.format(trueEnd),
+                    date: meeting.date,
+                    tags: [...meeting.calType, meeting.modeType],
+                    room: meeting.room,
+                    zoomAccount: meeting.zoomAccount,
+                };
+            });
 
-            return {
-                id: meeting.mid,
-                title: meeting.title,
-                startTime: start.toLocaleTimeString("en-GB", { hour12: false }),
-                endTime: end.toLocaleTimeString("en-GB", { hour12: false }),
-                date: start.toISOString().split('T')[0], // Store the date of the meeting
-                tags: [meeting.type, meeting.group],
-                room: meeting.room,
-            };
-        });
-
-        meetingCache.set(cacheKey, meetings);
-        return meetings;
-    } catch (error) {
-        console.error("Error fetching weekly meetings:", error);
-        return [];
-    }
+            return meetings;
+        } catch (error) {
+            console.error("Error fetching weekly meetings:", error);
+            return [];
+        }
+    });
 };
 
 // Function to invalidate the cache for a specific week
 export const invalidateWeekCache = (startDate: Date, endDate: Date) => {
-    const formattedStart = startDate.toISOString().split('T')[0];
-    const formattedEnd = endDate.toISOString().split('T')[0];
-    const cacheKey = `${formattedStart}-${formattedEnd}`;
-    console.log(`Invalidating cache for week: ${cacheKey}`);
-    meetingCache.delete(cacheKey);
+    const formattedStart = formatETDateString(startDate);
+    const formattedEnd = formatETDateString(endDate);
+    weekMeetingCache.invalidate(`${formattedStart}-${formattedEnd}`);
 };
 
-// Get the first day (Sunday) of the week containing the provided date
+// Get the first day (Sunday) of the week containing the provided date. Operates on a copy —
+// selectedDate is shared state owned by the parent, and mutating it would corrupt that state.
 const getFirstDayOfWeek = (date: Date): Date => {
-    const day = date.getDay();
-    const diff = date.getDate() - day;
-    return new Date(date.setDate(diff));
+    const result = new Date(date);
+    result.setDate(result.getDate() - result.getDay());
+    return result;
 };
 
 // Generate an array of dates for the entire week
@@ -95,19 +100,6 @@ const formatDayName = (date: Date): string => {
     return date.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
 };
 
-// Default room colors
-const roomColors: { [key: string]: string } = {
-    'Serenity Room': '#b3ea75',
-    'Seeds of Hope': '#f7e57b',
-    'Unity Room': '#96dbfe',
-    'Room for Improvement': '#ffae73',
-    'Small but Powerful - Right': '#d2afff',
-    'Small but Powerful - Left': '#ffa3c2',
-    'Zoom Account 1': '#cecece',
-    'Zoom Account 2': '#cecece',
-    'Zoom Account 3': '#cecece',
-    'Zoom Account 4': '#cecece',
-};
 
 interface WeeklyViewProps {
     filters: any;
@@ -130,6 +122,7 @@ const WeeklyView: React.FC<WeeklyViewProps> = ({
     const [weekStartDate, setWeekStartDate] = useState<Date>(getFirstDayOfWeek(selectedDate));
     const [allMeetings, setAllMeetings] = useState<Meeting[]>([]);
     const [daysOfWeek, setDaysOfWeek] = useState<Date[]>(getDaysOfWeek(weekStartDate));
+    const viewContainerRef = useRef<HTMLDivElement>(null);
 
     // Format time slots for hour markers
     const formatTime = (hour: number): string => {
@@ -147,17 +140,22 @@ const WeeklyView: React.FC<WeeklyViewProps> = ({
 
         // Clear the entire cache so stale data on other weeks is also dropped.
         if (forceFetch) {
-            meetingCache.clear();
+            weekMeetingCache.clear();
         }
 
         const meetings = await fetchMeetingsByWeek(weekStartDate, endDate);
         setAllMeetings(meetings);
     };
 
-    // Update the week when selected date changes
+    // Only replace weekStartDate's identity when the ET week actually changes — otherwise
+    // picking a different day in the same week would re-trigger the fetch+scroll effect below.
     useEffect(() => {
         const newWeekStartDate = getFirstDayOfWeek(selectedDate);
-        setWeekStartDate(newWeekStartDate);
+        setWeekStartDate(prevWeekStartDate =>
+            formatETDateString(prevWeekStartDate) === formatETDateString(newWeekStartDate)
+                ? prevWeekStartDate
+                : newWeekStartDate
+        );
         setDaysOfWeek(getDaysOfWeek(newWeekStartDate));
     }, [selectedDate]);
 
@@ -165,6 +163,7 @@ const WeeklyView: React.FC<WeeklyViewProps> = ({
     useEffect(() => {
         fetchWeekMeetings();
         updateTimePosition();
+        scrollToCurrentTime();
 
         const intervalId = setInterval(updateTimePosition, 60000);
         return () => clearInterval(intervalId);
@@ -188,71 +187,50 @@ const WeeklyView: React.FC<WeeklyViewProps> = ({
         setCurrentTimePosition(basePosition + offset);
     };
 
-    // Get meetings for a specific day, filtered by room if applicable
-    const getMeetingsForDay = (date: Date) => {
-        const formattedDate = date.toISOString().split('T')[0];
-
-        // Filter meetings by date and apply room filters
-        const filteredMeetings = allMeetings.filter(meeting => {
-            const matchesDate = meeting.date === formattedDate;
-            const room = meeting.room;
-
-            // Check if room is in filters
-            const roomKey = room.replace(/[-\s]+/g, '').replace(/\s+/g, '');
-            const isRoomIncluded = filters[roomKey] !== false;
-
-            return matchesDate && isRoomIncluded;
-        });
-
-        // Group meetings by time to handle overlapping events
-        const meetingsByTime: { [key: string]: Meeting[] } = {};
-        filteredMeetings.forEach(meeting => {
-            const timeKey = `${meeting.startTime}-${meeting.endTime}`;
-            if (!meetingsByTime[timeKey]) {
-                meetingsByTime[timeKey] = [];
-            }
-            meetingsByTime[timeKey].push(meeting);
-        });
-
-        // Process overlapping meetings to position them side-by-side
-        const processedMeetings: Meeting[] = [];
-        Object.values(meetingsByTime).forEach(overlappingMeetings => {
-            if (overlappingMeetings.length > 1) {
-                // Calculate width adjustment for overlapping meetings
-                const totalMeetings = overlappingMeetings.length;
-                overlappingMeetings.forEach((meeting, index) => {
-                    // Clone the meeting to avoid modifying the original
-                    const processedMeeting = { ...meeting };
-                    // Add metadata for rendering position
-                    (processedMeeting as any).positionIndex = index;
-                    (processedMeeting as any).totalOverlapping = totalMeetings;
-                    processedMeetings.push(processedMeeting);
-                });
-            } else if (overlappingMeetings.length === 1) {
-                // If it's a single meeting, no adjustments needed
-                processedMeetings.push(overlappingMeetings[0]);
-            }
-        });
-
-        return processedMeetings;
+    // Scroll the grid so the current time starts ~2 hours into the visible area
+    const scrollToCurrentTime = () => {
+        if (viewContainerRef.current) {
+            const now = new Date();
+            const currentHour = now.getHours();
+            const currentMinutes = now.getMinutes();
+            const dayHeaderOffset = 40; // height of .dayHeader, see updateTimePosition
+            const scrollOffset = dayHeaderOffset + (currentHour * 100 + currentMinutes * (100 / 60)) - 200;
+            viewContainerRef.current.scrollTop = Math.max(0, scrollOffset);
+        }
     };
 
-    // Get room color for a meeting
+    // Get meetings for a specific day, filtered by room if applicable
+    const getMeetingsForDay = (date: Date) => {
+        const formattedDate = formatETDateString(date);
+
+        // Filter meetings by date, room/zoom-room, and calType/mode tags
+        const filteredMeetings = allMeetings.filter(meeting => {
+            const matchesDate = meeting.date === formattedDate;
+
+            // A Hybrid meeting occupies both its physical room and its Zoom room, so it
+            // should stay visible if either resource's filter is enabled.
+            const isRoomIncluded =
+                passesRoomFilter(meeting.room, filters) ||
+                (!!meeting.zoomAccount && passesRoomFilter(meeting.zoomAccount, filters));
+
+            return matchesDate && isRoomIncluded && passesTagFilters(meeting.tags, filters);
+        });
+
+        return layoutOverlappingMeetings(filteredMeetings);
+    };
+
+    // Get room color for a meeting (physical rooms have distinct colors; Zoom rooms are all gray)
     const getRoomColor = (meeting: Meeting) => {
-        return roomColors[meeting.room] || "#cecece"; // Default to gray if room not found
+        return ROOM_COLORS[meeting.room] ?? ZOOM_ROOM_COLOR;
     };
 
     // Check if a date is the current date
-    const isCurrentDate = (date: Date): boolean => {
-        const today = new Date();
-        return date.getDate() === today.getDate() &&
-            date.getMonth() === today.getMonth() &&
-            date.getFullYear() === today.getFullYear();
-    };
+    const isCurrentDate = (date: Date): boolean =>
+        formatETDateString(date) === formatETDateString(new Date());
 
     return (
         <div className={styles.outerContainer}>
-            <div className={styles.viewContainer}>
+            <div className={styles.viewContainer} ref={viewContainerRef}>
                 {/* Time column */}
                 <div className={styles.timeColumn}>
                     <div className={styles.timeHeader}>
@@ -293,17 +271,17 @@ const WeeklyView: React.FC<WeeklyViewProps> = ({
                                     setSelectedDate(day);
                                 }}
                             >
-                                {/* Only render our custom header */}
                                 {customHeader}
 
-                                {/* Preserve original meeting layout but pass customHeader to avoid double headers */}
                                 <WeeklyViewColumn
-                                    dayName=""  // Empty string to prevent WeeklyViewColumn from rendering its own header
-                                    date=""     // Empty string for the same reason
-                                    roomColor="#cecece" // Default color
+                                    roomColor={ZOOM_ROOM_COLOR} // Unused fallback: every meeting sets primaryColor via getRoomColor
                                     meetings={dayMeetings.map(meeting => ({
                                         ...meeting,
-                                        primaryColor: getRoomColor(meeting)
+                                        primaryColor: getRoomColor(meeting),
+                                        overflowMeetings: meeting.overflowMeetings?.map(m => ({
+                                            ...m,
+                                            primaryColor: getRoomColor(m)
+                                        })),
                                     }))}
                                     setSelectedMeetingID={setSelectedMeetingID}
                                     setSelectedNewMeeting={setSelectedNewMeeting}

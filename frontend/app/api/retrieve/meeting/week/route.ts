@@ -1,44 +1,26 @@
 export const dynamic = 'force-dynamic';
-import { PrismaClient } from '@prisma/client';
-import { IMeeting } from "../../../../../util/models";
-import { getETDayBounds } from "../../../../../util/timeUtils";
+
+import { getMeetingsForDate } from "../../../../../util/meetingOccurrences";
+import { toETDateString, getWeekDatesET } from "../../../../../util/timeUtils";
 import { NextRequest } from 'next/server';
-
-const prisma = new PrismaClient();
-
-const notDeleted = { OR: [{ deletedAt: null }, { deletedAt: { isSet: false } }] };
 
 const retrieveWeekMeetings = async (request: NextRequest) => {
     try {
-        const date = request.nextUrl.searchParams.get("startDate") ?? new Date().toISOString();
-        const standardDate = new Date(date);
-        const dow = standardDate.getUTCDay();
+        const dateParam = request.nextUrl.searchParams.get("startDate") ?? new Date().toISOString();
+        const etDateStr = toETDateString(dateParam);
+        const weekDates = getWeekDatesET(etDateStr);
 
-        // Compute Sunday and Saturday of the week as UTC-midnight calendar dates,
-        // then get DST-correct ET day bounds for each.
-        const fmtDate = (d: Date) => d.toISOString().slice(0, 10);
-        const sundayUTC = new Date(Date.UTC(standardDate.getUTCFullYear(), standardDate.getUTCMonth(), standardDate.getUTCDate() - dow));
-        const saturdayUTC = new Date(Date.UTC(standardDate.getUTCFullYear(), standardDate.getUTCMonth(), standardDate.getUTCDate() + (6 - dow)));
-        const [startDate] = getETDayBounds(fmtDate(sundayUTC));
-        const [, endDate] = getETDayBounds(fmtDate(saturdayUTC));
-        const meetings = await prisma.meeting.findMany({
-            where: {
-                ...notDeleted,
-                startDateTime: {
-                    gte: startDate,
-                },
-                endDateTime: {
-                    lte: endDate
-                }
-            }
-        }
+        // Expand recurrence per day of the week, tagging each occurrence with the ET date it
+        // was expanded onto. An overnight meeting overlaps two days, so it's tagged onto both —
+        // the client clips/labels each day's card (see WeeklyView.tsx), not this route.
+        const meetingsByDay = await Promise.all(
+            weekDates.map(async (date) => {
+                const dayMeetings = await getMeetingsForDate(date);
+                return dayMeetings.map(meeting => ({ ...meeting, date }));
+            })
         );
 
-        const typedMeetings: IMeeting[] = meetings.map(meeting => ({
-            ...meeting,
-            googleCalendarEventIds: (meeting.googleCalendarEventIds ?? {}) as Record<string, string>,
-        }))
-        return new Response(JSON.stringify(typedMeetings), {
+        return new Response(JSON.stringify(meetingsByDay.flat()), {
             status: 200,
             headers: {
                 'Content-Type': 'application/json',

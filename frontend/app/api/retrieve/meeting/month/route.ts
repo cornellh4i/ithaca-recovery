@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic';
 import { PrismaClient } from '@prisma/client';
 import { IMeeting } from "../../../../../util/models";
-import { getETDayBounds } from "../../../../../util/timeUtils";
+import { getETDayBounds, toETDateString } from "../../../../../util/timeUtils";
 import { NextRequest } from 'next/server';
 
 const prisma = new PrismaClient();
@@ -10,16 +10,17 @@ const notDeleted = { OR: [{ deletedAt: null }, { deletedAt: { isSet: false } }] 
 
 const retrieveMonthMeetings = async (request: NextRequest) => {
     try {
-        const date = request.nextUrl.searchParams.get("startDate") ?? new Date().toISOString();
-        const standardDate = new Date(date);
-        const year = standardDate.getUTCFullYear();
-        const month = standardDate.getUTCMonth(); // 0-indexed
+        const dateParam = request.nextUrl.searchParams.get("startDate") ?? new Date().toISOString();
+        // Anchor to the ET calendar date first — deriving month from raw UTC fields can
+        // land on the wrong month near a boundary (July 31 11pm ET is already Aug 1 UTC).
+        const etDateStr = toETDateString(dateParam);
+        const [year, month] = etDateStr.split('-').map(Number); // month is 1-indexed here
 
         // First and last day of the month as UTC-midnight calendar dates,
         // then get DST-correct ET day bounds for each.
         const fmtDate = (d: Date) => d.toISOString().slice(0, 10);
-        const firstDayUTC = new Date(Date.UTC(year, month, 1));
-        const lastDayUTC = new Date(Date.UTC(year, month + 1, 0)); // day 0 of next month = last day of this month
+        const firstDayUTC = new Date(Date.UTC(year, month - 1, 1));
+        const lastDayUTC = new Date(Date.UTC(year, month, 0)); // day 0 of next month = last day of this month
         const [startDate] = getETDayBounds(fmtDate(firstDayUTC));
         const [, endDate] = getETDayBounds(fmtDate(lastDayUTC));
 
