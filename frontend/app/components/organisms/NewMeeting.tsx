@@ -205,7 +205,7 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({
           calType: selectedCalTypes,
           status: 'Active',
           room: selectedRoom,
-          isRecurring: false,
+          isRecurring: isRecurring,
         };
 
         if (isRecurring && recurrencePattern) {
