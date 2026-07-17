@@ -51,6 +51,39 @@
   color: $light-grey-color;
 }
 
+.tabWrapper {
+  position: relative;
+  display: inline-flex;
+
+  &:hover .tooltip,
+  &:focus-within .tooltip {
+    opacity: 1;
+    visibility: visible;
+  }
+}
+
+.tooltip {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-top: 6px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  background-color: $black-color;
+  color: #fff;
+  font-size: 12px;
+  width: max-content;
+  max-width: 220px;
+  text-align: center;
+  line-height: 1.4;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.15s ease;
+  pointer-events: none;
+  z-index: 10;
+}
+
 .tabContent {
   display: flex;
   flex-direction: column;

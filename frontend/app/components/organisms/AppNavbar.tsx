@@ -19,21 +19,32 @@ const AppNavbar: React.FC<AppNavbarProps> = ({ session }) => {
             <div className={styles.navcontainer}>
                 <Logo />
                 <ul className={styles.navigationlist}>
-                    <li className="btn btn-ghost">
+                    <li className={`btn btn-ghost ${styles.navTooltipWrapper}`}>
                         <Link href="/">
                             <p>Main</p>
                         </Link>
+                        <span className={styles.tooltip}>
+                            Live calendar — add, edit, or delete meetings
+                        </span>
                     </li>
-                    <li className="btn btn-ghost">
+                    <li className={`btn btn-ghost ${styles.navTooltipWrapper}`}>
                         <Link href="/signage">
                             <p>Signage</p>
                         </Link>
+                        <span className={styles.tooltip}>
+                            Read-only calendar view for signage
+                        </span>
                     </li>
-                    <li className={`btn btn-ghost ${!isAdmin ? styles.navLockedWrapper : ""}`}>
+                    <li className={`btn btn-ghost ${styles.navTooltipWrapper}`}>
                         {isAdmin ? (
-                            <Link href="/admin">
-                                <p>Admin</p>
-                            </Link>
+                            <>
+                                <Link href="/admin">
+                                    <p>Admin</p>
+                                </Link>
+                                <span className={styles.tooltip}>
+                                    Manage users, imports, exports, and diagnostics
+                                </span>
+                            </>
                         ) : (
                             <>
                                 <button className={styles.navLocked} disabled>
