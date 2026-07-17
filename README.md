@@ -53,13 +53,20 @@ This project aims to develop internal tooling and automation to streamline ICR's
 * ![React](https://img.shields.io/badge/react-%2320232a.svg?style=for-the-badge&logo=react&logoColor=%2361DAFB)
 * [![Next][Next.js]][Next-url]
 * ![MongoDB](https://img.shields.io/badge/MongoDB-%234ea94b.svg?style=for-the-badge&logo=mongodb&logoColor=white)
+* [![Prisma][Prisma.io]][Prisma-url]
+* NextAuth (Google OAuth) + Google Calendar API
 * ![Vercel](https://img.shields.io/badge/vercel-%23000000.svg?style=for-the-badge&logo=vercel&logoColor=white)
 
 <!-- Setup -->
 ## Documents
-[ICR Development Setup](https://docs.google.com/document/d/1bucVpOUzu9ySimDKaqEE1Pol_J8ZBy5BoTddIoZb8EY/edit)
-<br><br>
-[ICR Tech Spec](https://docs.google.com/document/d/1reZL2JN5EETC5tPHWooDAVCn5CvzYXGyiyf_3lPw-HM/edit)
+
+Documentation lives in [`docs/`](docs/):
+* [`docs/project-structure.md`](docs/project-structure.md) — tech stack, folder layout, data models, auth flow
+* [`docs/api-reference.md`](docs/api-reference.md) — every API route, request/response shapes
+* [`docs/handoff/user-guide.md`](docs/handoff/user-guide.md) — end-user/admin walkthrough
+* [`docs/handoff/technical-decisions.md`](docs/handoff/technical-decisions.md) — why the stack is built the way it is
+* [`docs/handoff/integration-guides.md`](docs/handoff/integration-guides.md) — setup steps for each external service
+* [`docs/testing/manual-test-script-template.md`](docs/testing/manual-test-script-template.md) — manual QA checklist
 
 ### Project Structure
 
@@ -67,15 +74,33 @@ This project aims to develop internal tooling and automation to streamline ICR's
 
     .
     ├── frontend      # Next.js App Router (leveraging server and client sided environments)
+    ├── docs/         # Documentation (see above)
     └── README.md
 
 ### Prerequisites
+* Node.js 18+
 * Yarn
-* Redis
 * MongoDB Compass (Recommended)
+
+### Quickstart
+
+```bash
+cd frontend
+yarn install
+# add a .env file — see docs/handoff/integration-guides.md, section 1, for every variable needed
+yarn dev
+```
+
+Opens at [http://localhost:3000](http://localhost:3000). See [`docs/project-structure.md`](docs/project-structure.md) and [`docs/handoff/integration-guides.md`](docs/handoff/integration-guides.md) for the full setup (MongoDB, Google OAuth, Google Calendar).
 
 <!-- Developers -->
 ## Developers
+<details open="open">
+  <summary>Summer 2025 – Summer 2026 Developers</summary>
+
+  - Sophie L Wang & Tuni Le
+</details>
+
 <details>
   <summary>Spring 2025 Developers</summary>
 

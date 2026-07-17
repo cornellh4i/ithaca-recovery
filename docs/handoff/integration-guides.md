@@ -8,46 +8,34 @@ Step-by-step setup instructions for every external service the platform depends 
 
 1. [Environment Variables Reference](#1-environment-variables-reference)
 2. [MongoDB + Prisma](#2-mongodb--prisma)
-3. [Azure AD / Microsoft MSAL](#3-azure-ad--microsoft-msal)
-4. [Redis](#4-redis)
-5. [Zoom API](#5-zoom-api)
-6. [Microsoft Graph API](#6-microsoft-graph-api)
-7. [PandaDocs / CSV Lease Export](#7-pandadocs--csv-lease-export)
-8. [Vercel Deployment](#8-vercel-deployment)
-9. [Planned: Google Auth + Google Calendar Migration](#9-planned-google-auth--google-calendar-migration)
+3. [Google OAuth (NextAuth)](#3-google-oauth-nextauth)
+4. [Google Calendar API](#4-google-calendar-api)
+5. [Zoom API (legacy, unfinished)](#5-zoom-api-legacy-unfinished)
+6. [PandaDocs / Lease Export](#6-pandadocs--lease-export)
+7. [Vercel Deployment](#7-vercel-deployment)
 
 ---
 
-## 1. Environment Variables Reference 
-<!-- [TODO: Ticket #180] -->
+## 1. Environment Variables Reference
 
-Create a `.env` file in `frontend/` (never commit it). All variables used by the app:
+Create a `.env` file in `frontend/` (never commit it). All variables the app reads:
 
 ```env
 # MongoDB
 DATABASE_URL="mongodb+srv://..."
 
-# Azure AD (MSAL)
-CLIENT_ID="<azure-app-client-id>"
-CLIENT_SECRET="<azure-app-client-secret>"
-TENANT_ID="<azure-tenant-id>"
-CLOUD_INSTANCE="https://login.microsoftonline.com/"
+# Google OAuth (NextAuth)
+GOOGLE_CLIENT_ID="<google-oauth-client-id>"
+GOOGLE_CLIENT_SECRET="<google-oauth-client-secret>"
+NEXTAUTH_SECRET="<random-secret-string>"
+NEXTAUTH_URL="http://localhost:3000"   # production: https://ithaca-recovery-deployment.vercel.app
 
-# Auth callback URLs
-NEXT_PUBLIC_AUTH_CALLBACK_URI="http://localhost:3000/auth/callback"
-NEXT_PUBLIC_AUTH_CALLBACK_PROD_URI="https://ithaca-recovery-deployment.vercel.app/auth/callback"
+# Google Calendar — one calendar ID per meeting category
+GOOGLE_CALENDAR_AA="<calendar-id>@group.calendar.google.com"
+GOOGLE_CALENDAR_ALANON="<calendar-id>@group.calendar.google.com"
+GOOGLE_CALENDAR_OTHER="<calendar-id>@group.calendar.google.com"
 
-# Session
-SESSION_SECRET="<random-secret-string>"
-
-# Redis
-NEXT_PUBLIC_REDIS_URL="redis://localhost:6379"
-NEXT_PUBLIC_REDIS_PROD_URL="rediss://..."
-
-# Microsoft Graph API
-NEXT_PUBLIC_GRAPH_API_ENDPOINT="https://graph.microsoft.com/"
-
-# Zoom (one set per account)
+# Zoom (legacy, single account only — see section 5)
 ZOOM1_CLIENT_ID="..."
 ZOOM1_CLIENT_SECRET="..."
 ZOOM1_ACCOUNT_ID="..."
@@ -82,7 +70,7 @@ NEXT_PUBLIC_ZOOM1_EMAIL="zoom-account-1@example.com"
    ```
 
 ### Schema location
-`frontend/prisma/schema.prisma` — defines `Meeting`, `RecurrencePattern`, `Admin`, and `User` models.
+`frontend/prisma/schema.prisma` — defines `Meeting`, `RecurrencePattern`, `Admin`, `LeaseSettings`, and `User` models.
 
 ### Adding a new field
 1. Add the field to the relevant model in `schema.prisma`.
@@ -99,212 +87,127 @@ Opens a browser-based data browser at `http://localhost:5555`.
 
 ---
 
-## 3. Azure AD / Microsoft MSAL 
-
-<!-- [TODO: Ticket #180] -->
+## 3. Google OAuth (NextAuth)
 
 ### What it does
-Azure AD authenticates board members via Microsoft SSO. The same token is used to call Microsoft Graph API (groups, calendars).
+Authenticates board members via their Google account and grants the server an OAuth token scoped for Google Calendar writes, used both for sign-in and for publishing meetings to Google Calendar (section 4).
 
-> **Note:** This integration is being replaced by Google Auth. See [section 9](#9-planned-google-auth--google-calendar-migration).
+### Google Cloud setup
 
-### Azure App Registration setup
+1. Go to [console.cloud.google.com](https://console.cloud.google.com) → create (or select) a project.
+2. Enable the **Google Calendar API** for the project.
+3. Under **APIs & Services → Credentials → Create credentials → OAuth 2.0 Client ID**, choose **Web application**.
+4. Add authorized redirect URIs:
+   - `http://localhost:3000/api/auth/callback/google` (dev)
+   - `https://ithaca-recovery-deployment.vercel.app/api/auth/callback/google` (prod)
+5. Copy **Client ID** → `GOOGLE_CLIENT_ID` and **Client Secret** → `GOOGLE_CLIENT_SECRET`.
+6. Under **OAuth consent screen**, the `calendar.events` scope requested by this app is sensitive, which keeps the app in "unverified" status (100-test-user cap) while the consent screen's User Type is **External**. If the Google Cloud project sits under ICR's Google Workspace org, switching User Type to **Internal** removes that cap with no code change — see the project plan's Follow-up items for the current status of that switch.
+7. Generate a random secret for `NEXTAUTH_SECRET` (e.g. `openssl rand -base64 32`).
+8. Set `NEXTAUTH_URL` to the app's own URL (NextAuth uses this to build its callback URLs).
 
-1. Go to [portal.azure.com](https://portal.azure.com) → **Azure Active Directory** → **App registrations** → **New registration**.
-2. Set the redirect URI to:
-   - Development: `http://localhost:3000/auth/callback`
-   - Production: `https://ithaca-recovery-deployment.vercel.app/auth/callback`
-   - Platform type: **Web**
-3. Under **Certificates & secrets**, create a new client secret. Copy the value immediately (it won't be shown again).
-4. Under **API permissions**, add:
-   - `Microsoft Graph` → `Delegated` → `User.Read`
-   - `Microsoft Graph` → `Delegated` → `Group.Read.All`
-   - `Microsoft Graph` → `Delegated` → `Calendars.Read`
-   - Grant admin consent for these permissions.
-5. Copy **Application (client) ID** → `CLIENT_ID`
-6. Copy **Directory (tenant) ID** → `TENANT_ID`
-7. Use the client secret from step 3 → `CLIENT_SECRET`
+### Adding or removing who can sign in
+Sign-in is invite-only, gated by the `Admin` table — there is no separate Google Cloud "allowlist" step to manage day-to-day. See [user-guide.md, Section 12](user-guide.md#12-admin-user-management) for the in-app flow (Admin → Users → Send Invite), or call `POST /api/write/admin` directly.
+
+### Bootstrapping the first Admin
+
+Two independent gates stand between a Google account and a working sign-in, and **both** need to be satisfied the first time: the app's own `Admin` table (above — no self-registration), and Google Cloud's OAuth consent screen, which is in "unverified"/External status (step 6 above) — Google itself refuses to complete sign-in for any account that isn't on the consent screen's **Test users** list, regardless of what the `Admin` table says.
+
+**Development:**
+- Easiest: sign in with the shared dev/test account, `ithacacommunityrecoverytest@gmail.com`. It's already both a `Super Admin` row in the dev database and a Test user on the dev Google Cloud project, so it works immediately.
+- To use your own email instead: sign in once with `ithacacommunityrecoverytest@gmail.com`, then go to **Admin → Users → Send Invite** and add your own email (satisfies the `Admin`-table gate). Separately, sign in to [console.cloud.google.com](https://console.cloud.google.com) with `ithacacommunityrecoverytest@gmail.com` and add your own email under **OAuth consent screen → Test users** on the dev Google Cloud project (satisfies the Google-side gate). Only once both are done can you sign into the app with your own email.
+
+**Production:** there's no shared bootstrap account, and the first production Admin can't invite themselves — so the first Super Admin has to be created manually, satisfying both gates by hand:
+1. Insert the first `Admin` row directly into the production database (e.g. `npx prisma studio` pointed at the production `DATABASE_URL`, or MongoDB Compass) with `role: SUPER_ADMIN` and their email.
+2. Add that same email under the production Google Cloud project's **OAuth consent screen → Test users** — production is still External/unverified today (step 6 above) until the User Type is switched to Internal.
+
+After that first sign-in, that person can invite everyone else through the normal Admin → Users flow — but each new admin's email still needs to be added to the Test users list too, until Internal User Type ships (see the project plan's Follow-up items).
 
 ### How the auth flow works in code
 
 | File | Role |
 |---|---|
-| [frontend/app/auth/authConfig.ts](../../frontend/app/auth/authConfig.ts) | MSAL configuration (client ID, authority, secret) |
-| [frontend/app/auth/AuthProvider.ts](../../frontend/app/auth/AuthProvider.ts) | Wrapper around `ConfidentialClientApplication` — handles login redirect, token acquisition, and account lookup |
-| [frontend/app/auth/SessionPartitionManager.ts](../../frontend/app/auth/SessionPartitionManager.ts) | Maps the session cookie to a Redis cache partition key |
-| [frontend/app/auth/redis/redisCacheClient.ts](../../frontend/app/auth/redis/redisCacheClient.ts) | Implements MSAL's `ICacheClient` interface backed by Redis |
-| [frontend/services/auth.ts](../../frontend/services/auth.ts) | Instantiates `AuthProvider` with Redis cache + session partition factory |
-| [frontend/app/auth/callback/route.ts](../../frontend/app/auth/callback/route.ts) | Handles the POST redirect from Azure, exchanges the auth code for tokens |
-| [frontend/app/layout.tsx](../../frontend/app/layout.tsx) | Calls `authProvider.authenticate()` on every request; redirects to Azure if not signed in |
+| `frontend/app/api/auth/authConfig.ts` | NextAuth options: Google provider, `signIn`/`jwt`/`session` callbacks |
+| `frontend/app/api/auth/[...nextauth]/route.ts` | Wires `authConfig.ts` into NextAuth's route handler |
+| `frontend/services/auth.ts` | `getAuth()` (reads the session) and `requireRole(minRole)` (route guard) |
 
-### Acquiring an access token in a route handler
+### Reading the session / gating a route handler
 
 ```typescript
-import getAccessToken from '@/app/api/microsoft/AccessToken';
+import { requireRole } from "../../../services/auth";
+import { Role } from "@prisma/client";
 
-const token = await getAccessToken(); // returns string | null
+const auth = await requireRole(Role.ADMIN); // or Role.SUPER_ADMIN
+if (auth instanceof Response) return auth;   // 401/403 already built
+// auth.accessToken is the Google OAuth token; auth.user.role is the caller's role
 ```
 
-`getAccessToken` calls `authProvider.authenticate()` → `authProvider.getAccessToken()`, which runs a silent token acquisition against the Redis-backed MSAL cache.
-
 ---
 
-<!-- [TODO: Ticket #180] -->
-## 4. Redis
+## 4. Google Calendar API
 
 ### What it does
-- Stores MSAL token cache entries (one partition per logged-in user).
-- Stores OIDC and cloud discovery metadata to avoid repeated cold-start round-trips to Azure.
+When a meeting is created, updated, or deleted, the platform publishes a matching event to one Google Calendar per category in that meeting's `calType` (AA / Al-Anon / Other), using the signed-in admin's OAuth token from NextAuth.
 
-### Local setup
+### Setup
 
-1. Install Redis:
-   ```bash
-   brew install redis      # macOS
-   sudo apt install redis  # Ubuntu
-   ```
-2. Start Redis:
-   ```bash
-   redis-server
-   ```
-3. Set in `.env`:
+1. Create (or reuse) a Google Calendar per category, and share each one with whatever Google account(s) need to view it publicly or via embed.
+2. Get each calendar's ID (Calendar Settings → "Integrate calendar" → Calendar ID) and set:
    ```env
-   NEXT_PUBLIC_REDIS_URL="redis://localhost:6379"
+   GOOGLE_CALENDAR_AA="..."
+   GOOGLE_CALENDAR_ALANON="..."
+   GOOGLE_CALENDAR_OTHER="..."
    ```
-
-### Production
-- Use a hosted Redis provider (e.g., Redis Cloud, Upstash, or Azure Cache for Redis).
-- Set `NEXT_PUBLIC_REDIS_PROD_URL` to the TLS-enabled connection string (`rediss://`).
-- The app selects the URL based on `NODE_ENV`:
-  - `production` → `NEXT_PUBLIC_REDIS_PROD_URL`
-  - anything else → `NEXT_PUBLIC_REDIS_URL`
+3. No separate service-account credentials are needed — calls use the signed-in admin's own OAuth token (`calendar.events` scope, requested at login — see section 3). This means **each of these three calendars must be individually shared with every Google account that needs to create/edit/delete meetings**, with at least "Make changes to events" permission (Calendar Settings → "Share with specific people" → their Google account → permission level). Being an app `Admin`/`SUPER_ADMIN` and being able to write to these calendars are two separate, unsynced permission systems — an admin can pass every in-app gate and still get silent GCal sync failures (the ⚠ badge, see [user-guide.md, Section 4](user-guide.md#4-viewing-a-meeting)) if their Google account was never shared onto the relevant calendar(s).
 
 ### Key client code
-[frontend/services/redis.ts](../../frontend/services/redis.ts) — creates the `redisClient` singleton using the `redis` npm package. The client auto-connects on first use via `ensureConnected()` in `RedisCacheClient`.
+`frontend/services/googleCalendar.ts` — `calendarIdForCategory`, `calendarIdsForMeeting`, `checkCalendarReachable`, `createCalendarEvent`, `updateCalendarEvent`, `deleteCalendarEvent`, `deleteCalendarOccurrence` (adds an EXDATE for a single recurring occurrence), `trimCalendarEventSeries` (trims a recurring event's RRULE `UNTIL`).
+
+### Sync behavior
+Sync is fail-soft and non-blocking relative to the MongoDB write: on failure, the meeting's `syncStatus` is set to `"error"` and a ⚠ badge appears in the UI; a Super/regular Admin can retry via `POST /api/update/meeting/sync`. Suspended meetings (`status: "Suspended"`) are skipped entirely — no calendar calls are made for them.
 
 ---
 
-## 5. Zoom API
+## 5. Zoom API (legacy, unfinished)
 
-### What it does
-When a meeting is created or updated in the platform with a Zoom account selected, the platform creates or updates a corresponding Zoom meeting and stores the join link and Zoom meeting ID in MongoDB.
+### What it does today
+Nothing is called from the live app. This is orphaned Server-to-Server OAuth code from before the room list was redesigned around named Zoom rooms — see [technical-decisions.md](technical-decisions.md#zoom-integration) for the current state and what's planned to replace it.
 
-### Zoom App setup (per account)
+### Zoom App setup (if resuming this work)
 
 1. Go to [marketplace.zoom.us](https://marketplace.zoom.us) → **Develop** → **Build App** → **Server-to-Server OAuth**.
 2. Fill in app name and description.
-3. Under **Scopes**, add:
-   - `meeting:write:admin`
-   - `meeting:read:admin`
-   - `meeting:delete:admin`
+3. Under **Scopes**, add `meeting:write:admin`, `meeting:read:admin`, `meeting:delete:admin`.
 4. Activate the app.
-5. Copy **Account ID**, **Client ID**, **Client Secret** → set as `ZOOM1_ACCOUNT_ID`, `ZOOM1_CLIENT_ID`, `ZOOM1_CLIENT_SECRET`.
-
-### Token generation
-Every Zoom API call first calls `generateZoomToken()` in [frontend/app/api/zoom/generateToken.ts](../../frontend/app/api/zoom/generateToken.ts), which posts to `https://zoom.us/oauth/token` with `grant_type=account_credentials`. The returned token is short-lived and is not cached.
-
-### Adding a second Zoom account (multi-account rotation — not yet implemented)
-
-The intent is to support multiple Zoom accounts to allow concurrent meetings (Zoom blocks a single account from running two meetings simultaneously).
-
-To add a second account:
-1. Create a second Server-to-Server OAuth app in Zoom Marketplace.
-2. Add to `.env`:
-   ```env
-   ZOOM2_CLIENT_ID="..."
-   ZOOM2_CLIENT_SECRET="..."
-   ZOOM2_ACCOUNT_ID="..."
-   NEXT_PUBLIC_ZOOM2_EMAIL="zoom-account-2@example.com"
-   ```
-3. Implement rotation logic: before creating a Zoom meeting, query the DB for existing meetings that overlap the requested time slot, determine which Zoom accounts are already in use, and select a free one.
-
-### Zoom API base URL
-Set via `NEXT_PUBLIC_ZOOM_BASE_API="https://api.zoom.us/v2"`.
+5. Copy **Account ID**, **Client ID**, **Client Secret** → `ZOOM1_ACCOUNT_ID`, `ZOOM1_CLIENT_ID`, `ZOOM1_CLIENT_SECRET`.
 
 ### Route files
 | Route | File |
 |---|---|
-| Generate token | [frontend/app/api/zoom/generateToken.ts](../../frontend/app/api/zoom/generateToken.ts) |
-| Create meeting | [frontend/app/api/zoom/CreateMeeting/route.ts](../../frontend/app/api/zoom/CreateMeeting/route.ts) |
-| Update meeting | [frontend/app/api/zoom/UpdateMeeting/route.ts](../../frontend/app/api/zoom/UpdateMeeting/route.ts) |
-| Delete meeting | [frontend/app/api/zoom/DeleteMeeting/route.ts](../../frontend/app/api/zoom/DeleteMeeting/route.ts) |
-| Get meeting | [frontend/app/api/zoom/GetMeeting/asyncFunction.ts](../../frontend/app/api/zoom/GetMeeting/asyncFunction.ts) |
+| Generate token | `frontend/app/api/zoom/generateToken.ts` |
+| Create meeting | `frontend/app/api/zoom/CreateMeeting/route.ts` |
+| Update meeting | `frontend/app/api/zoom/UpdateMeeting/route.ts` |
+| Delete meeting | `frontend/app/api/zoom/DeleteMeeting/route.ts` |
+| Get meeting | `frontend/app/api/zoom/GetMeeting/asyncFunction.ts` |
+
+Every call first fetches a fresh token from `generateZoomToken()` (posts to `https://zoom.us/oauth/token`, `grant_type=account_credentials`) — the token is short-lived and not cached.
 
 ---
 
-## 6. Microsoft Graph API
-
-<!-- [TODO: Ticket #180] -->
+## 6. PandaDocs / Lease Export
 
 ### What it does
-Fetches the list of Azure AD groups (representing recovery groups) and their associated calendars. Intended to enable bidirectional calendar sync between the platform's MongoDB records and each group's Microsoft calendar.
+The Export tab's "Export Lease CSV" button generates a CSV formatted for PandaDocs' Bulk Send feature, covering every `status: "Active"` meeting. ICR uploads this CSV to PandaDocs to send annual lease documents to all groups at once.
 
-> **Note:** This integration is being replaced by Google Calendar API. See [section 9](#9-planned-google-auth--google-calendar-migration).
-
-### Required permissions
-Granted via the Azure App Registration (see section 3):
-- `Group.Read.All` (delegated)
-- `Calendars.Read` (delegated)
-
-### How to call Graph API from a route handler
-
-```typescript
-import getAccessToken from '@/app/api/microsoft/AccessToken';
-
-const token = await getAccessToken();
-const response = await fetch(`https://graph.microsoft.com/v1.0/groups`, {
-  headers: { Authorization: `Bearer ${token}` }
-});
-```
-
-### Current implemented endpoints
-
-| What | Graph endpoint |
-|---|---|
-| List all groups | `GET /groups` |
-| Get a group's calendar | `GET /groups/{groupId}/calendar` |
-
-### Remaining work (unimplemented)
-- Read events from a group calendar: `GET /groups/{groupId}/calendar/events`
-- Create/update events from the platform: `POST /groups/{groupId}/calendar/events`
-- Delete events: `DELETE /groups/{groupId}/calendar/events/{eventId}`
-- Bidirectional sync logic (keeping MongoDB and the calendar in agreement)
-
----
-
-## 7. PandaDocs / CSV Lease Export
-
-### What it does
-The "Export CSV" button in the navbar generates a CSV file formatted for PandaDocs' bulk send feature. ICR uploads this CSV to PandaDocs to send annual lease documents to all groups at once.
-
-### How it works
-1. Fetches all meetings scheduled in the first week of July (the start of ICR's lease year: July 1 – June 30 of the following year).
-2. Maps each meeting to a row with fields PandaDocs expects: client info, room, rate, billable hours, lease dates, and a pre-written email body.
-3. Downloads the CSV to the user's browser.
-
-### Room rates
-Hardcoded in [frontend/app/components/molecules/PandaDocButton.tsx](../../frontend/app/components/molecules/PandaDocButton.tsx):
-
-| Room | Rate |
-|---|---|
-| Serenity Room | $15/hr |
-| Seeds of Hope | $10/hr |
-| Unity Room | $10/hr |
-| Room for Improvement | $10/hr |
-| Small but Powerful – Left | $10/hr |
-| Small but Powerful – Right | $10/hr |
-| Zoom Only | $10/month (flat) |
-
-If ICR changes rates, update the `roomRates` object in that file.
+### Configuring rates and lease details
+No code changes needed. In the app: **Admin → Export → (⋮ on the lease card) → Configure export…**, which opens a modal to set the lease period, per-room rate + unit (`/hr` or `/month`), rental agent contact info, and the email message template (`{group}` placeholder). This is stored in the `LeaseSettings` singleton via `GET/PUT /api/retrieve|update/lease-settings`. Until someone saves settings, `frontend/services/leaseDefaults.ts` supplies ICR's current defaults.
 
 ### Uploading to PandaDocs
-1. Export the CSV from the platform.
+1. Export the CSV from **Admin → Export**.
 2. In PandaDocs, go to **Bulk Send** → upload the CSV → select the lease template → send.
-
 
 ---
 
-## 8. Vercel Deployment
+## 7. Vercel Deployment
 
 ### Initial setup
 
@@ -312,7 +215,7 @@ If ICR changes rates, update the `roomRates` object in that file.
 2. Go to [vercel.com](https://vercel.com) → **New Project** → import the GitHub repo.
 3. Set the **Root Directory** to `frontend/`.
 4. Set the **Build Command** to `npx prisma generate && next build`.
-5. Add all environment variables from section 1 under **Project Settings → Environment Variables**.
+5. Add all environment variables from section 1 under **Project Settings → Environment Variables**, including production values for `NEXTAUTH_URL` and the Google OAuth redirect URI (section 3).
 6. Deploy.
 
 ### Subsequent deploys
@@ -323,40 +226,3 @@ The build runs `prisma generate` before `next build` to ensure the Prisma client
 ```json
 "build": "prisma generate && next build"
 ```
-
-### Environment variable notes for Vercel
-- Set both `NEXT_PUBLIC_REDIS_URL` (used in dev only, but Vercel still needs it defined) and `NEXT_PUBLIC_REDIS_PROD_URL`.
-- `NODE_ENV` is automatically set to `production` by Vercel — the app uses this to select the production Redis URL and auth callback URI.
-
----
-
-## 9. Planned: Google Auth + Google Calendar Migration
-
-The team is actively transitioning from Microsoft Azure AD / MSAL to Google OAuth and from Microsoft Graph Calendar to Google Calendar API. The `[TODO: Update when complete transition to Google]` notes in the documentation track this.
-
-### What changes
-
-| Current | Replacement |
-|---|---|
-| Azure AD App Registration | Google Cloud project + OAuth 2.0 client |
-| `@azure/msal-node` | `google-auth-library` or NextAuth.js |
-| `frontend/app/auth/` (entire folder) | Google OAuth callback handler |
-| Redis (MSAL token cache) | May still be needed depending on chosen auth library |
-| Microsoft Graph API (groups, calendars) | Google Calendar API |
-| `CLOUD_INSTANCE`, `CLIENT_ID`, `CLIENT_SECRET`, `TENANT_ID` | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` |
-
-### Recommended approach for the incoming team
-
-1. **Auth:** Use [NextAuth.js](https://next-auth.js.org/) with the Google provider. It handles token storage, session management, and refresh automatically, replacing the custom `AuthProvider` + Redis + `SessionPartitionManager` stack.
-2. **Calendar:** Use the [Google Calendar API](https://developers.google.com/calendar/api) with the access token from NextAuth. The relevant endpoints are `calendar.events.list`, `calendar.events.insert`, `calendar.events.patch`, `calendar.events.delete` on each group's shared calendar.
-3. **Migration path:** Run both auth systems in parallel behind a feature flag until Google auth is verified working in production, then remove the MSAL code.
-
-### Google Cloud setup (when starting the migration)
-
-1. Go to [console.cloud.google.com](https://console.cloud.google.com) → create a new project.
-2. Enable **Google Calendar API** and **Google People API**.
-3. Under **Credentials** → **Create credentials** → **OAuth 2.0 Client ID** → Web application.
-4. Add authorized redirect URIs:
-   - `http://localhost:3000/api/auth/callback/google` (NextAuth dev)
-   - `https://ithaca-recovery-deployment.vercel.app/api/auth/callback/google` (prod)
-5. Copy **Client ID** → `GOOGLE_CLIENT_ID` and **Client Secret** → `GOOGLE_CLIENT_SECRET`.

@@ -10,11 +10,11 @@ This document answers "why did we build it this way?" for every significant tech
 
 **Why:**
 - The previous tech lead established this pattern. Migrating to a separate Express backend is listed as a non-priority option in the PRD if routing performance becomes an issue.
-- Next.js Route Handlers run server-side and support direct Prisma and Redis calls without an extra network hop.
+- Next.js Route Handlers run server-side and support direct Prisma calls without an extra network hop.
 - Vercel (our host) is built for Next.js — zero-config CI/CD, automatic preview deployments, and serverless function scaling.
 
 **Trade-offs:**
-- All API routes are serverless functions. This means each request may spin up a cold instance, which adds latency on the first hit. It also means you cannot hold persistent in-memory state between requests (hence Redis for the token cache).
+- All API routes are serverless functions. Each request may spin up a cold instance, which adds latency on the first hit, and there's no persistent in-memory state between requests — anything that needs to survive across requests goes in MongoDB or the NextAuth session JWT.
 - The `frontend/` directory contains both UI and backend code, which is non-standard and can be confusing.
 
 ---
@@ -29,95 +29,67 @@ This document answers "why did we build it this way?" for every significant tech
 
 **Why Prisma over Mongoose:**
 - Prisma generates TypeScript types from the schema, giving end-to-end type safety from the database model to the API response.
-- Mongoose was also installed as a dependency but is not used — Prisma was chosen and Mongoose was never removed.
+- Mongoose is also installed as a dependency but is not used — Prisma was chosen and Mongoose was never removed.
 
 **Trade-offs:**
-- Prisma's MongoDB support is more limited than its PostgreSQL support (no raw query support, no full-text search). For this use case (simple CRUD on meetings and admins) that limitation doesn't matter.
+- Prisma's MongoDB support is more limited than its PostgreSQL support (no raw query support, no full-text search). For this use case (simple CRUD on meetings and admins) that limitation shouldn't matter.
 - The `RecurrencePattern` model uses a 1-to-1 relation with `Meeting` via a shared `mid` field. Prisma handles this cleanly, but direct MongoDB queries (bypassing Prisma) need to be aware of this join.
 
 ---
 
-## Authentication: Microsoft MSAL (Azure AD) <!-- [TODO: Update this once finish transitioning to Google] -->
+## Authentication: NextAuth + Google OAuth 2.0 / OIDC
 
-**Decision:** Use Azure Active Directory with `@azure/msal-node` (`ConfidentialClientApplication`) for server-side authentication, rather than a simpler username/password or third-party auth service.
+**Decision:** Use NextAuth (`next-auth` 4) with the Google provider for authentication, rather than a custom OAuth client.
 
 **Why:**
-- ICR's board members already have Microsoft accounts through their organizational setup, so Azure AD is the natural identity provider — no new accounts to manage.
-- Microsoft Graph API (groups, calendars) requires an Azure AD token anyway. Using MSAL for auth means the same token flow covers both login and Graph API access.
+- NextAuth owns session/JWT handling, token refresh, and cookie management out of the box — no custom token-cache infrastructure to build or operate.
+- ICR board members already have Google accounts, and the same token exchange covers both identity and API access: the `openid email profile` scopes are OpenID Connect (OIDC — an identity layer built on top of OAuth 2.0) and establish who signed in, while the `calendar.events` scope is plain OAuth 2.0 authorization, letting the server call Google Calendar on that admin's behalf. One sign-in, one token exchange, both jobs.
 
-**How the token cache works:**
-- MSAL's `DistributedCachePlugin` stores serialized token cache entries in Redis, keyed by a partition key derived from the user's session cookie. This is necessary because Next.js serverless functions are stateless — MSAL's default in-memory cache would be lost between requests.
-- Discovery metadata (OIDC + cloud discovery) is also cached in Redis to avoid repeated round-trips to Azure on every cold start.
+**Invite-only sign-in:** the `signIn` callback (`frontend/app/api/auth/authConfig.ts`) rejects any email that isn't already a row in the `Admin` table — there's no self-registration flow. A Super Admin adds someone via the Users tab (`POST /api/write/admin`) before that person can ever sign in. Role is re-read from the DB on every token refresh (not just at login), so revoking access takes effect without waiting for the session to expire.
 
-**Known limitation / planned change:**
-- The team is mid-transition to Google OAuth + Google Calendar API. The `[TODO: Update when complete transition to Google]` note in api-reference.md tracks this. The Azure MSAL code in `app/auth/` and the Microsoft Graph routes will be replaced or removed during this transition. See the Integration Guide for what the Google migration will look like.
+**Notes:**
+- The `calendar.events` OAuth scope is sensitive, which puts the app's Google Cloud OAuth consent screen in "unverified" status (100-test-user cap, warning banner, manual test-user allowlisting) unless the consent screen's User Type is switched to **Internal**.
 
 ---
 
-## Token Cache: Redis <!-- [TODO: Update this once implementing Google Calendar route] -->
+## Google Calendar Sync
 
-**Decision:** Use Redis as the MSAL distributed token cache, rather than a database table or filesystem cache.
+**Decision:** MongoDB is the single source of truth for meeting data; Google Calendar is a downstream display layer only. Changes flow app → Google Calendar in one direction. There is no reverse sync pulling edits made directly in Google Calendar back into MongoDB.
 
 **Why:**
-- Redis `GET`/`SET` operations are O(1) and in-memory — token lookups on every authenticated request stay fast.
-- Redis supports TTL-based expiry natively, which aligns with MSAL token lifetimes.
-- The same Redis instance also stores OIDC/cloud discovery metadata (see above).
-
-**Trade-offs:**
-- Redis is an additional infrastructure dependency. In development, `dump.rdb` at the repo root is the local Redis persistence file. In production, a hosted Redis instance (URL set via `NEXT_PUBLIC_REDIS_PROD_URL`) is required.
-- Redis is only used for the auth token cache. It is not used for application data caching. TanStack React Query was installed with the intent to cache API responses client-side, but `useQuery` is never called anywhere — the library is currently dead weight.
+- A bidirectional sync needs conflict resolution (what happens when the same meeting is edited in both places) that isn't worth the complexity for this app's scale. One-way publishing is simpler to reason about and debug.
+- Each of the three meeting categories (AA, Al-Anon, Other) publishes to its own Google Calendar, configured via `GOOGLE_CALENDAR_AA` / `GOOGLE_CALENDAR_ALANON` / `GOOGLE_CALENDAR_OTHER`. A meeting with more than one category publishes an event to each of that meeting's calendars.
+- Sync is fail-soft: a Google Calendar API failure sets `syncStatus: "error"` on the meeting (surfaced as a ⚠ badge in the UI, with a manual retry endpoint) rather than failing the write to MongoDB.
 
 ---
 
-## Zoom Integration <!-- [TODO: Update Zoom account rotation] -->
-
-
+## Zoom Integration
 
 **Decision:** Integrate directly with the Zoom API using Server-to-Server OAuth (account credentials grant), proxied through our own Next.js API routes.
 
 **Why:**
-- ICR runs meetings that can be in-person, Zoom-only, or hybrid. When a meeting is created or updated in the platform, the Zoom meeting needs to be created/updated atomically.
-- Server-to-Server OAuth (account credentials) was chosen over user-level OAuth because the Zoom meetings are owned by ICR's organizational accounts, not by individual board members.
+- ICR runs meetings that can be in-person, Zoom-only, or hybrid, and the Zoom meetings are owned by ICR's organizational accounts rather than individual board members, so account-credentials OAuth (not user-level OAuth) is the right grant type.
 
-**Multi-account design (in progress):**
-- Zoom prevents a single account from hosting multiple simultaneous meetings. ICR has multiple Zoom accounts (ZOOM1, and future ZOOM2, ZOOM3, etc.) to allow concurrent meetings.
-- Currently only ZOOM1 is implemented. The rotation logic — checking which account is free at a given time and selecting it — is listed as a summer deliverable.
-- Environment variables follow the pattern `ZOOM1_CLIENT_ID`, `ZOOM1_CLIENT_SECRET`, `ZOOM1_ACCOUNT_ID`, leaving room to add `ZOOM2_*`, `ZOOM3_*`.
+**Current state:** only a single Zoom account (`ZOOM1_*` env vars) is wired up, and it's not called from any current route or UI — orphaned code from before the room list was redesigned. The room selector in the meeting form now offers five named Zoom rooms (e.g. "Serenity Room - Zoom"), stored as a label on `Meeting.zoomAccount`, but there's no live per-room Zoom API integration behind that selection yet — no account rotation, no "which room's Zoom account is free" check. Rework is planned.
 
 **Trade-offs:**
-- Token generation happens on every Zoom API call (no token is cached). For the current scale, this is fine. If Zoom API call volume increases, caching the short-lived Zoom access token in Redis would reduce latency.
+- Token generation happens on every Zoom API call (no token is cached). For the current scale, this is fine.
 
 ---
 
-## Microsoft Graph Integration <!-- [TODO] -->
+## Leasing Documents: DB-configured CSV Export
 
-**Decision:** Use Microsoft Graph API to read groups and calendars from the ICR Azure AD organization.
-
-**Why:**
-- ICR groups (AA, NA, etc.) are modeled as Azure AD groups, each with an associated calendar. The platform needs to read these calendars to support bidirectional calendar sync.
-
-**Current state:**
-- Token acquisition and group/calendar fetch are implemented.
-- Bidirectional sync (writing meeting data back to the group calendar and keeping the MongoDB record in sync) is not yet implemented — it's a summer deliverable.
-- This entire integration will be replaced by Google Calendar API as part of the transition to Google Auth.
-
----
-
-## Leasing Documents: CSV Export
-
-**Decision:** The "Export CSV" button exports a CSV file rather than calling the PandaDocs API directly.
+**Decision:** The Export tab's "Export Lease CSV" button exports a CSV file rather than calling the PandaDocs API directly, and its inputs (lease period, per-room rates, agent contact, email template) are stored in a `LeaseSettings` singleton document rather than hardcoded in a component.
 
 **Why:**
 - PandaDocs has a bulk-send feature that accepts a CSV to generate multiple lease documents at once. The workflow is: export CSV from the platform → upload to PandaDocs → PandaDocs sends leases to groups.
-- A direct PandaDocs API integration was initially planned, but this would require a higher-tier account that would result in higher operational cost.
+- A direct PandaDocs API integration was considered and rejected — it would require a higher-tier PandaDocs account, raising operational cost for no clear benefit at ICR's scale.
+- Moving the rate/contact/template values into `LeaseSettings` (configurable via a modal on the Export tab) means a rate change no longer requires a code deploy — a Super Admin edits it directly.
 
-**What the CSV contains:**
-- One row per meeting scheduled in the first week of July (the start of ICR's lease year, July 1 – June 30).
-- Fields include group name, contact email, room, rate, billable hours, and a pre-written email message body.
-- Room rates are hardcoded in `PandaDocButton.tsx` — if ICR changes rates, that file needs to be updated.
+**What the CSV contains:** one row per `status: "Active"` meeting, with group name, contact email, room + rate, billable hours, lease dates, and the configured email message template (`{group}` placeholder filled in per row).
 
 **Trade-offs:**
-- The manual upload step is a friction point. A future team should evaluate whether the PandaDocs API is worth integrating directly, or whether this should be implemented differently.
+- The manual upload-to-PandaDocs step is still a friction point. A future team should evaluate whether the PandaDocs API is worth integrating directly. There apparently is a Free tier for PandaDocs API. https://www.pandadoc.com/developer-api/pricing/
 
 ---
 
