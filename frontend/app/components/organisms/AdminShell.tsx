@@ -43,15 +43,17 @@ const AdminShell: React.FC<AdminShellProps> = ({ role, email }) => {
         {allTabs.map((tab) => {
           const locked = tab.superAdminOnly && !isSuperAdmin;
           return (
-            <button
-              key={tab.key}
-              className={`${styles.tab} ${activeTab === tab.key ? styles.tabActive : ""} ${locked ? styles.tabLocked : ""}`}
-              onClick={() => !locked && setActiveTab(tab.key)}
-              disabled={locked}
-            >
-              {tab.label}
-              {locked && <LockIcon fontSize="small" className={styles.lockIcon} />}
-            </button>
+            <span key={tab.key} className={styles.tabWrapper}>
+              <button
+                className={`${styles.tab} ${activeTab === tab.key ? styles.tabActive : ""} ${locked ? styles.tabLocked : ""}`}
+                onClick={() => !locked && setActiveTab(tab.key)}
+                disabled={locked}
+              >
+                {tab.label}
+                {locked && <LockIcon fontSize="small" className={styles.lockIcon} />}
+              </button>
+              {locked && <span className={styles.tooltip}>Requires super admin</span>}
+            </span>
           );
         })}
       </div>
