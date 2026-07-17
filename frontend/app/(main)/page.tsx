@@ -13,7 +13,7 @@ import { convertUTCToET } from "../../util/timeUtils";
 import { IMeeting } from "../../util/models";
 
 export default function HomePage() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
 
@@ -182,7 +182,7 @@ export default function HomePage() {
   return (
     <div className={styles.container}>
       <div className={styles.sidebar}>
-        {!isLoggedIn ? (
+        {isLoggedIn === null ? null : !isLoggedIn ? (
           <SignInPrompt />
         ) : showEditMeeting && selectedMeeting ? (
             <EditMeetingSidebar
