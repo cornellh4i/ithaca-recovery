@@ -3,6 +3,7 @@ import React, { useState, useEffect } from "react";
 import styles from "./page.module.scss";
 import CalendarNavbar from "../components/organisms/CalendarNavbar";
 import CalendarSidebar from "../components/organisms/CalendarSidebar";
+import SignInPrompt from "../components/organisms/SignInPrompt";
 import ViewMeetingDetails from "../components/organisms/ViewMeeting";
 import EditMeetingSidebar from "../components/organisms/EditMeeting";
 import DailyView from "../components/organisms/DailyView";
@@ -180,9 +181,10 @@ export default function HomePage() {
 
   return (
     <div className={styles.container}>
-      {isLoggedIn && (
-        <div className={styles.sidebar}>
-          {showEditMeeting && selectedMeeting ? (
+      <div className={styles.sidebar}>
+        {!isLoggedIn ? (
+          <SignInPrompt />
+        ) : showEditMeeting && selectedMeeting ? (
             <EditMeetingSidebar
               meeting={selectedMeeting}
               onClose={handleCloseEdit}
@@ -241,8 +243,7 @@ export default function HomePage() {
                 triggerCalendarRefresh={triggerCalendarRefresh}
               />
             )}
-        </div>
-      )}
+      </div>
       <div className={styles.primaryCalendar}>
         <CalendarNavbar
           selectedDate={selectedDate}
