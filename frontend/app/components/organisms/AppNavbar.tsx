@@ -32,13 +32,21 @@ const AppNavbar: React.FC<AppNavbarProps> = ({ session }) => {
                             <p>Signage</p>
                         </Link>
                     </li>
-                    {isAdmin && (
-                        <li className={navItemClass(pathname?.startsWith("/admin") ?? false)}>
+                    <li className={`${navItemClass(pathname?.startsWith("/admin") ?? false)} ${!isAdmin ? styles.navLockedWrapper : ""}`}>
+                        {isAdmin ? (
                             <Link href="/admin">
                                 <p>Admin</p>
                             </Link>
-                        </li>
-                    )}
+                        ) : (
+                            <>
+                                <button className={styles.navLocked} disabled>
+                                    <p>Admin</p>
+                                    <img src="/svg/lock-icon.svg" alt="" className={styles.lockIcon} />
+                                </button>
+                                <span className={styles.tooltip}>Requires admin access</span>
+                            </>
+                        )}
+                    </li>
                     <li>
                         {session ? (
                             <div className={styles.accountGroup}>
@@ -48,7 +56,7 @@ const AppNavbar: React.FC<AppNavbarProps> = ({ session }) => {
                                 </button>
                             </div>
                         ) : (
-                            <a href="/api/auth/signin/google">
+                            <a className={styles.signInButton} href="/api/auth/signin/google">
                                 <p>Sign In</p>
                             </a>
                         )}
