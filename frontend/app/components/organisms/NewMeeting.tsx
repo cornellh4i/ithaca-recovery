@@ -187,6 +187,7 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({
         const startDateTimeUTC = new Date(startDateTimeUTCString);
         const endDateTimeUTC = new Date(endDateTimeUTCString);
 
+        // if endTime < startTime, add one calendar day to endDateTime (e.g., 10:00 PM - 2:00 AM)
         if (endDateTimeUTC <= startDateTimeUTC) {
           endDateTimeUTC.setUTCDate(endDateTimeUTC.getUTCDate() + 1);
         }
