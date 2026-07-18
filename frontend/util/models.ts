@@ -7,7 +7,6 @@ interface IAdmin {
   role: Role;
   googleId?: string | null;
   refreshToken?: string | null;
-  accessToken?: string | null;
   tokenExpiresAt?: number | null;
 }
 

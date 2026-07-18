@@ -110,10 +110,7 @@ const updateMeeting = async (request: Request): Promise<Response> => {
     return NextResponse.json(updatedMeeting);
   } catch (error) {
     console.error('Detailed error:', error);
-    return NextResponse.json({
-      error: error instanceof Error ? error.message : "Unknown error occurred",
-      details: error
-    }, { status: 500 });
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 };
 

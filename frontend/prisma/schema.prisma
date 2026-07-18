@@ -20,7 +20,6 @@ model Admin {
   role           Role
   googleId       String?
   refreshToken   String?
-  accessToken    String?
   tokenExpiresAt Int?
 }
 
