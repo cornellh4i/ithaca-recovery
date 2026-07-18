@@ -6,7 +6,7 @@ import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from 
 import { useSearchParams } from "next/navigation";
 import Logo from "../../components/atoms/Logo";
 import CalendarNavbar from "../../components/organisms/CalendarNavbar";
-import DailyView, { defaultRooms } from "../../components/organisms/DailyView";
+import DailyView from "../../components/organisms/DailyView";
 import WeeklyView from "../../components/organisms/WeeklyView";
 import { parseSignageFilters, parseSignageView } from "../../../util/signageFilters";
 import { formatETDateString } from "../../../util/timeUtils";
@@ -14,8 +14,6 @@ import navbarStyles from "../../../styles/components/organisms/AppNavbar.module.
 
 const REFRESH_INTERVAL_MS = 2 * 60 * 1000;
 const MIDNIGHT_CHECK_INTERVAL_MS = 30 * 1000;
-
-const roomNames = defaultRooms.map(room => room.name);
 
 export default function SignagePage() {
   return (
@@ -28,7 +26,7 @@ export default function SignagePage() {
 function SignageContent() {
   const searchParams = useSearchParams();
   const filters = useMemo(
-    () => parseSignageFilters(searchParams, roomNames),
+    () => parseSignageFilters(searchParams),
     [searchParams]
   );
   // Seeded once from the URL; CalendarNavbar can still change it locally (e.g. if
