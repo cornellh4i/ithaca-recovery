@@ -1,9 +1,8 @@
 import type { ILeaseSettings } from "../util/models";
 
-// Ground-truth defaults: room rates/names match the current room list used by
-// NewMeeting.tsx/EditMeeting.tsx and DailyView.tsx's defaultRooms; rental-agent/email
-// wording ported from the pre-B.1 PandaDocButton.tsx — used until a Super Admin saves
-// real settings.
+// Ground-truth defaults: room rates/names match the current room list in util/rooms.ts;
+// rental-agent/email wording ported from the pre-B.1 PandaDocButton.tsx — used until a
+// Super Admin saves real settings.
 export function defaultLeaseSettings(): ILeaseSettings {
   const currentYear = new Date().getFullYear();
   return {
