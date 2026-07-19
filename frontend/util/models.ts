@@ -29,7 +29,6 @@ interface IMeeting {
   status?: string;
   isRecurring: boolean;
   recurrencePattern?: IRecurrencePattern | null;
-  googleCalendarEventId?: string | null;
   googleCalendarEventIds?: Record<string, string> | null;
   syncStatus?: string | null;
   deletedAt?: Date | null;
@@ -40,7 +39,7 @@ interface IRecurrencePattern {
   mid?: string;
   type: string;
   startDate: Date; // UTC timestamp of midnight ET on the day the series starts; used for calendar-day boundary checks.
-  endDate?: Date | null;
+  endDate?: Date | null; // UTC timestamp of 23:59:59 ET on the inclusive last day of the series
   numberOfOccurrences?: number | null;
   daysOfWeek?: string[] | null;
   firstDayOfWeek: string;

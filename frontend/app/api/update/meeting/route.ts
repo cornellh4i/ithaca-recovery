@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../../auth/authConfig";
 import { IMeeting } from "../../../../util/models";
-import { createCalendarEvent, updateCalendarEvent, deleteCalendarEvent, calendarIdsForMeeting, calendarIdForCategory } from "../../../../services/googleCalendar";
+import { reconcileMeetingCalendars } from "../../../../services/googleCalendar";
 
 const prisma = new PrismaClient();
 
@@ -68,34 +68,12 @@ const updateMeeting = async (request: Request): Promise<Response> => {
     // Google Calendar sync — failure updates syncStatus but does not fail the request
     const session = await getServerSession(authOptions);
     if (session?.accessToken && newMeeting.status !== 'Suspended') {
-      const calendarIds = calendarIdsForMeeting(newMeeting.calType ?? []);
       const existingEventIds = (existingMeeting.googleCalendarEventIds ?? {}) as Record<string, string>;
-      const updatedEventIds: Record<string, string> = { ...existingEventIds };
-      let allSynced = true;
-
-      // Remove events from calendars whose category is no longer part of this meeting's calType
-      for (const cat of Object.keys(existingEventIds)) {
-        if (calendarIds[cat]) continue;
-        const calId = calendarIdForCategory[cat];
-        const eventId = existingEventIds[cat];
-        if (calId && eventId) {
-          const ok = await deleteCalendarEvent(session.accessToken, eventId, calId);
-          if (!ok) allSynced = false;
-        }
-        delete updatedEventIds[cat];
-      }
-
-      for (const [cat, calId] of Object.entries(calendarIds)) {
-        const existingId = existingEventIds[cat];
-        if (existingId) {
-          const ok = await updateCalendarEvent(session.accessToken, existingId, newMeeting, calId);
-          if (!ok) allSynced = false;
-        } else {
-          const newId = await createCalendarEvent(session.accessToken, newMeeting, calId);
-          if (newId) updatedEventIds[cat] = newId;
-          else allSynced = false;
-        }
-      }
+      const { updatedEventIds, allSynced } = await reconcileMeetingCalendars(
+        session.accessToken,
+        newMeeting,
+        existingEventIds,
+      );
 
       await prisma.meeting.update({
         where: { mid },

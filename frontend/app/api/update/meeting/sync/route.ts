@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../../../auth/authConfig";
 import { IMeeting } from "../../../../../util/models";
-import { createCalendarEvent, updateCalendarEvent, calendarIdsForMeeting } from "../../../../../services/googleCalendar";
+import { reconcileMeetingCalendars } from "../../../../../services/googleCalendar";
 
 const prisma = new PrismaClient();
 
@@ -25,6 +25,10 @@ const syncMeeting = async (request: Request): Promise<Response> => {
             return NextResponse.json({ error: "Meeting not found" }, { status: 404 });
         }
 
+        if (meeting.status === 'Suspended') {
+            return NextResponse.json({ syncStatus: meeting.syncStatus ?? null });
+        }
+
         const existingEventIds = (meeting.googleCalendarEventIds ?? {}) as Record<string, string>;
 
         const meetingForCalendar: IMeeting = {
@@ -33,21 +37,11 @@ const syncMeeting = async (request: Request): Promise<Response> => {
             recurrencePattern: meeting.recurrencePattern ?? null,
         };
 
-        const calendarIds = calendarIdsForMeeting(meeting.calType ?? []);
-        const updatedEventIds: Record<string, string> = { ...existingEventIds };
-        let allSynced = true;
-
-        for (const [cat, calId] of Object.entries(calendarIds)) {
-            const existingId = existingEventIds[cat];
-            if (existingId) {
-                const ok = await updateCalendarEvent(session.accessToken, existingId, meetingForCalendar, calId);
-                if (!ok) allSynced = false;
-            } else {
-                const newId = await createCalendarEvent(session.accessToken, meetingForCalendar, calId);
-                if (newId) updatedEventIds[cat] = newId;
-                else allSynced = false;
-            }
-        }
+        const { updatedEventIds, allSynced } = await reconcileMeetingCalendars(
+            session.accessToken,
+            meetingForCalendar,
+            existingEventIds,
+        );
 
         await prisma.meeting.update({
             where: { mid },

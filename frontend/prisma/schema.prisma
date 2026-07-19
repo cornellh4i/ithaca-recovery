@@ -37,7 +37,6 @@ model Meeting {
   status                 String               @default("Active")
   isRecurring            Boolean              @default(false)
   recurrencePattern      RecurrencePattern?   @relation("MeetingToRecurrencePattern")
-  googleCalendarEventId  String?
   googleCalendarEventIds Json?
   syncStatus             String?
   deletedAt              DateTime?
@@ -45,7 +44,6 @@ model Meeting {
 
   @@index([startDateTime, endDateTime])
   @@index([isRecurring, deletedAt])
-  @@index([googleCalendarEventId])
 }
 
 model RecurrencePattern {

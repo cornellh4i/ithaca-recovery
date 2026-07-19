@@ -61,13 +61,14 @@ const deleteMeeting = async (request: Request) => {
     const calendarIds = calendarIdsForMeeting(meeting.calType ?? []);
     const eventIds = (meeting.googleCalendarEventIds ?? {}) as Record<string, string>;
 
+    if ((deleteOption === 'this' || deleteOption === 'thisAndFollowing') && !meeting.recurrencePattern) {
+      return new Response(JSON.stringify({ error: "Meeting has no recurrence pattern" }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
     if (deleteOption === 'this') {
-      if (!meeting.recurrencePattern) {
-        return new Response(JSON.stringify({ error: "Meeting has no recurrence pattern" }), {
-          status: 400,
-          headers: { 'Content-Type': 'application/json' },
-        });
-      }
       // MongoDB: record excluded date
       const etDateStr = toETDateStr(new Date(occurrenceDate));
       const [excludedDate] = getETDayBounds(etDateStr);
@@ -83,12 +84,6 @@ const deleteMeeting = async (request: Request) => {
         }
       }
     } else if (deleteOption === 'thisAndFollowing') {
-      if (!meeting.recurrencePattern) {
-        return new Response(JSON.stringify({ error: "Meeting has no recurrence pattern" }), {
-          status: 400,
-          headers: { 'Content-Type': 'application/json' },
-        });
-      }
       // MongoDB: trim the series end date
       const etDateStr = toETDateStr(new Date(occurrenceDate));
       const [occurrenceUTCStart] = getETDayBounds(etDateStr);
