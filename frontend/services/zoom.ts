@@ -51,6 +51,38 @@ export async function checkZoomReachable(): Promise<boolean> {
   return (await getZoomAccessToken()) !== null;
 }
 
+// Per-room host validity: confirms each ZOOM_HOST_<ROOM> email resolves to a real user on
+// the account, and flags non-Licensed (Basic, type 1) hosts — a Basic host caps meetings at
+// 40 minutes, which silently breaks longer meetings booked under that room.
+export async function checkZoomRoomHosts(): Promise<Record<string, { ok: boolean; licensed: boolean | null }>> {
+  const rooms = Object.keys(zoomRoomHostEmail);
+  const result: Record<string, { ok: boolean; licensed: boolean | null }> = {};
+
+  const token = await getZoomAccessToken();
+  if (!token) {
+    rooms.forEach((room) => { result[room] = { ok: false, licensed: null }; });
+    return result;
+  }
+
+  await Promise.all(rooms.map(async (room) => {
+    const email = zoomRoomHostEmail[room];
+    if (!email) { result[room] = { ok: false, licensed: null }; return; }
+    try {
+      const res = await fetch(`${ZOOM_BASE_API}/users/${encodeURIComponent(email)}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) { result[room] = { ok: false, licensed: null }; return; }
+      const data = await res.json();
+      result[room] = { ok: true, licensed: data.type === 2 };
+    } catch (error) {
+      console.error(`Zoom checkRoomHost error for ${room}:`, error);
+      result[room] = { ok: false, licensed: null };
+    }
+  }));
+
+  return result;
+}
+
 // Zoom ignores `timezone` if start_time ends in "Z" — send ET wall-clock time instead.
 function toZoomStartTime(date: Date): string {
   const parts = new Intl.DateTimeFormat("en-US", {

@@ -2,15 +2,17 @@ import { PrismaClient, Role } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { requireRole } from "../../../../services/auth";
 import { calendarIdForCategory, checkCalendarReachable } from "../../../../services/googleCalendar";
-import { checkZoomReachable } from "../../../../services/zoom";
+import { checkZoomReachable, zoomRoomCalendarId, checkZoomRoomHosts } from "../../../../services/zoom";
 
 const prisma = new PrismaClient();
 
 const notDeleted = { OR: [{ deletedAt: null }, { deletedAt: { isSet: false } }] };
 
 // Diagnostics for the Admin page's Diagnostics tab: DB health, GCal reachability per
-// category, meeting counts, and a list of currently suspended meetings. Conflict
-// detection is stubbed (empty) until Ticket B.5's overlap-detection endpoint lands.
+// category, Zoom account reachability, and per-room Zoom calendar + host validity (host
+// existence and licensed-vs-basic status), meeting counts (incl. sync-error counts), and a
+// list of currently suspended meetings. Conflict detection is stubbed (empty) until Ticket
+// B.5's overlap-detection endpoint lands.
 export const GET = async (request: Request) => {
   try {
     const auth = await requireRole(Role.ADMIN);
@@ -32,9 +34,29 @@ export const GET = async (request: Request) => {
 
     const zoomReachable = await checkZoomReachable();
 
+    const zoomRooms = Object.keys(zoomRoomCalendarId);
+    const zoomCalendarRooms: Record<string, boolean> = {};
+    if (auth.accessToken) {
+      await Promise.all(zoomRooms.map(async (room) => {
+        zoomCalendarRooms[room] = await checkCalendarReachable(auth.accessToken as string, zoomRoomCalendarId[room]);
+      }));
+    } else {
+      zoomRooms.forEach((room) => { zoomCalendarRooms[room] = false; });
+    }
+
+    const zoomRoomHosts = await checkZoomRoomHosts();
+    const zoomRoomStatus: Record<string, { calendarOk: boolean; hostOk: boolean; hostLicensed: boolean | null }> = {};
+    zoomRooms.forEach((room) => {
+      zoomRoomStatus[room] = {
+        calendarOk: zoomCalendarRooms[room] ?? false,
+        hostOk: zoomRoomHosts[room]?.ok ?? false,
+        hostLicensed: zoomRoomHosts[room]?.licensed ?? null,
+      };
+    });
+
     const meetings = await prisma.meeting.findMany({
       where: notDeleted,
-      select: { status: true, calType: true, isRecurring: true },
+      select: { status: true, calType: true, isRecurring: true, syncStatus: true, zoomRoom: true, zoomSyncStatus: true },
     });
 
     const byCategory: Record<string, number> = {};
@@ -42,12 +64,16 @@ export const GET = async (request: Request) => {
     let active = 0;
     let suspended = 0;
     let recurring = 0;
+    let gcalSyncErrors = 0;
+    let zoomSyncErrors = 0;
     for (const m of meetings) {
       if (m.status === "Suspended") suspended++; else active++;
       if (m.isRecurring) recurring++;
       for (const cat of m.calType) {
         if (cat in byCategory) byCategory[cat]++;
       }
+      if (m.syncStatus === "error") gcalSyncErrors++;
+      if (m.zoomRoom && m.zoomSyncStatus === "error") zoomSyncErrors++;
     }
 
     const suspendedMeetings = await prisma.meeting.findMany({
@@ -60,7 +86,7 @@ export const GET = async (request: Request) => {
     return NextResponse.json({
       database: { ok: true, latencyMs: databaseLatencyMs },
       googleCalendar: { categories: googleCalendarCategories },
-      zoom: { reachable: zoomReachable },
+      zoom: { reachable: zoomReachable, rooms: zoomRoomStatus },
       session: { email: auth.user?.email ?? null, role: auth.user?.role ?? null },
       meetingCounts: {
         total: meetings.length,
@@ -69,6 +95,8 @@ export const GET = async (request: Request) => {
         byCategory,
         recurring,
         oneTime: meetings.length - recurring,
+        gcalSyncErrors,
+        zoomSyncErrors,
       },
       conflicts: [],
       suspendedMeetings,

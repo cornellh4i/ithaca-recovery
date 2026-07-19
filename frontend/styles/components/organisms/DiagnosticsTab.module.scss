@@ -62,7 +62,8 @@
 
 .gcalSubRow {
   display: flex;
-  gap: 16px;
+  flex-wrap: wrap;
+  gap: 8px 16px;
   padding-left: 21px;
   font-size: 13px;
   color: #555;
