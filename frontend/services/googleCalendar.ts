@@ -38,7 +38,7 @@ export async function checkCalendarReachable(accessToken: string, calendarId: st
     }
 }
 
-function toRRule(pattern: IRecurrencePattern): string {
+export function toRRule(pattern: IRecurrencePattern): string {
     const dayMap: Record<string, string> = {
         Sunday: "SU", Monday: "MO", Tuesday: "TU", Wednesday: "WE",
         Thursday: "TH", Friday: "FR", Saturday: "SA",

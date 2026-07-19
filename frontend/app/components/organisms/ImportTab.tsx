@@ -96,6 +96,7 @@ const ImportTab: React.FC = () => {
               <label className={styles.chooseFile}>
                 Choose File
                 <input
+                  data-testid="import-file-input"
                   type="file"
                   accept=".xlsx"
                   hidden
@@ -104,7 +105,7 @@ const ImportTab: React.FC = () => {
               </label>
             </span>
           )}
-          <button className={styles.uploadButton} onClick={handleImport} disabled={!file || importing}>
+          <button data-testid="import-upload-button" className={styles.uploadButton} onClick={handleImport} disabled={!file || importing}>
             {importing ? "Importing…" : "Upload & Import"}
           </button>
         </div>
@@ -120,7 +121,7 @@ const ImportTab: React.FC = () => {
               </StatusPill>
             ))}
           </div>
-          <table className={styles.resultsTable}>
+          <table className={styles.resultsTable} data-testid="import-results-table">
             <thead>
               <tr>
                 <th>Meeting ID</th>
@@ -130,7 +131,7 @@ const ImportTab: React.FC = () => {
             </thead>
             <tbody>
               {results.map((r, i) => (
-                <tr key={i}>
+                <tr key={i} data-testid={`import-result-row-${i}`}>
                   <td>{formatMeetingId(i)}</td>
                   <td>{r.meeting}</td>
                   <td>

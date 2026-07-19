@@ -25,7 +25,7 @@ const isAfterSeriesEnd = (endDate: Date | null, dateStr: string): boolean => {
 };
 
 // Returns true if a recurrence pattern produces an occurrence on the given ET calendar date.
-const matchesRecurrencePattern = (
+export const matchesRecurrencePattern = (
     recurrence: { type: string; startDate: Date; endDate: Date | null; interval: number; daysOfWeek: string[]; weekOfMonth: number | null; dayOfMonth: number | null; excludedDates: Date[] },
     etDateStr: string,
     localDate: Date,

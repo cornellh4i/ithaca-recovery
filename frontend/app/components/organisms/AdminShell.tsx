@@ -45,6 +45,7 @@ const AdminShell: React.FC<AdminShellProps> = ({ role, email }) => {
           return (
             <span key={tab.key} className={styles.tabWrapper}>
               <button
+                data-testid={`admin-tab-${tab.key}`}
                 className={`${styles.tab} ${activeTab === tab.key ? styles.tabActive : ""} ${locked ? styles.tabLocked : ""}`}
                 onClick={() => !locked && setActiveTab(tab.key)}
                 disabled={locked}

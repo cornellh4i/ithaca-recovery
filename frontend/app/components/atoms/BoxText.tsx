@@ -63,6 +63,7 @@ const BoxText: React.FC<BoxProps> = ({
 
   return (
     <div
+      data-testid={boxType === 'Meeting Block' ? `meeting-card-${meetingId}` : undefined}
       className={`${styles.box} ${boxType === 'Meeting Block' ? styles.meeting : styles.room} ${fillHeight ? styles.fillHeight : ''}`}
       style={{ backgroundColor: bgColor, borderLeft: `7px solid ${primaryColor}`, position: 'relative' }}
       onClick={(e) => onClick(meetingId, e)}
