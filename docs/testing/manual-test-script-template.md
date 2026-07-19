@@ -47,7 +47,7 @@
 | 2.5 | Try submitting the form with a missing required field (e.g., no title) | Validation error shown, form does not submit | | |
 | 2.6 | Check multiple Meeting Type boxes (e.g., AA and Other) on one meeting | Meeting saves with both categories; it's published to both categories' Google Calendars | | |
 | 2.7 | Create a meeting with mode Hybrid or Remote and select a Zoom Room | A real Zoom meeting is created and its join link is shown on the meeting — see Section 6 for detailed Zoom checks | | |
-| 2.8 | Create a meeting in a room/time slot that's already booked by another meeting | No warning or block — double-booking detection is not yet implemented (Ticket B.5) | | |
+| 2.8 | Create a meeting in a room/time slot that's already booked by another meeting | No warning or block — double-booking detection is not yet implemented | | |
 
 ---
 
@@ -173,11 +173,11 @@
 |---|------|-----------------|-----------|-------|
 | 11.1 | Sign in as `SUPER_ADMIN`, open `/admin` | All four tabs (Diagnostics, Users, Import, Export) are accessible | | |
 | 11.2 | Diagnostics tab | System Status card shows DB latency, Google Calendar reachability per category (AA/Al-Anon/Other), and Zoom account reachability + per-room calendar/host/license status; Meeting Counts card shows totals matching the actual data (active/suspended, by category, recurring vs. one-time, sync-error counts) | | |
-| 11.3 | Diagnostics tab, with two meetings intentionally double-booked in the same room | The Conflicts panel does **not** flag them — conflict detection isn't implemented yet (Ticket B.5); this is a known gap, not a bug | | |
+| 11.3 | Diagnostics tab, with two meetings intentionally double-booked in the same room | The Conflicts panel does **not** flag them — conflict detection isn't implemented yet; this is a known gap, not a bug | | |
 | 11.4 | Diagnostics tab, with a `Suspended` meeting present | It appears in the Suspended panel | | |
 | 11.5 | Users tab → "Invite User" → enter an email and role → "Send Invite" | The person is added to the table immediately; confirm **no email is actually sent** — you must tell them separately | | |
 | 11.6 | Users tab, with only one `SUPER_ADMIN` on the platform | That row's role dropdown and "Remove" button are both disabled, with an explanatory caption | | |
-| 11.7 | Import tab → upload any file → "Upload & Import" | Results shown are currently hardcoded mock data, not a real parse — there is no backing import route yet (Ticket B); this is a known gap, not a bug | | |
+| 11.7 | Import tab → upload any file → "Upload & Import" | Results shown are currently hardcoded mock data, not a real parse — there is no backing import route yet; this is a known gap, not a bug | | |
 | 11.8 | Export tab → "Export Meetings" and "Export Lease CSV" | Both downloads succeed and contain real data | | |
 | 11.9 | Export tab → **⋮** → "Configure export…" → change a room rate → save → re-run "Export Lease CSV" | The new rate appears in the exported CSV | | |
 
