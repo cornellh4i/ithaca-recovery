@@ -1,27 +1,27 @@
 "use client";
 import React, { useContext, useState } from 'react';
-import { IAdmin, IUser } from '../../util/models'
-import { IMeeting } from '../../util/models'
-import styles from "../../styles/TestPage.module.scss";
-import TestButton from "../components/Test/TestButton"
-import UploadPandaDocs from '../components/atoms/upload/index';
-import BoxText from "../components/atoms/BoxText";
-import DatePicker from "../components/atoms/DatePicker";
-import RadioGroup from '../components/atoms/RadioGroup';
-import TextField from '../components/atoms/TextField';
-import TimePicker from "../components/atoms/TimePicker";
-import MiniCalendar from "../components/atoms/MiniCalendar";
-import SolidButton from "../components/atoms/solidbutton"
-import checkbox from "../components/atoms/checkbox/index"
-import SpinnerInput from "../components/atoms/SpinnerInput";
-import Dropdown from "../components/atoms/dropdown";
-import MeetingsFilter from '../components/molecules/MeetingsFilter';
-import NewMeetingSidebar from '../components/organisms/NewMeeting';
-import ViewMeetingDetails from '../components/organisms/ViewMeeting';
-import ModeTypeButtons from '../components/atoms/ModeTypeButtons';
+import { IAdmin, IUser } from '../../../util/models'
+import { IMeeting } from '../../../util/models'
+import styles from "../../../styles/TestPage.module.scss";
+import TestButton from "../../components/Test/TestButton"
+import UploadPandaDocs from '../../components/atoms/upload/index';
+import BoxText from "../../components/atoms/BoxText";
+import DatePicker from "../../components/atoms/DatePicker";
+import RadioGroup from '../../components/atoms/RadioGroup';
+import TextField from '../../components/atoms/TextField';
+import TimePicker from "../../components/atoms/TimePicker";
+import MiniCalendar from "../../components/atoms/MiniCalendar";
+import SolidButton from "../../components/atoms/solidbutton"
+import checkbox from "../../components/atoms/checkbox/index"
+import SpinnerInput from "../../components/atoms/SpinnerInput";
+import Dropdown from "../../components/atoms/dropdown";
+import MeetingsFilter from '../../components/molecules/MeetingsFilter';
+import NewMeetingSidebar from '../../components/organisms/NewMeeting';
+import ViewMeetingDetails from '../../components/organisms/ViewMeeting';
+import ModeTypeButtons from '../../components/atoms/ModeTypeButtons';
 import TodayIcon from '@mui/icons-material/Today';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
-import ReccuringMeeting from "../components/molecules/RecurringMeeting";
+import ReccuringMeeting from "../../components/molecules/RecurringMeeting";
 
 import { set } from 'mongoose';
 

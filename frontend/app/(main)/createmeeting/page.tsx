@@ -8,7 +8,7 @@ import { SingleInputTimeRangeField } from '@mui/x-date-pickers-pro/SingleInputTi
 import { DateRange } from '@mui/x-date-pickers-pro/models';
 import TextField from '@mui/material/TextField';
 import dayjs, { Dayjs } from 'dayjs';
-import styles from "../../styles/CreateMeetingPage.module.scss";
+import styles from "../../../styles/CreateMeetingPage.module.scss";
 
 const CreateMeetingPage = () => {
 

@@ -143,7 +143,7 @@ const timeSlots = Array.from({ length: 24 }, (_, i) => formatTime(i));
 // Mode tags are mutually exclusive per meeting (unlike calendar tags, which can be combined)
 const modeTagNames = new Set(['InPerson', 'Hybrid', 'Remote']);
 
-const defaultRooms = [
+export const defaultRooms = [
   { name: 'Serenity Room', primaryColor: '#b3ea75' },
   { name: 'Seeds of Hope Room', primaryColor: '#f7e57b' },
   { name: 'Unity Room', primaryColor: '#96dbfe' },
