@@ -219,7 +219,7 @@ To confirm a room end-to-end beyond what Diagnostics checks: create a real meeti
 The Export tab's "Export Lease CSV" button generates a CSV formatted for PandaDocs' Bulk Send feature, covering every `status: "Active"` meeting. ICR uploads this CSV to PandaDocs to send annual lease documents to all groups at once.
 
 ### Configuring rates and lease details
-No code changes needed. In the app: **Admin → Export → (⋮ on the lease card) → Configure export…**, which opens a modal to set the lease period, per-room rate + unit (`/hr` or `/month`), rental agent contact info, and the email message template (`{group}` placeholder). This is stored in the `LeaseSettings` singleton via `GET/PUT /api/retrieve|update/lease-settings`. Until someone saves settings, `frontend/services/leaseDefaults.ts` supplies ICR's current defaults.
+No code changes needed. In the app: **Admin → Export → (⋮ on the lease card) → Configure export…**, which opens a modal to set the lease period, per-room rate + unit (`/hr` or `/month`), rental agent contact info, and the email message template (`{group}` placeholder). This is stored in the `LeaseSettings` singleton via `GET/PUT /api/retrieve|update/lease-settings`. Until someone saves settings, `frontend/util/leaseDefaults.ts` supplies ICR's current defaults.
 
 ### Uploading to PandaDocs
 1. Export the CSV from **Admin → Export**.

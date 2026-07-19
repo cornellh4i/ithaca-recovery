@@ -21,12 +21,12 @@ ithaca-recovery/
 ├── frontend/          # Next.js application (all source code lives here)
 │   ├── app/           # App Router — pages, API routes, components
 │   ├── actions/       # Next.js server actions
-│   ├── services/      # Backend services (auth, Google Calendar, lease defaults)
+│   ├── services/      # Backend services (auth, Google Calendar, Zoom)
 │   ├── hooks/         # Shared React hooks (meeting form state)
 │   ├── styles/        # SCSS modules
 │   ├── prisma/        # Prisma schema
 │   ├── public/        # Static assets (svg/, favicon)
-│   └── util/          # Shared types, formatting, and domain-logic utilities
+│   └── util/          # Shared types, formatting, and domain-logic utilities (incl. lease defaults)
 └── docs/              # Documentation
 ```
 
@@ -83,11 +83,11 @@ There's no `templates/` and `pages/` tier — page-level composition is inlined 
 
 ### `util/` — shared logic
 
-`cacheUtils.ts`, `color.ts`, `filterColors.ts` (room/category color constants), `meetingFilters.ts` (tag/room filter predicates shared by Day and Week views), `meetingOccurrences.ts` (recurrence expansion, shared by the day/week retrieve routes), `meetingOverlapLayout.ts` (sweep-line overlap layout for Week view), `models.ts` (shared TS interfaces), `recurrenceDisplay.ts`, `rooms.ts` (physical/Zoom room lists and pairing), `signageFilters.ts` (URL-param parsing for `/signage`), `simpleCache.ts` (generic get-or-fetch cache), `timeFormat.ts`, `timeUtils.ts`.
+`cacheUtils.ts`, `color.ts`, `filterColors.ts` (room/category color constants), `leaseDefaults.ts` (default `LeaseSettings` used until a Super Admin saves real ones), `meetingFilters.ts` (tag/room filter predicates shared by Day and Week views), `meetingOccurrences.ts` (recurrence expansion, shared by the day/week retrieve routes), `meetingOverlapLayout.ts` (sweep-line overlap layout for Week view), `models.ts` (shared TS interfaces), `recurrenceDisplay.ts`, `rooms.ts` (physical/Zoom room lists and pairing), `signageFilters.ts` (URL-param parsing for `/signage`), `simpleCache.ts` (generic get-or-fetch cache), `timeFormat.ts`, `timeUtils.ts`.
 
 ### `services/` — backend services
 
-`auth.ts` (`getAuth`, `requireRole`), `googleCalendar.ts` (multi-calendar create/update/delete/EXDATE/UNTIL/reachability), `zoom.ts` (Server-to-Server token fetch, per-room create/update/delete Zoom meeting, room→calendar and room→host-email lookup maps), `leaseDefaults.ts` (default `LeaseSettings` used until a Super Admin saves real ones).
+`auth.ts` (`getAuth`, `requireRole`), `googleCalendar.ts` (multi-calendar create/update/delete/EXDATE/UNTIL/reachability), `zoom.ts` (Server-to-Server token fetch, per-room create/update/delete Zoom meeting, room→calendar and room→host-email lookup maps).
 
 ### `hooks/`
 

@@ -251,7 +251,7 @@ Zoom sync is independent and follows the same non-blocking pattern. If `zoomRoom
 Singleton config for the PandaDocs lease export — lease period, per-room rates, rental agent contact, and email template — editable via the Export tab's settings modal.
 
 ### `GET /api/retrieve/lease-settings`
-**Requires:** `SUPER_ADMIN`. Returns the stored settings, or a hardcoded default set (`frontend/services/leaseDefaults.ts`) if none have been saved yet.
+**Requires:** `SUPER_ADMIN`. Returns the stored settings, or a hardcoded default set (`frontend/util/leaseDefaults.ts`) if none have been saved yet.
 
 **Response:** `200 OK` — `ILeaseSettings`
 
