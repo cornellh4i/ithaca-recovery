@@ -13,7 +13,7 @@
 
 ## Test Environment Setup <!-- [TODO] -->
 
-- **URL:** [https://ithaca-recovery-deployment.vercel.app/](https://ithaca-recovery-deployment.vercel.app/) <!-- [TODO: Replace with real URL after migration.] -->
+- **URL:** [https://ithaca-recovery.vercel.app/](https://ithaca-recovery.vercel.app/) <!-- [TODO: Replace with real URL after migration.] -->
 - **Browser:** Chrome (latest), also verify in Firefox and Safari
 - **Test Account:** ithacacommunityrecoverytest@gmail.com
 - **Zoom Accounts:** See `.env` file

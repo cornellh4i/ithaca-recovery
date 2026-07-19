@@ -186,7 +186,7 @@ interface IUser {
 
 **Redirect URIs:**
 - Development: `http://localhost:3000/auth/callback`
-- Production: `https://ithaca-recovery-deployment.vercel.app/auth/callback`
+- Production: `https://ithaca-recovery.vercel.app/auth/callback`
 
 ---
 
