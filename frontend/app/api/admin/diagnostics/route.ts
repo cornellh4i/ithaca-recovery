@@ -2,6 +2,7 @@ import { PrismaClient, Role } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { requireRole } from "../../../../services/auth";
 import { calendarIdForCategory, checkCalendarReachable } from "../../../../services/googleCalendar";
+import { checkZoomReachable } from "../../../../services/zoom";
 
 const prisma = new PrismaClient();
 
@@ -28,6 +29,8 @@ export const GET = async (request: Request) => {
     } else {
       categories.forEach((cat) => { googleCalendarCategories[cat] = false; });
     }
+
+    const zoomReachable = await checkZoomReachable();
 
     const meetings = await prisma.meeting.findMany({
       where: notDeleted,
@@ -57,6 +60,7 @@ export const GET = async (request: Request) => {
     return NextResponse.json({
       database: { ok: true, latencyMs: databaseLatencyMs },
       googleCalendar: { categories: googleCalendarCategories },
+      zoom: { reachable: zoomReachable },
       session: { email: auth.user?.email ?? null, role: auth.user?.role ?? null },
       meetingCounts: {
         total: meetings.length,

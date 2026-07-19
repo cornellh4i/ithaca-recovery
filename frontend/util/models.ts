@@ -19,7 +19,7 @@ interface IMeeting {
   startDateTime: Date;
   endDateTime: Date;
   email: string;
-  zoomAccount?: string | null;
+  zoomRoom?: string | null;
   zoomLink?: string | null;
   zid?: string | null;
   calType: string[];
@@ -31,6 +31,8 @@ interface IMeeting {
   googleCalendarEventId?: string | null;
   googleCalendarEventIds?: Record<string, string> | null;
   syncStatus?: string | null;
+  zoomCalendarEventId?: string | null;
+  zoomSyncStatus?: string | null;
   deletedAt?: Date | null;
   updatedAt?: Date | null;
 }

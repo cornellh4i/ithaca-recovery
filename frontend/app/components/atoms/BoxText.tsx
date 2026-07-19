@@ -68,7 +68,7 @@ const BoxText: React.FC<BoxProps> = ({
       onClick={(e) => onClick(meetingId, e)}
     >
       {syncError && (
-        <span title="Google Calendar sync failed" className={styles.syncError}>
+        <span title="Sync failed" className={styles.syncError}>
           ⚠
         </span>
       )}

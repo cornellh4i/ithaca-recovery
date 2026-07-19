@@ -32,8 +32,8 @@ export const roomToZoomRoom: Record<string, string> = {
 };
 
 /** True if a meeting's Zoom room isn't the default pairing for its physical room. */
-export const isZoomRoomMismatched = (room: string, zoomAccount?: string | null): boolean =>
-  !!zoomAccount && zoomAccount !== roomToZoomRoom[room];
+export const isZoomRoomMismatched = (room: string, zoomRoom?: string | null): boolean =>
+  !!zoomRoom && zoomRoom !== roomToZoomRoom[room];
 
 // Combines the room lists above with their filter colors (util/filterColors.ts) into the
 // {name, primaryColor} shape DailyView and the signage page render rooms with, so that

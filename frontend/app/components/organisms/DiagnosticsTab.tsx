@@ -13,6 +13,7 @@ interface DiagnosticsTabProps {
 interface DiagnosticsData {
   database: { ok: boolean; latencyMs: number | null };
   googleCalendar: { categories: Record<string, boolean> };
+  zoom: { reachable: boolean };
   session: { email: string | null; role: Role | null };
   meetingCounts: {
     total: number;
@@ -92,6 +93,14 @@ const DiagnosticsTab: React.FC<DiagnosticsTabProps> = ({ email, role }) => {
               {cat}: {ok ? "✓" : "✕ unreachable"}
             </span>
           ))}
+        </div>
+
+        <div className={styles.statusRow}>
+          <span className={`${styles.dot} ${data.zoom.reachable ? styles.dotOk : styles.dotDown}`} />
+          <span className={styles.statusLabel}>Zoom</span>
+          <span className={styles.statusDetail}>
+            {data.zoom.reachable ? "Reachable" : "Unreachable"}
+          </span>
         </div>
 
         <div className={styles.statusRow}>

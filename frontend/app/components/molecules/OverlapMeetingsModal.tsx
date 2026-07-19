@@ -11,7 +11,7 @@ interface OverlapMeeting {
     displayStartTime?: string; // true time, for the label
     displayEndTime?: string; // true time, for the label
     room?: string;
-    zoomAccount?: string | null;
+    zoomRoom?: string | null;
     tags?: string[];
     primaryColor?: string;
 }
@@ -45,7 +45,7 @@ const OverlapMeetingsModal: React.FC<OverlapMeetingsModalProps> = ({
 
                 <div className={styles.list}>
                     {meetings.map(meeting => {
-                        const locationLabel = meeting.room || meeting.zoomAccount || '';
+                        const locationLabel = meeting.room || meeting.zoomRoom || '';
                         return (
                             <div
                                 key={meeting.id}
