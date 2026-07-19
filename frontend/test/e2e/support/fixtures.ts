@@ -9,33 +9,39 @@ type Fixtures = {
   adminPage: { page: Page; admin: Admin };
   // Signed in as a freshly-seeded SUPER_ADMIN.
   superAdminPage: { page: Page; admin: Admin };
-  // Meetings (unlike Admins) pile up visually on the shared calendar view across a
-  // run this size — same default room/time slots start overlapping and intercepting
-  // each other's clicks. Meeting-related tests don't rely on prior tests' meetings
-  // surviving, so it's cheaper and more reliable to clear them before each test than
-  // to keep every meeting on distinct rooms/times forever. This has to be a fixture
-  // (not a plain `test.beforeEach` in this module) — that registers only against
-  // whichever spec file happens to import this module first, since Node caches the
-  // module and its top-level `test.beforeEach` call only runs once.
-  cleanMeetings: void;
+  // Meetings pile up visually on the shared calendar view across a run this size —
+  // same default room/time slots start overlapping and intercepting each other's
+  // clicks. Admins pile up too, just logically rather than visually — tests that
+  // assert "the sole SUPER_ADMIN" break once enough earlier tests' super admins are
+  // still sitting in the table. No test relies on a prior test's seeded data
+  // surviving, so it's cheaper and more reliable to clear both before each test than
+  // to work around the collisions. This has to be a fixture (not a plain
+  // `test.beforeEach` in this module) — that registers only against whichever spec
+  // file happens to import this module first, since Node caches the module and its
+  // top-level `test.beforeEach` call only runs once. `adminPage`/`superAdminPage`
+  // declare it as a dependency so their own seeding always happens after cleanup,
+  // not in whatever order Playwright would otherwise pick between independent
+  // fixtures.
+  cleanTestData: void;
 };
 
 export const test = base.extend<Fixtures>({
-  adminPage: async ({ page, context }, use) => {
+  adminPage: async ({ page, context, cleanTestData: _cleanTestData }, use) => {
     const admin = await seedAdmin(Role.ADMIN);
     await loginAs(context, admin.email);
     await use({ page, admin });
   },
-  superAdminPage: async ({ page, context }, use) => {
+  superAdminPage: async ({ page, context, cleanTestData: _cleanTestData }, use) => {
     const admin = await seedAdmin(Role.SUPER_ADMIN);
     await loginAs(context, admin.email);
     await use({ page, admin });
   },
-  cleanMeetings: [
+  cleanTestData: [
     async ({}, use) => {
       const prisma = getTestPrismaClient();
       await prisma.recurrencePattern.deleteMany({});
       await prisma.meeting.deleteMany({});
+      await prisma.admin.deleteMany({});
       await use();
     },
     { auto: true },
