@@ -35,6 +35,14 @@ export async function toggleCalType(page: Page, type: string): Promise<void> {
   await page.getByTestId("meeting-type-checkboxes").getByText(type, { exact: true }).click();
 }
 
+// Toggles a MeetingsFilter checkbox by its visible label, scoped to the sidebar's
+// filter panel — Day view also renders a same-named <h3> room-column header on the
+// calendar itself (e.g. "Unity Room" is both a filter label and a room header), so
+// an unscoped text match is ambiguous there.
+export async function toggleFilter(page: Page, label: string): Promise<void> {
+  await page.locator('[class*="meetingsFilter"]').getByText(label, { exact: true }).click();
+}
+
 // Today's date in MM/DD/YYYY, for form fixtures that need to land on a real day
 // the calendar view will actually render (avoids hardcoded dates going stale).
 export function todayMMDDYYYY(): string {
