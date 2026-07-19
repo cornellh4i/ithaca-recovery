@@ -54,7 +54,7 @@ const fetchMeetingsByWeek = async (startDate: Date, endDate: Date): Promise<Meet
                     date: meeting.date,
                     tags: [...meeting.calType, meeting.modeType],
                     room: meeting.room,
-                    zoomAccount: meeting.zoomAccount,
+                    zoomRoom: meeting.zoomRoom,
                 };
             });
 
@@ -211,7 +211,7 @@ const WeeklyView: React.FC<WeeklyViewProps> = ({
             // should stay visible if either resource's filter is enabled.
             const isRoomIncluded =
                 passesRoomFilter(meeting.room, filters) ||
-                (!!meeting.zoomAccount && passesRoomFilter(meeting.zoomAccount, filters));
+                (!!meeting.zoomRoom && passesRoomFilter(meeting.zoomRoom, filters));
 
             return matchesDate && isRoomIncluded && passesTagFilters(meeting.tags, filters);
         });

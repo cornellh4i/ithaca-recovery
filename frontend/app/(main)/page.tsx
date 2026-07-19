@@ -207,7 +207,7 @@ export default function HomePage() {
 
                 email={selectedMeeting.email}
 
-                zoomAccount={selectedMeeting.zoomAccount}
+                zoomRoom={selectedMeeting.zoomRoom}
                 zoomLink={selectedMeeting.zoomLink}
                 zid={selectedMeeting.zid}
                 modeType={selectedMeeting.modeType}
@@ -216,6 +216,7 @@ export default function HomePage() {
                 isRecurring={selectedMeeting.isRecurring ?? false}
                 recurrencePattern={selectedMeeting.recurrencePattern || undefined}
                 syncStatus={selectedMeeting.syncStatus}
+                zoomSyncStatus={selectedMeeting.zoomSyncStatus}
                 currentOccurrenceDate={lastClickedDate || undefined} // Pass the date when the meeting was clicked
                 onBack={handleBack}
                 onEdit={handleOpenEdit}

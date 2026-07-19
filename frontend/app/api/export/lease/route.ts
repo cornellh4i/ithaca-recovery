@@ -8,9 +8,9 @@ const prisma = new PrismaClient();
 
 const notDeleted = { OR: [{ deletedAt: null }, { deletedAt: { isSet: false } }] };
 
-function determinePremiseType(room: string, zoomAccount: string | null): string {
+function determinePremiseType(room: string, zoomRoom: string | null): string {
   if (room === "Zoom Only" || room === "") return "Zoom Only";
-  if (zoomAccount) return "Hybrid";
+  if (zoomRoom) return "Hybrid";
   return "In-Person Only";
 }
 
@@ -97,7 +97,7 @@ export const GET = async () => {
       const start = meeting.startDateTime;
       const end = meeting.endDateTime;
       const billableTime = calculateBillableTime(start, end);
-      const premiseType = determinePremiseType(meeting.room, meeting.zoomAccount);
+      const premiseType = determinePremiseType(meeting.room, meeting.zoomRoom);
       const roomRate = getRoomRate(meeting.room, settings.rooms);
       const rentCharge = calculateRentCharge(premiseType, billableTime, roomRate);
       const emailMessage = settings.emailTemplate.replace(/\{group\}/g, meeting.title);

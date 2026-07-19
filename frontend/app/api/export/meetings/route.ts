@@ -82,7 +82,7 @@ export const GET = async () => {
       "End Time": formatETTime(meeting.endDateTime),
       "Location Type": LOCATION_TYPE_LABELS[meeting.modeType] ?? meeting.modeType,
       "Physical Room": meeting.room,
-      "Zoom Room": meeting.zoomAccount ?? "",
+      "Zoom Room": meeting.zoomRoom ?? "",
       "Contact Email": meeting.email,
       Description: meeting.description,
       "Google Calendar Event ID": formatGoogleCalendarEventIds(meeting),

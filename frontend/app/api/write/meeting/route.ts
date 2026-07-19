@@ -3,6 +3,7 @@ import { PrismaClient, Role } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { requireRole } from "../../../../services/auth";
 import { createCalendarEvent, calendarIdsForMeeting } from "../../../../services/googleCalendar";
+import { createZoomMeeting, zoomRoomCalendarId } from "../../../../services/zoom";
 
 const prisma = new PrismaClient();
 
@@ -78,6 +79,40 @@ const createMeeting = async (request: Request) => {
           googleCalendarEventIds: eventIds,
           syncStatus: synced ? 'synced' : 'error',
         },
+      });
+    }
+
+    // Zoom sync — independent from Google Calendar sync above (own status field).
+    // Skips the Zoom API call if zid/zoomLink already came in on the payload (import/manual).
+    if (meetingData.zoomRoom && meetingData.status !== 'Suspended') {
+      const meetingForZoom: IMeeting = { ...meetingData, isRecurring: !!recurrencePattern };
+      let zid = meetingData.zid ?? null;
+      let zoomLink = meetingData.zoomLink ?? null;
+      let zoomCalendarEventId: string | null = null;
+      let zoomSynced = true;
+
+      if (!zid && !zoomLink) {
+        const created = await createZoomMeeting(meetingForZoom, meetingData.zoomRoom);
+        if (created) {
+          zid = created.zid;
+          zoomLink = created.zoomLink;
+        } else {
+          zoomSynced = false;
+        }
+      }
+
+      if (auth.accessToken && zoomLink) {
+        const calId = zoomRoomCalendarId[meetingData.zoomRoom];
+        if (calId) {
+          const eventId = await createCalendarEvent(auth.accessToken, { ...meetingForZoom, zoomLink }, calId, zoomLink);
+          if (eventId) zoomCalendarEventId = eventId;
+          else zoomSynced = false;
+        }
+      }
+
+      await prisma.meeting.update({
+        where: { mid: newMeeting.mid },
+        data: { zid, zoomLink, zoomCalendarEventId, zoomSyncStatus: zoomSynced ? 'synced' : 'error' },
       });
     }
 

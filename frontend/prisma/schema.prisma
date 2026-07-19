@@ -20,7 +20,6 @@ model Admin {
   role           Role
   googleId       String?
   refreshToken   String?
-  accessToken    String?
   tokenExpiresAt Int?
 }
 
@@ -35,7 +34,7 @@ model Meeting {
   startDateTime          DateTime             @db.Date
   endDateTime            DateTime             @db.Date
   email                  String
-  zoomAccount            String?
+  zoomRoom               String?
   zoomLink               String?
   zid                    String?
   room                   String
@@ -46,6 +45,8 @@ model Meeting {
   googleCalendarEventId  String?
   googleCalendarEventIds Json?
   syncStatus             String?
+  zoomCalendarEventId    String?
+  zoomSyncStatus         String?
   deletedAt              DateTime?
   updatedAt              DateTime?            @updatedAt
 

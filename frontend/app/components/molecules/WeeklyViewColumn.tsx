@@ -14,7 +14,7 @@ interface Meeting {
     displayEndTime?: string; // true time, for the label
     tags?: string[];
     room?: string; // Added room property
-    zoomAccount?: string | null;
+    zoomRoom?: string | null;
     primaryColor?: string; // Added to support different colored meetings
     positionIndex?: number; // For handling overlapping meetings
     totalOverlapping?: number; // For handling overlapping meetings
@@ -24,7 +24,7 @@ interface Meeting {
 }
 
 // Drops the " - Zoom" suffix for a more compact badge label
-const formatZoomRoomLabel = (zoomAccount: string) => zoomAccount.replace(/ - Zoom$/, '');
+const formatZoomRoomLabel = (zoomRoom: string) => zoomRoom.replace(/ - Zoom$/, '');
 
 interface WeeklyViewColumnProps {
     roomColor: string;
@@ -68,7 +68,7 @@ const WeeklyViewColumn: React.FC<WeeklyViewColumnProps> = ({
                 {meetings.map((meeting, index) => {
                     // Remote-only meetings have no physical room, so fall back to the
                     // Zoom room — otherwise the location line would be blank.
-                    const locationLabel = meeting.room || meeting.zoomAccount || '';
+                    const locationLabel = meeting.room || meeting.zoomRoom || '';
                     const topOffset = timeToPixels(meeting.startTime);
 
                     if (meeting.isOverflowIndicator) {
@@ -116,8 +116,8 @@ const WeeklyViewColumn: React.FC<WeeklyViewColumnProps> = ({
                                 tags={meeting.tags}
                                 meetingId={meeting.id}
                                 zoomTag={
-                                    meeting.room && isZoomRoomMismatched(meeting.room, meeting.zoomAccount)
-                                        ? formatZoomRoomLabel(meeting.zoomAccount!)
+                                    meeting.room && isZoomRoomMismatched(meeting.room, meeting.zoomRoom)
+                                        ? formatZoomRoomLabel(meeting.zoomRoom!)
                                         : undefined
                                 }
                                 fillHeight

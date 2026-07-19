@@ -14,7 +14,14 @@ const getAdminByEmail = async (request: NextRequest) => {
     const user: (IAdmin | null) = await prisma.admin.findUnique({
       where: {
         email: email as string
-      }
+      },
+      select: {
+        name: true,
+        email: true,
+        role: true,
+        googleId: true,
+        tokenExpiresAt: true,
+      },
     });
     if (!user) {
       return new Response(JSON.stringify({ error: `Admin not found` }), {
