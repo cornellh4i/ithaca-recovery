@@ -315,7 +315,7 @@ interface IMeeting {
   recurrencePattern?: IRecurrencePattern | null;
   googleCalendarEventId?: string | null;         // legacy single-calendar ID
   googleCalendarEventIds?: Record<string, string> | null; // per-category, keyed by calType value
-  syncStatus?: string | null;      // "synced" | "error"
+  syncStatus?: string | null;      // "synced" | "error", sync status of meeting mode calendar
   deletedAt?: Date | null;         // soft-delete marker
   updatedAt?: Date | null;
 }

@@ -137,7 +137,7 @@ See [api-reference.md](api-reference.md#data-types-reference) for the matching `
 | `GOOGLE_CALENDAR_AA` / `GOOGLE_CALENDAR_ALANON` / `GOOGLE_CALENDAR_OTHER` | Google Calendar IDs to publish each category's events to |
 | `ZOOM_CLIENT_ID` / `ZOOM_CLIENT_SECRET` / `ZOOM_ACCOUNT_ID` | Zoom Server-to-Server OAuth credentials (account-level) |
 | `NEXT_PUBLIC_ZOOM_BASE_API` | Zoom API base URL (`https://api.zoom.us/v2`) |
-| `GOOGLE_CALENDAR_ZOOM_<ROOM>` (×5) | Google Calendar ID for each Zoom-enabled room's own calendar, separate from the 3 category calendars |
+| `GOOGLE_CALENDAR_ZOOM_<ROOM>` (×5) | Google Calendar ID for each Zoom-enabled room's own calendar |
 | `ZOOM_HOST_<ROOM>` (×5) | Licensed Zoom user email that hosts meetings for that room |
 
 The `redis` package is still listed in `package.json` but nothing in the app imports it — `app/api/server/redis.ts` is entirely commented out — so no Redis instance is required to run the app today.
