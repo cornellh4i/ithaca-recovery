@@ -32,7 +32,7 @@ A step-by-step guide for ICR board members on how to use the scheduling platform
 
 Open a web browser and go to:
 
-**`https://ithaca-recovery-deployment.vercel.app`**
+**`https://ithaca-recovery.vercel.app`**
 
 The platform works in any modern browser (Chrome, Firefox, Edge, Safari). No app installation is required.
 
@@ -122,7 +122,7 @@ The calendar **auto-refreshes every 30 seconds**, so you don't need to reload th
    - Al-Anon
    - Other
 
-   **Select Zoom Room** *(Hybrid and Remote only)* — one of five named Zoom rooms: the four physical rooms' matching Zoom room, plus Children's Room @ 518. Picking a physical room auto-selects its matching Zoom room; you can change it if the meeting needs a different one.
+   **Select Zoom Room** *(Hybrid and Remote only)* — one of five named Zoom rooms: the four physical rooms' matching Zoom room, plus Children's Room @ 518. Picking a physical room auto-selects its matching Zoom room; you can change it if the meeting needs a different one. Selecting a Zoom room creates a real Zoom meeting behind the scenes and generates its join link automatically — no manual Zoom setup needed.
 
    **Email** — the contact email for the group organizer. Used for lease document generation.
 
@@ -133,6 +133,8 @@ The calendar **auto-refreshes every 30 seconds**, so you don't need to reload th
 4. A confirmation alert appears — it currently reads "Meeting created successfully! Please check the Meeting collection on MongoDB," which is stale wording left over from earlier development, but the meeting has in fact been saved and is visible on the calendar immediately.
 
 > **Calendar sync:** The meeting is published to Google Calendar automatically, on the calendar(s) matching its Meeting Type (AA / Al-Anon / Other). If a meeting shows a ⚠ badge, sync failed for at least one calendar — open the meeting and use the **Retry sync** button (see [Section 4](#4-viewing-a-meeting)).
+
+> **Zoom sync:** If a Zoom Room was selected, a Zoom meeting is created automatically and its join link is shown in the meeting's details. This is tracked separately from Google Calendar sync — a failure here shows its own ⚠ status in the meeting detail panel, with its own **Retry sync** button.
 
 ---
 
@@ -146,9 +148,9 @@ The calendar **auto-refreshes every 30 seconds**, so you don't need to reload th
    - Email
    - Meeting Mode
    - Calendar (which of AA / Al-Anon / Other it's published to)
-   - Sync status — "Synced to Google Calendar ✓", or "Google Calendar sync failed ⚠" with a **Retry sync** button
+   - Sync status — separate lines for Google Calendar ("Synced to Google Calendar ✓" / "Google Calendar sync failed ⚠") and Zoom ("Synced to Zoom ✓" / "Zoom sync failed ⚠"), each with its own **Retry sync** button
    - Location
-   - **Zoom Account** and a clickable Zoom join link, if applicable *(same field as "Zoom Room" on the create/edit form — the detail view hasn't been relabeled to match yet)*
+   - **Zoom** — the room name and a clickable join link, if a Zoom Room is set
    - Description
 3. To go back to the main sidebar, click the **← back arrow** at the top of the detail panel.
 
@@ -327,9 +329,10 @@ Create the meeting with recurrence enabled. Set frequency to "Every 1 week(s)," 
 
 **"The Zoom link isn't working."**
 
-1. Click the meeting and check that a Zoom link is shown. If the link field is blank, try editing and re-saving the meeting.
-2. Test the link in a private/incognito browser window to rule out a login conflict.
-3. If problems persist, contact `[TODO: H4I support contact]`.
+1. Click the meeting and check whether it shows a Zoom ⚠ badge instead of a link — if so, click **Retry sync** first (see [Section 4](#4-viewing-a-meeting)).
+2. If the link field is still blank, try editing and re-saving the meeting.
+3. Test the link in a private/incognito browser window to rule out a login conflict.
+4. If problems persist, contact `[TODO: H4I support contact]`.
 
 ---
 
@@ -360,7 +363,7 @@ Go to the Day view for the relevant date. In the Filters sidebar, uncheck all ro
 | Calendar shows no meetings | In Week view, room filters default off — check the boxes you need. Click "Today" to reset the date. |
 | Meeting not visible after creating it | Wait 30 seconds for the auto-refresh, or reload the page |
 | Zoom link is blank on a meeting | Edit the meeting and re-save. If it persists, delete and recreate |
-| A meeting shows a ⚠ badge | Google Calendar sync failed for that meeting — open it and click **Retry sync** |
+| A meeting shows a ⚠ badge | Google Calendar and/or Zoom sync failed for that meeting — open it and click the corresponding **Retry sync** button |
 | "Export Lease CSV" fails with no active meetings | Confirm meetings with `status: Active` exist for the configured lease period |
 | Page behaves unexpectedly | Hard refresh: Ctrl+Shift+R (Windows) or Cmd+Shift+R (Mac). Or try a different browser |
 
@@ -380,7 +383,7 @@ Go to the Day view for the relevant date. In the Filters sidebar, uncheck all ro
 
 ---
 
-**Platform URL:** `https://ithaca-recovery-deployment.vercel.app`
+**Platform URL:** `https://ithaca-recovery.vercel.app`
 
 **Login:** Sign in with the Google account a Super Admin has added for you.
 

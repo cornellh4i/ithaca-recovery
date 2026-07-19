@@ -12,7 +12,7 @@
 
 ## Test Environment Setup
 
-- **URL:** [https://ithaca-recovery-deployment.vercel.app/](https://ithaca-recovery-deployment.vercel.app/)
+- **URL:** [https://ithaca-recovery.vercel.app/](https://ithaca-recovery.vercel.app/)
 - **Browser:** Chrome (latest), also verify in Firefox and Safari
 - **Test Accounts:** at least one Google account added as `ADMIN`, and one added as `SUPER_ADMIN` (see [user-guide.md, Section 12](../handoff/user-guide.md#12-admin-user-management)) — several tests require both roles
 - **Tester Name:** _______________
@@ -46,7 +46,7 @@
 | 2.4 | Verify the new meeting appears on the calendar view | Meeting block shows on the correct date/time within 30 seconds (auto-refresh) or after a manual reload | | |
 | 2.5 | Try submitting the form with a missing required field (e.g., no title) | Validation error shown, form does not submit | | |
 | 2.6 | Check multiple Meeting Type boxes (e.g., AA and Other) on one meeting | Meeting saves with both categories; it's published to both categories' Google Calendars | | |
-| 2.7 | Create a meeting with mode Hybrid or Remote and select a Zoom Room | The Zoom Room label is saved and shown on the meeting; no live Zoom meeting or join link is auto-generated (the Zoom API integration is legacy/orphaned code, not wired to meeting creation — see technical-decisions.md) | | |
+| 2.7 | Create a meeting with mode Hybrid or Remote and select a Zoom Room | A real Zoom meeting is created and its join link is shown on the meeting — see Section 6 for detailed Zoom checks | | |
 | 2.8 | Create a meeting in a room/time slot that's already booked by another meeting | No warning or block — double-booking detection is not yet implemented (Ticket B.5) | | |
 
 ---
@@ -59,8 +59,8 @@
 | 3.2 | Click **⋮** → "Edit Meeting" | Edit form opens, pre-populated with current values | | |
 | 3.3 | Change the meeting title | Field updates, no errors | | |
 | 3.4 | Change the meeting date and time | Field updates, no errors | | |
-| 3.5 | Change the mode from In Person to Hybrid and pick a Zoom Room | Zoom Room is saved; no live Zoom meeting is generated (see 2.7) | | |
-| 3.6 | Change the mode from Hybrid back to In Person | Zoom Room field/value is cleared from the meeting | | |
+| 3.5 | Change the mode from In Person to Hybrid and pick a Zoom Room | A Zoom meeting is created and its join link appears on the meeting (see Section 6) | | |
+| 3.6 | Change the mode from Hybrid back to In Person | Zoom Room field/value is cleared, and the underlying Zoom meeting + its room-calendar event are deleted | | |
 | 3.7 | Click "Update Meeting" | Success confirmation, changes persist | | |
 | 3.8 | Verify changes appear on the calendar view | Calendar block reflects new date/time | | |
 | 3.9 | Refresh the page and recheck | Edits persist after page reload | | |
@@ -98,13 +98,20 @@
 
 ---
 
-## 6. Zoom Room Field (integration not yet live)
+## 6. Zoom Room Integration
 
 | # | Step | Expected Result | Pass/Fail | Notes |
 |---|------|-----------------|-----------|-------|
 | 6.1 | Create a Hybrid meeting and pick a physical room | The matching Zoom Room (e.g. "Serenity Room - Zoom") is auto-selected | | |
 | 6.2 | Change the auto-selected Zoom Room to a different one | The meeting card/detail view shows a Zoom-mismatch indicator, since it no longer matches the physical room's default pairing | | |
-| 6.3 | Check a meeting's detail panel for a Zoom join link | No live Zoom link is present — join links are not generated because the Zoom API integration isn't wired to meeting create/edit (this is expected; do not file as a bug without checking technical-decisions.md first) | | |
+| 6.3 | Create a meeting with a Zoom Room set, then open its detail panel | A real Zoom join link is shown, and the panel shows "Synced to Zoom ✓" | | |
+| 6.4 | Open the join link | Zoom launches/joins the meeting | | |
+| 6.5 | Check that room's own Google Calendar (not the AA/Al-Anon/Other calendars) | A matching event exists, with the join link in its `location` field | | |
+| 6.6 | Edit a meeting's Zoom Room to a different room | The old room's Zoom meeting and calendar event are removed; the new room gets a fresh Zoom meeting and calendar event | | |
+| 6.7 | Delete a non-recurring meeting that has a Zoom Room set | The Zoom meeting and its room-calendar event are both removed | | |
+| 6.8 | Delete a single occurrence ("This event") from a recurring meeting with a Zoom Room set | The Zoom meeting is untouched — it's one stable meeting shared by the whole series; only "All events" removes it | | |
+| 6.9 | On `/admin` → Diagnostics, check the Zoom status row | Shows account reachability plus a per-room breakdown of which Zoom Room calendars are reachable | | |
+| 6.10 | Force a Zoom sync failure (e.g. temporarily use an invalid `ZOOM_CLIENT_SECRET`) | Meeting shows a Zoom-specific ⚠ status separate from the Google Calendar one; Diagnostics' Meeting Counts card shows a nonzero Zoom sync-error count; **Retry sync** clears both once credentials are fixed | | |
 
 ---
 
@@ -164,7 +171,7 @@
 | # | Step | Expected Result | Pass/Fail | Notes |
 |---|------|-----------------|-----------|-------|
 | 11.1 | Sign in as `SUPER_ADMIN`, open `/admin` | All four tabs (Diagnostics, Users, Import, Export) are accessible | | |
-| 11.2 | Diagnostics tab | System Status card shows DB latency and Google Calendar reachability per category (AA/Al-Anon/Other); Meeting Counts card shows totals matching the actual data (active/suspended, by category, recurring vs. one-time) | | |
+| 11.2 | Diagnostics tab | System Status card shows DB latency, Google Calendar reachability per category (AA/Al-Anon/Other), and Zoom account + per-room calendar reachability; Meeting Counts card shows totals matching the actual data (active/suspended, by category, recurring vs. one-time, sync-error counts) | | |
 | 11.3 | Diagnostics tab, with two meetings intentionally double-booked in the same room | The Conflicts panel does **not** flag them — conflict detection isn't implemented yet (Ticket B.5); this is a known gap, not a bug | | |
 | 11.4 | Diagnostics tab, with a `Suspended` meeting present | It appears in the Suspended panel | | |
 | 11.5 | Users tab → "Invite User" → enter an email and role → "Send Invite" | The person is added to the table immediately; confirm **no email is actually sent** — you must tell them separately | | |
@@ -208,7 +215,7 @@
 | 3. Meeting Editing | 10 | | | | |
 | 4. Meeting Deletion | 7 | | | | |
 | 5. Calendar Display | 9 | | | | |
-| 6. Zoom Room Field | 3 | | | | |
+| 6. Zoom Room Integration | 10 | | | | |
 | 7. Google Calendar Sync | 6 | | | | |
 | 8. Filters | 5 | | | | |
 | 9. Edge Cases | 6 | | | | |
@@ -216,7 +223,7 @@
 | 11. Admin Panel | 9 | | | | |
 | 12. Weekly View | 5 | | | | |
 | 13. Digital Signage | 5 | | | | |
-| **Total** | **88** | | | | |
+| **Total** | **95** | | | | |
 
 **Overall Assessment:** ☐ Ready for launch &nbsp; ☐ Needs fixes before launch &nbsp; ☐ Major issues found
 

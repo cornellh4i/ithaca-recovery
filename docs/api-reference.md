@@ -11,6 +11,8 @@ All endpoints are Next.js Route Handlers under `frontend/app/api/`. Requests and
 ### `POST /api/write/meeting`
 **Requires:** `ADMIN`. Create a new meeting. If `recurrencePattern` is present, a `RecurrencePattern` record is created alongside it, with `endDate` calculated from `numberOfOccurrences` when not explicitly provided (weekly and monthly patterns both supported). Non-blocking: publishes to Google Calendar per category in `calType` (skipped if `status: "Suspended"`), writing `googleCalendarEventIds` and `syncStatus` back onto the meeting.
 
+If `zoomRoom` is set, also non-blocking and independent of the above: creates a Zoom meeting under that room's dedicated host account and publishes the join link to that room's own Google Calendar, writing `zid`, `zoomLink`, `zoomCalendarEventId`, and `zoomSyncStatus` back onto the meeting. Skipped (persisted verbatim, marked synced) if `zid`/`zoomLink` already came in on the payload.
+
 **Request body:** `IMeeting`
 ```json
 {
@@ -22,7 +24,7 @@ All endpoints are Next.js Route Handlers under `frontend/app/api/`. Requests and
   "startDateTime": "ISO 8601",
   "endDateTime": "ISO 8601",
   "email": "contact@example.com",
-  "zoomAccount": "string | null",
+  "zoomRoom": "string | null",
   "zoomLink": "string | null",
   "zid": "string | null",
   "calType": ["AA" ],
@@ -89,6 +91,8 @@ Retrieve all meetings for the calendar month of the provided date.
 ### `PUT /api/update/meeting`
 **Requires:** `ADMIN`. Update an existing meeting, identified by `mid`. Upserts or deletes the associated `RecurrencePattern` depending on whether `recurrencePattern` is present in the body. Re-syncs Google Calendar per category: creates/updates events for categories now in `calType`, deletes events for categories removed from it.
 
+Zoom sync is independent and follows the same non-blocking pattern. If `zoomRoom` changed, the old room's Zoom meeting and calendar event are deleted and a fresh Zoom meeting/calendar event are created under the new room (a Zoom meeting can't move host); if unchanged, it's updated in place.
+
 **Request body:** `IMeeting` (must include `mid`)
 
 **Response:** `200 OK` — updated `IMeeting`
@@ -97,7 +101,7 @@ Retrieve all meetings for the calendar month of the provided date.
 ---
 
 ### `POST /api/update/meeting/sync`
-**Requires:** `ADMIN`. Retry Google Calendar sync for a single meeting (used by the ⚠ sync-status badge's retry action in the UI).
+**Requires:** `ADMIN`. Retry Google Calendar and Zoom sync for a single meeting (used by the ⚠ sync-status badge's retry action in the UI). The two retry independently — `zoomSyncStatus` is only touched if the meeting has a `zoomRoom` set.
 
 **Request body:**
 ```json
@@ -106,7 +110,7 @@ Retrieve all meetings for the calendar month of the provided date.
 
 **Response:** `200 OK`
 ```json
-{ "syncStatus": "synced | error" }
+{ "syncStatus": "synced | error", "zoomSyncStatus": "synced | error | null" }
 ```
 
 ---
@@ -125,9 +129,11 @@ Retrieve all meetings for the calendar month of the provided date.
 
 | `deleteOption` | Behavior |
 |---|---|
-| `all` | Soft-deletes the meeting; deletes the GCal event(s) on every calendar it's published to |
+| `all` | Soft-deletes the meeting; deletes the GCal event(s) on every calendar it's published to, plus the Zoom meeting and its room-calendar event if `zoomRoom` is set |
 | `this` | Adds `occurrenceDate` to the pattern's `excludedDates`; adds an EXDATE to the GCal event |
 | `thisAndFollowing` | Trims the pattern's `endDate` to just before `occurrenceDate`; trims the GCal event's RRULE `UNTIL` |
+
+`this`/`thisAndFollowing` never touch Zoom — a recurring meeting's Zoom meeting is one stable meeting shared by every occurrence in the series, so only a whole-series (`all`) delete removes it.
 
 **Response:** `200 OK` — `{ "message": "Meeting deleted successfully" }`
 
@@ -202,11 +208,16 @@ Retrieve all meetings for the calendar month of the provided date.
 {
   "database": { "ok": true, "latencyMs": 12 },
   "googleCalendar": { "categories": { "AA": true, "Al-Anon": true, "Other": false } },
+  "zoom": {
+    "reachable": true,
+    "roomCalendars": { "Serenity Room - Zoom": true, "Seeds of Hope Room - Zoom": true, "Unity Room - Zoom": true, "Room for Improvement - Zoom": true, "Children's Room @ 518 - Zoom": false }
+  },
   "session": { "email": "string", "role": "string" },
   "meetingCounts": {
     "total": 0, "active": 0, "suspended": 0,
     "byCategory": { "AA": 0, "Al-Anon": 0, "Other": 0 },
-    "recurring": 0, "oneTime": 0
+    "recurring": 0, "oneTime": 0,
+    "gcalSyncErrors": 0, "zoomSyncErrors": 0
   },
   "conflicts": [],
   "suspendedMeetings": []
@@ -268,14 +279,11 @@ NextAuth's own sign-in/sign-out/callback routes. Not called directly by app code
 
 ---
 
-## Zoom (legacy, unfinished)
+## Zoom
 
-Original single-account Zoom integration, orphaned — not called from any current route or UI. Proxies to the Zoom API using OAuth credentials read from `ZOOM1_CLIENT_ID`, `ZOOM1_CLIENT_SECRET`, and `ZOOM1_ACCOUNT_ID`; only one Zoom account (`ZOOM1`) is wired up, with no per-room routing or account rotation.
+Not a set of proxy routes — the old `/api/zoom/*` endpoints were deleted (zero callers, superseded by this). Zoom is a server-only service (`frontend/services/zoom.ts`) called directly from the meeting routes above (`write`, `update`, `delete`, `update/meeting/sync`), gated by the same `requireRole(ADMIN)` check as those routes — there's no separate unauthenticated Zoom surface.
 
-- `GET /api/zoom` — generate a Zoom OAuth access token.
-- `POST /api/zoom/CreateMeeting` — create a Zoom meeting.
-- `PATCH /api/zoom/UpdateMeeting` — update a Zoom meeting by `meetingId`.
-- `DELETE /api/zoom/DeleteMeeting?id={zoomMeetingId}` — delete a Zoom meeting.
+Each of the 5 Zoom-enabled rooms has its own licensed Zoom host account (so up to 5 rooms can host simultaneously without conflicting) and its own Google Calendar (separate from the 3 category calendars) that the join link gets published to. See [technical-decisions.md](handoff/technical-decisions.md#zoom-integration) for why, and [integration-guides.md](handoff/integration-guides.md#5-zoom-api) for setup.
 
 ---
 
@@ -291,9 +299,11 @@ interface IMeeting {
   startDateTime: Date;
   endDateTime: Date;
   email: string;
-  zoomAccount?: string | null;     // a Zoom-room label, e.g. "Serenity Room - Zoom"
+  zoomRoom?: string | null;        // a Zoom-room label, e.g. "Serenity Room - Zoom"
   zoomLink?: string | null;
   zid?: string | null;             // Zoom meeting ID
+  zoomCalendarEventId?: string | null;  // event ID on that room's own Google Calendar
+  zoomSyncStatus?: string | null;  // "synced" | "error", independent of syncStatus
   calType: string[];               // subset of ["AA", "Al-Anon", "Other"]
   modeType: string;                // "Remote" | "In Person" | "Hybrid"
   room: string;

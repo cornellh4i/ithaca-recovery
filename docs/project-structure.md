@@ -8,7 +8,7 @@
 | UI | React 18 + Material-UI 5 |
 | Database | MongoDB via Prisma ORM 5 |
 | Authentication | NextAuth with Google OAuth 2.0 + OpenID Connect (`next-auth` 4) |
-| External APIs | Google Calendar API (`googleapis`), Zoom API (legacy, see [api-reference.md](api-reference.md#zoom-legacy-unfinished)) |
+| External APIs | Google Calendar API (`googleapis`), Zoom API (Server-to-Server OAuth, see [api-reference.md](api-reference.md#zoom)) |
 | State Management | TanStack React Query, SWR |
 | XLSX | `xlsx` (SheetJS) — meeting export |
 
@@ -54,7 +54,6 @@ app/
 │   ├── export/lease/, export/meetings/
 │   ├── retrieve/lease-settings/, update/lease-settings/
 │   ├── auth/authConfig.ts, auth/status/, auth/[...nextauth]/
-│   ├── zoom/                    # legacy, orphaned — see api-reference.md
 │   └── server/redis.ts          # dead code (entirely commented out)
 ├── components/
 │   ├── atoms/                   # Primitive UI elements
@@ -88,7 +87,7 @@ There's no `templates/` and `pages/` tier — page-level composition is inlined 
 
 ### `services/` — backend services
 
-`auth.ts` (`getAuth`, `requireRole`), `googleCalendar.ts` (multi-calendar create/update/delete/EXDATE/UNTIL/reachability), `leaseDefaults.ts` (default `LeaseSettings` used until a Super Admin saves real ones).
+`auth.ts` (`getAuth`, `requireRole`), `googleCalendar.ts` (multi-calendar create/update/delete/EXDATE/UNTIL/reachability), `zoom.ts` (Server-to-Server token fetch, per-room create/update/delete Zoom meeting, room→calendar and room→host-email lookup maps), `leaseDefaults.ts` (default `LeaseSettings` used until a Super Admin saves real ones).
 
 ### `hooks/`
 
@@ -104,7 +103,7 @@ MongoDB via Prisma. Models:
 
 | Model | Key Fields |
 |---|---|
-| `Meeting` | `mid` (unique), `title`, `calType String[]`, `description`, `creator`, `group`, `startDateTime`, `endDateTime`, `email`, `zoomAccount`, `zoomLink`, `zid`, `room`, `modeType`, `status` (default `"Active"`), `isRecurring`, `googleCalendarEventId`, `googleCalendarEventIds Json?` (per-category), `syncStatus`, `deletedAt`, `updatedAt` |
+| `Meeting` | `mid` (unique), `title`, `calType String[]`, `description`, `creator`, `group`, `startDateTime`, `endDateTime`, `email`, `zoomRoom`, `zoomLink`, `zid`, `zoomCalendarEventId`, `zoomSyncStatus`, `room`, `modeType`, `status` (default `"Active"`), `isRecurring`, `googleCalendarEventId`, `googleCalendarEventIds Json?` (per-category), `syncStatus`, `deletedAt`, `updatedAt` |
 | `RecurrencePattern` | `mid` (unique, FK to Meeting), `type`, `startDate`, `endDate`, `numberOfOccurrences`, `daysOfWeek[]`, `firstDayOfWeek`, `interval`, `weekOfMonth`, `dayOfMonth`, `excludedDates DateTime[]` |
 | `Admin` | `email` (unique), `name`, `role Role` (`SUPER_ADMIN \| ADMIN \| USER`), `googleId`, `refreshToken`, `accessToken`, `tokenExpiresAt` |
 | `LeaseSettings` | singleton — `leaseStartDate`, `leaseEndDate`, `rooms Json` (`IRoomRate[]`), `agentFirstName/LastName/Title/Email/Phone/StreetAddress/City/State/Zip`, `emailTemplate` |
@@ -136,8 +135,10 @@ See [api-reference.md](api-reference.md#data-types-reference) for the matching `
 | `NEXTAUTH_SECRET` | NextAuth JWT signing secret |
 | `NEXTAUTH_URL` | Canonical app URL NextAuth uses to build redirect/callback URLs |
 | `GOOGLE_CALENDAR_AA` / `GOOGLE_CALENDAR_ALANON` / `GOOGLE_CALENDAR_OTHER` | Google Calendar IDs to publish each category's events to |
-| `ZOOM1_CLIENT_ID` / `ZOOM1_CLIENT_SECRET` / `ZOOM1_ACCOUNT_ID` | Zoom OAuth credentials for the legacy, orphaned Zoom integration |
-| `NEXT_PUBLIC_ZOOM_BASE_API` / `NEXT_PUBLIC_ZOOM1_EMAIL` | Zoom API base URL and account email, also part of the legacy Zoom integration |
+| `ZOOM_CLIENT_ID` / `ZOOM_CLIENT_SECRET` / `ZOOM_ACCOUNT_ID` | Zoom Server-to-Server OAuth credentials (account-level) |
+| `NEXT_PUBLIC_ZOOM_BASE_API` | Zoom API base URL (`https://api.zoom.us/v2`) |
+| `GOOGLE_CALENDAR_ZOOM_<ROOM>` (×5) | Google Calendar ID for each Zoom-enabled room's own calendar, separate from the 3 category calendars |
+| `ZOOM_HOST_<ROOM>` (×5) | Licensed Zoom user email that hosts meetings for that room |
 
 The `redis` package is still listed in `package.json` but nothing in the app imports it — `app/api/server/redis.ts` is entirely commented out — so no Redis instance is required to run the app today.
 

@@ -10,7 +10,7 @@ Step-by-step setup instructions for every external service the platform depends 
 2. [MongoDB + Prisma](#2-mongodb--prisma)
 3. [Google OAuth (NextAuth)](#3-google-oauth-nextauth)
 4. [Google Calendar API](#4-google-calendar-api)
-5. [Zoom API (legacy, unfinished)](#5-zoom-api-legacy-unfinished)
+5. [Zoom API](#5-zoom-api)
 6. [PandaDocs / Lease Export](#6-pandadocs--lease-export)
 7. [Vercel Deployment](#7-vercel-deployment)
 
@@ -28,19 +28,32 @@ DATABASE_URL="mongodb+srv://..."
 GOOGLE_CLIENT_ID="<google-oauth-client-id>"
 GOOGLE_CLIENT_SECRET="<google-oauth-client-secret>"
 NEXTAUTH_SECRET="<random-secret-string>"
-NEXTAUTH_URL="http://localhost:3000"   # production: https://ithaca-recovery-deployment.vercel.app
+NEXTAUTH_URL="http://localhost:3000"   # production: https://ithaca-recovery.vercel.app
 
 # Google Calendar — one calendar ID per meeting category
 GOOGLE_CALENDAR_AA="<calendar-id>@group.calendar.google.com"
 GOOGLE_CALENDAR_ALANON="<calendar-id>@group.calendar.google.com"
 GOOGLE_CALENDAR_OTHER="<calendar-id>@group.calendar.google.com"
 
-# Zoom (legacy, single account only — see section 5)
-ZOOM1_CLIENT_ID="..."
-ZOOM1_CLIENT_SECRET="..."
-ZOOM1_ACCOUNT_ID="..."
+# Zoom — account-level credentials (see section 5)
+ZOOM_CLIENT_ID="..."
+ZOOM_CLIENT_SECRET="..."
+ZOOM_ACCOUNT_ID="..."
 NEXT_PUBLIC_ZOOM_BASE_API="https://api.zoom.us/v2"
-NEXT_PUBLIC_ZOOM1_EMAIL="zoom-account-1@example.com"
+
+# Zoom Room Calendars — one Google Calendar per Zoom-enabled room
+GOOGLE_CALENDAR_ZOOM_SERENITY_ROOM="<calendar-id>@group.calendar.google.com"
+GOOGLE_CALENDAR_ZOOM_SEEDS_OF_HOPE_ROOM="<calendar-id>@group.calendar.google.com"
+GOOGLE_CALENDAR_ZOOM_UNITY_ROOM="<calendar-id>@group.calendar.google.com"
+GOOGLE_CALENDAR_ZOOM_ROOM_FOR_IMPROVEMENT="<calendar-id>@group.calendar.google.com"
+GOOGLE_CALENDAR_ZOOM_CHILDRENS_ROOM_518="<calendar-id>@group.calendar.google.com"
+
+# Zoom Room Hosts — one licensed Zoom user email per room
+ZOOM_HOST_SERENITY_ROOM="..."
+ZOOM_HOST_SEEDS_OF_HOPE_ROOM="..."
+ZOOM_HOST_UNITY_ROOM="..."
+ZOOM_HOST_ROOM_FOR_IMPROVEMENT="..."
+ZOOM_HOST_CHILDRENS_ROOM_518="..."
 ```
 
 ---
@@ -99,7 +112,7 @@ Authenticates board members via their Google account and grants the server an OA
 3. Under **APIs & Services → Credentials → Create credentials → OAuth 2.0 Client ID**, choose **Web application**.
 4. Add authorized redirect URIs:
    - `http://localhost:3000/api/auth/callback/google` (dev)
-   - `https://ithaca-recovery-deployment.vercel.app/api/auth/callback/google` (prod)
+   - `https://ithaca-recovery.vercel.app/api/auth/callback/google` (prod)
 5. Copy **Client ID** → `GOOGLE_CLIENT_ID` and **Client Secret** → `GOOGLE_CLIENT_SECRET`.
 6. Under **OAuth consent screen**, the `calendar.events` scope requested by this app is sensitive, which keeps the app in "unverified" status (100-test-user cap) while the consent screen's User Type is **External**. If the Google Cloud project sits under ICR's Google Workspace org, switching User Type to **Internal** removes that cap with no code change — see the project plan's Follow-up items for the current status of that switch.
 7. Generate a random secret for `NEXTAUTH_SECRET` (e.g. `openssl rand -base64 32`).
@@ -167,29 +180,34 @@ Sync is fail-soft and non-blocking relative to the MongoDB write: on failure, th
 
 ---
 
-## 5. Zoom API (legacy, unfinished)
+## 5. Zoom API
 
-### What it does today
-Nothing is called from the live app. This is orphaned Server-to-Server OAuth code from before the room list was redesigned around named Zoom rooms — see [technical-decisions.md](technical-decisions.md#zoom-integration) for the current state and what's planned to replace it.
+### What it does
+Creates/updates/deletes a real Zoom meeting whenever a meeting has a `zoomRoom` set, then publishes the join link to that room's own Google Calendar as the event's `location` (which Zoom Room hardware uses for one-touch join detection). See [technical-decisions.md](technical-decisions.md#zoom-integration) for the full design, the per-room-host rationale, and a timezone gotcha worth reading before touching this code.
 
-### Zoom App setup (if resuming this work)
+### Zoom App setup
 
 1. Go to [marketplace.zoom.us](https://marketplace.zoom.us) → **Develop** → **Build App** → **Server-to-Server OAuth**.
-2. Fill in app name and description.
-3. Under **Scopes**, add `meeting:write:admin`, `meeting:read:admin`, `meeting:delete:admin`.
-4. Activate the app.
-5. Copy **Account ID**, **Client ID**, **Client Secret** → `ZOOM1_ACCOUNT_ID`, `ZOOM1_CLIENT_ID`, `ZOOM1_CLIENT_SECRET`.
+2. Fill in app name and description, activate the app.
+3. Under **Scopes**, add: `meeting:write:admin`, `meeting:read:admin`, `meeting:update:admin`, `meeting:delete:admin`, and `user:read:list_users:admin` (needed to look up which licensed users exist on the account when confirming the 5 room-host emails below).
+4. Copy **Account ID**, **Client ID**, **Client Secret** → `ZOOM_ACCOUNT_ID`, `ZOOM_CLIENT_ID`, `ZOOM_CLIENT_SECRET`.
 
-### Route files
-| Route | File |
-|---|---|
-| Generate token | `frontend/app/api/zoom/generateToken.ts` |
-| Create meeting | `frontend/app/api/zoom/CreateMeeting/route.ts` |
-| Update meeting | `frontend/app/api/zoom/UpdateMeeting/route.ts` |
-| Delete meeting | `frontend/app/api/zoom/DeleteMeeting/route.ts` |
-| Get meeting | `frontend/app/api/zoom/GetMeeting/asyncFunction.ts` |
+### Per-room setup
 
-Every call first fetches a fresh token from `generateZoomToken()` (posts to `https://zoom.us/oauth/token`, `grant_type=account_credentials`) — the token is short-lived and not cached.
+Each of the 5 Zoom-enabled rooms needs two things configured before it works:
+
+1. **A dedicated licensed Zoom user** on the account (ICR pre-provisioned 5) — set its email as that room's `ZOOM_HOST_<ROOM>` env var. `createZoomMeeting` schedules under `POST /users/{this email}/meetings`, not `/users/me/meetings` — Zoom's `userId` path param accepts an email directly. This is what lets multiple rooms host simultaneously without conflicting; pointing every room at the same host silently serializes them.
+2. **A Google Calendar dedicated to that room** (separate from the 3 category calendars in section 4) — set its ID as `GOOGLE_CALENDAR_ZOOM_<ROOM>`. This calendar must be shared with whatever Google account the signed-in admin uses (same sharing requirement as section 4), and it must be the calendar that room's physical Zoom Room hardware is actually configured to read from in Zoom's admin console — confirm this with whoever manages the Zoom account, since hardware can be pointed at a different (e.g. legacy) calendar than the one the app writes to.
+
+Room slugs match `zoomRoomOptions` in `frontend/util/rooms.ts`: `SERENITY_ROOM`, `SEEDS_OF_HOPE_ROOM`, `UNITY_ROOM`, `ROOM_FOR_IMPROVEMENT`, `CHILDRENS_ROOM_518`.
+
+### Key client code
+`frontend/services/zoom.ts` — `checkZoomReachable`, `createZoomMeeting(meeting, zoomRoom)`, `updateZoomMeeting(zid, meeting)`, `deleteZoomMeeting(zid)`, plus the `zoomRoomCalendarId` and `zoomRoomHostEmail` lookup maps. Called directly from the meeting routes (`write`, `update`, `delete`, `update/meeting/sync`) — there's no separate `/api/zoom/*` HTTP surface.
+
+Every call first fetches a fresh token (posts to `https://zoom.us/oauth/token`, `grant_type=account_credentials`) — the token is short-lived and not cached.
+
+### Verifying it's working
+`GET /api/admin/diagnostics` includes a `zoom.reachable` check (account-level token fetch, doesn't verify per-room setup). To confirm a specific room end-to-end: create a real meeting in the app with that room selected, then check that (a) the meeting shows a join link and (b) that room's Google Calendar has a new event with the join link in its `location` field.
 
 ---
 

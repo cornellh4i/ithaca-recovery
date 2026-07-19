@@ -65,15 +65,21 @@ This document answers "why did we build it this way?" for every significant tech
 
 ## Zoom Integration
 
-**Decision:** Integrate directly with the Zoom API using Server-to-Server OAuth (account credentials grant), proxied through our own Next.js API routes.
+**Decision:** Each of ICR's 5 Zoom-enabled rooms gets its own licensed Zoom host account and its own Google Calendar (separate from the 3 category calendars). Creating/updating/deleting a meeting calls the Zoom API directly (Server-to-Server OAuth, account-credentials grant) under that room's host, then publishes the join link to that room's calendar as the event's `location` field.
 
 **Why:**
-- ICR runs meetings that can be in-person, Zoom-only, or hybrid, and the Zoom meetings are owned by ICR's organizational accounts rather than individual board members, so account-credentials OAuth (not user-level OAuth) is the right grant type.
+- Zoom cannot host two simultaneous meetings under one account. ICR provisioned 5 separate licensed users up front for exactly this reason — one per room — so `services/zoom.ts` schedules under `POST /users/{room's host email}/meetings` rather than a single shared account. (An earlier version of this integration called `/users/me/meetings` for every room, which serializes all 5 rooms through one host and silently risks conflicts the moment two rooms have overlapping meetings — fixed 2026-07-19, worth remembering as a class of bug if this pattern gets reused elsewhere.)
+- The physical Zoom Room hardware has no Zoom-native "Room Calendar" resource here — each room's calendar in Zoom's admin console is actually a Google Calendar. There's no Google Workspace add-on that auto-creates a Zoom meeting from a calendar event (confirmed by testing directly), so the app calls the Zoom API itself and writes the result into that calendar. Zoom Room hardware detects a joinable meeting from the event's **`location`** field specifically, not the description.
+- Recurring meetings get one stable Zoom meeting (`type: 2`) created at the series' first occurrence, reused for every future instance — occurrence-level deletes (`this` / `thisAndFollowing`) leave it untouched; only a whole-series delete or room reassignment touches Zoom.
+- Zoom sync (`zoomSyncStatus`) is tracked independently from Google Calendar category sync (`syncStatus`) — the two can succeed or fail independently, same fail-soft pattern as the rest of the app.
 
-**Current state:** only a single Zoom account (`ZOOM1_*` env vars) is wired up, and it's not called from any current route or UI — orphaned code from before the room list was redesigned. The room selector in the meeting form now offers five named Zoom rooms (e.g. "Serenity Room - Zoom"), stored as a label on `Meeting.zoomAccount`, but there's no live per-room Zoom API integration behind that selection yet — no account rotation, no "which room's Zoom account is free" check. Rework is planned.
+**A trap worth knowing about:** Zoom silently ignores the `timezone` field on create/update whenever `start_time` ends in `Z` (a UTC ISO string) — which is what `Date.toISOString()` always produces. `services/zoom.ts`'s `toZoomStartTime()` works around this by formatting the UTC `Date` as Eastern *wall-clock* time (no `Z` suffix) before sending it, alongside `timezone: "America/New_York"`. Any future change to how the start time is built needs to preserve this, or meetings will silently schedule at the wrong hour.
+
+**Current state (2026-07-19):** implemented and live-tested end-to-end for meeting creation on one room (Children's Room, against test Zoom/Google credentials — a meeting created through the app appeared on the physical Zoom Room and was joinable). Not yet live-tested: update (room reassignment, edit-in-place), delete, and the sync-retry endpoint; the other 4 rooms have no hardware connected yet to test against. Production still needs real Zoom Server-to-Server credentials from ICR (currently pointed at a test account) and a one-off Mongo migration renaming the old `zoomAccount` field to `zoomRoom` on the production collection — Prisma + MongoDB has no formal migration system, see [integration-guides.md](integration-guides.md#2-mongodb--prisma) for the manual `db push`-plus-script pattern this reused.
 
 **Trade-offs:**
-- Token generation happens on every Zoom API call (no token is cached). For the current scale, this is fine.
+- Token generation happens on every Zoom API call (no token is cached). Fine at ICR's scale; would need caching if call volume grew significantly.
+- 5 separate licensed Zoom seats is a real recurring cost, in exchange for guaranteed non-conflicting concurrent meetings — a single shared account with a "is this account free" check was considered and rejected as added complexity not worth it for 5 rooms.
 
 ---
 
