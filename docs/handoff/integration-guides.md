@@ -207,7 +207,9 @@ Room slugs match `zoomRoomOptions` in `frontend/util/rooms.ts`: `SERENITY_ROOM`,
 Every call first fetches a fresh token (posts to `https://zoom.us/oauth/token`, `grant_type=account_credentials`) — the token is short-lived and not cached.
 
 ### Verifying it's working
-`GET /api/admin/diagnostics` includes a `zoom.reachable` check (account-level token fetch, doesn't verify per-room setup). To confirm a specific room end-to-end: create a real meeting in the app with that room selected, then check that (a) the meeting shows a join link and (b) that room's Google Calendar has a new event with the join link in its `location` field.
+`GET /api/admin/diagnostics` covers both levels: `zoom.reachable` is an account-level token fetch, and `zoom.rooms.<room>` checks each room individually — `calendarOk` (that room's Google Calendar is reachable), `hostOk` (its `ZOOM_HOST_<ROOM>` email resolves to a real user on the account), and `hostLicensed` (`false` flags a Basic-type host, which caps meetings at 40 minutes — a likely cause if a specific room's longer meetings keep cutting off). The Diagnostics tab on `/admin` surfaces all of this per room.
+
+To confirm a room end-to-end beyond what Diagnostics checks: create a real meeting in the app with that room selected, then check that (a) the meeting shows a join link and (b) that room's Google Calendar has a new event with the join link in its `location` field.
 
 ---
 

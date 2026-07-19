@@ -110,8 +110,9 @@
 | 6.6 | Edit a meeting's Zoom Room to a different room | The old room's Zoom meeting and calendar event are removed; the new room gets a fresh Zoom meeting and calendar event | | |
 | 6.7 | Delete a non-recurring meeting that has a Zoom Room set | The Zoom meeting and its room-calendar event are both removed | | |
 | 6.8 | Delete a single occurrence ("This event") from a recurring meeting with a Zoom Room set | The Zoom meeting is untouched — it's one stable meeting shared by the whole series; only "All events" removes it | | |
-| 6.9 | On `/admin` → Diagnostics, check the Zoom status row | Shows account reachability plus a per-room breakdown of which Zoom Room calendars are reachable | | |
-| 6.10 | Force a Zoom sync failure (e.g. temporarily use an invalid `ZOOM_CLIENT_SECRET`) | Meeting shows a Zoom-specific ⚠ status separate from the Google Calendar one; Diagnostics' Meeting Counts card shows a nonzero Zoom sync-error count; **Retry sync** clears both once credentials are fixed | | |
+| 6.9 | On `/admin` → Diagnostics, check the Zoom status row | Shows account reachability plus a per-room breakdown: calendar reachable, host resolves, and whether the host is Licensed | | |
+| 6.10 | Temporarily set one room's `ZOOM_HOST_<ROOM>` to a nonexistent email, reload Diagnostics | That room shows "Host ✕" and is flagged out of the "N/5 rooms fully configured" count; other rooms are unaffected | | |
+| 6.11 | Force a Zoom sync failure (e.g. temporarily use an invalid `ZOOM_CLIENT_SECRET`) | Meeting shows a Zoom-specific ⚠ status separate from the Google Calendar one; Diagnostics' Meeting Counts card shows a nonzero Zoom sync-error count; **Retry sync** clears both once credentials are fixed | | |
 
 ---
 
@@ -171,7 +172,7 @@
 | # | Step | Expected Result | Pass/Fail | Notes |
 |---|------|-----------------|-----------|-------|
 | 11.1 | Sign in as `SUPER_ADMIN`, open `/admin` | All four tabs (Diagnostics, Users, Import, Export) are accessible | | |
-| 11.2 | Diagnostics tab | System Status card shows DB latency, Google Calendar reachability per category (AA/Al-Anon/Other), and Zoom account + per-room calendar reachability; Meeting Counts card shows totals matching the actual data (active/suspended, by category, recurring vs. one-time, sync-error counts) | | |
+| 11.2 | Diagnostics tab | System Status card shows DB latency, Google Calendar reachability per category (AA/Al-Anon/Other), and Zoom account reachability + per-room calendar/host/license status; Meeting Counts card shows totals matching the actual data (active/suspended, by category, recurring vs. one-time, sync-error counts) | | |
 | 11.3 | Diagnostics tab, with two meetings intentionally double-booked in the same room | The Conflicts panel does **not** flag them — conflict detection isn't implemented yet (Ticket B.5); this is a known gap, not a bug | | |
 | 11.4 | Diagnostics tab, with a `Suspended` meeting present | It appears in the Suspended panel | | |
 | 11.5 | Users tab → "Invite User" → enter an email and role → "Send Invite" | The person is added to the table immediately; confirm **no email is actually sent** — you must tell them separately | | |
@@ -215,7 +216,7 @@
 | 3. Meeting Editing | 10 | | | | |
 | 4. Meeting Deletion | 7 | | | | |
 | 5. Calendar Display | 9 | | | | |
-| 6. Zoom Room Integration | 10 | | | | |
+| 6. Zoom Room Integration | 11 | | | | |
 | 7. Google Calendar Sync | 6 | | | | |
 | 8. Filters | 5 | | | | |
 | 9. Edge Cases | 6 | | | | |
@@ -223,7 +224,7 @@
 | 11. Admin Panel | 9 | | | | |
 | 12. Weekly View | 5 | | | | |
 | 13. Digital Signage | 5 | | | | |
-| **Total** | **95** | | | | |
+| **Total** | **96** | | | | |
 
 **Overall Assessment:** ☐ Ready for launch &nbsp; ☐ Needs fixes before launch &nbsp; ☐ Major issues found
 

@@ -210,7 +210,10 @@ Zoom sync is independent and follows the same non-blocking pattern. If `zoomRoom
   "googleCalendar": { "categories": { "AA": true, "Al-Anon": true, "Other": false } },
   "zoom": {
     "reachable": true,
-    "roomCalendars": { "Serenity Room - Zoom": true, "Seeds of Hope Room - Zoom": true, "Unity Room - Zoom": true, "Room for Improvement - Zoom": true, "Children's Room @ 518 - Zoom": false }
+    "rooms": {
+      "Serenity Room - Zoom": { "calendarOk": true, "hostOk": true, "hostLicensed": true },
+      "Children's Room @ 518 - Zoom": { "calendarOk": false, "hostOk": true, "hostLicensed": false }
+    }
   },
   "session": { "email": "string", "role": "string" },
   "meetingCounts": {
