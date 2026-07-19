@@ -76,6 +76,8 @@ export function useMeetingForm(initialMeeting?: IMeeting) {
 
     const handleRoomChange = (value: string) => {
         setRoom(value);
+        // In Person meetings never carry a Zoom room — the auto-pairing is only for Hybrid
+        if (mode === "In Person") return;
         const zoom = roomToZoomRoom[value];
         if (zoom) setZoomRoom(zoom);
     };
