@@ -1,4 +1,4 @@
-import type { ILeaseSettings } from "../util/models";
+import type { ILeaseSettings } from "./models";
 
 // Ground-truth defaults: room rates/names match the current room list used by
 // NewMeeting.tsx/EditMeeting.tsx and DailyView.tsx's defaultRooms; rental-agent/email
