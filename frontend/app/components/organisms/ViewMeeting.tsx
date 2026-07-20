@@ -5,6 +5,7 @@ import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
 import DownloadForOfflineIcon from '@mui/icons-material/DownloadForOffline';
 import DeleteRecurringModal from '../molecules/DeleteRecurringModal';
+import DeleteMeetingModal from '../molecules/DeleteMeetingModal';
 
 import { IRecurrencePattern } from '../../../util/models';
 import { convertUTCToET } from "../../../util/timeUtils";
@@ -73,6 +74,7 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
   onSyncSuccess,
 }) => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [syncStatus, setSyncStatus] = useState(initialSyncStatus ?? null);
   const [zoomSyncStatus, setZoomSyncStatus] = useState(initialZoomSyncStatus ?? null);
   const [syncing, setSyncing] = useState(false);
@@ -144,14 +146,19 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
     if (isRecurring) {
       setShowDeleteModal(true);
     } else {
-      onDelete(mid); // TODO: Confirm window
+      setShowDeleteConfirm(true);
     }
   };
 
   const handleModalDelete = (option: 'this' | 'thisAndFollowing' | 'all') => {
-    console.log("Deleting recurring meeting with option:", option); 
+    console.log("Deleting recurring meeting with option:", option);
     onDelete(mid, option);
     setShowDeleteModal(false);
+  };
+
+  const handleConfirmDelete = () => {
+    onDelete(mid);
+    setShowDeleteConfirm(false);
   };
 
   // Reuses the Export XLSX's "Day" column formatting (util/recurrenceDisplay.ts) so a
@@ -285,6 +292,13 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
         isOpen={showDeleteModal}
         onClose={() => setShowDeleteModal(false)}
         onDelete={handleModalDelete}
+      />
+      <DeleteMeetingModal
+        isOpen={showDeleteConfirm}
+        title={title}
+        timeRangeText={timeRangeText}
+        onCancel={() => setShowDeleteConfirm(false)}
+        onConfirm={handleConfirmDelete}
       />
     </div>
   );
