@@ -1,6 +1,7 @@
 # ICR Scheduling Platform — Manual Release Checklist
 
 **Version:** 0.3
+**Last Update**: July 20, 2026
 **Prepared by:** Cornell Hack4Impact
 
 > **What this is now:** Originally a full 96-case manual QA script for every feature. Now that
@@ -16,7 +17,7 @@
 > ❌ Fail, or ⚠️ Partial. If a step fails, note the actual behavior in the "Notes" column.
 > Screenshots are encouraged for any failures.
 
-> **Run tests here:** [Google Sheet](link) <!-- [TODO: Attach link when make one] --> — duplicate a tab for each test run.
+> **Run tests here:** [Google Sheet](https://docs.google.com/spreadsheets/d/1VadUnV-l7nPgKRCIYrZr_NUcC7w41Qd6lDWg7-zMR50/edit?gid=1420783858#gid=1420783858) — duplicate a tab for each test run.
 
 > This markdown file is the source of truth. Update it when features change, then sync the Sheet.
 ---
