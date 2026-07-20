@@ -1,4 +1,4 @@
-import { LeaseSettings } from "@prisma/client";
+import { LeaseSettings, Prisma } from "@prisma/client";
 import { getTestPrismaClient } from "./db";
 
 export async function seedLeaseSettings(overrides: Partial<LeaseSettings> = {}): Promise<LeaseSettings> {
@@ -20,6 +20,9 @@ export async function seedLeaseSettings(overrides: Partial<LeaseSettings> = {}):
       agentZip: "14850",
       emailTemplate: "Hello {group}",
       ...overrides,
-    },
+      // `overrides` is typed via the Prisma model (LeaseSettings), where `rooms`
+      // is the nullable read-side JsonValue; `create()` expects the write-side
+      // InputJsonValue (no bare null). Same cast used in update/lease-settings/route.ts.
+    } as unknown as Prisma.LeaseSettingsCreateInput,
   });
 }
