@@ -11,6 +11,7 @@
 | External APIs | Google Calendar API (`googleapis`), Zoom API (Server-to-Server OAuth, see [api-reference.md](api-reference.md#zoom)) |
 | State Management | TanStack React Query, SWR |
 | XLSX | `xlsx` (SheetJS) — meeting export |
+| Testing | Playwright (E2E), Jest + `@swc/jest` (unit/integration), `mongodb-memory-server` (in-memory Mongo replica set) — see [testing/README.md](testing/README.md) |
 
 ---
 
@@ -26,7 +27,9 @@ ithaca-recovery/
 │   ├── styles/        # SCSS modules
 │   ├── prisma/        # Prisma schema
 │   ├── public/        # Static assets (svg/, favicon)
+│   ├── test/          # Playwright + Jest suite — see Testing section below
 │   └── util/          # Shared types, formatting, and domain-logic utilities (incl. lease defaults)
+├── .github/workflows/ # CI (test.yml — unit/integration/e2e jobs)
 └── docs/              # Documentation
 ```
 
@@ -144,11 +147,30 @@ The `redis` package is still listed in `package.json` but nothing in the app imp
 
 ---
 
+## Testing (`frontend/test/`)
+
+```
+test/
+├── e2e/           # Playwright specs, 1:1 with docs/testing/manual-test-script-template.md's sections
+│   └── support/   # Auth cookie minting, fail-soft sync-state fixtures
+├── unit/          # Jest — pure functions, no I/O
+├── integration/   # Jest — route handlers against a real (in-memory) DB, services mocked
+├── factories/     # Framework-agnostic seed helpers (admin/meeting/lease-settings)
+└── mongo/         # mongodb-memory-server replica-set wrapper
+```
+
+Three tiers (unit/integration/e2e), run in CI via `.github/workflows/test.yml` on every push/PR to `main`/`master`. Full walkthrough of how each tier works, how auth/external services are handled without real credentials, and what's still manual: [`docs/testing/README.md`](testing/README.md).
+
+---
+
 ## Scripts
 
 ```bash
-yarn dev          # Start Next.js dev server
-yarn build        # prisma generate && next build
-yarn start        # Start production server
-yarn lint         # Run ESLint
+yarn dev               # Start Next.js dev server
+yarn build             # prisma generate && next build
+yarn start             # Start production server
+yarn lint              # Run ESLint
+yarn test:unit         # Jest — pure functions
+yarn test:integration  # Jest — route handlers against an in-memory Mongo replica set
+yarn test:e2e          # Playwright — full browser E2E (needs `npx playwright install --with-deps chromium` once)
 ```
