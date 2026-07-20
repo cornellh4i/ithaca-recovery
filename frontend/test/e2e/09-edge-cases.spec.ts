@@ -46,12 +46,7 @@ test.describe("edge cases", () => {
     await expect(page.getByPlaceholder("Meeting title")).toHaveValue(longTitle);
   });
 
-  // [CURRENT BEHAVIOR, NOT THE MANUAL SCRIPT'S EXPECTATION] The manual script expects
-  // rapid clicks to produce only one meeting; NewMeeting.tsx's createMeeting() has no
-  // submit debounce or disable-while-submitting guard, so each click fires its own
-  // POST. Documents the real (undesirable) behavior rather than asserting the
-  // aspirational one — update this test if a submit guard gets added.
-  test("9.5 [CURRENT BEHAVIOR] rapidly clicking Create Meeting creates one meeting per click", async ({ adminPage }) => {
+  test("9.5 rapidly clicking Create Meeting only creates one meeting", async ({ adminPage }) => {
     const { page } = adminPage;
     await page.goto("/");
     await page.getByText("New Meeting").click();
@@ -66,12 +61,23 @@ test.describe("edge cases", () => {
     await page.getByPlaceholder("Email").fill("rapid@test.icr");
 
     page.on("dialog", (dialog) => dialog.accept());
-    const button = page.getByRole("button", { name: "Create Meeting" });
-    await Promise.all([button.click(), button.click(), button.click()]);
+    // By CSS class, not accessible name — the button's own text flips to
+    // "Creating…" as soon as the first click lands (that's the fix), which
+    // would otherwise make a by-name locator stop resolving for the rest.
+    const button = page.locator('[class*="createMeetingButton"]');
+    // dispatchEvent bypasses Playwright's actionability waiting (which would
+    // otherwise just wait for the button to re-enable between clicks) — firing
+    // all three as near-simultaneously as possible is what actually exercises
+    // the isSubmitting guard in NewMeeting.tsx's createMeeting().
+    await Promise.all([
+      button.dispatchEvent("click"),
+      button.dispatchEvent("click"),
+      button.dispatchEvent("click"),
+    ]);
     await page.waitForTimeout(1000);
 
     const prisma = getTestPrismaClient();
     const created = await prisma.meeting.findMany({ where: { title: "Rapid Click Meeting" } });
-    expect(created).toHaveLength(3);
+    expect(created).toHaveLength(1);
   });
 });
