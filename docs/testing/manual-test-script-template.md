@@ -22,6 +22,8 @@
 
 ## 1. Authentication — Google SSO Login
 
+> **Automated:** `frontend/test/e2e/01-authentication.spec.ts`
+
 | # | Step | Expected Result | Pass/Fail | Notes |
 |---|------|-----------------|-----------|-------|
 | 1.1 | Navigate to the platform URL without signing in | Dashboard loads with calendar view visible and "Sign In" button in the top nav | | |
@@ -38,6 +40,8 @@
 
 ## 2. Meeting Creation
 
+> **Automated:** `frontend/test/e2e/02-meeting-creation.spec.ts`
+
 | # | Step | Expected Result | Pass/Fail | Notes |
 |---|------|-----------------|-----------|-------|
 | 2.1 | From the dashboard sidebar, click "+ New Meeting" | Meeting creation form opens in the sidebar | | |
@@ -52,6 +56,8 @@
 ---
 
 ## 3. Meeting Editing
+
+> **Automated:** `frontend/test/e2e/03-meeting-editing.spec.ts`
 
 | # | Step | Expected Result | Pass/Fail | Notes |
 |---|------|-----------------|-----------|-------|
@@ -70,6 +76,8 @@
 
 ## 4. Meeting Deletion
 
+> **Automated:** `frontend/test/e2e/04-meeting-deletion.spec.ts`
+
 | # | Step | Expected Result | Pass/Fail | Notes |
 |---|------|-----------------|-----------|-------|
 | 4.1 | Select a **non-recurring** meeting, click **⋮** → "Delete Meeting" | Meeting is deleted **immediately, with no confirmation prompt** — verify this is in fact what happens, since it's an easy-to-miss risk for admins | | |
@@ -83,6 +91,8 @@
 ---
 
 ## 5. Calendar Display
+
+> **Automated:** `frontend/test/e2e/05-calendar-display.spec.ts`
 
 | # | Step | Expected Result | Pass/Fail | Notes |
 |---|------|-----------------|-----------|-------|
@@ -99,6 +109,8 @@
 ---
 
 ## 6. Zoom Room Integration
+
+> **Automated:** `frontend/test/e2e/06-zoom-integration.spec.ts`
 
 | # | Step | Expected Result | Pass/Fail | Notes |
 |---|------|-----------------|-----------|-------|
@@ -118,6 +130,8 @@
 
 ## 7. Google Calendar Sync (One-Way, per category)
 
+> **Automated:** `frontend/test/e2e/07-google-calendar-sync.spec.ts`
+
 | # | Step | Expected Result | Pass/Fail | Notes |
 |---|------|-----------------|-----------|-------|
 | 7.1 | Create a meeting with Meeting Type "AA" | Meeting appears on ICR's AA Google Calendar | | |
@@ -131,6 +145,8 @@
 
 ## 8. Room and Meeting Filters
 
+> **Automated:** `frontend/test/e2e/08-filters.spec.ts`
+
 | # | Step | Expected Result | Pass/Fail | Notes |
 |---|------|-----------------|-----------|-------|
 | 8.1 | Open Day view | All room, Zoom Room, Calendar, and Mode filters start checked | | |
@@ -142,6 +158,8 @@
 ---
 
 ## 9. Edge Cases and Error Handling
+
+> **Automated:** `frontend/test/e2e/09-edge-cases.spec.ts`
 
 | # | Step | Expected Result | Pass/Fail | Notes |
 |---|------|-----------------|-----------|-------|
@@ -156,6 +174,8 @@
 
 ## 10. Recurring Meetings
 
+> **Automated:** `frontend/test/e2e/10-recurring-meetings.spec.ts`
+
 | # | Step | Expected Result | Pass/Fail | Notes |
 |---|------|-----------------|-----------|-------|
 | 10.1 | Create a weekly recurring meeting (e.g., every Tuesday) | Recurrence options appear in the form; series is created | | |
@@ -168,6 +188,8 @@
 ---
 
 ## 11. Admin Panel — Roles & Tabs
+
+> **Automated:** `frontend/test/e2e/11-admin-panel.spec.ts`
 
 | # | Step | Expected Result | Pass/Fail | Notes |
 |---|------|-----------------|-----------|-------|
@@ -185,6 +207,8 @@
 
 ## 12. Weekly View
 
+> **Automated:** `frontend/test/e2e/12-weekly-view.spec.ts`
+
 | # | Step | Expected Result | Pass/Fail | Notes |
 |---|------|-----------------|-----------|-------|
 | 12.1 | Switch to Week view | 7-day grid (Sunday–Saturday); no meetings shown until a room filter is checked (see 8.2) | | |
@@ -196,6 +220,8 @@
 ---
 
 ## 13. Digital Signage
+
+> **Automated:** `frontend/test/e2e/13-digital-signage.spec.ts`
 
 | # | Step | Expected Result | Pass/Fail | Notes |
 |---|------|-----------------|-----------|-------|
