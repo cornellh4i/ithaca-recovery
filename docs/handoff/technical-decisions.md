@@ -99,6 +99,26 @@ Diagnostics (`GET /api/admin/diagnostics`, surfaced on `/admin`) checks each roo
 
 ---
 
+## Testing Strategy: Playwright-primary, Jest for narrower jobs
+
+**Decision:** Playwright for E2E (the bulk of the suite), Jest for two narrower jobs — pure-function unit tests and route-handler integration tests that need precise mocked-timing control. Not a single framework for everything.
+
+**Why:**
+- Most of this app's complexity lives in UI wiring and route orchestration, not in isolable pure functions, so E2E carries the most weight (68 e2e vs. 23 unit vs. 3 integration tests as of the initial build). Playwright driving a real browser against a real spawned `next dev` server catches what unit/integration tests structurally can't — a broken click handler, a locator that silently stops matching, a race between two rapid clicks (this is exactly how the double-click duplicate-meeting bug was caught).
+- `package.json` already listed unused `@jest/globals`/`@testing-library/react` deps before this suite existed — Jest reuses that intent for unit/integration rather than adding a third framework.
+
+**Auth in tests:** no dev-login bypass was added. Tests mint a real `next-auth.session-token` JWT directly (`next-auth/jwt`'s `encode()` with `NEXTAUTH_SECRET`) and inject it via Playwright's `context.addCookies()`. This works cleanly because of how the `jwt` callback is written (see Authentication above) — `role` is re-read from the `Admin` collection on every request, not baked into the token, so the minted token only needs `email`/`sub` to match a seeded `Admin` row.
+
+**External services (Google Calendar, Zoom) in tests:** Playwright can't intercept server-side `fetch`/`googleapis` calls — they run in the Next.js server process, not the browser — so route interception was ruled out. Instead, the suite exploits the fail-soft sync gating described above (Google Calendar Sync, Zoom Integration) to reach deterministic states with **zero real network calls**: e.g. setting `zoomRoom` with no Zoom credentials configured deterministically produces `zoomSyncStatus: 'error'`. "Renders a successfully-synced meeting" assertions seed the end state directly rather than driving an actual successful sync, since those are rendering assertions, not integration assertions. This is also why CI's `e2e` job runs with no Google/Zoom secrets configured at all — the suite is built around the failure paths on purpose.
+
+**Provisional tests:** features referenced in the manual QA script but not yet built (conflict detection, XLSX import, the suspend workflow's UI) get tests that lock in their *current* stub behavior rather than being skipped, tagged `@provisional-<ticket>` with a comment pointing at the exact stub line. The goal is that whoever ships the real feature finds the test immediately instead of it silently asserting the old absence of behavior forever.
+
+**Trade-offs:**
+- CI only runs Chromium (`projects: [{ name: "chromium" }]` in `playwright.config.ts`), and no automated tier touches real Zoom/Google credentials. Cross-browser rendering and live-credential behavior (a real Zoom meeting actually getting created, a real Google Calendar event actually appearing) are covered instead by a trimmed manual checklist (`docs/testing/manual-test-script-template.md`), not automation.
+- `workers: 1` — the whole E2E run shares one in-memory Mongo replica set serially rather than one per worker. Fine at this suite's size; documented as a future step if parallelism is ever needed.
+
+---
+
 ## Hosting: Vercel
 
 **Decision:** Deploy the Next.js app on Vercel.

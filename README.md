@@ -56,6 +56,7 @@ This project aims to develop internal tooling and automation to streamline ICR's
 * [![Prisma][Prisma.io]][Prisma-url]
 * NextAuth (Google OAuth) + Google Calendar API
 * ![Vercel](https://img.shields.io/badge/vercel-%23000000.svg?style=for-the-badge&logo=vercel&logoColor=white)
+* Playwright (E2E) + Jest (unit/integration testing)
 
 <!-- Setup -->
 ## Documents
@@ -93,6 +94,16 @@ yarn dev
 ```
 
 Opens at [http://localhost:3000](http://localhost:3000). See [`docs/project-structure.md`](docs/project-structure.md) and [`docs/handoff/integration-guides.md`](docs/handoff/integration-guides.md) for the full setup (MongoDB, Google OAuth, Google Calendar).
+
+### Running Tests
+
+```bash
+yarn test:unit          # pure functions, seconds, no setup
+yarn test:integration   # route handlers against an in-memory Mongo replica set
+yarn test:e2e           # full Playwright E2E suite (needs `npx playwright install --with-deps chromium` once)
+```
+
+See [`docs/testing/README.md`](docs/testing/README.md) for how the suite and CI work.
 
 <!-- Developers -->
 ## Developers
