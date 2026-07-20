@@ -9,7 +9,15 @@ const retrieveAdmins = async (request: Request) => {
     const auth = await requireRole(Role.SUPER_ADMIN);
     if (auth instanceof Response) return auth;
 
-    const admins: IAdmin[] = await prisma.admin.findMany();
+    const admins: IAdmin[] = await prisma.admin.findMany({
+      select: {
+        name: true,
+        email: true,
+        role: true,
+        googleId: true,
+        tokenExpiresAt: true,
+      },
+    });
 
     return new Response(JSON.stringify(admins), {
       status: 200,

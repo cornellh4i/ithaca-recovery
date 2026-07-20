@@ -91,7 +91,9 @@ function buildEventTitle(meeting: IMeeting): string {
     return suffix ? `${meeting.title} - ${suffix}` : meeting.title;
 }
 
-function buildEventBody(meeting: IMeeting) {
+// locationOverride: Zoom Room calendars pass the join link here — Zoom Rooms detects a
+// joinable meeting from the location field, not the description.
+function buildEventBody(meeting: IMeeting, locationOverride?: string) {
     const descriptionLines = [
         meeting.description,
         meeting.calType?.length ? `Type: ${meeting.calType.join(', ')}` : null,
@@ -103,7 +105,7 @@ function buildEventBody(meeting: IMeeting) {
     const event: Record<string, unknown> = {
         summary: buildEventTitle(meeting),
         description: descriptionLines.join("\n"),
-        location: MEETING_LOCATION_URL,
+        location: locationOverride ?? MEETING_LOCATION_URL,
         start: { dateTime: new Date(meeting.startDateTime).toISOString(), timeZone: "America/New_York" },
         end: { dateTime: new Date(meeting.endDateTime).toISOString(), timeZone: "America/New_York" },
     };
@@ -119,12 +121,13 @@ export async function createCalendarEvent(
     accessToken: string,
     meeting: IMeeting,
     calendarId: string,
+    locationOverride?: string,
 ): Promise<string | null> {
     try {
         const calendar = getCalendarClient(accessToken);
         const res = await calendar.events.insert({
             calendarId,
-            requestBody: buildEventBody(meeting),
+            requestBody: buildEventBody(meeting, locationOverride),
         });
         return res.data.id ?? null;
     } catch (error) {
@@ -138,13 +141,14 @@ export async function updateCalendarEvent(
     googleCalendarEventId: string,
     meeting: IMeeting,
     calendarId: string,
+    locationOverride?: string,
 ): Promise<boolean> {
     try {
         const calendar = getCalendarClient(accessToken);
         await calendar.events.update({
             calendarId,
             eventId: googleCalendarEventId,
-            requestBody: buildEventBody(meeting),
+            requestBody: buildEventBody(meeting, locationOverride),
         });
         return true;
     } catch (error) {

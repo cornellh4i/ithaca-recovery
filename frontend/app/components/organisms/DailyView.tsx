@@ -6,6 +6,7 @@ import { convertUTCToET, formatETDateString, getETDayBounds } from "../../../uti
 import { IMeeting } from "../../../util/models";
 import { passesTagFilters, passesRoomFilter } from "../../../util/meetingFilters";
 import { createCache } from "../../../util/simpleCache";
+import { defaultRooms } from "../../../util/rooms";
 
 type Meeting = {
   id: string;
@@ -94,12 +95,12 @@ export const fetchMeetingsByDay = async (date: Date): Promise<Room[]> => {
           displayStartTime: convertUTCToET(new Date(meeting.trueStartDateTime).toISOString()),
           displayEndTime: convertUTCToET(new Date(meeting.trueEndDateTime).toISOString()),
           tags: [...meeting.calType, meeting.modeType],
-          syncError: meeting.syncStatus === 'error',
+          syncError: meeting.syncStatus === 'error' || meeting.zoomSyncStatus === 'error',
         };
 
         // A Hybrid meeting occupies both its physical room and its Zoom room;
         // Remote only has a Zoom room, In Person only has a physical room.
-        const roomNames: string[] = [meeting.room, meeting.zoomAccount].filter(Boolean);
+        const roomNames: string[] = [meeting.room, meeting.zoomRoom].filter(Boolean);
         roomNames.forEach((roomName: string) => {
           if (!groupedRooms[roomName]) {
             groupedRooms[roomName] = [];
@@ -137,20 +138,6 @@ const formatTime = (hour: number): string => {
 };
 
 const timeSlots = Array.from({ length: 24 }, (_, i) => formatTime(i));
-
-export const defaultRooms = [
-  { name: 'Serenity Room', primaryColor: '#b3ea75' },
-  { name: 'Seeds of Hope Room', primaryColor: '#f7e57b' },
-  { name: 'Unity Room', primaryColor: '#96dbfe' },
-  { name: 'Room for Improvement', primaryColor: '#ffae73' },
-  { name: 'Room for Acceptance', primaryColor: '#ffa3c2' },
-  { name: 'Room for Gratitude', primaryColor: '#d2afff' },
-  { name: 'Serenity Room - Zoom', primaryColor: '#cecece' },
-  { name: 'Seeds of Hope Room - Zoom', primaryColor: '#cecece' },
-  { name: 'Unity Room - Zoom', primaryColor: '#cecece' },
-  { name: 'Room for Improvement - Zoom', primaryColor: '#cecece' },
-  { name: "Children's Room @ 518 - Zoom", primaryColor: '#cecece' },
-];
 
 interface DailyViewProps {
   filters: any;

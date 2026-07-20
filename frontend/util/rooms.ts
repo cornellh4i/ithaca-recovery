@@ -1,5 +1,8 @@
 // Shared physical-room / Zoom-room options and their default pairing, used by the
-// meeting forms (NewMeeting, EditMeeting) and by WeeklyView's room/zoom-room mismatch tag.
+// meeting forms (NewMeeting, EditMeeting), WeeklyView's room/zoom-room mismatch tag,
+// and DailyView/the signage page (via `defaultRooms` below).
+
+import { ROOM_COLORS, ZOOM_ROOM_COLOR } from "./filterColors";
 
 export const physicalRoomOptions = [
   "Serenity Room",
@@ -29,5 +32,13 @@ export const roomToZoomRoom: Record<string, string> = {
 };
 
 /** True if a meeting's Zoom room isn't the default pairing for its physical room. */
-export const isZoomRoomMismatched = (room: string, zoomAccount?: string | null): boolean =>
-  !!zoomAccount && zoomAccount !== roomToZoomRoom[room];
+export const isZoomRoomMismatched = (room: string, zoomRoom?: string | null): boolean =>
+  !!zoomRoom && zoomRoom !== roomToZoomRoom[room];
+
+// Combines the room lists above with their filter colors (util/filterColors.ts) into the
+// {name, primaryColor} shape DailyView and the signage page render rooms with, so that
+// shape doesn't need its own separately-maintained room list.
+export const defaultRooms: { name: string; primaryColor: string }[] = [
+  ...physicalRoomOptions.map(name => ({ name, primaryColor: ROOM_COLORS[name] })),
+  ...zoomRoomOptions.map(name => ({ name, primaryColor: ZOOM_ROOM_COLOR })),
+];

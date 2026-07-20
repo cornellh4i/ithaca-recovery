@@ -11,7 +11,7 @@ export interface OverlapMeeting {
     date: string; // ET calendar date this occurrence belongs to
     tags: string[];
     room: string;
-    zoomAccount?: string | null;
+    zoomRoom?: string | null;
     positionIndex?: number; // Column index among overlapping meetings, assigned below
     totalOverlapping?: number; // Column count among overlapping meetings, assigned below
     isOverflowIndicator?: boolean; // "+N more" pseudo-entry standing in for meetings past MAX_VISIBLE_OVERLAP

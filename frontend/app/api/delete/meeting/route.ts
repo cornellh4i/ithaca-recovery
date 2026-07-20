@@ -7,6 +7,7 @@ import {
   trimCalendarEventSeries,
   calendarIdsForMeeting,
 } from '../../../../services/googleCalendar';
+import { deleteZoomMeeting, zoomRoomCalendarId } from '../../../../services/zoom';
 
 const prisma = new PrismaClient();
 
@@ -117,6 +118,12 @@ const deleteMeeting = async (request: Request) => {
           const eventId = eventIds[cat];
           if (eventId) await deleteCalendarEvent(accessToken, eventId, calId);
         }
+      }
+      // Zoom: whole-series delete only — 'this'/'thisAndFollowing' leave it untouched
+      if (meeting.zid) await deleteZoomMeeting(meeting.zid);
+      if (accessToken && meeting.zoomCalendarEventId && meeting.zoomRoom) {
+        const calId = zoomRoomCalendarId[meeting.zoomRoom];
+        if (calId) await deleteCalendarEvent(accessToken, meeting.zoomCalendarEventId, calId);
       }
     }
 
