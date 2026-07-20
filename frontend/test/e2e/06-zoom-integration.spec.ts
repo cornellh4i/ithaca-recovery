@@ -15,7 +15,7 @@ import { Role } from "@prisma/client";
 // need real external accounts and stay manual-only.
 
 test.describe("zoom integration", () => {
-  test("6.1 picking a Hybrid meeting's room auto-selects the matching Zoom Room", async ({ adminPage }) => {
+  test("6.10 picking a Hybrid meeting's room auto-selects the matching Zoom Room", async ({ adminPage }) => {
     const { page } = adminPage;
     await page.goto("/");
     await page.getByText("New Meeting").click();
@@ -25,7 +25,7 @@ test.describe("zoom integration", () => {
     await expect(page.getByRole("button", { name: "Serenity Room - Zoom" })).toBeVisible();
   });
 
-  test("6.2 changing the auto-selected Zoom Room to a mismatched one flags it on the card", async ({ adminPage }) => {
+  test("6.11 changing the auto-selected Zoom Room to a mismatched one flags it on the card", async ({ adminPage }) => {
     const { page } = adminPage;
     await seedMeeting({
       title: "Mismatched Zoom Meeting",
@@ -41,7 +41,7 @@ test.describe("zoom integration", () => {
     await expect(page.getByTitle("Zoom room: Unity Room")).toBeVisible();
   });
 
-  test("6.3 a meeting with a Zoom Room set attempts a sync and surfaces the resulting status", async ({ adminPage }) => {
+  test("6.12 a meeting with a Zoom Room set attempts a sync and surfaces the resulting status", async ({ adminPage }) => {
     const { page } = adminPage;
     await page.goto("/");
     await page.getByText("New Meeting").click();
@@ -65,7 +65,7 @@ test.describe("zoom integration", () => {
     expect(created?.zoomSyncStatus).toBe("error");
   });
 
-  test("a meeting already synced to Zoom shows the success state and a real join link", async ({ adminPage }) => {
+  test("6.13 a meeting already synced to Zoom shows the success state and a real join link", async ({ adminPage }) => {
     const { page } = adminPage;
     await seedMeeting({
       title: "Synced Zoom Meeting",
@@ -85,7 +85,7 @@ test.describe("zoom integration", () => {
     );
   });
 
-  test("6.11 a failed Zoom sync shows a retry control that re-attempts on click", async ({ page, context }) => {
+  test("6.14 a failed Zoom sync shows a retry control that re-attempts on click", async ({ page, context }) => {
     // The retry-sync route 401s without a session accessToken (unlike create/update,
     // it doesn't fail soft) — the default adminPage fixture mints one without an
     // accessToken on purpose (see sync-fixtures.ts), so this test mints its own

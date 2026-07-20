@@ -9,33 +9,36 @@ async function openMeetingOptions(page: Page, title: string) {
 }
 
 test.describe("meeting deletion", () => {
-  test("4.1, 4.6, 4.7 deleting a non-recurring meeting is immediate, with no confirmation prompt", async ({ adminPage }) => {
+  test("4.1 deleting a non-recurring meeting requires confirmation via a modal", async ({ adminPage }) => {
     const { page } = adminPage;
     await seedMeeting({ title: "One-Off To Delete" });
     await page.goto("/");
+    const prisma = getTestPrismaClient();
+
+    // Clicking "Delete Meeting" opens a confirmation modal rather than deleting immediately.
     await openMeetingOptions(page, "One-Off To Delete");
+    await page.getByRole("button", { name: "Delete Meeting", exact: true }).click();
+    await expect(page.getByText("Delete this meeting?")).toBeVisible();
+    await expect(page.getByText(/will be permanently removed from the calendar/)).toBeVisible();
+    await page.getByRole("button", { name: "Cancel" }).click();
+    await expect(page.getByText("Delete this meeting?")).toHaveCount(0);
 
-    // The point of this test is that there's no confirm() prompt before deletion
-    // (flagged as an easy-to-miss risk in the manual script) — there IS a normal
-    // success alert() afterward, which must still be dismissed or the page hangs.
-    let confirmDialogFired = false;
-    page.on("dialog", (dialog) => {
-      if (dialog.type() === "confirm") confirmDialogFired = true;
-      dialog.accept();
-    });
+    const stillThere = await prisma.meeting.findFirst({ where: { title: "One-Off To Delete" } });
+    expect(stillThere?.deletedAt).toBeNull();
 
+    // Confirming via "Delete meeting" actually deletes it.
+    page.on("dialog", (dialog) => dialog.accept());
+    await openMeetingOptions(page, "One-Off To Delete");
+    await page.getByRole("button", { name: "Delete Meeting", exact: true }).click();
     const deleteResponse = page.waitForResponse((r) => r.url().includes("/api/delete/meeting"));
-    await page.getByRole("button", { name: "Delete Meeting" }).click();
+    await page.getByRole("button", { name: "Delete meeting", exact: true }).click();
     await deleteResponse;
-    expect(confirmDialogFired).toBe(false);
 
     await expect(page.getByText("One-Off To Delete")).toHaveCount(0);
     await page.reload();
     await expect(page.getByText("One-Off To Delete")).toHaveCount(0);
 
-    // Deletion is a soft delete (deletedAt), not a hard remove — the routes/UI
-    // filter it out, but the row itself still exists.
-    const prisma = getTestPrismaClient();
+    // Deletion is a soft delete (deletedAt), not a hard remove.
     const found = await prisma.meeting.findFirst({ where: { title: "One-Off To Delete" } });
     expect(found?.deletedAt).not.toBeNull();
   });
@@ -76,7 +79,7 @@ test.describe("meeting deletion", () => {
     expect(pattern?.excludedDates.length).toBeGreaterThan(0);
   });
 
-  test("4.5 'All events' removes the entire series", async ({ adminPage }) => {
+  test("4.4 'All events' removes the entire series", async ({ adminPage }) => {
     const { page } = adminPage;
     const { meeting } = await seedRecurringMeeting({ title: "Delete Whole Series" });
     await page.goto("/");

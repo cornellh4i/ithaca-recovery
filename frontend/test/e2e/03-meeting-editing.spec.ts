@@ -16,7 +16,7 @@ async function openEditFromDetails(page: import("@playwright/test").Page) {
 }
 
 test.describe("meeting editing", () => {
-  test("3.1 clicking a meeting opens its details panel with correct info", async ({ adminPage }) => {
+  test("3.3 clicking a meeting opens its details panel with correct info", async ({ adminPage }) => {
     const { page } = adminPage;
     await seedMeeting({ title: "Detail Panel Meeting", email: "detail@test.icr" });
     await page.goto("/");
@@ -27,7 +27,7 @@ test.describe("meeting editing", () => {
     await expect(page.getByText("detail@test.icr")).toBeVisible();
   });
 
-  test("3.2-3.4, 3.7-3.9 editing title/date/time persists across a reload", async ({ adminPage }) => {
+  test("3.4 editing title/date/time persists across a reload", async ({ adminPage }) => {
     const { page } = adminPage;
     await seedMeeting({ title: "Editable Meeting" });
     await page.goto("/");
@@ -53,7 +53,7 @@ test.describe("meeting editing", () => {
     expect(updated).not.toBeNull();
   });
 
-  test("3.10 editing a recurring meeting updates the entire series", async ({ adminPage }) => {
+  test("3.5 editing a recurring meeting updates the entire series", async ({ adminPage }) => {
     const { page } = adminPage;
     const meeting = await seedMeeting({ title: "Recurring To Edit", isRecurring: true });
     const prisma = getTestPrismaClient();

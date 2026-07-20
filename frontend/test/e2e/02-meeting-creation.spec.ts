@@ -7,7 +7,7 @@ import { seedMeeting } from "../factories/meeting";
 // 06-zoom-integration.spec.ts, which owns all Zoom-specific assertions.
 
 test.describe("meeting creation", () => {
-  test("2.1-2.4 fill out and submit the form; the meeting appears on the calendar", async ({ adminPage }) => {
+  test("2.2 fill out and submit the form; the meeting appears on the calendar", async ({ adminPage }) => {
     const { page } = adminPage;
     await page.goto("/");
     await page.getByText("New Meeting").click();
@@ -32,7 +32,7 @@ test.describe("meeting creation", () => {
     await expect(page.getByText("Full Flow Meeting")).toBeVisible();
   });
 
-  test("2.5 missing title blocks submission with a validation alert", async ({ adminPage }) => {
+  test("2.3 missing title blocks submission with a validation alert", async ({ adminPage }) => {
     const { page } = adminPage;
     await page.goto("/");
     await page.getByText("New Meeting").click();
@@ -60,7 +60,7 @@ test.describe("meeting creation", () => {
     await expect(page.getByRole("heading", { name: "New Meeting" })).toBeVisible();
   });
 
-  test("2.6 checking multiple Meeting Types saves both categories", async ({ adminPage }) => {
+  test("2.4 checking multiple Meeting Types saves both categories", async ({ adminPage }) => {
     const { page } = adminPage;
     await page.goto("/");
     await page.getByText("New Meeting").click();
@@ -84,7 +84,7 @@ test.describe("meeting creation", () => {
     expect(created?.calType.sort()).toEqual(["AA", "Other"]);
   });
 
-  test("2.8 double-booking a room/time already taken is allowed with no warning", async ({ adminPage }) => {
+  test("2.5 double-booking a room/time already taken is allowed with no warning", async ({ adminPage }) => {
     const { page } = adminPage;
     const existing = await seedMeeting({ title: "Already Booked", room: "Seeds of Hope Room" });
 

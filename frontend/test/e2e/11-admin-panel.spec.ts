@@ -9,7 +9,7 @@ import { Role } from "@prisma/client";
 // XLSX import) — this file just confirms the panel renders their current stub state.
 
 test.describe("admin panel", () => {
-  test("11.1 SUPER_ADMIN sees all four tabs accessible", async ({ superAdminPage }) => {
+  test("11.2 SUPER_ADMIN sees all four tabs accessible", async ({ superAdminPage }) => {
     const { page } = superAdminPage;
     await page.goto("/admin");
     for (const key of ["diagnostics", "users", "import", "export"]) {
@@ -17,7 +17,7 @@ test.describe("admin panel", () => {
     }
   });
 
-  test("11.2 Diagnostics tab shows system status and meeting counts matching real data", async ({ superAdminPage }) => {
+  test("11.3 Diagnostics tab shows system status and meeting counts matching real data", async ({ superAdminPage }) => {
     const { page } = superAdminPage;
     await seedMeeting({ title: "Diag Meeting 1", calType: ["AA"] });
     await seedMeeting({ title: "Diag Meeting 2", calType: ["AA"] });
@@ -29,7 +29,7 @@ test.describe("admin panel", () => {
     await expect(page.getByText("AA: 2")).toBeVisible();
   });
 
-  test("11.3 double-booked meetings in the same room are not flagged as conflicts", async ({ superAdminPage }) => {
+  test("11.4 double-booked meetings in the same room are not flagged as conflicts", async ({ superAdminPage }) => {
     const { page } = superAdminPage;
     await seedMeeting({ title: "Double Book A", room: "Serenity Room" });
     await seedMeeting({ title: "Double Book B", room: "Serenity Room" });
@@ -38,7 +38,7 @@ test.describe("admin panel", () => {
     await expect(page.getByTestId("diagnostics-conflicts-panel").getByText("No conflicts detected.")).toBeVisible();
   });
 
-  test("11.4 a Suspended meeting appears in the Suspended panel", async ({ superAdminPage }) => {
+  test("11.5 a Suspended meeting appears in the Suspended panel", async ({ superAdminPage }) => {
     const { page } = superAdminPage;
     await seedMeeting({ title: "Suspended Meeting", status: "Suspended" });
     await page.goto("/admin");
@@ -46,7 +46,7 @@ test.describe("admin panel", () => {
     await expect(page.getByTestId("diagnostics-suspended-panel").getByText("Suspended Meeting")).toBeVisible();
   });
 
-  test("11.5 inviting a user adds them to the table immediately", async ({ superAdminPage }) => {
+  test("11.6 inviting a user adds them to the table immediately", async ({ superAdminPage }) => {
     const { page } = superAdminPage;
     await page.goto("/admin");
     await page.getByTestId("admin-tab-users").click();
@@ -59,7 +59,7 @@ test.describe("admin panel", () => {
     await expect(page.getByText("invitee@test.icr")).toBeVisible();
   });
 
-  test("11.6 the sole SUPER_ADMIN's role and Remove button are disabled", async ({ page, context }) => {
+  test("11.7 the sole SUPER_ADMIN's role and Remove button are disabled", async ({ page, context }) => {
     const solo = await seedAdmin(Role.SUPER_ADMIN);
     await loginAs(context, solo.email);
     await page.goto("/admin");
@@ -71,7 +71,7 @@ test.describe("admin panel", () => {
     await expect(page.getByText("Can't change the last Super Admin's role.")).toBeVisible();
   });
 
-  test("11.7 Import tab shows hardcoded mock results, not a real parse", async ({ superAdminPage }) => {
+  test("11.8 Import tab shows hardcoded mock results, not a real parse", async ({ superAdminPage }) => {
     const { page } = superAdminPage;
     await page.goto("/admin");
     await page.getByTestId("admin-tab-import").click();
@@ -88,7 +88,7 @@ test.describe("admin panel", () => {
     await expect(page.getByText("Serenity Fellowship")).toBeVisible();
   });
 
-  test("11.8 exporting meetings downloads a real file", async ({ superAdminPage }) => {
+  test("11.9 exporting meetings downloads a real file", async ({ superAdminPage }) => {
     const { page } = superAdminPage;
     await seedMeeting({ title: "Export Me" });
     await page.goto("/admin");

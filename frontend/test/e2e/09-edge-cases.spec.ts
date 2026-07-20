@@ -9,7 +9,7 @@ import { getTestPrismaClient } from "../factories/db";
 // an automated run, so they stay manual-only.
 
 test.describe("edge cases", () => {
-  test("9.1 submitting a past date/time is silently allowed, not blocked", async ({ adminPage }) => {
+  test("9.4 submitting a past date/time is silently allowed, not blocked", async ({ adminPage }) => {
     const { page } = adminPage;
     await page.goto("/");
     await page.getByText("New Meeting").click();
@@ -37,7 +37,7 @@ test.describe("edge cases", () => {
     expect(created).not.toBeNull();
   });
 
-  test("9.2 an extremely long title is accepted with no character limit or warning", async ({ adminPage }) => {
+  test("9.5 an extremely long title is accepted with no character limit or warning", async ({ adminPage }) => {
     const { page } = adminPage;
     const longTitle = "A".repeat(500);
     await page.goto("/");
@@ -46,7 +46,7 @@ test.describe("edge cases", () => {
     await expect(page.getByPlaceholder("Meeting title")).toHaveValue(longTitle);
   });
 
-  test("9.5 rapidly clicking Create Meeting only creates one meeting", async ({ adminPage }) => {
+  test("9.6 rapidly clicking Create Meeting only creates one meeting", async ({ adminPage }) => {
     const { page } = adminPage;
     await page.goto("/");
     await page.getByText("New Meeting").click();

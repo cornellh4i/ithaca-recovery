@@ -8,14 +8,14 @@ import { convertETToUTC, formatETDateString } from "../../util/timeUtils";
 // belongs to 12-weekly-view.spec.ts, which owns the "+N" mechanism.
 
 test.describe("calendar display", () => {
-  test("5.1, 5.2 Day view loads and shows only today's meetings", async ({ adminPage }) => {
+  test("5.1 Day view loads and shows only today's meetings", async ({ adminPage }) => {
     const { page } = adminPage;
     await seedMeeting({ title: "Today Meeting" });
     await page.goto("/");
     await expect(page.getByText("Today Meeting")).toBeVisible();
   });
 
-  test("5.3 Week view shows the full week once a room filter is checked", async ({ adminPage }) => {
+  test("5.2 Week view shows the full week once a room filter is checked", async ({ adminPage }) => {
     const { page } = adminPage;
     await seedMeeting({ title: "Week View Meeting", room: "Serenity Room" });
     await page.goto("/");
@@ -27,7 +27,7 @@ test.describe("calendar display", () => {
     await expect(page.getByText("Week View Meeting")).toBeVisible();
   });
 
-  test("5.4, 5.5 next/previous navigation changes the displayed date", async ({ adminPage }) => {
+  test("5.3 next/previous navigation changes the displayed date", async ({ adminPage }) => {
     const { page } = adminPage;
     await page.goto("/");
     const heading = page.getByRole("heading", { level: 2 });
@@ -40,7 +40,7 @@ test.describe("calendar display", () => {
     await expect(heading).toHaveText(initialLabel ?? "");
   });
 
-  test("5.6 clicking a meeting block opens its details", async ({ adminPage }) => {
+  test("5.4 clicking a meeting block opens its details", async ({ adminPage }) => {
     const { page } = adminPage;
     await seedMeeting({ title: "Clickable Meeting" });
     await page.goto("/");
@@ -48,13 +48,13 @@ test.describe("calendar display", () => {
     await expect(page.getByRole("heading", { level: 1, name: "Clickable Meeting" })).toBeVisible();
   });
 
-  test("5.7 a day with no meetings renders with no ghost data", async ({ adminPage }) => {
+  test("5.5 a day with no meetings renders with no ghost data", async ({ adminPage }) => {
     const { page } = adminPage;
     await page.goto("/");
     await expect(page.getByTestId(/^meeting-card-/)).toHaveCount(0);
   });
 
-  test("5.8 multiple non-overlapping meetings in a room are all visible", async ({ adminPage }) => {
+  test("5.6 multiple non-overlapping meetings in a room are all visible", async ({ adminPage }) => {
     const { page } = adminPage;
     const etDate = formatETDateString(new Date());
     await seedMeeting({

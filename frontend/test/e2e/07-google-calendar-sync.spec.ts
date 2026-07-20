@@ -16,7 +16,7 @@ import { Role } from "@prisma/client";
 // fails with zero real network calls.
 
 test.describe("google calendar sync", () => {
-  test("creating a meeting with no session accessToken never attempts a sync", async ({ adminPage }) => {
+  test("7.7 creating a meeting with no session accessToken never attempts a sync", async ({ adminPage }) => {
     const { page } = adminPage;
     await page.goto("/");
     await page.getByText("New Meeting").click();
@@ -38,7 +38,7 @@ test.describe("google calendar sync", () => {
     expect(created?.syncStatus).toBeNull();
   });
 
-  test("7.1, 7.2 creating a meeting with a session accessToken attempts a sync for every checked category", async ({ page, context }) => {
+  test("7.8 creating a meeting with a session accessToken attempts a sync for every checked category", async ({ page, context }) => {
     const admin = await seedAdmin(Role.ADMIN);
     await loginAs(context, admin.email, { accessToken: FAKE_ACCESS_TOKEN });
 
@@ -65,7 +65,7 @@ test.describe("google calendar sync", () => {
     expect(created?.syncStatus).toBe("error");
   });
 
-  test("7.6 a failed sync shows a ⚠ badge and offers a retry", async ({ adminPage }) => {
+  test("7.9 a failed sync shows a ⚠ badge and offers a retry", async ({ adminPage }) => {
     const { page } = adminPage;
     await seedMeeting({ title: "GCal Retry Meeting", syncStatus: "error" });
     await page.goto("/");
@@ -74,7 +74,7 @@ test.describe("google calendar sync", () => {
     await expect(page.getByRole("button", { name: "Retry sync" })).toBeVisible();
   });
 
-  test("a successfully-synced meeting shows the success state", async ({ adminPage }) => {
+  test("7.10 a successfully-synced meeting shows the success state", async ({ adminPage }) => {
     const { page } = adminPage;
     await seedMeeting({ title: "GCal Synced Meeting", syncStatus: "synced" });
     await page.goto("/");

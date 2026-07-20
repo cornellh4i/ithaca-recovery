@@ -8,9 +8,9 @@
 > application logic in CI on every push (see [`docs/testing/README.md`](README.md) for how that
 > suite works), this doc only keeps what CI structurally can't check: cases that need **live**
 > Zoom/Google Calendar credentials, a **real** Google OAuth login, **cross-browser/responsive**
-> rendering, or **real-time** behavior across minutes. Original section/item numbers are preserved
-> for traceability back to the full history of this doc and to the automated spec files. Treat
-> this as the pre-release sign-off checklist, not the primary QA process.
+> rendering, or **real-time** behavior across minutes. Manual cases are numbered X.1, X.2... per
+> section; automated cases (tracked in the combined test sheet, not here) continue the numbering
+> from there. Treat this as the pre-release sign-off checklist, not the primary QA process.
 
 > **How to use this document:** Work through each case in order. Mark each step as ✅ Pass,
 > ❌ Fail, or ⚠️ Partial. If a step fails, note the actual behavior in the "Notes" column.
@@ -38,9 +38,9 @@
 
 | # | Step | Expected Result | Pass/Fail | Notes |
 |---|------|-----------------|-----------|-------|
-| 1.4 | Click "Sign In" | Redirected to Google's login page | | |
-| 1.5 | Sign in with a Google account that's already been added as an Admin | Successfully authenticated, redirected to dashboard with admin controls visible | | |
-| 1.8 | Sign in with a Google account that has **not** been added as an Admin | Sign-in is rejected — lands on a generic NextAuth error page (not a friendly in-app message; this is expected current behavior, not a bug) | | |
+| 1.1 | Click "Sign In" | Redirected to Google's login page | | |
+| 1.2 | Sign in with a Google account that's already been added as an Admin | Successfully authenticated, redirected to dashboard with admin controls visible | | |
+| 1.3 | Sign in with a Google account that has **not** been added as an Admin | Sign-in is rejected — lands on a generic NextAuth error page (not a friendly in-app message; this is expected current behavior, not a bug) | | |
 
 ---
 
@@ -51,7 +51,7 @@
 
 | # | Step | Expected Result | Pass/Fail | Notes |
 |---|------|-----------------|-----------|-------|
-| 2.7 | Create a meeting with mode Hybrid or Remote and select a Zoom Room | A real Zoom meeting is created and its join link is shown on the meeting — see Section 6 for detailed Zoom checks | | |
+| 2.1 | Create a meeting with mode Hybrid or Remote and select a Zoom Room | A real Zoom meeting is created and its join link is shown on the meeting — see Section 6 for detailed Zoom checks | | |
 
 ---
 
@@ -62,8 +62,8 @@
 
 | # | Step | Expected Result | Pass/Fail | Notes |
 |---|------|-----------------|-----------|-------|
-| 3.5 | Change the mode from In Person to Hybrid and pick a Zoom Room | A Zoom meeting is created and its join link appears on the meeting (see Section 6) | | |
-| 3.6 | Change the mode from Hybrid back to In Person | Zoom Room field/value is cleared, and the underlying Zoom meeting + its room-calendar event are deleted | | |
+| 3.1 | Change the mode from In Person to Hybrid and pick a Zoom Room | A Zoom meeting is created and its join link appears on the meeting (see Section 6) | | |
+| 3.2 | Change the mode from Hybrid back to In Person | Zoom Room field/value is cleared, and the underlying Zoom meeting + its room-calendar event are deleted | | |
 
 ---
 
@@ -74,15 +74,15 @@
 
 | # | Step | Expected Result | Pass/Fail | Notes |
 |---|------|-----------------|-----------|-------|
-| 6.3 | Create a meeting with a Zoom Room set, then open its detail panel | A real Zoom join link is shown, and the panel shows "Synced to Zoom ✓" | | |
-| 6.4 | Open the join link | Zoom launches/joins the meeting | | |
-| 6.5 | Check that room's own Google Calendar (not the AA/Al-Anon/Other calendars) | A matching event exists, with the join link in its `location` field | | |
-| 6.6 | Edit a meeting's Zoom Room to a different room | The old room's Zoom meeting and calendar event are removed; the new room gets a fresh Zoom meeting and calendar event | | |
-| 6.7 | Delete a non-recurring meeting that has a Zoom Room set | The Zoom meeting and its room-calendar event are both removed | | |
-| 6.8 | Delete a single occurrence ("This event") from a recurring meeting with a Zoom Room set | The Zoom meeting is untouched — it's one stable meeting shared by the whole series; only "All events" removes it | | |
-| 6.9 | On `/admin` → Diagnostics, check the Zoom status row | Shows account reachability plus a per-room breakdown: calendar reachable, host resolves, and whether the host is Licensed | | |
-| 6.10 | Temporarily set one room's `ZOOM_HOST_<ROOM>` to a nonexistent email, reload Diagnostics | That room shows "Host ✕" and is flagged out of the "N/5 rooms fully configured" count; other rooms are unaffected | | |
-| 6.11 | Force a Zoom sync failure (e.g. temporarily use an invalid `ZOOM_CLIENT_SECRET`) | Meeting shows a Zoom-specific ⚠ status separate from the Google Calendar one; Diagnostics' Meeting Counts card shows a nonzero Zoom sync-error count; **Retry sync** clears both once credentials are fixed | | |
+| 6.1 | Create a meeting with a Zoom Room set, then open its detail panel | A real Zoom join link is shown, and the panel shows "Synced to Zoom ✓" | | |
+| 6.2 | Open the join link | Zoom launches/joins the meeting | | |
+| 6.3 | Check that room's own Google Calendar (not the AA/Al-Anon/Other calendars) | A matching event exists, with the join link in its `location` field | | |
+| 6.4 | Edit a meeting's Zoom Room to a different room | The old room's Zoom meeting and calendar event are removed; the new room gets a fresh Zoom meeting and calendar event | | |
+| 6.5 | Delete a non-recurring meeting that has a Zoom Room set | The Zoom meeting and its room-calendar event are both removed | | |
+| 6.6 | Delete a single occurrence ("This event") from a recurring meeting with a Zoom Room set | The Zoom meeting is untouched — it's one stable meeting shared by the whole series; only "All events" removes it | | |
+| 6.7 | On `/admin` → Diagnostics, check the Zoom status row | Shows account reachability plus a per-room breakdown: calendar reachable, host resolves, and whether the host is Licensed | | |
+| 6.8 | Temporarily set one room's `ZOOM_HOST_<ROOM>` to a nonexistent email, reload Diagnostics | That room shows "Host ✕" and is flagged out of the "N/5 rooms fully configured" count; other rooms are unaffected | | |
+| 6.9 | Force a Zoom sync failure (e.g. temporarily use an invalid `ZOOM_CLIENT_SECRET`) | Meeting shows a Zoom-specific ⚠ status separate from the Google Calendar one; Diagnostics' Meeting Counts card shows a nonzero Zoom sync-error count; **Retry sync** clears both once credentials are fixed | | |
 
 ---
 
@@ -111,9 +111,9 @@
 
 | # | Step | Expected Result | Pass/Fail | Notes |
 |---|------|-----------------|-----------|-------|
-| 9.3 | Open the platform in two tabs, edit the same meeting in both | Note whether the last save wins silently or a conflict is flagged | | |
-| 9.4 | Lose internet connection while creating a meeting | Error message shown, data is not silently lost | | |
-| 9.6 | Access the platform on a tablet-sized screen | Layout is usable (note any issues for a mobile-responsiveness backlog) | | |
+| 9.1 | Open the platform in two tabs, edit the same meeting in both | Note whether the last save wins silently or a conflict is flagged | | |
+| 9.2 | Lose internet connection while creating a meeting | Error message shown, data is not silently lost | | |
+| 9.3 | Access the platform on a tablet-sized screen | Layout is usable (note any issues for a mobile-responsiveness backlog) | | |
 
 ---
 
@@ -124,7 +124,7 @@
 
 | # | Step | Expected Result | Pass/Fail | Notes |
 |---|------|-----------------|-----------|-------|
-| 11.2 | Diagnostics tab | System Status card shows DB latency, Google Calendar reachability per category (AA/Al-Anon/Other), and Zoom account reachability + per-room calendar/host/license status | | |
+| 11.1 | Diagnostics tab | System Status card shows DB latency, Google Calendar reachability per category (AA/Al-Anon/Other), and Zoom account reachability + per-room calendar/host/license status | | |
 
 ---
 
@@ -135,8 +135,8 @@
 
 | # | Step | Expected Result | Pass/Fail | Notes |
 |---|------|-----------------|-----------|-------|
-| 13.4 | Leave the signage page open across midnight (Eastern Time) | The displayed date rolls over automatically, with no manual refresh | | |
-| 13.5 | Create or edit a meeting elsewhere while the signage page is open | The signage page picks up the change automatically within ~2 minutes | | |
+| 13.1 | Leave the signage page open across midnight (Eastern Time) | The displayed date rolls over automatically, with no manual refresh | | |
+| 13.2 | Create or edit a meeting elsewhere while the signage page is open | The signage page picks up the change automatically within ~2 minutes | | |
 
 ---
 

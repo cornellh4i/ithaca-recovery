@@ -9,12 +9,12 @@ import { Role } from "@prisma/client";
 // covered here is everything downstream of a session existing (or not), which
 // is what the app's own logic controls.
 
-test("1.1 unauthenticated visitor sees the calendar and a Sign In link", async ({ page }) => {
+test("1.4 unauthenticated visitor sees the calendar and a Sign In link", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByRole("link", { name: "Sign In" })).toBeVisible();
 });
 
-test("1.3 unauthenticated visitor has no meeting creation controls", async ({ page }) => {
+test("1.5 unauthenticated visitor has no meeting creation controls", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByText("New Meeting")).toHaveCount(0);
 });
@@ -35,7 +35,7 @@ test("1.7 Sign Out clears the session and reverts to the signed-out view", async
   await expect(page.getByRole("link", { name: "Sign In" })).toBeVisible();
 });
 
-test("1.9 ADMIN (non-super) sees Diagnostics unlocked but Users/Import/Export locked", async ({ adminPage }) => {
+test("1.8 ADMIN (non-super) sees Diagnostics unlocked but Users/Import/Export locked", async ({ adminPage }) => {
   const { page } = adminPage;
   await page.goto("/admin");
   await expect(page.getByTestId("admin-tab-diagnostics")).toBeEnabled();
@@ -47,7 +47,7 @@ test("1.9 ADMIN (non-super) sees Diagnostics unlocked but Users/Import/Export lo
   await expect(page.getByText("Requires super admin").first()).toBeAttached();
 });
 
-test("SUPER_ADMIN sees all four admin tabs unlocked", async ({ superAdminPage }) => {
+test("1.9 SUPER_ADMIN sees all four admin tabs unlocked", async ({ superAdminPage }) => {
   const { page } = superAdminPage;
   await page.goto("/admin");
   for (const key of ["diagnostics", "users", "import", "export"]) {
@@ -55,7 +55,7 @@ test("SUPER_ADMIN sees all four admin tabs unlocked", async ({ superAdminPage })
   }
 });
 
-test("a signed-in user who is not a seeded Admin is redirected away from /admin", async ({ page, context }) => {
+test("1.10 a signed-in user who is not a seeded Admin is redirected away from /admin", async ({ page, context }) => {
   // Simulates 1.8's downstream effect: a valid session whose email never made
   // it into the Admin table (requireRole() rejects it), rather than the
   // Google-side rejection itself.
@@ -64,7 +64,7 @@ test("a signed-in user who is not a seeded Admin is redirected away from /admin"
   await expect(page).toHaveURL("/");
 });
 
-test("non-admin (no session) is redirected away from /admin", async ({ page }) => {
+test("1.11 non-admin (no session) is redirected away from /admin", async ({ page }) => {
   await page.goto("/admin");
   await expect(page).toHaveURL("/");
 });
