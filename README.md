@@ -66,7 +66,8 @@ Documentation lives in [`docs/`](docs/):
 * [`docs/handoff/user-guide.md`](docs/handoff/user-guide.md) — end-user/admin walkthrough
 * [`docs/handoff/technical-decisions.md`](docs/handoff/technical-decisions.md) — why the stack is built the way it is
 * [`docs/handoff/integration-guides.md`](docs/handoff/integration-guides.md) — setup steps for each external service
-* [`docs/testing/manual-test-script-template.md`](docs/testing/manual-test-script-template.md) — manual QA checklist
+* [`docs/testing/README.md`](docs/testing/README.md) — how the automated test suite (unit/integration/e2e) and CI work
+* [`docs/testing/manual-test-script-template.md`](docs/testing/manual-test-script-template.md) — manual pre-release checklist (what CI can't cover)
 
 ### Project Structure
 
