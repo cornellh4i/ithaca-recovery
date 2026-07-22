@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { MeetingForm } from './MeetingForm';
 
 import TextField from '../atoms/TextField';
@@ -45,12 +45,19 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({
       buildMeetingPayload,
     } = useMeetingForm();
 
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
     const handleCloseNewMeeting = () => {
       resetForm();
       setIsNewMeetingOpen(false);
     };
 
     const createMeeting = async () => {
+      // Guards against duplicate meetings from rapid/double clicks — the button
+      // is also disabled while submitting, but the state check is what actually
+      // prevents a second in-flight request.
+      if (isSubmitting) return;
+
       const validationErrors = getValidationErrors();
       if (validationErrors.length > 0) {
         alert(validationErrors.join('\n'));
@@ -60,6 +67,7 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({
       const newMeeting = buildMeetingPayload(uuidv4(), 'Active');
       if (!newMeeting) return;
 
+      setIsSubmitting(true);
       try {
         const response = await fetch('/api/write/meeting', {
           method: 'POST',
@@ -79,6 +87,8 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({
         handleCloseNewMeeting();
       } catch (error) {
         console.error('There was an error fetching the data:', error);
+      } finally {
+        setIsSubmitting(false);
       }
     };
 
@@ -173,7 +183,8 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({
             multiline
           />}
           handleMeetingSubmit={createMeeting}
-          buttonText={"Create Meeting"}
+          buttonText={isSubmitting ? "Creating…" : "Create Meeting"}
+          isSubmitting={isSubmitting}
         />
       </div>
     );
