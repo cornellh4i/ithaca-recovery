@@ -78,3 +78,26 @@ test("the response resolves before Google Calendar sync completes, which runs in
   const afterSync = await prisma.meeting.findUnique({ where: { mid: payload.mid } });
   expect(afterSync?.syncStatus).toBe("synced");
 });
+
+test("a malformed body returns 400 with validation issues instead of a raw 500", async () => {
+  const malformed = buildMeetingPayload({ email: "not-an-email" });
+  // @ts-expect-error - deliberately wrong type to trigger schema validation, not a DB error
+  malformed.calType = "AA";
+
+  const request = new Request("http://localhost/api/write/meeting", {
+    method: "POST",
+    body: JSON.stringify(malformed),
+  });
+
+  const response = await POST(request);
+  const body = await response.json();
+
+  expect(response.status).toBe(400);
+  expect(body.error).toBe("Invalid meeting data");
+  expect(Array.isArray(body.issues)).toBe(true);
+  expect(body.issues.length).toBeGreaterThan(0);
+
+  const prisma = getTestPrismaClient();
+  const created = await prisma.meeting.findUnique({ where: { mid: malformed.mid } });
+  expect(created).toBeNull();
+});
