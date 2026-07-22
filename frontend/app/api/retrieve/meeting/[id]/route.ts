@@ -1,7 +1,5 @@
-import { PrismaClient } from "@prisma/client";
 import { NextRequest } from "next/server";
-
-const prisma = new PrismaClient();
+import { prisma } from "../../../../../lib/prisma";
 const getMeeting = async(request: NextRequest) => {
   try {
     const mid = request.nextUrl.pathname.split('/').pop() as string;

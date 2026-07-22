@@ -1,10 +1,9 @@
 import { NextResponse } from "next/server";
-import { PrismaClient, Role } from "@prisma/client";
+import { Role } from "@prisma/client";
 import { requireRole } from "../../../../services/auth";
 import { defaultLeaseSettings } from "../../../../util/leaseDefaults";
 import type { IRoomRate } from "../../../../util/models";
-
-const prisma = new PrismaClient();
+import { prisma } from "../../../../lib/prisma";
 
 export const GET = async () => {
   try {

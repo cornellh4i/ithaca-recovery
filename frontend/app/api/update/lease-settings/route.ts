@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
-import { PrismaClient, Role, Prisma } from "@prisma/client";
+import { Role, Prisma } from "@prisma/client";
 import { requireRole } from "../../../../services/auth";
 import type { ILeaseSettings } from "../../../../util/models";
-
-const prisma = new PrismaClient();
+import { prisma } from "../../../../lib/prisma";
 
 // Singleton settings document — updates the existing row if one exists, else creates it.
 export const PUT = async (request: Request) => {

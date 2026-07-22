@@ -4,7 +4,8 @@ import { getTestPrismaClient } from "../factories/db";
 import type { Page } from "@playwright/test";
 
 async function openMeetingOptions(page: Page, title: string) {
-  await page.getByText(title, { exact: true }).click();
+  // level: 3 avoids colliding with ViewMeeting's <h1> of the same title.
+  await page.getByRole("heading", { name: title, exact: true, level: 3 }).click();
   await page.locator('[class*="moreOptions"]').hover();
 }
 

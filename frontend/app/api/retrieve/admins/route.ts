@@ -1,8 +1,7 @@
 import { IAdmin } from "../../../../util/models";
-import { PrismaClient, Role } from '@prisma/client';
+import { Role } from '@prisma/client';
 import { requireRole } from "../../../../services/auth";
-
-const prisma = new PrismaClient();
+import { prisma } from "../../../../lib/prisma";
 
 const retrieveAdmins = async (request: Request) => {
   try {

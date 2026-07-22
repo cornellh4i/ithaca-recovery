@@ -1,9 +1,8 @@
 import { IAdmin } from "../../../../util/models";
-import { PrismaClient, Role } from '@prisma/client';
+import { Role } from '@prisma/client';
 import { NextRequest } from "next/server";
 import { requireRole } from "../../../../services/auth";
-
-const prisma = new PrismaClient();
+import { prisma } from "../../../../lib/prisma";
 
 const getAdminByEmail = async (request: NextRequest) => {
   try {

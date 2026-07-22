@@ -1,7 +1,5 @@
 import { IMeeting } from "../../../../util/models";
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { prisma } from "../../../../lib/prisma";
 
 const notDeleted = { OR: [{ deletedAt: null }, { deletedAt: { isSet: false } }] };
 

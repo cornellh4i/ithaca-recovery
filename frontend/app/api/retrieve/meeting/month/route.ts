@@ -1,10 +1,8 @@
 export const dynamic = 'force-dynamic';
-import { PrismaClient } from '@prisma/client';
 import { IMeeting } from "../../../../../util/models";
 import { getETDayBounds, toETDateString } from "../../../../../util/timeUtils";
 import { NextRequest } from 'next/server';
-
-const prisma = new PrismaClient();
+import { prisma } from "../../../../../lib/prisma";
 
 const notDeleted = { OR: [{ deletedAt: null }, { deletedAt: { isSet: false } }] };
 

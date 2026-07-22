@@ -1,8 +1,7 @@
-import { PrismaClient, Role } from "@prisma/client";
+import { Role } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { requireRole } from "../../../../services/auth";
-
-const prisma = new PrismaClient();
+import { prisma } from "../../../../lib/prisma";
 
 export const DELETE = async (request: Request) => {
   try {

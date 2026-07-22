@@ -27,9 +27,11 @@ test.describe("weekly view", () => {
 
   test("12.3 a recurring meeting spanning multiple weekdays appears on every matching day", async ({ adminPage }) => {
     const { page } = adminPage;
+    // Must predate this week's Sunday, or it's excluded as "before the series started".
+    const twoWeeksAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
     await seedRecurringMeeting(
       { title: "Multi Day Recurring", room: "Serenity Room" },
-      { type: "weekly", daysOfWeek: ["Sunday", "Wednesday"], interval: 1 },
+      { type: "weekly", daysOfWeek: ["Sunday", "Wednesday"], interval: 1, startDate: twoWeeksAgo },
     );
     await page.goto("/");
     await page.locator("select").selectOption("Week");

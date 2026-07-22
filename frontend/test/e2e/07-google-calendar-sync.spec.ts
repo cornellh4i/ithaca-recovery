@@ -60,9 +60,13 @@ test.describe("google calendar sync", () => {
 
     // No GOOGLE_CALENDAR_AA/OTHER configured in the test env — the sync attempt
     // deterministically fails with zero real network calls (see sync-fixtures.ts).
+    // Sync runs in the background after the response (waitUntil), so poll rather than
+    // reading the DB once immediately after writeResponse.
     const prisma = getTestPrismaClient();
-    const created = await prisma.meeting.findFirst({ where: { title: "Dual Calendar Meeting" } });
-    expect(created?.syncStatus).toBe("error");
+    await expect.poll(async () => {
+      const created = await prisma.meeting.findFirst({ where: { title: "Dual Calendar Meeting" } });
+      return created?.syncStatus;
+    }).toBe("error");
   });
 
   test("7.9 a failed sync shows a ⚠ badge and offers a retry", async ({ adminPage }) => {
