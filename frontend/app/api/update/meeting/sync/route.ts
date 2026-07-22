@@ -1,7 +1,6 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, Role } from "@prisma/client";
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "../../../auth/authConfig";
+import { requireRole } from "../../../../../services/auth";
 import { IMeeting } from "../../../../../util/models";
 import { reconcileMeetingCalendars } from "../../../../../services/googleCalendar";
 
@@ -9,8 +8,9 @@ const prisma = new PrismaClient();
 
 const syncMeeting = async (request: Request): Promise<Response> => {
     try {
-        const session = await getServerSession(authOptions);
-        if (!session?.accessToken) {
+        const auth = await requireRole(Role.ADMIN);
+        if (auth instanceof Response) return auth;
+        if (!auth.accessToken) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
@@ -38,7 +38,7 @@ const syncMeeting = async (request: Request): Promise<Response> => {
         };
 
         const { updatedEventIds, allSynced } = await reconcileMeetingCalendars(
-            session.accessToken,
+            auth.accessToken,
             meetingForCalendar,
             existingEventIds,
         );

@@ -12,35 +12,66 @@ interface AppNavbarProps {
 }
 
 const AppNavbar: React.FC<AppNavbarProps> = ({ session }) => {
+    const isAdmin = session?.user?.role === "ADMIN" || session?.user?.role === "SUPER_ADMIN";
+
     return (
-        <>
-            <div className={styles.navbar}>
-                <div className={styles.navcontainer}>
-                    <Logo />
-                    <ul className={styles.navigationlist}>
-                        {!session && (
-                            <li className="btn btn-ghost">
-                                <a href="/api/auth/signin/google">
-                                    <p>Sign In</p>
-                                </a>
-                            </li>
+        <div className={styles.navbar}>
+            <div className={styles.navcontainer}>
+                <Logo />
+                <ul className={styles.navigationlist}>
+                    <li className={`btn btn-ghost ${styles.navTooltipWrapper}`}>
+                        <Link href="/">
+                            <p>Main</p>
+                        </Link>
+                        <span className={styles.tooltip}>
+                            Live calendar — add, edit, or delete meetings
+                        </span>
+                    </li>
+                    <li className={`btn btn-ghost ${styles.navTooltipWrapper}`}>
+                        <Link href="/signage">
+                            <p>Signage</p>
+                        </Link>
+                        <span className={styles.tooltip}>
+                            Read-only calendar view for signage
+                        </span>
+                    </li>
+                    <li className={`btn btn-ghost ${styles.navTooltipWrapper}`}>
+                        {isAdmin ? (
+                            <>
+                                <Link href="/admin">
+                                    <p>Admin</p>
+                                </Link>
+                                <span className={styles.tooltip}>
+                                    Manage users, imports, exports, and diagnostics
+                                </span>
+                            </>
+                        ) : (
+                            <>
+                                <button className={styles.navLocked} disabled>
+                                    <p>Admin</p>
+                                    <img src="/svg/lock-icon.svg" alt="" className={styles.lockIcon} />
+                                </button>
+                                <span className={styles.tooltip}>Requires admin access</span>
+                            </>
                         )}
-                        {session && (
-                            <li className="btn btn-ghost">
+                    </li>
+                    <li>
+                        {session ? (
+                            <div className={styles.accountGroup}>
+                                <span className={styles.welcome}>Welcome, {session.user?.name}</span>
                                 <button onClick={() => signOut({ callbackUrl: "/" })}>
                                     <p>Sign Out</p>
                                 </button>
-                            </li>
+                            </div>
+                        ) : (
+                            <a className={styles.signInButton} href="/api/auth/signin/google">
+                                <p>Sign In</p>
+                            </a>
                         )}
-                    </ul>
-                    {session?.user && (
-                        <div className={styles.welcome}>
-                            <p>Welcome, {session.user.name}</p>
-                        </div>
-                    )}
-                </div>
+                    </li>
+                </ul>
             </div>
-        </>
+        </div>
     );
 };
 

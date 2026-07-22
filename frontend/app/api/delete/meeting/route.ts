@@ -1,6 +1,5 @@
-import { PrismaClient } from '@prisma/client';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '../../auth/authConfig';
+import { PrismaClient, Role } from '@prisma/client';
+import { requireRole } from '../../../../services/auth';
 import { getETDayBounds } from '../../../../util/timeUtils';
 import {
   deleteCalendarEvent,
@@ -17,6 +16,9 @@ const toETDateStr = (date: Date): string =>
 
 const deleteMeeting = async (request: Request) => {
   try {
+    const auth = await requireRole(Role.ADMIN);
+    if (auth instanceof Response) return auth;
+
     const body = await request.json();
     const { mid, deleteOption, occurrenceDate } = body;
 
@@ -56,19 +58,17 @@ const deleteMeeting = async (request: Request) => {
     }
 
     // Google Calendar sync — fire before or alongside MongoDB changes; errors are logged, not thrown
-    const session = await getServerSession(authOptions);
-    const accessToken = session?.accessToken;
+    const accessToken = auth.accessToken;
     const calendarIds = calendarIdsForMeeting(meeting.calType ?? []);
     const eventIds = (meeting.googleCalendarEventIds ?? {}) as Record<string, string>;
 
-    if ((deleteOption === 'this' || deleteOption === 'thisAndFollowing') && !meeting.recurrencePattern) {
-      return new Response(JSON.stringify({ error: "Meeting has no recurrence pattern" }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    }
-
     if (deleteOption === 'this') {
+      if (!meeting.recurrencePattern) {
+        return new Response(JSON.stringify({ error: "Meeting has no recurrence pattern" }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
       // MongoDB: record excluded date
       const etDateStr = toETDateStr(new Date(occurrenceDate));
       const [excludedDate] = getETDayBounds(etDateStr);
@@ -84,6 +84,12 @@ const deleteMeeting = async (request: Request) => {
         }
       }
     } else if (deleteOption === 'thisAndFollowing') {
+      if (!meeting.recurrencePattern) {
+        return new Response(JSON.stringify({ error: "Meeting has no recurrence pattern" }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
       // MongoDB: trim the series end date
       const etDateStr = toETDateStr(new Date(occurrenceDate));
       const [occurrenceUTCStart] = getETDayBounds(etDateStr);

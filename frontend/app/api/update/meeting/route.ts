@@ -1,7 +1,6 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, Role } from "@prisma/client";
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "../../auth/authConfig";
+import { requireRole } from "../../../../services/auth";
 import { IMeeting } from "../../../../util/models";
 import { reconcileMeetingCalendars } from "../../../../services/googleCalendar";
 
@@ -9,6 +8,9 @@ const prisma = new PrismaClient();
 
 const updateMeeting = async (request: Request): Promise<Response> => {
   try {
+    const auth = await requireRole(Role.ADMIN);
+    if (auth instanceof Response) return auth;
+
     const newMeeting = await request.json() as IMeeting;
 
     const existingMeeting = await prisma.meeting.findUnique({
@@ -66,11 +68,10 @@ const updateMeeting = async (request: Request): Promise<Response> => {
     
 
     // Google Calendar sync — failure updates syncStatus but does not fail the request
-    const session = await getServerSession(authOptions);
-    if (session?.accessToken && newMeeting.status !== 'Suspended') {
+    if (auth.accessToken && newMeeting.status !== 'Suspended') {
       const existingEventIds = (existingMeeting.googleCalendarEventIds ?? {}) as Record<string, string>;
       const { updatedEventIds, allSynced } = await reconcileMeetingCalendars(
-        session.accessToken,
+        auth.accessToken,
         newMeeting,
         existingEventIds,
       );

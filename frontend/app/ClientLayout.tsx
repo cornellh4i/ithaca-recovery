@@ -25,7 +25,9 @@ export default function ClientLayout({
                     <div className={styles.navigation}>
                         <AppNavbar session={session} />
                     </div>
-                    {children}
+                    <div className={styles.content}>
+                        {children}
+                    </div>
                 </div>
             </body>
         </html>

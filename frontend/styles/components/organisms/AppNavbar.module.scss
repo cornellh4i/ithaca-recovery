@@ -1,3 +1,5 @@
+@import '../../Variables.module.scss';
+
 .navbar {
     width: 100%;
     background-color: #fff;
@@ -20,16 +22,18 @@
 .navcontainer {
     display: flex;
     flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding-right: 24px;
+    box-sizing: border-box;
 }
 
 .navigationlist {
-    display: flex;
-    gap: 24px;
+    display: contents;
     color: #000;
     list-style-type: none;
     padding: 0;
-    width: 100%;
-    justify-content: space-around;
     margin: 0px;
 
     li {
@@ -49,8 +53,8 @@
 
             &:hover,
             &:focus {
-                color: #000; 
-                border-color: #000; 
+                color: #000;
+                border-color: #000;
             }
         }
 
@@ -61,12 +65,86 @@
                 border-color: #000;
             }
         }
+
+        &.navTooltipWrapper {
+            position: relative;
+
+            &:hover .tooltip,
+            &:focus-within .tooltip {
+                opacity: 1;
+                visibility: visible;
+            }
+        }
+
+        .navLocked {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            color: $light-grey-color;
+
+            &:hover,
+            &:focus {
+                color: $light-grey-color;
+                border-color: transparent;
+            }
+        }
+
+        a.signInButton {
+            background-color: $dark-pink-color;
+            border-color: $dark-pink-color;
+            color: #fff;
+            font-weight: 600;
+            font-size: 16px;
+            padding: 8px 18px;
+
+            p {
+                margin: 0;
+            }
+
+            &:hover,
+            &:focus {
+                background-color: darken($dark-pink-color, 8%);
+                border-color: darken($dark-pink-color, 8%);
+                color: #fff;
+            }
+        }
     }
-    }
+}
+
+.lockIcon {
+    width: 14px;
+    height: 14px;
+}
+
+.tooltip {
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    margin-top: 6px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    background-color: $black-color;
+    color: #fff;
+    font-size: 12px;
+    width: max-content;
+    max-width: 220px;
+    text-align: center;
+    line-height: 1.4;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.15s ease;
+    pointer-events: none;
+    z-index: 10;
+}
+
+.accountGroup {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
 
 .welcome {
-    padding: 7px 12px;
     font-size: 16px;
-    width: 15%;
+    white-space: nowrap;
 }
-  

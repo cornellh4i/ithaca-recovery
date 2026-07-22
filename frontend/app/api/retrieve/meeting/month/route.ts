@@ -22,7 +22,6 @@ const retrieveMonthMeetings = async (request: NextRequest) => {
         const [year, etMonth] = etDateStr.split('-').map(Number);
         const month = etMonth - 1; // 0-indexed
 
-
         // First and last day of the month as UTC-midnight calendar dates,
         // then get DST-correct ET day bounds for each.
         const fmtDate = (d: Date) => d.toISOString().slice(0, 10);

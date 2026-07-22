@@ -290,7 +290,7 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
               <span style={{ marginRight: '6px', display: 'flex', alignItems: 'center' }}>
                 <img src="svg/group-icon.svg" alt="Group Icon" />
               </span>
-              <div style={{ display: 'flex', flexDirection: 'row', gap: '4px', flex: 1, justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                 {calTypeOptions.map(type => (
                   <LabeledCheckbox
                     key={type}

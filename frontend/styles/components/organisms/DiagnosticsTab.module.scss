@@ -1,0 +1,133 @@
+@import '../../Variables.module.scss';
+
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.card {
+  background: #fff;
+  border: 1.5px solid #E5E5E5;
+  border-radius: 8px;
+  padding: 20px 24px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.sectionLabel {
+  font-size: 16px;
+  font-weight: 600;
+  color: $medium-grey-color;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  margin-bottom: 16px;
+}
+
+.statusRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 0;
+}
+
+.dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.dotOk {
+  background-color: #4CAF50;
+}
+
+.dotDown {
+  background-color: $dark-pink-color;
+}
+
+.statusLabel {
+  font-weight: 600;
+  width: 160px;
+  flex-shrink: 0;
+  color: $black-color;
+}
+
+.statusDetail {
+  color: #555;
+  font-size: 14px;
+}
+
+.gcalSubRow {
+  display: flex;
+  gap: 16px;
+  padding-left: 21px;
+  font-size: 13px;
+  color: #555;
+  margin-bottom: 6px;
+}
+
+.gcalOk {
+  color: #555;
+}
+
+.gcalDown {
+  color: $dark-pink-color;
+}
+
+.countsRow {
+  display: flex;
+  gap: 40px;
+  margin-bottom: 12px;
+}
+
+.countsSecondaryRow {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+  color: #555;
+}
+
+.panelHeader {
+  font-size: 16px;
+  font-weight: 600;
+  color: $black-color;
+  margin-bottom: 4px;
+}
+
+.panelSubhead {
+  font-size: 13px;
+  color: #555;
+  margin-bottom: 12px;
+}
+
+.emptyState {
+  color: $medium-grey-color;
+  font-size: 14px;
+}
+
+.meetingRow {
+  border-top: 1px solid #F1F1F1;
+  padding: 10px 0;
+
+  &:first-of-type {
+    border-top: none;
+  }
+}
+
+.meetingTitle {
+  font-weight: 600;
+  color: $black-color;
+}
+
+.meetingTags {
+  color: $medium-grey-color;
+}
+
+.meetingMeta {
+  font-size: 13px;
+  color: #555;
+  margin-top: 2px;
+}

@@ -25,6 +25,11 @@ export const authOptions: NextAuthOptions = {
         }),
     ],
     callbacks: {
+        async signIn({ user }) {
+            if (!user.email) return false;
+            const admin = await prisma.admin.findUnique({ where: { email: user.email } });
+            return !!admin;
+        },
         async jwt({ token, account, profile }) {
             if (account) {
                 token.accessToken = account.access_token;
@@ -32,26 +37,28 @@ export const authOptions: NextAuthOptions = {
                 token.expiresAt = account.expires_at;
 
                 if (token.email) {
-                    await prisma.admin.upsert({
+                    // signIn already guarantees this row exists (invite or bootstrap) — update, don't create.
+                    const existing = await prisma.admin.findUnique({
                         where: { email: token.email },
-                        update: {
-                            googleId: account.providerAccountId,
-                            refreshToken: account.refresh_token ?? undefined,
-                            accessToken: account.access_token ?? undefined,
-                            tokenExpiresAt: account.expires_at ?? undefined,
-                        },
-                        create: {
-                            email: token.email,
-                            name: token.name ?? (profile as { name?: string })?.name ?? "",
-                            googleId: account.providerAccountId,
-                            refreshToken: account.refresh_token ?? undefined,
-                            accessToken: account.access_token ?? undefined,
-                            tokenExpiresAt: account.expires_at ?? undefined,
-                        },
+                        select: { name: true },
                     });
+
+                    const updated = await prisma.admin.update({
+                        where: { email: token.email },
+                        data: {
+                            name: existing?.name ? undefined : (token.name ?? (profile as { name?: string })?.name ?? undefined),
+                            googleId: account.providerAccountId,
+                            refreshToken: account.refresh_token ?? undefined,
+                            accessToken: account.access_token ?? undefined,
+                            tokenExpiresAt: account.expires_at ?? undefined,
+                        },
+                        select: { role: true },
+                    });
+
+                    token.role = updated.role;
                 }
             }
-            
+
             if (token.expiresAt && Date.now() / 1000 > token.expiresAt - 60) {
                 const response = await fetch("https://oauth2.googleapis.com/token", {
                     method: "POST",
@@ -73,10 +80,22 @@ export const authOptions: NextAuthOptions = {
                     return { ...token, error: "RefreshTokenError" };
                 }
             }
+
+            // Re-fetch on every call (not just login) so role changes/removal take effect
+            // without waiting out the JWT's 30-day maxAge.
+            if (!account && token.email) {
+                const admin = await prisma.admin.findUnique({
+                    where: { email: token.email },
+                    select: { role: true },
+                });
+                token.role = admin?.role;
+            }
+
             return token;
         },
         async session({ session, token }) {
             session.accessToken = token.accessToken;
+            if (session.user) session.user.role = token.role;
             return session;
         },
     },

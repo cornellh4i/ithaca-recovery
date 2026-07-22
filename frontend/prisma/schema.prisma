@@ -7,12 +7,18 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum Role {
+  SUPER_ADMIN
+  ADMIN
+  USER
+}
+
 model Admin {
   id             String   @id @default(auto()) @map("_id") @db.ObjectId
   email          String   @unique
   name           String
-  privilegeMode  String?
-  googleId       String? 
+  role           Role
+  googleId       String?
   refreshToken   String?
   accessToken    String?
   tokenExpiresAt Int?
@@ -37,6 +43,7 @@ model Meeting {
   status                 String               @default("Active")
   isRecurring            Boolean              @default(false)
   recurrencePattern      RecurrencePattern?   @relation("MeetingToRecurrencePattern")
+  googleCalendarEventId  String?
   googleCalendarEventIds Json?
   syncStatus             String?
   deletedAt              DateTime?
@@ -44,6 +51,7 @@ model Meeting {
 
   @@index([startDateTime, endDateTime])
   @@index([isRecurring, deletedAt])
+  @@index([googleCalendarEventId])
 }
 
 model RecurrencePattern {
@@ -67,4 +75,23 @@ model User {
   id   String @id @default(auto()) @map("_id") @db.ObjectId
   name String
   uid  String @unique
+}
+
+// Singleton — one document holds the PandaDocs lease-export config for the whole app.
+model LeaseSettings {
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
+  leaseStartDate  DateTime @db.Date
+  leaseEndDate    DateTime @db.Date
+  rooms           Json // { room: string; rate: number; unit: "hr" | "month" }[]
+  agentFirstName  String
+  agentLastName   String
+  agentTitle      String
+  agentEmail      String
+  agentPhone      String
+  agentStreetAddress String
+  agentCity       String
+  agentState      String
+  agentZip        String
+  emailTemplate   String
+  updatedAt       DateTime @updatedAt
 }

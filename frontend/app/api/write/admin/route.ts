@@ -1,15 +1,34 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, Role } from "@prisma/client";
 import { NextResponse } from "next/server";
-import { IAdmin } from "../../../../util/models";
+import { requireRole } from "../../../../services/auth";
 
 const prisma = new PrismaClient();
 
+// Invite an admin by email; name is unknown until they sign in, so it's created
+// empty and filled from the Google profile on that person's first login (see
+// authConfig.ts's jwt callback).
 export const POST = async (request: Request) => {
   try {
-    const newAdmin = await request.json() as IAdmin;
+    const auth = await requireRole(Role.SUPER_ADMIN);
+    if (auth instanceof Response) return auth;
+
+    const { email, role } = await request.json() as { email: string; role?: Role };
+
+    if (!email) {
+      return NextResponse.json({ error: "email is required" }, { status: 400 });
+    }
+
+    const resolvedRole = role ?? Role.ADMIN;
+    if (resolvedRole !== Role.SUPER_ADMIN && resolvedRole !== Role.ADMIN && resolvedRole !== Role.USER) {
+      return NextResponse.json({ error: "Invalid role" }, { status: 400 });
+    }
 
     const createdUser = await prisma.admin.create({
-      data: newAdmin
+      data: {
+        email,
+        name: "",
+        role: resolvedRole,
+      },
     });
 
     return NextResponse.json(createdUser);

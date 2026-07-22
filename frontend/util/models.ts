@@ -1,10 +1,10 @@
 // Please add models here
-interface IUser {
-  name: string;
-}
+import type { Role } from "@prisma/client";
 
-interface IAdmin extends IUser {
+interface IAdmin {
+  name: string;
   email: string;
+  role: Role;
   googleId?: string | null;
   refreshToken?: string | null;
   accessToken?: string | null;
@@ -29,6 +29,7 @@ interface IMeeting {
   status?: string;
   isRecurring: boolean;
   recurrencePattern?: IRecurrencePattern | null;
+  googleCalendarEventId?: string | null;
   googleCalendarEventIds?: Record<string, string> | null;
   syncStatus?: string | null;
   deletedAt?: Date | null;
@@ -49,4 +50,26 @@ interface IRecurrencePattern {
   excludedDates?: Date[] | null;
 }
 
-export type { IUser, IAdmin, IMeeting, IRecurrencePattern };
+interface IRoomRate {
+  room: string;
+  rate: number;
+  unit: "hr" | "month";
+}
+
+interface ILeaseSettings {
+  leaseStartDate: Date;
+  leaseEndDate: Date;
+  rooms: IRoomRate[];
+  agentFirstName: string;
+  agentLastName: string;
+  agentTitle: string;
+  agentEmail: string;
+  agentPhone: string;
+  agentStreetAddress: string;
+  agentCity: string;
+  agentState: string;
+  agentZip: string;
+  emailTemplate: string;
+}
+
+export type { IAdmin, IMeeting, IRecurrencePattern, IRoomRate, ILeaseSettings };
