@@ -1,4 +1,4 @@
-import { PrismaClient, Role } from '@prisma/client';
+import { Role } from '@prisma/client';
 import { requireRole } from '../../../../services/auth';
 import { getETDayBounds } from '../../../../util/timeUtils';
 import {
@@ -8,8 +8,7 @@ import {
   calendarIdsForMeeting,
 } from '../../../../services/googleCalendar';
 import { deleteZoomMeeting, zoomRoomCalendarId } from '../../../../services/zoom';
-
-const prisma = new PrismaClient();
+import { prisma } from '../../../../lib/prisma';
 
 // Returns "YYYY-MM-DD" in Eastern Time for the given UTC timestamp.
 const toETDateStr = (date: Date): string =>

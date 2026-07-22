@@ -1,8 +1,7 @@
-import { PrismaClient, Role } from "@prisma/client";
+import { Role } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { requireRole } from "../../../../services/auth";
-
-const prisma = new PrismaClient();
+import { prisma } from "../../../../lib/prisma";
 
 // Promote/demote an admin's role. Blocks demoting the last remaining Super
 // Admin (including self-demotion) so Super Admins can't lock everyone out.

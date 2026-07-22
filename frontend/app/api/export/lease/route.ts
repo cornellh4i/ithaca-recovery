@@ -1,10 +1,9 @@
-import { PrismaClient, Role } from "@prisma/client";
+import { Role } from "@prisma/client";
 import { requireRole } from "../../../../services/auth";
 import { defaultLeaseSettings } from "../../../../util/leaseDefaults";
 import { formatDayColumn } from "../../../../util/recurrenceDisplay";
 import type { ILeaseSettings, IRoomRate } from "../../../../util/models";
-
-const prisma = new PrismaClient();
+import { prisma } from "../../../../lib/prisma";
 
 const notDeleted = { OR: [{ deletedAt: null }, { deletedAt: { isSet: false } }] };
 

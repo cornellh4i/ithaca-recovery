@@ -1,10 +1,9 @@
-import { PrismaClient, Role } from "@prisma/client";
+import { Role } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { requireRole } from "../../../../services/auth";
 import { calendarIdForCategory, checkCalendarReachable } from "../../../../services/googleCalendar";
 import { checkZoomReachable, zoomRoomCalendarId, checkZoomRoomHosts } from "../../../../services/zoom";
-
-const prisma = new PrismaClient();
+import { prisma } from "../../../../lib/prisma";
 
 const notDeleted = { OR: [{ deletedAt: null }, { deletedAt: { isSet: false } }] };
 

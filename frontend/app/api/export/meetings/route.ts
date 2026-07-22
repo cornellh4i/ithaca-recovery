@@ -1,9 +1,8 @@
 import * as XLSX from "xlsx";
-import { PrismaClient, Role } from "@prisma/client";
+import { Role } from "@prisma/client";
 import { requireRole } from "../../../../services/auth";
 import { formatDayColumn, formatFrequencyColumn } from "../../../../util/recurrenceDisplay";
-
-const prisma = new PrismaClient();
+import { prisma } from "../../../../lib/prisma";
 
 const notDeleted = { OR: [{ deletedAt: null }, { deletedAt: { isSet: false } }] };
 

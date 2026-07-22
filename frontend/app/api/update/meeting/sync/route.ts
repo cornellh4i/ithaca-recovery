@@ -1,11 +1,10 @@
-import { PrismaClient, Role } from "@prisma/client";
+import { Role } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { requireRole } from "../../../../../services/auth";
 import { IMeeting } from "../../../../../util/models";
 import { createCalendarEvent, updateCalendarEvent, reconcileMeetingCalendars } from "../../../../../services/googleCalendar";
 import { createZoomMeeting, updateZoomMeeting, zoomRoomCalendarId } from "../../../../../services/zoom";
-
-const prisma = new PrismaClient();
+import { prisma } from "../../../../../lib/prisma";
 
 const syncMeeting = async (request: Request): Promise<Response> => {
     try {

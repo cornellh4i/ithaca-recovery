@@ -1,8 +1,6 @@
-import { PrismaClient } from '@prisma/client';
 import { IMeeting } from "./models";
 import { getETDayBounds, convertETToUTC } from "./timeUtils";
-
-const prisma = new PrismaClient();
+import { prisma } from "../lib/prisma";
 
 const notDeleted = { OR: [{ deletedAt: null }, { deletedAt: { isSet: false } }] };
 

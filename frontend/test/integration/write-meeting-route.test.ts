@@ -3,13 +3,10 @@ import { Role } from "@prisma/client";
 import { getTestPrismaClient, disconnectTestPrismaClient } from "../factories/db";
 import type { IMeeting } from "../../util/models";
 
-// [PROVISIONAL] Documents two current architectural facts, not tied to any
-// unimplemented feature: (1) write/meeting/route.ts awaits Google Calendar/Zoom
+// [PROVISIONAL] Documents that write/meeting/route.ts awaits Google Calendar/Zoom
 // sync before responding — a slow external API directly slows down meeting
-// creation for the user, with no fire-and-forget path; (2) every route file still
-// instantiates its own `new PrismaClient()` rather than sharing one singleton.
-// Both are candidates a future perf pass would want to revisit — update/replace
-// this test if either changes.
+// creation for the user, with no fire-and-forget path. Update/replace this test
+// if that changes.
 
 jest.mock("../../services/auth", () => ({
   requireRole: jest.fn().mockResolvedValue({
@@ -79,18 +76,4 @@ test("[PROVISIONAL] the response doesn't resolve until Google Calendar sync does
   const prisma = getTestPrismaClient();
   const created = await prisma.meeting.findUnique({ where: { mid: payload.mid } });
   expect(created?.syncStatus).toBe("synced");
-});
-
-test("[PROVISIONAL] every route file still instantiates its own PrismaClient (no shared singleton)", async () => {
-  const { execSync } = await import("child_process");
-  const path = await import("path");
-  const output = execSync(
-    "grep -rl 'new PrismaClient()' app/api --include='*.ts'",
-    { cwd: path.resolve(__dirname, "../.."), encoding: "utf8" },
-  );
-  const filesWithOwnClient = output.trim().split("\n").filter(Boolean);
-  // Today this is ~18 files. The assertion just needs "more than a couple" to
-  // hold as a real signal that no singleton refactor has happened — an exact
-  // count would make this test churn on every unrelated route addition.
-  expect(filesWithOwnClient.length).toBeGreaterThan(5);
 });

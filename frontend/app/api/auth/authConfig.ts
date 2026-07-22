@@ -1,9 +1,7 @@
 import "server-only";
 import type { NextAuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import { prisma } from "../../../lib/prisma";
 
 export const authOptions: NextAuthOptions = {
     providers: [
