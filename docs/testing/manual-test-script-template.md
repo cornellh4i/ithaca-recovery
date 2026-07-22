@@ -1,22 +1,32 @@
-# [Template] ICR Scheduling Platform — Manual QA Test Script
+# ICR Scheduling Platform — Manual Release Checklist
 
-**Version:** 0.1
-**Date:** April 2026
+**Version:** 0.3
+**Last Update**: July 20, 2026
 **Prepared by:** Cornell Hack4Impact
 
-> **How to use this document:** Work through each test case in order. Mark each step as ✅ Pass, ❌ Fail, or ⚠️ Partial. If a step fails, note the actual behavior in the "Notes" column. Screenshots are encouraged for any failures.
+> **What this is now:** Originally a full 96-case manual QA script for every feature. Now that
+> `frontend/test/e2e/`, `frontend/test/integration/`, and `frontend/test/unit/` cover the
+> application logic in CI on every push (see [`docs/testing/README.md`](README.md) for how that
+> suite works), this doc only keeps what CI structurally can't check: cases that need **live**
+> Zoom/Google Calendar credentials, a **real** Google OAuth login, **cross-browser/responsive**
+> rendering, or **real-time** behavior across minutes. Manual cases are numbered X.1, X.2... per
+> section; automated cases (tracked in the combined test sheet, not here) continue the numbering
+> from there. Treat this as the pre-release sign-off checklist, not the primary QA process.
 
-> **Run tests here:** [Google Sheet](link) <!-- [TODO: Attach link when make one]  -->— duplicate a tab for each test run.
+> **How to use this document:** Work through each case in order. Mark each step as ✅ Pass,
+> ❌ Fail, or ⚠️ Partial. If a step fails, note the actual behavior in the "Notes" column.
+> Screenshots are encouraged for any failures.
+
+> **Run tests here:** [Google Sheet](https://docs.google.com/spreadsheets/d/1VadUnV-l7nPgKRCIYrZr_NUcC7w41Qd6lDWg7-zMR50/edit?gid=1420783858#gid=1420783858) — duplicate a tab for each test run.
 
 > This markdown file is the source of truth. Update it when features change, then sync the Sheet.
 ---
 
-## Test Environment Setup <!-- [TODO] -->
+## Test Environment Setup
 
-- **URL:** [https://ithaca-recovery.vercel.app/](https://ithaca-recovery.vercel.app/) <!-- [TODO: Replace with real URL after migration.] -->
-- **Browser:** Chrome (latest), also verify in Firefox and Safari
-- **Test Account:** ithacacommunityrecoverytest@gmail.com
-- **Zoom Accounts:** See `.env` file
+- **URL:** [https://ithaca-recovery.vercel.app/](https://ithaca-recovery.vercel.app/)
+- **Browser:** Chrome (latest), also verify in Firefox and Safari — CI's Playwright suite only runs Chromium
+- **Test Accounts:** at least one Google account added as `ADMIN`, and one added as `SUPER_ADMIN` (see [user-guide.md, Section 12](../handoff/user-guide.md#12-admin-user-management)) — several tests require both roles
 - **Tester Name:** _______________
 - **Date Tested:** _______________
 
@@ -24,139 +34,110 @@
 
 ## 1. Authentication — Google SSO Login
 
+> **Automated (minted-session cases):** `frontend/test/e2e/01-authentication.spec.ts` — the cases
+> below need a *real* Google OAuth round-trip, which the automated suite deliberately doesn't do.
+
 | # | Step | Expected Result | Pass/Fail | Notes |
 |---|------|-----------------|-----------|-------|
-| 1.1 | Navigate to the platform URL without signing in | Dashboard loads with calendar view visible and "Sign In" button on top right | | |
-| 1.2 | View meetings in daily/weekly view and apply filters without signing in | Meetings are visible and filters work normally | | |
-| 1.3 | Without signing in, attempt to create/edit/delete a meeting | Create/edit/delete controls are hidden or disabled; no way to modify data | | |
-| 1.4 | Click "Sign In" | Redirected to Google login page | | |
-| 1.5 | Enter valid ICR Google credentials | Successfully authenticated, redirected to dashboard with full admin controls visible | | |
-| 1.6 | Refresh the page after login | Session persists, still logged in | | |
-| 1.7 | Click "Log Out" | Session cleared, reverts to public view | | <!-- [TODO: Implementing "Log Out"]  --> |
-| 1.8 | Sign in with a non-ICR Google account | Access denied with clear error message | | |
+| 1.1 | Click "Sign In" | Redirected to Google's login page | | |
+| 1.2 | Sign in with a Google account that's already been added as an Admin | Successfully authenticated, redirected to dashboard with admin controls visible | | |
+| 1.3 | Sign in with a Google account that has **not** been added as an Admin | Sign-in is rejected — lands on a generic NextAuth error page (not a friendly in-app message; this is expected current behavior, not a bug) | | |
 
 ---
 
 ## 2. Meeting Creation
 
+> **Automated (fail-soft path):** `frontend/test/e2e/02-meeting-creation.spec.ts` — the case below
+> needs live Zoom credentials to verify the real success path.
+
 | # | Step | Expected Result | Pass/Fail | Notes |
 |---|------|-----------------|-----------|-------|
-| 2.1 | From the dashboard, click "Create Meeting" | Meeting creation panel opens | | |
-| 2.2 | Fill in all required fields: title, date, time, meeting type (in-person), meeting room, contact email, Zoom account, description | All fields accept input, no errors | | |
-| 2.3 | Submit the form | Success confirmation shown, modal closes | | |
-| 2.4 | Verify the new meeting appears in the database | Meeting is visible with correct details | | |
-| 2.5 | Verify the new meeting appears on the calendar view | Meeting block shows on the correct date/time | | <!-- [TODO: refresh?]  -->|
-| 2.6 | Try submitting the form with a missing required field (e.g., no title) | Validation error shown, form does not submit | | |
-| 2.7 | Create a meeting with type "hybrid" | Zoom link is automatically generated and attached | | |
-| 2.8 | Create a meeting with type "virtual" | Zoom link is automatically generated and attached | | |
-| 2.9 | Create a meeting at the same time as an existing meeting | System prevents it | | |
+| 2.1 | Create a meeting with mode Hybrid or Remote and select a Zoom Room | A real Zoom meeting is created and its join link is shown on the meeting — see Section 6 for detailed Zoom checks | | |
 
 ---
 
 ## 3. Meeting Editing
 
+> **Automated (fail-soft path):** `frontend/test/e2e/03-meeting-editing.spec.ts` — the cases below
+> need live Zoom credentials to verify the real success/teardown path.
+
 | # | Step | Expected Result | Pass/Fail | Notes |
 |---|------|-----------------|-----------|-------|
-| 3.1 | Click on an existing meeting to view its details | Meeting details panel opens with correct info | | |
-| 3.2 | Click "Edit" on the meeting | Edit form opens, pre-populated with current values | | |
-| 3.3 | Change the meeting title | Field updates, no errors | | |
-| 3.4 | Change the meeting date and time | Field updates, no errors | | |
-| 3.5 | Change the meeting type from "in-person" to "hybrid" | Zoom link is generated upon save | | |
-| 3.6 | Change the meeting type from "hybrid" to "in-person" | Zoom link is removed upon save | | |
-| 3.7 | Save the edited meeting | Success confirmation, changes persist | | |
-| 3.8 | Verify changes appear in the database | Updated details shown | | |
-| 3.9 | Verify changes appear on the calendar view | Calendar block reflects new date/time | | |
-| 3.10 | Refresh the page and recheck | Edits persist after page reload | | |
+| 3.1 | Change the mode from In Person to Hybrid and pick a Zoom Room | A Zoom meeting is created and its join link appears on the meeting (see Section 6) | | |
+| 3.2 | Change the mode from Hybrid back to In Person | Zoom Room field/value is cleared, and the underlying Zoom meeting + its room-calendar event are deleted | | |
 
 ---
 
-## 4. Meeting Deletion
+## 6. Zoom Room Integration
+
+> **Automated (fail-soft path + auto-pairing logic):** `frontend/test/e2e/06-zoom-integration.spec.ts`
+> — the cases below all require live Zoom/Google credentials to verify against the real services.
 
 | # | Step | Expected Result | Pass/Fail | Notes |
 |---|------|-----------------|-----------|-------|
-| 4.1 | Select an existing meeting | Meeting details are visible | | |
-| 4.2 | Click "Delete" | Confirmation dialog appears ("Are you sure?") | | |
-| 4.3 | Cancel the deletion | Meeting is NOT deleted, dialog closes | | |
-| 4.4 | Click "Delete" again, then confirm | Meeting is removed | | |
-| 4.5 | Verify the meeting no longer appears in the list | Meeting is gone | | |
-| 4.6 | Verify the meeting no longer appears on the calendar | Calendar block is removed | | |
-| 4.7 | Refresh the page | Deletion persists | | |
+| 6.1 | Create a meeting with a Zoom Room set, then open its detail panel | A real Zoom join link is shown, and the panel shows "Synced to Zoom ✓" | | |
+| 6.2 | Open the join link | Zoom launches/joins the meeting | | |
+| 6.3 | Check that room's own Google Calendar (not the AA/Al-Anon/Other calendars) | A matching event exists, with the join link in its `location` field | | |
+| 6.4 | Edit a meeting's Zoom Room to a different room | The old room's Zoom meeting and calendar event are removed; the new room gets a fresh Zoom meeting and calendar event | | |
+| 6.5 | Delete a non-recurring meeting that has a Zoom Room set | The Zoom meeting and its room-calendar event are both removed | | |
+| 6.6 | Delete a single occurrence ("This event") from a recurring meeting with a Zoom Room set | The Zoom meeting is untouched — it's one stable meeting shared by the whole series; only "All events" removes it | | |
+| 6.7 | On `/admin` → Diagnostics, check the Zoom status row | Shows account reachability plus a per-room breakdown: calendar reachable, host resolves, and whether the host is Licensed | | |
+| 6.8 | Temporarily set one room's `ZOOM_HOST_<ROOM>` to a nonexistent email, reload Diagnostics | That room shows "Host ✕" and is flagged out of the "N/5 rooms fully configured" count; other rooms are unaffected | | |
+| 6.9 | Force a Zoom sync failure (e.g. temporarily use an invalid `ZOOM_CLIENT_SECRET`) | Meeting shows a Zoom-specific ⚠ status separate from the Google Calendar one; Diagnostics' Meeting Counts card shows a nonzero Zoom sync-error count; **Retry sync** clears both once credentials are fixed | | |
 
 ---
 
-## 5. Calendar Display
+## 7. Google Calendar Sync (One-Way, per category)
+
+> **Not automated** — every case here needs live Google Calendar access to verify against the real
+> calendars. The automated suite (`07-google-calendar-sync.spec.ts`) only covers the fail-soft
+> "sync attempted but no credentials configured" path.
 
 | # | Step | Expected Result | Pass/Fail | Notes |
 |---|------|-----------------|-----------|-------|
-| 5.1 | Navigate to the calendar view | Calendar loads without errors | | |
-| 5.2 | Switch to daily view | Shows only today's meetings, correctly placed by time | | |
-| 5.3 | Switch to weekly view | Shows the full week with meetings on correct days | | |
-| 5.4 | Navigate to the next week/day | Calendar updates to show future dates | | |
-| 5.5 | Navigate to the previous week/day | Calendar updates to show past dates | | |
-| 5.6 | Click on a meeting block in the calendar | Meeting details open | | |
-| 5.7 | Verify a day with no meetings | Displays as empty (no ghost data or errors) | | |
-| 5.8 | Verify a day with multiple meetings | All meetings visible, no overlapping or cut-off blocks | | |
-
----
-
-## 6. Zoom Integration
-
-| # | Step | Expected Result | Pass/Fail | Notes |
-|---|------|-----------------|-----------|-------|
-| 6.1 | Create a new hybrid meeting | Zoom link is auto-generated and visible in meeting details | | |
-| 6.2 | Click the generated Zoom link | Opens a valid Zoom meeting page | | |
-| 6.3 | Create a virtual meeting | Zoom link is auto-generated | | |
-| 6.4 | Edit a hybrid meeting's time | Zoom link remains attached | | |
-| 6.5 | Delete a meeting with a Zoom link | Zoom meeting is also cleaned up (verify in Zoom dashboard if possible) | | |
-| 6.6 | Switch between Zoom accounts (if rotation is available) | Confirm the platform uses the correct/next available account | | |
-| 6.7 | Create two overlapping virtual meetings | System prevents it| | |
-
----
-
-## 7. Google Calendar Sync (One-Way) [TODO: Update to two-ways]
-
-| # | Step | Expected Result | Pass/Fail | Notes |
-|---|------|-----------------|-----------|-------|
-| 7.1 | Create a meeting on the platform | Meeting appears in ICR's shared Google calendar | | |
-| 7.2 | Edit a meeting on the platform | Changes reflect in the Google calendar | | |
-| 7.3 | Delete a meeting on the platform | Meeting is removed from the Google calendar | | |
-| 7.4 | Check sync timing | Note how long it takes for changes to appear in Outlook (immediate? minutes?) | | |
-
----
-
-## 8. Room and Meeting Filters
-
-| # | Step | Expected Result | Pass/Fail | Notes |
-|---|------|-----------------|-----------|-------|
-| 8.1 | Apply a room filter on the meeting list or calendar | Only meetings in the selected room are shown | | |
-| 8.2 | Apply a meeting type filter (e.g., "virtual only") | Only virtual meetings are shown | | |
-| 8.3 | Clear all filters | Full meeting list/calendar is restored | | |
-| 8.4 | Apply multiple filters at once | Results reflect the combined filter criteria | | |
+| 7.1 | Create a meeting with Meeting Type "AA" | Meeting appears on ICR's AA Google Calendar | | |
+| 7.2 | Create a meeting with two Meeting Types checked (e.g. AA and Other) | An event appears on **both** calendars | | |
+| 7.3 | Edit a meeting on the platform | Changes reflect on the corresponding Google Calendar(s) | | |
+| 7.4 | Delete a meeting on the platform | Event is removed from the Google Calendar(s) it was published to | | |
+| 7.5 | Check sync timing | Note how long it takes for changes to appear in Google Calendar (immediate? minutes?) | | |
+| 7.6 | Force a sync failure (e.g. revoke calendar access, or check a meeting created while the signed-in admin's token was stale) | Meeting shows a ⚠ badge; clicking **Retry sync** in the meeting detail panel re-attempts and clears the badge on success | | |
 
 ---
 
 ## 9. Edge Cases and Error Handling
 
+> **Automated:** `frontend/test/e2e/09-edge-cases.spec.ts` — the cases below are either exploratory
+> (no fixed pass/fail expectation) or environmental/visual, which don't fit a deterministic
+> automated assertion.
+
 | # | Step | Expected Result | Pass/Fail | Notes |
 |---|------|-----------------|-----------|-------|
-| 9.1 | Submit a meeting with a past date/time | System warns the user | | <!-- [TODO: Implement said warning...]  -->|
-| 9.2 | Enter extremely long text in the title field | Character limit warning below title field | | <!-- [TODO: Check if our platform will past this] -->|
-| 9.3 | Open the platform in two tabs, edit the same meeting in both | No data corruption; last save wins or conflict is flagged | | <!-- [TODO: Can our platform do this...Need to double check]  -->|
-| 9.4 | Lose internet connection while creating a meeting | Error message shown, data is not silently lost | | <!-- [TODO: Check this]  -->|
-| 9.5 | Rapidly click "Submit" multiple times | Only one meeting is created (no duplicates) | | <!-- [TODO: Check this]  -->|
-| 9.6 | Access the platform on a tablet-sized screen | Layout is usable (note any issues for mobile responsiveness backlog) | | |
+| 9.1 | Open the platform in two tabs, edit the same meeting in both | Note whether the last save wins silently or a conflict is flagged | | |
+| 9.2 | Lose internet connection while creating a meeting | Error message shown, data is not silently lost | | |
+| 9.3 | Access the platform on a tablet-sized screen | Layout is usable (note any issues for a mobile-responsiveness backlog) | | |
 
 ---
 
-## 10. Recurring Meetings <!-- [TODO: Expand on this after done with logic] -->
+## 11. Admin Panel — Roles & Tabs
+
+> **Automated:** `frontend/test/e2e/11-admin-panel.spec.ts` — the case below needs live Zoom/Google
+> reachability checks against the real services.
 
 | # | Step | Expected Result | Pass/Fail | Notes |
 |---|------|-----------------|-----------|-------|
-| 10.1 | Create a recurring meeting (e.g., weekly on Tuesdays) | Recurrence options are available in the form | | |
-| 10.2 | Verify that multiple instances are generated | Future meeting instances appear on the calendar | | |
-| 10.3 | Edit a single instance of a recurring meeting | Only that instance changes (or document if all instances change) | | |
-| 10.4 | Delete a single instance | Only that instance is removed | | |
-| 10.5 | Delete the entire recurring series | All instances are removed | | |
+| 11.1 | Diagnostics tab | System Status card shows DB latency, Google Calendar reachability per category (AA/Al-Anon/Other), and Zoom account reachability + per-room calendar/host/license status | | |
+
+---
+
+## 13. Digital Signage
+
+> **Automated:** `frontend/test/e2e/13-digital-signage.spec.ts` — the cases below play out over
+> real minutes/hours, which isn't practical to assert deterministically in CI.
+
+| # | Step | Expected Result | Pass/Fail | Notes |
+|---|------|-----------------|-----------|-------|
+| 13.1 | Leave the signage page open across midnight (Eastern Time) | The displayed date rolls over automatically, with no manual refresh | | |
+| 13.2 | Create or edit a meeting elsewhere while the signage page is open | The signage page picks up the change automatically within ~2 minutes | | |
 
 ---
 
@@ -164,17 +145,15 @@
 
 | Section | Total Tests | Passed | Failed | Partial | Notes |
 |---------|-------------|--------|--------|---------|-------|
-| 1. Authentication | 8 | | | | |
-| 2. Meeting Creation | 9 | | | | |
-| 3. Meeting Editing | 10 | | | | |
-| 4. Meeting Deletion | 7 | | | | |
-| 5. Calendar Display | 8 | | | | |
-| 6. Zoom Integration | 7 | | | | |
-| 7. Calendar Sync | 4 | | | | |
-| 8. Filters | 4 | | | | |
-| 9. Edge Cases | 6 | | | | |
-| 10. Recurring Meetings | 5 | | | | |
-| **Total** | **68** | | | | |
+| 1. Authentication | 3 | | | | |
+| 2. Meeting Creation | 1 | | | | |
+| 3. Meeting Editing | 2 | | | | |
+| 6. Zoom Room Integration | 9 | | | | |
+| 7. Google Calendar Sync | 6 | | | | |
+| 9. Edge Cases | 3 | | | | |
+| 11. Admin Panel | 1 | | | | |
+| 13. Digital Signage | 2 | | | | |
+| **Total** | **27** | | | | |
 
 **Overall Assessment:** ☐ Ready for launch &nbsp; ☐ Needs fixes before launch &nbsp; ☐ Major issues found
 

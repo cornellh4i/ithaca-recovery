@@ -16,7 +16,7 @@ A step-by-step guide for ICR board members on how to use the scheduling platform
 7. [Navigating the Calendar](#7-navigating-the-calendar)
 8. [Filtering the Calendar](#8-filtering-the-calendar)
 9. [Recurring Meetings](#9-recurring-meetings)
-10. [Exporting Lease Documents (PandaDocs CSV)](#10-exporting-lease-documents-pandadocs-csv)
+10. [Exporting Data (Admin → Export)](#10-exporting-data-admin--export)
 11. [Digital Signage](#11-digital-signage)
 12. [Admin User Management](#12-admin-user-management)
 13. [Common Scenarios & FAQs](#13-common-scenarios--faqs)
@@ -38,46 +38,47 @@ The platform works in any modern browser (Chrome, Firefox, Edge, Safari). No app
 
 ### Logging In
 
-1. Navigate to the URL above.
-2. You will be automatically redirected to the Microsoft login page.
-3. Sign in using your **ICR Microsoft organizational email and password**.
-4. After a successful login, you will be taken back to the main calendar dashboard.
+1. Navigate to the URL above and click **Sign In** in the top-right corner.
+2. Sign in with your Google account.
+3. After a successful login, you're taken to the main calendar dashboard.
 
-> **First time?** Your account needs to be added as an admin by an existing board member before you can log in. Contact `[TODO: name/email of ICR admin contact]` to be added.
+> **First time?** Your email address must be added to the platform by a Super Admin before you can sign in — see [Section 12](#12-admin-user-management). This doesn't send you an automatic email, so the Super Admin who added you should let you know separately.
 
-> **TODO (dev team):** Update login instructions once the transition to Google Auth is complete. The sign-in button will use Google accounts instead of Microsoft.
+> If you try to sign in before your email has been added, you'll land on a generic error page rather than a helpful message — that means you haven't been added yet, not that something is broken.
 
 ### Troubleshooting Login
 
 | Problem | Fix |
 |---|---|
-| Redirected to Microsoft but can't sign in | Make sure you're using your ICR organizational email, not a personal account |
-| Page loads but sidebar is missing | Your account may not have been added as an admin — contact `[TODO: ICR admin contact]` |
+| Google sign-in fails or bounces to an error page | Your email hasn't been added as an admin yet — contact a Super Admin to be added |
+| "Admin" link in the top nav is locked/greyed out | You're signed in but your role doesn't have admin access, or your account needs Super Admin to reach certain tabs |
 | Page won't load at all | Check your internet connection; try a different browser |
 
 ---
 
 ## 2. Dashboard Overview
 
-`[TODO: Add annotated screenshot of the full dashboard]`
-
 The dashboard has three areas:
 
 ```
-┌─────────────────┬──────────────────────────────────────────────┐
-│                 │  [Navbar: date, view selector, Export CSV]   │
-│  Left Sidebar   ├──────────────────────────────────────────────┤
-│                 │                                              │
-│  • New Meeting  │          Main Calendar View                  │
-│  • Mini cal     │       (Day or Week layout)                   │
-│  • Filters      │                                              │
-│                 │                                              │
-└─────────────────┴──────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────────┐
+│  [Top nav: Main Calendar · Signage · Admin · Sign Out]         │
+├─────────────────┬────────────────────────────────────────────────┤
+│                 │  [Calendar Navbar: date, Day/Week, Today]     │
+│  Left Sidebar   ├────────────────────────────────────────────────┤
+│                 │                                                │
+│  • New Meeting  │          Main Calendar View                   │
+│  • Mini cal     │       (Day or Week layout)                    │
+│  • Filters      │                                                │
+│                 │                                                │
+└─────────────────┴────────────────────────────────────────────────┘
 ```
+
+**Top nav** — "Main Calendar" (the live scheduling view), "Signage" (read-only calendar for the lobby display), and "Admin" (visible but locked unless you're signed in with admin access). Shows "Welcome, {your name}" and a Sign Out link when signed in.
 
 **Left Sidebar** — where you create meetings, navigate dates, and filter what's shown on the calendar. When you select a meeting, this area switches to show that meeting's details.
 
-**Calendar Navbar** — shows the current date range, lets you switch between Day and Week views, jump to Today, navigate forward/back, and export the lease CSV.
+**Calendar Navbar** — shows the current date range, a Day/Week dropdown, a "Today" link, and forward/back arrows.
 
 **Main Calendar View** — shows meetings as time blocks on the selected day or week. Click any meeting block to view its details.
 
@@ -91,38 +92,37 @@ The calendar **auto-refreshes every 30 seconds**, so you don't need to reload th
 
 2. The sidebar switches to a meeting creation form. Fill in the following fields:
 
-   **Meeting Title** — the name of the group (e.g., "AA Thursday Evening Group").
+   **Meeting title** — the name of the group (e.g., "AA Thursday Evening Group").
 
    **Mode** — choose one of three buttons:
-   - **Hybrid** — in-person at ICR *and* via Zoom. Shows both Room and Zoom Account selectors.
+   - **Hybrid** — in-person at ICR *and* via Zoom. Shows both the Room and Zoom Room selectors.
    - **In Person** — in-person only. Shows the Room selector; no Zoom needed.
-   - **Remote** — Zoom only. Shows the Zoom Account selector; no room required.
+   - **Remote** — Zoom only. Shows the Zoom Room selector; no room required.
 
    **Date** — click the calendar icon to pick the meeting date.
 
    **Time** — click the clock icon to set the start and end time. All times are Eastern Time (ET).
    > If a meeting runs past midnight (e.g., 10:00 PM – 2:00 AM), the end date automatically advances to the next day.
 
-   **Recurring** — check "This meeting is recurring" if the meeting repeats. See [Section 9](#9-recurring-meetings) for details.
+   **This meeting is recurring** — check this box if the meeting repeats. See [Section 9](#9-recurring-meetings) for details.
 
-   **Room** *(Hybrid and In Person only)* — select the physical room at 518 W Seneca St:
+   **Select Room** *(Hybrid and In Person only)* — the physical room at 518 W Seneca St:
 
-   | Room | Location |
-   |---|---|
-   | Serenity Room | Main floor |
-   | Seeds of Hope | Upstairs |
-   | Unity Room | Basement |
-   | Room for Improvement | `[TODO: confirm floor]` |
-   | Small but Powerful – Left | `[TODO: confirm floor]` |
-   | Small but Powerful – Right | `[TODO: confirm floor]` |
+   | Room |
+   |---|
+   | Serenity Room |
+   | Seeds of Hope Room |
+   | Unity Room |
+   | Room for Improvement |
+   | Room for Acceptance |
+   | Room for Gratitude |
 
-   **Meeting Type** — select the calendar the meeting belongs to:
+   **Meeting Type** — check all calendars this meeting belongs to (a meeting can belong to more than one):
    - AA
    - Al-Anon
    - Other
 
-   **Zoom Account** *(Hybrid and Remote only)* — select which ICR Zoom account to use (Zoom Email 1–4). Each account can only host one meeting at a time, so pick an account that is not already in use at that time.
-   > `[TODO: Update once account rotation is automated — the platform will eventually select a free account automatically.]`
+   **Select Zoom Room** *(Hybrid and Remote only)* — one of five named Zoom rooms: the four physical rooms' matching Zoom room, plus Children's Room @ 518. Picking a physical room auto-selects its matching Zoom room; you can change it if the meeting needs a different one. Selecting a Zoom room creates a real Zoom meeting behind the scenes and generates its join link automatically — no manual Zoom setup needed.
 
    **Email** — the contact email for the group organizer. Used for lease document generation.
 
@@ -130,11 +130,11 @@ The calendar **auto-refreshes every 30 seconds**, so you don't need to reload th
 
 3. Click **"Create Meeting"**.
 
-4. A confirmation message appears and the meeting becomes visible on the calendar immediately.
+4. A confirmation alert appears — it currently reads "Meeting created successfully! Please check the Meeting collection on MongoDB," which is stale wording left over from earlier development, but the meeting has in fact been saved and is visible on the calendar immediately.
 
-> **Note:** After creating a meeting you will see a browser alert saying "Please check the Meeting collection on MongoDB." This is a placeholder confirmation — the meeting has been saved successfully. `[TODO: dev team to replace with a proper in-app notification.]`
+> **Calendar sync:** The meeting is published to Google Calendar automatically, on the calendar(s) matching its Meeting Type (AA / Al-Anon / Other). If a meeting shows a ⚠ badge, sync failed for at least one calendar — open the meeting and use the **Retry sync** button (see [Section 4](#4-viewing-a-meeting)).
 
-> **Calendar sync:** The meeting is saved in the ICR database. Sync to Google Calendar is not yet active — that is a summer deliverable. `[TODO: Remove this note once sync is live.]`
+> **Zoom sync:** If a Zoom Room was selected, a Zoom meeting is created automatically and its join link is shown in the meeting's details. This is tracked separately from Google Calendar sync — a failure here shows its own ⚠ status in the meeting detail panel, with its own **Retry sync** button.
 
 ---
 
@@ -142,12 +142,15 @@ The calendar **auto-refreshes every 30 seconds**, so you don't need to reload th
 
 1. Click any meeting block in the calendar view.
 2. The left sidebar switches to a meeting detail panel showing:
-   - Meeting name and mode type (Hybrid / In Person / Remote)
-   - Date and time (Eastern Time)
-   - Recurrence summary, if recurring (e.g., "Repeats weekly on Monday, Wednesday")
-   - Contact email
-   - Room location
-   - Zoom account and clickable Zoom join link (if applicable)
+   - Meeting name and mode (Hybrid / In Person / Remote)
+   - Date and time range (Eastern Time)
+   - Recurrence summary, if recurring (e.g., "Weekly · M, W, F")
+   - Email
+   - Meeting Mode
+   - Calendar (which of AA / Al-Anon / Other it's published to)
+   - Sync status — separate lines for Google Calendar ("Synced to Google Calendar ✓" / "Google Calendar sync failed ⚠") and Zoom ("Synced to Zoom ✓" / "Zoom sync failed ⚠"), each with its own **Retry sync** button
+   - Location
+   - **Zoom** — the room name and a clickable join link, if a Zoom Room is set
    - Description
 3. To go back to the main sidebar, click the **← back arrow** at the top of the detail panel.
 
@@ -161,9 +164,9 @@ The calendar **auto-refreshes every 30 seconds**, so you don't need to reload th
 4. The sidebar switches to an edit form pre-filled with the meeting's current values.
 5. Make your changes and click **"Update Meeting"**.
 
-All fields can be edited: title, mode, date, time, room, meeting type, Zoom account, email, description, and recurrence pattern.
+All fields can be edited: title, mode, date, time, room, meeting type, Zoom room, email, description, and recurrence pattern.
 
-> **Recurring meetings:** Editing a recurring meeting updates the entire series. Editing only a single occurrence within the series is not yet supported.
+> **Recurring meetings:** Editing a recurring meeting updates the entire series — there's no way to edit just one occurrence. If only one date needs different details, delete that single occurrence (see [Section 6](#6-deleting-a-meeting)) and create a separate one-time meeting for it.
 
 ---
 
@@ -172,17 +175,15 @@ All fields can be edited: title, mode, date, time, room, meeting type, Zoom acco
 1. Click a meeting in the calendar to open its detail panel.
 2. Click **⋮** → **"Delete Meeting"**.
 
-**For non-recurring meetings:** The meeting is deleted immediately.
+**For non-recurring meetings:** The meeting is deleted immediately, with **no confirmation prompt** — double-check you have the right meeting open before clicking Delete.
 
-**For recurring meetings:** A modal dialog appears with three options:
+**For recurring meetings:** A "Delete recurring event" dialog appears with three options:
 
 | Option | What it does |
 |---|---|
-| This event | Deletes only this occurrence |
-| This and following events | Deletes this and all future occurrences |
+| This event | Deletes only this occurrence; future occurrences are unaffected |
+| This and following events | Deletes this occurrence and everything after it; earlier occurrences are unaffected |
 | All events | Deletes the entire series |
-
-> **Known limitation:** "This event" and "This and following events" are not yet fully implemented — they currently delete the full series, the same as "All events." Use caution when deleting recurring meetings. This is a known gap targeted for a future update.
 
 > **Deleted meetings cannot be recovered** through the platform. If you accidentally delete a meeting, recreate it manually.
 
@@ -203,41 +204,43 @@ Click **"Today"** in the navbar to return to the current date in Day view.
 **Selecting a specific date:**
 Use the **mini calendar** in the left sidebar — click any date to jump to it.
 
+**Overlapping meetings:** In Week view, meetings that overlap in the same room share space side-by-side (up to 2 at once, with a "+N more" indicator beyond that) rather than hiding each other.
+
 ---
 
 ## 8. Filtering the Calendar
 
-The **Filters** section in the left sidebar lets you show or hide meetings by category. All filters are on by default. Uncheck any box to hide that category; the calendar updates immediately.
+The **Filters** section in the left sidebar lets you show or hide meetings by category. Unchecking a box hides that category immediately.
 
-**Location** (color-coded on the calendar):
-- Serenity Room (green)
-- Seeds of Hope (yellow)
-- Unity Room (blue)
-- Room for Improvement (orange)
-- Small but Powerful – Right (purple)
-- Small but Powerful – Left (pink)
-- Zoom Account 1–4 (gray)
+- **Day view** starts with every filter checked (all shown).
+- **Week view** starts with all room filters *unchecked* (nothing shown until you opt in) — this is intentional, not a bug, since a full week of every room at once is hard to read.
 
-**Calendar type:**
-- AA
-- Al-Anon
-- Other
+**Location** (6 physical rooms, color-coded on the calendar):
+Serenity Room, Seeds of Hope Room, Unity Room, Room for Improvement, Room for Acceptance, Room for Gratitude.
+
+**Zoom Rooms** (5, shown in gray):
+Serenity Room - Zoom, Seeds of Hope Room - Zoom, Unity Room - Zoom, Room for Improvement - Zoom, Children's Room @ 518 - Zoom.
+
+**Calendar:**
+AA, Al-Anon, Other.
 
 **Mode:**
-- In Person
-- Hybrid
-- Remote
+In Person, Hybrid, Remote.
 
 ---
 
 ## 9. Recurring Meetings
 
-When creating or editing a meeting, check **"This meeting is recurring"** to expand the recurrence options.
+When creating or editing a meeting, check **"This meeting is recurring"** to expand the recurrence options, then choose **Weekly** or **Monthly** from the "Repeats" dropdown.
 
-**Frequency** — how often the meeting repeats:
-- Use the number input to set the interval. "Every 1 week" = weekly, "Every 2 weeks" = biweekly.
+**Weekly:**
+- "Every N week(s)" — set the interval (1 = every week, 2 = biweekly).
+- Day buttons (S M T W T F S) — select which days the meeting occurs. The day matching your selected start date is pre-checked automatically.
 
-**Days of week** — click the day buttons (S M T W T F S) to select which days the meeting occurs. The day matching your selected start date is pre-checked automatically.
+**Monthly:**
+- "Monthly on day N" — same numeric day every month.
+- "Monthly on the 1st/2nd/3rd/4th {Weekday}" — e.g. the 2nd Tuesday of every month.
+- "Monthly on the last {Weekday}" — the final occurrence of that weekday each month.
 
 **Ends** — when the series stops:
 - **Never** — repeats indefinitely.
@@ -246,84 +249,65 @@ When creating or editing a meeting, check **"This meeting is recurring"** to exp
 
 **Example — weekly AA meeting every Monday and Wednesday for 6 months:**
 1. Check "This meeting is recurring."
-2. Set frequency to "Every 1 week."
+2. Leave "Repeats" on "Weekly," set "Every 1 week(s)."
 3. Click **M** and **W** in the day buttons.
 4. Set "Ends" to "On" and pick the date 6 months out.
 
-> **Known limitation:** Editing or deleting a single occurrence within a recurring series is not yet fully supported. See [Section 6](#6-deleting-a-meeting).
+> Editing or deleting a single occurrence within a recurring series works the same as any other meeting — see [Sections 5](#5-editing-a-meeting) and [6](#6-deleting-a-meeting).
 
 ---
 
-## 10. Exporting Lease Documents (PandaDocs CSV)
+## 10. Exporting Data (Admin → Export)
 
-ICR uses annual lease agreements for each group renting space (lease year: July 1 – June 30 of the following year). The platform generates a CSV that you upload to PandaDocs for bulk sending.
+Go to **Admin → Export**. Two exports are available, both Super-Admin-only:
 
-### When to run this
+### Export Meetings (full XLSX backup)
 
-Once per year, in late June or early July, after the new lease year's schedule is finalized.
+Click **"Export Meetings"** to download an `.xlsx` file with every meeting (recurring and one-time) — room, mode, contact, schedule, and Google Calendar/Zoom sync IDs. Useful as a full data backup or for auditing.
 
-### Steps
+### Export Lease CSV (PandaDocs bulk send)
 
-1. Make sure all meetings for the **first week of July** are entered in the platform — the export reads the July 1–7 schedule to determine each group's booking.
+ICR uses annual lease agreements for each group renting space (lease year: July 1 – June 30 of the following year by default). This export generates a CSV for PandaDocs's Bulk Send feature, covering every meeting with `status: Active`.
 
-2. In the calendar navbar, click **"Export CSV"**.
+1. Click **"Export Lease CSV"**.
+2. A file named `[year] - [year+1] Bulk Send Lease.csv` downloads.
+3. Log into [PandaDocs](https://www.pandadoc.com).
+4. Go to **Bulk Send** → upload the CSV → select the ICR lease template → send.
 
-3. A file named `[year] - [year+1] Bulk Send Lease.csv` downloads to your computer (e.g., `2025 - 2026 Bulk Send Lease.csv`).
+**Configuring lease settings:** click the **⋮** on the Export Lease CSV card → **"Configure export…"** to open the "Configure PandaDocs lease export" modal, where you can set:
+- Lease period (start/end date)
+- Per-room rate and unit (`/hr` or `/month`)
+- Rental agent contact (name, title, email, phone, address)
+- The email message template (supports a `{group}` placeholder for the group's name)
 
-4. Log into [PandaDocs](https://www.pandadoc.com).
-
-5. Go to **Bulk Send** → upload the CSV → select the ICR lease template → send.
-
-PandaDocs sends each group their lease document pre-filled with their meeting details, room, rate, and contact email.
-
-### Room rates used in the export
-
-| Room | Rate |
-|---|---|
-| Serenity Room | $15/hr |
-| Seeds of Hope | $10/hr |
-| Unity Room | $10/hr |
-| Room for Improvement | $10/hr |
-| Small but Powerful – Left | $10/hr |
-| Small but Powerful – Right | $10/hr |
-| Zoom Only | $10/month (flat) |
-
-> If ICR changes room rates, a developer needs to update the `roomRates` object in `frontend/app/components/molecules/PandaDocButton.tsx`.
+Until someone saves settings here, the export uses ICR's default rates (Serenity Room $15/hr; all other rooms $10/hr; Zoom-only $10/month flat) and a default rental-agent contact. Settings persist in the database once saved — no code change needed to update rates going forward.
 
 ---
 
 ## 11. Digital Signage
 
-`[TODO: This feature is not yet deployed. Complete this section once the digital signage system is live.]`
+A read-only calendar view at `/signage`, meant for a physical display board at the ICR facility (518 W Seneca St) showing community members the current day's or week's meetings without requiring a phone or computer.
 
-The digital signage is a physical display board at the ICR facility (518 W Seneca St) that shows community members the current day's meetings — room, time, and meeting name — without requiring a phone or computer.
-
-**Planned behavior:**
-- Automatically pulls today's meetings from the platform database.
-- Updates on a regular interval (exact timing TBD).
-- Displays meeting name, start/end time, and room.
-
-**If the signage isn't working:** `[TODO: Add troubleshooting steps once deployed.]`
+- Auto-refreshes every 2 minutes, and automatically rolls over to the next day at midnight (Eastern Time) without a page reload.
+- Uses the same Day/Week toggle as the main calendar; which rooms, calendars, and modes it shows can be pre-configured via URL query parameters (`rooms`, `zoom`, `types`, `modes`, `view`) — generate one from **Admin → Export → Generate Signage URL**.
+- Fully read-only: clicking a meeting does nothing, and no sign-in is required to view it.
 
 ---
 
 ## 12. Admin User Management
 
-`[TODO: An admin management UI is not yet built. Until it is, adding or removing admins requires developer access.]`
+Go to **Admin → Users** (Super-Admin-only).
 
-**To add a new admin (current workaround — requires developer):**
+**Table:** lists every admin's Name, Email, and Role, with a role dropdown (Super Admin / Admin / User) and a **Remove** button per row.
 
-Provide a developer with:
-- Full name
-- Email address (the one they'll sign in with)
-- Microsoft/Google account UID
+**Inviting a new admin:** under "Invite User," enter their email and pick a role, then click **"Send Invite."** This adds them to the platform immediately — it does **not** send them an email, so let them know directly that they can now sign in with that Google account.
 
-The developer will add the record to the database.
+**Changing or removing access:** use the row's role dropdown to promote/demote, or **Remove** to take someone off the platform entirely. To prevent the platform being locked with no one able to manage it, the last remaining Super Admin's role dropdown and Remove button are both disabled, with a caption explaining why.
 
 **Best practices for board transitions:**
-- Add the incoming board member as an admin *before* the outgoing member's access is removed.
-- Before a board member leaves, confirm all active recurring meetings have correct Zoom accounts assigned.
-- Export the current schedule (or take screenshots) before any large-scale changes.
+- Invite the incoming board member before removing the outgoing member's access.
+- Before a board member leaves, confirm all active recurring meetings have correct Zoom rooms assigned.
+- Run an Export Meetings backup (see [Section 10](#10-exporting-data-admin--export)) before any large-scale changes.
 
 ---
 
@@ -331,7 +315,7 @@ The developer will add the record to the database.
 
 **"I need to schedule a weekly meeting for the next 6 months."**
 
-Create the meeting with recurrence enabled. Set frequency to "Every 1 week," select the days, and set "Ends" to "On [date 6 months out]." See [Section 9](#9-recurring-meetings).
+Create the meeting with recurrence enabled. Set frequency to "Every 1 week(s)," select the days, and set "Ends" to "On [date 6 months out]." See [Section 9](#9-recurring-meetings).
 
 ---
 
@@ -345,22 +329,22 @@ Create the meeting with recurrence enabled. Set frequency to "Every 1 week," sel
 
 **"The Zoom link isn't working."**
 
-1. Click the meeting and check that a Zoom link is shown. If the link field is blank, try editing and re-saving the meeting.
-2. Test the link in a private/incognito browser window to rule out a login conflict.
-3. If still broken, delete the meeting and recreate it — a new Zoom meeting will be generated.
+1. Click the meeting and check whether it shows a Zoom ⚠ badge instead of a link — if so, click **Retry sync** first (see [Section 4](#4-viewing-a-meeting)).
+2. If the link field is still blank, try editing and re-saving the meeting.
+3. Test the link in a private/incognito browser window to rule out a login conflict.
 4. If problems persist, contact `[TODO: H4I support contact]`.
 
 ---
 
 **"I accidentally deleted a meeting."**
 
-Deleted meetings cannot be restored. Recreate the meeting manually with the same details. For a recurring series, recreate the full series.
+Deleted meetings cannot be restored. Recreate the meeting manually with the same details. For a recurring series, recreate the full series (unless only a single occurrence was deleted — see [Section 6](#6-deleting-a-meeting), which only removes that one date).
 
 ---
 
 **"A group changed their meeting day or time."**
 
-Edit the meeting (see [Section 5](#5-editing-a-meeting)). For a recurring series, editing updates the entire series. If only one occurrence changed temporarily, you'll need to delete that occurrence and create a separate one-time meeting for the new details — editing a single occurrence is not yet supported.
+Edit the meeting (see [Section 5](#5-editing-a-meeting)). For a recurring series, editing updates the entire series. If only one occurrence changed temporarily, delete that single occurrence and create a separate one-time meeting with the new details.
 
 ---
 
@@ -374,14 +358,14 @@ Go to the Day view for the relevant date. In the Filters sidebar, uncheck all ro
 
 | Problem | What to try |
 |---|---|
-| Can't log in | Confirm you're using your ICR org email. Check with `[TODO: ICR admin]` that your account has been added. |
-| Calendar shows no meetings | Make sure all filters are checked in the sidebar. Click "Today" to reset the date. |
-| Meeting not visible after creating it | Wait 30 seconds for the auto-refresh, or reload the page. |
-| Zoom link is blank on a meeting | Edit the meeting and re-save. If it persists, delete and recreate. |
-| "Export CSV" downloads an empty file | Confirm meetings are scheduled in the first week of July — the export only reads July 1–7. |
-| Digital signage not updating | `[TODO: Add once signage is deployed.]` |
-| Calendar not syncing | Google Calendar sync is not yet live — it is a planned feature. `[TODO: Remove once live.]` |
-| Page behaves unexpectedly | Hard refresh: Ctrl+Shift+R (Windows) or Cmd+Shift+R (Mac). Or try a different browser. |
+| Can't sign in | Confirm you're using the Google account whose email a Super Admin has added — see [Section 12](#12-admin-user-management) |
+| "Admin" link is locked | Your account needs admin access; ask a Super Admin to check your role |
+| Calendar shows no meetings | In Week view, room filters default off — check the boxes you need. Click "Today" to reset the date. |
+| Meeting not visible after creating it | Wait 30 seconds for the auto-refresh, or reload the page |
+| Zoom link is blank on a meeting | Edit the meeting and re-save. If it persists, delete and recreate |
+| A meeting shows a ⚠ badge | Google Calendar and/or Zoom sync failed for that meeting — open it and click the corresponding **Retry sync** button |
+| "Export Lease CSV" fails with no active meetings | Confirm meetings with `status: Active` exist for the configured lease period |
+| Page behaves unexpectedly | Hard refresh: Ctrl+Shift+R (Windows) or Cmd+Shift+R (Mac). Or try a different browser |
 
 ---
 
@@ -401,13 +385,13 @@ Go to the Day view for the relevant date. In the Filters sidebar, uncheck all ro
 
 **Platform URL:** `https://ithaca-recovery.vercel.app`
 
-**Login:** Use your ICR Microsoft email *(→ Google email once migration is complete)*
+**Login:** Sign in with the Google account a Super Admin has added for you.
 
 ---
 
 **Create a meeting**
 1. Click **"+ New Meeting"** in the left sidebar
-2. Fill in: title, mode, date, time, room and/or Zoom account, meeting type, email
+2. Fill in: title, mode, date, time, room and/or Zoom room, meeting type, email
 3. Click **"Create Meeting"**
 
 **View a meeting**
@@ -420,11 +404,12 @@ Go to the Day view for the relevant date. In the Filters sidebar, uncheck all ro
 
 **Delete a meeting**
 1. Click meeting → click **⋮** → **"Delete Meeting"**
-2. For recurring meetings: read the modal carefully before confirming *(partial deletion not yet fully working — "All events" is safest)*
+2. Non-recurring: deletes immediately, no confirmation — double-check first
+3. Recurring: choose "This event" / "This and following events" / "All events" in the dialog
 
-**Export lease CSV** *(once per year, early July)*
-1. Click **"Export CSV"** in the top navbar
-2. Upload the downloaded file to PandaDocs → Bulk Send
+**Export data** *(Admin → Export, Super Admin only)*
+1. "Export Meetings" → full XLSX backup
+2. "Export Lease CSV" → PandaDocs Bulk Send, once per year in early July
 
 ---
 

@@ -1,214 +1,176 @@
-# Project Structure 
+# Project Structure
 
-<!-- [TODO: Change when complete transition to Google] -->
-
-## Tech Stack 
+## Tech Stack
 
 | Layer | Technology |
 |---|---|
-| Framework | Next.js 14.1.1 (App Router, full-stack TypeScript) |
-| UI | React 18.2.0 + Material-UI 5.16.7 |
-| Database | MongoDB via Prisma ORM 5.16.1 |
-| Caching / Session | Redis |
-| Authentication | Azure AD via MSAL (Microsoft Authentication Library) | <!-- [TODO] -->
-| External APIs | Zoom API, Microsoft Graph API  | <!-- [TODO] -->
-| State Management | TanStack React Query |
+| Framework | Next.js 14 (App Router, full-stack TypeScript) |
+| UI | React 18 + Material-UI 5 |
+| Database | MongoDB via Prisma ORM 5 |
+| Authentication | NextAuth with Google OAuth 2.0 + OpenID Connect (`next-auth` 4) |
+| External APIs | Google Calendar API (`googleapis`), Zoom API (Server-to-Server OAuth, see [api-reference.md](api-reference.md#zoom)) |
+| State Management | TanStack React Query, SWR |
+| XLSX | `xlsx` (SheetJS) — meeting export |
+| Testing | Playwright (E2E), Jest + `@swc/jest` (unit/integration), `mongodb-memory-server` (in-memory Mongo replica set) — see [testing/README.md](testing/README.md) |
 
 ---
 
 ## Top-Level Layout
-
-<!-- [TODO: Ticket #180] -->
 
 ```
 ithaca-recovery/
 ├── frontend/          # Next.js application (all source code lives here)
 │   ├── app/           # App Router — pages, API routes, components
 │   ├── actions/       # Next.js server actions
-│   ├── services/      # Backend services (auth, redis, session)
+│   ├── services/      # Backend services (auth, Google Calendar, Zoom)
+│   ├── hooks/         # Shared React hooks (meeting form state)
 │   ├── styles/        # SCSS modules
-│   ├── prisma/        # Prisma schema and migrations
-│   ├── public/        # Static assets
-│   └── util/          # Shared types and utilities
-├── docs/              # Documentation
-└── dump.rdb           # Redis persistence file
+│   ├── prisma/        # Prisma schema
+│   ├── public/        # Static assets (svg/, favicon)
+│   ├── test/          # Playwright + Jest suite — see Testing section below
+│   └── util/          # Shared types, formatting, and domain-logic utilities (incl. lease defaults)
+├── .github/workflows/ # CI (test.yml — unit/integration/e2e jobs)
+└── docs/              # Documentation
 ```
 
 ---
 
 ## Frontend (`frontend/`)
 
-<!-- [TODO: Ticket #180] -->
-
 ### `app/` — App Router
 
 ```
 app/
-├── api/                        # All API route handlers (see api-reference.md)
-│   ├── write/meeting/          # POST — create meeting
-│   ├── retrieve/meeting/       # GET — fetch meeting(s)
-│   │   ├── [id]/               # By ID
-│   │   ├── day/                # By day
-│   │   ├── week/               # By week
-│   │   └── month/              # By month
-│   ├── update/meeting/         # PUT — update meeting
-│   ├── delete/meeting/         # DELETE — delete meeting
-│   ├── write/admin/            # POST — create admin
-│   ├── retrieve/admin/         # GET — get admin by email
-│   ├── delete/admin/           # DELETE — delete admin
-│   ├── zoom/                   # Zoom API proxy routes
-│   ├── microsoft/              # Microsoft Graph API proxy routes
-│   ├── auth/status/            # GET — auth status check
-│   └── server/                 # Server utilities (account, url, session)
-├── auth/
-│   ├── authConfig.ts           # Azure MSAL client configuration
-│   ├── AuthProvider.ts         # Auth wrapper (token acquisition, callbacks)
-│   ├── SessionPartitionManager.ts
-│   └── redis/
-│       └── redisCacheClient.ts # Distributed token cache backed by Redis
+├── (main)/                      # Route group: the live, authenticated app
+│   ├── layout.tsx
+│   ├── page.tsx                 # Home — calendar (Day/Week)
+│   └── admin/page.tsx           # /admin — AdminShell
+├── (signage)/                   # No auth check — renders fully logged out
+│   └── signage/
+│       ├── layout.tsx           
+│       └── page.tsx             # /signage — read-only calendar for signage
+├── api/                         # All API route handlers (see api-reference.md)
+│   ├── write/meeting/, update/meeting/, update/meeting/sync/, delete/meeting/
+│   ├── retrieve/meeting/        # root, [id]/, day/, week/, month/
+│   ├── write/admin/, retrieve/admin/, retrieve/admins/, update/admin/, delete/admin/
+│   ├── admin/diagnostics/
+│   ├── export/lease/, export/meetings/
+│   ├── retrieve/lease-settings/, update/lease-settings/
+│   ├── auth/authConfig.ts, auth/status/, auth/[...nextauth]/
+│   └── server/redis.ts          # dead code (entirely commented out)
 ├── components/
-│   ├── atoms/                  # Primitive UI elements
-│   ├── molecules/              # Composite components
-│   ├── organisms/              # Complex, feature-level components
-│   ├── templates/              # Full-page layout templates
-│   └── navigation/             # Nav bar and routing components
-├── contacts/                   # /contacts page
-├── createmeeting/              # /createmeeting page
-├── meetings/                   # /meetings page
-├── test/                       # Internal test pages
-├── ClientLayout.tsx            # Client-side layout wrapper
-├── ProviderWrapper.tsx         # React context providers
-├── layout.tsx                  # Root layout (auth guard lives here)
-└── page.tsx                    # Home page — renders HomePageLayout
+│   ├── atoms/                   # Primitive UI elements
+│   ├── molecules/               # Composite components
+│   └── organisms/               # Feature-level components
+├── ClientLayout.tsx             # Client-side layout wrapper
+└── ProviderWrapper.tsx          # React context providers
 ```
 
-### Pages <!-- [TODO: Double check these pages. Some of them are not used iirc?] -->
+### Pages
 
 | Route | Purpose |
 |---|---|
-| `/` | Home — calendar / daily meeting view |
-| `/createmeeting` | Create a new meeting (with Zoom integration) |
-| `/meetings` | List all meetings |
-| `/contacts` | Contacts page |
-| `/auth/callback` | Azure OAuth redirect handler |
+| `/` | Home — calendar (Day/Week) |
+| `/admin` | Admin shell: Diagnostics, Users, Import, Export tabs |
+| `/signage` | Read-only kiosk calendar for the physical display board |
 
 ### Component Hierarchy (Atomic Design)
 
-**Atoms** — stateless, single-purpose UI elements
-- DatePicker, TimePicker, TextField, ModeTypeButtons, RadioGroup, Checkbox, etc.
+**Atoms** — `app/components/atoms/`: `CheckBox`, `CheckButton`, `DatePicker`, `TimePicker`, `Dropdown`, `Logo`, `MiniCalendar`, `ModeTypeButtons`, `RadioGroup`, `SpinnerInput`, `StatCounter`, `StatusPill`, `TextButton`, `TextField`, `BoxText`
 
-**Molecules** — combinations of atoms
-- DailyViewRow, MeetingsFilter, RecurringMeeting, DeleteRecurringModal, WeeklyViewColumn, PandaDocButton
+**Molecules** — `app/components/molecules/`: `CardHeader`, `DailyViewRow`, `DeleteRecurringModal`, `FilterGroup`, `MeetingsFilter`, `OverlapMeetingsModal`, `RecurringMeeting`, `WeeklyViewColumn`
 
-**Organisms** — feature-level components
-- MeetingForm, NewMeeting, EditMeeting, ViewMeeting, DailyView, CalendarSidebar
+**Organisms** — `app/components/organisms/`: `AdminShell`, `AppNavbar`, `CalendarNavbar`, `CalendarSidebar`, `DailyView`, `WeeklyView`, `DiagnosticsTab`, `UsersTab`, `ImportTab`, `ExportTab`, `SignInPrompt`, `MeetingForm`, `NewMeeting`, `EditMeeting`, `ViewMeeting`
 
-**Templates** — full-page layout wrappers
-- HomePageLayout
+There's no `templates/` and `pages/` tier — page-level composition is inlined directly into `(main)/page.tsx`, `(signage)/page.tsx`, and `(main)/admin/page.tsx`.
+
+### `util/` — shared logic
+
+`cacheUtils.ts`, `color.ts`, `filterColors.ts` (room/category color constants), `leaseDefaults.ts` (default `LeaseSettings` used until a Super Admin saves real ones), `meetingFilters.ts` (tag/room filter predicates shared by Day and Week views), `meetingOccurrences.ts` (recurrence expansion, shared by the day/week retrieve routes), `meetingOverlapLayout.ts` (sweep-line overlap layout for Week view), `models.ts` (shared TS interfaces), `recurrenceDisplay.ts`, `rooms.ts` (physical/Zoom room lists and pairing), `signageFilters.ts` (URL-param parsing for `/signage`), `simpleCache.ts` (generic get-or-fetch cache), `timeFormat.ts`, `timeUtils.ts`.
+
+### `services/` — backend services
+
+`auth.ts` (`getAuth`, `requireRole`), `googleCalendar.ts` (multi-calendar create/update/delete/EXDATE/UNTIL/reachability), `zoom.ts` (Server-to-Server token fetch, per-room create/update/delete Zoom meeting, room→calendar and room→host-email lookup maps).
+
+### `hooks/`
+
+`useMeetingForm.ts` — shared state, handlers, validation, and payload-building logic for `NewMeeting.tsx`/`EditMeeting.tsx`.
 
 ---
 
 ## Data Layer
 
-### `prisma/`
+### `prisma/schema.prisma`
 
-Prisma schema targets MongoDB. Models:
+MongoDB via Prisma. Models:
 
 | Model | Key Fields |
 |---|---|
-| `Meeting` | `mid` (unique), `title`, `calType`, `description`, `creator`, `group`, `startDateTime`, `endDateTime`, `email`, `zoomAccount`, `zoomLink`, `zid`, `room`, `modeType`, `isRecurring` |
-| `RecurrencePattern` | `mid` (unique, FK to Meeting), `type`, `startDate`, `endDate`, `numberOfOccurences`, `daysOfWeek[]`, `firstDayOfWeek`, `interval` |
-| `Admin` | `email` (unique), `name`, `uid` (unique), `privilegeMode` |
-| `User` | `name`, `uid` (unique) |
+| `Meeting` | `mid` (unique), `title`, `calType String[]`, `description`, `creator`, `group`, `startDateTime`, `endDateTime`, `email`, `zoomRoom`, `zoomLink`, `zid`, `zoomCalendarEventId`, `zoomSyncStatus`, `room`, `modeType`, `status` (default `"Active"`), `isRecurring`, `googleCalendarEventId`, `googleCalendarEventIds Json?` (per-category), `syncStatus`, `deletedAt`, `updatedAt` |
+| `RecurrencePattern` | `mid` (unique, FK to Meeting), `type`, `startDate`, `endDate`, `numberOfOccurrences`, `daysOfWeek[]`, `firstDayOfWeek`, `interval`, `weekOfMonth`, `dayOfMonth`, `excludedDates DateTime[]` |
+| `Admin` | `email` (unique), `name`, `role Role` (`SUPER_ADMIN \| ADMIN \| USER`), `googleId`, `refreshToken`, `accessToken`, `tokenExpiresAt` |
+| `LeaseSettings` | singleton — `leaseStartDate`, `leaseEndDate`, `rooms Json` (`IRoomRate[]`), `agentFirstName/LastName/Title/Email/Phone/StreetAddress/City/State/Zip`, `emailTemplate` |
+| `User` | `name`, `uid` (unique) — unused legacy model |
 
-### `util/models.ts` — TypeScript Interfaces
-
-```typescript
-interface IMeeting {
-  title: string;
-  mid: string;
-  description: string;
-  creator: string;          // admin email
-  group: string;
-  startDateTime: Date;
-  endDateTime: Date;
-  email: string;
-  zoomAccount?: string | null;
-  zoomLink?: string | null;
-  zid?: string | null;      // Zoom meeting ID
-  calType: string;
-  modeType: string;         // "Remote" | "In Person" | "Hybrid"
-  room: string;
-  isRecurring?: boolean;
-  recurrencePattern?: IRecurrencePattern | null;
-}
-
-interface IRecurrencePattern {
-  mid?: string;
-  type: string;             // "weekly" | "daily"
-  startDate: Date;
-  endDate?: Date | null;
-  numberOfOccurrences?: number | null;
-  daysOfWeek?: string[] | null;   // e.g. ["Monday", "Wednesday"]
-  firstDayOfWeek: string;
-  interval: number;         // 1 = weekly, 2 = biweekly
-}
-
-interface IAdmin extends IUser {
-  email: string;
-  privilegeMode?: string;
-}
-
-interface IUser {
-  uid: string;
-  name: string;
-}
-```
+See [api-reference.md](api-reference.md#data-types-reference) for the matching `util/models.ts` TypeScript interfaces.
 
 ---
 
-## Authentication <!-- [TODO] -->
+## Authentication
 
-**Provider:** Azure Active Directory via MSAL `ConfidentialClientApplication`
+**Provider:** NextAuth (`next-auth` 4) with Google, configured in `frontend/app/api/auth/authConfig.ts`. Two protocols share one token exchange: **OpenID Connect** (the `openid email profile` scopes) handles identity — proving who signed in — and **OAuth 2.0** (the `calendar.events` scope) handles authorization — letting the server call Google Calendar on that admin's behalf. OIDC is itself built as an identity layer on top of OAuth 2.0, so in practice this is one combined flow, not two separate ones.
 
 **Flow:**
-1. Root layout calls `authProvider.authenticate()` on every request.
-2. If no valid session, user is redirected to `getAuthCodeUrl()` (Azure login page).
-3. Azure redirects to `/auth/callback` with an authorization code.
-4. `AuthProvider.handleAuthCodeCallback()` exchanges the code for tokens.
-5. Tokens are stored in Redis via `RedisCacheClient`.
-6. Session (partition key) is stored in an httpOnly cookie (`__session`, `sameSite=lax`).
-
-**Scopes requested:**
-- `https://graph.microsoft.com/v1.0/Group.Read.All`
-- `https://graph.microsoft.com/v1.0/Calendars.Read`
-- `User.Read`
-
-**Redirect URIs:**
-- Development: `http://localhost:3000/auth/callback`
-- Production: `https://ithaca-recovery.vercel.app/auth/callback`
+1. Signing in redirects to Google's OAuth 2.0 consent screen, requesting the `openid email profile` scopes plus `https://www.googleapis.com/auth/calendar.events`.
+2. The `signIn` callback looks up the user's email in the `Admin` table and rejects sign-in entirely if no row exists — accounts are invite-only, added via the Users tab (`POST /api/write/admin`), never self-registered.
+3. The `jwt` callback stores the Google access/refresh token on the session token, persists them onto the `Admin` row, and re-reads `role` from the DB on every token refresh (not just at login), so a role change or removal takes effect without waiting for the session to expire.
+4. Near-expiry access tokens are refreshed automatically against Google's token endpoint; a revoked refresh token forces re-login.
+5. Route handlers call `requireRole(minRole)` (`frontend/services/auth.ts`) to gate access — see [api-reference.md](api-reference.md) for which routes require `ADMIN` vs `SUPER_ADMIN`.
 
 ---
 
-## Environment Variables <!-- [TODO] -->
+## Environment Variables
 
 | Variable | Purpose |
 |---|---|
 | `DATABASE_URL` | MongoDB connection string |
-| `AZURE_TENANT_ID` | Azure AD tenant |
-| `AZURE_CLIENT_ID` | Azure app registration client ID |
-| `AZURE_CLIENT_SECRET` | Azure app client secret |
-| `ZOOM1_CLIENT_ID` / `ZOOM1_CLIENT_SECRET` / `ZOOM1_ACCOUNT_ID` | Zoom OAuth credentials |
-| `REDIS_URL` | Redis connection string |
-| `SESSION_SECRET` | Cookie session signing secret |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Google OAuth app credentials |
+| `NEXTAUTH_SECRET` | NextAuth JWT signing secret |
+| `NEXTAUTH_URL` | Canonical app URL NextAuth uses to build redirect/callback URLs |
+| `GOOGLE_CALENDAR_AA` / `GOOGLE_CALENDAR_ALANON` / `GOOGLE_CALENDAR_OTHER` | Google Calendar IDs to publish each category's events to |
+| `ZOOM_CLIENT_ID` / `ZOOM_CLIENT_SECRET` / `ZOOM_ACCOUNT_ID` | Zoom Server-to-Server OAuth credentials (account-level) |
+| `NEXT_PUBLIC_ZOOM_BASE_API` | Zoom API base URL (`https://api.zoom.us/v2`) |
+| `GOOGLE_CALENDAR_ZOOM_<ROOM>` (×5) | Google Calendar ID for each Zoom-enabled room's own calendar |
+| `ZOOM_HOST_<ROOM>` (×5) | Licensed Zoom user email that hosts meetings for that room |
+
+The `redis` package is still listed in `package.json` but nothing in the app imports it — `app/api/server/redis.ts` is entirely commented out — so no Redis instance is required to run the app today.
+
+---
+
+## Testing (`frontend/test/`)
+
+```
+test/
+├── e2e/           # Playwright specs, 1:1 with docs/testing/manual-test-script-template.md's sections
+│   └── support/   # Auth cookie minting, fail-soft sync-state fixtures
+├── unit/          # Jest — pure functions, no I/O
+├── integration/   # Jest — route handlers against a real (in-memory) DB, services mocked
+├── factories/     # Framework-agnostic seed helpers (admin/meeting/lease-settings)
+└── mongo/         # mongodb-memory-server replica-set wrapper
+```
+
+Three tiers (unit/integration/e2e), run in CI via `.github/workflows/test.yml` on every push/PR to `main`/`master`. Full walkthrough of how each tier works, how auth/external services are handled without real credentials, and what's still manual: [`docs/testing/README.md`](testing/README.md).
 
 ---
 
 ## Scripts
 
 ```bash
-yarn dev          # Start Next.js dev server
-yarn build        # prisma generate && next build
-yarn start        # Start production server
-yarn lint         # Run ESLint
+yarn dev               # Start Next.js dev server
+yarn build             # prisma generate && next build
+yarn start             # Start production server
+yarn lint              # Run ESLint
+yarn test:unit         # Jest — pure functions
+yarn test:integration  # Jest — route handlers against an in-memory Mongo replica set
+yarn test:e2e          # Playwright — full browser E2E (needs `npx playwright install --with-deps chromium` once)
 ```
