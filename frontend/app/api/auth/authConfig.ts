@@ -67,7 +67,7 @@ export const authOptions: NextAuthOptions = {
                         grant_type: "refresh_token",
                     }),
                 });
-            
+
                 if (response.ok) {
                     const refreshed = await response.json();
                     token.accessToken = refreshed.access_token;
