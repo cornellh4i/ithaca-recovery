@@ -6,6 +6,7 @@ import { requireRole } from "../../../../services/auth";
 import { createCalendarEvent, calendarIdsForMeeting } from "../../../../services/googleCalendar";
 import { createZoomMeeting, zoomRoomCalendarId } from "../../../../services/zoom";
 import { convertETToUTC } from "../../../../util/timeUtils";
+import { meetingSchema } from "../../../../util/meetingValidation";
 import { prisma } from "../../../../lib/prisma";
 
 // Runs after the response is sent (see waitUntil call below) — failure sets syncStatus but
@@ -72,7 +73,11 @@ const createMeeting = async (request: Request) => {
     const auth = await requireRole(Role.ADMIN);
     if (auth instanceof Response) return auth;
 
-    const meetingData = await request.json() as IMeeting;
+    const parsed = meetingSchema.safeParse(await request.json());
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Invalid meeting data", issues: parsed.error.issues }, { status: 400 });
+    }
+    const meetingData = parsed.data as IMeeting;
 
     const { recurrencePattern, ...meetingDetails } = meetingData;
 

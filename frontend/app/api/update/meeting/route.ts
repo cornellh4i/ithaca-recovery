@@ -5,6 +5,7 @@ import { requireRole } from "../../../../services/auth";
 import { IMeeting } from "../../../../util/models";
 import { createCalendarEvent, updateCalendarEvent, deleteCalendarEvent, reconcileMeetingCalendars } from "../../../../services/googleCalendar";
 import { createZoomMeeting, updateZoomMeeting, deleteZoomMeeting, zoomRoomCalendarId } from "../../../../services/zoom";
+import { meetingSchema } from "../../../../util/meetingValidation";
 import { prisma } from "../../../../lib/prisma";
 
 // Runs after the response is sent (see waitUntil call below) — failure updates syncStatus
@@ -101,7 +102,11 @@ const updateMeeting = async (request: Request): Promise<Response> => {
     const auth = await requireRole(Role.ADMIN);
     if (auth instanceof Response) return auth;
 
-    const newMeeting = await request.json() as IMeeting;
+    const parsed = meetingSchema.safeParse(await request.json());
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Invalid meeting data", issues: parsed.error.issues }, { status: 400 });
+    }
+    const newMeeting = parsed.data as IMeeting;
 
     const existingMeeting = await prisma.meeting.findUnique({
       where: {
