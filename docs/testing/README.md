@@ -17,14 +17,22 @@ frontend/test/
 ```
 
 **Unit** (`test/unit/`, `yarn test:unit`) — pure functions in isolation: no database, no network,
-no rendering. `timeUtils.test.ts`, `meetingOccurrences.test.ts`, `googleCalendar.test.ts`. Also
-`routeGuards.test.ts` — a structural check, not a pure-function test, but still no DB/network: it
+no rendering. `timeUtils.test.ts`, `meetingOccurrences.test.ts`, `googleCalendar.test.ts`,
+`googleTokenRefresh.test.ts` (mocks `fetch`), `authCookies.test.ts`. Also `routeGuards.test.ts` — a
+structural check, not a pure-function test, but still no DB/network: it
 parses every `route.ts` under `app/api` into a TypeScript AST and confirms each one either has a
 real `requireRole(...)` guard (a variable assigned from the call, checked with `instanceof
 Response`, returning on failure) or is explicitly allowlisted as intentionally public. Catches a
 route that forgot the check — or imported `requireRole` without actually calling it — that a
 text/grep-based check would miss. Runs in seconds; reach for this whenever logic (or in this case,
 a structural invariant) can be verified from source alone.
+
+`middleware.test.ts` is also here, and is the first test in this repo to import `next/server`
+directly — it constructs a `NextRequest` with an `encode()`d session cookie (same technique the
+e2e auth helper uses) and calls the exported `middleware` function in-process, no dev server
+needed. It mocks `services/googleTokenRefresh.ts` to assert `middleware.ts`'s own logic (when it
+decides to refresh, what it writes to `Set-Cookie`) independently of the real Google network call,
+which `googleTokenRefresh.test.ts` covers separately.
 
 **Integration** (`test/integration/`, `yarn test:integration`) — a Next.js route handler talking
 to a *real* database (an in-memory MongoDB replica set via `mongodb-memory-server`), with external
