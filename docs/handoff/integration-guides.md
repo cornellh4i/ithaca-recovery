@@ -35,7 +35,7 @@ CLOUD_INSTANCE="https://login.microsoftonline.com/"
 
 # Auth callback URLs
 NEXT_PUBLIC_AUTH_CALLBACK_URI="http://localhost:3000/auth/callback"
-NEXT_PUBLIC_AUTH_CALLBACK_PROD_URI="https://ithaca-recovery-deployment.vercel.app/auth/callback"
+NEXT_PUBLIC_AUTH_CALLBACK_PROD_URI="https://ithaca-recovery.vercel.app/auth/callback"
 
 # Session
 SESSION_SECRET="<random-secret-string>"
@@ -113,7 +113,7 @@ Azure AD authenticates board members via Microsoft SSO. The same token is used t
 1. Go to [portal.azure.com](https://portal.azure.com) → **Azure Active Directory** → **App registrations** → **New registration**.
 2. Set the redirect URI to:
    - Development: `http://localhost:3000/auth/callback`
-   - Production: `https://ithaca-recovery-deployment.vercel.app/auth/callback`
+   - Production: `https://ithaca-recovery.vercel.app/auth/callback`
    - Platform type: **Web**
 3. Under **Certificates & secrets**, create a new client secret. Copy the value immediately (it won't be shown again).
 4. Under **API permissions**, add:
@@ -358,5 +358,5 @@ The team is actively transitioning from Microsoft Azure AD / MSAL to Google OAut
 3. Under **Credentials** → **Create credentials** → **OAuth 2.0 Client ID** → Web application.
 4. Add authorized redirect URIs:
    - `http://localhost:3000/api/auth/callback/google` (NextAuth dev)
-   - `https://ithaca-recovery-deployment.vercel.app/api/auth/callback/google` (prod)
+   - `https://ithaca-recovery.vercel.app/api/auth/callback/google` (prod)
 5. Copy **Client ID** → `GOOGLE_CLIENT_ID` and **Client Secret** → `GOOGLE_CLIENT_SECRET`.

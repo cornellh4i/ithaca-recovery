@@ -32,7 +32,7 @@ A step-by-step guide for ICR board members on how to use the scheduling platform
 
 Open a web browser and go to:
 
-**`https://ithaca-recovery-deployment.vercel.app`**
+**`https://ithaca-recovery.vercel.app`**
 
 The platform works in any modern browser (Chrome, Firefox, Edge, Safari). No app installation is required.
 
@@ -399,7 +399,7 @@ Go to the Day view for the relevant date. In the Filters sidebar, uncheck all ro
 
 ---
 
-**Platform URL:** `https://ithaca-recovery-deployment.vercel.app`
+**Platform URL:** `https://ithaca-recovery.vercel.app`
 
 **Login:** Use your ICR Microsoft email *(→ Google email once migration is complete)*
 

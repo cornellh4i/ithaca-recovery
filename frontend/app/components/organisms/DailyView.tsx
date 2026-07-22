@@ -95,12 +95,12 @@ export const fetchMeetingsByDay = async (date: Date): Promise<Room[]> => {
           displayStartTime: convertUTCToET(new Date(meeting.trueStartDateTime).toISOString()),
           displayEndTime: convertUTCToET(new Date(meeting.trueEndDateTime).toISOString()),
           tags: [...meeting.calType, meeting.modeType],
-          syncError: meeting.syncStatus === 'error',
+          syncError: meeting.syncStatus === 'error' || meeting.zoomSyncStatus === 'error',
         };
 
         // A Hybrid meeting occupies both its physical room and its Zoom room;
         // Remote only has a Zoom room, In Person only has a physical room.
-        const roomNames: string[] = [meeting.room, meeting.zoomAccount].filter(Boolean);
+        const roomNames: string[] = [meeting.room, meeting.zoomRoom].filter(Boolean);
         roomNames.forEach((roomName: string) => {
           if (!groupedRooms[roomName]) {
             groupedRooms[roomName] = [];

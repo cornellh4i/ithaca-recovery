@@ -60,7 +60,7 @@ export function useMeetingForm(initialMeeting?: IMeeting) {
                 : initialMeeting.calType ? [initialMeeting.calType as unknown as string] : []
             : []
     );
-    const [zoomRoom, setZoomRoom] = useState(initialMeeting?.zoomAccount ?? "");
+    const [zoomRoom, setZoomRoom] = useState(initialMeeting?.zoomRoom ?? "");
     const [isRecurring, setIsRecurring] = useState(!!initialMeeting?.recurrencePattern);
     const [recurrencePattern, setRecurrencePattern] = useState<IRecurrencePattern | null>(
         initialMeeting?.recurrencePattern ?? null
@@ -124,6 +124,8 @@ export function useMeetingForm(initialMeeting?: IMeeting) {
             errors.push("Email must be a valid email address.");
         }
 
+        if (calTypes.length === 0) errors.push("At least one calendar type is required.");
+
         if (mode === "Hybrid" && (!room || !zoomRoom)) {
             errors.push("Hybrid meetings require both a physical room and a Zoom room.");
         } else if (mode === "In Person" && !room) {
@@ -173,7 +175,7 @@ export function useMeetingForm(initialMeeting?: IMeeting) {
             startDateTime: startDateTimeUTC,
             endDateTime: endDateTimeUTC,
             email,
-            zoomAccount: zoomRoom,
+            zoomRoom,
             calType: calTypes,
             status,
             room,

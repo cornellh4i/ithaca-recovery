@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import styles from '../../../styles/components/organisms/ViewMeeting.module.scss';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
-import VideoCameraFrontIcon from '@mui/icons-material/VideoCameraFront';
 import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
 import DownloadForOfflineIcon from '@mui/icons-material/DownloadForOffline';
 import DeleteRecurringModal from '../molecules/DeleteRecurringModal';
@@ -31,7 +30,7 @@ type ViewMeetingDetailsProps = {
   startDateTime: Date; // Maps to 'startDateTime' in the model (use string or Date, depending on your frontend handling)
   endDateTime: Date; // Maps to 'endDateTime' in the model
   email: string;
-  zoomAccount?: string | null; // Maps to 'zoomAccount' in the model (optional)
+  zoomRoom?: string | null; // Maps to 'zoomRoom' in the model (optional)
   zoomLink?: string | null; // Maps to 'zoomLink' in the model (optional)
   zid?: string | null; // Maps to 'zid' in the model (optional)
   calType: string[]; // Maps to 'calType' in the model
@@ -41,6 +40,7 @@ type ViewMeetingDetailsProps = {
   recurrencePattern?: IRecurrencePattern
   currentOccurrenceDate?: Date; // Handles the specific occurrence date
   syncStatus?: string | null;
+  zoomSyncStatus?: string | null;
   onBack: () => void;
   onEdit: () => void;
   onDelete: (mid: string, deleteOption?: 'this' | 'thisAndFollowing' | 'all') => void;
@@ -57,7 +57,7 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
   startDateTime,
   endDateTime,
   email,
-  zoomAccount,
+  zoomRoom,
   zoomLink,
   zid,
   calType,
@@ -67,6 +67,7 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
   recurrencePattern,
   currentOccurrenceDate,
   syncStatus: initialSyncStatus,
+  zoomSyncStatus: initialZoomSyncStatus,
   onBack,
   onEdit,
   onDelete,
@@ -75,6 +76,7 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [syncStatus, setSyncStatus] = useState(initialSyncStatus ?? null);
+  const [zoomSyncStatus, setZoomSyncStatus] = useState(initialZoomSyncStatus ?? null);
   const [syncing, setSyncing] = useState(false);
 
   const handleRetrySync = async () => {
@@ -87,7 +89,8 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
       });
       const data = await res.json();
       setSyncStatus(data.syncStatus ?? 'error');
-      if (data.syncStatus === 'synced') onSyncSuccess?.();
+      setZoomSyncStatus(data.zoomSyncStatus ?? null);
+      if (data.syncStatus === 'synced' || data.zoomSyncStatus === 'synced') onSyncSuccess?.();
     } catch {
       setSyncStatus('error');
     } finally {
@@ -251,7 +254,17 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
             Google Calendar sync failed ⚠
           </p>
         )}
-        {syncStatus === 'error' && (
+        {zoomSyncStatus === 'synced' && (
+          <p style={{ color: '#3a9e3a', fontSize: '13px', margin: '2px 0 8px' }}>
+            Synced to Zoom ✓
+          </p>
+        )}
+        {zoomSyncStatus === 'error' && (
+          <p style={{ color: '#e07000', fontSize: '13px', margin: '2px 0 4px' }}>
+            Zoom sync failed ⚠
+          </p>
+        )}
+        {(syncStatus === 'error' || zoomSyncStatus === 'error') && (
           <button
             onClick={handleRetrySync}
             disabled={syncing}
@@ -264,9 +277,9 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
           </button>
         )}
         {room && <p><strong>Location:</strong>&nbsp;{room}</p>}
-        {zoomAccount && <p><strong>Zoom Account:</strong>&nbsp;{zoomAccount}</p>}
-        {zoomLink && <a href={zoomLink} target="_blank" rel="noopener noreferrer" className={styles.zoomLink}> 
-          <VideoCameraFrontIcon /> {zoomLink}
+        {zoomRoom && <p><strong>Zoom:</strong>&nbsp;{zoomRoom.replace(/ - Zoom$/, '')}</p>}
+        {zoomLink && <a href={zoomLink} target="_blank" rel="noopener noreferrer" className={styles.zoomLink}>
+          <img src="/svg/zoom-icon.svg" alt="Zoom" /> {zoomLink}
         </a>}
 
         <hr className={styles.divider} />

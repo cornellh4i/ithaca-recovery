@@ -12,7 +12,7 @@ export interface MeetingFormProps {
   RecurringMeeting: React.ReactElement;
   roomSelectionDropdown: React.ReactElement;
   meetingTypeDropdown: React.ReactElement;
-  zoomAccountDropdown: React.ReactElement;
+  zoomRoomDropdown: React.ReactElement;
   emailTextField: React.ReactElement;
   descriptionTextField: React.ReactElement;
   handleMeetingSubmit: () => Promise<void>;
@@ -29,7 +29,7 @@ export const MeetingForm: React.FC<MeetingFormProps> = ({
   RecurringMeeting,
   roomSelectionDropdown,
   meetingTypeDropdown,
-  zoomAccountDropdown,
+  zoomRoomDropdown,
   emailTextField,
   descriptionTextField,
   handleMeetingSubmit,
@@ -64,7 +64,7 @@ export const MeetingForm: React.FC<MeetingFormProps> = ({
         )}
         {(selectedMode === "Hybrid" || selectedMode === "Remote") && (
         <div className={styles.dummyComponent}>
-          {zoomAccountDropdown}
+          {zoomRoomDropdown}
         </div>
         )}
         <div className={styles.dummyComponent}>

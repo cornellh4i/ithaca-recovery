@@ -158,7 +158,7 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({
               </div>
             </div>
           }
-          zoomAccountDropdown={
+          zoomRoomDropdown={
             <Dropdown
               key={selectedZoomRoom}
               label={<img src="svg/person-icon.svg" alt="Person Icon" />}
