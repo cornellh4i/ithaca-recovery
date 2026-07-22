@@ -2,6 +2,7 @@ import "server-only";
 import type { NextAuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import { prisma } from "../../../lib/prisma";
+import { refreshGoogleAccessToken } from "../../../services/googleTokenRefresh";
 
 export const authOptions: NextAuthOptions = {
     providers: [
@@ -57,23 +58,12 @@ export const authOptions: NextAuthOptions = {
             }
 
             if (token.expiresAt && Date.now() / 1000 > token.expiresAt - 60) {
-                const response = await fetch("https://oauth2.googleapis.com/token", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-                    body: new URLSearchParams({
-                        client_id: process.env.GOOGLE_CLIENT_ID!,
-                        client_secret: process.env.GOOGLE_CLIENT_SECRET!,
-                        refresh_token: token.refreshToken!,
-                        grant_type: "refresh_token",
-                    }),
-                });
-
-                if (response.ok) {
-                    const refreshed = await response.json();
-                    token.accessToken = refreshed.access_token;
-                    token.expiresAt = Math.floor(Date.now() / 1000) + refreshed.expires_in;
+                const refreshed = await refreshGoogleAccessToken(token.refreshToken!);
+                if (refreshed) {
+                    token.accessToken = refreshed.accessToken;
+                    token.expiresAt = refreshed.expiresAt;
                 } else {
-                    // Refresh token revoked — force re-login
+                    // Refresh token revoked (or the refresh call failed/timed out) — force re-login
                     return { ...token, error: "RefreshTokenError" };
                 }
             }
