@@ -3,11 +3,6 @@ import { Role } from "@prisma/client";
 import { getTestPrismaClient, disconnectTestPrismaClient } from "../factories/db";
 import type { IMeeting } from "../../util/models";
 
-// [PROVISIONAL] Documents that write/meeting/route.ts awaits Google Calendar/Zoom
-// sync before responding — a slow external API directly slows down meeting
-// creation for the user, with no fire-and-forget path. Update/replace this test
-// if that changes.
-
 jest.mock("../../services/auth", () => ({
   requireRole: jest.fn().mockResolvedValue({
     user: { role: "ADMIN" },
@@ -54,7 +49,7 @@ afterAll(async () => {
   await disconnectTestPrismaClient();
 });
 
-test("[PROVISIONAL] the response doesn't resolve until Google Calendar sync does", async () => {
+test("the response resolves before Google Calendar sync completes, which runs in the background", async () => {
   const SYNC_DELAY_MS = 300;
   mockedCreateCalendarEvent.mockImplementation(
     () => new Promise((resolve) => setTimeout(() => resolve("fake-event-id"), SYNC_DELAY_MS)),
@@ -71,9 +66,15 @@ test("[PROVISIONAL] the response doesn't resolve until Google Calendar sync does
   const elapsed = Date.now() - start;
 
   expect(response.status).toBe(201);
-  expect(elapsed).toBeGreaterThanOrEqual(SYNC_DELAY_MS);
+  expect(elapsed).toBeLessThan(SYNC_DELAY_MS);
 
   const prisma = getTestPrismaClient();
-  const created = await prisma.meeting.findUnique({ where: { mid: payload.mid } });
-  expect(created?.syncStatus).toBe("synced");
+  const rightAfterResponse = await prisma.meeting.findUnique({ where: { mid: payload.mid } });
+  expect(rightAfterResponse?.syncStatus).toBeNull();
+
+  // waitUntil has no real lifecycle hook outside Vercel, but the background
+  // function still runs to completion on its own — just give it time to finish.
+  await new Promise((resolve) => setTimeout(resolve, SYNC_DELAY_MS + 100));
+  const afterSync = await prisma.meeting.findUnique({ where: { mid: payload.mid } });
+  expect(afterSync?.syncStatus).toBe("synced");
 });

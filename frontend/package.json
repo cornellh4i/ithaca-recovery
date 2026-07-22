@@ -23,6 +23,7 @@
     "@prisma/client": "5.16.1",
     "@tanstack/react-query": "^5.32.0",
     "@testing-library/react": "^14.2.2",
+    "@vercel/functions": "^3.7.5",
     "axios": "^1.18.1",
     "dayjs": "^1.11.10",
     "googleapis": "^173.0.0",

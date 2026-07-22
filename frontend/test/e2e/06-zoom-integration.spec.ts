@@ -60,9 +60,13 @@ test.describe("zoom integration", () => {
 
     // No ZOOM_CLIENT_ID/SECRET/ACCOUNT_ID in the test env — getZoomAccessToken()
     // early-returns null, so the sync deterministically fails with zero network calls.
+    // Sync runs in the background after the response (waitUntil), so poll rather than
+    // reading the DB once immediately after writeResponse.
     const prisma = getTestPrismaClient();
-    const created = await prisma.meeting.findFirst({ where: { title: "Zoom Sync Attempt" } });
-    expect(created?.zoomSyncStatus).toBe("error");
+    await expect.poll(async () => {
+      const created = await prisma.meeting.findFirst({ where: { title: "Zoom Sync Attempt" } });
+      return created?.zoomSyncStatus;
+    }).toBe("error");
   });
 
   test("6.13 a meeting already synced to Zoom shows the success state and a real join link", async ({ adminPage }) => {
