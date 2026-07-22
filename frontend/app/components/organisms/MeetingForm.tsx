@@ -17,6 +17,7 @@ export interface MeetingFormProps {
   descriptionTextField: React.ReactElement;
   handleMeetingSubmit: () => Promise<void>;
   buttonText: string
+  isSubmitting?: boolean
 }
 
 export const MeetingForm: React.FC<MeetingFormProps> = ({
@@ -32,7 +33,8 @@ export const MeetingForm: React.FC<MeetingFormProps> = ({
   emailTextField,
   descriptionTextField,
   handleMeetingSubmit,
-  buttonText
+  buttonText,
+  isSubmitting = false,
 }) => {
 
   return (
@@ -52,14 +54,14 @@ export const MeetingForm: React.FC<MeetingFormProps> = ({
         <div className={styles.dummyComponent}>
           {RecurringMeeting}
         </div>
+        <div className={styles.dummyComponent}>
+          {meetingTypeDropdown}
+        </div>
         {(selectedMode === "Hybrid" || selectedMode === "In Person") && (
         <div className={styles.dummyComponent}>
           {roomSelectionDropdown}
         </div>
         )}
-        <div className={styles.dummyComponent}>
-          {meetingTypeDropdown}
-        </div>
         {(selectedMode === "Hybrid" || selectedMode === "Remote") && (
         <div className={styles.dummyComponent}>
           {zoomRoomDropdown}
@@ -71,7 +73,7 @@ export const MeetingForm: React.FC<MeetingFormProps> = ({
         <div className={styles.dummyComponent}>
           {descriptionTextField}
         </div>
-        <button className={styles.createMeetingButton} onClick={handleMeetingSubmit}>{buttonText}</button>
+        <button className={styles.createMeetingButton} onClick={handleMeetingSubmit} disabled={isSubmitting}>{buttonText}</button>
       </div>
   );
 };

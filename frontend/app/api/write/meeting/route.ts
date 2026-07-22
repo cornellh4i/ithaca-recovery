@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { requireRole } from "../../../../services/auth";
 import { createCalendarEvent, calendarIdsForMeeting } from "../../../../services/googleCalendar";
 import { createZoomMeeting, zoomRoomCalendarId } from "../../../../services/zoom";
+import { convertETToUTC } from "../../../../util/timeUtils";
 
 const prisma = new PrismaClient();
 
@@ -134,7 +135,7 @@ function calculateEndDateFromOccurrences(
   daysOfWeek: string[],
   numberOfOccurrences: number,
   interval: number,
-  type: string = "weekly",
+  type: string,
   weekOfMonth: number | null = null,
   dayOfMonth: number | null = null,
 ): Date {
@@ -153,8 +154,14 @@ function calculateEndDateFromOccurrences(
     const targetYear = patternStartDate.getUTCFullYear() + Math.floor(rawMonth / 12);
     const targetMonth = rawMonth % 12;
 
+    // 23:59:59 ET so the end date is inclusive of its full day
+    // even against a naive instant comparison (e.g. `meetingStart <= endDate`).
+    const toETDate = (day: number) => new Date(convertETToUTC(
+      `${targetYear}-${String(targetMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}T23:59:59`
+    ));
+
     if (dayOfMonth != null) {
-      return new Date(Date.UTC(targetYear, targetMonth, dayOfMonth));
+      return toETDate(dayOfMonth);
     }
 
     if (weekOfMonth != null && daysOfWeek.length > 0) {
@@ -164,7 +171,7 @@ function calculateEndDateFromOccurrences(
       if (weekOfMonth === -1) {
         for (let d = daysInMonth; d >= 1; d--) {
           if (new Date(Date.UTC(targetYear, targetMonth, d)).getUTCDay() === targetDay) {
-            return new Date(Date.UTC(targetYear, targetMonth, d));
+            return toETDate(d);
           }
         }
       } else {
@@ -172,14 +179,14 @@ function calculateEndDateFromOccurrences(
         for (let d = 1; d <= daysInMonth; d++) {
           if (new Date(Date.UTC(targetYear, targetMonth, d)).getUTCDay() === targetDay) {
             if (++count === weekOfMonth) {
-              return new Date(Date.UTC(targetYear, targetMonth, d));
+              return toETDate(d);
             }
           }
         }
       }
     }
 
-    return new Date(Date.UTC(targetYear, targetMonth, patternStartDate.getUTCDate()));
+    return toETDate(patternStartDate.getUTCDate());
   }
 
   // Weekly
