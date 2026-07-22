@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import styles from '../../../styles/components/molecules/DeleteRecurringModal.module.scss';
-import TextButton from '../atoms/textbutton';
+import TextButton from '../atoms/TextButton';
 
 interface DeleteRecurringModalProps {
   isOpen: boolean;

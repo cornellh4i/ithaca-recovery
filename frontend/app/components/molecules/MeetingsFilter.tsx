@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import LabeledCheckbox from '../atoms/checkbox/index';
+import LabeledCheckbox from '../atoms/CheckBox';
 import styles from '../../../styles/components/molecules/MeetingsFilter.module.scss';
 
 interface MeetingsFilterProps {

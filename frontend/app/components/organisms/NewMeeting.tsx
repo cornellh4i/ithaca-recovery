@@ -5,8 +5,8 @@ import TextField from '../atoms/TextField';
 import ModeTypeButtons from '../atoms/ModeTypeButtons';
 import DatePicker from '../atoms/DatePicker';
 import TimePicker from '../atoms/TimePicker';
-import Dropdown from '../atoms/dropdown';
-import LabeledCheckbox from '../atoms/checkbox';
+import Dropdown from '../atoms/Dropdown';
+import LabeledCheckbox from '../atoms/CheckBox';
 import RecurringMeetingForm from '../molecules/RecurringMeeting';
 import CloseIcon from '@mui/icons-material/Close';
 import IconButton from '@mui/material/IconButton';
@@ -187,7 +187,6 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({
         const startDateTimeUTC = new Date(startDateTimeUTCString);
         const endDateTimeUTC = new Date(endDateTimeUTCString);
 
-        // if endTime < startTime, add one calendar day to endDateTime (e.g., 10:00 PM - 2:00 AM)
         if (endDateTimeUTC <= startDateTimeUTC) {
           endDateTimeUTC.setUTCDate(endDateTimeUTC.getUTCDate() + 1);
         }

@@ -1,0 +1,327 @@
+import React, { useEffect, useState, useRef } from "react";
+import styles from '../../../styles/components/organisms/DailyView.module.scss';
+import BoxText from '../atoms/BoxText';
+import DailyViewRow from "../molecules/DailyViewRow";
+import { convertUTCToET } from "../../../util/timeUtils";
+import { IMeeting } from "../../../util/models";
+
+type Meeting = {
+  id: string;
+  title: string;
+  startTime: string;
+  endTime: string;
+  tags: string[];
+  syncError?: boolean;
+};
+
+type Room = {
+  name: string;
+  primaryColor: string;
+  meetings: Meeting[];
+};
+
+const meetingCache = new Map<string, Room[]>();
+
+// Formats a Date's local calendar day as "YYYY-MM-DD". Uses local (not UTC)
+// getters since the rest of this component treats `date` as the browser's
+// local wall-clock day (see dayStart/dayEnd below) — matches the day-retrieve
+// route's expected date-only format unambiguously, unlike locale strings.
+const toLocalDateStr = (date: Date): string =>
+  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+
+export const fetchMeetingsByDay = async (date: Date): Promise<Room[]> => {
+  const formattedDate = toLocalDateStr(date);
+
+  // If cache exists, return it. Otherwise, fetch new data.
+  if (meetingCache.has(formattedDate)) {
+    console.log("Using cached data for date:", formattedDate);
+    return meetingCache.get(formattedDate) || [];
+  }
+  try {
+    const response = await fetch(`/api/retrieve/meeting/day?startDate=${formattedDate}`);
+    const data: IMeeting[] = await response.json();
+    console.log("Raw API response:", data);
+
+    const dayStart = new Date(date); 
+    dayStart.setHours(0, 0, 0, 0);
+    const dayEnd = new Date(date);
+    dayEnd.setHours(23, 59, 59, 999);
+
+    const clipped: IMeeting[] = data.flatMap(meeting => {
+      const start = new Date(meeting.startDateTime);
+      const end = new Date(meeting.endDateTime);
+      console.log("End time:", meeting.endDateTime);
+
+      //Case 1: Meeting spans into today from before; start it at 12:00 AM today
+      if (start < dayStart && end > dayStart) {
+        return [{
+          ...meeting,
+          startDateTime: dayStart,
+          endDateTime: end < dayEnd ? meeting.endDateTime : dayEnd,
+        }];
+      }
+
+      //Case 2: Meeting starts today, goes past midnight; end it at 11:59 PM today
+      if (start < dayEnd && end > dayEnd) {
+        return [{
+          ...meeting,
+          startDateTime: meeting.startDateTime,
+          endDateTime: dayEnd,
+        }];
+      }
+
+      //Case 3: Fully inside today
+      if (start >= dayStart && end <= dayEnd) {
+        return [meeting]; 
+      }
+      return []; 
+    })
+
+    const groupedRooms: { [key: string]: Meeting[] } = {};
+
+    clipped.forEach((meeting: any) => {
+      // Convert meeting times from UTC to EDT for display
+      const startUTC = new Date(meeting.startDateTime);
+      const endUTC = new Date(meeting.endDateTime);
+
+      const startEDT = convertUTCToET(startUTC.toISOString());
+      const endEDT = convertUTCToET(endUTC.toISOString());
+
+      const meetingEntry: Meeting = {
+        id: meeting.mid,
+        title: meeting.title,
+        startTime: startEDT,
+        endTime: endEDT,
+        tags: [...meeting.calType, meeting.modeType],
+        syncError: meeting.syncStatus === 'error',
+      };
+
+      // A Hybrid meeting occupies both its physical room and its Zoom room;
+      // Remote only has a Zoom room, In Person only has a physical room.
+      const roomNames: string[] = [meeting.room, meeting.zoomAccount].filter(Boolean);
+      roomNames.forEach((roomName: string) => {
+        if (!groupedRooms[roomName]) {
+          groupedRooms[roomName] = [];
+        }
+        groupedRooms[roomName].push(meetingEntry);
+      });
+    });
+
+    const structuredData: Room[] = Object.keys(groupedRooms).map((roomName) => {
+      const defaultRoom = defaultRooms.find((r) => r.name === roomName);
+      return {
+        name: roomName,
+        primaryColor: defaultRoom?.primaryColor || "#ffffff",
+        meetings: groupedRooms[roomName],
+      };
+    });
+
+    // Cache the fetched data
+    meetingCache.set(formattedDate, structuredData);
+    return structuredData;
+  } catch (error) {
+    console.error("Error fetching meetings:", error);
+    return [];
+  }
+};
+
+// Function to invalidate the cache for a specific date
+export const invalidateCache = (date: Date) => {
+  const formattedDate = toLocalDateStr(date);
+  console.log(`Invalidating cache for ${formattedDate}`);
+  meetingCache.delete(formattedDate); // Delete the cache for this date
+};
+
+const formatTime = (hour: number): string => {
+  const period = hour >= 12 ? "PM" : "AM";
+  const formattedHour = hour % 12 || 12;
+  return `${formattedHour} ${period}`;
+};
+
+const timeSlots = Array.from({ length: 24 }, (_, i) => formatTime(i));
+
+// Mode tags are mutually exclusive per meeting (unlike calendar tags, which can be combined)
+const modeTagNames = new Set(['InPerson', 'Hybrid', 'Remote']);
+
+export const defaultRooms = [
+  { name: 'Serenity Room', primaryColor: '#b3ea75' },
+  { name: 'Seeds of Hope Room', primaryColor: '#f7e57b' },
+  { name: 'Unity Room', primaryColor: '#96dbfe' },
+  { name: 'Room for Improvement', primaryColor: '#ffae73' },
+  { name: 'Room for Acceptance', primaryColor: '#ffa3c2' },
+  { name: 'Room for Gratitude', primaryColor: '#d2afff' },
+  { name: 'Serenity Room - Zoom', primaryColor: '#cecece' },
+  { name: 'Seeds of Hope Room - Zoom', primaryColor: '#cecece' },
+  { name: 'Unity Room - Zoom', primaryColor: '#cecece' },
+  { name: 'Room for Improvement - Zoom', primaryColor: '#cecece' },
+  { name: "Children's Room @ 518 - Zoom", primaryColor: '#cecece' },
+];
+
+interface DailyViewProps {
+  filters: any;
+  selectedDate: Date;
+  setSelectedDate: (date: Date) => void;
+  setSelectedMeetingID: (meetingId: string) => void;
+  setSelectedNewMeeting: (newMeetingExists: boolean) => void;
+  refreshTrigger?: number;
+}
+
+const DailyView: React.FC<DailyViewProps> = ({ 
+  filters, 
+  selectedDate, 
+  setSelectedDate, 
+  setSelectedMeetingID, 
+  setSelectedNewMeeting,
+  refreshTrigger = 0
+}) => {
+  const [currentTimePosition, setCurrentTimePosition] = useState(0);
+  const [meetings, setMeetings] = useState<Room[]>([]);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  const fetchData = async (forceFetch = false) => {
+    // Clear the entire cache so stale data on other dates is also dropped.
+    if (forceFetch) {
+      meetingCache.clear();
+    }
+    
+    const data = await fetchMeetingsByDay(selectedDate);
+    setMeetings(data);
+    updateTimePosition();
+    scrollToCurrentTime();
+  };
+
+  useEffect(() => {
+    fetchData();
+
+    const intervalId = setInterval(updateTimePosition, 60000);
+
+    return () => {
+      clearInterval(intervalId);
+    };
+  }, [selectedDate]);
+
+  useEffect(() => {
+    if (refreshTrigger > 0) {
+      console.log("Refreshing calendar due to trigger change:", refreshTrigger);
+      fetchData(true); // Force fetch (invalidate cache)
+    }
+  }, [refreshTrigger]);
+
+  const updateTimePosition = () => {
+    const now = new Date();
+    const currentHour = now.getHours();
+    const currentMinutes = now.getMinutes();
+    const position = (currentHour * 60 + currentMinutes) * (155 / 60);
+    setCurrentTimePosition(position);
+  };
+
+  const scrollToCurrentTime = () => {
+    if (scrollContainerRef.current) {
+      const now = new Date();
+      const currentHour = now.getHours();
+      const currentMinutes = now.getMinutes();
+      const scrollOffset = (currentHour * 155) - 300;
+      const scrollPosition = Math.max(0, scrollOffset);
+      scrollContainerRef.current.scrollLeft = scrollPosition;
+    }
+  };
+
+  // filter meetings based on meeting type and room filters
+  const filterMeetings = (room: Room): Room => {
+    // filter meetings based on tags (meeting type)
+    const filteredMeetings = room.meetings.filter(meeting => {
+      // normalize tag names to match filter names (removing spaces and special chars)
+      const normalizedTags = meeting.tags.map(tag => tag.replace(/[-\s]+/g, ''));
+      // mode tags (In Person / Hybrid / Remote) are mutually exclusive per meeting,
+      // but calendar tags (AA / Al-Anon / Other) can apply multiple at once
+      const modeTags = normalizedTags.filter(tag => modeTagNames.has(tag));
+      const calendarTags = normalizedTags.filter(tag => !modeTagNames.has(tag));
+
+      // a meeting with multiple calendar tags should only be filtered out
+      // once every one of its calendar tags has been unchecked
+      const passesCalendarFilter =
+        calendarTags.length === 0 || calendarTags.some(tag => filters[tag] !== false);
+      // mode is a single tag, so it must remain enabled to keep the meeting
+      const passesModeFilter = modeTags.every(tag => filters[tag] !== false);
+
+      return passesCalendarFilter && passesModeFilter;
+    });
+
+    // return the room with filtered meetings
+    return {
+      ...room,
+      meetings: filteredMeetings
+    };
+  };
+
+  // First filter rooms by room name, then filter meetings within each room by meeting type
+  const combinedRooms = defaultRooms
+    .filter((defaultRoom) => {
+      const normalizedRoomName = defaultRoom.name.replace(/[-\s]+/g, '').replace(/\s+/g, '');
+      return filters[normalizedRoomName] !== false;
+    })
+    .map((defaultRoom) => {
+      const roomWithMeetings = meetings.find((meetingRoom) => meetingRoom.name === defaultRoom.name);
+      if (roomWithMeetings) {
+        // Apply meeting type filters to the meetings in this room
+        return filterMeetings(roomWithMeetings);
+      } else {
+        return { ...defaultRoom, meetings: [] };
+      }
+    });
+
+  return (
+    <div className={styles.outerContainer}>
+      <div className={styles.viewContainer}>
+        <div className={styles.roomContainer}>
+          {combinedRooms.map((room, index) => (
+            <div key={index} className={styles.roomColumn}>
+              <BoxText
+                boxType="Room Block"
+                title={room.name}
+                primaryColor={room.primaryColor}
+                meetingId={room.meetings[0]?.id || ""}
+                // onClick={() => handleMeetingChange(room.meetings[0]?.id || "")}
+                onClick={() => console.log(`Clicked on room: ${room.name}`)}
+              />
+            </div>
+          ))}
+        </div>
+
+        <div ref={scrollContainerRef} className={styles.scrollContainer}>
+          <div className={styles.headerRow}>
+            {timeSlots.map((time, index) => (
+              <div key={index} className={styles.timeLabel}>{time}</div>
+            ))}
+          </div>
+
+          {combinedRooms.map((room, rowIndex) => {
+            const today = new Date();
+            const isToday =
+              selectedDate.getFullYear() === today.getFullYear() &&
+              selectedDate.getMonth() === today.getMonth() &&
+              selectedDate.getDate() === today.getDate();
+            return (
+              <div key={rowIndex} className={styles.gridRow}>
+                <div className={styles.gridMeetingRow}>
+                  <DailyViewRow roomColor={room.primaryColor} meetings={room.meetings} setSelectedMeetingID={setSelectedMeetingID} setSelectedNewMeeting={setSelectedNewMeeting}/>
+                </div>
+                {timeSlots.map((_, colIndex) => (
+                  <div key={colIndex} className={styles.gridCell}></div>
+                ))}
+                {isToday && (
+                  <div
+                    className={styles.currentTimeLine}
+                    style={{ left: `${currentTimePosition}px` }}
+                  />
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default DailyView;
