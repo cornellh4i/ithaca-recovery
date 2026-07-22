@@ -145,7 +145,7 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({
               <span style={{ marginRight: '6px', display: 'flex', alignItems: 'center' }}>
                 <img src="svg/group-icon.svg" alt="Group Icon" />
               </span>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <div data-testid="meeting-type-checkboxes" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                 {CAL_TYPE_OPTIONS.map(type => (
                   <LabeledCheckbox
                     key={type}
