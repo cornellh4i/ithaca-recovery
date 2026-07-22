@@ -23,6 +23,7 @@ ithaca-recovery/
 │   ├── app/           # App Router — pages, API routes, components
 │   ├── actions/       # Next.js server actions
 │   ├── services/      # Backend services (auth, Google Calendar, Zoom)
+│   ├── lib/           # Shared server-side singletons/helpers (Prisma client, auth cookie helpers)
 │   ├── hooks/         # Shared React hooks (meeting form state)
 │   ├── styles/        # SCSS modules
 │   ├── prisma/        # Prisma schema
@@ -56,8 +57,7 @@ app/
 │   ├── admin/diagnostics/
 │   ├── export/lease/, export/meetings/
 │   ├── retrieve/lease-settings/, update/lease-settings/
-│   ├── auth/authConfig.ts, auth/status/, auth/[...nextauth]/
-│   └── server/redis.ts          # dead code (entirely commented out)
+│   └── auth/authConfig.ts, auth/status/, auth/[...nextauth]/
 ├── components/
 │   ├── atoms/                   # Primitive UI elements
 │   ├── molecules/               # Composite components
