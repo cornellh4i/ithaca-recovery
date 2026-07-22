@@ -136,6 +136,48 @@ export async function updateCalendarEvent(
     }
 }
 
+// Reconciles a meeting's Google Calendar events against its current calType:
+// removes events for calendars no longer selected, updates events for calendars
+// still selected, and creates events for newly selected calendars. Used by both
+// the update route (on every edit) and the sync route (manual "Retry sync").
+export async function reconcileMeetingCalendars(
+    accessToken: string,
+    meeting: IMeeting,
+    existingEventIds: Record<string, string>,
+): Promise<{ updatedEventIds: Record<string, string>; allSynced: boolean }> {
+    const calendarIds = calendarIdsForMeeting(meeting.calType ?? []);
+    const updatedEventIds: Record<string, string> = { ...existingEventIds };
+    let allSynced = true;
+
+    // Remove events from calendars whose category is no longer part of this meeting's calType
+    for (const cat of Object.keys(existingEventIds)) {
+        if (calendarIds[cat]) continue;
+        const calId = calendarIdForCategory[cat];
+        const eventId = existingEventIds[cat];
+        if (calId && eventId) {
+            const ok = await deleteCalendarEvent(accessToken, eventId, calId);
+            if (ok) delete updatedEventIds[cat];
+            else allSynced = false;
+        } else {
+            delete updatedEventIds[cat];
+        }
+    }
+
+    for (const [cat, calId] of Object.entries(calendarIds)) {
+        const existingId = existingEventIds[cat];
+        if (existingId) {
+            const ok = await updateCalendarEvent(accessToken, existingId, meeting, calId);
+            if (!ok) allSynced = false;
+        } else {
+            const newId = await createCalendarEvent(accessToken, meeting, calId);
+            if (newId) updatedEventIds[cat] = newId;
+            else allSynced = false;
+        }
+    }
+
+    return { updatedEventIds, allSynced };
+}
+
 export async function deleteCalendarEvent(
     accessToken: string,
     googleCalendarEventId: string,

@@ -20,9 +20,15 @@ type Room = {
 
 const meetingCache = new Map<string, Meeting[]>();
 
+// Formats a Date as its Eastern-Time calendar day ("YYYY-MM-DD"). Used instead
+// of toISOString() (UTC) so meeting dates/times are correct regardless of the
+// viewer's browser timezone.
+const toETDateStr = (date: Date): string =>
+    new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' }).format(date);
+
 const fetchMeetingsByWeek = async (startDate: Date, endDate: Date): Promise<Meeting[]> => {
-    const formattedStart = startDate.toISOString().split('T')[0];
-    const formattedEnd = endDate.toISOString().split('T')[0];
+    const formattedStart = toETDateStr(startDate);
+    const formattedEnd = toETDateStr(endDate);
     const cacheKey = `${formattedStart}-${formattedEnd}`;
 
     if (meetingCache.has(cacheKey)) {
@@ -38,15 +44,15 @@ const fetchMeetingsByWeek = async (startDate: Date, endDate: Date): Promise<Meet
         console.log("Raw API response:", data);
 
         const meetings: Meeting[] = data.map((meeting: any) => {
-            const start = new Date(meeting.startDateTime.replace("Z", ""));
-            const end = new Date(meeting.endDateTime.replace("Z", ""));
+            const start = new Date(meeting.startDateTime);
+            const end = new Date(meeting.endDateTime);
 
             return {
                 id: meeting.mid,
                 title: meeting.title,
-                startTime: start.toLocaleTimeString("en-GB", { hour12: false }),
-                endTime: end.toLocaleTimeString("en-GB", { hour12: false }),
-                date: start.toISOString().split('T')[0], // Store the date of the meeting
+                startTime: start.toLocaleTimeString("en-GB", { hour12: false, timeZone: "America/New_York" }),
+                endTime: end.toLocaleTimeString("en-GB", { hour12: false, timeZone: "America/New_York" }),
+                date: toETDateStr(start), // ET calendar day the meeting occurs on
                 tags: [meeting.type, meeting.group],
                 room: meeting.room,
             };
@@ -62,8 +68,8 @@ const fetchMeetingsByWeek = async (startDate: Date, endDate: Date): Promise<Meet
 
 // Function to invalidate the cache for a specific week
 export const invalidateWeekCache = (startDate: Date, endDate: Date) => {
-    const formattedStart = startDate.toISOString().split('T')[0];
-    const formattedEnd = endDate.toISOString().split('T')[0];
+    const formattedStart = toETDateStr(startDate);
+    const formattedEnd = toETDateStr(endDate);
     const cacheKey = `${formattedStart}-${formattedEnd}`;
     console.log(`Invalidating cache for week: ${cacheKey}`);
     meetingCache.delete(cacheKey);
@@ -190,7 +196,7 @@ const WeeklyView: React.FC<WeeklyViewProps> = ({
 
     // Get meetings for a specific day, filtered by room if applicable
     const getMeetingsForDay = (date: Date) => {
-        const formattedDate = date.toISOString().split('T')[0];
+        const formattedDate = toETDateStr(date);
 
         // Filter meetings by date and apply room filters
         const filteredMeetings = allMeetings.filter(meeting => {
