@@ -171,9 +171,12 @@ const DatePicker = ({ label, value: propValue = '', onChange, underlineOnFocus =
     setShowCalendar(false);
     setIsFocused(false);
     if (isDateMMDDYYYY(internalValue)) {
+      // internalValue is already valid MM/DD/YYYY here — notify the parent with
+      // that (the format callers expect, per this component's own `value` doc
+      // comment), and only use the spelled-out formatDate() output for display.
       const formattedDate = formatDate(internalValue);
+      onChange(internalValue);
       setInternalValue(formattedDate); // Format and update input with formatted date
-      onChange(formattedDate); // Call onChange with the formatted date
     } else if (isStringDate(internalValue)) {
       const formattedDate = stringToDateString(internalValue);
       setInternalValue(formattedDate); 
@@ -188,15 +191,14 @@ const DatePicker = ({ label, value: propValue = '', onChange, underlineOnFocus =
   const month = date.getMonth() + 1;
   const day = date.getDate();
   const year = date.getFullYear();
-  const dateString = `${month}/${day}/${year}`;
-  
-  // Format the date immediately
+  const dateString = `${month.toString().padStart(2, '0')}/${day.toString().padStart(2, '0')}/${year}`;
+
+  // Format the date for display, but notify the parent with the MM/DD/YYYY
+  // form (per this component's own `value` doc comment) — same split as
+  // handleBlur, for the same reason.
   const formattedDate = formatDate(dateString);
   setInternalValue(formattedDate);
-  
-  // Notify parent component
-  onChange(formattedDate);
-  
+  onChange(dateString);
 };
 
   return (

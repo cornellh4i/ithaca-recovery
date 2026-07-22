@@ -1,11 +1,20 @@
 import React from 'react';
 import BoxText from '../atoms/BoxText';
+import { formatCompactTimeRange } from '../../../util/timeFormat';
+
+// Extracts ET wall-clock time as 24hr "HH:MM", the format formatCompactTimeRange expects.
+const et24HourFmt = new Intl.DateTimeFormat('en-GB', {
+  timeZone: 'America/New_York',
+  hour: '2-digit', minute: '2-digit', hour12: false,
+});
 
 // Meeting Interface
 interface Meeting {
   title: string;
-  startTime: string; // Raw UTC timestamp (ISO 8601 format)
-  endTime: string;   // Raw UTC timestamp (ISO 8601 format)
+  startTime: string; // clipped to this day, for positioning
+  endTime: string; // clipped to this day, for positioning
+  displayStartTime?: string; // true time, for the label
+  displayEndTime?: string; // true time, for the label
   tags?: string[];
   id: string;
   syncError?: boolean;
@@ -78,15 +87,12 @@ const DailyViewRow: React.FC<DailyViewRowProps> = ({
           const endOffset = timeToPixels(meeting.endTime);
           const width = endOffset - startOffset;
 
-          // Convert startTime and endTime to EDT for display (e.g. "9:00 AM")
-          const timeFormatOptions: Intl.DateTimeFormatOptions = {
-            timeZone: "America/New_York",
-            hour: "numeric",
-            minute: "2-digit",
-            hour12: true,
-          };
-          const startTimeEDT = new Date(meeting.startTime).toLocaleTimeString("en-US", timeFormatOptions);
-          const endTimeEDT = new Date(meeting.endTime).toLocaleTimeString("en-US", timeFormatOptions);
+          // Compact ET display (e.g. "9-10AM", "9-9:30AM", "11AM-12:30PM") — uses the true,
+          // unclipped time so a split overnight meeting still labels the same on both halves.
+          const compactTime = formatCompactTimeRange(
+            et24HourFmt.format(new Date(meeting.displayStartTime ?? meeting.startTime)),
+            et24HourFmt.format(new Date(meeting.displayEndTime ?? meeting.endTime)),
+          );
 
           return (
             <div
@@ -103,7 +109,7 @@ const DailyViewRow: React.FC<DailyViewRowProps> = ({
                 boxType="Meeting Block"
                 title={meeting.title}
                 primaryColor={roomColor}
-                time={`${startTimeEDT} - ${endTimeEDT}`}
+                time={compactTime}
                 tags={meeting.tags}
                 meetingId={meeting.id}
                 syncError={meeting.syncError}

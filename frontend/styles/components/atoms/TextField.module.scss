@@ -31,4 +31,15 @@
     &.focused {
         border-bottom: 1px solid $dark-pink-color;
     }
+
+    &.multiline {
+        // Height comes from the auto-grow effect, not a fixed box — resize/scroll would fight it.
+        resize: none;
+        overflow: hidden;
+        display: block;
+        font-family: inherit;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+    }
 }

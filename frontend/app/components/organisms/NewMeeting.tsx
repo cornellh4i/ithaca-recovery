@@ -12,8 +12,8 @@ import CloseIcon from '@mui/icons-material/Close';
 import IconButton from '@mui/material/IconButton';
 
 import { v4 as uuidv4 } from 'uuid';
-import { IMeeting, IRecurrencePattern } from '../../../util/models'
-import { convertETToUTC } from "../../../util/timeUtils";
+import { physicalRoomOptions, zoomRoomOptions } from "../../../util/rooms";
+import { useMeetingForm, CAL_TYPE_OPTIONS, CAL_TYPE_COLOR } from '../../../hooks/useMeetingForm';
 
 import styles from '../../../styles/components/organisms/MeetingForm.module.scss';
 
@@ -22,199 +22,53 @@ interface NewMeetingSidebarProps {
   triggerCalendarRefresh: () => void;
 }
 
-const physicalRoomOptions = [
-  "Serenity Room",
-  "Seeds of Hope Room",
-  "Unity Room",
-  "Room for Improvement",
-  "Room for Acceptance",
-  "Room for Gratitude",
-];
-
-const zoomRoomOptions = [
-  "Serenity Room - Zoom",
-  "Seeds of Hope Room - Zoom",
-  "Unity Room - Zoom",
-  "Room for Improvement - Zoom",
-  "Children's Room @ 518 - Zoom",
-];
-
-const roomToZoomRoom: Record<string, string> = {
-  "Serenity Room": "Serenity Room - Zoom",
-  "Seeds of Hope Room": "Seeds of Hope Room - Zoom",
-  "Unity Room": "Unity Room - Zoom",
-  "Room for Improvement": "Room for Improvement - Zoom",
-};
-
-const calTypeOptions = ["AA", "Al-Anon", "Other"];
-const calTypeColor = "#CC3366";
-
 const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({
   setIsNewMeetingOpen,
   triggerCalendarRefresh
 }) => {
-    const [inputMeetingTitleValue, setMeetingTitleValue] = useState("");
-    const [selectedMode, setSelectedMode] = useState<string>('Hybrid');
-    const [dateValue, setDateValue] = useState<string>("");
-    const [timeValue, setTimeValue] = useState<string>("");
-    const [inputEmailValue, setEmailValue] = useState("");
-    const [inputDescriptionValue, setDescriptionValue] = useState("");
-    const [selectedRoom, setSelectedRoom] = useState<string>("");
-    const [selectedCalTypes, setSelectedCalTypes] = useState<string[]>([]);
-    const [selectedZoomRoom, setSelectedZoomRoom] = useState<string>("");
-    const [isRecurring, setIsRecurring] = useState(false);
-    const [recurrencePattern, setRecurrencePattern] = useState<IRecurrencePattern | null>(null);
+    const {
+      title: inputMeetingTitleValue, setTitle: setMeetingTitleValue,
+      mode: selectedMode, setMode: setSelectedMode,
+      date: dateValue, setDate: setDateValue,
+      time: timeValue, setTime: setTimeValue,
+      email: inputEmailValue, setEmail: setEmailValue,
+      description: inputDescriptionValue, setDescription: setDescriptionValue,
+      room: selectedRoom,
+      calTypes: selectedCalTypes,
+      zoomRoom: selectedZoomRoom, setZoomRoom: setSelectedZoomRoom,
+      handleRecurringMeetingChange,
+      handleRoomChange,
+      handleModeSelect,
+      handleCalTypeToggle,
+      resetForm,
+      getValidationErrors,
+      buildMeetingPayload,
+    } = useMeetingForm();
 
-    const handleRecurringMeetingChange = (data: {
-      isRecurring: boolean;
-      recurrencePattern: IRecurrencePattern | null;
-    }) => {
-      setIsRecurring(data.isRecurring);
-      setRecurrencePattern(data.recurrencePattern);
-    };
-
-    const handleRoomChange = (value: string) => {
-      setSelectedRoom(value);
-      const zoom = roomToZoomRoom[value];
-      if (zoom) setSelectedZoomRoom(zoom);
-    };
-
-    const handleModeSelect = (mode: string) => {
-      setSelectedMode(mode);
-      // Clear the fields the new mode doesn't use, so stale selections aren't submitted
-      if (mode === "In Person") setSelectedZoomRoom("");
-      if (mode === "Remote") setSelectedRoom("");
-    };
-
-    const handleCalTypeToggle = (type: string) => {
-      setSelectedCalTypes(prev =>
-        prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]
-      );
-    };
-
-    const clearMeetingState = () => {
-      setMeetingTitleValue("");
-      setSelectedMode("Hybrid");
-      setDateValue("");
-      setTimeValue("");
-      setEmailValue("");
-      setDescriptionValue("");
-      setSelectedRoom("");
-      setSelectedCalTypes([]);
-      setSelectedZoomRoom("");
-      setIsRecurring(false);
-      setRecurrencePattern(null);
-    };
-
-    function convertToISODate(dateString: string) {
-      const dateObject = new Date(dateString);
-      if (isNaN(dateObject.getTime())) {
-        console.error("Invalid date string:", dateString)
-        return null;
-      }
-      return dateObject.toISOString().split('T')[0];
-    }
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const handleCloseNewMeeting = () => {
-      clearMeetingState();
+      resetForm();
       setIsNewMeetingOpen(false);
     };
 
-    const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-
-    const getValidationErrors = (): string[] => {
-      const errors: string[] = [];
-
-      if (!inputMeetingTitleValue.trim()) errors.push("Meeting title is required.");
-      if (!dateValue) errors.push("Date is required.");
-
-      const [startTime, endTime] = timeValue?.split(' - ') || [];
-      if (!startTime || !endTime) errors.push("Start and end time are required.");
-
-      if (!inputEmailValue.trim()) {
-        errors.push("Email is required.");
-      } else if (!isValidEmail(inputEmailValue)) {
-        errors.push("Email must be a valid email address.");
-      }
-
-      if (selectedMode === "Hybrid" && (!selectedRoom || !selectedZoomRoom)) {
-        errors.push("Hybrid meetings require both a physical room and a Zoom room.");
-      } else if (selectedMode === "In Person" && !selectedRoom) {
-        errors.push("In Person meetings require a physical room.");
-      } else if (selectedMode === "Remote" && !selectedZoomRoom) {
-        errors.push("Remote meetings require a Zoom room.");
-      }
-
-      if (isRecurring && recurrencePattern === null) {
-        errors.push("Recurrence details are required for recurring meetings.");
-      }
-
-      return errors;
-    };
-
     const createMeeting = async () => {
+      // Guards against duplicate meetings from rapid/double clicks — the button
+      // is also disabled while submitting, but the state check is what actually
+      // prevents a second in-flight request.
+      if (isSubmitting) return;
+
       const validationErrors = getValidationErrors();
       if (validationErrors.length > 0) {
         alert(validationErrors.join('\n'));
         return;
       }
 
+      const newMeeting = buildMeetingPayload(uuidv4(), 'Active');
+      if (!newMeeting) return;
+
+      setIsSubmitting(true);
       try {
-        const isoDateValue = convertToISODate(dateValue);
-
-        if (!isoDateValue) {
-          console.error("Failed to convert dateValue to ISO format");
-          return;
-        }
-
-        const [startTime, endTime] = timeValue?.split(' - ') || [];
-        if (!startTime || !endTime) {
-          console.error("Invalid timeValue format");
-          return;
-        }
-
-        const startDateString = `${isoDateValue}T${startTime}`;
-        let endDateString = `${isoDateValue}T${endTime}`;
-
-        if (!startDateString || !endDateString) {
-          console.error("Start or end date string could not be constructed");
-          return;
-        }
-
-        const startDateTimeUTCString = convertETToUTC(startDateString);
-        const endDateTimeUTCString = convertETToUTC(endDateString);
-
-        const startDateTimeUTC = new Date(startDateTimeUTCString);
-        const endDateTimeUTC = new Date(endDateTimeUTCString);
-
-        if (endDateTimeUTC <= startDateTimeUTC) {
-          endDateTimeUTC.setUTCDate(endDateTimeUTC.getUTCDate() + 1);
-        }
-
-        const newMeeting: IMeeting = {
-          mid: uuidv4(),
-          title: inputMeetingTitleValue,
-          modeType: selectedMode,
-          description: inputDescriptionValue,
-          creator: 'Creator',
-          group: 'Group',
-          startDateTime: startDateTimeUTC,
-          endDateTime: endDateTimeUTC,
-          email: inputEmailValue,
-          zoomAccount: selectedZoomRoom,
-          calType: selectedCalTypes,
-          status: 'Active',
-          room: selectedRoom,
-          isRecurring: isRecurring,
-        };
-
-        if (isRecurring && recurrencePattern) {
-          newMeeting.recurrencePattern = {
-            ...recurrencePattern,
-            startDate: startDateTimeUTC
-          };
-        }
-
         const response = await fetch('/api/write/meeting', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -233,6 +87,8 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({
         handleCloseNewMeeting();
       } catch (error) {
         console.error('There was an error fetching the data:', error);
+      } finally {
+        setIsSubmitting(false);
       }
     };
 
@@ -290,13 +146,13 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({
                 <img src="svg/group-icon.svg" alt="Group Icon" />
               </span>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                {calTypeOptions.map(type => (
+                {CAL_TYPE_OPTIONS.map(type => (
                   <LabeledCheckbox
                     key={type}
                     label={type}
                     checked={selectedCalTypes.includes(type)}
                     onChange={(_e) => handleCalTypeToggle(type)}
-                    color={calTypeColor}
+                    color={CAL_TYPE_COLOR}
                   />
                 ))}
               </div>
@@ -324,9 +180,11 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({
             label=""
             value={inputDescriptionValue}
             onChange={setDescriptionValue}
+            multiline
           />}
           handleMeetingSubmit={createMeeting}
-          buttonText={"Create Meeting"}
+          buttonText={isSubmitting ? "Creating…" : "Create Meeting"}
+          isSubmitting={isSubmitting}
         />
       </div>
     );

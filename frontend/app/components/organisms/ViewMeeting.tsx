@@ -6,9 +6,19 @@ import VideoCameraFrontIcon from '@mui/icons-material/VideoCameraFront';
 import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
 import DownloadForOfflineIcon from '@mui/icons-material/DownloadForOffline';
 import DeleteRecurringModal from '../molecules/DeleteRecurringModal';
+import DeleteMeetingModal from '../molecules/DeleteMeetingModal';
 
 import { IRecurrencePattern } from '../../../util/models';
 import { convertUTCToET } from "../../../util/timeUtils";
+import { formatCompactTimeRange } from "../../../util/timeFormat";
+import { ROOM_COLORS, ZOOM_ROOM_COLOR } from "../../../util/filterColors";
+import { formatDayColumn } from "../../../util/recurrenceDisplay";
+
+// Extracts ET wall-clock time as "HH:MM" (24hr), which is what formatCompactTimeRange expects.
+const etTimeFmt = new Intl.DateTimeFormat('en-GB', {
+  timeZone: 'America/New_York',
+  hour: '2-digit', minute: '2-digit', hour12: false,
+});
 
 
 type ViewMeetingDetailsProps = {
@@ -63,6 +73,7 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
   onSyncSuccess,
 }) => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [syncStatus, setSyncStatus] = useState(initialSyncStatus ?? null);
   const [syncing, setSyncing] = useState(false);
 
@@ -132,47 +143,44 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
     if (isRecurring) {
       setShowDeleteModal(true);
     } else {
-      onDelete(mid); // TODO: Confirm window
+      setShowDeleteConfirm(true);
     }
   };
 
   const handleModalDelete = (option: 'this' | 'thisAndFollowing' | 'all') => {
-    console.log("Deleting recurring meeting with option:", option); 
+    console.log("Deleting recurring meeting with option:", option);
     onDelete(mid, option);
     setShowDeleteModal(false);
   };
 
+  const handleConfirmDelete = () => {
+    onDelete(mid);
+    setShowDeleteConfirm(false);
+  };
+
+  // Reuses the Export XLSX's "Day" column formatting (util/recurrenceDisplay.ts) so a
+  // pattern like "M-W, F" or "2nd Tu" reads the same here and in the export.
   const getRecurrenceText = () => {
     if (!recurrencePattern) return "Repeats regularly";
 
-    const { type, interval, daysOfWeek, weekOfMonth, dayOfMonth } = recurrencePattern;
+    const day = formatDayColumn({
+      type: recurrencePattern.type,
+      weekOfMonth: recurrencePattern.weekOfMonth ?? null,
+      dayOfMonth: recurrencePattern.dayOfMonth ?? null,
+      daysOfWeek: recurrencePattern.daysOfWeek ?? [],
+    });
 
-    if (type === "monthly") {
-      const ordinals = ["1st", "2nd", "3rd", "4th"];
-      if (weekOfMonth === -1) {
-        return `Repeats monthly on the last ${(daysOfWeek ?? [])[0] ?? ""}`;
-      }
-      if (weekOfMonth != null) {
-        const ordinal = ordinals[weekOfMonth - 1] ?? `${weekOfMonth}th`;
-        return `Repeats monthly on the ${ordinal} ${(daysOfWeek ?? [])[0] ?? ""}`;
-      }
-      if (dayOfMonth != null) {
-        return `Repeats monthly on day ${dayOfMonth}`;
-      }
-      return "Repeats monthly";
+    if (recurrencePattern.type === "monthly") {
+      return day ? `Monthly · ${day}` : "Monthly";
     }
 
-    let intervalText = "";
-    if (interval === 1) intervalText = "weekly";
-    else if (interval === 2) intervalText = "biweekly";
-    else if (interval === 3) intervalText = "triweekly";
-    else intervalText = `every ${interval} weeks`;
+    const { interval } = recurrencePattern;
+    let intervalText = "Weekly";
+    if (interval === 2) intervalText = "Biweekly";
+    else if (interval === 3) intervalText = "Triweekly";
+    else if (interval > 1) intervalText = `Every ${interval} weeks`;
 
-    const daysText = Array.isArray(daysOfWeek) && daysOfWeek.length > 0
-      ? ` on ${daysOfWeek.join(', ')}`
-      : "";
-
-    return `Repeats ${intervalText}${daysText}`;
+    return day ? `${intervalText} · ${day}` : intervalText;
   };
 
   console.log("Rendering ViewMeetingDetails with dates:", {
@@ -187,19 +195,24 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
   const startDateEST = convertUTCToET(startDateTime.toISOString());
   const endDateEST = convertUTCToET(endDateTime.toISOString());
 
-  const formatTime = (estString: string): string => {
-    const timePart = estString.split(',')[1]?.trim(); // "10:45:00 AM"
-    const [hh, mm] = timePart.split(':');
-    const ampm = timePart.split(' ')[1];
-    return `${hh}:${mm} ${ampm}`; // returns "10:45 AM"
-  };
+  const timeRangeText = formatCompactTimeRange(
+    etTimeFmt.format(startDateTime),
+    etTimeFmt.format(endDateTime)
+  );
+
+  const primaryColor = ROOM_COLORS[room] ?? ZOOM_ROOM_COLOR;
 
   return (
     <div className={styles.meetingDetails}>
       <div className={styles.header}>
         <button className={styles.backButton} onClick={onBack}>←</button>
         <h1>{title}</h1>
-        <span className={styles.settingLabel}>{modeType}</span>
+        <span
+          className={styles.settingLabel}
+          style={{ backgroundColor: primaryColor, borderColor: primaryColor }}
+        >
+          {modeType}
+        </span>
         <div className={styles.moreOptions}>
           <button>⋮</button>
           <div className={styles.optionsMenu}>
@@ -214,7 +227,7 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
           {startDateEST.split(',')[0]} 
         </p>
         <p style={{ color: 'gray' }}>
-          <AccessTimeIcon />&nbsp;{`${formatTime(startDateEST)} - ${formatTime(endDateEST)}`}
+          <AccessTimeIcon />&nbsp;{timeRangeText}
         </p>
 
         {isRecurring && (
@@ -266,6 +279,13 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
         isOpen={showDeleteModal}
         onClose={() => setShowDeleteModal(false)}
         onDelete={handleModalDelete}
+      />
+      <DeleteMeetingModal
+        isOpen={showDeleteConfirm}
+        title={title}
+        timeRangeText={timeRangeText}
+        onCancel={() => setShowDeleteConfirm(false)}
+        onConfirm={handleConfirmDelete}
       />
     </div>
   );

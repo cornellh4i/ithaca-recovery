@@ -5,13 +5,16 @@
 
 .sidebar {
   width: 350px;
-  background-color: #ffffff; 
+  background-color: #ffffff;
   padding: 10px;
+  min-height: 0; // lets the flex item shrink so overflow-y actually scrolls
+  overflow-y: auto;
 }
 
 .primaryCalendar {
-  flex: 1; 
-  background-color: #ffffff; 
+  flex: 1;
+  min-height: 0;
+  background-color: #ffffff;
   padding: 10px;
   overflow-x: hidden;
 }
