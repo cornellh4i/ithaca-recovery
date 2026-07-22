@@ -35,6 +35,8 @@ This document answers "why did we build it this way?" for every significant tech
 - Prisma's MongoDB support is more limited than its PostgreSQL support (no raw query support, no full-text search). For this use case (simple CRUD on meetings and admins) that limitation shouldn't matter.
 - The `RecurrencePattern` model uses a 1-to-1 relation with `Meeting` via a shared `mid` field. Prisma handles this cleanly, but direct MongoDB queries (bypassing Prisma) need to be aware of this join.
 
+**Client instantiation:** all API routes import a shared singleton (`frontend/lib/prisma.ts`) rather than each constructing its own `new PrismaClient()`. Every route used to do the latter, risking connection-pool exhaustion under concurrent load — the singleton also survives Next.js dev-mode hot reload without spawning a fresh client per reload, via a `globalThis` cache guarded by `NODE_ENV !== "production"`.
+
 ---
 
 ## Authentication: NextAuth + Google OAuth 2.0 / OIDC
@@ -60,6 +62,7 @@ This document answers "why did we build it this way?" for every significant tech
 - A bidirectional sync needs conflict resolution (what happens when the same meeting is edited in both places) that isn't worth the complexity for this app's scale. One-way publishing is simpler to reason about and debug.
 - Each of the three meeting categories (AA, Al-Anon, Other) publishes to its own Google Calendar, configured via `GOOGLE_CALENDAR_AA` / `GOOGLE_CALENDAR_ALANON` / `GOOGLE_CALENDAR_OTHER`. A meeting with more than one category publishes an event to each of that meeting's calendars.
 - Sync is fail-soft: a Google Calendar API failure sets `syncStatus: "error"` on the meeting (surfaced as a ⚠ badge in the UI, with a manual retry endpoint) rather than failing the write to MongoDB.
+- Sync also runs *after* the write/update/delete response is sent, not before it — the route returns as soon as the MongoDB write succeeds, and calendar/Zoom sync happens afterward via `@vercel/functions`' `waitUntil()`. This Next.js version (14.2) doesn't ship `unstable_after()`/`after()` (checked directly — nothing in the installed package), so `waitUntil` is the mechanism available now, not necessarily the long-term one; worth revisiting if/when the app moves to Next 16 (see the recovery plan's backlog). `POST /api/update/meeting/sync` (the manual retry route) deliberately stays synchronous, since a user clicking "Retry sync" expects an immediate result rather than a background one.
 
 ---
 
@@ -128,4 +131,4 @@ Diagnostics (`GET /api/admin/diagnostics`, surfaced on `/admin`) checks each roo
 - No Docker or server management required.
 
 **Trade-offs:**
-- Vercel's free tier has function execution time limits (10s per invocation). Long-running operations (e.g., bulk calendar sync) may need to be broken into smaller requests or moved to a background job.
+- Vercel's free tier has function execution time limits (10s per invocation). Long-running operations (e.g., bulk calendar sync) may need to be broken into smaller requests or moved to a background job — meeting write/update/delete's calendar sync was moved to a background `waitUntil()` call for exactly this reason (see [Google Calendar Sync](#google-calendar-sync) above); a future bulk operation (e.g. the XLSX import) may need the same treatment.

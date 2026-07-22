@@ -9,9 +9,11 @@ All endpoints are Next.js Route Handlers under `frontend/app/api/`. Requests and
 ## Meetings
 
 ### `POST /api/write/meeting`
-**Requires:** `ADMIN`. Create a new meeting. If `recurrencePattern` is present, a `RecurrencePattern` record is created alongside it, with `endDate` calculated from `numberOfOccurrences` when not explicitly provided (weekly and monthly patterns both supported). Non-blocking: publishes to Google Calendar per category in `calType` (skipped if `status: "Suspended"`), writing `googleCalendarEventIds` and `syncStatus` back onto the meeting.
+**Requires:** `ADMIN`. Request body is validated against a `zod` schema (`frontend/util/meetingValidation.ts`) before anything else — malformed shapes/types get a `400` with the specific validation issues, never reach Prisma or the calendar services. Create a new meeting. If `recurrencePattern` is present, a `RecurrencePattern` record is created alongside it, with `endDate` calculated from `numberOfOccurrences` when not explicitly provided (weekly and monthly patterns both supported). The response is sent as soon as this DB write succeeds — Google Calendar/Zoom sync runs afterward in the background (see Sync behavior below), so the response body's `syncStatus`/`zoomSyncStatus` won't yet reflect that sync's outcome.
 
-If `zoomRoom` is set, also non-blocking and independent of the above: creates a Zoom meeting under that room's dedicated host account and publishes the join link to that room's own Google Calendar, writing `zid`, `zoomLink`, `zoomCalendarEventId`, and `zoomSyncStatus` back onto the meeting. Skipped (persisted verbatim, marked synced) if `zid`/`zoomLink` already came in on the payload.
+Once it runs, sync publishes to Google Calendar per category in `calType` (skipped if `status: "Suspended"`), writing `googleCalendarEventIds` and `syncStatus` back onto the meeting.
+
+If `zoomRoom` is set, also runs in the background and independent of the above: creates a Zoom meeting under that room's dedicated host account and publishes the join link to that room's own Google Calendar, writing `zid`, `zoomLink`, `zoomCalendarEventId`, and `zoomSyncStatus` back onto the meeting. Skipped (persisted verbatim, marked synced) if `zid`/`zoomLink` already came in on the payload.
 
 **Request body:** `IMeeting`
 ```json
@@ -37,6 +39,7 @@ If `zoomRoom` is set, also non-blocking and independent of the above: creates a 
 ```
 
 **Response:** `201 Created` — created `IMeeting` object (with `recurrencePattern` if provided)
+**Error:** `400 Bad Request` — request body fails schema validation (issues listed in the response)
 
 ---
 
@@ -89,14 +92,15 @@ Retrieve all meetings for the calendar month of the provided date.
 ---
 
 ### `PUT /api/update/meeting`
-**Requires:** `ADMIN`. Update an existing meeting, identified by `mid`. Upserts or deletes the associated `RecurrencePattern` depending on whether `recurrencePattern` is present in the body. Re-syncs Google Calendar per category: creates/updates events for categories now in `calType`, deletes events for categories removed from it.
+**Requires:** `ADMIN`. Request body validated the same way as `POST /api/write/meeting` (same `zod` schema) before anything else. Update an existing meeting, identified by `mid`. Upserts or deletes the associated `RecurrencePattern` depending on whether `recurrencePattern` is present in the body. The response is sent as soon as this DB write succeeds; Google Calendar/Zoom sync runs afterward in the background (see [integration-guides.md](handoff/integration-guides.md#4-google-calendar-api)) — creates/updates events for categories now in `calType`, deletes events for categories removed from it.
 
-Zoom sync is independent and follows the same non-blocking pattern. If `zoomRoom` changed, the old room's Zoom meeting and calendar event are deleted and a fresh Zoom meeting/calendar event are created under the new room (a Zoom meeting can't move host); if unchanged, it's updated in place.
+Zoom sync is independent and runs the same way, in the background. If `zoomRoom` changed, the old room's Zoom meeting and calendar event are deleted and a fresh Zoom meeting/calendar event are created under the new room (a Zoom meeting can't move host); if unchanged, it's updated in place.
 
 **Request body:** `IMeeting` (must include `mid`)
 
 **Response:** `200 OK` — updated `IMeeting`
 **Error:** `404 Not Found` if `mid` doesn't exist
+**Error:** `400 Bad Request` — request body fails schema validation (issues listed in the response)
 
 ---
 

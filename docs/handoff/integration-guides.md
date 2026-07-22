@@ -181,7 +181,9 @@ When a meeting is created, updated, or deleted, the platform publishes a matchin
 `frontend/services/googleCalendar.ts` — `calendarIdForCategory`, `calendarIdsForMeeting`, `checkCalendarReachable`, `createCalendarEvent`, `updateCalendarEvent`, `deleteCalendarEvent`, `deleteCalendarOccurrence` (adds an EXDATE for a single recurring occurrence), `trimCalendarEventSeries` (trims a recurring event's RRULE `UNTIL`).
 
 ### Sync behavior
-Sync is fail-soft and non-blocking relative to the MongoDB write: on failure, the meeting's `syncStatus` is set to `"error"` and a ⚠ badge appears in the UI; a Super/regular Admin can retry via `POST /api/update/meeting/sync`. Suspended meetings (`status: "Suspended"`) are skipped entirely — no calendar calls are made for them.
+Sync is fail-soft: on failure, the meeting's `syncStatus` is set to `"error"` and a ⚠ badge appears in the UI; a Super/regular Admin can retry via `POST /api/update/meeting/sync`. Suspended meetings (`status: "Suspended"`) are skipped entirely — no calendar calls are made for them.
+
+Sync also runs **after** the write/update/delete response is sent, not before — the route returns as soon as the MongoDB write succeeds, then syncs via `@vercel/functions`' `waitUntil()` in the background. Practical implication: the response body's `syncStatus`/`zoomSyncStatus` reflects the state *before* this sync attempt (usually `null` on a fresh create), not its outcome — the UI only sees the real result on a later fetch (page reload, re-navigating the day). `POST /api/update/meeting/sync` (the manual retry route) is the one exception — it stays synchronous, since a user clicking "Retry sync" expects an immediate result. See [technical-decisions.md](technical-decisions.md#google-calendar-sync) for why (`waitUntil` is a workaround for this Next.js version lacking `after()`, not the long-term answer).
 
 ---
 
