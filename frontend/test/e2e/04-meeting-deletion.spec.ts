@@ -4,9 +4,7 @@ import { getTestPrismaClient } from "../factories/db";
 import type { Page } from "@playwright/test";
 
 async function openMeetingOptions(page: Page, title: string) {
-  // Scoped to the card's h3 (not a plain getByText) — clicking a card also opens
-  // ViewMeeting's <h1> of the same title, so a second call in the same test (e.g.
-  // cancel-then-delete) would otherwise match both and violate strict mode.
+  // level: 3 avoids colliding with ViewMeeting's <h1> of the same title.
   await page.getByRole("heading", { name: title, exact: true, level: 3 }).click();
   await page.locator('[class*="moreOptions"]').hover();
 }
