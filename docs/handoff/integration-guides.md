@@ -154,6 +154,11 @@ if (auth instanceof Response) return auth;   // 401/403 already built
 // auth.accessToken is the Google OAuth token; auth.user.role is the caller's role
 ```
 
+`frontend/test/unit/routeGuards.test.ts` checks every route under `app/api` for exactly this
+pattern (not just that `requireRole` is imported somewhere) and fails if a new route has neither
+this guard nor an entry in that test's public-route allowlist — add your new route to the
+allowlist there if it's intentionally unauthenticated, rather than leaving it unchecked.
+
 ---
 
 ## 4. Google Calendar API

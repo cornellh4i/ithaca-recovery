@@ -125,7 +125,7 @@ See [api-reference.md](api-reference.md#data-types-reference) for the matching `
 2. The `signIn` callback looks up the user's email in the `Admin` table and rejects sign-in entirely if no row exists — accounts are invite-only, added via the Users tab (`POST /api/write/admin`), never self-registered.
 3. The `jwt` callback stores the Google access/refresh token on the session token, persists them onto the `Admin` row, and re-reads `role` from the DB on every token refresh (not just at login), so a role change or removal takes effect without waiting for the session to expire.
 4. Near-expiry access tokens are refreshed automatically against Google's token endpoint; a revoked refresh token forces re-login.
-5. Route handlers call `requireRole(minRole)` (`frontend/services/auth.ts`) to gate access — see [api-reference.md](api-reference.md) for which routes require `ADMIN` vs `SUPER_ADMIN`.
+5. Route handlers call `requireRole(minRole)` (`frontend/services/auth.ts`) to gate access — see [api-reference.md](api-reference.md) for which routes require `ADMIN` vs `SUPER_ADMIN`. `frontend/test/unit/routeGuards.test.ts` enforces that every route either has this guard or is explicitly allowlisted as public, so a new route can't silently ship unguarded.
 
 ---
 
@@ -143,7 +143,7 @@ See [api-reference.md](api-reference.md#data-types-reference) for the matching `
 | `GOOGLE_CALENDAR_ZOOM_<ROOM>` (×5) | Google Calendar ID for each Zoom-enabled room's own calendar |
 | `ZOOM_HOST_<ROOM>` (×5) | Licensed Zoom user email that hosts meetings for that room |
 
-The `redis` package is still listed in `package.json` but nothing in the app imports it — `app/api/server/redis.ts` is entirely commented out — so no Redis instance is required to run the app today.
+No Redis instance is required to run the app — the unused `redis` package and its entirely-commented-out `app/api/server/redis.ts` were removed as dead code.
 
 ---
 
@@ -153,7 +153,8 @@ The `redis` package is still listed in `package.json` but nothing in the app imp
 test/
 ├── e2e/           # Playwright specs, 1:1 with docs/testing/manual-test-script-template.md's sections
 │   └── support/   # Auth cookie minting, fail-soft sync-state fixtures
-├── unit/          # Jest — pure functions, no I/O
+├── unit/          # Jest — pure functions, no I/O (plus routeGuards.test.ts, an AST-based check
+│                  #   that every route.ts either guards with requireRole or is allowlisted public)
 ├── integration/   # Jest — route handlers against a real (in-memory) DB, services mocked
 ├── factories/     # Framework-agnostic seed helpers (admin/meeting/lease-settings)
 └── mongo/         # mongodb-memory-server replica-set wrapper
