@@ -74,6 +74,7 @@ export default function HomePage() {
   };
 
   useEffect(() => {
+    setShowEditMeeting(false);
     if (selectedMeetingID) {
       fetchMeetingDetails(selectedMeetingID);
     } else {
@@ -174,6 +175,7 @@ export default function HomePage() {
             />) :
             selectedMeeting ? (
               <ViewMeetingDetails
+                key={selectedMeeting.mid}
                 mid={selectedMeeting.mid}
                 title={selectedMeeting.title}
                 description={selectedMeeting.description}
