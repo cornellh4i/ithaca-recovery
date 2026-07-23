@@ -1,0 +1,29 @@
+name: Dependabot auto-merge
+
+on: pull_request_target
+
+permissions:
+  pull-requests: write
+  contents: write
+
+jobs:
+  auto-merge:
+    if: github.actor == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch Dependabot metadata
+        id: metadata
+        uses: dependabot/fetch-metadata@v2
+        with:
+          github-token: "${{ secrets.GITHUB_TOKEN }}"
+
+      # dependabot.yml only groups minor/patch updates -- majors stay ungrouped so a human
+      # reads the changelog. Mirror that split here: enabling auto-merge doesn't bypass
+      # required status checks, it just lets the PR merge itself once lint/unit/integration/e2e
+      # all pass, same as a human clicking "merge" would.
+      - name: Enable auto-merge for minor/patch updates
+        if: steps.metadata.outputs.update-type == 'version-update:semver-minor' || steps.metadata.outputs.update-type == 'version-update:semver-patch'
+        run: gh pr merge --auto --squash "$PR_URL"
+        env:
+          PR_URL: "${{ github.event.pull_request.html_url }}"
+          GH_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
