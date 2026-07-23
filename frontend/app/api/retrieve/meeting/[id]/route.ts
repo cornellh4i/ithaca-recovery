@@ -1,7 +1,14 @@
 import { NextRequest } from "next/server";
+import { getAuth } from "../../../../../services/auth";
 import { prisma } from "../../../../../lib/prisma";
+import { toPublicMeeting } from "../../../../../util/publicMeeting";
 const getMeeting = async(request: NextRequest) => {
   try {
+    // Intentionally public (see routeGuards.test.ts PUBLIC_ROUTES) -- backs the
+    // unauthenticated calendar's detail panel. Callers without a session get only the
+    // public-safe fields; a valid session (any role) gets the full record, same as before.
+    const session = await getAuth();
+
     const mid = request.nextUrl.pathname.split('/').pop() as string;
     console.log("Requested meeting ID:", mid);
 
@@ -23,7 +30,11 @@ const getMeeting = async(request: NextRequest) => {
       });
     }
 
-    return new Response(JSON.stringify(meeting), {
+    const body = session?.user?.role
+      ? meeting
+      : toPublicMeeting({ ...meeting, recurrencePattern: meeting.recurrencePattern ?? null });
+
+    return new Response(JSON.stringify(body), {
       status: 200,
       headers: {
         'Content-Type': 'application/json',

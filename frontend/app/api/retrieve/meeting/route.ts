@@ -1,16 +1,13 @@
-import { IMeeting } from "../../../../util/models";
 import { prisma } from "../../../../lib/prisma";
+import { toPublicMeeting } from "../../../../util/publicMeeting";
 
 const notDeleted = { OR: [{ deletedAt: null }, { deletedAt: { isSet: false } }] };
 
 const retrieveMeetings = async () => {
   try {
     const meetings = await prisma.meeting.findMany({ where: notDeleted });
-    const typedMeetings: IMeeting[] = meetings.map(meeting => ({
-      ...meeting,
-      googleCalendarEventIds: (meeting.googleCalendarEventIds ?? {}) as Record<string, string>,
-    }))
-    return new Response(JSON.stringify(typedMeetings), {
+    const publicMeetings = meetings.map(toPublicMeeting);
+    return new Response(JSON.stringify(publicMeetings), {
       status: 200,
       headers: {
         'Content-Type': 'application/json',
