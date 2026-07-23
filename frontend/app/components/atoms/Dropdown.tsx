@@ -18,16 +18,18 @@ const Dropdown: React.FC<DropdownProps> = ({
   elements, 
   name, 
   onChange,}) => {
-  const [selectedElement, setselectedElement] = useState<string | null>(null);
+  const [selectedElement, setselectedElement] = useState<string | null>(value ?? null);
 
-  const [activeDropdown, setActiveDropdown] = useState<string | null>(null); 
+  const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
 
   React.useEffect(() => {
+    // Intentionally mount-only: notifies the parent once with the initial value. Call
+    // sites needing continuous sync as `value` changes later already remount this
+    // component via `key={...}` (see EditMeeting/NewMeeting's zoom-room dropdowns).
     if (value) {
-      setselectedElement(value);
       onChange(value);
-      setActiveDropdown(null);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (!isVisible) return null;

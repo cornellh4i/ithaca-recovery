@@ -251,7 +251,10 @@ const SignageUrlCard: React.FC = () => {
   const [origin, setOrigin] = useState("");
   const [copied, setCopied] = useState(false);
 
+  // Effect (not a lazy useState initializer) deliberately: this component is SSR'd, where
+  // `window` doesn't exist, so origin must resolve post-hydration to avoid a mismatch.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setOrigin(window.location.origin);
   }, []);
 
@@ -368,6 +371,9 @@ const ExportTab: React.FC = () => {
   };
 
   useEffect(() => {
+    // Async fetch-then-set; the lint rule can't see the setState calls sit after an
+    // await, so this is a false positive for the standard "load on mount" pattern.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadLeaseSettings();
   }, []);
 

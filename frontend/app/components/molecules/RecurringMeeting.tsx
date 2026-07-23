@@ -31,6 +31,19 @@ const fullDayToId: Record<string, string> = {
   Thursday: 'thu', Friday: 'fri', Saturday: 'sat',
 };
 
+// Module-level (not component-body) so these have a stable reference across renders —
+// needed for correct useEffect dependency arrays below.
+const dayMapping: Record<string, string> = {
+  'sun': 'Sunday', 'mon': 'Monday', 'tue': 'Tuesday', 'wed': 'Wednesday',
+  'thu': 'Thursday', 'fri': 'Friday', 'sat': 'Saturday',
+};
+
+const days = [
+  { id: 'sun', label: 'S' }, { id: 'mon', label: 'M' }, { id: 'tue', label: 'T' },
+  { id: 'wed', label: 'W' }, { id: 'thu', label: 'T' }, { id: 'fri', label: 'F' },
+  { id: 'sat', label: 'S' },
+];
+
 const ordinals = ["1st", "2nd", "3rd", "4th"];
 const weekdayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
@@ -112,50 +125,56 @@ const RecurringMeetingForm: React.FC<RecurringMeetingFormProps> = ({
   const [touched, setTouched] = useState<boolean>(false);
   const isFirstRender = useRef(true);
 
-  const dayMapping: Record<string, string> = {
-    'sun': 'Sunday', 'mon': 'Monday', 'tue': 'Tuesday', 'wed': 'Wednesday',
-    'thu': 'Thursday', 'fri': 'Friday', 'sat': 'Saturday',
-  };
-
-  const days = [
-    { id: 'sun', label: 'S' }, { id: 'mon', label: 'M' }, { id: 'tue', label: 'T' },
-    { id: 'wed', label: 'W' }, { id: 'thu', label: 'T' }, { id: 'fri', label: 'F' },
-    { id: 'sat', label: 'S' },
-  ];
-
-  // Seed default day when enabling weekly recurrence
+  // Seed default day when enabling weekly recurrence. Guarded default-seed (only fires
+  // when selectedDays is still empty), not a prop mirror, so this stays an effect rather
+  // than the render-time-adjustment pattern used elsewhere in this pass.
   useEffect(() => {
     if (isRecurring && recurrenceType === "weekly" && startDate) {
       try {
         const date = new Date(startDate);
         if (!isNaN(date.getTime()) && selectedDays.length === 0) {
+          // eslint-disable-next-line react-hooks/set-state-in-effect
           setSelectedDays([days[date.getDay()].id]);
         }
       } catch (error) {
         console.error("Error parsing date:", error);
       }
     }
-  }, [isRecurring, recurrenceType, startDate]);
+  }, [isRecurring, recurrenceType, startDate, selectedDays.length]);
 
-  // Seed default monthly option when switching to monthly
+  // Seed default monthly option when switching to monthly. Guarded by !monthlyOption, so
+  // including monthlyOption below is safe — it can't retrigger itself once set.
   useEffect(() => {
     if (isRecurring && recurrenceType === "monthly" && !monthlyOption && startDate) {
       const options = getMonthlyOptions(startDate);
-      if (options.length > 0) setMonthlyOption(options[0]);
+      if (options.length > 0) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setMonthlyOption(options[0]);
+      }
     }
-  }, [isRecurring, recurrenceType, startDate]);
+  }, [isRecurring, recurrenceType, startDate, monthlyOption]);
 
-  // Reset monthly option when startDate changes so stale options don't persist
+  // Reset monthly option when startDate changes so stale options don't persist.
+  // recurrenceType is deliberately excluded from deps: toggling recurrenceType away from
+  // and back to "monthly" is already handled by the seed effect above and the Dropdown's
+  // own onChange — adding it here would additionally force-reset a user's chosen
+  // monthlyOption on every such toggle, not just on a real startDate edit.
   useEffect(() => {
     if (isFirstRender.current) { isFirstRender.current = false; return; }
     if (recurrenceType === "monthly" && startDate) {
       const options = getMonthlyOptions(startDate);
-      if (options.length > 0) setMonthlyOption(options[0]);
+      if (options.length > 0) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setMonthlyOption(options[0]);
+      }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [startDate]);
 
+  // Resets the whole recurrence sub-form when recurrence is turned off.
   useEffect(() => {
     if (!isRecurring) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setFrequency(1);
       setSelectedDays([]);
       setEndOption('Never');

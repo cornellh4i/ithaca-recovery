@@ -1,5 +1,5 @@
 import { Meeting, Role } from '@prisma/client';
-import { waitUntil } from '@vercel/functions';
+import { after } from 'next/server';
 import { requireRole } from '../../../../services/auth';
 import { getETDayBounds } from '../../../../util/timeUtils';
 import {
@@ -16,7 +16,7 @@ const toETDateStr = (date: Date): string =>
   new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' }).format(date);
 
 // The three sync* functions below all run after the response is sent (see the
-// waitUntil calls in each branch) — no syncStatus field to reconcile for deletes,
+// after() calls in each branch) — no syncStatus field to reconcile for deletes,
 // so errors are just logged, not written back anywhere.
 async function syncDeleteOccurrence(
   accessToken: string | undefined,
@@ -127,7 +127,7 @@ const deleteMeeting = async (request: Request) => {
         data: { excludedDates: { push: excludedDate } },
       });
       // Google Calendar: add EXDATE for this occurrence on each calendar
-      waitUntil(syncDeleteOccurrence(accessToken, calendarIds, eventIds, meeting.startDateTime, occurrenceDate));
+      after(syncDeleteOccurrence(accessToken, calendarIds, eventIds, meeting.startDateTime, occurrenceDate));
     } else if (deleteOption === 'thisAndFollowing') {
       if (!meeting.recurrencePattern) {
         return new Response(JSON.stringify({ error: "Meeting has no recurrence pattern" }), {
@@ -144,7 +144,7 @@ const deleteMeeting = async (request: Request) => {
         data: { endDate: newEndDate },
       });
       // Google Calendar: trim RRULE UNTIL on each calendar
-      waitUntil(syncTrimSeries(accessToken, calendarIds, eventIds, occurrenceDate));
+      after(syncTrimSeries(accessToken, calendarIds, eventIds, occurrenceDate));
     } else {
       // 'all' or non-recurring: soft-delete the master meeting record
       await prisma.meeting.update({
@@ -152,7 +152,7 @@ const deleteMeeting = async (request: Request) => {
         data: { deletedAt: new Date() },
       });
       // Google Calendar + Zoom: whole-series delete — 'this'/'thisAndFollowing' leave Zoom untouched
-      waitUntil(syncDeleteAll(accessToken, calendarIds, eventIds, meeting));
+      after(syncDeleteAll(accessToken, calendarIds, eventIds, meeting));
     }
 
     return new Response(JSON.stringify({ message: "Meeting deleted successfully" }), {

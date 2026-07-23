@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import styles from '../../../styles/components/organisms/WeeklyView.module.scss';
 import WeeklyViewColumn from "../molecules/WeeklyViewColumn";
 import { passesTagFilters, passesRoomFilter, MeetingFilters } from "../../../util/meetingFilters";
@@ -123,13 +123,21 @@ const WeeklyView: React.FC<WeeklyViewProps> = ({
     refreshTrigger = 0
 }) => {
     const [currentTimePosition, setCurrentTimePosition] = useState(0);
-    const [weekStartDate, setWeekStartDate] = useState<Date>(getFirstDayOfWeek(selectedDate));
+    const [weekStartDate, setWeekStartDate] = useState<Date>(() => getFirstDayOfWeek(selectedDate));
     const [allMeetings, setAllMeetings] = useState<Meeting[]>([]);
-    const [daysOfWeek, setDaysOfWeek] = useState<Date[]>(getDaysOfWeek(weekStartDate));
+    const [daysOfWeek, setDaysOfWeek] = useState<Date[]>(() => getDaysOfWeek(weekStartDate));
     const viewContainerRef = useRef<HTMLDivElement>(null);
     // Guards against out-of-order responses: rapid date/filter changes can fire overlapping
     // fetches, and without this a slower-but-stale response can overwrite a newer one.
     const fetchRequestIdRef = useRef(0);
+
+    // Ref instead of a `weekStartDate` closure/dependency so fetchWeekMeetings's identity
+    // stays stable across week changes — needed so the refreshTrigger effect below doesn't
+    // fire an extra forced fetch every time the week changes (see that effect's comment).
+    const weekStartDateRef = useRef(weekStartDate);
+    useEffect(() => {
+        weekStartDateRef.current = weekStartDate;
+    }, [weekStartDate]);
 
     // Format time slots for hour markers
     const formatTime = (hour: number): string => {
@@ -140,65 +148,18 @@ const WeeklyView: React.FC<WeeklyViewProps> = ({
 
     const timeSlots = Array.from({ length: 24 }, (_, i) => formatTime(i));
 
-    // Function to fetch week meetings with optional cache invalidation
-    const fetchWeekMeetings = async (forceFetch = false) => {
-        const endDate = new Date(weekStartDate);
-        endDate.setDate(weekStartDate.getDate() + 6);
-
-        // Clear the entire cache so stale data on other weeks is also dropped.
-        if (forceFetch) {
-            weekMeetingCache.clear();
-        }
-
-        const requestId = ++fetchRequestIdRef.current;
-        const meetings = await fetchMeetingsByWeek(weekStartDate, endDate);
-        if (requestId === fetchRequestIdRef.current) {
-            setAllMeetings(meetings);
-        }
-    };
-
-    // Only replace weekStartDate's identity when the ET week actually changes — otherwise
-    // picking a different day in the same week would re-trigger the fetch+scroll effect below.
-    useEffect(() => {
-        const newWeekStartDate = getFirstDayOfWeek(selectedDate);
-        setWeekStartDate(prevWeekStartDate =>
-            formatETDateString(prevWeekStartDate) === formatETDateString(newWeekStartDate)
-                ? prevWeekStartDate
-                : newWeekStartDate
-        );
-        setDaysOfWeek(getDaysOfWeek(newWeekStartDate));
-    }, [selectedDate]);
-
-    // Fetch meetings for the entire week
-    useEffect(() => {
-        fetchWeekMeetings();
-        updateTimePosition();
-        scrollToCurrentTime();
-
-        const intervalId = setInterval(updateTimePosition, 60000);
-        return () => clearInterval(intervalId);
-    }, [weekStartDate]);
-
-    // Watch for refresh trigger changes
-    useEffect(() => {
-        if (refreshTrigger > 0) {
-            console.log("Refreshing weekly view due to trigger change:", refreshTrigger);
-            fetchWeekMeetings(true); // Force fetch (invalidate cache)
-        }
-    }, [refreshTrigger]);
-
     // Update current time indicator position
-    const updateTimePosition = () => {
+    const updateTimePosition = useCallback(() => {
         const now = new Date();
         const currentHour = now.getHours();
         const currentMinutes = now.getMinutes();
         const basePosition = currentHour * 100 + currentMinutes * (100 / 60);
         const offset = 40; // height of .dayHeader
         setCurrentTimePosition(basePosition + offset);
-    };
+    }, []);
 
     // Scroll the grid so the current time starts ~2 hours into the visible area
-    const scrollToCurrentTime = () => {
+    const scrollToCurrentTime = useCallback(() => {
         if (viewContainerRef.current) {
             const now = new Date();
             const currentHour = now.getHours();
@@ -207,7 +168,60 @@ const WeeklyView: React.FC<WeeklyViewProps> = ({
             const scrollOffset = dayHeaderOffset + (currentHour * 100 + currentMinutes * (100 / 60)) - 200;
             viewContainerRef.current.scrollTop = Math.max(0, scrollOffset);
         }
-    };
+    }, []);
+
+    // Function to fetch week meetings with optional cache invalidation
+    const fetchWeekMeetings = useCallback(async (forceFetch = false) => {
+        const startDate = weekStartDateRef.current;
+        const endDate = new Date(startDate);
+        endDate.setDate(startDate.getDate() + 6);
+
+        // Clear the entire cache so stale data on other weeks is also dropped.
+        if (forceFetch) {
+            weekMeetingCache.clear();
+        }
+
+        const requestId = ++fetchRequestIdRef.current;
+        const meetings = await fetchMeetingsByWeek(startDate, endDate);
+        if (requestId === fetchRequestIdRef.current) {
+            setAllMeetings(meetings);
+        }
+    }, []);
+
+    // Only replace weekStartDate's identity when the ET week actually changes — otherwise
+    // picking a different day in the same week would re-trigger the fetch+scroll effect below.
+    // Derived during render (not an effect): purely a function of selectedDate, so this is
+    // the "adjusting state when a prop changes" case, no external system involved.
+    const [prevSelectedDate, setPrevSelectedDate] = useState(selectedDate);
+    if (selectedDate !== prevSelectedDate) {
+        setPrevSelectedDate(selectedDate);
+        const newWeekStartDate = getFirstDayOfWeek(selectedDate);
+        if (formatETDateString(weekStartDate) !== formatETDateString(newWeekStartDate)) {
+            setWeekStartDate(newWeekStartDate);
+            setDaysOfWeek(getDaysOfWeek(newWeekStartDate));
+        }
+    }
+
+    // Fetch meetings for the entire week
+    useEffect(() => {
+        fetchWeekMeetings();
+        // Sets the current-time indicator immediately rather than leaving it blank for up
+        // to 60s until the interval below first fires.
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        updateTimePosition();
+        scrollToCurrentTime();
+
+        const intervalId = setInterval(updateTimePosition, 60000);
+        return () => clearInterval(intervalId);
+    }, [weekStartDate, fetchWeekMeetings, updateTimePosition, scrollToCurrentTime]);
+
+    // Watch for refresh trigger changes
+    useEffect(() => {
+        if (refreshTrigger > 0) {
+            console.log("Refreshing weekly view due to trigger change:", refreshTrigger);
+            fetchWeekMeetings(true); // Force fetch (invalidate cache)
+        }
+    }, [refreshTrigger, fetchWeekMeetings]);
 
     // Get meetings for a specific day, filtered by room if applicable
     const getMeetingsForDay = (date: Date) => {
