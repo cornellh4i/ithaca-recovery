@@ -70,47 +70,23 @@ This document answers "why did we build it this way?" for every significant tech
 
 ## Zoom Integration
 
-**Decision:** Each of ICR's 5 Zoom-enabled rooms gets its own licensed Zoom host account and its own Google Calendar (separate from the 3 category calendars). Creating/updating/deleting a meeting calls the Zoom API directly (Server-to-Server OAuth, account-credentials grant) under that room's host, then publishes the join link to that room's calendar as the event's `location` field.
+**Decision:** ICR's licensed Zoom users are a shared host pool (`ZOOM_HOSTS`, comma-separated emails), not tied to any particular room. Each of ICR's 5 Zoom-enabled rooms still has its own Google Calendar (separate from the 3 category calendars), used only to publish the join link — room and host are two independent resources. Creating a meeting resolves an available host from the pool first, then calls the Zoom API directly (Server-to-Server OAuth, account-credentials grant) under that host, then publishes the join link to the room's calendar as the event's `location` field.
 
 **Why:**
-- Zoom cannot host two simultaneous meetings under one account. ICR provisioned 5 separate licensed users up front for exactly this reason — one per room — so `services/zoom.ts` schedules under `POST /users/{room's host email}/meetings` rather than a single shared account.
-- The physical Zoom Room hardware has no Zoom-native "Room Calendar" resource here — each room's calendar in Zoom's admin console is actually a Google Calendar. There's no Google Workspace add-on that auto-creates a Zoom meeting from a calendar event, so the app calls the Zoom API itself and writes the result into that calendar. Zoom Room hardware detects a joinable meeting from the event's **`location`** field specifically.
+- Zoom cannot host two simultaneous meetings under one account, so every new Zoom-enabled meeting needs an available host, not just any host. `services/zoom.ts`'s `resolveZoomHost` checks the pool in list order against a shared, recurrence-aware overlap utility (`util/resourceOverlap.ts`) — also reused by the Diagnostics Conflicts panel and XLSX import's per-row conflict flagging — and returns the first host with no overlapping meeting. `createZoomMeeting` itself is host-agnostic (takes a resolved host email, not a room); resolution and creation are deliberately split so host-claiming can happen synchronously ahead of the slower, deferred network calls (e.g. sequentially during a batch import, to avoid two rows racing for the same host).
+- Pool exhaustion fails soft: the meeting is still saved, with `zoomSyncStatus: "error"` and a `zoomSyncError` message, retryable the same way any other sync failure already is. An **existing** recurring meeting's host is never re-resolved — only picking a host for a *new* Zoom meeting consults the pool, so no in-flight series can lose its host mid-run.
+- The physical Zoom Room hardware has no Zoom-native "Room Calendar" resource here — each room's calendar in Zoom's admin console is actually a Google Calendar. There's no Google Workspace add-on that auto-creates a Zoom meeting from a calendar event, so the app calls the Zoom API itself and writes the result into that calendar. Zoom Room hardware detects a joinable meeting from the event's **`location`** field specifically. This calendar-per-room mapping (`zoomRoomCalendarId`) is unrelated to host assignment and stays fixed per room.
 - Recurring meetings get one stable Zoom meeting (`type: 2`) created at the series' first occurrence, reused for every future instance — occurrence-level deletes (`this` / `thisAndFollowing`) leave it untouched; only a whole-series delete or room reassignment touches Zoom.
 - Zoom sync (`zoomSyncStatus`) is tracked independently from Google Calendar category sync (`syncStatus`) — the two can succeed or fail independently, same fail-soft pattern as the rest of the app.
 
 **A trap worth knowing about:** Zoom silently ignores the `timezone` field on create/update whenever `start_time` ends in `Z` (a UTC ISO string) — which is what `Date.toISOString()` always produces. `services/zoom.ts`'s `toZoomStartTime()` works around this by formatting the UTC `Date` as Eastern *wall-clock* time (no `Z` suffix) before sending it, alongside `timezone: "America/New_York"`. Any future change to how the start time is built needs to preserve this, or meetings will silently schedule at the wrong hour.
 
-Diagnostics (`GET /api/admin/diagnostics`, surfaced on `/admin`) checks each room's host individually — not just that a Zoom meeting *can* be created somewhere, but that the specific email in `ZOOM_HOST_<ROOM>` resolves to a real, Licensed user. A host downgraded to Basic (a 40-minute meeting cap) or a typo'd/removed host email would otherwise only surface indirectly, as a failed `zoomSyncStatus` on whatever meeting happens to get booked into that room next.
+Diagnostics (`GET /api/admin/diagnostics`, surfaced on `/admin`) checks room calendars and pooled hosts separately: each room's `zoomRoomCalendarId` reachability, and each pooled host's resolvability + Licensed status (`checkZoomHostPool()`). A host downgraded to Basic (a 40-minute meeting cap) or a typo'd/removed host email would otherwise only surface indirectly, as a failed `zoomSyncStatus` on whatever meeting happens to get assigned that host next.
 
 **Trade-offs:**
 - Token generation happens on every Zoom API call (no token is cached). Fine at ICR's scale; would need caching if call volume grew significantly.
-- 5 separate licensed Zoom seats is a real recurring cost, in exchange for guaranteed non-conflicting concurrent meetings. We did consider a single shared account with a "is this account free" check was considered and rejected as added complexity not worth it for 5 rooms.
-
-### 2026-07-23 update: fixed room→host mapping replaced with a shared host pool
-
-**Decision reversed:** the "one licensed host per room" design above turned out to be wrong about
-what the 5 licensed seats actually are. The client (Matt, ICR board) flagged that ICR's licensed
-Zoom users are a **shared pool** — not associated with any particular room — and each can only
-host one meeting at a time. The original design let two meetings in *different* rooms silently
-collide if their fixed hosts happened to already be busy (no availability check ever existed), and
-interacted badly with the "warn, don't block" double-booking policy (an admin-approved room
-double-booking would hand both meetings the same host with zero check).
-
-**What changed:** `ZOOM_HOST_<ROOM>` (5 env vars) → one `ZOOM_HOSTS` (comma-separated pool).
-`services/zoom.ts`'s `createZoomMeeting` is now host-agnostic (takes a host email, not a room);
-callers resolve an available host first via the new `resolveZoomHost`, which checks the pool in
-list order against a shared, recurrence-aware overlap utility (`util/resourceOverlap.ts`, built for
-this and reused by the Diagnostics Conflicts panel and XLSX import's per-row conflict flagging).
-Pool exhaustion fails soft — the meeting is still saved, with `zoomSyncStatus: "error"` and a
-`zoomSyncError` message, retryable the same way any other sync failure already was. An **existing**
-recurring meeting's host is never re-resolved — only picking a host for a *new* Zoom meeting
-consults the pool, so no in-flight series can lose its host mid-run. A one-time backfill script
-to populate the new `Meeting.zoomHost` field from the old static room→host map was written and
-then removed again (no legacy data needed it in the current test DB) — a replacement can be
-added later once there's real data to migrate.
-
-**What didn't change:** `zoomRoomCalendarId` (one Google Calendar per physical Zoom Room, for the
-join-link event) is still fixed per room — only *host* assignment was decoupled from room.
+- 5 separate licensed Zoom seats is a real recurring cost, in exchange for the pool being able to cover concurrent meetings at all. A single shared account was also considered and rejected — even less concurrency headroom for the same "is this account free" check.
+- Host overlap checking is bounded to a 2-year recurrence horizon (`OVERLAP_HORIZON_YEARS` in `util/resourceOverlap.ts`) rather than truly unbounded, since a `type: 2` Zoom meeting is reused forever across every future occurrence. A collision more than 2 years out is an accepted residual gap, caught later by Diagnostics' own periodic scan.
 
 ---
 

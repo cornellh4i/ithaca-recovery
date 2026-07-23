@@ -11,7 +11,7 @@ const notDeleted = { OR: [{ deletedAt: null }, { deletedAt: { isSet: false } }] 
 // category, Zoom account reachability, per-room Zoom calendar validity, per-host Zoom pool
 // validity (host existence and licensed-vs-basic status), meeting counts (incl. sync-error
 // counts), and a list of currently suspended meetings. Conflict detection is stubbed (empty)
-// until Ticket B.5's overlap-detection endpoint lands.
+// until the overlap-detection endpoint lands.
 export const GET = async () => {
   try {
     const auth = await requireRole(Role.ADMIN);
