@@ -15,6 +15,11 @@ export default defineConfig({
   use: {
     baseURL: TEST_BASE_URL,
     trace: "retain-on-failure",
+    // Matches GitHub Actions runners (UTC) so date-boundary bugs reproduce locally instead
+    // of only ever showing up in CI -- e.g. code using Date.getDay()/getDate() instead of an
+    // explicit ET conversion silently picks the wrong day near ET midnight, which only
+    // disagrees with the real ET calendar day when the runtime's local timezone isn't ET.
+    timezoneId: "UTC",
   },
   // No webServer block: global-setup.ts owns the whole server lifecycle
   // directly (spawns `next dev` itself, after Mongo + `prisma db push` are
