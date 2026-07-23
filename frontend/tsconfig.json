@@ -22,7 +22,7 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
-    "jsx": "preserve",
+    "jsx": "react-jsx",
     "incremental": true,
     "plugins": [
       {
@@ -35,7 +35,8 @@
     "services",
     ".next/types/**/*.ts",
     "types/*.d.ts",
-    "*.d.ts"
+    "*.d.ts",
+    ".next/dev/types/**/*.ts"
   ],
   "exclude": [
     "node_modules"
