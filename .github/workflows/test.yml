@@ -11,14 +11,17 @@ defaults:
 
 jobs:
   doc-freshness:
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: .
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - run: .github/scripts/check-doc-versions.sh
-
   lint:
     runs-on: ubuntu-latest
     steps:
