@@ -15,6 +15,7 @@ async function syncUpdatedMeeting(
   newMeeting: IMeeting,
   existingMeeting: Meeting,
   accessToken: string | undefined,
+  resolvedHost: string | null,
 ): Promise<void> {
   if (accessToken && newMeeting.status !== 'Suspended') {
     const existingEventIds = (existingMeeting.googleCalendarEventIds ?? {}) as Record<string, string>;
@@ -83,7 +84,10 @@ async function syncUpdatedMeeting(
           if (!ok) zoomSynced = false;
         }
       } else if (!zid) {
-        const host = await resolveZoomHost(newMeeting, { excludeMid: mid });
+        // Already resolved (and persisted) synchronously in updateMeeting, before this ever
+        // runs — see the comment there for why. This only does the network-bound half:
+        // actually creating the Zoom meeting under that host.
+        const host = resolvedHost;
         if (!host) {
           zoomSynced = false;
           zoomSyncError = "No Zoom host available for this meeting's schedule (pool exhausted).";
@@ -155,12 +159,40 @@ const updateMeeting = async (request: Request): Promise<Response> => {
 
     const { mid, recurrencePattern, ...meetingFields } = newMeeting;
 
+    // A new Zoom host is only needed when this meeting has no Zoom meeting to keep using —
+    // either it never had one, or its room changed (a Zoom meeting can't move rooms, so the
+    // old one gets torn down and a new host resolved). Resolve and persist that host here,
+    // synchronously and immediately, rather than inside the deferred after() job below —
+    // otherwise the gap between "check the host is free" and "commit it to this meeting"
+    // spans several Zoom/Calendar API calls, during which a concurrent request could resolve
+    // and commit the same host. This doesn't fully close the race (that would need an atomic
+    // claim), but it shrinks the window down to a single DB round trip.
+    const needsNewHost =
+      newMeeting.status !== 'Suspended' &&
+      !!newMeeting.zoomRoom &&
+      (!existingMeeting.zid || existingMeeting.zoomRoom !== newMeeting.zoomRoom);
+
+    let resolvedHost: string | null = null;
+    let hostSyncError: string | null = null;
+    if (needsNewHost) {
+      resolvedHost = await resolveZoomHost(newMeeting, { excludeMid: mid });
+      if (!resolvedHost) {
+        hostSyncError = "No Zoom host available for this meeting's schedule (pool exhausted).";
+      }
+    }
+
     const updatedMeeting = await prisma.meeting.update({
       where: {
         mid: mid,
       },
       data: {
         ...meetingFields,
+        ...(needsNewHost
+          ? {
+              zoomHost: resolvedHost,
+              ...(hostSyncError ? { zoomSyncStatus: 'error', zoomSyncError: hostSyncError } : {}),
+            }
+          : {}),
         recurrencePattern: recurrencePattern
           ? {
               upsert: {
@@ -196,7 +228,7 @@ const updateMeeting = async (request: Request): Promise<Response> => {
     
 
     // GCal/Zoom sync runs after the response is sent — see syncUpdatedMeeting above.
-    after(syncUpdatedMeeting(mid, newMeeting, existingMeeting, auth.accessToken));
+    after(syncUpdatedMeeting(mid, newMeeting, existingMeeting, auth.accessToken, resolvedHost));
 
     return NextResponse.json(updatedMeeting);
   } catch (error) {

@@ -9,12 +9,16 @@ import { meetingSchema } from "../../../../util/meetingValidation";
 import { prisma } from "../../../../lib/prisma";
 
 // Runs after the response is sent (see after() call below) — failure sets syncStatus but
-// does not fail the request, which has already returned by the time this runs.
+// does not fail the request, which has already returned by the time this runs. `resolvedHost`
+// was already resolved (and persisted) synchronously in createMeeting, before this ever runs —
+// see the comment there for why. This only does the network-bound half: actually creating the
+// Zoom meeting under that host.
 async function syncNewMeeting(
   mid: string,
   meetingData: IMeeting,
   isRecurring: boolean,
   accessToken: string | undefined,
+  resolvedHost: string | null,
 ): Promise<void> {
   const meetingForSync: IMeeting = { ...meetingData, isRecurring };
 
@@ -38,22 +42,20 @@ async function syncNewMeeting(
   if (meetingData.zoomRoom && meetingData.status !== 'Suspended') {
     let zid = meetingData.zid ?? null;
     let zoomLink = meetingData.zoomLink ?? null;
-    let zoomHost = meetingData.zoomHost ?? null;
+    const zoomHost = resolvedHost;
     let zoomCalendarEventId: string | null = null;
     let zoomSynced = true;
     let zoomSyncError: string | null = null;
 
     if (!zid && !zoomLink) {
-      const host = await resolveZoomHost(meetingForSync, { excludeMid: mid });
-      if (!host) {
+      if (!zoomHost) {
         zoomSynced = false;
         zoomSyncError = "No Zoom host available for this meeting's schedule (pool exhausted).";
       } else {
-        const created = await createZoomMeeting(meetingForSync, host);
+        const created = await createZoomMeeting(meetingForSync, zoomHost);
         if (created) {
           zid = created.zid;
           zoomLink = created.zoomLink;
-          zoomHost = host;
         } else {
           zoomSynced = false;
           zoomSyncError = "Failed to create the Zoom meeting.";
@@ -96,11 +98,23 @@ const createMeeting = async (request: Request) => {
     const meetingData = parsed.data as IMeeting;
 
     const { recurrencePattern, ...meetingDetails } = meetingData;
+    const isRecurring = !!recurrencePattern;
+
+    let resolvedHost: string | null = null;
+    let zoomSyncError: string | null = null;
+    if (meetingData.zoomRoom && meetingData.status !== 'Suspended' && !meetingData.zid && !meetingData.zoomLink) {
+      resolvedHost = await resolveZoomHost({ ...meetingData, isRecurring }, { excludeMid: meetingData.mid });
+      if (!resolvedHost) {
+        zoomSyncError = "No Zoom host available for this meeting's schedule (pool exhausted).";
+      }
+    }
 
     const newMeeting = await prisma.meeting.create({
       data: {
         ...meetingDetails,
-        isRecurring: !!recurrencePattern
+        isRecurring,
+        zoomHost: resolvedHost,
+        ...(zoomSyncError ? { zoomSyncStatus: 'error', zoomSyncError } : {}),
       }
     });
 
@@ -145,7 +159,7 @@ const createMeeting = async (request: Request) => {
     }
 
     // GCal/Zoom sync runs after the response is sent — see syncNewMeeting above.
-    after(syncNewMeeting(newMeeting.mid, meetingData, !!recurrencePattern, auth.accessToken));
+    after(syncNewMeeting(newMeeting.mid, meetingData, isRecurring, auth.accessToken, resolvedHost));
 
     return new Response(JSON.stringify(responseMeeting), {
       status: 201,
