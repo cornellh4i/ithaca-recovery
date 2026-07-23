@@ -86,9 +86,8 @@ Documentation lives in [`docs/`](docs/):
 
 Everything under [`.github/`](.github/) runs automatically on push/PR to `master`, or on a schedule - no manual triggering needed.
 
-* [`workflows/test.yml`](.github/workflows/test.yml) — lint, unit, integration, and Playwright e2e tests (see [Running Tests](#running-tests) below)
+* [`workflows/test.yml`](.github/workflows/test.yml) — lint, unit, integration, Playwright e2e (see [Running Tests](`#running-tests`) below), and a `doc-freshness` job that fails if README.md / `docs/project-structure.md` cite a Node or Next.js major version that no longer matches `frontend/package.json` (via [`.github/scripts/check-doc-versions.sh`](.github/scripts/check-doc-versions.sh))
 * [`workflows/codeql.yml`](.github/workflows/codeql.yml) — CodeQL static analysis for security vulnerabilities, on every PR plus a weekly scheduled scan
-* [`workflows/doc-freshness.yml`](.github/workflows/doc-freshness.yml) — fails if README.md / `docs/project-structure.md` cite a Node or Next.js major version that no longer matches `frontend/package.json` (via [`scripts/check-doc-versions.sh`](.github/scripts/check-doc-versions.sh))
 * [`workflows/bump-node-version.yml`](.github/workflows/bump-node-version.yml) — monthly check for a new Node.js Active LTS release; opens a PR bumping `.nvmrc`/`package.json`/`test.yml` if one exists (Vercel's supported versions still need a manual check before merging)
 * [`dependabot.yml`](.github/dependabot.yml) + [`workflows/dependabot-auto-merge.yml`](.github/workflows/dependabot-auto-merge.yml) — weekly dependency-update PRs; only the `dev-patch` group (patch-level devDependency bumps) auto-merges once CI is green — everything else (prod deps at any semver level, github-actions bumps, dev deps at minor/major) is left for manual review, since a version bump can change runtime behavior CI doesn't always catch
 
