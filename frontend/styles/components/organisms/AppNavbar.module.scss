@@ -89,6 +89,13 @@
             }
         }
 
+        .navLockedLink {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            color: $light-grey-color;
+        }
+
         a.signInButton {
             background-color: $dark-pink-color;
             border-color: $dark-pink-color;
