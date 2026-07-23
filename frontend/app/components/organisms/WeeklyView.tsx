@@ -118,6 +118,9 @@ const WeeklyView: React.FC<WeeklyViewProps> = ({
     const [allMeetings, setAllMeetings] = useState<Meeting[]>([]);
     const [daysOfWeek, setDaysOfWeek] = useState<Date[]>(getDaysOfWeek(weekStartDate));
     const viewContainerRef = useRef<HTMLDivElement>(null);
+    // Guards against out-of-order responses: rapid date/filter changes can fire overlapping
+    // fetches, and without this a slower-but-stale response can overwrite a newer one.
+    const fetchRequestIdRef = useRef(0);
 
     // Format time slots for hour markers
     const formatTime = (hour: number): string => {
@@ -138,8 +141,11 @@ const WeeklyView: React.FC<WeeklyViewProps> = ({
             weekMeetingCache.clear();
         }
 
+        const requestId = ++fetchRequestIdRef.current;
         const meetings = await fetchMeetingsByWeek(weekStartDate, endDate);
-        setAllMeetings(meetings);
+        if (requestId === fetchRequestIdRef.current) {
+            setAllMeetings(meetings);
+        }
     };
 
     // Only replace weekStartDate's identity when the ET week actually changes — otherwise

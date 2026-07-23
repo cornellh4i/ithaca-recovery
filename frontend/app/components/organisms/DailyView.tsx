@@ -160,17 +160,23 @@ const DailyView: React.FC<DailyViewProps> = ({
   const [currentTimePosition, setCurrentTimePosition] = useState(0);
   const [meetings, setMeetings] = useState<Room[]>([]);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  // Guards against out-of-order responses: rapid date/filter changes can fire overlapping
+  // fetches, and without this a slower-but-stale response can overwrite a newer one.
+  const fetchRequestIdRef = useRef(0);
 
   const fetchData = async (forceFetch = false) => {
     // Clear the entire cache so stale data on other dates is also dropped.
     if (forceFetch) {
       dayMeetingCache.clear();
     }
-    
+
+    const requestId = ++fetchRequestIdRef.current;
     const data = await fetchMeetingsByDay(selectedDate);
-    setMeetings(data);
-    updateTimePosition();
-    scrollToCurrentTime();
+    if (requestId === fetchRequestIdRef.current) {
+      setMeetings(data);
+      updateTimePosition();
+      scrollToCurrentTime();
+    }
   };
 
   useEffect(() => {
