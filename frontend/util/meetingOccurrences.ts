@@ -1,6 +1,6 @@
-import { IMeeting } from "./models";
 import { getETDayBounds, convertETToUTC } from "./timeUtils";
 import { prisma } from "../lib/prisma";
+import { PublicMeeting, toPublicMeeting } from "./publicMeeting";
 
 const notDeleted = { OR: [{ deletedAt: null }, { deletedAt: { isSet: false } }] };
 
@@ -106,7 +106,7 @@ export const matchesRecurrencePattern = (
  * ET calendar date, with recurring occurrences' start/end times adjusted onto that date.
  * Shared by the day and week retrieval routes so recurrence rules are only implemented once.
  */
-export const getMeetingsForDate = async (etDateStr: string): Promise<IMeeting[]> => {
+export const getMeetingsForDate = async (etDateStr: string): Promise<PublicMeeting[]> => {
     const [startOfDay, endOfDay] = getETDayBounds(etDateStr);
 
     // localDate is used only for day-of-week and recurring-pattern comparisons;
@@ -177,13 +177,8 @@ export const getMeetingsForDate = async (etDateStr: string): Promise<IMeeting[]>
         ...adjustedPatternMeetings
     ];
 
-    return allMeetings.map((meeting) => {
-        const { recurrencePattern, ...meetingDetails } = meeting;
-
-        return {
-            ...meetingDetails,
-            googleCalendarEventIds: (meeting.googleCalendarEventIds ?? {}) as Record<string, string>,
-            recurrencePattern: recurrencePattern ?? null,
-        };
-    });
+    return allMeetings.map((meeting) => toPublicMeeting({
+        ...meeting,
+        recurrencePattern: meeting.recurrencePattern ?? null,
+    }));
 };

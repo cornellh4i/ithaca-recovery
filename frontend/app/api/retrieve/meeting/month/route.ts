@@ -1,8 +1,8 @@
 export const dynamic = 'force-dynamic';
-import { IMeeting } from "../../../../../util/models";
 import { getETDayBounds, toETDateString } from "../../../../../util/timeUtils";
 import { NextRequest } from 'next/server';
 import { prisma } from "../../../../../lib/prisma";
+import { toPublicMeeting } from "../../../../../util/publicMeeting";
 
 const notDeleted = { OR: [{ deletedAt: null }, { deletedAt: { isSet: false } }] };
 
@@ -33,11 +33,8 @@ const retrieveMonthMeetings = async (request: NextRequest) => {
                 }
             }
         })
-        const typedMeetings: IMeeting[] = meetings.map(meeting => ({
-            ...meeting,
-            googleCalendarEventIds: (meeting.googleCalendarEventIds ?? {}) as Record<string, string>,
-        }))
-        return new Response(JSON.stringify(typedMeetings), {
+        const publicMeetings = meetings.map(toPublicMeeting);
+        return new Response(JSON.stringify(publicMeetings), {
             status: 200,
             headers: {
                 'Content-Type': 'application/json',
