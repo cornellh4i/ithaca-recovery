@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import type { Role } from "@prisma/client";
 import LockIcon from "@mui/icons-material/Lock";
 import DiagnosticsTab from "./DiagnosticsTab";
@@ -28,13 +28,11 @@ const AdminShell: React.FC<AdminShellProps> = ({ role, email }) => {
 
   const [activeTab, setActiveTab] = useState<TabKey>("diagnostics");
 
-  useEffect(() => {
-    const activeTabInfo = allTabs.find((tab) => tab.key === activeTab);
-    if (activeTabInfo?.superAdminOnly && !isSuperAdmin) {
-      setActiveTab("diagnostics");
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isSuperAdmin]);
+  // Derived, not synced via effect: falls back to Diagnostics for render whenever the
+  // stored activeTab is super-admin-only and the role no longer qualifies (e.g. a
+  // real-time demotion), without an extra render/effect round-trip.
+  const activeTabInfo = allTabs.find((tab) => tab.key === activeTab);
+  const effectiveTab: TabKey = activeTabInfo?.superAdminOnly && !isSuperAdmin ? "diagnostics" : activeTab;
 
   return (
     <div className={styles.container}>
@@ -46,7 +44,7 @@ const AdminShell: React.FC<AdminShellProps> = ({ role, email }) => {
             <span key={tab.key} className={styles.tabWrapper}>
               <button
                 data-testid={`admin-tab-${tab.key}`}
-                className={`${styles.tab} ${activeTab === tab.key ? styles.tabActive : ""} ${locked ? styles.tabLocked : ""}`}
+                className={`${styles.tab} ${effectiveTab === tab.key ? styles.tabActive : ""} ${locked ? styles.tabLocked : ""}`}
                 onClick={() => !locked && setActiveTab(tab.key)}
                 disabled={locked}
               >
@@ -59,10 +57,10 @@ const AdminShell: React.FC<AdminShellProps> = ({ role, email }) => {
         })}
       </div>
       <div className={styles.tabContent}>
-        {activeTab === "diagnostics" && <DiagnosticsTab email={email} role={role} />}
-        {activeTab === "users" && isSuperAdmin && <UsersTab />}
-        {activeTab === "import" && isSuperAdmin && <ImportTab />}
-        {activeTab === "export" && isSuperAdmin && <ExportTab />}
+        {effectiveTab === "diagnostics" && <DiagnosticsTab email={email} role={role} />}
+        {effectiveTab === "users" && isSuperAdmin && <UsersTab />}
+        {effectiveTab === "import" && isSuperAdmin && <ImportTab />}
+        {effectiveTab === "export" && isSuperAdmin && <ExportTab />}
       </div>
     </div>
   );

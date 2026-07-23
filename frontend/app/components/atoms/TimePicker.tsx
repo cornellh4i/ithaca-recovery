@@ -59,12 +59,15 @@ const TimePicker = ({ label, value: propValue = '', disablePast, onChange, error
   const [endTimeError, setEndTimeError] = useState<boolean>(false); // Track if there's an end time error
   const [touched, setTouched] = useState<boolean>(false);
 
-  // Effect to disable past times
+  // Effect (not derived-during-render) deliberately: `new Date()` is impure and would
+  // differ between the server-rendered HTML and the client's first render, causing a
+  // hydration mismatch on the input's `min` attribute if computed inline instead.
   useEffect(() => {
     if (disablePast) {
       const now = new Date();
       const hours = now.getHours().toString().padStart(2, '0');
       const minutes = now.getMinutes().toString().padStart(2, '0');
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setMinTime(`${hours}:${minutes}`);
     }
   }, [disablePast]);
@@ -77,7 +80,7 @@ const TimePicker = ({ label, value: propValue = '', disablePast, onChange, error
     // Calculate the new end time based on the current time difference
     const newEndTime = addMinutes(newStartTime, timeDifference);
     setEndTime(newEndTime);
-    onChange && onChange(`${newStartTime} - ${newEndTime}`);
+    onChange(`${newStartTime} - ${newEndTime}`);
     setEndTimeError(false); // Reset error state when start time changes
   };
 
@@ -94,7 +97,7 @@ const TimePicker = ({ label, value: propValue = '', disablePast, onChange, error
       setEndTimeError(false); // Clear error state if valid
     }
     setTimeDifference(newTimeDifference); // Update the time difference based on user input
-    onChange && onChange(`${startTime} - ${newEndTime}`);
+    onChange(`${startTime} - ${newEndTime}`);
   };
 
   const handleBlur = () => {

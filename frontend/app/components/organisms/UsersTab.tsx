@@ -39,6 +39,9 @@ const UsersTab: React.FC = () => {
   };
 
   useEffect(() => {
+    // Standard "load on mount" pattern (https://react.dev/learn/synchronizing-with-effects#fetching-data);
+    // loadAdmins manages its own loading/error state internally.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadAdmins();
   }, []);
 

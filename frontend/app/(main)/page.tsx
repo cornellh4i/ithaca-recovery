@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import styles from "./page.module.scss";
 import CalendarNavbar from "../components/organisms/CalendarNavbar";
 import CalendarSidebar from "../components/organisms/CalendarSidebar";
@@ -17,6 +17,9 @@ export default function HomePage() {
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
+  const triggerCalendarRefresh = useCallback(() => {
+    setRefreshTrigger(prev => prev + 1);
+  }, []);
 
   useEffect(() => {
     const intervalId = setInterval(() => {
@@ -25,7 +28,7 @@ export default function HomePage() {
     }, 30000); // 30 seconds
 
     return () => clearInterval(intervalId);
-  }, []);
+  }, [triggerCalendarRefresh]);
 
   useEffect(() => {
     const checkAuthStatus = async () => {
@@ -53,7 +56,15 @@ export default function HomePage() {
   const [showEditMeeting, setShowEditMeeting] = useState(false);
   const [lastClickedDate, setLastClickedDate] = useState<Date | null>(null);
 
-  const fetchMeetingDetails = async (meetingId: string) => {
+  // Ref instead of a `selectedDate` closure/dependency so navigating the calendar while a
+  // meeting is open doesn't re-trigger this fetch — we only want selectedDate's value *at
+  // the moment a meeting is selected*, not to refetch whenever the date changes afterward.
+  const selectedDateRef = useRef(selectedDate);
+  useEffect(() => {
+    selectedDateRef.current = selectedDate;
+  }, [selectedDate]);
+
+  const fetchMeetingDetails = useCallback(async (meetingId: string) => {
     try {
       const response = await fetch(`/api/retrieve/meeting/${meetingId}`, { method: 'GET' });
       if (response.ok) {
@@ -62,28 +73,27 @@ export default function HomePage() {
         setShowEditMeeting(false);
         setSelectedMeeting(data);
         // Store the date that was clicked when the meeting was selected
-        setLastClickedDate(new Date(selectedDate));
+        setLastClickedDate(new Date(selectedDateRef.current));
       } else {
         console.error("Failed to fetch meeting details");
       }
     } catch (error) {
       console.error('Error fetching meeting details:', error);
     }
-  };
-
-  const triggerCalendarRefresh = () => {
-    setRefreshTrigger(prev => prev + 1);
-  };
+  }, []);
 
   useEffect(() => {
     if (selectedMeetingID) {
+      // Async fetch-then-set; the lint rule can't see the setState calls sit after an
+      // await, so this is a false positive for the standard "load on ID change" pattern.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       fetchMeetingDetails(selectedMeetingID);
     } else {
       setShowEditMeeting(false);
       setSelectedMeeting(null);
       setLastClickedDate(null);
     }
-  }, [selectedMeetingID]);
+  }, [selectedMeetingID, fetchMeetingDetails]);
 
   const handleBack = () => {
     setSelectedMeeting(null);

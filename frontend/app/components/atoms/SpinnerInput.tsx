@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import styles from "../../../styles/components/atoms/SpinnerInput.module.scss";
 
 interface InputSpinnerProps {
@@ -29,9 +29,13 @@ const SpinnerInput: React.FC<InputSpinnerProps> = ({
   const [localValue, setLocalValue] = useState(value.toString());
   const [underline, setUnderline] = useState(false);
 
-  useEffect(() => {
+  // Mirrors the controlled `value` prop into the local editable string buffer without an
+  // Effect — https://react.dev/learn/you-might-not-need-an-effect#adjusting-some-state-when-a-prop-changes.
+  const [prevValue, setPrevValue] = useState(value);
+  if (value !== prevValue) {
+    setPrevValue(value);
     setLocalValue(value.toString());
-  }, [value]);
+  }
 
   const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = event.target.value;

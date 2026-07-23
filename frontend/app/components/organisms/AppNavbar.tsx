@@ -67,6 +67,11 @@ const AppNavbar: React.FC<AppNavbarProps> = ({ session }) => {
                                 </button>
                             </div>
                         ) : (
+                            // Not a Next.js page route — /api/auth/signin/google is NextAuth's own
+                            // handler, so next/link's client-side routing doesn't apply here. Kept
+                            // as a real <a> (not a signIn() button) since e2e asserts an ARIA "link"
+                            // role and the SCSS targets `a.signInButton`.
+                            // eslint-disable-next-line @next/next/no-html-link-for-pages
                             <a className={styles.signInButton} href="/api/auth/signin/google">
                                 <p>Sign In</p>
                             </a>

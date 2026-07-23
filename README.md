@@ -84,7 +84,7 @@ Documentation lives in [`docs/`](docs/):
 
 ### CI/CD & Automation
 
-Everything under [`.github/`](.github/) runs automatically on push/PR to `master`, or on a schedule — no manual triggering needed.
+Everything under [`.github/`](.github/) runs automatically on push/PR to `master`, or on a schedule - no manual triggering needed.
 
 * [`workflows/test.yml`](.github/workflows/test.yml) — lint, unit, integration, and Playwright e2e tests (see [Running Tests](#running-tests) below)
 * [`workflows/codeql.yml`](.github/workflows/codeql.yml) — CodeQL static analysis for security vulnerabilities, on every PR plus a weekly scheduled scan

@@ -17,6 +17,15 @@ const DatePicker = ({ label, value: propValue = '', onChange, underlineOnFocus =
   const [showCalendar, setShowCalendar] = useState<boolean>(false);
   const datePickerRef = useRef<HTMLDivElement>(null);
 
+  // Mirrors an external propValue reset (e.g. parent clearing the form) into local state
+  // without an Effect — https://react.dev/learn/you-might-not-need-an-effect#adjusting-some-state-when-a-prop-changes.
+  // Still allows free local typing between resets, unlike making this a controlled input.
+  const [prevPropValue, setPrevPropValue] = useState(propValue);
+  if (propValue !== prevPropValue) {
+    setPrevPropValue(propValue);
+    setInternalValue(propValue);
+  }
+
 
   /**
    * isDateMMDDYYYY is a function that returns whether the provided string is in  MM/DD/YYYY format
@@ -125,12 +134,6 @@ const DatePicker = ({ label, value: propValue = '', onChange, underlineOnFocus =
 
     return "";
   };
-
-  useEffect(() => {
-    if (propValue !== internalValue) {
-      setInternalValue(propValue);
-    }
-  }, [propValue]);
 
   useEffect(() => {
     // Handle clicks outside of the date picker to close the calendar

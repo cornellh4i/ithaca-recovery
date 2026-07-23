@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useCallback, useEffect, useState, useRef } from "react";
 import styles from '../../../styles/components/organisms/DailyView.module.scss';
 import BoxText from '../atoms/BoxText';
 import DailyViewRow from "../molecules/DailyViewRow";
@@ -166,19 +166,45 @@ const DailyView: React.FC<DailyViewProps> = ({
   // fetches, and without this a slower-but-stale response can overwrite a newer one.
   const fetchRequestIdRef = useRef(0);
 
-  const fetchData = async (forceFetch = false) => {
+  // Ref instead of a `selectedDate` closure/dependency so fetchData's identity stays
+  // stable across date changes — needed so the refreshTrigger effect below doesn't fire
+  // an extra forced fetch every time the date changes (see that effect's comment).
+  const selectedDateRef = useRef(selectedDate);
+  useEffect(() => {
+    selectedDateRef.current = selectedDate;
+  }, [selectedDate]);
+
+  const updateTimePosition = useCallback(() => {
+    const now = new Date();
+    const currentHour = now.getHours();
+    const currentMinutes = now.getMinutes();
+    const position = (currentHour * 60 + currentMinutes) * (155 / 60);
+    setCurrentTimePosition(position);
+  }, []);
+
+  const scrollToCurrentTime = useCallback(() => {
+    if (scrollContainerRef.current) {
+      const now = new Date();
+      const currentHour = now.getHours();
+      const scrollOffset = (currentHour * 155) - 300;
+      const scrollPosition = Math.max(0, scrollOffset);
+      scrollContainerRef.current.scrollLeft = scrollPosition;
+    }
+  }, []);
+
+  const fetchData = useCallback(async (forceFetch = false) => {
     // Clear the entire cache so stale data on other dates is also dropped.
     if (forceFetch) {
       dayMeetingCache.clear();
     }
 
     const requestId = ++fetchRequestIdRef.current;
-    const data = await fetchMeetingsByDay(selectedDate);
+    const data = await fetchMeetingsByDay(selectedDateRef.current);
     if (requestId === fetchRequestIdRef.current) {
       setMeetings(data);
       updateTimePosition();
     }
-  };
+  }, [updateTimePosition]);
 
   useEffect(() => {
     fetchData();
@@ -189,32 +215,14 @@ const DailyView: React.FC<DailyViewProps> = ({
     return () => {
       clearInterval(intervalId);
     };
-  }, [selectedDate]);
+  }, [selectedDate, fetchData, scrollToCurrentTime, updateTimePosition]);
 
   useEffect(() => {
     if (refreshTrigger > 0) {
       console.log("Refreshing calendar due to trigger change:", refreshTrigger);
       fetchData(true); // Force fetch (invalidate cache)
     }
-  }, [refreshTrigger]);
-
-  const updateTimePosition = () => {
-    const now = new Date();
-    const currentHour = now.getHours();
-    const currentMinutes = now.getMinutes();
-    const position = (currentHour * 60 + currentMinutes) * (155 / 60);
-    setCurrentTimePosition(position);
-  };
-
-  const scrollToCurrentTime = () => {
-    if (scrollContainerRef.current) {
-      const now = new Date();
-      const currentHour = now.getHours();
-      const scrollOffset = (currentHour * 155) - 300;
-      const scrollPosition = Math.max(0, scrollOffset);
-      scrollContainerRef.current.scrollLeft = scrollPosition;
-    }
-  };
+  }, [refreshTrigger, fetchData]);
 
   // filter meetings based on meeting type and room filters
   const filterMeetings = (room: Room): Room => ({
