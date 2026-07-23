@@ -4,7 +4,7 @@ import MiniCalendar from './MiniCalendar'; // Adjust import path as needed
 import { isDate } from 'util/types';
 
 interface DatePickerProps {
-  label: string | JSX.Element;
+  label: string | React.JSX.Element;
   value?: string; // Expect value to be in 'MM/DD/YYYY' format
   onChange: (value: string) => void;
   underlineOnFocus?: boolean;
