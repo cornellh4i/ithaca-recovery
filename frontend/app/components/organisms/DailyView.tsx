@@ -177,12 +177,12 @@ const DailyView: React.FC<DailyViewProps> = ({
     if (requestId === fetchRequestIdRef.current) {
       setMeetings(data);
       updateTimePosition();
-      scrollToCurrentTime();
     }
   };
 
   useEffect(() => {
     fetchData();
+    scrollToCurrentTime();
 
     const intervalId = setInterval(updateTimePosition, 60000);
 
