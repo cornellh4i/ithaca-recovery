@@ -4,10 +4,7 @@ import { seedMeeting } from "../factories/meeting";
 import { getTestPrismaClient } from "../factories/db";
 import { convertETToUTC, formatETDateString } from "../../util/timeUtils";
 
-// seedMeeting defaults every meeting to the same 18:00-19:00 ET slot in the same room, so two
-// seeded in one test would render as fully overlapping, unclickable calendar cards in Day view
-// (which — unlike Week view — has no overlap-splitting layout). Give the second meeting a
-// distinct time to keep both cards independently clickable.
+// Avoids overlapping the default 18:00-19:00 seeded slot, which Day view can't visually split.
 function laterSlot() {
   const etDate = formatETDateString(new Date());
   return {

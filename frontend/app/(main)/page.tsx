@@ -58,6 +58,8 @@ export default function HomePage() {
       const response = await fetch(`/api/retrieve/meeting/${meetingId}`, { method: 'GET' });
       if (response.ok) {
         const data: IMeeting = await response.json();
+        // Batched: keeps the old panel on screen until the new meeting is ready.
+        setShowEditMeeting(false);
         setSelectedMeeting(data);
         // Store the date that was clicked when the meeting was selected
         setLastClickedDate(new Date(selectedDate));
@@ -74,10 +76,10 @@ export default function HomePage() {
   };
 
   useEffect(() => {
-    setShowEditMeeting(false);
     if (selectedMeetingID) {
       fetchMeetingDetails(selectedMeetingID);
     } else {
+      setShowEditMeeting(false);
       setSelectedMeeting(null);
       setLastClickedDate(null);
     }
