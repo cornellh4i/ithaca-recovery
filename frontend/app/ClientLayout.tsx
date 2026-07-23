@@ -20,7 +20,10 @@ export default function ClientLayout({
         <html lang="en">
             <head>
             </head>
-            <body className={inter.className}>
+            {/* suppressHydrationWarning: some browser extensions (e.g. security/wallet
+                extensions) inject attributes like bis_register onto <body> before React
+                hydrates — a real mismatch, but not one our code can control or should warn on. */}
+            <body className={inter.className} suppressHydrationWarning>
                 <div className={styles.mainlayout}>
                     <div className={styles.navigation}>
                         <AppNavbar session={session} />
