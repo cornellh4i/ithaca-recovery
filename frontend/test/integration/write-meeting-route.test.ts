@@ -2,6 +2,15 @@ import { randomUUID } from "crypto";
 import { getTestPrismaClient, disconnectTestPrismaClient } from "../factories/db";
 import type { IMeeting } from "../../util/models";
 
+// Next's after() throws when called outside a real request scope, which route handlers
+// invoked directly (not through the Next server) always are. The sync promise passed to
+// after() has already started executing by the time after() runs, so a no-op mock here
+// doesn't change what actually happens — only silences that scope check for this test.
+jest.mock("next/server", () => ({
+  ...jest.requireActual("next/server"),
+  after: () => {},
+}));
+
 jest.mock("../../services/auth", () => ({
   requireRole: jest.fn().mockResolvedValue({
     user: { role: "ADMIN" },

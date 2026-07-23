@@ -1,7 +1,6 @@
 import { IMeeting } from '../../../../util/models';
 import { Role } from "@prisma/client";
-import { NextResponse } from "next/server";
-import { waitUntil } from "@vercel/functions";
+import { NextResponse, after } from "next/server";
 import { requireRole } from "../../../../services/auth";
 import { createCalendarEvent, calendarIdsForMeeting } from "../../../../services/googleCalendar";
 import { createZoomMeeting, zoomRoomCalendarId } from "../../../../services/zoom";
@@ -9,7 +8,7 @@ import { convertETToUTC } from "../../../../util/timeUtils";
 import { meetingSchema } from "../../../../util/meetingValidation";
 import { prisma } from "../../../../lib/prisma";
 
-// Runs after the response is sent (see waitUntil call below) — failure sets syncStatus but
+// Runs after the response is sent (see after() call below) — failure sets syncStatus but
 // does not fail the request, which has already returned by the time this runs.
 async function syncNewMeeting(
   mid: string,
@@ -129,7 +128,7 @@ const createMeeting = async (request: Request) => {
     }
 
     // GCal/Zoom sync runs after the response is sent — see syncNewMeeting above.
-    waitUntil(syncNewMeeting(newMeeting.mid, meetingData, !!recurrencePattern, auth.accessToken));
+    after(syncNewMeeting(newMeeting.mid, meetingData, !!recurrencePattern, auth.accessToken));
 
     return new Response(JSON.stringify(responseMeeting), {
       status: 201,
