@@ -17,12 +17,17 @@ jobs:
         with:
           github-token: "${{ secrets.GITHUB_TOKEN }}"
 
-      # dependabot.yml only groups minor/patch updates -- majors stay ungrouped so a human
-      # reads the changelog. Mirror that split here: enabling auto-merge doesn't bypass
-      # required status checks, it just lets the PR merge itself once lint/unit/integration/e2e
-      # all pass, same as a human clicking "merge" would.
-      - name: Enable auto-merge for minor/patch updates
-        if: steps.metadata.outputs.update-type == 'version-update:semver-minor' || steps.metadata.outputs.update-type == 'version-update:semver-patch'
+      # dependabot.yml's "dev-patch" group is the only group scoped to
+      # dependency-type: development + update-types: patch -- membership in it is itself
+      # the safety guarantee, so gate on the group rather than re-deriving semver/type here.
+      # Everything else (prod deps at any semver level, github-actions bumps, dev deps at
+      # minor/major) is left as an individual PR for manual review + CI green -- a version
+      # bump can change runtime/build behavior in ways this repo's CI doesn't always catch,
+      # so those get a human read of the diff/changelog rather than an unattended merge.
+      # Auto-merge still doesn't bypass required status checks -- it just lets the PR merge
+      # itself once lint/unit/integration/e2e all pass.
+      - name: Enable auto-merge for patch-level devDependency updates
+        if: steps.metadata.outputs.dependency-group == 'dev-patch'
         run: gh pr merge --auto --squash "$PR_URL"
         env:
           PR_URL: "${{ github.event.pull_request.html_url }}"
