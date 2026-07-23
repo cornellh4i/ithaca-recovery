@@ -1,0 +1,51 @@
+name: Check for Node.js LTS updates
+
+on:
+  schedule:
+    - cron: "0 9 1 * *" # 1st of each month
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  check-node-version:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Determine latest Active LTS
+        id: latest
+        run: |
+          VERSION=$(curl -s https://nodejs.org/dist/index.json | jq -r '[.[] | select(.lts != false)][0].version' | sed 's/^v//')
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "major=${VERSION%%.*}" >> "$GITHUB_OUTPUT"
+
+      - name: Compare against pinned version
+        id: current
+        run: echo "version=$(cat frontend/.nvmrc)" >> "$GITHUB_OUTPUT"
+
+      - name: Update pinned version
+        if: steps.latest.outputs.version != steps.current.outputs.version
+        run: |
+          echo "${{ steps.latest.outputs.version }}" > frontend/.nvmrc
+          sed -i 's/"node": "[0-9]*\.x"/"node": "${{ steps.latest.outputs.major }}.x"/' frontend/package.json
+          sed -i 's/node-version: [0-9]*/node-version: ${{ steps.latest.outputs.major }}/' .github/workflows/test.yml
+
+      - name: Open PR
+        if: steps.latest.outputs.version != steps.current.outputs.version
+        uses: peter-evans/create-pull-request@v7
+        with:
+          commit-message: "Bump Node.js to ${{ steps.latest.outputs.version }}"
+          title: "Bump Node.js to ${{ steps.latest.outputs.version }} (latest Active LTS)"
+          # Vercel's Functions runtime only supports specific majors (20.x/22.x/24.x as of
+          # this writing) -- confirm support before merging, since a new LTS can outpace it.
+          body: |
+            Node.js `${{ steps.latest.outputs.version }}` is now the latest Active LTS release.
+
+            Before merging, confirm [Vercel's supported Node.js versions](https://vercel.com/docs/functions/runtimes/node-js/node-js-versions)
+            include this major -- this repo deploys there, and Vercel has lagged behind new
+            LTS releases before.
+          branch: bump-node-version
+          labels: dependencies
