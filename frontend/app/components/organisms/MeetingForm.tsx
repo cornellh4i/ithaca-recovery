@@ -1,6 +1,6 @@
 // General component for EditMeeting and NewMeeting
 
-import React, { useState } from 'react';
+import React from 'react';
 import styles from "../../../styles/components/organisms/MeetingForm.module.scss";
 
 export interface MeetingFormProps {

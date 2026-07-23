@@ -3,7 +3,7 @@ import { Role } from '@prisma/client';
 import { requireRole } from "../../../../services/auth";
 import { prisma } from "../../../../lib/prisma";
 
-const retrieveAdmins = async (request: Request) => {
+const retrieveAdmins = async () => {
   try {
     const auth = await requireRole(Role.SUPER_ADMIN);
     if (auth instanceof Response) return auth;

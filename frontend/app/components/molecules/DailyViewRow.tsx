@@ -36,7 +36,7 @@ const timeToPixels = (datetime: string) => {
   const edtDatetime = utcDate.toLocaleString("en-US", { timeZone: "America/New_York" });
 
   // Extract date and time components from the converted EDT time string
-  const [datePart, timePart] = edtDatetime.split(', ');
+  const [, timePart] = edtDatetime.split(', ');
   const [hour, minute] = timePart.split(':');
   const edtHours = parseInt(hour);
   const edtMinutes = parseInt(minute);

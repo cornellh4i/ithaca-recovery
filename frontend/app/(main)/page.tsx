@@ -49,7 +49,7 @@ export default function HomePage() {
   const [selectedMeeting, setSelectedMeeting] = useState<IMeeting | null>(null);
   const [selectedMeetingID, setSelectedMeetingID] = useState<string | null>(null);
   const [selectedView, setSelectedView] = useState<string>("Day");
-  const [selectedNewMeeting, setSelectedNewMeeting] = useState<boolean | null>(false);
+  const [, setSelectedNewMeeting] = useState<boolean | null>(false);
   const [showEditMeeting, setShowEditMeeting] = useState(false);
   const [lastClickedDate, setLastClickedDate] = useState<Date | null>(null);
 
@@ -97,10 +97,6 @@ export default function HomePage() {
     setShowEditMeeting(false);
   };
 
-  const handleCloseNewMeeting = () => {
-    setSelectedNewMeeting(false);
-  };
-
   const handleDelete = async (mid: string, deleteOption?: 'this' | 'thisAndFollowing' | 'all') => {
     try {
       const response = await fetch('/api/delete/meeting', {
@@ -142,11 +138,6 @@ export default function HomePage() {
   const [weekFilters, setWeekFilters] = useState(() => createDefaultFilters(false));
   const filters = selectedView === "Day" ? dayFilters : weekFilters;
   const setFilters = selectedView === "Day" ? setDayFilters : setWeekFilters;
-  const handleMeetingSelect = (meetingId: string) => {
-    setSelectedMeetingID(meetingId);
-    setLastClickedDate(new Date(selectedDate));
-  };
-
   const convertESTStringToDate = (estDateString: string): Date => {
     // Extract date and time parts from the EST string (e.g., "04/09/2025, 06:00:00 AM")
     const [datePart, timePart] = estDateString.split(', ');

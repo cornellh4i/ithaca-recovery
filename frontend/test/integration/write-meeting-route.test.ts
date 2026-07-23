@@ -1,5 +1,4 @@
 import { randomUUID } from "crypto";
-import { Role } from "@prisma/client";
 import { getTestPrismaClient, disconnectTestPrismaClient } from "../factories/db";
 import type { IMeeting } from "../../util/models";
 

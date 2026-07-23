@@ -10,12 +10,6 @@ import { IMeeting } from "../../../util/models";
 
 type Meeting = OverlapMeeting;
 
-type Room = {
-    name: string;
-    primaryColor: string;
-    meetings: Meeting[];
-};
-
 const weekMeetingCache = createCache<Meeting[]>();
 
 // Extracts ET wall-clock time as "HH:MM" (24hr), which is what WeeklyViewColumn expects.

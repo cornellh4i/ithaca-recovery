@@ -2,8 +2,6 @@ import React, { useState } from 'react';
 import styles from '../../../styles/components/organisms/ViewMeeting.module.scss';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
-import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
-import DownloadForOfflineIcon from '@mui/icons-material/DownloadForOffline';
 import DeleteRecurringModal from '../molecules/DeleteRecurringModal';
 import DeleteMeetingModal from '../molecules/DeleteMeetingModal';
 
@@ -52,17 +50,13 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
   title,
   modeType,
   description,
-  creator,
-  group,
   startDateTime,
   endDateTime,
   email,
   zoomRoom,
   zoomLink,
-  zid,
   calType,
   room,
-  recurrence,
   isRecurring,
   recurrencePattern,
   currentOccurrenceDate,
@@ -196,7 +190,6 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
   });
 
   const startDateEST = convertUTCToET(startDateTime.toISOString());
-  const endDateEST = convertUTCToET(endDateTime.toISOString());
 
   const timeRangeText = formatCompactTimeRange(
     etTimeFmt.format(startDateTime),

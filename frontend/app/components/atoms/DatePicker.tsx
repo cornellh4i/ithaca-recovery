@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import styles from "../../../styles/components/atoms/DatePicker.module.scss";
 import MiniCalendar from './MiniCalendar'; // Adjust import path as needed
-import { isDate } from 'util/types';
 
 interface DatePickerProps {
   label: string | React.JSX.Element;

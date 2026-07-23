@@ -151,10 +151,9 @@ interface DailyViewProps {
 }
 
 const DailyView: React.FC<DailyViewProps> = ({ 
-  filters, 
-  selectedDate, 
-  setSelectedDate, 
-  setSelectedMeetingID, 
+  filters,
+  selectedDate,
+  setSelectedMeetingID,
   setSelectedNewMeeting,
   refreshTrigger = 0
 }) => {
@@ -203,7 +202,6 @@ const DailyView: React.FC<DailyViewProps> = ({
     if (scrollContainerRef.current) {
       const now = new Date();
       const currentHour = now.getHours();
-      const currentMinutes = now.getMinutes();
       const scrollOffset = (currentHour * 155) - 300;
       const scrollPosition = Math.max(0, scrollOffset);
       scrollContainerRef.current.scrollLeft = scrollPosition;

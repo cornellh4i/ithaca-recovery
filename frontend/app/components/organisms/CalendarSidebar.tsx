@@ -23,9 +23,6 @@ const CalendarSidebar: React.FC<CalendarSidebarProps> = ({filters, setFilters, s
     setSelectedDate(date);
   };
 
-  // A unique key for the filter 
-  const filterKey = 'meetingFilterState';
-
   const handleFilterChange = (name: string, value: boolean) => {
     setFilters((prev: typeof filters) => ({ ...prev, [name]: value }));
   };
