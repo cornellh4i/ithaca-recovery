@@ -7,6 +7,7 @@
     "build": "prisma generate && next build",
     "start": "next start",
     "lint": "eslint --config config/eslint.config.mjs .",
+    "lint:fix": "eslint --config config/eslint.config.mjs . --fix",
     "postinstall": "prisma generate",
     "test:unit": "jest --config config/jest.config.ts",
     "test:integration": "jest --config config/jest.integration.config.ts",
