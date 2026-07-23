@@ -27,7 +27,7 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
   ({ meeting, onClose, onUpdateSuccess }) => {
     const {
       title: inputMeetingTitleValue, setTitle: setMeetingTitleValue,
-      mode: selectedMode, setMode: setSelectedMode,
+      mode: selectedMode,
       date: dateValue, setDate: setDateValue,
       time: timeValue, setTime: setTimeValue,
       email: inputEmailValue, setEmail: setEmailValue,

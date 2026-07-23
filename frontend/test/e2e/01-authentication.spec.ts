@@ -1,7 +1,5 @@
 import { test, expect } from "./support/fixtures";
-import { seedAdmin } from "../factories/admin";
 import { loginAs } from "./support/auth";
-import { Role } from "@prisma/client";
 
 // Manual script §1 (Authentication — Google SSO Login). Real Google OAuth
 // itself (1.4 redirect to Google, 1.5/1.8 actual sign-in outcomes) can't be

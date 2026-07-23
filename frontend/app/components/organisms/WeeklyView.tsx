@@ -1,19 +1,14 @@
 import React, { useEffect, useRef, useState } from "react";
 import styles from '../../../styles/components/organisms/WeeklyView.module.scss';
 import WeeklyViewColumn from "../molecules/WeeklyViewColumn";
-import { passesTagFilters, passesRoomFilter } from "../../../util/meetingFilters";
+import { passesTagFilters, passesRoomFilter, MeetingFilters } from "../../../util/meetingFilters";
 import { ROOM_COLORS, ZOOM_ROOM_COLOR } from "../../../util/filterColors";
-import { formatETDateString } from "../../../util/timeUtils";
+import { formatETDateString, convertETToUTC } from "../../../util/timeUtils";
 import { layoutOverlappingMeetings, OverlapMeeting } from "../../../util/meetingOverlapLayout";
 import { createCache } from "../../../util/simpleCache";
+import { IMeeting } from "../../../util/models";
 
 type Meeting = OverlapMeeting;
-
-type Room = {
-    name: string;
-    primaryColor: string;
-    meetings: Meeting[];
-};
 
 const weekMeetingCache = createCache<Meeting[]>();
 
@@ -29,16 +24,16 @@ const fetchMeetingsByWeek = async (startDate: Date, endDate: Date): Promise<Meet
     const cacheKey = `${formattedStart}-${formattedEnd}`;
 
     return weekMeetingCache.getOrFetch(cacheKey, async () => {
-        console.log("Fetching meetings for week:", cacheKey);
+        console.log("[WeeklyView] Fetching meetings for week:", cacheKey);
 
         try {
             const response = await fetch(`/api/retrieve/meeting/week?startDate=${formattedStart}&endDate=${formattedEnd}`);
             const data = await response.json();
-            console.log("Raw API response:", data);
+            console.log("[WeeklyView] Raw API response for", cacheKey, ":", data);
 
             // startTime/endTime clip to this day (for layout); displayStartTime/displayEndTime
             // keep the true times, so an overnight meeting's cards both label as "11PM-1AM".
-            const meetings: Meeting[] = data.map((meeting: any) => {
+            const meetings: Meeting[] = data.map((meeting: IMeeting & { date: string }) => {
                 const trueStart = new Date(meeting.startDateTime);
                 const trueEnd = new Date(meeting.endDateTime);
                 const startsToday = formatETDateString(trueStart) === meeting.date;
@@ -60,7 +55,9 @@ const fetchMeetingsByWeek = async (startDate: Date, endDate: Date): Promise<Meet
 
             return meetings;
         } catch (error) {
-            console.error("Error fetching weekly meetings:", error);
+            // error objects don't serialize over CDP -- log the message directly so it's
+            // actually visible in the piped-through e2e console output.
+            console.error("[WeeklyView] Error fetching meetings for", cacheKey, ":", error instanceof Error ? error.message : String(error));
             return [];
         }
     });
@@ -73,20 +70,27 @@ export const invalidateWeekCache = (startDate: Date, endDate: Date) => {
     weekMeetingCache.invalidate(`${formattedStart}-${formattedEnd}`);
 };
 
-// Get the first day (Sunday) of the week containing the provided date. Operates on a copy —
-// selectedDate is shared state owned by the parent, and mutating it would corrupt that state.
+// Get the first day (Sunday) of the ET week containing the provided date. Computed from ET
+// calendar-date integers, not Date.prototype.getDay()/getDate() -- those interpret in the
+// runtime's local timezone, which is correct on a machine set to America/New_York but silently
+// picks the wrong week in CI, where the runtime defaults to UTC: near ET's midnight boundary,
+// a UTC-local getDay() disagrees with the real ET calendar day by one. Returned as noon ET
+// (not midnight) so re-deriving an ET date string from it later can't roll back a day.
 const getFirstDayOfWeek = (date: Date): Date => {
-    const result = new Date(date);
-    result.setDate(result.getDate() - result.getDay());
-    return result;
+    const etDateStr = formatETDateString(date);
+    const [year, month, day] = etDateStr.split('-').map(Number);
+    const dow = new Date(Date.UTC(year, month - 1, day)).getUTCDay();
+    const sundayEtDateStr = new Date(Date.UTC(year, month - 1, day - dow)).toISOString().slice(0, 10);
+    return new Date(convertETToUTC(`${sundayEtDateStr}T12:00:00`));
 };
 
-// Generate an array of dates for the entire week
+// Generate an array of dates for the entire week, same ET-safe construction as above.
 const getDaysOfWeek = (startDate: Date): Date[] => {
+    const etDateStr = formatETDateString(startDate);
+    const [year, month, day] = etDateStr.split('-').map(Number);
     return Array.from({ length: 7 }, (_, i) => {
-        const date = new Date(startDate);
-        date.setDate(startDate.getDate() + i);
-        return date;
+        const dayEtDateStr = new Date(Date.UTC(year, month - 1, day + i)).toISOString().slice(0, 10);
+        return new Date(convertETToUTC(`${dayEtDateStr}T12:00:00`));
     });
 };
 
@@ -102,7 +106,7 @@ const formatDayName = (date: Date): string => {
 
 
 interface WeeklyViewProps {
-    filters: any;
+    filters: MeetingFilters;
     selectedDate: Date;
     setSelectedDate: (date: Date) => void;
     setSelectedMeetingID: (meetingId: string) => void;
@@ -123,6 +127,9 @@ const WeeklyView: React.FC<WeeklyViewProps> = ({
     const [allMeetings, setAllMeetings] = useState<Meeting[]>([]);
     const [daysOfWeek, setDaysOfWeek] = useState<Date[]>(getDaysOfWeek(weekStartDate));
     const viewContainerRef = useRef<HTMLDivElement>(null);
+    // Guards against out-of-order responses: rapid date/filter changes can fire overlapping
+    // fetches, and without this a slower-but-stale response can overwrite a newer one.
+    const fetchRequestIdRef = useRef(0);
 
     // Format time slots for hour markers
     const formatTime = (hour: number): string => {
@@ -143,8 +150,11 @@ const WeeklyView: React.FC<WeeklyViewProps> = ({
             weekMeetingCache.clear();
         }
 
+        const requestId = ++fetchRequestIdRef.current;
         const meetings = await fetchMeetingsByWeek(weekStartDate, endDate);
-        setAllMeetings(meetings);
+        if (requestId === fetchRequestIdRef.current) {
+            setAllMeetings(meetings);
+        }
     };
 
     // Only replace weekStartDate's identity when the ET week actually changes — otherwise

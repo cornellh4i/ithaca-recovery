@@ -12,7 +12,7 @@ const notDeleted = { OR: [{ deletedAt: null }, { deletedAt: { isSet: false } }] 
 // existence and licensed-vs-basic status), meeting counts (incl. sync-error counts), and a
 // list of currently suspended meetings. Conflict detection is stubbed (empty) until Ticket
 // B.5's overlap-detection endpoint lands.
-export const GET = async (request: Request) => {
+export const GET = async () => {
   try {
     const auth = await requireRole(Role.ADMIN);
     if (auth instanceof Response) return auth;

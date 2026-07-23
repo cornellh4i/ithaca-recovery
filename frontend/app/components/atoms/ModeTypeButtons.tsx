@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import styles from '../../../styles/components/atoms/ModeTypeButtons.module.scss';
 
 interface ModeButtonsProps {

@@ -9,16 +9,18 @@ export interface SimpleCache<T> {
 }
 
 export function createCache<T>(): SimpleCache<T> {
-    const cache = new Map<string, T>();
+    // Caches the in-flight promise, not just the resolved value -- React Strict Mode's
+    // dev-only double effect invocation means two callers can ask for the same key before
+    // either resolves, and without this they'd fire two independent requests that race.
+    const cache = new Map<string, Promise<T>>();
 
-    const getOrFetch = async (key: string, fetcher: () => Promise<T>): Promise<T> => {
-        if (cache.has(key)) {
-            console.log("Using cached data for key:", key);
-            return cache.get(key) as T;
+    const getOrFetch = (key: string, fetcher: () => Promise<T>): Promise<T> => {
+        if (!cache.has(key)) {
+            const promise = fetcher();
+            promise.catch(() => cache.delete(key));
+            cache.set(key, promise);
         }
-        const value = await fetcher();
-        cache.set(key, value);
-        return value;
+        return cache.get(key) as Promise<T>;
     };
 
     const invalidate = (key: string) => {

@@ -36,13 +36,21 @@ export const matchesRecurrencePattern = (
     if (isAfterSeriesEnd(recurrence.endDate ?? null, etDateStr)) return false;
     if (recurrence.excludedDates?.length && isDateExcluded(recurrence.excludedDates, etDateStr)) return false;
 
+    // Same ET-anchored construction as localDate below -- patternStartDate is a raw instant,
+    // and its getUTCDay()/getUTCMonth()/getUTCFullYear() can disagree with its true ET calendar
+    // date near midnight (e.g. 11 PM ET is already the next UTC day), shifting every
+    // week/month-alignment calculation below by a day.
+    const startEtDateStr = etFmt.format(patternStartDate);
+    const [startEtYear, startEtMonth, startEtDay] = startEtDateStr.split('-').map(Number);
+    const patternStartLocalDate = new Date(Date.UTC(startEtYear, startEtMonth - 1, startEtDay));
+
     const dayOfWeek = localDate.getUTCDay();
     const requestedDayName = daysOfWeekNames[dayOfWeek];
 
     if (recurrence.type === "monthly") {
         const interval = recurrence.interval ?? 1;
-        const startYear = patternStartDate.getUTCFullYear();
-        const startMonth = patternStartDate.getUTCMonth();
+        const startYear = patternStartLocalDate.getUTCFullYear();
+        const startMonth = patternStartLocalDate.getUTCMonth();
         const reqYear = localDate.getUTCFullYear();
         const reqMonth = localDate.getUTCMonth();
         const monthsElapsed = (reqYear - startYear) * 12 + (reqMonth - startMonth);
@@ -69,11 +77,11 @@ export const matchesRecurrencePattern = (
         if (!recurrence.daysOfWeek?.includes(requestedDayName)) return false;
 
         // Get the day of week of the pattern start date (0-6)
-        const startDayOfWeek = patternStartDate.getUTCDay();
+        const startDayOfWeek = patternStartLocalDate.getUTCDay();
 
         // Calculate the start of the week containing the pattern start date
-        const patternStartWeekStart = new Date(patternStartDate);
-        patternStartWeekStart.setUTCDate(patternStartDate.getUTCDate() - startDayOfWeek);
+        const patternStartWeekStart = new Date(patternStartLocalDate);
+        patternStartWeekStart.setUTCDate(patternStartLocalDate.getUTCDate() - startDayOfWeek);
         patternStartWeekStart.setUTCHours(0, 0, 0, 0);
 
         // Calculate the start of the week containing the requested date

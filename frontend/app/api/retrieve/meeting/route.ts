@@ -3,7 +3,7 @@ import { prisma } from "../../../../lib/prisma";
 
 const notDeleted = { OR: [{ deletedAt: null }, { deletedAt: { isSet: false } }] };
 
-const retrieveMeetings = async (request: Request) => {
+const retrieveMeetings = async () => {
   try {
     const meetings = await prisma.meeting.findMany({ where: notDeleted });
     const typedMeetings: IMeeting[] = meetings.map(meeting => ({

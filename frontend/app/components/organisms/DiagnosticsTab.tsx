@@ -173,7 +173,7 @@ const DiagnosticsTab: React.FC<DiagnosticsTabProps> = ({ email, role }) => {
       <div className={styles.card} data-testid="diagnostics-suspended-panel">
         <div className={styles.panelHeader}>⏸ Suspended ({data.meetingCounts.suspended})</div>
         <div className={styles.panelSubhead}>
-          Meetings currently marked suspended. They're hidden from Google Calendar but remain in the system.
+          Meetings currently marked suspended. They&apos;re hidden from Google Calendar but remain in the system.
         </div>
         {data.suspendedMeetings.length === 0 ? (
           <div className={styles.emptyState}>No suspended meetings.</div>

@@ -6,7 +6,7 @@ import type { Config } from "jest";
 const config: Config = {
   displayName: "integration",
   testEnvironment: "node",
-  rootDir: ".",
+  rootDir: "..",
   testMatch: ["<rootDir>/test/integration/**/*.test.ts"],
   transform: { "^.+\\.tsx?$": "@swc/jest" },
   moduleNameMapper: { "^server-only$": "<rootDir>/test/mocks/server-only.js" },

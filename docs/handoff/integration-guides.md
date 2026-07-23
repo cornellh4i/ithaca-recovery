@@ -62,7 +62,7 @@ ZOOM_HOST_CHILDRENS_ROOM_518="..."
 
 ### Prerequisites
 - A MongoDB Atlas cluster (or local MongoDB instance).
-- Node.js 18+.
+- Node.js 24+.
 
 ### Setup
 

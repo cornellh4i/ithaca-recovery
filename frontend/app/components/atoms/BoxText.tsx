@@ -17,7 +17,7 @@ interface BoxProps {
   // Extra badge alongside tags, e.g. flagging a Zoom-room mismatch.
   zoomTag?: string;
   onClick: (meetingId: string, e: React.MouseEvent<HTMLDivElement, MouseEvent>) => void;
-  [key: string]: any;
+  [key: string]: unknown;
 };
 
 const BoxText: React.FC<BoxProps> = ({

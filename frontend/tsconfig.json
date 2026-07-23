@@ -10,6 +10,10 @@
       "./node_modules/@types",
       "./types"
     ],
+    "types": [
+      "jest",
+      "node"
+    ],
     "allowJs": true,
     "skipLibCheck": true,
     "esModuleInterop": true,
@@ -22,7 +26,7 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
-    "jsx": "preserve",
+    "jsx": "react-jsx",
     "incremental": true,
     "plugins": [
       {
@@ -33,9 +37,11 @@
   "include": [
     "app",
     "services",
+    "test",
     ".next/types/**/*.ts",
     "types/*.d.ts",
-    "*.d.ts"
+    "*.d.ts",
+    ".next/dev/types/**/*.ts"
   ],
   "exclude": [
     "node_modules"

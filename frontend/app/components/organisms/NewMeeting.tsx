@@ -28,12 +28,11 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({
 }) => {
     const {
       title: inputMeetingTitleValue, setTitle: setMeetingTitleValue,
-      mode: selectedMode, setMode: setSelectedMode,
+      mode: selectedMode,
       date: dateValue, setDate: setDateValue,
       time: timeValue, setTime: setTimeValue,
       email: inputEmailValue, setEmail: setEmailValue,
       description: inputDescriptionValue, setDescription: setDescriptionValue,
-      room: selectedRoom,
       calTypes: selectedCalTypes,
       zoomRoom: selectedZoomRoom, setZoomRoom: setSelectedZoomRoom,
       handleRecurringMeetingChange,

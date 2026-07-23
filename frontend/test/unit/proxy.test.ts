@@ -9,8 +9,8 @@ import { refreshGoogleAccessToken } from "../../services/googleTokenRefresh";
 const mockedRefresh = refreshGoogleAccessToken as jest.Mock;
 
 // Imported after NEXTAUTH_SECRET is set and the refresh mock is installed, since
-// middleware.ts reads process.env.NEXTAUTH_SECRET at call time, not import time.
-import { middleware, config } from "../../middleware";
+// proxy.ts reads process.env.NEXTAUTH_SECRET at call time, not import time.
+import { proxy, config } from "../../proxy";
 
 const COOKIE_NAME = "next-auth.session-token";
 
@@ -36,7 +36,7 @@ test("matcher excludes NextAuth's own handler but not the rest of /api", () => {
 test("an unauthenticated request passes through with no Set-Cookie", async () => {
   const request = new NextRequest("http://localhost:3000/api/retrieve/meeting");
 
-  const response = await middleware(request);
+  const response = await proxy(request);
 
   expect(response.headers.get("set-cookie")).toBeNull();
   expect(mockedRefresh).not.toHaveBeenCalled();
@@ -45,7 +45,7 @@ test("an unauthenticated request passes through with no Set-Cookie", async () =>
 test("a token with no expiresAt/refreshToken (e.g. an e2e-minted test session) is left alone", async () => {
   const request = await requestWithToken();
 
-  const response = await middleware(request);
+  const response = await proxy(request);
 
   expect(response.headers.get("set-cookie")).toBeNull();
   expect(mockedRefresh).not.toHaveBeenCalled();
@@ -55,7 +55,7 @@ test("a token that isn't near expiry passes through unchanged", async () => {
   const farFuture = Math.floor(Date.now() / 1000) + 3600;
   const request = await requestWithToken({ expiresAt: farFuture, refreshToken: "refresh-1" });
 
-  const response = await middleware(request);
+  const response = await proxy(request);
 
   expect(response.headers.get("set-cookie")).toBeNull();
   expect(mockedRefresh).not.toHaveBeenCalled();
@@ -66,7 +66,7 @@ test("a token within the refresh skew gets refreshed and persisted via Set-Cooki
   mockedRefresh.mockResolvedValue({ accessToken: "brand-new-token", expiresAt: almostExpired + 3600 });
   const request = await requestWithToken({ expiresAt: almostExpired, refreshToken: "refresh-1", accessToken: "old-token" });
 
-  const response = await middleware(request);
+  const response = await proxy(request);
 
   expect(mockedRefresh).toHaveBeenCalledWith("refresh-1");
   const setCookie = response.headers.get("set-cookie");
@@ -83,7 +83,7 @@ test("a failed refresh (revoked token) leaves the cookie untouched", async () =>
   mockedRefresh.mockResolvedValue(null);
   const request = await requestWithToken({ expiresAt: almostExpired, refreshToken: "refresh-1" });
 
-  const response = await middleware(request);
+  const response = await proxy(request);
 
   expect(response.headers.get("set-cookie")).toBeNull();
 });

@@ -2,13 +2,13 @@ import React, { useState, useEffect } from 'react';
 import styles from "../../../styles/components/atoms/TimePicker.module.scss";
 
 interface TimePickerProps {
-  label: string | JSX.Element;
+  label: string | React.JSX.Element;
   value?: string;
   onChange: (value: string) => void;
   underlineOnFocus?: boolean;
   error?: string;
   disablePast?: boolean;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 // Utility function to add minutes to a given time

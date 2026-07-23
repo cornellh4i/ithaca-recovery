@@ -4,8 +4,8 @@
 
 | Layer | Technology |
 |---|---|
-| Framework | Next.js 14 (App Router, full-stack TypeScript) |
-| UI | React 18 + Material-UI 5 |
+| Framework | Next.js 16 (App Router, full-stack TypeScript) |
+| UI | React 19 + Material-UI 7 |
 | Database | MongoDB via Prisma ORM 5 |
 | Authentication | NextAuth with Google OAuth 2.0 + OpenID Connect (`next-auth` 4) |
 | External APIs | Google Calendar API (`googleapis`), Zoom API (Server-to-Server OAuth, see [api-reference.md](api-reference.md#zoom)) |
@@ -28,6 +28,8 @@ ithaca-recovery/
 │   ├── styles/        # SCSS modules
 │   ├── prisma/        # Prisma schema
 │   ├── public/        # Static assets (svg/, favicon)
+│   ├── config/        # jest/playwright/eslint configs (next.config.mjs and tsconfig.json stay
+│   │                  #   at the frontend/ root — both tools require that)
 │   ├── test/          # Playwright + Jest suite — see Testing section below
 │   └── util/          # Shared types, formatting, and domain-logic utilities (incl. lease defaults)
 ├── .github/workflows/ # CI (test.yml — unit/integration/e2e jobs)
@@ -124,7 +126,7 @@ See [api-reference.md](api-reference.md#data-types-reference) for the matching `
 1. Signing in redirects to Google's OAuth 2.0 consent screen, requesting the `openid email profile` scopes plus `https://www.googleapis.com/auth/calendar.events`.
 2. The `signIn` callback looks up the user's email in the `Admin` table and rejects sign-in entirely if no row exists — accounts are invite-only, added via the Users tab (`POST /api/write/admin`), never self-registered.
 3. The `jwt` callback stores the Google access/refresh token on the session token, persists them onto the `Admin` row, and re-reads `role` from the DB on every token refresh (not just at login), so a role change or removal takes effect without waiting for the session to expire.
-4. Near-expiry access tokens are refreshed automatically against Google's token endpoint (`frontend/services/googleTokenRefresh.ts`); a revoked refresh token forces re-login. `frontend/middleware.ts` is what actually persists a refreshed token to the session cookie — `getServerSession()`'s single-argument code path (used elsewhere via `getAuth()`) can't write cookies, so without middleware doing this, a refresh would silently re-run on every request instead of roughly once an hour. See [technical-decisions.md](handoff/technical-decisions.md) for why.
+4. Near-expiry access tokens are refreshed automatically against Google's token endpoint (`frontend/services/googleTokenRefresh.ts`); a revoked refresh token forces re-login. `frontend/proxy.ts` is what actually persists a refreshed token to the session cookie — `getServerSession()`'s single-argument code path (used elsewhere via `getAuth()`) can't write cookies, so without the proxy doing this, a refresh would silently re-run on every request instead of roughly once an hour. See [technical-decisions.md](handoff/technical-decisions.md) for why.
 5. Route handlers call `requireRole(minRole)` (`frontend/services/auth.ts`) to gate access — see [api-reference.md](api-reference.md) for which routes require `ADMIN` vs `SUPER_ADMIN`. `frontend/test/unit/routeGuards.test.ts` enforces that every route either has this guard or is explicitly allowlisted as public, so a new route can't silently ship unguarded.
 
 ---
@@ -155,7 +157,7 @@ test/
 │   └── support/   # Auth cookie minting, fail-soft sync-state fixtures
 ├── unit/          # Jest — pure functions, no I/O (plus routeGuards.test.ts, an AST-based check
 │                  #   that every route.ts either guards with requireRole or is allowlisted public,
-│                  #   and middleware.test.ts, which imports next/server directly)
+│                  #   and proxy.test.ts, which imports next/server directly)
 ├── integration/   # Jest — route handlers against a real (in-memory) DB, services mocked
 ├── factories/     # Framework-agnostic seed helpers (admin/meeting/lease-settings)
 └── mongo/         # mongodb-memory-server replica-set wrapper

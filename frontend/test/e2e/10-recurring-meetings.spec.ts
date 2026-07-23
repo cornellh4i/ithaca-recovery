@@ -1,5 +1,5 @@
 import { test, expect } from "./support/fixtures";
-import { fillDatePicker, fillTimeRange, selectFromDropdown, toggleCalType } from "./support/formHelpers";
+import { fillTimeRange, selectFromDropdown, toggleCalType } from "./support/formHelpers";
 import { seedRecurringMeeting } from "../factories/meeting";
 import { getTestPrismaClient } from "../factories/db";
 

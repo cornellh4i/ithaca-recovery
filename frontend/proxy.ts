@@ -9,7 +9,7 @@ const REFRESH_SKEW_SECONDS = 60;
 // Matches next-auth's own default session maxAge (authOptions sets no override).
 const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 30;
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
     const requestHeaders = new Headers(request.headers);
     requestHeaders.set("x-url", request.url);
 

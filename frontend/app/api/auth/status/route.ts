@@ -1,6 +1,6 @@
 import { getAuth } from "../../../../services/auth";
 
-const authenticateStatus = async (request: Request) => {
+const authenticateStatus = async () => {
     try {
         const session = await getAuth();
         return new Response(JSON.stringify({ isAuthenticated: session !== null }), {

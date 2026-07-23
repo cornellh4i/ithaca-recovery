@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import styles from '../../../styles/components/atoms/RadioGroup.module.scss';
 
 interface RadioGroupProps {
@@ -8,7 +8,7 @@ interface RadioGroupProps {
     onChange: (option: string) => void;
     name: string;
     disabledOptions?: string[];
-    [key: string]: any;
+    [key: string]: unknown;
 }
 
 const RadioGroup: React.FC<RadioGroupProps> = ({

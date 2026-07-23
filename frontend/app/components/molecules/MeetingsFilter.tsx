@@ -3,27 +3,10 @@
 import React from 'react';
 import FilterGroup, { FilterGroupItem } from './FilterGroup';
 import { ROOM_COLORS, ZOOM_ROOM_COLOR, CATEGORY_COLOR } from '../../../util/filterColors';
+import { MeetingFilters } from '../../../util/meetingFilters';
 
 interface MeetingsFilterProps {
-    filters: {
-        SerenityRoom: boolean;
-        SeedsofHopeRoom: boolean;
-        UnityRoom: boolean;
-        RoomforImprovement: boolean;
-        RoomforAcceptance: boolean;
-        RoomforGratitude: boolean;
-        SerenityRoomZoom: boolean;
-        SeedsofHopeRoomZoom: boolean;
-        UnityRoomZoom: boolean;
-        RoomforImprovementZoom: boolean;
-        "Children'sRoom@518Zoom": boolean;
-        AA: boolean;
-        AlAnon: boolean;
-        Other: boolean;
-        InPerson: boolean;
-        Hybrid: boolean;
-        Remote: boolean;
-    };
+    filters: MeetingFilters;
     onFilterChange: (name: string, value: boolean) => void;
 }
 

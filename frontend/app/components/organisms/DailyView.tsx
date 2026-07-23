@@ -4,7 +4,7 @@ import BoxText from '../atoms/BoxText';
 import DailyViewRow from "../molecules/DailyViewRow";
 import { convertUTCToET, formatETDateString, getETDayBounds } from "../../../util/timeUtils";
 import { IMeeting } from "../../../util/models";
-import { passesTagFilters, passesRoomFilter } from "../../../util/meetingFilters";
+import { passesTagFilters, passesRoomFilter, MeetingFilters } from "../../../util/meetingFilters";
 import { createCache } from "../../../util/simpleCache";
 import { defaultRooms } from "../../../util/rooms";
 
@@ -34,7 +34,7 @@ export const fetchMeetingsByDay = async (date: Date): Promise<Room[]> => {
     try {
       const response = await fetch(`/api/retrieve/meeting/day?startDate=${formattedDate}`);
       const data: IMeeting[] = await response.json();
-      console.log("Raw API response:", data);
+      console.log("[DailyView] Raw API response for", formattedDate, ":", data);
 
       // ET day boundaries, not local-timezone midnight — the backend selected meetings
       // using ET day bounds, so clipping must line up with the same boundaries.
@@ -79,7 +79,7 @@ export const fetchMeetingsByDay = async (date: Date): Promise<Room[]> => {
 
       const groupedRooms: { [key: string]: Meeting[] } = {};
 
-      clipped.forEach((meeting: any) => {
+      clipped.forEach((meeting: IMeeting & { trueStartDateTime: Date; trueEndDateTime: Date }) => {
         // Convert meeting times from UTC to EDT for display
         const startUTC = new Date(meeting.startDateTime);
         const endUTC = new Date(meeting.endDateTime);
@@ -100,7 +100,9 @@ export const fetchMeetingsByDay = async (date: Date): Promise<Room[]> => {
 
         // A Hybrid meeting occupies both its physical room and its Zoom room;
         // Remote only has a Zoom room, In Person only has a physical room.
-        const roomNames: string[] = [meeting.room, meeting.zoomRoom].filter(Boolean);
+        const roomNames: string[] = [meeting.room, meeting.zoomRoom].filter(
+          (room): room is string => Boolean(room)
+        );
         roomNames.forEach((roomName: string) => {
           if (!groupedRooms[roomName]) {
             groupedRooms[roomName] = [];
@@ -120,7 +122,9 @@ export const fetchMeetingsByDay = async (date: Date): Promise<Room[]> => {
 
       return structuredData;
     } catch (error) {
-      console.error("Error fetching meetings:", error);
+      // error objects don't serialize over CDP -- log the message directly so it's
+      // actually visible in the piped-through e2e console output.
+      console.error("[DailyView] Error fetching meetings for", formattedDate, ":", error instanceof Error ? error.message : String(error));
       return [];
     }
   });
@@ -140,7 +144,7 @@ const formatTime = (hour: number): string => {
 const timeSlots = Array.from({ length: 24 }, (_, i) => formatTime(i));
 
 interface DailyViewProps {
-  filters: any;
+  filters: MeetingFilters;
   selectedDate: Date;
   setSelectedDate: (date: Date) => void;
   setSelectedMeetingID: (meetingId: string) => void;
@@ -149,27 +153,32 @@ interface DailyViewProps {
 }
 
 const DailyView: React.FC<DailyViewProps> = ({ 
-  filters, 
-  selectedDate, 
-  setSelectedDate, 
-  setSelectedMeetingID, 
+  filters,
+  selectedDate,
+  setSelectedMeetingID,
   setSelectedNewMeeting,
   refreshTrigger = 0
 }) => {
   const [currentTimePosition, setCurrentTimePosition] = useState(0);
   const [meetings, setMeetings] = useState<Room[]>([]);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  // Guards against out-of-order responses: rapid date/filter changes can fire overlapping
+  // fetches, and without this a slower-but-stale response can overwrite a newer one.
+  const fetchRequestIdRef = useRef(0);
 
   const fetchData = async (forceFetch = false) => {
     // Clear the entire cache so stale data on other dates is also dropped.
     if (forceFetch) {
       dayMeetingCache.clear();
     }
-    
+
+    const requestId = ++fetchRequestIdRef.current;
     const data = await fetchMeetingsByDay(selectedDate);
-    setMeetings(data);
-    updateTimePosition();
-    scrollToCurrentTime();
+    if (requestId === fetchRequestIdRef.current) {
+      setMeetings(data);
+      updateTimePosition();
+      scrollToCurrentTime();
+    }
   };
 
   useEffect(() => {
@@ -201,7 +210,6 @@ const DailyView: React.FC<DailyViewProps> = ({
     if (scrollContainerRef.current) {
       const now = new Date();
       const currentHour = now.getHours();
-      const currentMinutes = now.getMinutes();
       const scrollOffset = (currentHour * 155) - 300;
       const scrollPosition = Math.max(0, scrollOffset);
       scrollContainerRef.current.scrollLeft = scrollPosition;

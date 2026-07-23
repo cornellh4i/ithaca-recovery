@@ -27,10 +27,19 @@ test.describe("weekly view", () => {
 
   test("12.3 a recurring meeting spanning multiple weekdays appears on every matching day", async ({ adminPage }) => {
     const { page } = adminPage;
-    // Must predate this week's Sunday, or it's excluded as "before the series started".
+    // Must predate this week's Sunday, or it's excluded as "before the series started". Also
+    // anchors the underlying meeting record's own startDateTime/endDateTime here (not today's
+    // default) -- getMeetingsForDate renders that literal anchor day unconditionally regardless
+    // of daysOfWeek, so leaving it at today's default would add a 3rd, unintended card whenever
+    // today isn't itself Sunday or Wednesday.
     const twoWeeksAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
     await seedRecurringMeeting(
-      { title: "Multi Day Recurring", room: "Serenity Room" },
+      {
+        title: "Multi Day Recurring",
+        room: "Serenity Room",
+        startDateTime: twoWeeksAgo,
+        endDateTime: new Date(twoWeeksAgo.getTime() + 60 * 60 * 1000),
+      },
       { type: "weekly", daysOfWeek: ["Sunday", "Wednesday"], interval: 1, startDate: twoWeeksAgo },
     );
     await page.goto("/");

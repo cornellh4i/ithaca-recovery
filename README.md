@@ -54,9 +54,9 @@ This project aims to develop internal tooling and automation to streamline ICR's
 * [![Next][Next.js]][Next-url]
 * ![MongoDB](https://img.shields.io/badge/MongoDB-%234ea94b.svg?style=for-the-badge&logo=mongodb&logoColor=white)
 * [![Prisma][Prisma.io]][Prisma-url]
-* NextAuth (Google OAuth) + Google Calendar API
+* ![NextAuth](https://img.shields.io/badge/NextAuth-000000?style=for-the-badge&logo=nextauth&logoColor=white) ![Google Calendar](https://img.shields.io/badge/Google_Calendar-4285F4?style=for-the-badge&logo=googlecalendar&logoColor=white)
 * ![Vercel](https://img.shields.io/badge/vercel-%23000000.svg?style=for-the-badge&logo=vercel&logoColor=white)
-* Playwright (E2E) + Jest (unit/integration testing)
+* ![Playwright](https://img.shields.io/badge/Playwright-2EAD33?style=for-the-badge&logo=playwright&logoColor=white) ![Jest](https://img.shields.io/badge/Jest-C21325?style=for-the-badge&logo=jest&logoColor=white)
 
 <!-- Setup -->
 ## Documents
@@ -80,7 +80,7 @@ Documentation lives in [`docs/`](docs/):
     └── README.md
 
 ### Prerequisites
-* Node.js 18+
+* Node.js 24.x (see `frontend/.nvmrc`)
 * Yarn
 * MongoDB Compass (Recommended)
 

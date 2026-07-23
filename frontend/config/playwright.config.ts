@@ -1,20 +1,25 @@
 import { defineConfig, devices } from "@playwright/test";
-import { TEST_BASE_URL } from "./test/e2e/support/testConstants";
+import { TEST_BASE_URL } from "../test/e2e/support/testConstants";
 
 // One shared in-memory Mongo replica set for the whole run (see global-setup.ts) —
 // workers: 1 keeps tests from racing each other against it. Revisit (per-worker
 // DBs) if the suite grows large enough that serial execution becomes the
 // bottleneck; not a concern at this suite's current size.
 export default defineConfig({
-  testDir: "./test/e2e",
-  globalSetup: require.resolve("./test/e2e/global-setup.ts"),
-  globalTeardown: require.resolve("./test/e2e/global-teardown.ts"),
+  testDir: "../test/e2e",
+  globalSetup: require.resolve("../test/e2e/global-setup.ts"),
+  globalTeardown: require.resolve("../test/e2e/global-teardown.ts"),
   fullyParallel: false,
   workers: 1,
   reporter: "list",
   use: {
     baseURL: TEST_BASE_URL,
     trace: "retain-on-failure",
+    // Matches GitHub Actions runners (UTC) so date-boundary bugs reproduce locally instead
+    // of only ever showing up in CI -- e.g. code using Date.getDay()/getDate() instead of an
+    // explicit ET conversion silently picks the wrong day near ET midnight, which only
+    // disagrees with the real ET calendar day when the runtime's local timezone isn't ET.
+    timezoneId: "UTC",
   },
   // No webServer block: global-setup.ts owns the whole server lifecycle
   // directly (spawns `next dev` itself, after Mongo + `prisma db push` are
