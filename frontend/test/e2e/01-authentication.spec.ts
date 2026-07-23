@@ -64,5 +64,5 @@ test("1.10 a signed-in user who is not a seeded Admin is redirected away from /a
 
 test("1.11 non-admin (no session) is redirected away from /admin", async ({ page }) => {
   await page.goto("/admin");
-  await expect(page).toHaveURL("/");
+  await expect(page).toHaveURL("/login");
 });

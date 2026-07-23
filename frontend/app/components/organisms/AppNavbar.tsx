@@ -48,13 +48,21 @@ const AppNavbar: React.FC<AppNavbarProps> = ({ session }) => {
                                     Manage users, imports, exports, and diagnostics
                                 </span>
                             </>
-                        ) : (
+                        ) : session ? (
                             <>
                                 <button className={styles.navLocked} disabled>
                                     <p>Admin</p>
                                     <img src="/svg/lock-icon.svg" alt="" className={styles.lockIcon} />
                                 </button>
                                 <span className={styles.tooltip}>Requires admin access</span>
+                            </>
+                        ) : (
+                            <>
+                                <Link href="/login" className={styles.navLockedLink}>
+                                    <p>Admin</p>
+                                    <img src="/svg/lock-icon.svg" alt="" className={styles.lockIcon} />
+                                </Link>
+                                <span className={styles.tooltip}>Sign in to access Admin</span>
                             </>
                         )}
                     </li>
@@ -67,9 +75,9 @@ const AppNavbar: React.FC<AppNavbarProps> = ({ session }) => {
                                 </button>
                             </div>
                         ) : (
-                            <a className={styles.signInButton} href="/api/auth/signin/google">
+                            <Link className={styles.signInButton} href="/login">
                                 <p>Sign In</p>
-                            </a>
+                            </Link>
                         )}
                     </li>
                 </ul>
