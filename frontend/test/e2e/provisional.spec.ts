@@ -8,29 +8,9 @@ import { seedMeeting } from "../factories/meeting";
 // regression to revert — it means the real feature landed; delete/rewrite the test.
 
 test.describe("provisional — unimplemented features", () => {
-  // [PROVISIONAL:conflict-detection] was removed here — the feature landed (see
-  // test/e2e/11-admin-panel.spec.ts's 11.4, which now asserts the real behavior instead of
-  // the old stub).
-
-  test("[PROVISIONAL:xlsx-import] Import always returns the same hardcoded mock results", async ({ superAdminPage }) => {
-    const { page } = superAdminPage;
-    // ImportTab.tsx's handleImport() has a `// TODO (Import XLSX): replace this
-    // timeout with a real POST /api/import/meetings call` — MOCK_RESULTS is
-    // returned unconditionally after an 800ms setTimeout, regardless of what (or
-    // whether) a file was actually uploaded. No app/api/import/ route exists.
-    await page.goto("/admin");
-    await page.getByTestId("admin-tab-import").click();
-    await page.getByTestId("import-file-input").setInputFiles({
-      name: "anything.xlsx",
-      mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      buffer: Buffer.from("this content is never read"),
-    });
-    await page.getByTestId("import-upload-button").click();
-
-    await expect(page.getByText("Results: 7 rows processed")).toBeVisible();
-    await expect(page.getByText("Serenity Fellowship")).toBeVisible();
-    await expect(page.getByText("⚠ Created with conflict (1)")).toBeVisible();
-  });
+  // [PROVISIONAL:conflict-detection] and [PROVISIONAL:xlsx-import] were removed here —
+  // both features landed (see test/e2e/11-admin-panel.spec.ts's 11.4 and 11.8, which now
+  // assert the real behavior instead of the old stubs).
 
   test("[PROVISIONAL:suspend-workflow] a Suspended meeting is only reachable via direct DB write, never through the UI", async ({ superAdminPage }) => {
     const { page } = superAdminPage;

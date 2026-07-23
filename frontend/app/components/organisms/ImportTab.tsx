@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
 import CardHeader from "../molecules/CardHeader";
 import StatusPill, { StatusPillVariant } from "../atoms/StatusPill";
+import ConflictList, { ConflictListRow } from "../molecules/ConflictList";
 import styles from "../../../styles/components/organisms/ImportTab.module.scss";
 
 type ImportStatus = "created" | "conflict" | "skipped" | "errored";
@@ -30,18 +31,6 @@ const STATUS_VARIANT: Record<ImportStatus, StatusPillVariant> = {
   errored: "error",
 };
 
-// Stands in for a parsed spreadsheet so the Results UI can be reviewed before the
-// real endpoint exists — replace with the POST /api/import/meetings response in Ticket B.
-const MOCK_RESULTS: ImportResultRow[] = [
-  { meeting: "Serenity Fellowship", status: "created" },
-  { meeting: "Seeds of Hope Group", status: "created" },
-  { meeting: "Unity Big Book Study", status: "conflict", note: "conflicts with Unity Fellowship (Tue 7PM)" },
-  { meeting: "Gratitude Group", status: "created" },
-  { meeting: "Acceptance Speaker Meeting", status: "skipped", note: "already exists (matched by title + schedule)" },
-  { meeting: "—", status: "errored", note: "invalid email" },
-  { meeting: "Improvement Step Study", status: "created" },
-];
-
 const formatMeetingId = (index: number) => `M${String(index + 1).padStart(3, "0")}`;
 
 const ImportTab: React.FC = () => {
@@ -49,21 +38,38 @@ const ImportTab: React.FC = () => {
   const [dragOver, setDragOver] = useState(false);
   const [importing, setImporting] = useState(false);
   const [results, setResults] = useState<ImportResultRow[] | null>(null);
+  const [conflicts, setConflicts] = useState<ConflictListRow[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
   const chooseFile = (next: File | null) => {
     setFile(next);
     setResults(null);
+    setConflicts([]);
+    setError(null);
   };
 
-  const handleImport = () => {
+  const handleImport = async () => {
     if (!file) return;
     setImporting(true);
     setResults(null);
-    // TODO (Import XLSX): replace this timeout with a real POST /api/import/meetings call.
-    setTimeout(() => {
-      setResults(MOCK_RESULTS);
+    setConflicts([]);
+    setError(null);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch("/api/import/meetings", { method: "POST", body: formData });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error ?? "Import failed.");
+        return;
+      }
+      setResults(data.results ?? []);
+      setConflicts(data.conflicts ?? []);
+    } catch {
+      setError("Import failed.");
+    } finally {
       setImporting(false);
-    }, 800);
+    }
   };
 
   const counts = results && STATUS_ORDER.reduce((acc, status) => {
@@ -109,6 +115,7 @@ const ImportTab: React.FC = () => {
             {importing ? "Importing…" : "Upload & Import"}
           </button>
         </div>
+        {error && <div className={styles.resultNote} data-testid="import-error">{error}</div>}
       </div>
 
       {results && counts && (
@@ -142,6 +149,13 @@ const ImportTab: React.FC = () => {
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {conflicts.length > 0 && (
+        <div className={styles.card} data-testid="import-conflicts-panel">
+          <div className={styles.resultsHeader}>⚠ Conflicts found during import ({conflicts.length})</div>
+          <ConflictList conflicts={conflicts} />
         </div>
       )}
     </div>

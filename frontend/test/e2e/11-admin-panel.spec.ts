@@ -1,12 +1,18 @@
+import * as XLSX from "xlsx";
 import { test, expect } from "./support/fixtures";
 import { seedMeeting } from "../factories/meeting";
 import { seedAdmin } from "../factories/admin";
 import { loginAs } from "./support/auth";
 import { Role } from "@prisma/client";
 
-// Manual script §11 (Admin Panel — Roles & Tabs). XLSX import (11.8) is still a known-gap
-// stub, covered in more detail by provisional.spec.ts — this file just confirms the panel
-// renders its current stub state until that lands too.
+// Manual script §11 (Admin Panel — Roles & Tabs).
+
+function buildImportWorkbook(rows: Record<string, string>[]): Buffer {
+  const worksheet = XLSX.utils.json_to_sheet(rows);
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Meetings");
+  return XLSX.write(workbook, { type: "buffer", bookType: "xlsx" }) as Buffer;
+}
 
 test.describe("admin panel", () => {
   test("11.2 SUPER_ADMIN sees all four tabs accessible", async ({ superAdminPage }) => {
@@ -83,21 +89,75 @@ test.describe("admin panel", () => {
     await expect(page.getByText("Can't change the last Super Admin's role.")).toBeVisible();
   });
 
-  test("11.8 Import tab shows hardcoded mock results, not a real parse", async ({ superAdminPage }) => {
+  test("11.8 Import tab parses and creates a real meeting from an uploaded spreadsheet", async ({ superAdminPage }) => {
     const { page } = superAdminPage;
+    const workbook = buildImportWorkbook([{
+      "Meeting Name": "Imported Test Meeting",
+      Status: "Active",
+      Category: "AA",
+      Day: "One-time",
+      Frequency: "",
+      "Start Date": "12/01/2026",
+      "Start Time": "7:00 PM",
+      "End Time": "8:00 PM",
+      "Location Type": "In Person",
+      "Physical Room": "Serenity Room",
+      "Zoom Room": "",
+      "Contact Email": "import-test@icr.org",
+      Description: "",
+    }]);
+
     await page.goto("/admin");
     await page.getByTestId("admin-tab-import").click();
 
     await page.getByTestId("import-file-input").setInputFiles({
       name: "meetings.xlsx",
       mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      buffer: Buffer.from("not a real spreadsheet"),
+      buffer: workbook,
     });
     await page.getByTestId("import-upload-button").click();
 
     await expect(page.getByTestId("import-results-table")).toBeVisible();
-    // MOCK_RESULTS in ImportTab.tsx — same regardless of the file's actual content.
-    await expect(page.getByText("Serenity Fellowship")).toBeVisible();
+    await expect(page.getByText("Imported Test Meeting")).toBeVisible();
+    await expect(page.getByText("✓ Created (1)")).toBeVisible();
+  });
+
+  test("11.8b Import tab skips a row that duplicates an existing meeting", async ({ superAdminPage }) => {
+    const { page } = superAdminPage;
+    // EST (UTC-5, no DST in December) — 8:00-9:00 PM ET on 12/01/2026 is 01:00-02:00 UTC on
+    // 12/02/2026; must match exactly for the duplicate-skip rule (title + exact schedule) to fire.
+    await seedMeeting({
+      title: "Already Exists",
+      startDateTime: new Date("2026-12-02T01:00:00.000Z"),
+      endDateTime: new Date("2026-12-02T02:00:00.000Z"),
+    });
+    const workbook = buildImportWorkbook([{
+      "Meeting Name": "Already Exists",
+      Status: "Active",
+      Category: "AA",
+      Day: "One-time",
+      Frequency: "",
+      "Start Date": "12/01/2026",
+      "Start Time": "8:00 PM",
+      "End Time": "9:00 PM",
+      "Location Type": "In Person",
+      "Physical Room": "Serenity Room",
+      "Zoom Room": "",
+      "Contact Email": "import-test@icr.org",
+      Description: "",
+    }]);
+
+    await page.goto("/admin");
+    await page.getByTestId("admin-tab-import").click();
+    await page.getByTestId("import-file-input").setInputFiles({
+      name: "meetings.xlsx",
+      mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      buffer: workbook,
+    });
+    await page.getByTestId("import-upload-button").click();
+
+    await expect(page.getByTestId("import-results-table")).toBeVisible();
+    await expect(page.getByText("⊘ Skipped (1)")).toBeVisible();
   });
 
   test("11.9 exporting meetings downloads a real file", async ({ superAdminPage }) => {

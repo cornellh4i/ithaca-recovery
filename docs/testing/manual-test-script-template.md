@@ -124,12 +124,14 @@
 
 ## 11. Admin Panel — Roles & Tabs
 
-> **Automated:** `frontend/test/e2e/11-admin-panel.spec.ts` — the case below needs live Zoom/Google
-> reachability checks against the real services.
+> **Automated:** `frontend/test/e2e/11-admin-panel.spec.ts` — 11.1 needs live Zoom/Google
+> reachability checks against the real services; 11.2/11.3 (import) don't.
 
 | # | Step | Expected Result | Pass/Fail | Notes |
 |---|------|-----------------|-----------|-------|
 | 11.1 | Diagnostics tab | System Status card shows DB latency, Google Calendar reachability per category (AA/Al-Anon/Other), and Zoom account reachability + per-room calendar status + per-host pool status | | |
+| 11.2 | Import a spreadsheet (Admin → Import) with a valid new meeting row | Row shows "✓ Created", and the meeting appears on the live calendar | | |
+| 11.3 | Import a spreadsheet with one row duplicating an existing meeting (same title + schedule) and one row that conflicts with an existing meeting's room/time | Duplicate row shows "⊘ Skipped"; conflicting row shows "⚠ Created with conflict" and is still created; both the conflict note under the results table and the Diagnostics Conflicts panel reflect it | | |
 
 ---
 
