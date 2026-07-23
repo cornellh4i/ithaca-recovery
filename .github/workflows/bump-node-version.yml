@@ -35,7 +35,7 @@ jobs:
 
       - name: Open PR
         if: steps.latest.outputs.version != steps.current.outputs.version
-        uses: peter-evans/create-pull-request@v7
+        uses: peter-evans/create-pull-request@v8
         with:
           commit-message: "Bump Node.js to ${{ steps.latest.outputs.version }}"
           title: "Bump Node.js to ${{ steps.latest.outputs.version }} (latest Active LTS)"
