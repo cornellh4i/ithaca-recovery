@@ -101,6 +101,14 @@ export const matchesRecurrencePattern = (
     return false;
 };
 
+// Adds one calendar day to an ET date string ("YYYY-MM-DD"), via UTC-anchored date-component
+// arithmetic (not a real elapsed-time addition), so this can't be thrown off by DST.
+const addOneETDay = (etDateStr: string): string => {
+    const [year, month, day] = etDateStr.split('-').map(Number);
+    const next = new Date(Date.UTC(year, month - 1, day + 1));
+    return `${next.getUTCFullYear()}-${String(next.getUTCMonth() + 1).padStart(2, '0')}-${String(next.getUTCDate()).padStart(2, '0')}`;
+};
+
 // Shifts a recurring meeting's start/end times (kept as ET wall-clock time) onto a different
 // ET calendar date. Shared by getMeetingsForDate and util/resourceOverlap.ts's occurrence
 // expansion so this adjustment is only implemented once.
@@ -115,7 +123,13 @@ export const adjustOccurrenceToDate = (
     const endETTime = etTimeFmt.format(originalEnd);
 
     const start = new Date(convertETToUTC(`${etDateStr}T${startETTime}`));
-    const end = new Date(convertETToUTC(`${etDateStr}T${endETTime}`));
+
+    // An overnight meeting (e.g. 23:30 -> 00:30) has an end time earlier in the day than its
+    // start time -- anchoring both to the same etDateStr would otherwise produce end <= start,
+    // silently breaking every consumer that assumes a positive-duration occurrence
+    // (getMeetingsForDate's rendering, resourceOverlap.ts's overlap sweep).
+    const endDateStr = endETTime <= startETTime ? addOneETDay(etDateStr) : etDateStr;
+    const end = new Date(convertETToUTC(`${endDateStr}T${endETTime}`));
 
     return { start, end };
 };

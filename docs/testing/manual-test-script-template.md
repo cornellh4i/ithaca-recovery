@@ -150,12 +150,12 @@
 | 1. Authentication | 3 | | | | |
 | 2. Meeting Creation | 1 | | | | |
 | 3. Meeting Editing | 2 | | | | |
-| 6. Zoom Room Integration | 9 | | | | |
+| 6. Zoom Room Integration | 10 | | | | |
 | 7. Google Calendar Sync | 6 | | | | |
 | 9. Edge Cases | 3 | | | | |
 | 11. Admin Panel | 1 | | | | |
 | 13. Digital Signage | 2 | | | | |
-| **Total** | **27** | | | | |
+| **Total** | **28** | | | | |
 
 **Overall Assessment:** ☐ Ready for launch &nbsp; ☐ Needs fixes before launch &nbsp; ☐ Major issues found
 

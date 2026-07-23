@@ -173,7 +173,17 @@ export async function findResourceConflicts(
     ],
   };
 
-  const meetings = await prisma.meeting.findMany({ where, include: { recurrencePattern: true } });
+  const meetings = await prisma.meeting.findMany({
+    where,
+    select: {
+      mid: true,
+      title: true,
+      startDateTime: true,
+      endDateTime: true,
+      isRecurring: true,
+      recurrencePattern: true,
+    },
+  });
 
   const conflicts: { mid: string; title: string }[] = [];
   for (const meeting of meetings) {

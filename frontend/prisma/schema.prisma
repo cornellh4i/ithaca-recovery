@@ -56,6 +56,8 @@ model Meeting {
   @@index([isRecurring, deletedAt])
   @@index([googleCalendarEventId])
   @@index([zoomHost])
+  @@index([room])
+  @@index([zoomRoom])
 }
 
 model RecurrencePattern {
