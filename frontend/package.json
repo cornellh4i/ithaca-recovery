@@ -6,11 +6,11 @@
     "dev": "next dev",
     "build": "prisma generate && next build",
     "start": "next start",
-    "lint": "eslint .",
+    "lint": "eslint --config config/eslint.config.mjs .",
     "postinstall": "prisma generate",
-    "test:unit": "jest --config jest.config.ts",
-    "test:integration": "jest --config jest.integration.config.ts",
-    "test:e2e": "playwright test"
+    "test:unit": "jest --config config/jest.config.ts",
+    "test:integration": "jest --config config/jest.integration.config.ts",
+    "test:e2e": "playwright test --config config/playwright.config.ts"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",

@@ -51,7 +51,7 @@ jobs:
       # also actively blanks any such vars it finds in a .env.local, but CI has no
       # .env.local at all, so there's nothing to blank in the first place.
       - run: yarn test:e2e
-      # playwright.config.ts uses trace: "retain-on-failure" with the "list"
+      # config/playwright.config.ts uses trace: "retain-on-failure" with the "list"
       # reporter (no HTML report generated) — traces land directly in
       # test-results/, which is what's worth keeping on a failed run.
       - uses: actions/upload-artifact@v4

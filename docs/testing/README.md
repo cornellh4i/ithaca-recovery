@@ -27,10 +27,10 @@ route that forgot the check — or imported `requireRole` without actually calli
 text/grep-based check would miss. Runs in seconds; reach for this whenever logic (or in this case,
 a structural invariant) can be verified from source alone.
 
-`middleware.test.ts` is also here, and is the first test in this repo to import `next/server`
+`proxy.test.ts` is also here, and is the first test in this repo to import `next/server`
 directly — it constructs a `NextRequest` with an `encode()`d session cookie (same technique the
-e2e auth helper uses) and calls the exported `middleware` function in-process, no dev server
-needed. It mocks `services/googleTokenRefresh.ts` to assert `middleware.ts`'s own logic (when it
+e2e auth helper uses) and calls the exported `proxy` function in-process, no dev server
+needed. It mocks `services/googleTokenRefresh.ts` to assert `proxy.ts`'s own logic (when it
 decides to refresh, what it writes to `Set-Cookie`) independently of the real Google network call,
 which `googleTokenRefresh.test.ts` covers separately.
 
