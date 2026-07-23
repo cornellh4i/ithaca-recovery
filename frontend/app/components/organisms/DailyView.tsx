@@ -34,7 +34,7 @@ export const fetchMeetingsByDay = async (date: Date): Promise<Room[]> => {
     try {
       const response = await fetch(`/api/retrieve/meeting/day?startDate=${formattedDate}`);
       const data: IMeeting[] = await response.json();
-      console.log("Raw API response:", data);
+      console.log("[DailyView] Raw API response for", formattedDate, ":", data);
 
       // ET day boundaries, not local-timezone midnight — the backend selected meetings
       // using ET day bounds, so clipping must line up with the same boundaries.
@@ -122,7 +122,9 @@ export const fetchMeetingsByDay = async (date: Date): Promise<Room[]> => {
 
       return structuredData;
     } catch (error) {
-      console.error("Error fetching meetings:", error);
+      // error objects don't serialize over CDP -- log the message directly so it's
+      // actually visible in the piped-through e2e console output.
+      console.error("[DailyView] Error fetching meetings for", formattedDate, ":", error instanceof Error ? error.message : String(error));
       return [];
     }
   });

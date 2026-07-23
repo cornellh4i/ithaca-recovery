@@ -24,12 +24,12 @@ const fetchMeetingsByWeek = async (startDate: Date, endDate: Date): Promise<Meet
     const cacheKey = `${formattedStart}-${formattedEnd}`;
 
     return weekMeetingCache.getOrFetch(cacheKey, async () => {
-        console.log("Fetching meetings for week:", cacheKey);
+        console.log("[WeeklyView] Fetching meetings for week:", cacheKey);
 
         try {
             const response = await fetch(`/api/retrieve/meeting/week?startDate=${formattedStart}&endDate=${formattedEnd}`);
             const data = await response.json();
-            console.log("Raw API response:", data);
+            console.log("[WeeklyView] Raw API response for", cacheKey, ":", data);
 
             // startTime/endTime clip to this day (for layout); displayStartTime/displayEndTime
             // keep the true times, so an overnight meeting's cards both label as "11PM-1AM".
@@ -55,7 +55,9 @@ const fetchMeetingsByWeek = async (startDate: Date, endDate: Date): Promise<Meet
 
             return meetings;
         } catch (error) {
-            console.error("Error fetching weekly meetings:", error);
+            // error objects don't serialize over CDP -- log the message directly so it's
+            // actually visible in the piped-through e2e console output.
+            console.error("[WeeklyView] Error fetching meetings for", cacheKey, ":", error instanceof Error ? error.message : String(error));
             return [];
         }
     });
