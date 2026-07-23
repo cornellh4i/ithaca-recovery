@@ -6,17 +6,6 @@ import { prisma } from "../../../../lib/prisma";
 
 const notDeleted = { OR: [{ deletedAt: null }, { deletedAt: { isSet: false } }] };
 
-const CATEGORY_LABELS: Record<string, string> = {
-  "Al-Anon": "AL_ANON",
-  Other: "OTHER",
-};
-
-const LOCATION_TYPE_LABELS: Record<string, string> = {
-  Hybrid: "HYBRID",
-  Remote: "ONLINE_ONLY",
-  "In Person": "IN_PERSON",
-};
-
 type MeetingWithRecurrence = Awaited<ReturnType<typeof loadMeetings>>[number];
 
 function formatETDate(date: Date): string {
@@ -72,14 +61,14 @@ export const GET = async () => {
       "Meeting ID": `M${String(i + 1).padStart(3, "0")}`,
       "Meeting Name": meeting.title,
       Status: meeting.status ?? "Active",
-      Category: meeting.calType.map((c) => CATEGORY_LABELS[c] ?? c).join(", "),
+      Category: meeting.calType.join(", "),
       Day: formatDayColumn(meeting.recurrencePattern),
       Frequency: formatFrequencyColumn(meeting.recurrencePattern),
       "Start Date": formatETDate(meeting.startDateTime),
       "Start Time": formatETTime(meeting.startDateTime),
       "End Date": formatETDate(meeting.endDateTime),
       "End Time": formatETTime(meeting.endDateTime),
-      "Location Type": LOCATION_TYPE_LABELS[meeting.modeType] ?? meeting.modeType,
+      "Location Type": meeting.modeType,
       "Physical Room": meeting.room,
       "Zoom Room": meeting.zoomRoom ?? "",
       "Contact Email": meeting.email,
