@@ -1549,10 +1549,17 @@
   resolved "https://registry.yarnpkg.com/@popperjs/core/-/core-2.11.8.tgz#6b79032e760a0899cd4204710beede972a3a185f"
   integrity sha512-P1st0aksCrn9sGZhp8GMYwBnQsbvAWsZAX44oXNNvLHGqAOcoVxmjZiohstwQ7SqKnbR47akdNi+uleWD8+g6A==
 
-"@prisma/client@5.16.1":
-  version "5.16.1"
-  resolved "https://registry.yarnpkg.com/@prisma/client/-/client-5.16.1.tgz#65c5649b4701c097e7fa943c91a3140ce8bf053d"
-  integrity sha512-wM9SKQjF0qLxdnOZIVAIMKiz6Hu7vDt4FFAih85K1dk/Rr2mdahy6d3QP41K62N9O0DJJA//gUDA3Mp49xsKIg==
+"@prisma/client-runtime-utils@7.9.0":
+  version "7.9.0"
+  resolved "https://registry.yarnpkg.com/@prisma/client-runtime-utils/-/client-runtime-utils-7.9.0.tgz#ef16607fad2cf34a1c8892ee5995b1a42e518e5d"
+  integrity sha512-kMVmS4ZEy3xlkca+TfxOEm/ToVVlOS2x1Tc6/wIRf/HfczBqENtSPcKszy4ZpFNzjJ8SRKvlU5V0rrpoFw2KOg==
+
+"@prisma/client@7.9.0":
+  version "7.9.0"
+  resolved "https://registry.yarnpkg.com/@prisma/client/-/client-7.9.0.tgz#ac0c09a6564fdea122d4e36288286abe1e2b1e2e"
+  integrity sha512-BTG/mB+WL/1sD2gWwdNc2uuVJjNNBgCDlPFdjco6jJArgbg4IAChtzVeW4debFa/NKBbsGedCjET316sjllWTQ==
+  dependencies:
+    "@prisma/client-runtime-utils" "7.9.0"
 
 "@prisma/debug@5.16.1":
   version "5.16.1"
