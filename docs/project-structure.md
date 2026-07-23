@@ -4,8 +4,8 @@
 
 | Layer | Technology |
 |---|---|
-| Framework | Next.js 14 (App Router, full-stack TypeScript) |
-| UI | React 18 + Material-UI 5 |
+| Framework | Next.js 16 (App Router, full-stack TypeScript) |
+| UI | React 19 + Material-UI 7 |
 | Database | MongoDB via Prisma ORM 5 |
 | Authentication | NextAuth with Google OAuth 2.0 + OpenID Connect (`next-auth` 4) |
 | External APIs | Google Calendar API (`googleapis`), Zoom API (Server-to-Server OAuth, see [api-reference.md](api-reference.md#zoom)) |

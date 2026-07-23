@@ -80,7 +80,7 @@ Documentation lives in [`docs/`](docs/):
     └── README.md
 
 ### Prerequisites
-* Node.js 18+
+* Node.js 24+
 * Yarn
 * MongoDB Compass (Recommended)
 

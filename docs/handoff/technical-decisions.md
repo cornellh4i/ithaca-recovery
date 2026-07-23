@@ -6,7 +6,7 @@ This document answers "why did we build it this way?" for every significant tech
 
 ## Framework: Next.js App Router (full-stack)
 
-**Decision:** Use Next.js 14 with the App Router as both the frontend framework and the API layer, rather than a separate frontend + Express backend.
+**Decision:** Use Next.js 16 with the App Router as both the frontend framework and the API layer, rather than a separate frontend + Express backend.
 
 **Why:**
 - The previous tech lead established this pattern. Migrating to a separate Express backend is listed as a non-priority option in the PRD if routing performance becomes an issue.
