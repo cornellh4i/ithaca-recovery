@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { requireRole } from "../../../../services/auth";
 import { calendarIdForCategory, checkCalendarReachable } from "../../../../services/googleCalendar";
 import { checkZoomReachable, zoomRoomCalendarId, checkZoomHostPool } from "../../../../services/zoom";
+import { computeConflicts } from "../../../../util/resourceOverlap";
 import { prisma } from "../../../../lib/prisma";
 
 const notDeleted = { OR: [{ deletedAt: null }, { deletedAt: { isSet: false } }] };
@@ -10,8 +11,7 @@ const notDeleted = { OR: [{ deletedAt: null }, { deletedAt: { isSet: false } }] 
 // Diagnostics for the Admin page's Diagnostics tab: DB health, GCal reachability per
 // category, Zoom account reachability, per-room Zoom calendar validity, per-host Zoom pool
 // validity (host existence and licensed-vs-basic status), meeting counts (incl. sync-error
-// counts), and a list of currently suspended meetings. Conflict detection is stubbed (empty)
-// until the overlap-detection endpoint lands.
+// counts), room/Zoom-room conflicts, and a list of currently suspended meetings.
 export const GET = async () => {
   try {
     const auth = await requireRole(Role.ADMIN);
@@ -47,7 +47,11 @@ export const GET = async () => {
 
     const meetings = await prisma.meeting.findMany({
       where: notDeleted,
-      select: { status: true, calType: true, isRecurring: true, syncStatus: true, zoomRoom: true, zoomSyncStatus: true },
+      select: {
+        mid: true, title: true, status: true, calType: true, isRecurring: true,
+        syncStatus: true, zoomRoom: true, zoomSyncStatus: true, room: true,
+        startDateTime: true, endDateTime: true, recurrencePattern: true,
+      },
     });
 
     const byCategory: Record<string, number> = {};
@@ -89,7 +93,7 @@ export const GET = async () => {
         gcalSyncErrors,
         zoomSyncErrors,
       },
-      conflicts: [],
+      conflicts: computeConflicts(meetings),
       suspendedMeetings,
     });
   } catch (error) {

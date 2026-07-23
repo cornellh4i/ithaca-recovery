@@ -72,7 +72,8 @@
 
 > **Automated (fail-soft path + auto-pairing logic):** `frontend/test/e2e/06-zoom-integration.spec.ts`
 > — most cases below require live Zoom/Google credentials to verify against the real services.
-> 6.11 (host-pool exhaustion) doesn't — see `frontend/test/integration/write-meeting-route.test.ts`.
+> 6.10/6.11 (conflicts, host-pool exhaustion) don't — they're covered by
+> `frontend/test/e2e/11-admin-panel.spec.ts`'s conflict-detection cases with zero real network calls.
 
 | # | Step | Expected Result | Pass/Fail | Notes |
 |---|------|-----------------|-----------|-------|
@@ -85,6 +86,7 @@
 | 6.7 | On `/admin` → Diagnostics, check the Zoom status row | Shows account reachability, a per-room Zoom Calendar breakdown, and a separate per-host breakdown of the shared host pool (resolves + whether Licensed) | | |
 | 6.8 | Temporarily remove one email from `ZOOM_HOSTS`, reload Diagnostics | That host no longer appears in the pool breakdown and the "N/M pooled hosts OK" count drops by one; other hosts/rooms are unaffected | | |
 | 6.9 | Force a Zoom sync failure (e.g. temporarily use an invalid `ZOOM_CLIENT_SECRET`) | Meeting shows a Zoom-specific ⚠ status separate from the Google Calendar one; Diagnostics' Meeting Counts card shows a nonzero Zoom sync-error count; **Retry sync** clears both once credentials are fixed | | |
+| 6.10 | Create two meetings in the same room (or same Zoom Room) at overlapping times, then check Diagnostics' Conflicts panel | Both meetings appear together in a conflict row, grouped by the shared room/Zoom Room; meetings in different rooms or non-overlapping times are not flagged | | |
 | 6.11 | Set `ZOOM_HOSTS` to a single email, then create two Zoom-enabled meetings at overlapping times (different rooms) | The first gets a real Zoom meeting; the second is still created but shows "Zoom sync failed ⚠: No Zoom host available…" with a working **Retry sync** button | | |
 
 ---

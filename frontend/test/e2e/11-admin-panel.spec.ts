@@ -4,9 +4,9 @@ import { seedAdmin } from "../factories/admin";
 import { loginAs } from "./support/auth";
 import { Role } from "@prisma/client";
 
-// Manual script §11 (Admin Panel — Roles & Tabs). §11.3/§11.7 are the same
-// known-gap stubs covered in more detail by provisional.spec.ts (conflict detection,
-// XLSX import) — this file just confirms the panel renders their current stub state.
+// Manual script §11 (Admin Panel — Roles & Tabs). XLSX import (11.8) is still a known-gap
+// stub, covered in more detail by provisional.spec.ts — this file just confirms the panel
+// renders its current stub state until that lands too.
 
 test.describe("admin panel", () => {
   test("11.2 SUPER_ADMIN sees all four tabs accessible", async ({ superAdminPage }) => {
@@ -29,10 +29,22 @@ test.describe("admin panel", () => {
     await expect(page.getByText("AA: 2")).toBeVisible();
   });
 
-  test("11.4 double-booked meetings in the same room are not flagged as conflicts", async ({ superAdminPage }) => {
+  test("11.4 double-booked meetings in the same room are flagged as conflicts", async ({ superAdminPage }) => {
     const { page } = superAdminPage;
     await seedMeeting({ title: "Double Book A", room: "Serenity Room" });
     await seedMeeting({ title: "Double Book B", room: "Serenity Room" });
+    await page.goto("/admin");
+
+    const panel = page.getByTestId("diagnostics-conflicts-panel");
+    await expect(panel.getByText("⚠ Conflicts (1)")).toBeVisible();
+    await expect(panel.getByText("Double Book A", { exact: false })).toBeVisible();
+    await expect(panel.getByText("Double Book B", { exact: false })).toBeVisible();
+  });
+
+  test("11.4b meetings in different rooms are not flagged as conflicts", async ({ superAdminPage }) => {
+    const { page } = superAdminPage;
+    await seedMeeting({ title: "No Conflict A", room: "Serenity Room" });
+    await seedMeeting({ title: "No Conflict B", room: "Unity Room" });
     await page.goto("/admin");
 
     await expect(page.getByTestId("diagnostics-conflicts-panel").getByText("No conflicts detected.")).toBeVisible();

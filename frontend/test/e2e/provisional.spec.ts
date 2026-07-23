@@ -8,18 +8,9 @@ import { seedMeeting } from "../factories/meeting";
 // regression to revert — it means the real feature landed; delete/rewrite the test.
 
 test.describe("provisional — unimplemented features", () => {
-  test('[PROVISIONAL:conflict-detection] double-booked meetings are never flagged as conflicts', async ({ superAdminPage }) => {
-    const { page } = superAdminPage;
-    // app/api/admin/diagnostics/route.ts hardcodes `conflicts: []` — no overlap
-    // query exists yet, regardless of how many meetings actually collide.
-    await seedMeeting({ title: "Conflict Stub A", room: "Serenity Room" });
-    await seedMeeting({ title: "Conflict Stub B", room: "Serenity Room" });
-    await page.goto("/admin");
-
-    const panel = page.getByTestId("diagnostics-conflicts-panel");
-    await expect(panel.getByText("⚠ Conflicts (0)")).toBeVisible();
-    await expect(panel.getByText("No conflicts detected.")).toBeVisible();
-  });
+  // [PROVISIONAL:conflict-detection] was removed here — the feature landed (see
+  // test/e2e/11-admin-panel.spec.ts's 11.4, which now asserts the real behavior instead of
+  // the old stub).
 
   test("[PROVISIONAL:xlsx-import] Import always returns the same hardcoded mock results", async ({ superAdminPage }) => {
     const { page } = superAdminPage;

@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import type { Role } from "@prisma/client";
 import StatCounter from "../atoms/StatCounter";
+import ConflictList, { ConflictListRow } from "../molecules/ConflictList";
 import styles from "../../../styles/components/organisms/DiagnosticsTab.module.scss";
 
 interface DiagnosticsTabProps {
@@ -29,7 +30,7 @@ interface DiagnosticsData {
     gcalSyncErrors: number;
     zoomSyncErrors: number;
   };
-  conflicts: unknown[];
+  conflicts: ConflictListRow[];
   suspendedMeetings: {
     mid: string;
     title: string;
@@ -173,11 +174,9 @@ const DiagnosticsTab: React.FC<DiagnosticsTabProps> = ({ email, role }) => {
       <div className={styles.card} data-testid="diagnostics-conflicts-panel">
         <div className={styles.panelHeader}>⚠ Conflicts ({data.conflicts.length})</div>
         <div className={styles.panelSubhead}>
-          These meetings share a room or Zoom account at overlapping times. Review and edit one to resolve.
+          These meetings share a room or Zoom room at overlapping times. Review and edit one to resolve.
         </div>
-        {data.conflicts.length === 0 && (
-          <div className={styles.emptyState}>No conflicts detected.</div>
-        )}
+        <ConflictList conflicts={data.conflicts} />
       </div>
 
       <div className={styles.card} data-testid="diagnostics-suspended-panel">
