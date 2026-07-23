@@ -10,6 +10,10 @@
       "./node_modules/@types",
       "./types"
     ],
+    "types": [
+      "jest",
+      "node"
+    ],
     "allowJs": true,
     "skipLibCheck": true,
     "esModuleInterop": true,
@@ -33,6 +37,7 @@
   "include": [
     "app",
     "services",
+    "test",
     ".next/types/**/*.ts",
     "types/*.d.ts",
     "*.d.ts",
