@@ -5,6 +5,9 @@ import { prisma } from "../../../lib/prisma";
 import { refreshGoogleAccessToken } from "../../../services/googleTokenRefresh";
 
 export const authOptions: NextAuthOptions = {
+    pages: {
+        signIn: "/login",
+    },
     providers: [
         GoogleProvider({
             clientId: process.env.GOOGLE_CLIENT_ID!,

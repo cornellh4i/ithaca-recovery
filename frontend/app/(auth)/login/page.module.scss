@@ -1,0 +1,74 @@
+@import '../../../styles/Variables.module.scss';
+
+.page {
+    min-height: 100vh;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #F5F5F5;
+    position: relative;
+    padding: 24px;
+    box-sizing: border-box;
+}
+
+.backLink {
+    position: absolute;
+    top: 24px;
+    left: 24px;
+    font-size: 14px;
+    color: $medium-grey-color;
+    text-decoration: none;
+
+    &:hover {
+        color: $black-color;
+    }
+}
+
+.card {
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    width: 520px;
+    max-width: 90vw;
+    padding: 48px 40px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+.logo {
+    margin-bottom: 16px;
+}
+
+.heading {
+    font-size: 21px;
+    font-weight: 700;
+    color: $black-color;
+    margin: 0 0 12px;
+}
+
+.description {
+    font-size: 14px;
+    color: $medium-grey-color;
+    line-height: 1.5;
+    margin: 0 0 24px;
+}
+
+.footer {
+    font-size: 13px;
+    color: $medium-grey-color;
+    line-height: 1.5;
+    margin: 20px 0 0;
+}
+
+.footerLink {
+    font-weight: 700;
+    color: $black-color;
+    text-decoration: none;
+
+    &:hover {
+        text-decoration: underline;
+    }
+}

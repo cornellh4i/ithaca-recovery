@@ -5,7 +5,11 @@ import AdminShell from "../../components/organisms/AdminShell";
 export default async function AdminPage() {
   const session = await getAuth();
 
-  if (session?.user?.role !== "ADMIN" && session?.user?.role !== "SUPER_ADMIN") {
+  if (!session) {
+    redirect("/login");
+  }
+
+  if (session.user?.role !== "ADMIN" && session.user?.role !== "SUPER_ADMIN") {
     redirect("/");
   }
 
