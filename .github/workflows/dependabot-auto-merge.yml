@@ -1,0 +1,34 @@
+name: Dependabot auto-merge
+
+on: pull_request_target
+
+permissions:
+  pull-requests: write
+  contents: write
+
+jobs:
+  auto-merge:
+    if: github.actor == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch Dependabot metadata
+        id: metadata
+        uses: dependabot/fetch-metadata@v2
+        with:
+          github-token: "${{ secrets.GITHUB_TOKEN }}"
+
+      # dependabot.yml's "dev-patch" group is the only group scoped to
+      # dependency-type: development + update-types: patch -- membership in it is itself
+      # the safety guarantee, so gate on the group rather than re-deriving semver/type here.
+      # Everything else (prod deps at any semver level, github-actions bumps, dev deps at
+      # minor/major) is left as an individual PR for manual review + CI green -- a version
+      # bump can change runtime/build behavior in ways this repo's CI doesn't always catch,
+      # so those get a human read of the diff/changelog rather than an unattended merge.
+      # Auto-merge still doesn't bypass required status checks -- it just lets the PR merge
+      # itself once lint/unit/integration/e2e all pass.
+      - name: Enable auto-merge for patch-level devDependency updates
+        if: steps.metadata.outputs.dependency-group == 'dev-patch'
+        run: gh pr merge --auto --squash "$PR_URL"
+        env:
+          PR_URL: "${{ github.event.pull_request.html_url }}"
+          GH_TOKEN: "${{ secrets.GITHUB_TOKEN }}"

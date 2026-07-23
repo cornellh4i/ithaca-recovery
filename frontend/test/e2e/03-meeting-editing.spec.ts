@@ -2,6 +2,16 @@ import { test, expect } from "./support/fixtures";
 import { fillTimeRange } from "./support/formHelpers";
 import { seedMeeting } from "../factories/meeting";
 import { getTestPrismaClient } from "../factories/db";
+import { convertETToUTC, formatETDateString } from "../../util/timeUtils";
+
+// Avoids overlapping the default 18:00-19:00 seeded slot, which Day view can't visually split.
+function laterSlot() {
+  const etDate = formatETDateString(new Date());
+  return {
+    startDateTime: new Date(convertETToUTC(`${etDate}T20:00:00`)),
+    endDateTime: new Date(convertETToUTC(`${etDate}T21:00:00`)),
+  };
+}
 
 // Manual script §3 (Meeting Editing). §3.5/3.6 (Zoom-room mode switches) live in
 // 06-zoom-integration.spec.ts.
@@ -87,5 +97,39 @@ test.describe("meeting editing", () => {
     const all = await prisma.meeting.findMany({ where: { mid: meeting.mid } });
     expect(all).toHaveLength(1);
     expect(all[0].title).toBe("Recurring Series Renamed");
+  });
+
+  test("3.6 opening a different meeting closes an in-progress edit panel", async ({ adminPage }) => {
+    const { page } = adminPage;
+    await seedMeeting({ title: "Edit Panel A" });
+    await seedMeeting({ title: "Edit Panel B", ...laterSlot() });
+    await page.goto("/");
+
+    await openMeeting(page, "Edit Panel A");
+    await openEditFromDetails(page);
+    await expect(page.getByRole("heading", { name: "Edit Meeting" })).toBeVisible();
+
+    // level: 3 disambiguates the calendar card from ViewMeeting's <h1>.
+    await page.getByRole("heading", { name: "Edit Panel B", exact: true, level: 3 }).click();
+
+    await expect(page.getByRole("heading", { name: "Edit Meeting" })).toHaveCount(0);
+    await expect(page.getByRole("heading", { level: 1, name: "Edit Panel B" })).toBeVisible();
+  });
+
+  test("3.7 opening a different meeting doesn't carry over a stale sync-error banner", async ({ adminPage }) => {
+    const { page } = adminPage;
+    await seedMeeting({ title: "Sync Error Meeting", syncStatus: "error" });
+    await seedMeeting({ title: "Synced Meeting", ...laterSlot() });
+    await page.goto("/");
+
+    await openMeeting(page, "Sync Error Meeting");
+    await expect(page.getByText("Google Calendar sync failed")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Retry sync" })).toBeVisible();
+
+    await page.getByRole("heading", { name: "Synced Meeting", exact: true, level: 3 }).click();
+
+    await expect(page.getByText("Google Calendar sync failed")).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Retry sync" })).toHaveCount(0);
+    await expect(page.getByRole("heading", { level: 1, name: "Synced Meeting" })).toBeVisible();
   });
 });

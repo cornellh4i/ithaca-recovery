@@ -7,10 +7,12 @@ updates:
       interval: "weekly"
     open-pull-requests-limit: 10
     groups:
-      # Majors stay ungrouped -- those need a human to read the changelog.
-      minor-and-patch:
+      # Only patch-level devDependency bumps are safe to auto-merge unattended (see
+      # dependabot-auto-merge.yml) -- everything else (prod deps at any semver level,
+      # dev deps at minor/major) stays its own PR so a human reads the diff/changelog.
+      dev-patch:
+        dependency-type: "development"
         update-types:
-          - "minor"
           - "patch"
 
   # .github/workflows/test.yml — actions/checkout, actions/setup-node, actions/upload-artifact
