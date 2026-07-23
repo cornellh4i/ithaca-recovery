@@ -72,7 +72,7 @@ export async function checkZoomHostPool(): Promise<Record<string, { ok: boolean;
       const data = await res.json();
       result[email] = { ok: true, licensed: data.type === 2 };
     } catch (error) {
-      console.error(`Zoom checkHostPool error for ${email}:`, error);
+      console.error("Zoom checkHostPool error for a pooled host:", error);
       result[email] = { ok: false, licensed: null };
     }
   }));

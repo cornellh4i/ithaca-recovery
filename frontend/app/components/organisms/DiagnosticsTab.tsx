@@ -77,7 +77,7 @@ const DiagnosticsTab: React.FC<DiagnosticsTabProps> = ({ email, role }) => {
   const roomCalendarOkCount = roomCalendarEntries.filter(([, ok]) => ok).length;
 
   const hostPoolEntries = Object.entries(data.zoom.hostPool);
-  const hostPoolOkCount = hostPoolEntries.filter(([, s]) => s.ok).length;
+  const hostPoolOkCount = hostPoolEntries.filter(([, s]) => s.ok && s.licensed !== false).length;
 
   return (
     <div className={styles.container}>
