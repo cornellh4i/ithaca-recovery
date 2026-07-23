@@ -215,6 +215,7 @@ export default function HomePage() {
                 zoomRoom={selectedMeeting.zoomRoom}
                 zoomLink={selectedMeeting.zoomLink}
                 zid={selectedMeeting.zid}
+                zoomHost={selectedMeeting.zoomHost}
                 modeType={selectedMeeting.modeType}
                 calType={selectedMeeting.calType}
                 room={selectedMeeting.room}

@@ -4,6 +4,7 @@ import { requireRole } from "../../../../../services/auth";
 import { IMeeting } from "../../../../../util/models";
 import { createCalendarEvent, updateCalendarEvent, reconcileMeetingCalendars } from "../../../../../services/googleCalendar";
 import { createZoomMeeting, updateZoomMeeting, resolveZoomHost, zoomRoomCalendarId } from "../../../../../services/zoom";
+import { findResourceConflicts } from "../../../../../util/resourceOverlap";
 import { prisma } from "../../../../../lib/prisma";
 
 const syncMeeting = async (request: Request): Promise<Response> => {
@@ -62,9 +63,22 @@ const syncMeeting = async (request: Request): Promise<Response> => {
             let zoomSynced = true;
             zoomSyncError = null;
 
+            let skipCalendarTimeSync = false;
             if (zid) {
-                const ok = await updateZoomMeeting(zid, meetingForCalendar);
-                if (!ok) zoomSynced = false;
+                // Re-check the assigned host is still free for this meeting's current schedule
+                // before pushing the retry to Zoom — a previous failure could have been
+                // transient, but the schedule may also have shifted into a real host conflict.
+                const timeConflicts = zoomHost
+                    ? await findResourceConflicts("zoomHost", zoomHost, meetingForCalendar, { excludeMid: mid, includeSuspended: true })
+                    : [];
+                if (timeConflicts.length > 0) {
+                    zoomSynced = false;
+                    zoomSyncError = "This time now conflicts with another meeting using the same Zoom host.";
+                    skipCalendarTimeSync = true;
+                } else {
+                    const ok = await updateZoomMeeting(zid, meetingForCalendar);
+                    if (!ok) zoomSynced = false;
+                }
             } else {
                 const host = await resolveZoomHost(meetingForCalendar, { excludeMid: mid });
                 if (!host) {
@@ -83,7 +97,7 @@ const syncMeeting = async (request: Request): Promise<Response> => {
                 }
             }
 
-            if (auth.accessToken && zoomLink) {
+            if (auth.accessToken && zoomLink && !skipCalendarTimeSync) {
                 const calId = zoomRoomCalendarId[meeting.zoomRoom];
                 if (calId) {
                     const meetingWithZoomLink = { ...meetingForCalendar, zoomLink };

@@ -34,6 +34,11 @@ jest.mock("../../services/zoom", () => ({
 
 import { getTestPrismaClient, disconnectTestPrismaClient } from "../factories/db";
 import { PUT } from "../../app/api/update/meeting/route";
+import { updateZoomMeeting } from "../../services/zoom";
+import { reconcileMeetingCalendars } from "../../services/googleCalendar";
+
+const mockedUpdateZoomMeeting = updateZoomMeeting as jest.Mock;
+const mockedReconcileMeetingCalendars = reconcileMeetingCalendars as jest.Mock;
 
 function buildMeetingPayload(overrides: Partial<IMeeting> = {}): IMeeting {
   return {
@@ -82,4 +87,70 @@ test("a malformed body returns 400 with validation issues instead of a raw 500",
   const prisma = getTestPrismaClient();
   const found = await prisma.meeting.findUnique({ where: { mid: malformed.mid } });
   expect(found).toBeNull();
+});
+
+test("a same-room time edit that now conflicts with another meeting on the same Zoom host fails soft instead of double-booking it", async () => {
+  mockedUpdateZoomMeeting.mockClear();
+  mockedUpdateZoomMeeting.mockResolvedValue(true);
+  mockedReconcileMeetingCalendars.mockResolvedValue({ updatedEventIds: {}, allSynced: true });
+
+  const prisma = getTestPrismaClient();
+  const sharedHost = "pooled-host@icr.org";
+
+  // Occupies the shared host at the *new* time we're about to move the edited meeting into —
+  // a different room, since this is a host conflict, not a room conflict.
+  const busyMid = `m-${randomUUID()}`;
+  const { recurrencePattern: _rp1, ...busyMeetingData } = buildMeetingPayload({
+    mid: busyMid,
+    room: "Fellowship Room",
+    zoomRoom: "Fellowship Room - Zoom",
+    zid: "zid-busy",
+    zoomHost: sharedHost,
+    startDateTime: new Date("2026-09-01T20:00:00Z"),
+    endDateTime: new Date("2026-09-01T21:00:00Z"),
+  });
+  await prisma.meeting.create({ data: busyMeetingData });
+
+  const editedMid = `m-${randomUUID()}`;
+  const { recurrencePattern: _rp2, ...editedMeetingData } = buildMeetingPayload({
+    mid: editedMid,
+    room: "Serenity Room",
+    zoomRoom: "Serenity Room - Zoom",
+    zid: "zid-edited",
+    zoomHost: sharedHost,
+    startDateTime: new Date("2026-09-01T15:00:00Z"),
+    endDateTime: new Date("2026-09-01T16:00:00Z"),
+  });
+  await prisma.meeting.create({ data: editedMeetingData });
+
+  // Same room/Zoom room/host as before — only the time moves, into busyMid's window.
+  const payload = buildMeetingPayload({
+    mid: editedMid,
+    room: "Serenity Room",
+    zoomRoom: "Serenity Room - Zoom",
+    zid: "zid-edited",
+    zoomHost: sharedHost,
+    startDateTime: new Date("2026-09-01T20:30:00Z"),
+    endDateTime: new Date("2026-09-01T21:30:00Z"),
+  });
+
+  const request = new Request("http://localhost/api/update/meeting", {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+
+  const response = await PUT(request);
+  expect(response.status).toBe(200);
+
+  // waitUntil has no real lifecycle hook outside Vercel, but the background
+  // function still runs to completion on its own — just give it time to finish.
+  await new Promise((resolve) => setTimeout(resolve, 400));
+
+  expect(mockedUpdateZoomMeeting).not.toHaveBeenCalled();
+
+  const afterSync = await prisma.meeting.findUnique({ where: { mid: editedMid } });
+  expect(afterSync?.zid).toBe("zid-edited");
+  expect(afterSync?.zoomHost).toBe(sharedHost);
+  expect(afterSync?.zoomSyncStatus).toBe("error");
+  expect(afterSync?.zoomSyncError).toMatch(/conflicts with another meeting/i);
 });

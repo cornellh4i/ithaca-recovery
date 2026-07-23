@@ -31,6 +31,7 @@ type ViewMeetingDetailsProps = {
   zoomRoom?: string | null; // Maps to 'zoomRoom' in the model (optional)
   zoomLink?: string | null; // Maps to 'zoomLink' in the model (optional)
   zid?: string | null; // Maps to 'zid' in the model (optional)
+  zoomHost?: string | null; // Pooled Zoom account this meeting's Zoom meeting is running under (optional)
   calType: string[]; // Maps to 'calType' in the model
   room: string; // Maps to 'room' in the model
   recurrence?: string; // Remains as optional if required
@@ -56,6 +57,7 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
   email,
   zoomRoom,
   zoomLink,
+  zoomHost,
   calType,
   room,
   isRecurring,
@@ -278,6 +280,7 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
         {zoomLink && <a href={zoomLink} target="_blank" rel="noopener noreferrer" className={styles.zoomLink}>
           <img src="/svg/zoom-icon.svg" alt="Zoom" /> {zoomLink}
         </a>}
+        {zoomHost && <p><strong>Zoom Host:</strong>&nbsp;{zoomHost}</p>}
 
         <hr className={styles.divider} />
 

@@ -4,6 +4,7 @@ import { requireRole } from "../../../../services/auth";
 import { IMeeting } from "../../../../util/models";
 import { createCalendarEvent, updateCalendarEvent, deleteCalendarEvent, reconcileMeetingCalendars } from "../../../../services/googleCalendar";
 import { createZoomMeeting, updateZoomMeeting, deleteZoomMeeting, resolveZoomHost, zoomRoomCalendarId } from "../../../../services/zoom";
+import { findResourceConflicts } from "../../../../util/resourceOverlap";
 import { meetingSchema } from "../../../../util/meetingValidation";
 import { prisma } from "../../../../lib/prisma";
 
@@ -63,11 +64,24 @@ async function syncUpdatedMeeting(
 
     if (newZoomRoom) {
       // Same room, same existing Zoom meeting — keep the host that's already assigned; no
-      // re-resolution, so an existing recurring meeting never loses its host mid-series.
+      // re-resolution, so an existing recurring meeting never loses its host mid-series. But
+      // the time itself may have changed, so re-check that the current host is still free for
+      // the new schedule before pushing the update to Zoom — otherwise a time edit could
+      // silently double-book a host that's fine for the old time but busy at the new one.
       const sameRoomExisting = zid && oldZoomRoom === newZoomRoom;
+      let skipCalendarTimeSync = false;
       if (sameRoomExisting) {
-        const ok = await updateZoomMeeting(zid as string, newMeeting);
-        if (!ok) zoomSynced = false;
+        const timeConflicts = zoomHost
+          ? await findResourceConflicts("zoomHost", zoomHost, newMeeting, { excludeMid: mid, includeSuspended: true })
+          : [];
+        if (timeConflicts.length > 0) {
+          zoomSynced = false;
+          zoomSyncError = "This time now conflicts with another meeting using the same Zoom host.";
+          skipCalendarTimeSync = true;
+        } else {
+          const ok = await updateZoomMeeting(zid as string, newMeeting);
+          if (!ok) zoomSynced = false;
+        }
       } else if (!zid) {
         const host = await resolveZoomHost(newMeeting, { excludeMid: mid });
         if (!host) {
@@ -86,7 +100,7 @@ async function syncUpdatedMeeting(
         }
       }
 
-      if (accessToken && zoomLink) {
+      if (accessToken && zoomLink && !skipCalendarTimeSync) {
         const calId = zoomRoomCalendarId[newZoomRoom];
         if (calId) {
           const meetingWithZoomLink = { ...newMeeting, zoomLink };
