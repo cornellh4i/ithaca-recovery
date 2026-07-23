@@ -80,7 +80,7 @@ Documentation lives in [`docs/`](docs/):
     └── README.md
 
 ### Prerequisites
-* Node.js 24+
+* Node.js 24.x (see `frontend/.nvmrc`)
 * Yarn
 * MongoDB Compass (Recommended)
 
