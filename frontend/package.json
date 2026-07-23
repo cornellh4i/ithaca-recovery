@@ -19,7 +19,7 @@
     "@jest/globals": "^30.4.1",
     "@mui/icons-material": "^7.3.11",
     "@mui/material": "^7.3.11",
-    "@mui/x-date-pickers": "^9.10.0",
+    "@mui/x-date-pickers": "^9.10.1",
     "@mui/x-date-pickers-pro": "^9.10.0",
     "@prisma/client": "6.19.3",
     "@tanstack/react-query": "^5.101.4",
