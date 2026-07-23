@@ -26,6 +26,19 @@ type Fixtures = {
 };
 
 export const test = base.extend<Fixtures>({
+  // Browser console output otherwise goes nowhere in CI -- the app has real
+  // console.error/console.log calls (e.g. DailyView/WeeklyView's fetch error handling)
+  // that are invisible without this.
+  page: async ({ page }, use) => {
+    // msg.text() stringifies objects/arrays as useless "[Object]"/"[Array]" -- pull the
+    // actual serialized values from the console call's arguments instead.
+    page.on("console", async (msg) => {
+      const args = await Promise.all(msg.args().map((arg) => arg.jsonValue().catch(() => "<unserializable>")));
+      console.log(`[browser:${msg.type()}]`, ...args);
+    });
+    page.on("pageerror", (err) => console.log(`[browser:pageerror] ${err.message}`));
+    await use(page);
+  },
   adminPage: async ({ page, context, cleanTestData: _cleanTestData }, use) => {
     const admin = await seedAdmin(Role.ADMIN);
     await loginAs(context, admin.email);
