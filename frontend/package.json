@@ -11,7 +11,8 @@
     "postinstall": "prisma generate",
     "test:unit": "jest --config config/jest.config.ts",
     "test:integration": "jest --config config/jest.integration.config.ts",
-    "test:e2e": "playwright test --config config/playwright.config.ts"
+    "test:e2e": "playwright test --config config/playwright.config.ts",
+    "test:all": "yarn test:unit && yarn test:integration && yarn test:e2e"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
