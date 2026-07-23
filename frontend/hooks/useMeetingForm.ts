@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { IMeeting, IRecurrencePattern } from '../util/models';
 import { convertUTCToET, convertETToUTC } from '../util/timeUtils';
 import { roomToZoomRoom } from '../util/rooms';
@@ -66,13 +66,15 @@ export function useMeetingForm(initialMeeting?: IMeeting) {
         initialMeeting?.recurrencePattern ?? null
     );
 
-    const handleRecurringMeetingChange = (data: {
+    // Must be stable: RecurringMeeting.tsx's effect depends on this callback, and an
+    // unstable reference here caused an infinite render loop.
+    const handleRecurringMeetingChange = useCallback((data: {
         isRecurring: boolean;
         recurrencePattern: IRecurrencePattern | null;
     }) => {
         setIsRecurring(data.isRecurring);
         setRecurrencePattern(data.recurrencePattern);
-    };
+    }, []);
 
     const handleRoomChange = (value: string) => {
         setRoom(value);
