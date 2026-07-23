@@ -3,12 +3,13 @@ import TextButton from '../atoms/TextButton';
 
 import MiniCalendar from '../atoms/MiniCalendar';
 import MeetingsFilter from '../molecules/MeetingsFilter';
+import { MeetingFilters } from '../../../util/meetingFilters';
 import NewMeetingSidebar from './NewMeeting';
 import styles from '../../../styles/components/organisms/CalendarSidebar.module.scss';
 import AddIcon from '@mui/icons-material/Add';
 interface CalendarSidebarProps {
-  filters: any;
-  setFilters: any;
+  filters: MeetingFilters;
+  setFilters: React.Dispatch<React.SetStateAction<MeetingFilters>>;
   selectedDate: Date;
   setSelectedDate: React.Dispatch<React.SetStateAction<Date>>;
   triggerCalendarRefresh: () => void;

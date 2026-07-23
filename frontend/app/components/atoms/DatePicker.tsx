@@ -8,7 +8,7 @@ interface DatePickerProps {
   value?: string; // Expect value to be in 'MM/DD/YYYY' format
   onChange: (value: string) => void;
   underlineOnFocus?: boolean;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 const DatePicker = ({ label, value: propValue = '', onChange, underlineOnFocus = true, ...props }: DatePickerProps) => {

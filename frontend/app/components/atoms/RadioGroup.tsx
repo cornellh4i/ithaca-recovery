@@ -8,7 +8,7 @@ interface RadioGroupProps {
     onChange: (option: string) => void;
     name: string;
     disabledOptions?: string[];
-    [key: string]: any;
+    [key: string]: unknown;
 }
 
 const RadioGroup: React.FC<RadioGroupProps> = ({

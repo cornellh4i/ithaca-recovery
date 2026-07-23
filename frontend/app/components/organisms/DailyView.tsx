@@ -4,7 +4,7 @@ import BoxText from '../atoms/BoxText';
 import DailyViewRow from "../molecules/DailyViewRow";
 import { convertUTCToET, formatETDateString, getETDayBounds } from "../../../util/timeUtils";
 import { IMeeting } from "../../../util/models";
-import { passesTagFilters, passesRoomFilter } from "../../../util/meetingFilters";
+import { passesTagFilters, passesRoomFilter, MeetingFilters } from "../../../util/meetingFilters";
 import { createCache } from "../../../util/simpleCache";
 import { defaultRooms } from "../../../util/rooms";
 
@@ -79,7 +79,7 @@ export const fetchMeetingsByDay = async (date: Date): Promise<Room[]> => {
 
       const groupedRooms: { [key: string]: Meeting[] } = {};
 
-      clipped.forEach((meeting: any) => {
+      clipped.forEach((meeting: IMeeting & { trueStartDateTime: Date; trueEndDateTime: Date }) => {
         // Convert meeting times from UTC to EDT for display
         const startUTC = new Date(meeting.startDateTime);
         const endUTC = new Date(meeting.endDateTime);
@@ -100,7 +100,9 @@ export const fetchMeetingsByDay = async (date: Date): Promise<Room[]> => {
 
         // A Hybrid meeting occupies both its physical room and its Zoom room;
         // Remote only has a Zoom room, In Person only has a physical room.
-        const roomNames: string[] = [meeting.room, meeting.zoomRoom].filter(Boolean);
+        const roomNames: string[] = [meeting.room, meeting.zoomRoom].filter(
+          (room): room is string => Boolean(room)
+        );
         roomNames.forEach((roomName: string) => {
           if (!groupedRooms[roomName]) {
             groupedRooms[roomName] = [];
@@ -140,7 +142,7 @@ const formatTime = (hour: number): string => {
 const timeSlots = Array.from({ length: 24 }, (_, i) => formatTime(i));
 
 interface DailyViewProps {
-  filters: any;
+  filters: MeetingFilters;
   selectedDate: Date;
   setSelectedDate: (date: Date) => void;
   setSelectedMeetingID: (meetingId: string) => void;

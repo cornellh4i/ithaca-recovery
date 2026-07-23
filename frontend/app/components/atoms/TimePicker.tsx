@@ -8,7 +8,7 @@ interface TimePickerProps {
   underlineOnFocus?: boolean;
   error?: string;
   disablePast?: boolean;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 // Utility function to add minutes to a given time

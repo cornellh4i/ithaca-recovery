@@ -8,7 +8,7 @@ interface TextFieldProps {
   underlineOnFocus?: boolean;
   label?: string | React.JSX.Element; // Label can now be either a string or an SVG element
   multiline?: boolean; // Renders a wrapping <textarea> instead of a single-line <input>
-  [key: string]: any; // Allow for additional props
+  [key: string]: unknown; // Allow for additional props
 }
 
 const TextField: React.FC<TextFieldProps> = ({

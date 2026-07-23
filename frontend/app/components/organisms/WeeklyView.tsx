@@ -1,11 +1,12 @@
 import React, { useEffect, useRef, useState } from "react";
 import styles from '../../../styles/components/organisms/WeeklyView.module.scss';
 import WeeklyViewColumn from "../molecules/WeeklyViewColumn";
-import { passesTagFilters, passesRoomFilter } from "../../../util/meetingFilters";
+import { passesTagFilters, passesRoomFilter, MeetingFilters } from "../../../util/meetingFilters";
 import { ROOM_COLORS, ZOOM_ROOM_COLOR } from "../../../util/filterColors";
 import { formatETDateString } from "../../../util/timeUtils";
 import { layoutOverlappingMeetings, OverlapMeeting } from "../../../util/meetingOverlapLayout";
 import { createCache } from "../../../util/simpleCache";
+import { IMeeting } from "../../../util/models";
 
 type Meeting = OverlapMeeting;
 
@@ -38,7 +39,7 @@ const fetchMeetingsByWeek = async (startDate: Date, endDate: Date): Promise<Meet
 
             // startTime/endTime clip to this day (for layout); displayStartTime/displayEndTime
             // keep the true times, so an overnight meeting's cards both label as "11PM-1AM".
-            const meetings: Meeting[] = data.map((meeting: any) => {
+            const meetings: Meeting[] = data.map((meeting: IMeeting & { date: string }) => {
                 const trueStart = new Date(meeting.startDateTime);
                 const trueEnd = new Date(meeting.endDateTime);
                 const startsToday = formatETDateString(trueStart) === meeting.date;
@@ -102,7 +103,7 @@ const formatDayName = (date: Date): string => {
 
 
 interface WeeklyViewProps {
-    filters: any;
+    filters: MeetingFilters;
     selectedDate: Date;
     setSelectedDate: (date: Date) => void;
     setSelectedMeetingID: (meetingId: string) => void;
