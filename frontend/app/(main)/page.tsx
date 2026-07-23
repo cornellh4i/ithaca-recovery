@@ -222,6 +222,7 @@ export default function HomePage() {
                 recurrencePattern={selectedMeeting.recurrencePattern || undefined}
                 syncStatus={selectedMeeting.syncStatus}
                 zoomSyncStatus={selectedMeeting.zoomSyncStatus}
+                zoomSyncError={selectedMeeting.zoomSyncError}
                 currentOccurrenceDate={lastClickedDate || undefined} // Pass the date when the meeting was clicked
                 onBack={handleBack}
                 onEdit={handleOpenEdit}

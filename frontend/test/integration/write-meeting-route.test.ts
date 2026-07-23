@@ -25,13 +25,16 @@ jest.mock("../../services/googleCalendar", () => ({
 
 jest.mock("../../services/zoom", () => ({
   createZoomMeeting: jest.fn(),
+  resolveZoomHost: jest.fn(),
   zoomRoomCalendarId: {},
 }));
 
 import { createCalendarEvent } from "../../services/googleCalendar";
+import { resolveZoomHost } from "../../services/zoom";
 import { POST } from "../../app/api/write/meeting/route";
 
 const mockedCreateCalendarEvent = createCalendarEvent as jest.Mock;
+const mockedResolveZoomHost = resolveZoomHost as jest.Mock;
 
 function buildMeetingPayload(overrides: Partial<IMeeting> = {}): IMeeting {
   return {
@@ -55,6 +58,15 @@ function buildMeetingPayload(overrides: Partial<IMeeting> = {}): IMeeting {
 
 afterAll(async () => {
   await disconnectTestPrismaClient();
+});
+
+// Neither jest config sets clearMocks/resetMocks globally, and mockImplementation set in one
+// test (e.g. the 300ms-delayed createCalendarEvent below) otherwise leaks into later tests —
+// which previously made the Zoom-pool-exhaustion test below flaky, since the leftover GCal
+// delay pushed syncNewMeeting's background work past that test's own wait window.
+beforeEach(() => {
+  mockedCreateCalendarEvent.mockReset();
+  mockedResolveZoomHost.mockReset();
 });
 
 test("the response resolves before Google Calendar sync completes, which runs in the background", async () => {
@@ -108,4 +120,28 @@ test("a malformed body returns 400 with validation issues instead of a raw 500",
   const prisma = getTestPrismaClient();
   const created = await prisma.meeting.findUnique({ where: { mid: malformed.mid } });
   expect(created).toBeNull();
+});
+
+test("an exhausted Zoom host pool fails soft: the meeting is still created", async () => {
+  mockedResolveZoomHost.mockResolvedValue(null);
+
+  const payload = buildMeetingPayload({ zoomRoom: "Serenity Room - Zoom" });
+  const request = new Request("http://localhost/api/write/meeting", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+
+  const response = await POST(request);
+  expect(response.status).toBe(201);
+
+  // waitUntil has no real lifecycle hook outside Vercel, but the background
+  // function still runs to completion on its own — just give it time to finish.
+  await new Promise((resolve) => setTimeout(resolve, 400));
+
+  const prisma = getTestPrismaClient();
+  const afterSync = await prisma.meeting.findUnique({ where: { mid: payload.mid } });
+  expect(afterSync?.zid).toBeNull();
+  expect(afterSync?.zoomHost).toBeNull();
+  expect(afterSync?.zoomSyncStatus).toBe("error");
+  expect(afterSync?.zoomSyncError).toMatch(/pool exhausted/i);
 });

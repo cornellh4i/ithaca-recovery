@@ -48,12 +48,8 @@ GOOGLE_CALENDAR_ZOOM_UNITY_ROOM="<calendar-id>@group.calendar.google.com"
 GOOGLE_CALENDAR_ZOOM_ROOM_FOR_IMPROVEMENT="<calendar-id>@group.calendar.google.com"
 GOOGLE_CALENDAR_ZOOM_CHILDRENS_ROOM_518="<calendar-id>@group.calendar.google.com"
 
-# Zoom Room Hosts — one licensed Zoom user email per room
-ZOOM_HOST_SERENITY_ROOM="..."
-ZOOM_HOST_SEEDS_OF_HOPE_ROOM="..."
-ZOOM_HOST_UNITY_ROOM="..."
-ZOOM_HOST_ROOM_FOR_IMPROVEMENT="..."
-ZOOM_HOST_CHILDRENS_ROOM_518="..."
+# Zoom Host Pool — comma-separated licensed Zoom user emails, shared across all rooms
+ZOOM_HOSTS="host1@icr.org,host2@icr.org,host3@icr.org,host4@icr.org,host5@icr.org"
 ```
 
 ---
@@ -196,25 +192,28 @@ Creates/updates/deletes a real Zoom meeting whenever a meeting has a `zoomRoom` 
 
 1. Go to [marketplace.zoom.us](https://marketplace.zoom.us) → **Develop** → **Build App** → **Server-to-Server OAuth**.
 2. Fill in app name and description, activate the app.
-3. Under **Scopes**, add: `meeting:write:admin`, `meeting:read:admin`, `meeting:update:admin`, `meeting:delete:admin`, and `user:read:list_users:admin` (needed to look up which licensed users exist on the account when confirming the 5 room-host emails below).
+3. Under **Scopes**, add: `meeting:write:admin`, `meeting:read:admin`, `meeting:update:admin`, `meeting:delete:admin`, and `user:read:list_users:admin` (needed to look up which licensed users exist on the account when confirming the host pool emails below).
 4. Copy **Account ID**, **Client ID**, **Client Secret** → `ZOOM_ACCOUNT_ID`, `ZOOM_CLIENT_ID`, `ZOOM_CLIENT_SECRET`.
+
+### Host pool setup
+
+ICR's licensed Zoom users are a **shared pool**, not tied to any one room — each can host only one meeting at a time. When a meeting needs a live Zoom meeting, the app picks the first host in `ZOOM_HOSTS` (comma-separated, order matters only as a tiebreak) with no overlapping booking at that time — see `resolveZoomHost` in `frontend/services/zoom.ts` and `frontend/util/resourceOverlap.ts` for the availability check. `createZoomMeeting` schedules under `POST /users/{host email}/meetings`, not `/users/me/meetings` — Zoom's `userId` path param accepts an email directly.
+
+If every host is busy when a meeting is created, that meeting is still saved (no Zoom meeting attached) with `zoomSyncStatus: "error"` and a `zoomSyncError` message — the admin can retry once a host frees up (via the meeting detail panel's "Retry sync" button, or by re-running `POST /api/update/meeting/sync`). An existing recurring meeting's host is chosen once and kept forever after that — the pool is only consulted when a *new* Zoom meeting is created, never when an existing series is edited.
 
 ### Per-room setup
 
-Each of the 5 Zoom-enabled rooms needs two things configured before it works:
-
-1. **A dedicated licensed Zoom user** on the account (ICR pre-provisioned 5) — set its email as that room's `ZOOM_HOST_<ROOM>` env var. `createZoomMeeting` schedules under `POST /users/{this email}/meetings`, not `/users/me/meetings` — Zoom's `userId` path param accepts an email directly. This is what lets multiple rooms host simultaneously without conflicting; pointing every room at the same host silently serializes them.
-2. **A Google Calendar dedicated to that room** (separate from the 3 category calendars in section 4) — set its ID as `GOOGLE_CALENDAR_ZOOM_<ROOM>`. This calendar must be shared with whatever Google account the signed-in admin uses (same sharing requirement as section 4), and it must be the calendar that room's physical Zoom Room hardware is actually configured to read from in Zoom's admin console — confirm this with whoever manages the Zoom account, since hardware can be pointed at a different (e.g. legacy) calendar than the one the app writes to.
+Each of the 5 Zoom-enabled rooms still needs **a Google Calendar dedicated to that room** (separate from the 3 category calendars in section 4) — set its ID as `GOOGLE_CALENDAR_ZOOM_<ROOM>`. This calendar must be shared with whatever Google account the signed-in admin uses (same sharing requirement as section 4), and it must be the calendar that room's physical Zoom Room hardware is actually configured to read from in Zoom's admin console — confirm this with whoever manages the Zoom account, since hardware can be pointed at a different (e.g. legacy) calendar than the one the app writes to.
 
 Room slugs match `zoomRoomOptions` in `frontend/util/rooms.ts`: `SERENITY_ROOM`, `SEEDS_OF_HOPE_ROOM`, `UNITY_ROOM`, `ROOM_FOR_IMPROVEMENT`, `CHILDRENS_ROOM_518`.
 
 ### Key client code
-`frontend/services/zoom.ts` — `checkZoomReachable`, `createZoomMeeting(meeting, zoomRoom)`, `updateZoomMeeting(zid, meeting)`, `deleteZoomMeeting(zid)`, plus the `zoomRoomCalendarId` and `zoomRoomHostEmail` lookup maps. Called directly from the meeting routes (`write`, `update`, `delete`, `update/meeting/sync`) — there's no separate `/api/zoom/*` HTTP surface.
+`frontend/services/zoom.ts` — `checkZoomReachable`, `checkZoomHostPool`, `resolveZoomHost(candidate, opts)`, `createZoomMeeting(meeting, hostEmail)`, `updateZoomMeeting(zid, meeting)`, `deleteZoomMeeting(zid)`, plus the `zoomRoomCalendarId` and `zoomHostPool` lookup values. Called directly from the meeting routes (`write`, `update`, `delete`, `update/meeting/sync`, `import`) — there's no separate `/api/zoom/*` HTTP surface.
 
 Every call first fetches a fresh token (posts to `https://zoom.us/oauth/token`, `grant_type=account_credentials`) — the token is short-lived and not cached.
 
 ### Verifying it's working
-`GET /api/admin/diagnostics` covers both levels: `zoom.reachable` is an account-level token fetch, and `zoom.rooms.<room>` checks each room individually — `calendarOk` (that room's Google Calendar is reachable), `hostOk` (its `ZOOM_HOST_<ROOM>` email resolves to a real user on the account), and `hostLicensed` (`false` flags a Basic-type host, which caps meetings at 40 minutes — a likely cause if a specific room's longer meetings keep cutting off). The Diagnostics tab on `/admin` surfaces all of this per room.
+`GET /api/admin/diagnostics` covers three levels: `zoom.reachable` is an account-level token fetch, `zoom.roomCalendars.<room>` checks each room's dedicated Google Calendar is reachable, and `zoom.hostPool.<email>` checks each pooled host — `ok` (the email resolves to a real user on the account) and `licensed` (`false` flags a Basic-type host, which caps meetings at 40 minutes — a likely cause if meetings assigned to that host keep cutting off). The Diagnostics tab on `/admin` surfaces all of this, plus a **Conflicts** panel listing any meetings sharing a room or Zoom Room at overlapping times.
 
 To confirm a room end-to-end beyond what Diagnostics checks: create a real meeting in the app with that room selected, then check that (a) the meeting shows a join link and (b) that room's Google Calendar has a new event with the join link in its `location` field.
 

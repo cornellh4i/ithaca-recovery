@@ -1,5 +1,6 @@
 import "server-only";
 import { IMeeting } from "../util/models";
+import { findResourceConflicts, OccurrenceInput, OccupiedClaim } from "../util/resourceOverlap";
 
 const ZOOM_BASE_API = process.env.NEXT_PUBLIC_ZOOM_BASE_API ?? "https://api.zoom.us/v2";
 
@@ -12,15 +13,14 @@ export const zoomRoomCalendarId: Record<string, string> = {
   "Children's Room @ 518 - Zoom": process.env.GOOGLE_CALENDAR_ZOOM_CHILDRENS_ROOM_518 ?? "",
 };
 
-// One dedicated Zoom user per room (ICR provisioned 5 separate licensed accounts so up to
-// 5 rooms can each host a concurrent meeting). Zoom's userId path param accepts an email.
-export const zoomRoomHostEmail: Record<string, string> = {
-  "Serenity Room - Zoom": process.env.ZOOM_HOST_SERENITY_ROOM ?? "",
-  "Seeds of Hope Room - Zoom": process.env.ZOOM_HOST_SEEDS_OF_HOPE_ROOM ?? "",
-  "Unity Room - Zoom": process.env.ZOOM_HOST_UNITY_ROOM ?? "",
-  "Room for Improvement - Zoom": process.env.ZOOM_HOST_ROOM_FOR_IMPROVEMENT ?? "",
-  "Children's Room @ 518 - Zoom": process.env.ZOOM_HOST_CHILDRENS_ROOM_518 ?? "",
-};
+// ICR's licensed Zoom users are a shared pool, not tied to any one room — each can host only
+// one meeting at a time, so which host a given meeting gets is resolved per-booking (see
+// resolveZoomHost below) rather than fixed by room. One env var, comma-separated, so adding
+// or removing a licensed seat doesn't require a code change.
+export const zoomHostPool: string[] = (process.env.ZOOM_HOSTS ?? "")
+  .split(",")
+  .map((email) => email.trim())
+  .filter(Boolean);
 
 async function getZoomAccessToken(): Promise<string | null> {
   try {
@@ -51,36 +51,56 @@ export async function checkZoomReachable(): Promise<boolean> {
   return (await getZoomAccessToken()) !== null;
 }
 
-// Per-room host validity: confirms each ZOOM_HOST_<ROOM> email resolves to a real user on
-// the account, and flags non-Licensed (Basic, type 1) hosts — a Basic host caps meetings at
-// 40 minutes, which silently breaks longer meetings booked under that room.
-export async function checkZoomRoomHosts(): Promise<Record<string, { ok: boolean; licensed: boolean | null }>> {
-  const rooms = Object.keys(zoomRoomHostEmail);
+// Per-host pool validity: confirms each ZOOM_HOSTS entry resolves to a real user on the
+// account, and flags non-Licensed (Basic, type 1) hosts — a Basic host caps meetings at 40
+// minutes, which silently breaks longer meetings assigned to that host.
+export async function checkZoomHostPool(): Promise<Record<string, { ok: boolean; licensed: boolean | null }>> {
   const result: Record<string, { ok: boolean; licensed: boolean | null }> = {};
 
   const token = await getZoomAccessToken();
   if (!token) {
-    rooms.forEach((room) => { result[room] = { ok: false, licensed: null }; });
+    zoomHostPool.forEach((email) => { result[email] = { ok: false, licensed: null }; });
     return result;
   }
 
-  await Promise.all(rooms.map(async (room) => {
-    const email = zoomRoomHostEmail[room];
-    if (!email) { result[room] = { ok: false, licensed: null }; return; }
+  await Promise.all(zoomHostPool.map(async (email) => {
     try {
       const res = await fetch(`${ZOOM_BASE_API}/users/${encodeURIComponent(email)}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (!res.ok) { result[room] = { ok: false, licensed: null }; return; }
+      if (!res.ok) { result[email] = { ok: false, licensed: null }; return; }
       const data = await res.json();
-      result[room] = { ok: true, licensed: data.type === 2 };
+      result[email] = { ok: true, licensed: data.type === 2 };
     } catch (error) {
-      console.error(`Zoom checkRoomHost error for ${room}:`, error);
-      result[room] = { ok: false, licensed: null };
+      console.error(`Zoom checkHostPool error for ${email}:`, error);
+      result[email] = { ok: false, licensed: null };
     }
   }));
 
   return result;
+}
+
+// Picks the first host in the pool (list order) with zero conflicts against `candidate`'s
+// occurrences, per the resource-generic overlap check in util/resourceOverlap.ts. Suspended
+// meetings are included in the occupancy check (opts.excludeMid lets an update re-check a
+// meeting without conflicting against its own prior occurrences) — a suspended meeting's Zoom
+// meeting still exists, it's just not synced. `opts.extraOccupied` lets a caller processing
+// several candidates in one batch (the XLSX import route) claim a host in memory before it's
+// committed to the DB, so two rows in the same batch can't race for the same host. Returns
+// null if every host is busy.
+export async function resolveZoomHost(
+  candidate: OccurrenceInput,
+  opts: { excludeMid?: string; extraOccupied?: OccupiedClaim[] } = {},
+): Promise<string | null> {
+  for (const host of zoomHostPool) {
+    const conflicts = await findResourceConflicts("zoomHost", host, candidate, {
+      excludeMid: opts.excludeMid,
+      includeSuspended: true,
+      extraOccupied: opts.extraOccupied,
+    });
+    if (conflicts.length === 0) return host;
+  }
+  return null;
 }
 
 // Zoom ignores `timezone` if start_time ends in "Z" — send ET wall-clock time instead.
@@ -109,12 +129,10 @@ function buildZoomMeetingBody(meeting: IMeeting) {
   };
 }
 
-export async function createZoomMeeting(meeting: IMeeting, zoomRoom: string): Promise<{ zoomLink: string; zid: string } | null> {
+export async function createZoomMeeting(meeting: IMeeting, hostEmail: string): Promise<{ zoomLink: string; zid: string } | null> {
   try {
     const token = await getZoomAccessToken();
     if (!token) return null;
-
-    const hostEmail = zoomRoomHostEmail[zoomRoom];
     if (!hostEmail) return null;
 
     const res = await fetch(`${ZOOM_BASE_API}/users/${encodeURIComponent(hostEmail)}/meetings`, {

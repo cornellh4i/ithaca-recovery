@@ -71,7 +71,8 @@
 ## 6. Zoom Room Integration
 
 > **Automated (fail-soft path + auto-pairing logic):** `frontend/test/e2e/06-zoom-integration.spec.ts`
-> — the cases below all require live Zoom/Google credentials to verify against the real services.
+> — most cases below require live Zoom/Google credentials to verify against the real services.
+> 6.11 (host-pool exhaustion) doesn't — see `frontend/test/integration/write-meeting-route.test.ts`.
 
 | # | Step | Expected Result | Pass/Fail | Notes |
 |---|------|-----------------|-----------|-------|
@@ -81,9 +82,10 @@
 | 6.4 | Edit a meeting's Zoom Room to a different room | The old room's Zoom meeting and calendar event are removed; the new room gets a fresh Zoom meeting and calendar event | | |
 | 6.5 | Delete a non-recurring meeting that has a Zoom Room set | The Zoom meeting and its room-calendar event are both removed | | |
 | 6.6 | Delete a single occurrence ("This event") from a recurring meeting with a Zoom Room set | The Zoom meeting is untouched — it's one stable meeting shared by the whole series; only "All events" removes it | | |
-| 6.7 | On `/admin` → Diagnostics, check the Zoom status row | Shows account reachability plus a per-room breakdown: calendar reachable, host resolves, and whether the host is Licensed | | |
-| 6.8 | Temporarily set one room's `ZOOM_HOST_<ROOM>` to a nonexistent email, reload Diagnostics | That room shows "Host ✕" and is flagged out of the "N/5 rooms fully configured" count; other rooms are unaffected | | |
+| 6.7 | On `/admin` → Diagnostics, check the Zoom status row | Shows account reachability, a per-room Zoom Calendar breakdown, and a separate per-host breakdown of the shared host pool (resolves + whether Licensed) | | |
+| 6.8 | Temporarily remove one email from `ZOOM_HOSTS`, reload Diagnostics | That host no longer appears in the pool breakdown and the "N/M pooled hosts OK" count drops by one; other hosts/rooms are unaffected | | |
 | 6.9 | Force a Zoom sync failure (e.g. temporarily use an invalid `ZOOM_CLIENT_SECRET`) | Meeting shows a Zoom-specific ⚠ status separate from the Google Calendar one; Diagnostics' Meeting Counts card shows a nonzero Zoom sync-error count; **Retry sync** clears both once credentials are fixed | | |
+| 6.11 | Set `ZOOM_HOSTS` to a single email, then create two Zoom-enabled meetings at overlapping times (different rooms) | The first gets a real Zoom meeting; the second is still created but shows "Zoom sync failed ⚠: No Zoom host available…" with a working **Retry sync** button | | |
 
 ---
 
@@ -125,7 +127,7 @@
 
 | # | Step | Expected Result | Pass/Fail | Notes |
 |---|------|-----------------|-----------|-------|
-| 11.1 | Diagnostics tab | System Status card shows DB latency, Google Calendar reachability per category (AA/Al-Anon/Other), and Zoom account reachability + per-room calendar/host/license status | | |
+| 11.1 | Diagnostics tab | System Status card shows DB latency, Google Calendar reachability per category (AA/Al-Anon/Other), and Zoom account reachability + per-room calendar status + per-host pool status | | |
 
 ---
 

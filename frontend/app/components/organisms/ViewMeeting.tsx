@@ -39,6 +39,7 @@ type ViewMeetingDetailsProps = {
   currentOccurrenceDate?: Date; // Handles the specific occurrence date
   syncStatus?: string | null;
   zoomSyncStatus?: string | null;
+  zoomSyncError?: string | null;
   onBack: () => void;
   onEdit: () => void;
   onDelete: (mid: string, deleteOption?: 'this' | 'thisAndFollowing' | 'all') => void;
@@ -62,6 +63,7 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
   currentOccurrenceDate,
   syncStatus: initialSyncStatus,
   zoomSyncStatus: initialZoomSyncStatus,
+  zoomSyncError: initialZoomSyncError,
   onBack,
   onEdit,
   onDelete,
@@ -71,6 +73,7 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [syncStatus, setSyncStatus] = useState(initialSyncStatus ?? null);
   const [zoomSyncStatus, setZoomSyncStatus] = useState(initialZoomSyncStatus ?? null);
+  const [zoomSyncError, setZoomSyncError] = useState(initialZoomSyncError ?? null);
   const [syncing, setSyncing] = useState(false);
 
   const handleRetrySync = async () => {
@@ -84,6 +87,7 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
       const data = await res.json();
       setSyncStatus(data.syncStatus ?? 'error');
       setZoomSyncStatus(data.zoomSyncStatus ?? null);
+      setZoomSyncError(data.zoomSyncError ?? null);
       if (data.syncStatus === 'synced' || data.zoomSyncStatus === 'synced') onSyncSuccess?.();
     } catch {
       setSyncStatus('error');
@@ -254,7 +258,7 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
         )}
         {zoomSyncStatus === 'error' && (
           <p style={{ color: '#e07000', fontSize: '13px', margin: '2px 0 4px' }}>
-            Zoom sync failed ⚠
+            Zoom sync failed ⚠{zoomSyncError ? `: ${zoomSyncError}` : ''}
           </p>
         )}
         {(syncStatus === 'error' || zoomSyncStatus === 'error') && (

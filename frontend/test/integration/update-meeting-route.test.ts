@@ -28,6 +28,7 @@ jest.mock("../../services/zoom", () => ({
   createZoomMeeting: jest.fn(),
   updateZoomMeeting: jest.fn(),
   deleteZoomMeeting: jest.fn(),
+  resolveZoomHost: jest.fn(),
   zoomRoomCalendarId: {},
 }));
 

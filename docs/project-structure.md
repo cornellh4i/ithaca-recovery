@@ -143,7 +143,7 @@ See [api-reference.md](api-reference.md#data-types-reference) for the matching `
 | `ZOOM_CLIENT_ID` / `ZOOM_CLIENT_SECRET` / `ZOOM_ACCOUNT_ID` | Zoom Server-to-Server OAuth credentials (account-level) |
 | `NEXT_PUBLIC_ZOOM_BASE_API` | Zoom API base URL (`https://api.zoom.us/v2`) |
 | `GOOGLE_CALENDAR_ZOOM_<ROOM>` (×5) | Google Calendar ID for each Zoom-enabled room's own calendar |
-| `ZOOM_HOST_<ROOM>` (×5) | Licensed Zoom user email that hosts meetings for that room |
+| `ZOOM_HOSTS` | Comma-separated pool of licensed Zoom user emails, shared across all rooms (see [technical-decisions.md](handoff/technical-decisions.md#zoom-integration)) |
 
 No Redis instance is required to run the app — the unused `redis` package and its entirely-commented-out `app/api/server/redis.ts` were removed as dead code.
 

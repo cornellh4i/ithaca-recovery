@@ -15,7 +15,8 @@ interface DiagnosticsData {
   googleCalendar: { categories: Record<string, boolean> };
   zoom: {
     reachable: boolean;
-    rooms: Record<string, { calendarOk: boolean; hostOk: boolean; hostLicensed: boolean | null }>;
+    roomCalendars: Record<string, boolean>;
+    hostPool: Record<string, { ok: boolean; licensed: boolean | null }>;
   };
   session: { email: string | null; role: Role | null };
   meetingCounts: {
@@ -72,8 +73,11 @@ const DiagnosticsTab: React.FC<DiagnosticsTabProps> = ({ email, role }) => {
   const gcalEntries = Object.entries(data.googleCalendar.categories);
   const gcalReachableCount = gcalEntries.filter(([, ok]) => ok).length;
 
-  const zoomRoomEntries = Object.entries(data.zoom.rooms);
-  const zoomRoomOkCount = zoomRoomEntries.filter(([, s]) => s.calendarOk && s.hostOk).length;
+  const roomCalendarEntries = Object.entries(data.zoom.roomCalendars);
+  const roomCalendarOkCount = roomCalendarEntries.filter(([, ok]) => ok).length;
+
+  const hostPoolEntries = Object.entries(data.zoom.hostPool);
+  const hostPoolOkCount = hostPoolEntries.filter(([, s]) => s.ok).length;
 
   return (
     <div className={styles.container}>
@@ -108,18 +112,24 @@ const DiagnosticsTab: React.FC<DiagnosticsTabProps> = ({ email, role }) => {
           <span className={styles.statusLabel}>Zoom</span>
           <span className={styles.statusDetail}>
             {data.zoom.reachable ? "Account reachable" : "Account unreachable"}
-            {" · "}{zoomRoomOkCount}/{zoomRoomEntries.length} rooms fully configured
+            {" · "}{roomCalendarOkCount}/{roomCalendarEntries.length} room calendars reachable
+            {" · "}{hostPoolOkCount}/{hostPoolEntries.length} pooled hosts OK
           </span>
         </div>
         <div className={styles.gcalSubRow}>
-          {zoomRoomEntries.map(([room, s]) => {
-            const roomOk = s.calendarOk && s.hostOk;
-            const label = room.replace(/ - Zoom$/, "");
-            let detail = `Cal ${s.calendarOk ? "✓" : "✕"} · Host ${s.hostOk ? "✓" : "✕"}`;
-            if (s.hostOk && s.hostLicensed === false) detail += " (Basic — 40min cap)";
+          {roomCalendarEntries.map(([room, ok]) => (
+            <span key={room} className={ok ? styles.gcalOk : styles.gcalDown}>
+              {room.replace(/ - Zoom$/, "")}: {ok ? "✓" : "✕ unreachable"}
+            </span>
+          ))}
+        </div>
+        <div className={styles.gcalSubRow}>
+          {hostPoolEntries.map(([host, s]) => {
+            let detail = s.ok ? "✓" : "✕ unreachable";
+            if (s.ok && s.licensed === false) detail += " (Basic — 40min cap)";
             return (
-              <span key={room} className={roomOk && s.hostLicensed !== false ? styles.gcalOk : styles.gcalDown}>
-                {label}: {detail}
+              <span key={host} className={s.ok && s.licensed !== false ? styles.gcalOk : styles.gcalDown}>
+                {host}: {detail}
               </span>
             );
           })}

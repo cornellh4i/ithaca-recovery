@@ -86,6 +86,32 @@ Diagnostics (`GET /api/admin/diagnostics`, surfaced on `/admin`) checks each roo
 - Token generation happens on every Zoom API call (no token is cached). Fine at ICR's scale; would need caching if call volume grew significantly.
 - 5 separate licensed Zoom seats is a real recurring cost, in exchange for guaranteed non-conflicting concurrent meetings. We did consider a single shared account with a "is this account free" check was considered and rejected as added complexity not worth it for 5 rooms.
 
+### 2026-07-23 update: fixed room→host mapping replaced with a shared host pool
+
+**Decision reversed:** the "one licensed host per room" design above turned out to be wrong about
+what the 5 licensed seats actually are. The client (Matt, ICR board) flagged that ICR's licensed
+Zoom users are a **shared pool** — not associated with any particular room — and each can only
+host one meeting at a time. The original design let two meetings in *different* rooms silently
+collide if their fixed hosts happened to already be busy (no availability check ever existed), and
+interacted badly with the "warn, don't block" double-booking policy (an admin-approved room
+double-booking would hand both meetings the same host with zero check).
+
+**What changed:** `ZOOM_HOST_<ROOM>` (5 env vars) → one `ZOOM_HOSTS` (comma-separated pool).
+`services/zoom.ts`'s `createZoomMeeting` is now host-agnostic (takes a host email, not a room);
+callers resolve an available host first via the new `resolveZoomHost`, which checks the pool in
+list order against a shared, recurrence-aware overlap utility (`util/resourceOverlap.ts`, built for
+this and reused by the Diagnostics Conflicts panel and XLSX import's per-row conflict flagging).
+Pool exhaustion fails soft — the meeting is still saved, with `zoomSyncStatus: "error"` and a
+`zoomSyncError` message, retryable the same way any other sync failure already was. An **existing**
+recurring meeting's host is never re-resolved — only picking a host for a *new* Zoom meeting
+consults the pool, so no in-flight series can lose its host mid-run. A one-time backfill script
+to populate the new `Meeting.zoomHost` field from the old static room→host map was written and
+then removed again (no legacy data needed it in the current test DB) — a replacement can be
+added later once there's real data to migrate.
+
+**What didn't change:** `zoomRoomCalendarId` (one Google Calendar per physical Zoom Room, for the
+join-link event) is still fixed per room — only *host* assignment was decoupled from room.
+
 ---
 
 ## Leasing Documents: DB-configured CSV Export

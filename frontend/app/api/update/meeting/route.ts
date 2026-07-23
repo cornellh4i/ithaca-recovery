@@ -3,7 +3,7 @@ import { NextResponse, after } from "next/server";
 import { requireRole } from "../../../../services/auth";
 import { IMeeting } from "../../../../util/models";
 import { createCalendarEvent, updateCalendarEvent, deleteCalendarEvent, reconcileMeetingCalendars } from "../../../../services/googleCalendar";
-import { createZoomMeeting, updateZoomMeeting, deleteZoomMeeting, zoomRoomCalendarId } from "../../../../services/zoom";
+import { createZoomMeeting, updateZoomMeeting, deleteZoomMeeting, resolveZoomHost, zoomRoomCalendarId } from "../../../../services/zoom";
 import { meetingSchema } from "../../../../util/meetingValidation";
 import { prisma } from "../../../../lib/prisma";
 
@@ -37,8 +37,10 @@ async function syncUpdatedMeeting(
     const newZoomRoom = newMeeting.zoomRoom;
     let zid = existingMeeting.zid;
     let zoomLink = existingMeeting.zoomLink;
+    let zoomHost = existingMeeting.zoomHost;
     let zoomCalendarEventId = existingMeeting.zoomCalendarEventId;
     let zoomSynced = true;
+    let zoomSyncError: string | null = null;
 
     // Room changed or cleared — a Zoom meeting can't move rooms, so tear down and recreate.
     if (oldZoomRoom && oldZoomRoom !== newZoomRoom) {
@@ -55,21 +57,32 @@ async function syncUpdatedMeeting(
       }
       zid = null;
       zoomLink = null;
+      zoomHost = null;
       zoomCalendarEventId = null;
     }
 
     if (newZoomRoom) {
+      // Same room, same existing Zoom meeting — keep the host that's already assigned; no
+      // re-resolution, so an existing recurring meeting never loses its host mid-series.
       const sameRoomExisting = zid && oldZoomRoom === newZoomRoom;
       if (sameRoomExisting) {
         const ok = await updateZoomMeeting(zid as string, newMeeting);
         if (!ok) zoomSynced = false;
       } else if (!zid) {
-        const created = await createZoomMeeting(newMeeting, newZoomRoom);
-        if (created) {
-          zid = created.zid;
-          zoomLink = created.zoomLink;
-        } else {
+        const host = await resolveZoomHost(newMeeting, { excludeMid: mid });
+        if (!host) {
           zoomSynced = false;
+          zoomSyncError = "No Zoom host available for this meeting's schedule (pool exhausted).";
+        } else {
+          const created = await createZoomMeeting(newMeeting, host);
+          if (created) {
+            zid = created.zid;
+            zoomLink = created.zoomLink;
+            zoomHost = host;
+          } else {
+            zoomSynced = false;
+            zoomSyncError = "Failed to create the Zoom meeting.";
+          }
         }
       }
 
@@ -83,7 +96,10 @@ async function syncUpdatedMeeting(
           } else {
             const eventId = await createCalendarEvent(accessToken, meetingWithZoomLink, calId, zoomLink);
             if (eventId) zoomCalendarEventId = eventId;
-            else zoomSynced = false;
+            else {
+              zoomSynced = false;
+              zoomSyncError = zoomSyncError ?? "Zoom meeting created but its calendar event failed to sync.";
+            }
           }
         }
       }
@@ -91,7 +107,11 @@ async function syncUpdatedMeeting(
 
     await prisma.meeting.update({
       where: { mid },
-      data: { zid, zoomLink, zoomCalendarEventId, zoomSyncStatus: zoomSynced ? 'synced' : 'error' },
+      data: {
+        zid, zoomLink, zoomHost, zoomCalendarEventId,
+        zoomSyncStatus: zoomSynced ? 'synced' : 'error',
+        zoomSyncError: zoomSynced ? null : zoomSyncError,
+      },
     });
   }
 }
