@@ -6,6 +6,7 @@
 
 .buttonDropdownContainer {
   width: 80%;
+
   /* Ensure content takes up full width of container */
   position: relative;
 }
@@ -40,8 +41,8 @@
   padding: 11.4px;
   border: 1.5px solid #CECECE;
   border-radius: 8px;
-  background: #ffffff;
-  color: rgb(0, 0, 0);
+  background: #fff;
+  color: rgb(0 0 0);
   cursor: pointer;
   transition: background-color 0.2s;
 

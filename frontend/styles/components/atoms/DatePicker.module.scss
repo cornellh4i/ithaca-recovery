@@ -4,7 +4,7 @@
   display: flex;
   align-items: center;
   margin-bottom: 18px;
-  padding: 1.5px 1.5px;
+  padding: 1.5px;
   font-family: 'Source Sans Pro', sans-serif;
 
   .date-picker-label {
@@ -67,7 +67,7 @@
     left: 0;
     z-index: 999; // High z-index to ensure visibility
     background-color: white;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 4px 12px rgb(0 0 0 / 15%);
     border-radius: 4px;
   }
 }

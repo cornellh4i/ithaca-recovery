@@ -47,6 +47,7 @@ jobs:
           cache-dependency-path: frontend/yarn.lock
       - run: yarn install --frozen-lockfile
       - run: yarn lint
+      - run: yarn lint:css
 
   unit:
     runs-on: ubuntu-latest

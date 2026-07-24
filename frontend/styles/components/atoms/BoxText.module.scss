@@ -1,10 +1,10 @@
-@import url('https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;600&display=swap');
+@import 'https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;600&display=swap';
 
 .box {
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  font-family: "Source Sans Pro";
+  font-family: "Source Sans Pro", sans-serif;
   text-align: left;
   color: #000;
 
@@ -18,12 +18,14 @@
 
     .title {
       font-size: 14px;
-      margin-top: 0px;
-      margin-bottom: 0px;
+      margin-top: 0;
+      margin-bottom: 0;
       font-weight: 600;
-      padding: 0px;
+      padding: 0;
+
       // box-sizing isn't inherited from .box
       box-sizing: border-box;
+
       // Adds an ellipses for titles when there is no space.
       min-width: 0;
       overflow: hidden;
@@ -37,16 +39,16 @@
     width: 155px;
     height: 105px;
     padding: 10px 12px;
-    margin: 0px;
+    margin: 0;
     border-radius: 4px;
 
     .title {
       font-size: 16px;
-      margin-top: 0px;
-      margin-bottom: 0px;
+      margin-top: 0;
+      margin-bottom: 0;
       font-weight: 600;
-      padding: 0px;
-      word-wrap: break-word; // Ensures text wraps to three lines
+      padding: 0;
+      overflow-wrap: break-word; // Ensures text wraps to three lines
     }
   }
 
@@ -54,8 +56,8 @@
     font-size: 13px;
     font-style: normal;
     font-weight: 400;
-    margin-top: 0px;
-    padding: 0px;
+    margin-top: 0;
+    padding: 0;
     color: #3A3E49;
     overflow-x: hidden;
     white-space: nowrap;
@@ -115,9 +117,10 @@
   .tags {
     display: flex;
     flex-wrap: wrap;
+
     // Anchors to the bottom of the box
     margin-top: auto;
-    padding: 0px;
+    padding: 0;
     gap: 4px;
     align-items: center;
 

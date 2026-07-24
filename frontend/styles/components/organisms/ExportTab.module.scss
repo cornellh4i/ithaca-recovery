@@ -14,7 +14,7 @@
   gap: 20px;
   width: 100%;
 
-  @media (max-width: 720px) {
+  @media (width <= 720px) {
     grid-template-columns: 1fr;
   }
 }
@@ -141,7 +141,7 @@
   border: 1.5px solid #E5E5E5;
   border-radius: 8px;
   padding: 10px 14px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 12px rgb(0 0 0 / 10%);
   z-index: 10;
   min-width: 220px;
 }
@@ -160,7 +160,7 @@
 .modalOverlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.4);
+  background: rgb(0 0 0 / 40%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -330,7 +330,7 @@
   gap: 20px 40px;
   margin-bottom: 20px;
 
-  @media (max-width: 560px) {
+  @media (width <= 560px) {
     grid-template-columns: 1fr;
   }
 }

@@ -24,7 +24,7 @@
   white-space: nowrap; // Prevent wrapping
   overflow: hidden; // Hide overflow text
 
-  @media (max-width: 700px) {
+  @media (width <= 700px) {
     font-size: 18px;
   }
 }
@@ -36,7 +36,7 @@
   gap: 24px;
   flex: 1;
 
-  @media (max-width: 700px) {
+  @media (width <= 700px) {
     transform: scale(0.5);
     transform-origin: top right; // Scale from the top right corner
     width: 0;

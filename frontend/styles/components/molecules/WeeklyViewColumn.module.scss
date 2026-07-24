@@ -11,6 +11,7 @@
   height: 2400px; // 24 hours * 100px per hour
   border-right: 1px solid #e5e7eb;
   cursor: pointer;
+
   // Clips cards to this column so they can't bleed into the next day. Don't do this one
   // level up at .dayColumn instead — it has the sticky day header as a sibling, and hiding
   // overflow there would break its stickiness against the scrolling .viewContainer.

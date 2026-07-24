@@ -1,11 +1,14 @@
+@use 'sass:color';
 @import '../../Variables.module.scss';
+
 // Main container
 .container {
     margin-top: 8px;
     padding: 12px;
     background-color: #FFF;
     border-radius: 4px;
-    font-family: "Source Sans Pro";
+    font-family: "Source Sans Pro", sans-serif;
+
     // box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     z-index: 999; // Increased z-index to ensure visibility
     width: 325px; // Explicit width
@@ -27,8 +30,9 @@
     /* Global styles nested inside the local .container class */
     :global(.rdp) {
         --rdp-cell-size: 36px;
-        --rdp-accent-color: $dark-pink-color;
+        --rdp-accent-color: #{$dark-pink-color};
         --rdp-background-color: #f5f5f5;
+
         margin: 0;
     }
 
@@ -57,15 +61,15 @@
         cursor: pointer;
         
         &:hover {
-            background-color: lighten($dark-pink-color, 35%);
+            background-color: color.adjust($dark-pink-color, $lightness: 35%);
         }
     }
 
     :global(.rdp-day) {
         cursor: pointer;
         
-        &:hover:not(.rdp-day_selected):not(.rdp-day_disabled) {
-            background-color: lighten($dark-pink-color, 35%);
+        &:hover:not(.rdp-day_selected, .rdp-day_disabled) {
+            background-color: color.adjust($dark-pink-color, $lightness: 35%);
         }
     }
 }
