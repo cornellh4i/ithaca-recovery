@@ -1189,21 +1189,21 @@
     prop-types "^15.8.1"
     react-is "^19.2.6"
 
-"@mui/x-date-pickers-pro@^9.10.0":
-  version "9.10.0"
-  resolved "https://registry.yarnpkg.com/@mui/x-date-pickers-pro/-/x-date-pickers-pro-9.10.0.tgz#d55223b7c787cd00f21a45163441311948a24e1d"
-  integrity sha512-LCjnpfI4tXv5CLAFd7c0dU2Jf8lI9jwGxMemX7BacqZ4yWUOaNZv1Gs7qw6+KNdxCc10psoGAe6QfFWIPFTHhw==
+"@mui/x-date-pickers-pro@^9.10.1":
+  version "9.10.1"
+  resolved "https://registry.yarnpkg.com/@mui/x-date-pickers-pro/-/x-date-pickers-pro-9.10.1.tgz#ee1f81fe04a02a4f5743c0915011482947ed1eb6"
+  integrity sha512-IIOP6jW6MXHZqjYLav0ntE6usoUe56Fog8BeCy7p5hf9QyMqBT5ohFX4O5hOVHHSoF+lpYUJCSQGY9VpZU3Uiw==
   dependencies:
     "@babel/runtime" "^7.29.7"
     "@mui/utils" "^9.2.0"
-    "@mui/x-date-pickers" "^9.10.0"
-    "@mui/x-internals" "^9.10.0"
-    "@mui/x-license" "^9.10.0"
+    "@mui/x-date-pickers" "^9.10.1"
+    "@mui/x-internals" "^9.10.1"
+    "@mui/x-license" "^9.10.1"
     clsx "^2.1.1"
     prop-types "^15.8.1"
     react-transition-group "^4.4.5"
 
-"@mui/x-date-pickers@^9.10.0", "@mui/x-date-pickers@^9.10.1":
+"@mui/x-date-pickers@^9.10.1":
   version "9.10.1"
   resolved "https://registry.yarnpkg.com/@mui/x-date-pickers/-/x-date-pickers-9.10.1.tgz#9f003addeaef38006639150bf94987808fc1e90f"
   integrity sha512-WMGSi6Ao3d1PMqakJ4XtLzEvbvawT3FhiySFLyJ4G39yC9ILUwbUsJWECV0m9trmiriXmhgjf1l7a9nOyY2lBQ==
@@ -1216,7 +1216,7 @@
     prop-types "^15.8.1"
     react-transition-group "^4.4.5"
 
-"@mui/x-internals@^9.10.0", "@mui/x-internals@^9.10.1":
+"@mui/x-internals@^9.10.1":
   version "9.10.1"
   resolved "https://registry.yarnpkg.com/@mui/x-internals/-/x-internals-9.10.1.tgz#1b38cf1870ac7968117511f90bbdc9d815f6cb28"
   integrity sha512-pKFVzFQHB34TuMG3gOVx+LfIR8VBsi/ZhX/erRX2WOXu+ewEYGvdeK1mW9hLe7e2v3uyUbgT8RNeN0cy10cDjg==
@@ -1227,14 +1227,14 @@
     reselect "^5.2.0"
     use-sync-external-store "^1.6.0"
 
-"@mui/x-license@^9.10.0":
-  version "9.10.0"
-  resolved "https://registry.yarnpkg.com/@mui/x-license/-/x-license-9.10.0.tgz#df621a43eb0ddf1e77a814735834a6689a749571"
-  integrity sha512-14IpKfCP13nxYtpGOuumkdJD8yUOUQGoUCAYWTBtIBI3H7z1gfb0iwvLOGoPN0pj6qC4w3+DTGndWizqOSfI5A==
+"@mui/x-license@^9.10.1":
+  version "9.10.1"
+  resolved "https://registry.yarnpkg.com/@mui/x-license/-/x-license-9.10.1.tgz#9f644ef634d31c2e13231346a8fe815aa1ea142c"
+  integrity sha512-5uhz8TSp08c5LNXjLDbPlvqj3lMEJ7uLutOhdOpUuziPGSL6AkUqe2C0hLiXuReGR9BAU9CCfuvFHY6gjPK/aQ==
   dependencies:
     "@babel/runtime" "^7.29.7"
     "@mui/utils" "^9.2.0"
-    "@mui/x-internals" "^9.10.0"
+    "@mui/x-internals" "^9.10.1"
     "@mui/x-telemetry" "^9.10.0"
 
 "@mui/x-telemetry@^9.10.0":
