@@ -76,7 +76,7 @@ jobs:
       # avoids re-downloading on every run and reduces exposure to a slow/rate-
       # limited download hanging the job (see e2e's cache step below, keyed the
       # same way).
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: ~/.cache/mongodb-binaries
           key: mongodb-binaries-${{ runner.os }}-${{ hashFiles('frontend/yarn.lock') }}
@@ -94,7 +94,7 @@ jobs:
           cache-dependency-path: frontend/yarn.lock
       - run: yarn install --frozen-lockfile
       - run: npx playwright install --with-deps chromium
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: ~/.cache/mongodb-binaries
           key: mongodb-binaries-${{ runner.os }}-${{ hashFiles('frontend/yarn.lock') }}
