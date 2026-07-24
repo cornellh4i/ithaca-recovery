@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import type { Role } from "@prisma/client";
 import StatCounter from "../atoms/StatCounter";
 import ConflictList, { ConflictListRow } from "../molecules/ConflictList";
@@ -50,16 +50,21 @@ const roleLabel: Record<string, string> = {
 const DiagnosticsTab: React.FC<DiagnosticsTabProps> = ({ email, role }) => {
   const [data, setData] = useState<DiagnosticsData | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Guards against out-of-order resolution: loadDiagnostics is called both on mount and from
+  // ConflictList's onMeetingUpdated, so a slow initial fetch could otherwise resolve after (and
+  // overwrite) a faster post-edit refresh.
+  const latestRequestId = useRef(0);
 
   const loadDiagnostics = async () => {
+    const requestId = ++latestRequestId.current;
     try {
       const response = await fetch("/api/admin/diagnostics");
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
       const json: DiagnosticsData = await response.json();
-      setData(json);
+      if (requestId === latestRequestId.current) setData(json);
     } catch (err) {
       console.error("Error fetching diagnostics:", err);
-      setError("Failed to load diagnostics.");
+      if (requestId === latestRequestId.current) setError("Failed to load diagnostics.");
     }
   };
 

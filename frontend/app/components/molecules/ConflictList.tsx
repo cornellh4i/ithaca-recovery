@@ -106,22 +106,17 @@ const ConflictList: React.FC<ConflictListProps> = ({ conflicts, emptyLabel = "No
   const [expandedRowIndex, setExpandedRowIndex] = useState<number | null>(null);
   const [meetingCache, setMeetingCache] = useState<Record<string, IMeeting>>({});
   const [loadingMid, setLoadingMid] = useState<string | null>(null);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   const collapse = () => {
     setExpandedMid(null);
     setExpandedRowIndex(null);
+    setFetchError(null);
   };
 
-  const toggleEdit = async (rowIndex: number, mid: string) => {
-    if (expandedMid === mid && expandedRowIndex === rowIndex) {
-      collapse();
-      return;
-    }
-    setExpandedMid(mid);
-    setExpandedRowIndex(rowIndex);
-    if (meetingCache[mid]) return;
-
+  const fetchMeeting = async (mid: string) => {
     setLoadingMid(mid);
+    setFetchError(null);
     try {
       const response = await fetch(`/api/retrieve/meeting/${mid}`);
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
@@ -129,10 +124,22 @@ const ConflictList: React.FC<ConflictListProps> = ({ conflicts, emptyLabel = "No
       setMeetingCache((prev) => ({ ...prev, [mid]: data }));
     } catch (err) {
       console.error("Error fetching meeting details:", err);
-      collapse();
+      setFetchError("Failed to load meeting details. Please try again.");
     } finally {
       setLoadingMid(null);
     }
+  };
+
+  const toggleEdit = (rowIndex: number, mid: string) => {
+    if (expandedMid === mid && expandedRowIndex === rowIndex) {
+      collapse();
+      return;
+    }
+    setExpandedMid(mid);
+    setExpandedRowIndex(rowIndex);
+    setFetchError(null);
+    if (meetingCache[mid]) return;
+    fetchMeeting(mid);
   };
 
   if (conflicts.length === 0) {
@@ -172,9 +179,16 @@ const ConflictList: React.FC<ConflictListProps> = ({ conflicts, emptyLabel = "No
                 <div className={`${styles.editPanel} ${isExpanded ? styles.editPanelOpen : ""}`}>
                   <div className={styles.editPanelInner}>
                     {isExpanded && (
-                      loadingMid === meeting.mid || !meetingDetails ? (
+                      loadingMid === meeting.mid ? (
                         <div className={styles.editLoading}>Loading meeting…</div>
-                      ) : (
+                      ) : fetchError && !meetingDetails ? (
+                        <div className={styles.editLoading}>
+                          {fetchError}{" "}
+                          <button type="button" className={styles.editButton} onClick={() => fetchMeeting(meeting.mid)}>
+                            Retry
+                          </button>
+                        </div>
+                      ) : !meetingDetails ? null : (
                         <div className={styles.editCard}>
                           <EditMeetingSidebar
                             layout="wide"

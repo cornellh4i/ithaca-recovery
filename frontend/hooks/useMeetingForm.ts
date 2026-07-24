@@ -52,27 +52,45 @@ function isoToPickerDate(isoDate: string): string {
     return `${month}/${day}/${year}`;
 }
 
+// "YYYY-MM-DD" -> the next calendar day's "YYYY-MM-DD". Uses Date.UTC purely as a calendar
+// calculator (not a timezone conversion) so month/year rollovers are handled for free.
+function addOneDayISO(isoDate: string): string {
+    const [year, month, day] = isoDate.split('-').map(Number);
+    const next = new Date(Date.UTC(year, month - 1, day + 1));
+    const y = next.getUTCFullYear();
+    const m = (next.getUTCMonth() + 1).toString().padStart(2, '0');
+    const d = next.getUTCDate().toString().padStart(2, '0');
+    return `${y}-${m}-${d}`;
+}
+
 // Default Date for a brand-new meeting, based on what the calendar is currently showing:
 // Day View defaults to the day being viewed; Week View defaults to today (ET) if the
 // displayed week is the real current week, otherwise to that week's first day (Sunday) --
 // there's no single obviously-right day to default to when browsing a week that isn't
-// the current one.
-function computeDefaultDate(context?: MeetingFormDefaultContext): string {
+// the current one. `rolledToNextDay` (from computeDefaultTime) bumps only the "today"-derived
+// branches by a day -- explicit non-today selections (a different Day-view date, or a
+// non-current week's Sunday) are left alone, since those weren't derived from "now".
+function computeDefaultDate(context?: MeetingFormDefaultContext, rolledToNextDay = false): string {
     const todayET = formatETDateString(new Date());
-    if (!context) return isoToPickerDate(todayET);
+    const advance = (iso: string) => (rolledToNextDay ? addOneDayISO(iso) : iso);
+
+    if (!context) return isoToPickerDate(advance(todayET));
 
     const selectedET = formatETDateString(context.selectedDate);
-    if (context.selectedView === "Day") return isoToPickerDate(selectedET);
+    if (context.selectedView === "Day") {
+        return isoToPickerDate(selectedET === todayET ? advance(selectedET) : selectedET);
+    }
 
     const displayedWeek = getWeekDatesET(selectedET);
     const isCurrentWeek = displayedWeek.includes(todayET);
-    return isoToPickerDate(isCurrentWeek ? todayET : displayedWeek[0]);
+    return isoToPickerDate(isCurrentWeek ? advance(todayET) : displayedWeek[0]);
 }
 
 // Default Time for a brand-new meeting: starts on the next ET half-hour slot (e.g. 2:10
 // -> 2:30, 2:40 -> 3:00; always advances even if already exactly on a slot), ends an hour
-// after that.
-function computeDefaultTime(): string {
+// after that. `rolledToNextDay` reports whether that rounding wrapped past midnight ET
+// (e.g. 23:45 -> "00:00"), so computeDefaultDate can advance the date to match.
+function computeDefaultTime(): { time: string; rolledToNextDay: boolean } {
     const pad = (n: number) => n.toString().padStart(2, '0');
     const toHHMM = (minutesSinceMidnight: number) =>
         `${pad(Math.floor(minutesSinceMidnight / 60))}:${pad(minutesSinceMidnight % 60)}`;
@@ -81,19 +99,27 @@ function computeDefaultTime(): string {
     const nowMinutes = getCurrentETMinutesSinceMidnight();
     const startMinutes = (Math.floor(nowMinutes / 30) * 30 + 30) % MINUTES_PER_DAY;
     const endMinutes = (startMinutes + 60) % MINUTES_PER_DAY;
-    return `${toHHMM(startMinutes)} - ${toHHMM(endMinutes)}`;
+    return {
+        time: `${toHHMM(startMinutes)} - ${toHHMM(endMinutes)}`,
+        rolledToNextDay: startMinutes < nowMinutes,
+    };
 }
 
 export function useMeetingForm(initialMeeting?: IMeeting, defaultContext?: MeetingFormDefaultContext) {
     const [title, setTitle] = useState(initialMeeting?.title ?? "");
     const [mode, setMode] = useState<string>(initialMeeting?.modeType ?? "Hybrid");
+    // Computed once per render (not just on mount) so the date and time defaults below agree
+    // on the same rolledToNextDay snapshot -- see computeDefaultTime's doc comment.
+    const defaultTimeInfo = initialMeeting ? null : computeDefaultTime();
     const [date, setDate] = useState<string>(() =>
-        initialMeeting ? formatDateForPicker(initialMeeting.startDateTime) : computeDefaultDate(defaultContext)
+        initialMeeting
+            ? formatDateForPicker(initialMeeting.startDateTime)
+            : computeDefaultDate(defaultContext, defaultTimeInfo!.rolledToNextDay)
     );
     const [time, setTime] = useState<string>(() =>
         initialMeeting
             ? `${formatTimeForPicker(initialMeeting.startDateTime)} - ${formatTimeForPicker(initialMeeting.endDateTime)}`
-            : computeDefaultTime()
+            : defaultTimeInfo!.time
     );
     const [email, setEmail] = useState(initialMeeting?.email ?? "");
     const [description, setDescription] = useState(initialMeeting?.description ?? "");
@@ -145,8 +171,9 @@ export function useMeetingForm(initialMeeting?: IMeeting, defaultContext?: Meeti
     const resetForm = () => {
         setTitle("");
         setMode("Hybrid");
-        setDate(computeDefaultDate(defaultContext));
-        setTime(computeDefaultTime());
+        const resetTimeInfo = computeDefaultTime();
+        setDate(computeDefaultDate(defaultContext, resetTimeInfo.rolledToNextDay));
+        setTime(resetTimeInfo.time);
         setEmail("");
         setDescription("");
         setRoom("");
