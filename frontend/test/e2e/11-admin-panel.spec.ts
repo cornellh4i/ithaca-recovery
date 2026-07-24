@@ -31,8 +31,15 @@ test.describe("admin panel", () => {
 
   test("11.4 double-booked meetings in the same room are flagged as conflicts", async ({ superAdminPage }) => {
     const { page } = superAdminPage;
-    await seedMeeting({ title: "Double Book A", room: "Serenity Room" });
-    await seedMeeting({ title: "Double Book B", room: "Serenity Room" });
+    // computeConflicts deliberately excludes occurrences that have already ended (nothing to
+    // flag about a booking that's over) — seedMeeting's default "today, fixed ET hour" window
+    // is fine most of the day but goes stale once CI runs past that hour, which reads as "no
+    // conflict" instead of a failure in conflict detection itself. An hour-from-now window is
+    // never in the past, regardless of what time CI happens to run.
+    const start = new Date(Date.now() + 60 * 60 * 1000);
+    const end = new Date(start.getTime() + 60 * 60 * 1000);
+    await seedMeeting({ title: "Double Book A", room: "Serenity Room", startDateTime: start, endDateTime: end });
+    await seedMeeting({ title: "Double Book B", room: "Serenity Room", startDateTime: start, endDateTime: end });
     await page.goto("/admin");
 
     const panel = page.getByTestId("diagnostics-conflicts-panel");
@@ -43,8 +50,10 @@ test.describe("admin panel", () => {
 
   test("11.4b meetings in different rooms are not flagged as conflicts", async ({ superAdminPage }) => {
     const { page } = superAdminPage;
-    await seedMeeting({ title: "No Conflict A", room: "Serenity Room" });
-    await seedMeeting({ title: "No Conflict B", room: "Unity Room" });
+    const start = new Date(Date.now() + 60 * 60 * 1000);
+    const end = new Date(start.getTime() + 60 * 60 * 1000);
+    await seedMeeting({ title: "No Conflict A", room: "Serenity Room", startDateTime: start, endDateTime: end });
+    await seedMeeting({ title: "No Conflict B", room: "Unity Room", startDateTime: start, endDateTime: end });
     await page.goto("/admin");
 
     await expect(page.getByTestId("diagnostics-conflicts-panel").getByText("No conflicts detected.")).toBeVisible();
