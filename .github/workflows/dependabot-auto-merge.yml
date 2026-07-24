@@ -17,17 +17,15 @@ jobs:
         with:
           github-token: "${{ secrets.GITHUB_TOKEN }}"
 
-      # dependabot.yml's "dev-patch" group is the only group scoped to
-      # dependency-type: development + update-types: patch -- membership in it is itself
-      # the safety guarantee, so gate on the group rather than re-deriving semver/type here.
-      # Everything else (prod deps at any semver level, github-actions bumps, dev deps at
-      # minor/major) is left as an individual PR for manual review + CI green -- a version
-      # bump can change runtime/build behavior in ways this repo's CI doesn't always catch,
-      # so those get a human read of the diff/changelog rather than an unattended merge.
+      # dependabot.yml's "safe-updates" group is scoped to update-types: patch + minor --
+      # membership in it is itself the safety guarantee, so gate on the group rather than
+      # re-deriving semver/type here. Major bumps and all github-actions bumps are left as
+      # individual PRs for manual review + CI green -- those are the ones most likely to
+      # carry breaking changes this repo's CI doesn't always catch.
       # Auto-merge still doesn't bypass required status checks -- it just lets the PR merge
       # itself once lint/unit/integration/e2e all pass.
-      - name: Enable auto-merge for patch-level devDependency updates
-        if: steps.metadata.outputs.dependency-group == 'dev-patch'
+      - name: Enable auto-merge for patch/minor updates
+        if: steps.metadata.outputs.dependency-group == 'safe-updates'
         run: gh pr merge --auto --squash "$PR_URL"
         env:
           PR_URL: "${{ github.event.pull_request.html_url }}"

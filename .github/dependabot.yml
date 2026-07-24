@@ -7,15 +7,20 @@ updates:
       interval: "weekly"
     open-pull-requests-limit: 10
     groups:
-      # Only patch-level devDependency bumps are safe to auto-merge unattended (see
-      # dependabot-auto-merge.yml) -- everything else (prod deps at any semver level,
-      # dev deps at minor/major) stays its own PR so a human reads the diff/changelog.
-      dev-patch:
-        dependency-type: "development"
+      # Patch and minor bumps (prod or dev) are safe to auto-merge unattended once CI is
+      # green (see dependabot-auto-merge.yml) -- only major bumps are left as individual
+      # PRs for manual review, since those are the ones most likely to carry breaking
+      # changes a semver-respecting package wouldn't ship otherwise.
+      safe-updates:
         update-types:
           - "patch"
+          - "minor"
 
   # .github/workflows/test.yml — actions/checkout, actions/setup-node, actions/upload-artifact
+  # Never auto-merged, regardless of semver level: Action version bumps don't reliably
+  # follow semver for breaking changes (e.g. actions/checkout v7 broke fork-PR checkout
+  # under pull_request_target despite looking like a routine bump), so every bump here
+  # gets a human read of the diff.
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
