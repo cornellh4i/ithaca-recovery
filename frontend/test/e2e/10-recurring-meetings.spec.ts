@@ -82,8 +82,8 @@ test.describe("recurring meetings", () => {
 
   test("10.3 future occurrences of a recurring meeting appear on the calendar", async ({ adminPage }) => {
     const { page } = adminPage;
-    const today = new Date();
-    const dayName = today.toLocaleDateString("en-US", { weekday: "long" });
+    // ET, not the runner's local clock — see formHelpers.ts's todayMMDDYYYY for why.
+    const dayName = new Date().toLocaleDateString("en-US", { weekday: "long", timeZone: "America/New_York" });
     await seedRecurringMeeting(
       { title: "Recurring Occurrence Meeting" },
       { type: "weekly", daysOfWeek: [dayName], interval: 1 },

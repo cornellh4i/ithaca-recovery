@@ -41,6 +41,8 @@ export const meetingSchema = z.object({
   syncStatus: z.string().nullable().optional(),
   zoomCalendarEventId: z.string().nullable().optional(),
   zoomSyncStatus: z.string().nullable().optional(),
+  zoomHost: z.string().nullable().optional(),
+  zoomSyncError: z.string().nullable().optional(),
   deletedAt: z.coerce.date().nullable().optional(),
   updatedAt: z.coerce.date().nullable().optional(),
 });
