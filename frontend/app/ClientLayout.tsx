@@ -17,11 +17,11 @@ export default function ClientLayout({
     children,
 }: PropsWithChildren<ClientLayoutProps>) {
     return (
-        <html lang="en">
+        <html lang="en" suppressHydrationWarning>
             <head>
             </head>
             {/* suppressHydrationWarning: some browser extensions (e.g. security/wallet
-                extensions) inject attributes like bis_register onto <body> before React
+                extensions) inject attributes like bis_register onto <body> or <html> before React
                 hydrates — a real mismatch, but not one our code can control or should warn on. */}
             <body className={inter.className} suppressHydrationWarning>
                 <div className={styles.mainlayout}>
