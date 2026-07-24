@@ -43,20 +43,20 @@ const SpinnerInput: React.FC<InputSpinnerProps> = ({
     onChange(parseFloat(newValue)); // Notify parent of the change
   };
 
+  // Reads localValue directly rather than via a setState updater callback -- calling
+  // onChange (which triggers the parent's setState) from inside a React state updater
+  // runs it during render/reconciliation, which is what produced the "Cannot update a
+  // component while rendering a different component" warning.
   const increment = () => {
-    setLocalValue((prev) => {
-      const newValue = Math.min(parseFloat(prev) + step, max || Infinity);
-      onChange(newValue);
-      return newValue.toString();
-    });
+    const newValue = Math.min(parseFloat(localValue) + step, max || Infinity);
+    setLocalValue(newValue.toString());
+    onChange(newValue);
   };
 
   const decrement = () => {
-    setLocalValue((prev) => {
-      const newValue = Math.max(parseFloat(prev) - step, min || 0);
-      onChange(newValue);
-      return newValue.toString();
-    });
+    const newValue = Math.max(parseFloat(localValue) - step, min || 0);
+    setLocalValue(newValue.toString());
+    onChange(newValue);
   };
 
   const toggleFocus = () => setUnderline(true);

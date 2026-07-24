@@ -82,8 +82,11 @@ test.describe("recurring meetings", () => {
 
   test("10.3 future occurrences of a recurring meeting appear on the calendar", async ({ adminPage }) => {
     const { page } = adminPage;
-    const today = new Date();
-    const dayName = today.toLocaleDateString("en-US", { weekday: "long" });
+    // ET, not the runner's local clock -- seedRecurringMeeting anchors the meeting's own
+    // start day to ET (formatETDateString), and the two must agree or the pattern's
+    // daysOfWeek won't match the meeting's actual start day. See formHelpers.ts's
+    // todayMMDDYYYY for the same fix and why it matters near ET midnight.
+    const dayName = new Date().toLocaleDateString("en-US", { weekday: "long", timeZone: "America/New_York" });
     await seedRecurringMeeting(
       { title: "Recurring Occurrence Meeting" },
       { type: "weekly", daysOfWeek: [dayName], interval: 1 },
