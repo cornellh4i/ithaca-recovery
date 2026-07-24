@@ -1,4 +1,4 @@
-import { execSync } from "child_process";
+import { execFileSync } from "child_process";
 import { readFileSync } from "fs";
 import path from "path";
 import { startTestMongo } from "../mongo/replicaSet";
@@ -47,7 +47,7 @@ export default async function globalSetup(): Promise<void> {
   // is a hard backstop regardless of the exact cause: this should finish in well under a
   // second, so 60s is generous, and a genuine hang now fails fast with a clear error
   // instead of silently blocking the whole suite.
-  execSync(`${path.join(frontendRoot, "node_modules/.bin/prisma")} db push --skip-generate --accept-data-loss`, {
+  execFileSync(path.join(frontendRoot, "node_modules/.bin/prisma"), ["db", "push", "--skip-generate", "--accept-data-loss"], {
     cwd: frontendRoot,
     stdio: "inherit",
     env: { ...process.env, DATABASE_URL: uri, CHECKPOINT_DISABLE: "1" },

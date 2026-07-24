@@ -1,4 +1,4 @@
-import { execSync } from "child_process";
+import { execFileSync } from "child_process";
 import path from "path";
 import { startTestMongo } from "../mongo/replicaSet";
 
@@ -13,7 +13,7 @@ export default async function globalSetup(): Promise<void> {
   // See the identical comment in test/e2e/global-setup.ts — avoid `npx` (the CI hang left
   // an orphan "npm exec prisma db push" process, not anything Prisma-internal) and hard-cap
   // with `timeout` as a backstop regardless of the exact cause.
-  execSync(`${path.join(frontendRoot, "node_modules/.bin/prisma")} db push --skip-generate --accept-data-loss`, {
+  execFileSync(path.join(frontendRoot, "node_modules/.bin/prisma"), ["db", "push", "--skip-generate", "--accept-data-loss"], {
     cwd: frontendRoot,
     stdio: "inherit",
     env: { ...process.env, DATABASE_URL: uri, CHECKPOINT_DISABLE: "1" },
