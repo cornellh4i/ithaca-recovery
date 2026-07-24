@@ -72,7 +72,7 @@
 
 > **Automated (fail-soft path + auto-pairing logic):** `frontend/test/e2e/06-zoom-integration.spec.ts`
 > — most cases below require live Zoom/Google credentials to verify against the real services.
-> 6.10/6.11 (conflicts, host-pool exhaustion) don't — they're covered by
+> 6.10 (conflicts) doesn't — it's covered by
 > `frontend/test/e2e/11-admin-panel.spec.ts`'s conflict-detection cases with zero real network calls.
 
 | # | Step | Expected Result | Pass/Fail | Notes |
@@ -152,12 +152,12 @@
 | 1. Authentication | 3 | | | | |
 | 2. Meeting Creation | 1 | | | | |
 | 3. Meeting Editing | 2 | | | | |
-| 6. Zoom Room Integration | 10 | | | | |
+| 6. Zoom Room Integration | 11 | | | | |
 | 7. Google Calendar Sync | 6 | | | | |
 | 9. Edge Cases | 3 | | | | |
 | 11. Admin Panel | 1 | | | | |
 | 13. Digital Signage | 2 | | | | |
-| **Total** | **28** | | | | |
+| **Total** | **29** | | | | |
 
 **Overall Assessment:** ☐ Ready for launch &nbsp; ☐ Needs fixes before launch &nbsp; ☐ Major issues found
 
