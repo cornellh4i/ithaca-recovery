@@ -40,10 +40,15 @@ export default async function globalSetup(): Promise<void> {
   const uri = await startTestMongo(TEST_DB_NAME);
 
   const frontendRoot = path.resolve(__dirname, "../..");
+  // CHECKPOINT_DISABLE stops the Prisma CLI's post-run update-check ping — without it,
+  // a stalled/rate-limited call to checkpoint.prisma.io leaves the `npx prisma` process
+  // alive indefinitely after the schema push itself has already finished, hanging this
+  // execSync forever (confirmed in CI: the process showed up as an orphan process on job
+  // cancellation, minutes after its "schema applied" output had already printed).
   execSync("npx prisma db push --skip-generate --accept-data-loss", {
     cwd: frontendRoot,
     stdio: "inherit",
-    env: { ...process.env, DATABASE_URL: uri },
+    env: { ...process.env, DATABASE_URL: uri, CHECKPOINT_DISABLE: "1" },
   });
 
   await startNextDevServer(

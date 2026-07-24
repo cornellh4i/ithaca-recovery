@@ -9,6 +9,16 @@ concurrency:
   group: test-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+# Every job's `yarn install` runs the `postinstall: prisma generate` script, and
+# integration/e2e additionally run `prisma db push` directly — both are Prisma CLI
+# invocations that ping checkpoint.prisma.io to check for updates after finishing.
+# A stalled/rate-limited ping there leaves the CLI process alive indefinitely even
+# though its actual work is done, hanging whatever awaited it. Confirmed happening
+# to `db push` in CI (orphan `npm exec prisma db push` process on job cancellation,
+# minutes after its own "schema applied" output had printed).
+env:
+  CHECKPOINT_DISABLE: "1"
+
 defaults:
   run:
     working-directory: frontend
