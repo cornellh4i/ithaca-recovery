@@ -1,0 +1,219 @@
+import {
+  expandOccurrences,
+  occurrencesOverlap,
+  computeConflicts,
+  OVERLAP_HORIZON_YEARS,
+  type ConflictCandidateMeeting,
+} from "../../util/resourceOverlap";
+
+const utcDate = (y: number, m: number, d: number, h = 0, min = 0) =>
+  new Date(Date.UTC(y, m - 1, d, h, min));
+
+const weeklyMondayPattern = {
+  type: "weekly",
+  startDate: utcDate(2026, 7, 6), // a Monday
+  endDate: null,
+  interval: 1,
+  daysOfWeek: ["Monday"],
+  weekOfMonth: null,
+  dayOfMonth: null,
+  excludedDates: [],
+};
+
+describe("expandOccurrences — non-recurring", () => {
+  const meeting = {
+    startDateTime: utcDate(2026, 7, 8, 19, 0),
+    endDateTime: utcDate(2026, 7, 8, 20, 0),
+    isRecurring: false,
+    recurrencePattern: null,
+  };
+
+  it("returns one occurrence when the meeting intersects the range", () => {
+    const occurrences = expandOccurrences(meeting, utcDate(2026, 7, 1), utcDate(2026, 7, 31));
+    expect(occurrences).toEqual([{ start: meeting.startDateTime, end: meeting.endDateTime }]);
+  });
+
+  it("returns nothing when the meeting falls outside the range", () => {
+    const occurrences = expandOccurrences(meeting, utcDate(2026, 8, 1), utcDate(2026, 8, 31));
+    expect(occurrences).toEqual([]);
+  });
+});
+
+describe("expandOccurrences — recurring", () => {
+  const meeting = {
+    startDateTime: utcDate(2026, 7, 6, 19, 0),
+    endDateTime: utcDate(2026, 7, 6, 20, 0),
+    isRecurring: true,
+    recurrencePattern: weeklyMondayPattern,
+  };
+
+  it("expands one occurrence per matching week within the range", () => {
+    const occurrences = expandOccurrences(meeting, utcDate(2026, 7, 1), utcDate(2026, 7, 22));
+    expect(occurrences).toHaveLength(3);
+    expect(occurrences.map((o) => o.start.toISOString())).toEqual([
+      utcDate(2026, 7, 6, 19, 0).toISOString(),
+      utcDate(2026, 7, 13, 19, 0).toISOString(),
+      utcDate(2026, 7, 20, 19, 0).toISOString(),
+    ]);
+  });
+
+  it("stops expanding at the horizon boundary passed in", () => {
+    // Open-ended series (endDate: null) — only bounded by whatever range the caller passes,
+    // exactly like findResourceConflicts/computeConflicts pass [now, now + horizonYears).
+    // rangeEnd is given as late-in-the-day UTC so it still reads as July 13 once read back in
+    // ET (ET trails UTC, so a bare UTC midnight would roll back to July 12 ET instead).
+    const occurrences = expandOccurrences(meeting, utcDate(2026, 7, 1), utcDate(2026, 7, 13, 23, 59));
+    expect(occurrences).toHaveLength(2);
+    expect(occurrences[occurrences.length - 1].start.toISOString()).toBe(utcDate(2026, 7, 13, 19, 0).toISOString());
+  });
+
+  it("never expands past a series end date even when the range extends further", () => {
+    const boundedMeeting = {
+      ...meeting,
+      recurrencePattern: { ...weeklyMondayPattern, endDate: utcDate(2026, 7, 13, 23, 59) },
+    };
+    const occurrences = expandOccurrences(boundedMeeting, utcDate(2026, 7, 1), utcDate(2026, 8, 1));
+    expect(occurrences).toHaveLength(2);
+  });
+});
+
+describe("occurrencesOverlap", () => {
+  it("detects an intersecting pair", () => {
+    const a = [{ start: utcDate(2026, 7, 6, 19, 0), end: utcDate(2026, 7, 6, 20, 0) }];
+    const b = [{ start: utcDate(2026, 7, 6, 19, 30), end: utcDate(2026, 7, 6, 20, 30) }];
+    expect(occurrencesOverlap(a, b)).toBe(true);
+  });
+
+  it("returns false for back-to-back (touching, not overlapping) occurrences", () => {
+    const a = [{ start: utcDate(2026, 7, 6, 19, 0), end: utcDate(2026, 7, 6, 20, 0) }];
+    const b = [{ start: utcDate(2026, 7, 6, 20, 0), end: utcDate(2026, 7, 6, 21, 0) }];
+    expect(occurrencesOverlap(a, b)).toBe(false);
+  });
+
+  it("finds an overlap anywhere in two longer sorted lists", () => {
+    const a = [
+      { start: utcDate(2026, 7, 6, 19, 0), end: utcDate(2026, 7, 6, 20, 0) },
+      { start: utcDate(2026, 7, 20, 19, 0), end: utcDate(2026, 7, 20, 20, 0) },
+    ];
+    const b = [
+      { start: utcDate(2026, 7, 13, 19, 0), end: utcDate(2026, 7, 13, 20, 0) },
+      { start: utcDate(2026, 7, 20, 19, 30), end: utcDate(2026, 7, 20, 20, 30) },
+    ];
+    expect(occurrencesOverlap(a, b)).toBe(true);
+  });
+
+  it("returns false when neither list intersects the other", () => {
+    const a = [{ start: utcDate(2026, 7, 6, 19, 0), end: utcDate(2026, 7, 6, 20, 0) }];
+    const b = [{ start: utcDate(2026, 7, 13, 19, 0), end: utcDate(2026, 7, 13, 20, 0) }];
+    expect(occurrencesOverlap(a, b)).toBe(false);
+  });
+});
+
+describe("computeConflicts", () => {
+  // computeConflicts anchors its horizon window to Date.now() internally, so pin the clock to
+  // keep the fixture dates below (all July 2026) inside [now, now + horizon) deterministically.
+  beforeAll(() => {
+    jest.useFakeTimers();
+    jest.setSystemTime(utcDate(2026, 7, 1));
+  });
+  afterAll(() => {
+    jest.useRealTimers();
+  });
+
+  const baseMeeting: ConflictCandidateMeeting = {
+    mid: "m1",
+    title: "Meeting One",
+    room: "Serenity Room",
+    zoomRoom: null,
+    status: "Active",
+    startDateTime: utcDate(2026, 7, 6, 19, 0),
+    endDateTime: utcDate(2026, 7, 6, 20, 0),
+    isRecurring: false,
+    recurrencePattern: null,
+  };
+
+  it("flags two non-recurring meetings sharing a room at overlapping times", () => {
+    const meetingTwo: ConflictCandidateMeeting = {
+      ...baseMeeting,
+      mid: "m2",
+      title: "Meeting Two",
+      startDateTime: utcDate(2026, 7, 6, 19, 30),
+      endDateTime: utcDate(2026, 7, 6, 20, 30),
+    };
+
+    const conflicts = computeConflicts([baseMeeting, meetingTwo]);
+    expect(conflicts).toHaveLength(1);
+    expect(conflicts[0].field).toBe("room");
+    expect(conflicts[0].value).toBe("Serenity Room");
+    expect(conflicts[0].meetings.map((m) => m.mid).sort()).toEqual(["m1", "m2"]);
+  });
+
+  it("does not flag meetings in different rooms", () => {
+    const meetingTwo: ConflictCandidateMeeting = {
+      ...baseMeeting,
+      mid: "m2",
+      title: "Meeting Two",
+      room: "Unity Room",
+    };
+    expect(computeConflicts([baseMeeting, meetingTwo])).toEqual([]);
+  });
+
+  it("does not flag non-overlapping meetings in the same room", () => {
+    const meetingTwo: ConflictCandidateMeeting = {
+      ...baseMeeting,
+      mid: "m2",
+      title: "Meeting Two",
+      startDateTime: utcDate(2026, 7, 6, 20, 0),
+      endDateTime: utcDate(2026, 7, 6, 21, 0),
+    };
+    expect(computeConflicts([baseMeeting, meetingTwo])).toEqual([]);
+  });
+
+  it("excludes suspended meetings from conflict checks", () => {
+    const meetingTwo: ConflictCandidateMeeting = {
+      ...baseMeeting,
+      mid: "m2",
+      title: "Meeting Two",
+      status: "Suspended",
+      startDateTime: utcDate(2026, 7, 6, 19, 30),
+      endDateTime: utcDate(2026, 7, 6, 20, 30),
+    };
+    expect(computeConflicts([baseMeeting, meetingTwo])).toEqual([]);
+  });
+
+  it("also flags shared zoomRoom conflicts independently of room conflicts", () => {
+    const meetingTwo: ConflictCandidateMeeting = {
+      ...baseMeeting,
+      mid: "m2",
+      title: "Meeting Two",
+      room: "Unity Room",
+      zoomRoom: "Serenity Room - Zoom",
+      startDateTime: utcDate(2026, 7, 6, 19, 30),
+      endDateTime: utcDate(2026, 7, 6, 20, 30),
+    };
+    const withZoom: ConflictCandidateMeeting = { ...baseMeeting, zoomRoom: "Serenity Room - Zoom" };
+
+    const conflicts = computeConflicts([withZoom, meetingTwo]);
+    expect(conflicts).toHaveLength(1);
+    expect(conflicts[0].field).toBe("zoomRoom");
+  });
+
+  it("respects the horizon boundary for a recurring series with no end date", () => {
+    const recurringMeeting: ConflictCandidateMeeting = {
+      ...baseMeeting,
+      isRecurring: true,
+      recurrencePattern: weeklyMondayPattern,
+    };
+    const farFutureConflict: ConflictCandidateMeeting = {
+      ...baseMeeting,
+      mid: "m2",
+      title: "Meeting Two",
+      isRecurring: true,
+      recurrencePattern: {
+        ...weeklyMondayPattern,
+        startDate: utcDate(2026, 7, 6 + 7 * 52 * (OVERLAP_HORIZON_YEARS + 1), 19, 0), // far beyond the horizon
+      },
+    };
+    expect(computeConflicts([recurringMeeting, farFutureConflict])).toEqual([]);
+  });
+});

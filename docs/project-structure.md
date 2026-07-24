@@ -88,11 +88,13 @@ There's no `templates/` and `pages/` tier — page-level composition is inlined 
 
 ### `util/` — shared logic
 
-`cacheUtils.ts`, `color.ts`, `filterColors.ts` (room/category color constants), `leaseDefaults.ts` (default `LeaseSettings` used until a Super Admin saves real ones), `meetingFilters.ts` (tag/room filter predicates shared by Day and Week views), `meetingOccurrences.ts` (recurrence expansion, shared by the day/week retrieve routes), `meetingOverlapLayout.ts` (sweep-line overlap layout for Week view), `models.ts` (shared TS interfaces), `recurrenceDisplay.ts`, `rooms.ts` (physical/Zoom room lists and pairing), `signageFilters.ts` (URL-param parsing for `/signage`), `simpleCache.ts` (generic get-or-fetch cache), `timeFormat.ts`, `timeUtils.ts`.
+`cacheUtils.ts`, `color.ts`, `filterColors.ts` (room/category color constants), `leaseDefaults.ts` (default `LeaseSettings` used until a Super Admin saves real ones), `meetingFilters.ts` (tag/room filter predicates shared by Day and Week views), `meetingOccurrences.ts` (recurrence expansion, shared by the day/week retrieve routes), `meetingOverlapLayout.ts` (sweep-line overlap layout for Week view), `models.ts` (shared TS interfaces), `recurrenceDisplay.ts`, `resourceOverlap.ts` (recurrence-aware room/Zoom-room/Zoom-host overlap detection, shared by host resolution, Diagnostics conflicts, and XLSX import), `rooms.ts` (physical/Zoom room lists and pairing), `signageFilters.ts` (URL-param parsing for `/signage`), `simpleCache.ts` (generic get-or-fetch cache), `timeFormat.ts`, `timeUtils.ts`.
+
+A few of these names look interchangeable but aren't. `meetingFilters.ts` and `signageFilters.ts` both parse "which meetings to show," but for different consumers: the former is tag/room predicates shared by the authenticated Day/Week views, the latter is standalone URL-param parsing for the public, unauthenticated `/signage` page — the two never share code and one file's format doesn't apply to the other's caller. `meetingOverlapLayout.ts` and `resourceOverlap.ts` both deal with "meetings overlapping," but one is rendering and the other is scheduling: `meetingOverlapLayout.ts` only computes the visual side-by-side column layout for meetings that overlap in Week view, while `resourceOverlap.ts` answers a logically prior question — whether two meetings' occurrences actually conflict on a shared room, Zoom room, or Zoom host — and is the one used for host resolution, Diagnostics conflict checks, and XLSX import validation.
 
 ### `services/` — backend services
 
-`auth.ts` (`getAuth`, `requireRole`), `googleCalendar.ts` (multi-calendar create/update/delete/EXDATE/UNTIL/reachability), `zoom.ts` (Server-to-Server token fetch, per-room create/update/delete Zoom meeting, room→calendar and room→host-email lookup maps).
+`auth.ts` (`getAuth`, `requireRole`), `googleCalendar.ts` (multi-calendar create/update/delete/EXDATE/UNTIL/reachability), `zoom.ts` (Server-to-Server token fetch, create/update/delete Zoom meeting, room→calendar lookup map, `resolveZoomHost` pool lookup against the shared `ZOOM_HOSTS` pool).
 
 ### `hooks/`
 
@@ -143,7 +145,7 @@ See [api-reference.md](api-reference.md#data-types-reference) for the matching `
 | `ZOOM_CLIENT_ID` / `ZOOM_CLIENT_SECRET` / `ZOOM_ACCOUNT_ID` | Zoom Server-to-Server OAuth credentials (account-level) |
 | `NEXT_PUBLIC_ZOOM_BASE_API` | Zoom API base URL (`https://api.zoom.us/v2`) |
 | `GOOGLE_CALENDAR_ZOOM_<ROOM>` (×5) | Google Calendar ID for each Zoom-enabled room's own calendar |
-| `ZOOM_HOST_<ROOM>` (×5) | Licensed Zoom user email that hosts meetings for that room |
+| `ZOOM_HOSTS` | Comma-separated pool of licensed Zoom user emails, shared across all rooms (see [technical-decisions.md](handoff/technical-decisions.md#zoom-integration)) |
 
 No Redis instance is required to run the app — the unused `redis` package and its entirely-commented-out `app/api/server/redis.ts` were removed as dead code.
 

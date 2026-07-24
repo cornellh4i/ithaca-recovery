@@ -45,9 +45,13 @@ export async function toggleFilter(page: Page, label: string): Promise<void> {
 
 // Today's date in MM/DD/YYYY, for form fixtures that need to land on a real day
 // the calendar view will actually render (avoids hardcoded dates going stale).
+// Anchored to ET (not the test runner's local system clock) -- the app's "today" is
+// always the ET calendar date, and the runner's own local date disagrees with it for
+// several hours every night (e.g. GitHub Actions runners are UTC, which is already
+// "tomorrow" for the ~4-5 hours after UTC midnight while it's still "today" in ET).
 export function todayMMDDYYYY(): string {
-  const now = new Date();
-  const mm = String(now.getMonth() + 1).padStart(2, "0");
-  const dd = String(now.getDate()).padStart(2, "0");
-  return `${mm}/${dd}/${now.getFullYear()}`;
+  const [year, month, day] = new Date()
+    .toLocaleDateString("en-CA", { timeZone: "America/New_York" })
+    .split("-");
+  return `${month}/${day}/${year}`;
 }

@@ -33,6 +33,8 @@ interface IMeeting {
   syncStatus?: string | null;
   zoomCalendarEventId?: string | null;
   zoomSyncStatus?: string | null;
+  zoomHost?: string | null;
+  zoomSyncError?: string | null;
   deletedAt?: Date | null;
   updatedAt?: Date | null;
 }

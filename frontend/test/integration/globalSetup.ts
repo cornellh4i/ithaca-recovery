@@ -1,4 +1,4 @@
-import { execSync } from "child_process";
+import { execFileSync } from "child_process";
 import path from "path";
 import { startTestMongo } from "../mongo/replicaSet";
 
@@ -9,9 +9,14 @@ import { startTestMongo } from "../mongo/replicaSet";
 export default async function globalSetup(): Promise<void> {
   const uri = await startTestMongo("icr_jest_integration");
   process.env.DATABASE_URL = uri;
-  execSync("npx prisma db push --skip-generate --accept-data-loss", {
-    cwd: path.resolve(__dirname, "../.."),
+  const frontendRoot = path.resolve(__dirname, "../..");
+  // The real fix for the CI hang is startTestMongo pre-creating indexes via the native
+  // driver (see replicaSet.ts) — see the identical comment in test/e2e/global-setup.ts.
+  // `execFileSync` (not `npx`) plus this `timeout` stay as defense in depth.
+  execFileSync(path.join(frontendRoot, "node_modules/.bin/prisma"), ["db", "push", "--skip-generate", "--accept-data-loss"], {
+    cwd: frontendRoot,
     stdio: "inherit",
-    env: { ...process.env, DATABASE_URL: uri },
+    env: { ...process.env, DATABASE_URL: uri, CHECKPOINT_DISABLE: "1" },
+    timeout: 60_000,
   });
 }

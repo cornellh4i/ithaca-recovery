@@ -1,4 +1,4 @@
-import { matchesRecurrencePattern } from "../../util/meetingOccurrences";
+import { matchesRecurrencePattern, adjustOccurrenceToDate } from "../../util/meetingOccurrences";
 import { convertETToUTC } from "../../util/timeUtils";
 
 // startDate/localDate are UTC-midnight-anchored representations of an ET
@@ -85,5 +85,39 @@ describe("matchesRecurrencePattern — monthly", () => {
     const pattern = { ...monthlyBase, dayOfMonth: 6, daysOfWeek: [], interval: 2 };
     expect(matchesRecurrencePattern(pattern, "2026-08-06", utcDate(2026, 8, 6))).toBe(false); // +1 month
     expect(matchesRecurrencePattern(pattern, "2026-09-06", utcDate(2026, 9, 6))).toBe(true); // +2 months
+  });
+});
+
+describe("adjustOccurrenceToDate", () => {
+  it("keeps a same-day meeting anchored to the target date", () => {
+    const meeting = {
+      startDateTime: new Date(convertETToUTC("2026-07-06T09:00:00")),
+      endDateTime: new Date(convertETToUTC("2026-07-06T10:00:00")),
+    };
+    const { start, end } = adjustOccurrenceToDate(meeting, "2026-08-10");
+    expect(start.toISOString()).toBe(new Date(convertETToUTC("2026-08-10T09:00:00")).toISOString());
+    expect(end.toISOString()).toBe(new Date(convertETToUTC("2026-08-10T10:00:00")).toISOString());
+    expect(end.getTime()).toBeGreaterThan(start.getTime());
+  });
+
+  it("rolls an overnight meeting's end onto the next ET calendar day", () => {
+    const meeting = {
+      startDateTime: new Date(convertETToUTC("2026-07-06T23:30:00")),
+      endDateTime: new Date(convertETToUTC("2026-07-07T00:30:00")), // already overnight in the original occurrence
+    };
+    const { start, end } = adjustOccurrenceToDate(meeting, "2026-08-10");
+    expect(start.toISOString()).toBe(new Date(convertETToUTC("2026-08-10T23:30:00")).toISOString());
+    expect(end.toISOString()).toBe(new Date(convertETToUTC("2026-08-11T00:30:00")).toISOString());
+    expect(end.getTime()).toBeGreaterThan(start.getTime());
+  });
+
+  it("rolls the overnight end across a month boundary", () => {
+    const meeting = {
+      startDateTime: new Date(convertETToUTC("2026-07-06T23:00:00")),
+      endDateTime: new Date(convertETToUTC("2026-07-07T01:00:00")),
+    };
+    const { start, end } = adjustOccurrenceToDate(meeting, "2026-08-31");
+    expect(start.toISOString()).toBe(new Date(convertETToUTC("2026-08-31T23:00:00")).toISOString());
+    expect(end.toISOString()).toBe(new Date(convertETToUTC("2026-09-01T01:00:00")).toISOString());
   });
 });
