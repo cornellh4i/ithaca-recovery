@@ -10,16 +10,14 @@ export default async function globalSetup(): Promise<void> {
   const uri = await startTestMongo("icr_jest_integration");
   process.env.DATABASE_URL = uri;
   const frontendRoot = path.resolve(__dirname, "../..");
-  // See the identical comment in test/e2e/global-setup.ts — avoid `npx` (the CI hang left
-  // an orphan "npm exec prisma db push" process, not anything Prisma-internal) and hard-cap
-  // with `timeout` as a backstop regardless of the exact cause.
-  // TEMPORARY: DEBUG enabled to diagnose a CI-only hang after this command's own output
-  // finishes printing (60s timeout catches it, but gives no insight into what it's stuck
-  // on) — not reproducible locally. Remove once root-caused.
+  // The real fix for the CI hang is startTestMongo's directConnection=true (see
+  // replicaSet.ts) — a debug trace showed Prisma's Linux schema-engine binary sending the
+  // schemaPush RPC and then never getting a response, stuck in replica-set topology
+  // discovery. `execFileSync` (not `npx`) plus this `timeout` stay as defense in depth.
   execFileSync(path.join(frontendRoot, "node_modules/.bin/prisma"), ["db", "push", "--skip-generate", "--accept-data-loss"], {
     cwd: frontendRoot,
     stdio: "inherit",
-    env: { ...process.env, DATABASE_URL: uri, CHECKPOINT_DISABLE: "1", DEBUG: "*" },
+    env: { ...process.env, DATABASE_URL: uri, CHECKPOINT_DISABLE: "1" },
     timeout: 60_000,
   });
 }

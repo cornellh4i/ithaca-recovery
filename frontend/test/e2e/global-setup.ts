@@ -40,13 +40,13 @@ export default async function globalSetup(): Promise<void> {
   const uri = await startTestMongo(TEST_DB_NAME);
 
   const frontendRoot = path.resolve(__dirname, "../..");
-  // Call the installed `prisma` binary directly rather than through `npx` — in CI, the
-  // orphan process left behind after this hung was literally named "npm exec prisma db
-  // push...", i.e. npm's own resolution/update-check wrapper, not anything inside Prisma
-  // itself (CHECKPOINT_DISABLE, a Prisma-only setting, didn't help). The `timeout` below
-  // is a hard backstop regardless of the exact cause: this should finish in well under a
-  // second, so 60s is generous, and a genuine hang now fails fast with a clear error
-  // instead of silently blocking the whole suite.
+  // The real fix for the CI hang is startTestMongo's directConnection=true (see
+  // replicaSet.ts) — a debug trace showed Prisma's Linux schema-engine binary sending the
+  // schemaPush RPC and then never getting a response, stuck in replica-set topology
+  // discovery. Calling the installed binary directly (not `npx`) plus this `timeout` stay
+  // as defense in depth: this should finish in well under a second, so 60s is generous,
+  // and a genuine hang now fails fast with a clear error instead of silently blocking the
+  // whole suite.
   execFileSync(path.join(frontendRoot, "node_modules/.bin/prisma"), ["db", "push", "--skip-generate", "--accept-data-loss"], {
     cwd: frontendRoot,
     stdio: "inherit",
