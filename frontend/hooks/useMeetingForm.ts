@@ -1,7 +1,14 @@
 import { useCallback, useState } from 'react';
 import { IMeeting, IRecurrencePattern } from '../util/models';
-import { convertUTCToET, convertETToUTC } from '../util/timeUtils';
+import { convertUTCToET, convertETToUTC, formatETDateString, getWeekDatesET, getCurrentETMinutesSinceMidnight } from '../util/timeUtils';
 import { roomToZoomRoom } from '../util/rooms';
+
+// What the calendar is currently showing, used to seed a brand-new meeting's default
+// Date field -- see computeDefaultDate below.
+export interface MeetingFormDefaultContext {
+  selectedDate: Date;
+  selectedView: string;
+}
 
 // Shared by NewMeeting.tsx and EditMeeting.tsx, so this state/validation/submit logic
 // has one implementation instead of two copies that can quietly drift apart.
@@ -39,16 +46,54 @@ function formatTimeForPicker(date: Date): string {
     return `${hours.toString().padStart(2, '0')}:${minutes}`;
 }
 
-export function useMeetingForm(initialMeeting?: IMeeting) {
+// "YYYY-MM-DD" -> "MM/DD/YYYY", the inverse of toISODate above.
+function isoToPickerDate(isoDate: string): string {
+    const [year, month, day] = isoDate.split('-');
+    return `${month}/${day}/${year}`;
+}
+
+// Default Date for a brand-new meeting, based on what the calendar is currently showing:
+// Day View defaults to the day being viewed; Week View defaults to today (ET) if the
+// displayed week is the real current week, otherwise to that week's first day (Sunday) --
+// there's no single obviously-right day to default to when browsing a week that isn't
+// the current one.
+function computeDefaultDate(context?: MeetingFormDefaultContext): string {
+    const todayET = formatETDateString(new Date());
+    if (!context) return isoToPickerDate(todayET);
+
+    const selectedET = formatETDateString(context.selectedDate);
+    if (context.selectedView === "Day") return isoToPickerDate(selectedET);
+
+    const displayedWeek = getWeekDatesET(selectedET);
+    const isCurrentWeek = displayedWeek.includes(todayET);
+    return isoToPickerDate(isCurrentWeek ? todayET : displayedWeek[0]);
+}
+
+// Default Time for a brand-new meeting: starts on the next ET half-hour slot (e.g. 2:10
+// -> 2:30, 2:40 -> 3:00; always advances even if already exactly on a slot), ends an hour
+// after that.
+function computeDefaultTime(): string {
+    const pad = (n: number) => n.toString().padStart(2, '0');
+    const toHHMM = (minutesSinceMidnight: number) =>
+        `${pad(Math.floor(minutesSinceMidnight / 60))}:${pad(minutesSinceMidnight % 60)}`;
+
+    const MINUTES_PER_DAY = 24 * 60;
+    const nowMinutes = getCurrentETMinutesSinceMidnight();
+    const startMinutes = (Math.floor(nowMinutes / 30) * 30 + 30) % MINUTES_PER_DAY;
+    const endMinutes = (startMinutes + 60) % MINUTES_PER_DAY;
+    return `${toHHMM(startMinutes)} - ${toHHMM(endMinutes)}`;
+}
+
+export function useMeetingForm(initialMeeting?: IMeeting, defaultContext?: MeetingFormDefaultContext) {
     const [title, setTitle] = useState(initialMeeting?.title ?? "");
     const [mode, setMode] = useState<string>(initialMeeting?.modeType ?? "Hybrid");
-    const [date, setDate] = useState<string>(
-        initialMeeting ? formatDateForPicker(initialMeeting.startDateTime) : ""
+    const [date, setDate] = useState<string>(() =>
+        initialMeeting ? formatDateForPicker(initialMeeting.startDateTime) : computeDefaultDate(defaultContext)
     );
-    const [time, setTime] = useState<string>(
+    const [time, setTime] = useState<string>(() =>
         initialMeeting
             ? `${formatTimeForPicker(initialMeeting.startDateTime)} - ${formatTimeForPicker(initialMeeting.endDateTime)}`
-            : ""
+            : computeDefaultTime()
     );
     const [email, setEmail] = useState(initialMeeting?.email ?? "");
     const [description, setDescription] = useState(initialMeeting?.description ?? "");
@@ -100,8 +145,8 @@ export function useMeetingForm(initialMeeting?: IMeeting) {
     const resetForm = () => {
         setTitle("");
         setMode("Hybrid");
-        setDate("");
-        setTime("");
+        setDate(computeDefaultDate(defaultContext));
+        setTime(computeDefaultTime());
         setEmail("");
         setDescription("");
         setRoom("");

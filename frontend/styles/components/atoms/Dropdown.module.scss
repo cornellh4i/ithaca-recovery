@@ -1,12 +1,11 @@
+@import '../../Variables.module.scss';
+
 .dropdown {
     position: relative;
-    background-color: white;
-
-    // border: 1px solid #ccc;
+    // No background here -- the button inside already has its own white, rounded fill;
+    // a background on this square outer wrapper would show as a halo/box outside the
+    // button's rounded corners and in the DropdownContainer's bottom margin gap.
     width: 100%;
-
-    // box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-    // padding: 20px;
 }
 
 .meetingTitleInput {
@@ -76,31 +75,58 @@
     display: flex;
     align-items: center;
     font-size: 18px;
+    color: $medium-grey-color;
   }
 
 .DropdownButton {
     display: flex;
     align-items: center;
     justify-content: space-between; /* Make space between the text and the icon */
-    padding: 12px; /* Increase padding for better visual appearance */
+    padding: 0 12px; /* Increase padding for better visual appearance */
+    height: 42px;
     width: 100%; /* Make button full width */
-    border: 1px solid #ccc; /* Add a border */
+    border: 1px solid $grey-border-color; /* Add a border */
     background-color: #fff;
     cursor: pointer;
-    border-radius: 4px; /* Softer, slightly rounded corners */
-    transition: background-color 0.3s ease, border-color 0.3s ease; /* Transition for border color */
-    color: #333; /* Darker text color */
+    border-radius: 6px; /* Softer, slightly rounded corners */
+    transition: background-color 0.15s ease, border-color 0.15s ease; /* Transition for border color */
+    color: $black-color; /* Darker text color */
+    font-size: 15px;
+}
+
+.DropdownButtonContent {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    overflow: hidden;
+}
+
+.DropdownIcon {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.DropdownButtonText {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.elementListFullWidth {
+    left: 0;
+    width: 100%;
 }
 
 .DropdownButton::after {
     content: '\25BC'; /* Downward arrow icon (Unicode) */
-    font-size: 0.8rem; /* Adjust the icon size */
-    color: #999; /* Lighter gray color for the icon */
+    font-size: 0.7rem; /* Adjust the icon size */
+    color: $medium-grey-color; /* Lighter gray color for the icon */
 }
 
 /* Add active class for when the dropdown is clicked */
 .activeDropdown {
-    border-color: #d22e55; /* Red border when dropdown is active */
+    border-color: $dark-pink-color; /* Pink border when dropdown is active */
 }
 
 .locationList {

@@ -45,20 +45,29 @@ const Dropdown: React.FC<DropdownProps> = ({
   };
 
 
+  // String labels (e.g. "Repeats") stay outside the button as a plain text caption; icon
+  // labels move inside the button so the icon and value read as one field, not two boxes.
+  const isStringLabel = typeof label === 'string';
+
   return (
     <div className={styles.dropdown}>
       <div className={styles.DropdownContainer}>
-        <label className={styles.DropdownLabel}>
-          {typeof label === 'string' ? <span>{label}</span> : label}
-        </label>
+        {isStringLabel && (
+          <label className={styles.DropdownLabel}>
+            <span>{label}</span>
+          </label>
+        )}
         <button
           className={`${styles.DropdownButton} ${activeDropdown === "element" ? styles.activeDropdown : ''}`}
           onClick={() => handleDropdownToggle("element")}
         >
-          {selectedElement ? selectedElement : name}
+          <span className={styles.DropdownButtonContent}>
+            {!isStringLabel && label && <span className={styles.DropdownIcon}>{label}</span>}
+            <span className={styles.DropdownButtonText}>{selectedElement ? selectedElement : name}</span>
+          </span>
         </button>
         {activeDropdown === "element" && (
-          <ul className={styles.elementList}>
+          <ul className={`${styles.elementList} ${!isStringLabel ? styles.elementListFullWidth : ''}`}>
             {elements.map((element, index) => (
               <li
                 key={index}

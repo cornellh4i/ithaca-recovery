@@ -3,37 +3,40 @@
 .date-picker-wrapper {
   display: flex;
   align-items: center;
+  gap: 8px;
   margin-bottom: 18px;
-  padding: 1.5px;
   font-family: 'Source Sans Pro', sans-serif;
+  border: 1px solid $grey-border-color;
+  border-radius: 6px;
+  padding: 0 12px;
+  height: 42px;
+  background-color: #fff;
+  transition: border-color 0.15s ease;
+
+  &:focus-within {
+    border-color: $dark-pink-color;
+  }
 
   .date-picker-label {
-    margin-right: 5px;
     display: flex;
     align-items: center;
     font-size: 18px;
+    color: $medium-grey-color;
   }
-  
+
   // New container for input and calendar
   .date-picker-input-container {
     position: relative; // Added for absolute positioning of popup
+    flex: 1;
   }
 
   .date-picker-input {
-    font-size: 18px;
+    font-size: 15px;
     border: none;
     outline: none;
-    width: 200px;
+    width: 100%;
     background-color: transparent;
     font-family: 'Source Sans Pro', sans-serif;
-
-    &:focus {
-      border-bottom: 1px solid $dark-pink-color;
-      outline: none;
-      background-color: transparent;
-      box-shadow: none;
-    }
-
     cursor: text;
 
     // Hide the calendar icon for various browsers
@@ -50,24 +53,19 @@
     }
   }
 
-  .error-input {
-    border: 1px solid red; // Apply red border for error state
-  }
+}
 
-  .error-message {
-    margin-left: 10px; // Space between input and error message
-    color: red;
-    font-size: 14px;
-  }
-  
-  // New styles for calendar popup
-  .calendar-popup {
-    position: absolute;
-    top: calc(100% + 8px);
-    left: 0;
-    z-index: 999; // High z-index to ensure visibility
-    background-color: white;
-    box-shadow: 0 4px 12px rgb(0 0 0 / 15%);
-    border-radius: 4px;
-  }
+// Portaled to document.body (see DatePicker.tsx) so it escapes any ancestor's
+// overflow:hidden/auto clipping -- e.g. the Main Calendar sidebar scrolls its own
+// content (overflow-y:auto), which was clipping/misplacing this popup when it was a
+// normal absolutely-positioned descendant. Position (top/left) is set inline via JS
+// (getBoundingClientRect of the field), not in this stylesheet -- this rule is
+// intentionally NOT nested under .date-picker-wrapper, since the portaled node is no
+// longer a DOM descendant of it.
+.calendar-popup {
+  position: fixed;
+  z-index: 2000; // High z-index to ensure visibility above any other page content
+  background-color: white;
+  box-shadow: 0 4px 12px rgb(0 0 0 / 15%);
+  border-radius: 4px;
 }

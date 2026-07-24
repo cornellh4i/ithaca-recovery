@@ -21,7 +21,15 @@
   }
   
   .isRecurring {
-    margin-left: 30px
+    margin-top: 12px;
+    padding: 16px;
+    border: 1px solid $grey-border-color;
+    border-radius: 8px;
+    background: #fff;
+  }
+
+  .compactField {
+    max-width: 50%;
   }
 
   .dayButtons {
@@ -59,7 +67,6 @@
     display: flex;
     align-items: center;
     gap: 5px;
-    margin-bottom: 16px;
 
     label {
       font-weight: bold;

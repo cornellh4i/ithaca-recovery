@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import styles from "../../../styles/components/atoms/TimePicker.module.scss";
 
 interface TimePickerProps {
@@ -6,7 +6,6 @@ interface TimePickerProps {
   value?: string;
   onChange: (value: string) => void;
   underlineOnFocus?: boolean;
-  error?: string;
   disablePast?: boolean;
   [key: string]: unknown;
 }
@@ -31,33 +30,34 @@ const getTimeDifferenceInMinutes = (startTime: string, endTime: string): number 
   return (endDate.getTime() - startDate.getTime()) / (1000 * 60);
 };
 
-const TimePicker = ({ label, value: propValue = '', disablePast, onChange, error, ...props }: TimePickerProps) => {
-  
+const TimePicker = ({ label, value: propValue = '', disablePast, onChange, ...props }: TimePickerProps) => {
+
   // Parse the initial value when component mounts
   const parseTimeRange = (value: string): { startTime: string, endTime: string } => {
     if (!value || value === '') {
       return { startTime: '', endTime: '' };
     }
-    
+
     // Extract times from HH:MM - HH:MM format
     const timeMatch = value.match(/(\d{2}:\d{2})\s*-\s*(\d{2}:\d{2})/);
     if (timeMatch) {
-      return { 
-        startTime: timeMatch[1], 
-        endTime: timeMatch[2] 
+      return {
+        startTime: timeMatch[1],
+        endTime: timeMatch[2]
       };
     }
-    
+
     return { startTime: '', endTime: '' };
   };
-  
+
   const initialTimeRange = parseTimeRange(propValue);
   const [startTime, setStartTime] = useState<string>(initialTimeRange.startTime);
   const [endTime, setEndTime] = useState<string>(initialTimeRange.endTime);
   const [timeDifference, setTimeDifference] = useState<number>(60); // Default difference is 60 minutes
   const [minTime, setMinTime] = useState<string | undefined>(undefined);
-  const [endTimeError, setEndTimeError] = useState<boolean>(false); // Track if there's an end time error
-  const [touched, setTouched] = useState<boolean>(false);
+  // No inline validation messaging -- instead, blurring with either field empty just
+  // reverts both back to the last fully-set pair (tracked here as it's typed).
+  const lastValidRef = useRef(initialTimeRange);
 
   // Effect (not derived-during-render) deliberately: `new Date()` is impure and would
   // differ between the server-rendered HTML and the client's first render, causing a
@@ -72,8 +72,13 @@ const TimePicker = ({ label, value: propValue = '', disablePast, onChange, error
     }
   }, [disablePast]);
 
+  useEffect(() => {
+    if (startTime && endTime) {
+      lastValidRef.current = { startTime, endTime };
+    }
+  }, [startTime, endTime]);
+
   const handleStartTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setTouched(true);
     const newStartTime = e.target.value;
     setStartTime(newStartTime);
 
@@ -81,30 +86,23 @@ const TimePicker = ({ label, value: propValue = '', disablePast, onChange, error
     const newEndTime = addMinutes(newStartTime, timeDifference);
     setEndTime(newEndTime);
     onChange(`${newStartTime} - ${newEndTime}`);
-    setEndTimeError(false); // Reset error state when start time changes
   };
 
   const handleEndTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setTouched(true);
     const newEndTime = e.target.value;
     setEndTime(newEndTime);
-
-    // Validate end time against start time
-    const newTimeDifference = getTimeDifferenceInMinutes(startTime, newEndTime);
-    if (newTimeDifference == 0) {
-      setEndTimeError(true); // Set error state if end time is not later than start time
-    } else {
-      setEndTimeError(false); // Clear error state if valid
-    }
-    setTimeDifference(newTimeDifference); // Update the time difference based on user input
+    setTimeDifference(getTimeDifferenceInMinutes(startTime, newEndTime));
     onChange(`${startTime} - ${newEndTime}`);
   };
 
   const handleBlur = () => {
-    setTouched(true);
+    if (!startTime || !endTime) {
+      const { startTime: lastStart, endTime: lastEnd } = lastValidRef.current;
+      setStartTime(lastStart);
+      setEndTime(lastEnd);
+      onChange(`${lastStart} - ${lastEnd}`);
+    }
   };
-
-  const requiredError = touched && error && (!startTime || !endTime);
 
   return (
     <div className={styles['time-picker-wrapper']}>
@@ -126,11 +124,9 @@ const TimePicker = ({ label, value: propValue = '', disablePast, onChange, error
         value={endTime}
         onChange={handleEndTimeChange}
         onBlur={handleBlur}
-        className={`${styles['time-picker-input']} ${endTimeError ? styles['error-input'] : ''}`} // Apply error class conditionally
+        className={styles['time-picker-input']}
         {...props}
       />
-      {endTimeError && <div className={styles['error-message']}>End time cannot be less than start time.</div>}
-      {requiredError && <div className={styles['error-message']}>{error}</div>}
     </div>
   );
 };

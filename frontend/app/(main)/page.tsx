@@ -256,6 +256,7 @@ export default function HomePage() {
                 setFilters={setFilters}
                 selectedDate={selectedDate}
                 setSelectedDate={setSelectedDate}
+                selectedView={selectedView}
                 triggerCalendarRefresh={triggerCalendarRefresh}
               />
             )}

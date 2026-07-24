@@ -18,7 +18,23 @@ export interface MeetingFormProps {
   handleMeetingSubmit: () => Promise<void>;
   buttonText: string
   isSubmitting?: boolean
+  // "wide" is a two-column layout for wider embedding contexts (e.g. an inline edit panel),
+  // vs. the default single-column "sidebar" layout used in the Main Calendar sidebar.
+  layout?: "sidebar" | "wide";
 }
+
+// Wraps a field slot with an uppercase caption above it, in addition to that field's own
+// inline icon -- both together, matching the design mockup this form is based on.
+const Field: React.FC<{ caption?: string; className?: string; children: React.ReactNode }> = ({
+  caption,
+  className,
+  children,
+}) => (
+  <div className={className ?? styles.fieldSlot}>
+    {caption && <span className={styles.fieldCaption}>{caption}</span>}
+    {children}
+  </div>
+);
 
 export const MeetingForm: React.FC<MeetingFormProps> = ({
   meetingTitleTextField,
@@ -35,45 +51,57 @@ export const MeetingForm: React.FC<MeetingFormProps> = ({
   handleMeetingSubmit,
   buttonText,
   isSubmitting = false,
+  layout = "sidebar",
 }) => {
+  const containerClassName = `${styles.newMeetingSidebar} ${layout === "wide" ? styles.wide : ""}`.trim();
 
   return (
-    <div className={styles.newMeetingSidebar}>
-        <div className={styles.dummyComponent}>
+    <div className={containerClassName}>
+        <Field caption="Meeting name" className={`${styles.dummyComponent} ${styles.fieldFullWidth}`}>
           {meetingTitleTextField}
-        </div>
-        <div className={styles.meetingButtons}>
+        </Field>
+        <div className={`${styles.meetingButtons} ${styles.fieldFullWidth}`}>
+          <span className={styles.fieldCaption}>Mode</span>
           {modeTypeButtons}
         </div>
-        <div className={styles.dummyComponent}>
-          {DatePicker}
-        </div>
-        <div className={styles.dummyComponent}>
-          {TimePicker}
-        </div>
-        <div className={styles.dummyComponent}>
+        {layout === "wide" ? (
+          <div className={`${styles.dummyComponent} ${styles.fieldFullWidth} ${styles.dateTimeRow}`}>
+            <Field caption="Date">{DatePicker}</Field>
+            <Field caption="Time">{TimePicker}</Field>
+          </div>
+        ) : (
+          <>
+            <Field caption="Date" className={styles.dummyComponent}>
+              {DatePicker}
+            </Field>
+            <Field caption="Time" className={styles.dummyComponent}>
+              {TimePicker}
+            </Field>
+          </>
+        )}
+        <div className={`${styles.dummyComponent} ${styles.fieldFullWidth}`}>
           {RecurringMeeting}
         </div>
-        <div className={styles.dummyComponent}>
+        <Field caption="Categories" className={`${styles.dummyComponent} ${styles.fieldFullWidth}`}>
           {meetingTypeDropdown}
-        </div>
+        </Field>
         {(selectedMode === "Hybrid" || selectedMode === "In Person") && (
-        <div className={styles.dummyComponent}>
+        <Field caption="Room" className={styles.dummyComponent}>
           {roomSelectionDropdown}
-        </div>
+        </Field>
         )}
         {(selectedMode === "Hybrid" || selectedMode === "Remote") && (
-        <div className={styles.dummyComponent}>
+        <Field caption="Zoom room" className={styles.dummyComponent}>
           {zoomRoomDropdown}
-        </div>
+        </Field>
         )}
-        <div className={styles.dummyComponent}>
+        <Field caption="Email" className={`${styles.dummyComponent} ${styles.fieldFullWidth}`}>
           {emailTextField}
-        </div>
-        <div className={styles.dummyComponent}>
+        </Field>
+        <Field caption="Description" className={`${styles.dummyComponent} ${styles.fieldFullWidth}`}>
           {descriptionTextField}
-        </div>
-        <button className={styles.createMeetingButton} onClick={handleMeetingSubmit} disabled={isSubmitting}>{buttonText}</button>
+        </Field>
+        <button className={`${styles.createMeetingButton} ${styles.fieldFullWidth}`} onClick={handleMeetingSubmit} disabled={isSubmitting}>{buttonText}</button>
       </div>
   );
 };

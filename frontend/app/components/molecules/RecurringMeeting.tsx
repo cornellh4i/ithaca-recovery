@@ -23,6 +23,9 @@ interface RecurringMeetingFormProps {
     isRecurring: boolean;
     recurrencePattern: IRecurrencePattern | null;
   };
+  // "wide" narrows the Repeats/monthly-option dropdowns so they don't stretch full-width in
+  // wider embedding contexts (e.g. an inline edit panel) -- see MeetingForm's layout prop.
+  layout?: "sidebar" | "wide";
 }
 
 // Full day name → abbreviated ID used by the day-picker buttons
@@ -107,6 +110,7 @@ const RecurringMeetingForm: React.FC<RecurringMeetingFormProps> = ({
   onChange,
   startDate,
   initialValue,
+  layout = "sidebar",
 }) => {
   const initPattern = initialValue?.recurrencePattern ?? null;
 
@@ -259,27 +263,30 @@ const RecurringMeetingForm: React.FC<RecurringMeetingFormProps> = ({
           checked={isRecurring}
           onChange={handleRecurringChange}
           color="#848484"
+          uncheckedBg="#fff"
         />
       </div>
 
       {isRecurring && (
         <div>
           <div className={styles.isRecurring}>
-            <Dropdown
-              label="Repeats"
-              value={recurrenceType === "monthly" ? "Monthly" : "Weekly"}
-              isVisible={true}
-              elements={['Weekly', 'Monthly']}
-              name="Select frequency"
-              onChange={(val) => {
-                const type = val.toLowerCase();
-                setRecurrenceType(type);
-                if (type === "monthly" && startDate && !monthlyOption) {
-                  const opts = getMonthlyOptions(startDate);
-                  if (opts.length > 0) setMonthlyOption(opts[0]);
-                }
-              }}
-            />
+            <div className={layout === "wide" ? styles.compactField : undefined}>
+              <Dropdown
+                label="Repeats"
+                value={recurrenceType === "monthly" ? "Monthly" : "Weekly"}
+                isVisible={true}
+                elements={['Weekly', 'Monthly']}
+                name="Select frequency"
+                onChange={(val) => {
+                  const type = val.toLowerCase();
+                  setRecurrenceType(type);
+                  if (type === "monthly" && startDate && !monthlyOption) {
+                    const opts = getMonthlyOptions(startDate);
+                    if (opts.length > 0) setMonthlyOption(opts[0]);
+                  }
+                }}
+              />
+            </div>
 
             {recurrenceType === "weekly" && (
               <>
@@ -321,15 +328,17 @@ const RecurringMeetingForm: React.FC<RecurringMeetingFormProps> = ({
             )}
 
             {recurrenceType === "monthly" && (
-              <Dropdown
-                key={startDate}
-                label=""
-                value={monthlyOption}
-                isVisible={true}
-                elements={monthlyOptions}
-                name="Select recurrence"
-                onChange={setMonthlyOption}
-              />
+              <div className={layout === "wide" ? styles.compactField : undefined}>
+                <Dropdown
+                  key={startDate}
+                  label=""
+                  value={monthlyOption}
+                  isVisible={true}
+                  elements={monthlyOptions}
+                  name="Select recurrence"
+                  onChange={setMonthlyOption}
+                />
+              </div>
             )}
 
             <RadioGroup
@@ -338,35 +347,34 @@ const RecurringMeetingForm: React.FC<RecurringMeetingFormProps> = ({
               selectedOption={endOption}
               onChange={handleEndOptionChange}
               name="recurrence-end"
-            />
-
-            {endOption === 'On' && (
-              <DatePicker
-                label={"Ends On:"}
-                value={endDate}
-                onChange={(val) => setEndDate(val)}
-              />
-            )}
-
-            {endOption === 'After' && (
-              <div className={styles['spinner-group']}>
-                <div className={styles['spinner-container']}>
-                  <label style={{ marginRight: '5px' }}>Ends after</label>
-                  <SpinnerInput
-                    value={occurrences}
-                    min={1}
-                    step={1}
-                    onChange={setOccurrences}
+              optionContent={{
+                On: (
+                  <DatePicker
+                    label={""}
+                    value={endDate}
+                    onChange={(val) => setEndDate(val)}
                   />
-                  <label style={{ marginLeft: '5px' }}>occurrences(s)</label>
-                </div>
-                {(!occurrences || occurrences < 1) && (
-                  <div className={styles['error-message']}>
-                    Please enter at least one occurrence.
+                ),
+                After: (
+                  <div className={styles['spinner-group']}>
+                    <div className={styles['spinner-container']}>
+                      <SpinnerInput
+                        value={occurrences}
+                        min={1}
+                        step={1}
+                        onChange={setOccurrences}
+                      />
+                      <label style={{ marginLeft: '5px' }}>occurrence(s)</label>
+                    </div>
+                    {(!occurrences || occurrences < 1) && (
+                      <div className={styles['error-message']}>
+                        Please enter at least one occurrence.
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-            )}
+                ),
+              }}
+            />
           </div>
           <div className={styles.separator}></div>
         </div>

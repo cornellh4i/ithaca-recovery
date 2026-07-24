@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import styles from "../../../styles/components/atoms/DatePicker.module.scss";
 import MiniCalendar from './MiniCalendar'; // Adjust import path as needed
 
@@ -13,9 +14,15 @@ interface DatePickerProps {
 const DatePicker = ({ label, value: propValue = '', onChange, underlineOnFocus = true, ...props }: DatePickerProps) => {
   const [internalValue, setInternalValue] = useState<string>(propValue);
   const [isFocused, setIsFocused] = useState<boolean>(false);
-  const [inputError, setInputError] = useState<string | null>(null);
   const [showCalendar, setShowCalendar] = useState<boolean>(false);
   const datePickerRef = useRef<HTMLDivElement>(null);
+  // Popup is portaled to document.body (see render below) so an ancestor's overflow:auto
+  // (e.g. the Main Calendar sidebar) can't clip or mis-stack it -- position is computed
+  // from the field's own on-screen location instead of relying on CSS anchoring. Since the
+  // portaled popup is no longer a DOM descendant of datePickerRef, the outside-click check
+  // below needs its own ref to still recognize clicks inside the popup as "not outside".
+  const popupRef = useRef<HTMLDivElement>(null);
+  const [popupPosition, setPopupPosition] = useState<{ top: number; left: number } | null>(null);
 
   // Mirrors an external propValue reset (e.g. parent clearing the form) into local state
   // without an Effect — https://react.dev/learn/you-might-not-need-an-effect#adjusting-some-state-when-a-prop-changes.
@@ -138,7 +145,10 @@ const DatePicker = ({ label, value: propValue = '', onChange, underlineOnFocus =
   useEffect(() => {
     // Handle clicks outside of the date picker to close the calendar
     const handleClickOutside = (event: MouseEvent) => {
-      if (datePickerRef.current && !datePickerRef.current.contains(event.target as Node)) {
+      const target = event.target as Node;
+      const insideField = datePickerRef.current?.contains(target);
+      const insidePopup = popupRef.current?.contains(target);
+      if (!insideField && !insidePopup) {
         setShowCalendar(false);
       }
     };
@@ -149,24 +159,35 @@ const DatePicker = ({ label, value: propValue = '', onChange, underlineOnFocus =
     };
   }, []);
 
+  // Tracks the field's on-screen position while the popup is open, so the portaled
+  // popup (position:fixed) stays anchored under it -- recomputed on scroll (capture:true
+  // catches scrolling within any nested scroll container, not just the window) and resize.
+  useEffect(() => {
+    if (!showCalendar) return;
+
+    const updatePosition = () => {
+      const rect = datePickerRef.current?.getBoundingClientRect();
+      if (rect) {
+        setPopupPosition({ top: rect.bottom + 8, left: rect.left });
+      }
+    };
+
+    updatePosition();
+    window.addEventListener('scroll', updatePosition, true);
+    window.addEventListener('resize', updatePosition);
+    return () => {
+      window.removeEventListener('scroll', updatePosition, true);
+      window.removeEventListener('resize', updatePosition);
+    };
+  }, [showCalendar]);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = e.target.value;
-    setInternalValue(newValue);
-    setInputError(null); // Clear error on input change
+    setInternalValue(e.target.value);
   };
 
   const handleFocus = () => {
     setIsFocused(true);
-    if (isStringDate(internalValue)) {
-      const formattedDate = stringToDateString(internalValue);
-      setInternalValue(formattedDate); 
-      onChange(formattedDate); 
-    } else {
-      setInputError('Invalid date format. Please enter a valid date in MM/DD/YYYY format.');
-    }
-
-    setInputError(null); // Clear error on focus
-    setShowCalendar(true); 
+    setShowCalendar(true);
   };
 
   const handleBlur = () => {
@@ -181,11 +202,12 @@ const DatePicker = ({ label, value: propValue = '', onChange, underlineOnFocus =
       setInternalValue(formattedDate); // Format and update input with formatted date
     } else if (isStringDate(internalValue)) {
       const formattedDate = stringToDateString(internalValue);
-      setInternalValue(formattedDate); 
-      onChange(formattedDate); 
-    }
-    else {
-      setInputError('Invalid date format. Please enter a valid date in MM/DD/YYYY format.');
+      setInternalValue(formattedDate);
+      onChange(formattedDate);
+    } else {
+      // Empty or unparseable -- no inline error, just revert the display back to
+      // the last value the parent actually committed.
+      setInternalValue(propValue);
     }
   };
 
@@ -216,26 +238,24 @@ const DatePicker = ({ label, value: propValue = '', onChange, underlineOnFocus =
           onFocus={handleFocus}
           onBlur={handleBlur}
           placeholder="MM/DD/YYYY"
-          className={`${styles['date-picker-input']} ${inputError ? styles['error-input'] : ''}`}
+          className={styles['date-picker-input']}
           {...props}
         />
-        {showCalendar && (
-          <div 
+        {showCalendar && popupPosition && createPortal(
+          <div
+            ref={popupRef}
             className={styles['calendar-popup']}
+            style={{ top: popupPosition.top, left: popupPosition.left }}
             onMouseDown={(e) => e.preventDefault()} // Prevent input blur when clicking calendar
           >
-            <MiniCalendar 
+            <MiniCalendar
               selectedDate={stringToDate(internalValue)}
               onSelect={handleDateSelect}
             />
-          </div>
+          </div>,
+          document.body
         )}
       </div>
-      {inputError && (
-        <div className={styles['error-message']}>
-          {inputError}
-        </div>
-      )}
     </div>
   );
 };
