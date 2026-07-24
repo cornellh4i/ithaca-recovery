@@ -20,9 +20,11 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 4px 24px;
+
   // No max-width -- fills whatever width the wrapping card (e.g. ConflictList's .editCard)
   // gives it, rather than leaving a dead grey strip when that card is wider than 760px.
   width: 100%;
+
   // Let the wrapping card show through instead of this component's own white sidebar background.
   background-color: transparent;
 }

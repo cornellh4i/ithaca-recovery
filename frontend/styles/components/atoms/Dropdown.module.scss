@@ -2,6 +2,7 @@
 
 .dropdown {
     position: relative;
+
     // No background here -- the button inside already has its own white, rounded fill;
     // a background on this square outer wrapper would show as a halo/box outside the
     // button's rounded corners and in the DropdownContainer's bottom margin gap.
