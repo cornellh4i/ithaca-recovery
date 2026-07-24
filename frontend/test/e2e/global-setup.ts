@@ -40,13 +40,12 @@ export default async function globalSetup(): Promise<void> {
   const uri = await startTestMongo(TEST_DB_NAME);
 
   const frontendRoot = path.resolve(__dirname, "../..");
-  // The real fix for the CI hang is startTestMongo's directConnection=true (see
-  // replicaSet.ts) — a debug trace showed Prisma's Linux schema-engine binary sending the
-  // schemaPush RPC and then never getting a response, stuck in replica-set topology
-  // discovery. Calling the installed binary directly (not `npx`) plus this `timeout` stay
-  // as defense in depth: this should finish in well under a second, so 60s is generous,
-  // and a genuine hang now fails fast with a clear error instead of silently blocking the
-  // whole suite.
+  // The real fix for the CI hang is startTestMongo pre-creating indexes via the native
+  // driver (see replicaSet.ts) — a known, unfixed Prisma+mongodb-memory-server bug
+  // (github.com/prisma/prisma/issues/23703) makes `db push` hang forever batch-creating
+  // indexes once a model crosses ~7 unique+index fields (Meeting has exactly 7). With
+  // indexes pre-created, this call just confirms "already in sync". Calling the installed
+  // binary directly (not `npx`) plus this `timeout` stay as defense in depth regardless.
   execFileSync(path.join(frontendRoot, "node_modules/.bin/prisma"), ["db", "push", "--skip-generate", "--accept-data-loss"], {
     cwd: frontendRoot,
     stdio: "inherit",
