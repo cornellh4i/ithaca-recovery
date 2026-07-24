@@ -47,12 +47,17 @@ model Meeting {
   syncStatus             String?
   zoomCalendarEventId    String?
   zoomSyncStatus         String?
+  zoomHost               String?
+  zoomSyncError          String?
   deletedAt              DateTime?
   updatedAt              DateTime?            @updatedAt
 
   @@index([startDateTime, endDateTime])
   @@index([isRecurring, deletedAt])
   @@index([googleCalendarEventId])
+  @@index([zoomHost])
+  @@index([room])
+  @@index([zoomRoom])
 }
 
 model RecurrencePattern {

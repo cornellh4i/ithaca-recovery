@@ -31,6 +31,7 @@ type ViewMeetingDetailsProps = {
   zoomRoom?: string | null; // Maps to 'zoomRoom' in the model (optional)
   zoomLink?: string | null; // Maps to 'zoomLink' in the model (optional)
   zid?: string | null; // Maps to 'zid' in the model (optional)
+  zoomHost?: string | null; // Pooled Zoom account this meeting's Zoom meeting is running under (optional)
   calType: string[]; // Maps to 'calType' in the model
   room: string; // Maps to 'room' in the model
   recurrence?: string; // Remains as optional if required
@@ -39,6 +40,7 @@ type ViewMeetingDetailsProps = {
   currentOccurrenceDate?: Date; // Handles the specific occurrence date
   syncStatus?: string | null;
   zoomSyncStatus?: string | null;
+  zoomSyncError?: string | null;
   onBack: () => void;
   onEdit: () => void;
   onDelete: (mid: string, deleteOption?: 'this' | 'thisAndFollowing' | 'all') => void;
@@ -55,6 +57,7 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
   email,
   zoomRoom,
   zoomLink,
+  zoomHost,
   calType,
   room,
   isRecurring,
@@ -62,6 +65,7 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
   currentOccurrenceDate,
   syncStatus: initialSyncStatus,
   zoomSyncStatus: initialZoomSyncStatus,
+  zoomSyncError: initialZoomSyncError,
   onBack,
   onEdit,
   onDelete,
@@ -71,6 +75,7 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [syncStatus, setSyncStatus] = useState(initialSyncStatus ?? null);
   const [zoomSyncStatus, setZoomSyncStatus] = useState(initialZoomSyncStatus ?? null);
+  const [zoomSyncError, setZoomSyncError] = useState(initialZoomSyncError ?? null);
   const [syncing, setSyncing] = useState(false);
 
   const handleRetrySync = async () => {
@@ -84,6 +89,7 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
       const data = await res.json();
       setSyncStatus(data.syncStatus ?? 'error');
       setZoomSyncStatus(data.zoomSyncStatus ?? null);
+      setZoomSyncError(data.zoomSyncError ?? null);
       if (data.syncStatus === 'synced' || data.zoomSyncStatus === 'synced') onSyncSuccess?.();
     } catch {
       setSyncStatus('error');
@@ -254,7 +260,7 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
         )}
         {zoomSyncStatus === 'error' && (
           <p style={{ color: '#e07000', fontSize: '13px', margin: '2px 0 4px' }}>
-            Zoom sync failed ⚠
+            Zoom sync failed ⚠{zoomSyncError ? `: ${zoomSyncError}` : ''}
           </p>
         )}
         {(syncStatus === 'error' || zoomSyncStatus === 'error') && (
@@ -274,6 +280,7 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
         {zoomLink && <a href={zoomLink} target="_blank" rel="noopener noreferrer" className={styles.zoomLink}>
           <img src="/svg/zoom-icon.svg" alt="Zoom" /> {zoomLink}
         </a>}
+        {zoomHost && <p><strong>Zoom Host:</strong>&nbsp;{zoomHost}</p>}
 
         <hr className={styles.divider} />
 
