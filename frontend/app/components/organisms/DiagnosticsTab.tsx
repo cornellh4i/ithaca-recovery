@@ -51,21 +51,23 @@ const DiagnosticsTab: React.FC<DiagnosticsTabProps> = ({ email, role }) => {
   const [data, setData] = useState<DiagnosticsData | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const loadDiagnostics = async () => {
+    try {
+      const response = await fetch("/api/admin/diagnostics");
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+      const json: DiagnosticsData = await response.json();
+      setData(json);
+    } catch (err) {
+      console.error("Error fetching diagnostics:", err);
+      setError("Failed to load diagnostics.");
+    }
+  };
+
   useEffect(() => {
-    let cancelled = false;
-    const load = async () => {
-      try {
-        const response = await fetch("/api/admin/diagnostics");
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-        const json: DiagnosticsData = await response.json();
-        if (!cancelled) setData(json);
-      } catch (err) {
-        console.error("Error fetching diagnostics:", err);
-        if (!cancelled) setError("Failed to load diagnostics.");
-      }
-    };
-    load();
-    return () => { cancelled = true; };
+    // loadDiagnostics is also called from ConflictList's onMeetingUpdated, so it can't be
+    // defined inline inside this effect the way the lint rule expects.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    loadDiagnostics();
   }, []);
 
   if (error) return <div className={styles.card}>{error}</div>;
@@ -176,7 +178,7 @@ const DiagnosticsTab: React.FC<DiagnosticsTabProps> = ({ email, role }) => {
         <div className={styles.panelSubhead}>
           These meetings share a room or Zoom room at overlapping times. Review and edit one to resolve.
         </div>
-        <ConflictList conflicts={data.conflicts} />
+        <ConflictList conflicts={data.conflicts} onMeetingUpdated={loadDiagnostics} />
       </div>
 
       <div className={styles.card} data-testid="diagnostics-suspended-panel">

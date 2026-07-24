@@ -237,6 +237,10 @@ export type ConflictMeetingSummary = {
   calType: string[];
   isRecurring: boolean;
   recurrencePattern: ConflictRecurrenceSummary | null;
+  // This meeting's own occurrence from the overlapping pair -- not the overlap intersection
+  // (which may be a subset when the two meetings' times differ) -- so the panel can show each
+  // meeting's actual scheduled time.
+  occurrence: { start: Date; end: Date };
 };
 
 export type ConflictRow = {
@@ -261,12 +265,13 @@ const toRecurrenceSummary = (meeting: ConflictCandidateMeeting): ConflictRecurre
   };
 };
 
-const toMeetingSummary = (meeting: ConflictCandidateMeeting): ConflictMeetingSummary => ({
+const toMeetingSummary = (meeting: ConflictCandidateMeeting, occurrence: Occurrence): ConflictMeetingSummary => ({
   mid: meeting.mid,
   title: meeting.title,
   calType: meeting.calType ?? [],
   isRecurring: meeting.isRecurring,
   recurrencePattern: toRecurrenceSummary(meeting),
+  occurrence: { start: occurrence.start, end: occurrence.end },
 });
 
 // Pure/synchronous — groups a pre-fetched meeting list by room and by zoomRoom and
@@ -310,8 +315,8 @@ export function computeConflicts(
                 end: pair.a.end < pair.b.end ? pair.a.end : pair.b.end,
               },
               meetings: [
-                toMeetingSummary(withOccurrences[i].meeting),
-                toMeetingSummary(withOccurrences[j].meeting),
+                toMeetingSummary(withOccurrences[i].meeting, pair.a),
+                toMeetingSummary(withOccurrences[j].meeting, pair.b),
               ],
             });
           }
