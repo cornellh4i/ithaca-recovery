@@ -40,15 +40,18 @@ export default async function globalSetup(): Promise<void> {
   const uri = await startTestMongo(TEST_DB_NAME);
 
   const frontendRoot = path.resolve(__dirname, "../..");
-  // CHECKPOINT_DISABLE stops the Prisma CLI's post-run update-check ping — without it,
-  // a stalled/rate-limited call to checkpoint.prisma.io leaves the `npx prisma` process
-  // alive indefinitely after the schema push itself has already finished, hanging this
-  // execSync forever (confirmed in CI: the process showed up as an orphan process on job
-  // cancellation, minutes after its "schema applied" output had already printed).
-  execSync("npx prisma db push --skip-generate --accept-data-loss", {
+  // Call the installed `prisma` binary directly rather than through `npx` — in CI, the
+  // orphan process left behind after this hung was literally named "npm exec prisma db
+  // push...", i.e. npm's own resolution/update-check wrapper, not anything inside Prisma
+  // itself (CHECKPOINT_DISABLE, a Prisma-only setting, didn't help). The `timeout` below
+  // is a hard backstop regardless of the exact cause: this should finish in well under a
+  // second, so 60s is generous, and a genuine hang now fails fast with a clear error
+  // instead of silently blocking the whole suite.
+  execSync(`${path.join(frontendRoot, "node_modules/.bin/prisma")} db push --skip-generate --accept-data-loss`, {
     cwd: frontendRoot,
     stdio: "inherit",
     env: { ...process.env, DATABASE_URL: uri, CHECKPOINT_DISABLE: "1" },
+    timeout: 60_000,
   });
 
   await startNextDevServer(
