@@ -95,6 +95,26 @@ export default function HomePage() {
     }
   }, [selectedMeetingID, fetchMeetingDetails]);
 
+  // Deep-link support for e.g. the Diagnostics conflicts panel's "Edit" button
+  // (/?mid=<id>&edit=1) -- read once on mount rather than via useSearchParams, since this
+  // page isn't wrapped in a Suspense boundary.
+  const [pendingEditFromUrl, setPendingEditFromUrl] = useState(false);
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const mid = params.get("mid");
+    if (mid) {
+      setPendingEditFromUrl(params.get("edit") === "1");
+      setSelectedMeetingID(mid);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (selectedMeeting && pendingEditFromUrl) {
+      setShowEditMeeting(true);
+      setPendingEditFromUrl(false);
+    }
+  }, [selectedMeeting, pendingEditFromUrl]);
+
   const handleBack = () => {
     setSelectedMeeting(null);
     setSelectedMeetingID(null);
@@ -236,6 +256,7 @@ export default function HomePage() {
                 setFilters={setFilters}
                 selectedDate={selectedDate}
                 setSelectedDate={setSelectedDate}
+                selectedView={selectedView}
                 triggerCalendarRefresh={triggerCalendarRefresh}
               />
             )}

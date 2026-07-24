@@ -8,6 +8,8 @@
     "start": "next start",
     "lint": "eslint --config config/eslint.config.mjs .",
     "lint:fix": "eslint --config config/eslint.config.mjs . --fix",
+    "lint:css": "stylelint --config config/stylelint.config.mjs \"styles/**/*.scss\"",
+    "lint:css:fix": "stylelint --config config/stylelint.config.mjs \"styles/**/*.scss\" --fix",
     "postinstall": "prisma generate",
     "test:unit": "jest --config config/jest.config.ts",
     "test:integration": "jest --config config/jest.integration.config.ts",
@@ -57,6 +59,8 @@
     "jest": "^30.4.2",
     "mongodb": "^7.5.0",
     "mongodb-memory-server": "^11.2.0",
+    "stylelint": "^17.14.1",
+    "stylelint-config-standard-scss": "^17.0.0",
     "typescript": "6.0.3"
   },
   "resolutions": {

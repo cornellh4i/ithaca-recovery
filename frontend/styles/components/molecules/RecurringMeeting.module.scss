@@ -1,16 +1,15 @@
-@import url('https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;600&display=swap');
+@import 'https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;600&display=swap';
 @import '../../Variables.module.scss';
 
 .container {
-  color: var(--Black, #1E1E1E);
-  font-family: "Source Sans Pro";
+  color: var(--black, #1E1E1E);
+  font-family: "Source Sans Pro", sans-serif;
   font-size: 18px;
   font-style: normal;
   font-weight: 400;
   line-height: normal;
-
   align-items: center;
-  padding: 0px 5px;
+  padding: 0 5px;
 
   .error-message {
     color: red;
@@ -22,7 +21,15 @@
   }
   
   .isRecurring {
-    margin-left: 30px
+    margin-top: 12px;
+    padding: 16px;
+    border: 1px solid $grey-border-color;
+    border-radius: 8px;
+    background: #fff;
+  }
+
+  .compactField {
+    max-width: 50%;
   }
 
   .dayButtons {
@@ -44,14 +51,14 @@
       }
 
       &.active {
-        background-color: #cc3366;
+        background-color: #c36;
         color: #fff;
-        border-color: #cc3366;
+        border-color: #c36;
       }
 
       &:focus {
         outline: none;
-        box-shadow: 0 0 4px rgba(204, 51, 102, 0.6);
+        box-shadow: 0 0 4px rgb(204 51 102 / 60%);
       }
     }
   }
@@ -60,7 +67,6 @@
     display: flex;
     align-items: center;
     gap: 5px;
-    margin-bottom: 16px;
 
     label {
       font-weight: bold;
@@ -86,7 +92,7 @@
 
       input[type="radio"] {
         margin-right: 8px;
-        accent-color: #cc3366;
+        accent-color: #c36;
       }
     }
   }

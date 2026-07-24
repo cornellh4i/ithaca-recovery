@@ -1,3 +1,4 @@
+@use 'sass:color';
 @import '../../Variables.module.scss';
 
 .navbar {
@@ -34,10 +35,9 @@
     color: #000;
     list-style-type: none;
     padding: 0;
-    margin: 0px;
+    margin: 0;
 
     li {
-
         button,
         a {
             display: inline-block;
@@ -110,8 +110,8 @@
 
             &:hover,
             &:focus {
-                background-color: darken($dark-pink-color, 8%);
-                border-color: darken($dark-pink-color, 8%);
+                background-color: color.adjust($dark-pink-color, $lightness: -8%);
+                border-color: color.adjust($dark-pink-color, $lightness: -8%);
                 color: #fff;
             }
         }

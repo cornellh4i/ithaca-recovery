@@ -20,11 +20,17 @@ import styles from '../../../styles/components/organisms/MeetingForm.module.scss
 interface NewMeetingSidebarProps {
   setIsNewMeetingOpen: React.Dispatch<React.SetStateAction<boolean>>;
   triggerCalendarRefresh: () => void;
+  // What the calendar is currently showing -- seeds the Date field's default (see
+  // useMeetingForm's computeDefaultDate).
+  selectedDate: Date;
+  selectedView: string;
 }
 
 const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({
   setIsNewMeetingOpen,
-  triggerCalendarRefresh
+  triggerCalendarRefresh,
+  selectedDate,
+  selectedView,
 }) => {
     const {
       title: inputMeetingTitleValue, setTitle: setMeetingTitleValue,
@@ -42,7 +48,7 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({
       resetForm,
       getValidationErrors,
       buildMeetingPayload,
-    } = useMeetingForm();
+    } = useMeetingForm(undefined, { selectedDate, selectedView });
 
     const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -122,7 +128,6 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({
             value={timeValue}
             onChange={setTimeValue}
             disablePast={true}
-            error={'Time is required'}
           />}
           RecurringMeeting={
             <RecurringMeetingForm
@@ -144,7 +149,10 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({
               <span style={{ marginRight: '6px', display: 'flex', alignItems: 'center' }}>
                 <img src="svg/group-icon.svg" alt="Group Icon" />
               </span>
-              <div data-testid="meeting-type-checkboxes" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <div
+                data-testid="meeting-type-checkboxes"
+                style={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: '16px' }}
+              >
                 {CAL_TYPE_OPTIONS.map(type => (
                   <LabeledCheckbox
                     key={type}
@@ -152,6 +160,7 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({
                     checked={selectedCalTypes.includes(type)}
                     onChange={(_e) => handleCalTypeToggle(type)}
                     color={CAL_TYPE_COLOR}
+                    uncheckedBg="#fff"
                   />
                 ))}
               </div>
@@ -160,7 +169,7 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({
           zoomRoomDropdown={
             <Dropdown
               key={selectedZoomRoom}
-              label={<img src="svg/person-icon.svg" alt="Person Icon" />}
+              label={<img src="svg/zoom-icon.svg" alt="Zoom Icon" />}
               value={selectedZoomRoom}
               isVisible={selectedMode !== "In Person"}
               elements={zoomRoomOptions}

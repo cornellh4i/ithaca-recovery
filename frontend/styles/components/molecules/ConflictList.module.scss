@@ -1,0 +1,130 @@
+@import '../../Variables.module.scss';
+
+.emptyState {
+  color: $medium-grey-color;
+  font-size: 14px;
+}
+
+.conflictGroup {
+  padding: 14px 0;
+  border-top: 1.5px solid #E5E5E5;
+
+  &:first-of-type {
+    border-top: none;
+    padding-top: 0;
+  }
+}
+
+.conflictMeta {
+  font-size: 13px;
+  color: #555;
+}
+
+.conflictValue {
+  font-weight: 600;
+  color: $black-color;
+}
+
+.overlapSummary {
+  font-size: 13px;
+  color: $medium-grey-color;
+  margin-top: 2px;
+  margin-bottom: 8px;
+}
+
+.conflictEntry {
+  border-top: 1px solid #F1F1F1;
+
+  &:first-of-type {
+    border-top: none;
+  }
+}
+
+.conflictRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 10px 0;
+}
+
+// Accordion expand for the inline edit panel, animated via grid-template-rows so it doesn't
+// need a measured height -- editPanelInner's overflow:hidden clips content during the transition.
+.editPanel {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.2s ease;
+}
+
+.editPanelOpen {
+  grid-template-rows: 1fr;
+}
+
+.editPanelInner {
+  overflow: hidden;
+  min-height: 0;
+}
+
+.editPanelOpen .editPanelInner {
+  padding: 8px 0 12px;
+}
+
+// Card treatment (mirrors DiagnosticsTab's own .card and the design system's --color-grey-
+// lightest token) so the expanded edit form reads as a distinct surface rather than blending
+// into the conflict row list. Now that ModeTypeButtons' selected state is a solid pink fill
+// (not a near-white pill), this lighter card no longer washes it out.
+.editCard {
+  background: $grey-lightest-color;
+  border: 1.5px solid $grey-border-color;
+  border-radius: 8px;
+  padding: 16px 20px;
+}
+
+.editLoading {
+  padding: 16px 24px;
+  font-size: 13px;
+  color: $medium-grey-color;
+  background: $grey-lightest-color;
+  border: 1.5px solid $grey-border-color;
+  border-radius: 8px;
+}
+
+.meetingTitle {
+  font-weight: 600;
+  font-size: 15px;
+  color: $black-color;
+}
+
+.meetingTags {
+  font-weight: 400;
+  color: $medium-grey-color;
+  font-size: 14px;
+}
+
+.meetingSchedule {
+  font-size: 13px;
+  color: $medium-grey-color;
+  margin-top: 2px;
+}
+
+.editButton {
+  flex-shrink: 0;
+  margin-left: 16px;
+  border: 1px solid $light-grey-color;
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 13px;
+  font-family: inherit;
+  color: $black-color;
+  background: none;
+  cursor: pointer;
+  white-space: nowrap;
+
+  &:hover {
+    border-color: $medium-grey-color;
+  }
+
+  &[aria-expanded="true"] {
+    border-color: $medium-grey-color;
+    background: #F5F5F5;
+  }
+}

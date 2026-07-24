@@ -3,8 +3,17 @@
 .textfieldcontainer {
     display: flex;
     align-items: center;
-    gap: 15px;
+    gap: 10px;
     align-self: stretch;
+    border: 1px solid $grey-border-color;
+    border-radius: 6px;
+    background: #fff;
+    padding: 0 12px;
+    transition: border-color 0.15s ease;
+
+    &:focus-within {
+        border-color: $dark-pink-color;
+    }
 }
 
 .textfieldinput {
@@ -15,21 +24,13 @@
     font-family: 'Source Sans Pro', sans-serif;
     font-size: 18px;
     font-weight: 400;
-    padding: 6px 12px;
+    padding: 10px 0;
     color: $black-color;
-    transition: border-color 0.3s;
     width: 100%;
+    background: transparent;
 
     &::placeholder {
         color: $medium-grey-color;
-    }
-
-    &.default {
-        border-bottom: 1px solid $light-grey-color;
-    }
-
-    &.focused {
-        border-bottom: 1px solid $dark-pink-color;
     }
 
     &.multiline {
@@ -39,7 +40,7 @@
         display: block;
         font-family: inherit;
         white-space: pre-wrap;
-        word-wrap: break-word;
         overflow-wrap: break-word;
+        padding: 10px 0;
     }
 }

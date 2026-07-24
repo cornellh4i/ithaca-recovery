@@ -1,7 +1,8 @@
-@import url('https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;600&display=swap');
+@import 'https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;600&display=swap';
+@import '../../Variables.module.scss';
 
 .newMeetingSidebar {
-  background-color: #ffffff;
+  background-color: #fff;
   width: 100%;
   height: auto;
   margin: 0 auto; // so the height is responsive to the atoms in it
@@ -12,10 +13,52 @@
   margin-bottom: 16px;
 }
 
+// Two-column layout for wider embedding contexts (e.g. an inline edit panel). Sequential
+// single-column fields (Date/Time, Room/Zoom Room) pair up on the same row for free; fields
+// that need the full row opt in via .fieldFullWidth.
+.newMeetingSidebar.wide {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 24px;
+
+  // No max-width -- fills whatever width the wrapping card (e.g. ConflictList's .editCard)
+  // gives it, rather than leaving a dead grey strip when that card is wider than 760px.
+  width: 100%;
+
+  // Let the wrapping card show through instead of this component's own white sidebar background.
+  background-color: transparent;
+}
+
+.newMeetingSidebar.wide .dummyComponent {
+  margin-bottom: 12px;
+}
+
+.newMeetingSidebar.wide .fieldFullWidth {
+  grid-column: 1 / -1;
+}
+
+// Date/Time atoms are intrinsically-sized (not width:100%), so at wide widths the default grid
+// behavior would spread them out with awkward gaps -- cluster them together instead, left-
+// aligned, rather than stretching to fill the row. (ModeTypeButtons handles its own full-width
+// segmented-control layout internally, so it doesn't need an override here.)
+.dateTimeRow {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+
+  // Each atom is its own bordered field-box now, so let them share the row evenly
+  // instead of hugging their own content width.
+  > * {
+    flex: 1;
+    min-width: 200px;
+  }
+}
+
 .createMeetingButton {
   width: 100%;
   height: auto;
-  background-color: #CC3366;
+  background-color: #C36;
   color: #fff;
   border: none;
   font-family: 'Source Sans Pro', sans-serif;
@@ -29,15 +72,28 @@
 }
 
 .meetingButtons {
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
   width: 100%;
   margin-bottom: 10px;
 }
 
+.fieldCaption {
+  display: block;
+  font-family: 'Source Sans Pro', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: $medium-grey-color;
+  margin-bottom: 6px;
+}
+
+.fieldSlot {
+  display: flex;
+  flex-direction: column;
+}
+
 /* Responsive adjustments */
-@media (max-width: 768px) {
+@media (width <= 768px) {
   .newMeetingSidebar {
     width: 100%;
     height: auto;
@@ -50,11 +106,16 @@
   flex-direction: row;
   justify-content: space-between;
   align-items: center;
-  color: var(--Dark-Navy, #3A3E49);
-  font-family: "Source Sans Pro";
+  color: var(--dark-navy, #3A3E49);
+  font-family: "Source Sans Pro", sans-serif;
   font-style: normal;
   font-weight: 600;
-  background-color: white;
+  background-color: transparent;
+  margin-bottom: 12px;
+
+  h3 {
+    margin: 0;
+  }
 }
 
 .iconButton {

@@ -118,3 +118,18 @@ export const getWeekDatesET = (etDateStr: string): string[] => {
     return d.toISOString().slice(0, 10);
   });
 };
+
+// en-GB (not en-US) specifically -- some Intl/ICU builds render en-US midnight as "24"
+// instead of "00" with hour12:false, which would corrupt the minutes-since-midnight math
+// below. Same pattern as ConflictList.tsx's etTimeFmt.
+const etTimeFmt = new Intl.DateTimeFormat('en-GB', {
+  timeZone: 'America/New_York', hour: '2-digit', minute: '2-digit', hour12: false,
+});
+
+/** Current ET wall-clock time as minutes since midnight (0-1439), for computing "the next N-minute slot" defaults. */
+export const getCurrentETMinutesSinceMidnight = (): number => {
+  const parts = etTimeFmt.formatToParts(new Date());
+  const hour = parseInt(parts.find(p => p.type === 'hour')?.value ?? '0', 10);
+  const minute = parseInt(parts.find(p => p.type === 'minute')?.value ?? '0', 10);
+  return hour * 60 + minute;
+};

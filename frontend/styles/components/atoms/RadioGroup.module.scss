@@ -19,6 +19,18 @@
         gap: 12px;
     }
 
+    .radioOptionRow {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+
+    .radioInlineContent {
+        flex: 1;
+        min-width: 160px;
+    }
+
     .radioOption {
         display: flex;
         gap: 12px;

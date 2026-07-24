@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;600&display=swap');
+@import 'https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;600&display=swap';
 
 .outerContainer {
   display: flex;
@@ -61,6 +61,7 @@
   position: sticky;
   left: 0;
   z-index: 20;
+
   // 41px .timeHeader + 2400px .timeSlots. Must be the full sum, not just the slots —
   // .timeHeader is empty, so if this height is any smaller, flexbox's automatic
   // minimum size (based on content, 0 for an empty element) lets it absorb the whole
@@ -101,6 +102,7 @@
   flex: 1;
   min-width: 0;
   scroll-snap-type: x mandatory;
+
   // 40px .dayHeader + 2400px meeting grid per column — matches .dayColumn's own
   // height (see there for why the full sum, not just 2400px, matters) so
   // .viewContainer's overflow:auto can scroll through all 24 hours, instead of
@@ -111,10 +113,12 @@
 .dayColumn {
   flex: 1;
   min-width: 155px;
+
   /* Consistent with daily view's 155px column width */
   position: relative;
   border-right: 1px solid #ddd;
   scroll-snap-align: start;
+
   // 40px .dayHeader + 2400px meeting grid. Was 2400px alone — under-subscribed by
   // the same 40px as .timeColumn was, just with a less obviously broken symptom:
   // .dayHeader has real text content, so instead of collapsing (like the empty
@@ -123,6 +127,7 @@
   height: 2440px;
   display: flex;
   flex-direction: column;
+
   /* Allow children to expand properly */
 }
 
@@ -135,7 +140,7 @@
   left: 0;
   width: 100%;
   height: 2px;
-  background-color: #cc3366; // Matching the DailyView color
+  background-color: #c36; // Matching the DailyView color
   z-index: 12; // Above meeting boxes (10), below the sticky .dayHeader (15) so it
                // doesn't draw over the day header when they overlap during scroll.
 
@@ -146,7 +151,7 @@
     top: -4px;
     width: 10px;
     height: 10px;
-    background-color: #cc3366;
+    background-color: #c36;
     border-radius: 50%;
   }
 }
@@ -184,7 +189,7 @@
 
 // Style for current date - now a square without rounded edges
 .currentDate {
-  background-color: #cc3366;
+  background-color: #c36;
   color: white;
   border-radius: 0; // No rounded edges
   width: 24px;

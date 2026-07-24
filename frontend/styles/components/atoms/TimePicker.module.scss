@@ -1,35 +1,45 @@
-@import url('https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;600&display=swap');
+@import 'https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;600&display=swap';
 @import '../../Variables.module.scss';
 
 .time-picker-wrapper {
   display: flex;
   align-items: center;
+  gap: 8px;
   margin-bottom: 18px;
-  padding: 1.5px 1.5px;
   font-family: 'Source Sans Pro', sans-serif;
+  border: 1px solid $grey-border-color;
+  border-radius: 6px;
+  padding: 0 12px;
+  height: 42px;
+  background-color: #fff;
+  transition: border-color 0.15s ease;
+
+  &:focus-within {
+    border-color: $dark-pink-color;
+  }
 
   .time-picker-label {
-    margin-right: 12px;
     display: flex;
     align-items: center;
     font-size: 18px;
+    color: $medium-grey-color;
   }
 
   .time-picker-input {
-    font-size: 18px;
-    border: 1px solid transparent; // Set a transparent border
-    outline: none; // Remove the focus outline
-    width: 80px; // Adjust the width to be wider
+    font-size: 15px;
+    border: none;
+    outline: none;
+    width: 78px; // Adjust the width to be wider
     min-width: 70px; // Set a minimum width
     text-align: center;
     background-color: transparent; // Transparent background
     font-family: 'Source Sans Pro', sans-serif;
-    padding: 4px; // Add some padding
+    padding: 0;
 
     /* Hide the time picker icon */
     &::-webkit-calendar-picker-indicator {
       display: none;
-      -webkit-appearance: none;
+      appearance: none;
     }
 
     &::-moz-calendar-picker-indicator {
@@ -40,28 +50,11 @@
       display: none;
     }
 
-    &:focus {
-      border-bottom: 1px solid $dark-pink-color;
-      outline: none; // No outline on focus
-    }
-
     appearance: none; // Ensure the time picker icon doesn't appear
   }
 
   .time-range-separator {
-    margin: 0 12px; // Increase spacing between the two inputs
-    font-size: 18px;
-    color: #333;
-  }
-
-  .error-input {
-    border: 1px solid red; // Apply red border for error state
-  }
-
-  .error-message {
-    color: red; // Set the text color of the error message to red
-    font-size: 14px; // Adjust the font size as needed
-    margin-top: 4px; // Add some space above the error message
-    margin-left: 4px;
+    font-size: 14px;
+    color: $medium-grey-color;
   }
 }

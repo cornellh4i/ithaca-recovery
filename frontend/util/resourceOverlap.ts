@@ -49,6 +49,7 @@ export type ConflictCandidateMeeting = OccurrenceInput & {
   room: string;
   zoomRoom?: string | null;
   status?: string | null;
+  calType?: string[];
 };
 
 // Every occurrence of `meeting` that falls within [rangeStart, rangeEnd), sorted by start time.
@@ -107,18 +108,24 @@ export function expandOccurrences(
 }
 
 // Two-pointer sweep over two occurrence lists, each already sorted ascending by start (true
-// for anything produced by expandOccurrences) — O(n+m) instead of the naive O(n*m).
-export function occurrencesOverlap(a: Occurrence[], b: Occurrence[]): boolean {
+// for anything produced by expandOccurrences) — O(n+m) instead of the naive O(n*m). Returns
+// the earliest overlapping pair (not just whether one exists) so callers that need to display
+// the actual overlap window — e.g. the Diagnostics conflicts panel — don't have to re-sweep.
+export function findOverlappingOccurrencePair(a: Occurrence[], b: Occurrence[]): { a: Occurrence; b: Occurrence } | null {
   let i = 0;
   let j = 0;
   while (i < a.length && j < b.length) {
     const ai = a[i];
     const bj = b[j];
-    if (ai.start < bj.end && bj.start < ai.end) return true;
+    if (ai.start < bj.end && bj.start < ai.end) return { a: ai, b: bj };
     if (ai.end <= bj.end) i++;
     else j++;
   }
-  return false;
+  return null;
+}
+
+export function occurrencesOverlap(a: Occurrence[], b: Occurrence[]): boolean {
+  return findOverlappingOccurrencePair(a, b) !== null;
 }
 
 // [rangeStart, rangeEnd) shared by every conflict check in this module: from now out to the
@@ -213,11 +220,59 @@ export async function findResourceConflicts(
   return conflicts;
 }
 
+// The display-relevant subset of a meeting's recurrence pattern (no Date fields — those
+// don't survive JSON serialization cleanly and callers only need this to build text like
+// "Weekly · Tue" or "Monthly · 2nd Fri").
+export type ConflictRecurrenceSummary = {
+  type: string;
+  interval: number;
+  daysOfWeek: string[];
+  weekOfMonth: number | null;
+  dayOfMonth: number | null;
+};
+
+export type ConflictMeetingSummary = {
+  mid: string;
+  title: string;
+  calType: string[];
+  isRecurring: boolean;
+  recurrencePattern: ConflictRecurrenceSummary | null;
+  // This meeting's own occurrence from the overlapping pair -- not the overlap intersection
+  // (which may be a subset when the two meetings' times differ) -- so the panel can show each
+  // meeting's actual scheduled time.
+  occurrence: { start: Date; end: Date };
+};
+
 export type ConflictRow = {
   field: "room" | "zoomRoom";
   value: string;
-  meetings: { mid: string; title: string }[];
+  // The earliest window where the two meetings' occurrences actually intersect (not just
+  // either meeting's own start/end) — e.g. two meetings 7:00-8:00 and 7:30-8:30 overlap
+  // 7:30-8:00.
+  overlap: { start: Date; end: Date };
+  meetings: [ConflictMeetingSummary, ConflictMeetingSummary];
 };
+
+const toRecurrenceSummary = (meeting: ConflictCandidateMeeting): ConflictRecurrenceSummary | null => {
+  if (!meeting.isRecurring || !meeting.recurrencePattern) return null;
+  const pattern = meeting.recurrencePattern;
+  return {
+    type: pattern.type,
+    interval: pattern.interval,
+    daysOfWeek: pattern.daysOfWeek ?? [],
+    weekOfMonth: pattern.weekOfMonth ?? null,
+    dayOfMonth: pattern.dayOfMonth ?? null,
+  };
+};
+
+const toMeetingSummary = (meeting: ConflictCandidateMeeting, occurrence: Occurrence): ConflictMeetingSummary => ({
+  mid: meeting.mid,
+  title: meeting.title,
+  calType: meeting.calType ?? [],
+  isRecurring: meeting.isRecurring,
+  recurrencePattern: toRecurrenceSummary(meeting),
+  occurrence: { start: occurrence.start, end: occurrence.end },
+});
 
 // Pure/synchronous — groups a pre-fetched meeting list by room and by zoomRoom and
 // pairwise-checks each bucket for overlaps. Kept DB-free (caller does the one Prisma query)
@@ -250,13 +305,18 @@ export function computeConflicts(
 
       for (let i = 0; i < withOccurrences.length; i++) {
         for (let j = i + 1; j < withOccurrences.length; j++) {
-          if (occurrencesOverlap(withOccurrences[i].occurrences, withOccurrences[j].occurrences)) {
+          const pair = findOverlappingOccurrencePair(withOccurrences[i].occurrences, withOccurrences[j].occurrences);
+          if (pair) {
             conflicts.push({
               field,
               value,
+              overlap: {
+                start: pair.a.start > pair.b.start ? pair.a.start : pair.b.start,
+                end: pair.a.end < pair.b.end ? pair.a.end : pair.b.end,
+              },
               meetings: [
-                { mid: withOccurrences[i].meeting.mid, title: withOccurrences[i].meeting.title },
-                { mid: withOccurrences[j].meeting.mid, title: withOccurrences[j].meeting.title },
+                toMeetingSummary(withOccurrences[i].meeting, pair.a),
+                toMeetingSummary(withOccurrences[j].meeting, pair.b),
               ],
             });
           }

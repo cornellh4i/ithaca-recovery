@@ -21,10 +21,13 @@ interface EditMeetingSidebarProps {
   meeting: IMeeting;
   onClose: () => void;
   onUpdateSuccess: () => void;
+  // "wide" is used when this form is embedded inline in a wider context (e.g. the Diagnostics
+  // Conflicts panel) rather than the narrow Main Calendar sidebar. See MeetingForm's layout prop.
+  layout?: "sidebar" | "wide";
 }
 
 const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
-  ({ meeting, onClose, onUpdateSuccess }) => {
+  ({ meeting, onClose, onUpdateSuccess, layout = "sidebar" }) => {
     const {
       title: inputMeetingTitleValue, setTitle: setMeetingTitleValue,
       mode: selectedMode,
@@ -107,14 +110,12 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
             label={<img src='/svg/calendar-icon.svg' alt="Calendar Icon" />}
             value={dateValue}
             onChange={setDateValue}
-            error={dateValue === '' ? 'Date is required' : undefined}
           />}
           TimePicker={<TimePicker
             label={<img src='/svg/clock-icon.svg' alt="Clock Icon" />}
             value={timeValue}
             onChange={setTimeValue}
             disablePast={true}
-            error={timeValue === '' ? 'Time is required' : undefined}
           />}
           RecurringMeeting={
             <RecurringMeetingForm
@@ -124,6 +125,7 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
                 isRecurring: !!meeting.recurrencePattern,
                 recurrencePattern: meeting.recurrencePattern ?? null,
               }}
+              layout={layout}
             />
           }
           roomSelectionDropdown={
@@ -141,7 +143,10 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
               <span style={{ marginRight: '6px', display: 'flex', alignItems: 'center' }}>
                 <img src="svg/group-icon.svg" alt="Group Icon" />
               </span>
-              <div data-testid="meeting-type-checkboxes" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <div
+                data-testid="meeting-type-checkboxes"
+                style={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: '16px' }}
+              >
                 {CAL_TYPE_OPTIONS.map(type => (
                   <LabeledCheckbox
                     key={type}
@@ -149,6 +154,7 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
                     checked={selectedCalTypes.includes(type)}
                     onChange={(_e) => handleCalTypeToggle(type)}
                     color={CAL_TYPE_COLOR}
+                    uncheckedBg="#fff"
                   />
                 ))}
               </div>
@@ -157,7 +163,7 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
           zoomRoomDropdown={
             <Dropdown
               key={selectedZoomRoom}
-              label={<img src="svg/person-icon.svg" alt="Person Icon" />}
+              label={<img src="svg/zoom-icon.svg" alt="Zoom Icon" />}
               value={selectedZoomRoom}
               isVisible={true}
               elements={zoomRoomOptions}
@@ -181,6 +187,7 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
           handleMeetingSubmit={updateMeeting}
           buttonText={isSubmitting ? "Updating…" : "Update Meeting"}
           isSubmitting={isSubmitting}
+          layout={layout}
         />
       </div>
     );
