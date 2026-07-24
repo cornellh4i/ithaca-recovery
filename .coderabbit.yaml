@@ -1,0 +1,8 @@
+reviews:
+  auto_review:
+    # Dependency bumps from these bots are already gated by CI + the auto-merge
+    # policy in dependabot.yml/dependabot-auto-merge.yml -- a CodeRabbit review
+    # adds no signal there and just generates noise. Comment `@coderabbitai review`
+    # on a specific PR to force one anyway.
+    ignore_usernames:
+      - "dependabot[bot]"
