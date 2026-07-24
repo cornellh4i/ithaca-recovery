@@ -37,6 +37,8 @@ jobs:
           persist-credentials: false
       - run: .github/scripts/check-doc-versions.sh
   lint:
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7

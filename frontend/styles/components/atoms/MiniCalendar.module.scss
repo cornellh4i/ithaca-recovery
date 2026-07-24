@@ -68,7 +68,7 @@
     :global(.rdp-day) {
         cursor: pointer;
         
-        &:hover:not(.rdp-day_selected, .rdp-day_disabled) {
+        &:hover:not(.rdp-selected, .rdp-disabled) {
             background-color: color.adjust($dark-pink-color, $lightness: 35%);
         }
     }
