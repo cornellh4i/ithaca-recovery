@@ -13,10 +13,13 @@ export default async function globalSetup(): Promise<void> {
   // See the identical comment in test/e2e/global-setup.ts — avoid `npx` (the CI hang left
   // an orphan "npm exec prisma db push" process, not anything Prisma-internal) and hard-cap
   // with `timeout` as a backstop regardless of the exact cause.
+  // TEMPORARY: DEBUG enabled to diagnose a CI-only hang after this command's own output
+  // finishes printing (60s timeout catches it, but gives no insight into what it's stuck
+  // on) — not reproducible locally. Remove once root-caused.
   execFileSync(path.join(frontendRoot, "node_modules/.bin/prisma"), ["db", "push", "--skip-generate", "--accept-data-loss"], {
     cwd: frontendRoot,
     stdio: "inherit",
-    env: { ...process.env, DATABASE_URL: uri, CHECKPOINT_DISABLE: "1" },
+    env: { ...process.env, DATABASE_URL: uri, CHECKPOINT_DISABLE: "1", DEBUG: "*" },
     timeout: 60_000,
   });
 }
