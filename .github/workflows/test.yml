@@ -5,6 +5,10 @@ on:
     branches: [main, master]
   pull_request:
 
+concurrency:
+  group: test-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 defaults:
   run:
     working-directory: frontend
@@ -48,6 +52,7 @@ jobs:
 
   integration:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -56,10 +61,20 @@ jobs:
           cache: yarn
           cache-dependency-path: frontend/yarn.lock
       - run: yarn install --frozen-lockfile
+      # mongodb-memory-server (used by both integration and e2e) downloads the
+      # mongod binary on first use if it isn't already cached — caching it here
+      # avoids re-downloading on every run and reduces exposure to a slow/rate-
+      # limited download hanging the job (see e2e's cache step below, keyed the
+      # same way).
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/mongodb-binaries
+          key: mongodb-binaries-${{ runner.os }}-${{ hashFiles('frontend/yarn.lock') }}
       - run: yarn test:integration
 
   e2e:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -69,6 +84,10 @@ jobs:
           cache-dependency-path: frontend/yarn.lock
       - run: yarn install --frozen-lockfile
       - run: npx playwright install --with-deps chromium
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/mongodb-binaries
+          key: mongodb-binaries-${{ runner.os }}-${{ hashFiles('frontend/yarn.lock') }}
       # No GOOGLE_*/ZOOM_* secrets configured on this job, deliberately — the suite
       # is designed to run against the fail-soft sync-error paths with zero real
       # external API calls (see test/e2e/support/sync-fixtures.ts). global-setup.ts
