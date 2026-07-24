@@ -5,12 +5,13 @@
   font-size: 14px;
 }
 
-.conflictRow {
-  border-top: 1px solid #F1F1F1;
-  padding: 10px 0;
+.conflictGroup {
+  padding: 14px 0;
+  border-top: 1.5px solid #E5E5E5;
 
   &:first-of-type {
     border-top: none;
+    padding-top: 0;
   }
 }
 
@@ -24,8 +25,55 @@
   color: $black-color;
 }
 
-.conflictTitles {
-  font-size: 14px;
-  color: $black-color;
+.overlapSummary {
+  font-size: 13px;
+  color: $medium-grey-color;
   margin-top: 2px;
+  margin-bottom: 8px;
+}
+
+.conflictRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 10px 0;
+  border-top: 1px solid #F1F1F1;
+
+  &:first-of-type {
+    border-top: none;
+  }
+}
+
+.meetingTitle {
+  font-weight: 600;
+  font-size: 15px;
+  color: $black-color;
+}
+
+.meetingTags {
+  font-weight: 400;
+  color: $medium-grey-color;
+  font-size: 14px;
+}
+
+.meetingSchedule {
+  font-size: 13px;
+  color: $medium-grey-color;
+  margin-top: 2px;
+}
+
+.editButton {
+  flex-shrink: 0;
+  margin-left: 16px;
+  border: 1px solid $light-grey-color;
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 13px;
+  color: $black-color;
+  text-decoration: none;
+  white-space: nowrap;
+
+  &:hover {
+    border-color: $medium-grey-color;
+  }
 }
