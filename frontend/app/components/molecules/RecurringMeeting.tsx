@@ -264,6 +264,7 @@ const RecurringMeetingForm: React.FC<RecurringMeetingFormProps> = ({
           onChange={handleRecurringChange}
           color="#848484"
           uncheckedBg="#fff"
+          compact={layout === "sidebar"}
         />
       </div>
 
@@ -285,6 +286,7 @@ const RecurringMeetingForm: React.FC<RecurringMeetingFormProps> = ({
                     if (opts.length > 0) setMonthlyOption(opts[0]);
                   }
                 }}
+                compact={layout === "sidebar"}
               />
             </div>
 
@@ -315,6 +317,7 @@ const RecurringMeetingForm: React.FC<RecurringMeetingFormProps> = ({
                       label={day.label}
                       checked={selectedDays.includes(day.id)}
                       onClick={() => toggleDay(day.id)}
+                      compact={layout === "sidebar"}
                     />
                   ))}
                 </div>
@@ -337,6 +340,7 @@ const RecurringMeetingForm: React.FC<RecurringMeetingFormProps> = ({
                   elements={monthlyOptions}
                   name="Select recurrence"
                   onChange={setMonthlyOption}
+                  compact={layout === "sidebar"}
                 />
               </div>
             )}
@@ -353,6 +357,7 @@ const RecurringMeetingForm: React.FC<RecurringMeetingFormProps> = ({
                     label={""}
                     value={endDate}
                     onChange={(val) => setEndDate(val)}
+                    compact={layout === "sidebar"}
                   />
                 ),
                 After: (

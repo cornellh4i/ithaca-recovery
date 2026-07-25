@@ -30,6 +30,16 @@
     flex: 1;
   }
 
+  &.compact {
+    .date-picker-label {
+      font-size: 14.4px;
+    }
+
+    .date-picker-input {
+      font-size: 12px;
+    }
+  }
+
   .date-picker-input {
     font-size: 15px;
     border: none;

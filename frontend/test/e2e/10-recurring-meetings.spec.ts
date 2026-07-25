@@ -59,13 +59,13 @@ test.describe("recurring meetings", () => {
     // The frequency dropdown already shows "Weekly" (its own default selection), so
     // it can't be opened by the "Select frequency" placeholder text.
     await page.getByRole("button", { name: "Weekly" }).click();
-    await page.getByRole("listitem").filter({ hasText: "Monthly" }).click();
+    await page.getByRole("option").filter({ hasText: "Monthly" }).click();
 
     // Switching to Monthly auto-selects "Monthly on day 11" (day-of-month is always
     // first in RecurringMeeting.tsx's getMonthlyOptions()) — explicitly pick the
     // Nth-weekday option instead.
     await page.getByRole("button", { name: "Monthly on day 11" }).click();
-    await page.getByRole("listitem").filter({ hasText: "Monthly on the 2nd Tuesday" }).click();
+    await page.getByRole("option").filter({ hasText: "Monthly on the 2nd Tuesday" }).click();
     await expect(page.getByRole("button", { name: "Monthly on the 2nd Tuesday" })).toBeVisible();
 
     const dialogPromise = page.waitForEvent("dialog");

@@ -1,5 +1,5 @@
 import { test, expect } from "./support/fixtures";
-import { fillDatePicker, fillTimeRange, selectFromDropdown, toggleCalType, todayMMDDYYYY } from "./support/formHelpers";
+import { fillDatePicker, fillTimeRange, selectFromDropdown, selectView, toggleCalType, toggleFilter, todayMMDDYYYY } from "./support/formHelpers";
 import { seedMeeting } from "../factories/meeting";
 import { seedAdmin } from "../factories/admin";
 import { getTestPrismaClient } from "../factories/db";
@@ -36,8 +36,8 @@ test.describe("zoom integration", () => {
     await page.goto("/");
     // The zoomTag mismatch badge (util/rooms.ts isZoomRoomMismatched) is rendered by
     // WeeklyViewColumn only — DailyView's BoxText usage doesn't pass a zoomTag at all.
-    await page.locator("select").selectOption("Week");
-    await page.getByText("Serenity Room", { exact: true }).click();
+    await selectView(page, "Week");
+    await toggleFilter(page, "Serenity Room");
     await expect(page.getByTitle("Zoom room: Unity Room")).toBeVisible();
   });
 

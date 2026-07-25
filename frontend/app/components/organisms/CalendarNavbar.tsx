@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import Dropdown from '../atoms/Dropdown';
 import styles from "../../../styles/components/organisms/CalendarNavbar.module.scss";
 import { formatMeetingDateLine, monthNameForETDateString, formatMeetingWeekLine } from "../../../util/timeFormat";
 import {
@@ -32,9 +33,9 @@ const CalendarNavbar: React.FC<CalendarNavbarProps> = ({ selectedDate, onDateCha
       return `${monthNameForETDateString(etDateStr)} ${year}`;
     };
   
-    const handleViewChange: React.ChangeEventHandler<HTMLSelectElement> = (event) => {
-      setSelectedView(event.target.value);
-      onViewChange(event.target.value); // Call the external function
+    const handleViewChange = (value: string) => {
+      setSelectedView(value);
+      onViewChange(value); // Call the external function
       onDateChange(new Date());
     };
   
@@ -73,12 +74,15 @@ const CalendarNavbar: React.FC<CalendarNavbarProps> = ({ selectedDate, onDateCha
       <div className={styles.navbarContainer}>
         <h2 className={styles.navbarContainerRight}>{getDateRange(selectedDate)}</h2>
         <div className={styles.navbarContainerLeft}>
-          <div className={styles.box}>
-            {/* Temporary dropdown component */}
-            <select id="view-select" value={selectedView} onChange={handleViewChange}>
-              <option value="Day">Day</option>
-              <option value="Week">Week</option>
-            </select>
+          <div className={styles.viewDropdown}>
+            <Dropdown
+              label=""
+              value={selectedView}
+              isVisible={true}
+              elements={['Day', 'Week']}
+              name="Select view"
+              onChange={handleViewChange}
+            />
           </div>
           <div className={styles.box}>
             <a href="#" onClick={handleToday}>Today</a>

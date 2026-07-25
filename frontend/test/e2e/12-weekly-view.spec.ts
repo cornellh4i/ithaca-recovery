@@ -1,6 +1,6 @@
 import { test, expect } from "./support/fixtures";
 import { seedMeeting, seedRecurringMeeting } from "../factories/meeting";
-import { toggleFilter } from "./support/formHelpers";
+import { toggleFilter, selectView } from "./support/formHelpers";
 import { convertETToUTC, formatETDateString } from "../../util/timeUtils";
 
 // Manual script §12 (Weekly View). §12.5 (Zoom-room mismatch indicator) is also
@@ -12,7 +12,7 @@ test.describe("weekly view", () => {
     const { page } = adminPage;
     await seedMeeting({ title: "Hidden Until Filtered", room: "Serenity Room" });
     await page.goto("/");
-    await page.locator("select").selectOption("Week");
+    await selectView(page, "Week");
     await expect(page.getByText("Hidden Until Filtered")).toHaveCount(0);
   });
 
@@ -20,7 +20,7 @@ test.describe("weekly view", () => {
     const { page } = adminPage;
     await seedMeeting({ title: "Week Room Meeting", room: "Serenity Room" });
     await page.goto("/");
-    await page.locator("select").selectOption("Week");
+    await selectView(page, "Week");
     await toggleFilter(page, "Serenity Room");
     await expect(page.getByText("Week Room Meeting")).toBeVisible();
   });
@@ -43,7 +43,7 @@ test.describe("weekly view", () => {
       { type: "weekly", daysOfWeek: ["Sunday", "Wednesday"], interval: 1, startDate: twoWeeksAgo },
     );
     await page.goto("/");
-    await page.locator("select").selectOption("Week");
+    await selectView(page, "Week");
     await toggleFilter(page, "Serenity Room");
     await expect(page.getByText("Multi Day Recurring")).toHaveCount(2);
   });
@@ -57,7 +57,7 @@ test.describe("weekly view", () => {
       await seedMeeting({ title, room: "Serenity Room", startDateTime: start, endDateTime: end });
     }
     await page.goto("/");
-    await page.locator("select").selectOption("Week");
+    await selectView(page, "Week");
     await toggleFilter(page, "Serenity Room");
 
     // layoutOverlappingMeetings shows up to 2 cards side-by-side plus a "+N" pill.
@@ -73,7 +73,7 @@ test.describe("weekly view", () => {
       zoomRoom: "Unity Room - Zoom",
     });
     await page.goto("/");
-    await page.locator("select").selectOption("Week");
+    await selectView(page, "Week");
     await toggleFilter(page, "Serenity Room");
     await expect(page.getByTitle("Zoom room: Unity Room")).toBeVisible();
   });

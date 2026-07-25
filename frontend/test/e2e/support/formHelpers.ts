@@ -25,7 +25,7 @@ export async function selectFromDropdown(page: Page, buttonName: string, optionT
   // Not `exact` — Dropdown.tsx's button has a CSS-generated "▼" suffix appended
   // to its accessible name.
   await page.getByRole("button", { name: buttonName }).click();
-  await page.getByRole("listitem").filter({ hasText: optionText }).click();
+  await page.getByRole("option").filter({ hasText: optionText }).click();
 }
 
 // Toggles one of the AA/Al-Anon/Other checkboxes, scoped to the meeting form's
@@ -38,9 +38,23 @@ export async function toggleCalType(page: Page, type: string): Promise<void> {
 // Toggles a MeetingsFilter checkbox by its visible label, scoped to the sidebar's
 // filter panel — Day view also renders a same-named <h3> room-column header on the
 // calendar itself (e.g. "Unity Room" is both a filter label and a room header), so
-// an unscoped text match is ambiguous there.
+// an unscoped text match is ambiguous there. Room names are also reused verbatim as
+// Zoom Room filter labels (MeetingsFilter.tsx's ZOOM_ITEMS), so within the panel
+// itself `.first()` picks the Location group's checkbox -- it always renders before
+// the Zoom Rooms group -- matching what every current caller actually intends.
 export async function toggleFilter(page: Page, label: string): Promise<void> {
-  await page.locator('[class*="meetingsFilter"]').getByText(label, { exact: true }).click();
+  await page.locator('[class*="meetingsFilter"]').getByText(label, { exact: true }).first().click();
+}
+
+// Switches the CalendarNavbar Day/Week view via its atoms/Dropdown.tsx view-switcher.
+// Scoped to the navbar's own dropdown wrapper (not the meeting form's Dropdown
+// instances) so the button can be clicked without knowing which view is currently
+// selected -- unlike selectFromDropdown's callers, this button's accessible name
+// changes with the current view instead of staying a fixed placeholder.
+export async function selectView(page: Page, view: "Day" | "Week"): Promise<void> {
+  const dropdown = page.locator('[class*="viewDropdown"]');
+  await dropdown.getByRole("button").click();
+  await dropdown.getByRole("option").filter({ hasText: view }).click();
 }
 
 // Today's date in MM/DD/YYYY, for form fixtures that need to land on a real day

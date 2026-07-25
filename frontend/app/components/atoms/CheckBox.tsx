@@ -9,11 +9,15 @@ interface LabeledCheckBoxProps {
     // Background when unchecked -- defaults to transparent (FilterGroup's look); the Meeting
     // Form's checkboxes opt into a white fill instead.
     uncheckedBg?: string;
+    // Scales font-size to ~80% for narrow embedding contexts (the 280px Main Calendar
+    // sidebar) -- used by RecurringMeeting's "This meeting is recurring" checkbox, not
+    // FilterGroup's (Location/Zoom Rooms filters sit in the sidebar directly, unaffected).
+    compact?: boolean;
 }
 
-const LabeledCheckbox: React.FC<LabeledCheckBoxProps> = ({ label, checked, onChange, color, uncheckedBg = 'transparent' }) => {
+const LabeledCheckbox: React.FC<LabeledCheckBoxProps> = ({ label, checked, onChange, color, uncheckedBg = 'transparent', compact = false }) => {
     return (
-        <label className={styles.checkbox}>
+        <label className={`${styles.checkbox} ${compact ? styles.compact : ''}`}>
             <input
                 type="checkbox"
                 checked={checked}

@@ -1,6 +1,6 @@
 import { test, expect } from "./support/fixtures";
 import { seedMeeting } from "../factories/meeting";
-import { toggleFilter } from "./support/formHelpers";
+import { toggleFilter, selectView } from "./support/formHelpers";
 
 // Manual script §8 (Room and Meeting Filters).
 
@@ -18,7 +18,7 @@ test.describe("filters", () => {
   test("8.2 Week view starts with room filters unchecked", async ({ adminPage }) => {
     const { page } = adminPage;
     await page.goto("/");
-    await page.locator("select").selectOption("Week");
+    await selectView(page, "Week");
     const serenityCheckbox = page.locator('label:has-text("Serenity Room")').first().locator('input[type="checkbox"]');
     await expect(serenityCheckbox).not.toBeChecked();
   });

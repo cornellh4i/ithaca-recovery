@@ -8,6 +8,9 @@ interface TextFieldProps {
   underlineOnFocus?: boolean;
   label?: string | React.JSX.Element; // Label can now be either a string or an SVG element
   multiline?: boolean; // Renders a wrapping <textarea> instead of a single-line <input>
+  // Scales font-size to ~80% for narrow embedding contexts (the 280px Main Calendar
+  // sidebar) -- set via inline style below, so a CSS override can't win over it.
+  compact?: boolean;
   [key: string]: unknown; // Allow for additional props
 }
 
@@ -17,6 +20,7 @@ const TextField: React.FC<TextFieldProps> = ({
   onChange,
   label,
   multiline = false,
+  compact = false,
   ...props
 }) => {
   const [underlineOnFocus, setUnderlineOnFocus] = useState(false);
@@ -24,8 +28,13 @@ const TextField: React.FC<TextFieldProps> = ({
 
   const toggleFocus = () => setUnderlineOnFocus((prev) => !prev);
 
-  // Determine font size based on label presence
-  const fontSize = label == null ? "24px" : "18px";
+  // Determine font size based on label presence -- "" (passed for description fields
+  // that intentionally render no label) must count as unlabeled, same as undefined/null.
+  const hasLabel = Boolean(label);
+  const fontSize = compact
+    ? (hasLabel ? "14.4px" : "19.2px")
+    : (hasLabel ? "18px" : "24px");
+  const labelFontSize = compact ? "14.4px" : "18px";
 
   const inputClassName = `${styles.textfieldinput} ${multiline ? styles.multiline : ''} ${underlineOnFocus ? styles.focused : styles.default}`;
 
@@ -41,7 +50,7 @@ const TextField: React.FC<TextFieldProps> = ({
       {label && (
         <label
           className={styles.textfieldlabel}
-          style={{ fontSize: "18px" }} // Label is always 18px
+          style={{ fontSize: labelFontSize }}
         >
           {typeof label === "string" ? <span>{label}</span> : label}
         </label>

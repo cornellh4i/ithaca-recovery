@@ -5,6 +5,7 @@ import AppNavbar from "./components/organisms/AppNavbar";
 import { Inter } from "next/font/google";
 import styles from "../styles/MainLayout.module.scss";
 import type { Session } from "next-auth";
+import { SidebarProvider } from "./context/SidebarContext";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -24,14 +25,16 @@ export default function ClientLayout({
                 extensions) inject attributes like bis_register onto <body> or <html> before React
                 hydrates — a real mismatch, but not one our code can control or should warn on. */}
             <body className={inter.className} suppressHydrationWarning>
-                <div className={styles.mainlayout}>
-                    <div className={styles.navigation}>
-                        <AppNavbar session={session} />
+                <SidebarProvider>
+                    <div className={styles.mainlayout}>
+                        <div className={styles.navigation}>
+                            <AppNavbar session={session} />
+                        </div>
+                        <div className={styles.content}>
+                            {children}
+                        </div>
                     </div>
-                    <div className={styles.content}>
-                        {children}
-                    </div>
-                </div>
+                </SidebarProvider>
             </body>
         </html>
     );

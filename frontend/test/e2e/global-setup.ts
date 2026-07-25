@@ -63,6 +63,27 @@ export default async function globalSetup(): Promise<void> {
     3000,
   );
 
+  // next dev compiles each route lazily on its first request. Left alone, that
+  // first compile happens mid-suite instead of here, competing with whatever
+  // test is running at the time for CPU on the same (often shared/throttled)
+  // CI runner -- e.g. a test's create-meeting round-trip missing its 30s
+  // timeout because an unrelated route started compiling in the background.
+  // Triggering every route the suite ever page.goto()s to, once, up front,
+  // moves that latency into setup instead of a random test.
+  await Promise.all(
+    ["/", "/admin", "/signage"].map(async (route) => {
+      try {
+        const res = await fetch(`${TEST_BASE_URL}${route}`, { signal: AbortSignal.timeout(20_000) });
+        await res.arrayBuffer(); // drain the body so the connection closes cleanly
+      } catch {
+        // Best-effort: a route still compiling past 20s just compiles lazily on its
+        // first real page.goto() instead -- the CI-only retry (playwright.config.ts)
+        // is the backstop for that, and this timeout is what keeps a stuck route from
+        // hanging global setup (and the whole suite) indefinitely.
+      }
+    }),
+  );
+
   // The rest of the suite (fixtures.ts, factories) also runs in this same
   // Playwright test-runner process and needs DATABASE_URL to talk to the
   // same Mongo instance the server is using.

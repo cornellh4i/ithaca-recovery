@@ -30,6 +30,47 @@
     box-sizing: border-box;
 }
 
+.navLeft {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+}
+
+.sidebarToggleWrapper {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+
+    &:hover .tooltip,
+    &:focus-within .tooltip {
+        opacity: 1;
+        visibility: visible;
+    }
+
+    // This trigger sits at the far left edge of the screen, so the shared .tooltip rule's
+    // centered left:50%/translateX(-50%) would push it off-screen -- anchor to the left
+    // edge of the button instead of centering under it.
+    .tooltip {
+        left: 0;
+        transform: none;
+    }
+}
+
+.sidebarToggleButton {
+    color: $black-color;
+
+    &:hover,
+    &:focus {
+        background-color: $grey-lightest-color;
+    }
+}
+
+.menuIcon {
+    width: 24px;
+    height: 24px;
+}
+
 .navigationlist {
     display: contents;
     color: #000;

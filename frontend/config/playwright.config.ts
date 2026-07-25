@@ -11,6 +11,12 @@ export default defineConfig({
   globalTeardown: require.resolve("../test/e2e/global-teardown.ts"),
   fullyParallel: false,
   workers: 1,
+  // CI runners are shared/throttled, and next dev (see global-setup.ts) can still
+  // have a stray lazy-compile latency spike despite pre-warming -- one retry
+  // absorbs that without masking a real logic bug (a genuinely broken test fails
+  // twice). Local runs stay retry-free so a real failure isn't hidden behind a
+  // silent pass on attempt 2.
+  retries: process.env.CI ? 1 : 0,
   reporter: "list",
   use: {
     baseURL: TEST_BASE_URL,

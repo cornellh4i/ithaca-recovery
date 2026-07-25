@@ -11,7 +11,13 @@
 
     // box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     z-index: 999; // Increased z-index to ensure visibility
-    width: 325px; // Explicit width
+    // .sidebar (page.module.scss) uses the default content-box sizing, so its own
+    // `width: 280px` already *is* its content area -- sibling cards (New Meeting button,
+    // Location/Zoom Rooms filter panel) are plain width:auto blocks that fill exactly that
+    // 280px. Matching it here with a fixed width (rather than width: 100%, which depends on
+    // whatever this happens to be nested inside) is what actually lines this up with them.
+    width: 280px;
+    box-sizing: border-box;
 
     span {
         font-size: 20px;
@@ -27,11 +33,30 @@
         font-size: 14px;
     }
     
-    /* Global styles nested inside the local .container class */
-    :global(.rdp) {
-        --rdp-cell-size: 36px;
+    // Global styles nested inside the local .container class -- react-day-picker v10 API:
+    // sizing comes from the --rdp-day-... and --rdp-day_button-... custom properties on
+    // .rdp-root, and the table itself is .rdp-month_grid (not .rdp-month, which is now just
+    // a wrapper div). These class/variable names don't match v8-era naming (.rdp, .rdp-month,
+    // .rdp-button, --rdp-cell-size) still used elsewhere in older docs/examples -- confirmed
+    // the actual rendered DOM directly against the installed v10 package before writing these.
+    :global(.rdp-root) {
+        // Sized to fit the 280px sidebar: 7 columns must fit inside this .container's own
+        // content width (280px - 24px .container padding = 256px). Library defaults are
+        // 44px/42px, which is what was making this look oversized.
+        --rdp-day-width: 32px;
+        --rdp-day-height: 32px;
+
+        // These two are react-day-picker's own variable names (underscore, not kebab-case) --
+        // can't be renamed, the library reads them verbatim.
+        /* stylelint-disable custom-property-pattern */
+        --rdp-day_button-width: 32px;
+        --rdp-day_button-height: 32px;
+        --rdp-nav-height: 28px;
+        --rdp-nav_button-width: 24px;
+        --rdp-nav_button-height: 24px;
+        /* stylelint-enable custom-property-pattern */
         --rdp-accent-color: #{$dark-pink-color};
-        --rdp-background-color: #f5f5f5;
+        --rdp-accent-background-color: #f5f5f5;
 
         margin: 0;
     }
@@ -39,14 +64,22 @@
     :global(.rdp-months) {
         display: flex;
         justify-content: center;
+
+        // Library default is max-width: fit-content, which lets the table's intrinsic width
+        // win over this container's width instead of being constrained by it.
+        max-width: 100%;
     }
 
-    :global(.rdp-month) {
-        display: table;
+    :global(.rdp-month_grid) {
         width: 100%;
+
+        // Without this, table-layout defaults to auto, which lets a column grow past its
+        // --rdp-day-width if content needs more room than that -- forcing the whole table
+        // (and this box) wider than the sidebar, instead of respecting the fixed size.
+        table-layout: fixed;
     }
 
-    :global(.rdp-caption) {
+    :global(.rdp-month_caption) {
         display: flex;
         justify-content: space-between;
         padding: 0 8px;
@@ -57,18 +90,19 @@
         display: flex;
     }
 
-    :global(.rdp-button) {
+    :global(.rdp-button_previous),
+    :global(.rdp-button_next) {
         cursor: pointer;
-        
+
         &:hover {
             background-color: color.adjust($dark-pink-color, $lightness: 35%);
         }
     }
 
-    :global(.rdp-day) {
+    :global(.rdp-day_button) {
         cursor: pointer;
-        
-        &:hover:not(.rdp-selected, .rdp-disabled) {
+
+        &:hover:not(:disabled) {
             background-color: color.adjust($dark-pink-color, $lightness: 35%);
         }
     }
@@ -91,8 +125,8 @@
         left: 50%;
         transform: translate(-50%, -50%);
         z-index: -1;
-        width: 28px;
-        height: 28px;
+        width: 25px;
+        height: 25px;
     }
 }
 

@@ -114,6 +114,10 @@ interface WeeklyViewProps {
     setSelectedNewMeeting: (newMeetingExists: boolean) => void;
     setAnchorEl: (el: HTMLElement) => void;
     refreshTrigger?: number;
+    // Disables scrolling this view while the ViewMeeting popup is open -- it's anchored to
+    // the clicked box's on-screen position, so scrolling underneath it while open just
+    // fights the popup's own reposition-on-scroll logic instead of being useful.
+    scrollLocked?: boolean;
 }
 
 const WeeklyView: React.FC<WeeklyViewProps> = ({
@@ -124,7 +128,8 @@ const WeeklyView: React.FC<WeeklyViewProps> = ({
     setSelectedMeetingID,
     setSelectedNewMeeting,
     setAnchorEl,
-    refreshTrigger = 0
+    refreshTrigger = 0,
+    scrollLocked = false,
 }) => {
     const [currentTimePosition, setCurrentTimePosition] = useState(0);
     const [weekStartDate, setWeekStartDate] = useState<Date>(() => getFirstDayOfWeek(selectedDate));
@@ -258,7 +263,11 @@ const WeeklyView: React.FC<WeeklyViewProps> = ({
 
     return (
         <div className={styles.outerContainer}>
-            <div className={styles.viewContainer} ref={viewContainerRef}>
+            <div
+                className={styles.viewContainer}
+                ref={viewContainerRef}
+                style={scrollLocked ? { overflow: 'hidden' } : undefined}
+            >
                 {/* Time column */}
                 <div className={styles.timeColumn}>
                     <div className={styles.timeHeader}>

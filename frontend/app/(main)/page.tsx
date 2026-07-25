@@ -12,8 +12,10 @@ import WeeklyView from "../components/organisms/WeeklyView";
 import { convertUTCToET } from "../../util/timeUtils";
 import { IMeeting } from "../../util/models";
 import { createDefaultFilters } from "../../util/meetingFilters";
+import { useSidebar } from "../context/SidebarContext";
 
 export default function HomePage() {
+  const { isSidebarOpen, openSidebar } = useSidebar();
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
@@ -125,6 +127,20 @@ export default function HomePage() {
     setAnchorEl(null);
   };
 
+  // NewMeeting's own open/closed state lives inside CalendarSidebar itself, so it already
+  // resets for free when the sidebar unmounts. showEditMeeting lives up here instead, so
+  // hiding the sidebar while Edit is open needs an explicit reset -- and since Edit only
+  // exists as a follow-on from ViewMeeting's popup (see handleOpenEdit below), backing out
+  // of Edit here backs all the way out of ViewMeeting too, same as handleBack elsewhere,
+  // rather than leaving the popup to reappear underneath once the sidebar reopens.
+  useEffect(() => {
+    if (!isSidebarOpen && showEditMeeting) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      handleBack();
+      setShowEditMeeting(false);
+    }
+  }, [isSidebarOpen, showEditMeeting]);
+
   // Switching Day/Week view backs out to neutral (CalendarSidebar, no popup) entirely --
   // not just closing Edit, since the clicked box's anchorEl also goes stale across the
   // switch (Day view's boxes aren't in the DOM once Week view renders, and vice versa),
@@ -143,6 +159,9 @@ export default function HomePage() {
   }, [selectedView]);
 
   const handleOpenEdit = () => {
+    // EditMeetingSidebar renders inside the .sidebar column, so Edit needs it open --
+    // unlike just viewing a meeting, which shows its own popup regardless of sidebar state.
+    openSidebar();
     setShowEditMeeting(true);
   };
 
@@ -214,30 +233,40 @@ export default function HomePage() {
     return new Date(isoDateString);
   };
 
+  // ViewMeeting's popup is anchored to the clicked box's on-screen position -- scrolling
+  // either the sidebar or the calendar grid underneath it while it's open just fights that
+  // anchoring instead of being useful, so both are locked while it's showing.
+  const isViewMeetingOpen = !!(selectedMeeting && !showEditMeeting);
+
   return (
     <div className={styles.container}>
-      <div className={styles.sidebar}>
-        {isLoggedIn === null ? null : !isLoggedIn ? (
-          <SignInPrompt />
-        ) : showEditMeeting && selectedMeeting ? (
-            <EditMeetingSidebar
-              meeting={selectedMeeting}
-              onClose={handleCloseEdit}
-              onUpdateSuccess={() => {
-                console.log("Meeting updated!");
-                triggerCalendarRefresh();
-              }}
-            />) : (
-              <CalendarSidebar
-                filters={filters}
-                setFilters={setFilters}
-                selectedDate={selectedDate}
-                setSelectedDate={setSelectedDate}
-                selectedView={selectedView}
-                triggerCalendarRefresh={triggerCalendarRefresh}
-              />
-            )}
-      </div>
+      {isSidebarOpen && (
+        <div
+          className={styles.sidebar}
+          style={isViewMeetingOpen ? { overflowY: 'hidden' } : undefined}
+        >
+          {isLoggedIn === null ? null : !isLoggedIn ? (
+            <SignInPrompt />
+          ) : showEditMeeting && selectedMeeting ? (
+              <EditMeetingSidebar
+                meeting={selectedMeeting}
+                onClose={handleCloseEdit}
+                onUpdateSuccess={() => {
+                  console.log("Meeting updated!");
+                  triggerCalendarRefresh();
+                }}
+              />) : (
+                <CalendarSidebar
+                  filters={filters}
+                  setFilters={setFilters}
+                  selectedDate={selectedDate}
+                  setSelectedDate={setSelectedDate}
+                  selectedView={selectedView}
+                  triggerCalendarRefresh={triggerCalendarRefresh}
+                />
+              )}
+        </div>
+      )}
       {selectedMeeting && !showEditMeeting && (
         <ViewMeetingDetails
           key={selectedMeeting.mid}
@@ -303,6 +332,7 @@ export default function HomePage() {
             setSelectedNewMeeting={setSelectedNewMeeting}
             setAnchorEl={setAnchorEl}
             refreshTrigger={refreshTrigger}
+            scrollLocked={isViewMeetingOpen}
           />
         ) : (
           <WeeklyView
@@ -314,6 +344,7 @@ export default function HomePage() {
             setSelectedNewMeeting={setSelectedNewMeeting}
             setAnchorEl={setAnchorEl}
             refreshTrigger={refreshTrigger}
+            scrollLocked={isViewMeetingOpen}
           />
         )}
       </div>

@@ -20,11 +20,11 @@ const LOCATION_ITEMS: FilterGroupItem[] = [
 ];
 
 const ZOOM_ITEMS: FilterGroupItem[] = [
-    { key: 'SerenityRoomZoom', label: 'Serenity Room - Zoom', color: ZOOM_ROOM_COLOR },
-    { key: 'SeedsofHopeRoomZoom', label: 'Seeds of Hope Room - Zoom', color: ZOOM_ROOM_COLOR },
-    { key: 'UnityRoomZoom', label: 'Unity Room - Zoom', color: ZOOM_ROOM_COLOR },
-    { key: 'RoomforImprovementZoom', label: 'Room for Improvement - Zoom', color: ZOOM_ROOM_COLOR },
-    { key: "Children'sRoom@518Zoom", label: "Children's Room @ 518 - Zoom", color: ZOOM_ROOM_COLOR },
+    { key: 'SerenityRoomZoom', label: 'Serenity Room', color: ZOOM_ROOM_COLOR },
+    { key: 'SeedsofHopeRoomZoom', label: 'Seeds of Hope Room', color: ZOOM_ROOM_COLOR },
+    { key: 'UnityRoomZoom', label: 'Unity Room', color: ZOOM_ROOM_COLOR },
+    { key: 'RoomforImprovementZoom', label: 'Room for Improvement', color: ZOOM_ROOM_COLOR },
+    { key: "Children'sRoom@518Zoom", label: "Children's Room @ 518", color: ZOOM_ROOM_COLOR },
 ];
 
 const CALENDAR_ITEMS: FilterGroupItem[] = [
