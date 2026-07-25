@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import BoxText from '../atoms/BoxText';
 import OverlapMeetingsModal from './OverlapMeetingsModal';
 import styles from '../../../styles/components/molecules/WeeklyViewColumn.module.scss';
@@ -50,10 +50,19 @@ const WeeklyViewColumn: React.FC<WeeklyViewColumnProps> = ({
     setAnchorEl,
 }) => {
     const [overlapModalMeetings, setOverlapModalMeetings] = useState<Meeting[] | null>(null);
-    // The "+N" pill that opened the modal -- kept as the popup anchor for whichever meeting
-    // gets selected from it, since the modal's own row is unmounted the instant it closes and
-    // getBoundingClientRect() on a detached node would anchor the popup nowhere useful.
+    // The "+N" pill that opened the modal -- kept as a fallback popup anchor, since the
+    // modal's own row is unmounted the instant it closes and getBoundingClientRect() on a
+    // detached node would anchor the popup nowhere useful. Superseded by the selected
+    // meeting's own card (see selectedCardRef below) once that card renders, since the pill
+    // sits in a fixed corner of the column and can be far from where the card actually is.
     const [overlapAnchorEl, setOverlapAnchorEl] = useState<HTMLElement | null>(null);
+
+    // DOM node of whichever card currently has isSelected===true (normal or promoted).
+    // Selecting a meeting from the overflow modal re-anchors ViewMeeting to this once it
+    // mounts/updates, since the modal-open pill is a poor stand-in for the card's position.
+    const selectedCardRef = useRef<HTMLDivElement | null>(null);
+    // Set right before a modal-driven selection, so the effect below knows to re-anchor.
+    const pendingModalAnchorRef = useRef(false);
 
     const handleBoxClick = (meetingId: string, el: HTMLElement) => {
         console.log(`Meeting ${meetingId} clicked`);
@@ -61,6 +70,13 @@ const WeeklyViewColumn: React.FC<WeeklyViewColumnProps> = ({
         setSelectedNewMeeting(false);
         setAnchorEl(el);
     };
+
+    useEffect(() => {
+        if (pendingModalAnchorRef.current && selectedCardRef.current) {
+            setAnchorEl(selectedCardRef.current);
+            pendingModalAnchorRef.current = false;
+        }
+    }, [selectedMeetingID, setAnchorEl]);
 
     // Renders a single meeting's card. `forceSelected` is used to promote a folded
     // "+N" meeting (picked via the overflow modal) onto the stack even though it has
@@ -93,6 +109,7 @@ const WeeklyViewColumn: React.FC<WeeklyViewColumnProps> = ({
         return (
             <div
                 key={key}
+                ref={isSelected ? selectedCardRef : undefined}
                 className={styles.meetingWrapper}
                 style={{
                     top: `${topOffset}px`,
@@ -179,6 +196,7 @@ const WeeklyViewColumn: React.FC<WeeklyViewColumnProps> = ({
                 meetings={overlapModalMeetings ?? []}
                 onClose={() => setOverlapModalMeetings(null)}
                 onSelectMeeting={(meetingId) => {
+                    pendingModalAnchorRef.current = true;
                     if (overlapAnchorEl) handleBoxClick(meetingId, overlapAnchorEl);
                     setOverlapModalMeetings(null);
                 }}
