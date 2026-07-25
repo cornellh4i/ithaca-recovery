@@ -62,11 +62,11 @@
   left: 0;
   z-index: 20;
 
-  // 41px .timeHeader + 2400px .timeSlots. Must be the full sum, not just the slots —
+  // 41px .timeHeader + 2880px .timeSlots. Must be the full sum, not just the slots —
   // .timeHeader is empty, so if this height is any smaller, flexbox's automatic
   // minimum size (based on content, 0 for an empty element) lets it absorb the whole
   // shrink and collapse to 0, throwing off every time label below it.
-  height: 2441px;
+  height: 2921px;
   background-color: #fff;
 
 }
@@ -83,11 +83,11 @@
 }
 
 .timeSlots {
-  height: 2400px; // 24 hours * 100px
+  height: 2880px; // 24 hours * 120px
 }
 
 .timeSlot {
-  height: 100px;
+  height: 120px;
   display: flex;
   align-items: flex-start;
   justify-content: flex-end; // aligns text to the right
@@ -103,11 +103,11 @@
   min-width: 0;
   scroll-snap-type: x mandatory;
 
-  // 40px .dayHeader + 2400px meeting grid per column — matches .dayColumn's own
-  // height (see there for why the full sum, not just 2400px, matters) so
+  // 40px .dayHeader + 2880px meeting grid per column — matches .dayColumn's own
+  // height (see there for why the full sum, not just 2880px, matters) so
   // .viewContainer's overflow:auto can scroll through all 24 hours, instead of
   // clamping to the (now correctly bounded) viewport height.
-  height: 2440px;
+  height: 2920px;
 }
 
 .dayColumn {
@@ -119,12 +119,12 @@
   border-right: 1px solid #ddd;
   scroll-snap-align: start;
 
-  // 40px .dayHeader + 2400px meeting grid. Was 2400px alone — under-subscribed by
+  // 40px .dayHeader + 2880px meeting grid. Was 2880px alone — under-subscribed by
   // the same 40px as .timeColumn was, just with a less obviously broken symptom:
   // .dayHeader has real text content, so instead of collapsing (like the empty
   // .timeHeader did) it just overflows this box harmlessly. Still worth the full
   // sum here so nothing depends on that overflow continuing to be harmless.
-  height: 2440px;
+  height: 2920px;
   display: flex;
   flex-direction: column;
 
@@ -204,7 +204,7 @@
 
 .dayColumnContent {
   position: relative;
-  height: 2400px; // 24 hours
+  height: 2880px; // 24 hours
 }
 
 .hourMarker {

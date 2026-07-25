@@ -162,7 +162,7 @@ const WeeklyView: React.FC<WeeklyViewProps> = ({
         const now = new Date();
         const currentHour = now.getHours();
         const currentMinutes = now.getMinutes();
-        const basePosition = currentHour * 100 + currentMinutes * (100 / 60);
+        const basePosition = currentHour * 120 + currentMinutes * (120 / 60);
         const offset = 40; // height of .dayHeader
         setCurrentTimePosition(basePosition + offset);
     }, []);
@@ -174,7 +174,7 @@ const WeeklyView: React.FC<WeeklyViewProps> = ({
             const currentHour = now.getHours();
             const currentMinutes = now.getMinutes();
             const dayHeaderOffset = 40; // height of .dayHeader, see updateTimePosition
-            const scrollOffset = dayHeaderOffset + (currentHour * 100 + currentMinutes * (100 / 60)) - 200;
+            const scrollOffset = dayHeaderOffset + (currentHour * 120 + currentMinutes * (120 / 60)) - 240;
             viewContainerRef.current.scrollTop = Math.max(0, scrollOffset);
         }
     }, []);
