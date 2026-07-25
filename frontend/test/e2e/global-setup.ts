@@ -71,7 +71,17 @@ export default async function globalSetup(): Promise<void> {
   // Triggering every route the suite ever page.goto()s to, once, up front,
   // moves that latency into setup instead of a random test.
   await Promise.all(
-    ["/", "/admin", "/signage"].map((route) => fetch(`${TEST_BASE_URL}${route}`)),
+    ["/", "/admin", "/signage"].map(async (route) => {
+      try {
+        const res = await fetch(`${TEST_BASE_URL}${route}`, { signal: AbortSignal.timeout(20_000) });
+        await res.arrayBuffer(); // drain the body so the connection closes cleanly
+      } catch {
+        // Best-effort: a route still compiling past 20s just compiles lazily on its
+        // first real page.goto() instead -- the CI-only retry (playwright.config.ts)
+        // is the backstop for that, and this timeout is what keeps a stuck route from
+        // hanging global setup (and the whole suite) indefinitely.
+      }
+    }),
   );
 
   // The rest of the suite (fixtures.ts, factories) also runs in this same
