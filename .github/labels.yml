@@ -1,0 +1,37 @@
+# Area labels applied automatically from the "Area(s) Touched" checklist in the PR/issue
+# templates -- see .github/workflows/label-from-checklist.yml. This file only owns those
+# area labels, not GitHub's/Dependabot's defaults (bug, enhancement, dependencies, etc.) --
+# the sync workflow runs with skip-delete so it never touches labels outside this list.
+- name: auth
+  color: "5319E7"
+  description: Sign-in, sessions, NextAuth, role-based access
+- name: admin
+  color: "0052CC"
+  description: "/admin shell — Diagnostics, Users, Import, Export tabs"
+- name: google-calendar
+  color: "4285F4"
+  description: Google Calendar sync (services/googleCalendar.ts)
+- name: zoom-api
+  color: "2D8CFF"
+  description: Zoom meeting/host sync (services/zoom.ts)
+- name: documentation
+  color: "0075CA"
+  description: docs/ or README changes only
+- name: cleanup
+  color: "C5DEF5"
+  description: Refactor or dead-code removal, no behavior change
+- name: billing
+  color: "B60205"
+  description: Lease export, XLSX import, anything affecting invoicing
+- name: ui/ux
+  color: "D93F0B"
+  description: Frontend layout/styling not tied to a specific integration
+- name: security
+  color: "E99695"
+  description: Auth hardening, data exposure, dependency/security scanning
+- name: testing
+  color: "0E8A16"
+  description: Test suite (Jest/Playwright) changes
+- name: github-actions
+  color: "24292E"
+  description: Workflows, Dependabot config, other .github/ CI tooling

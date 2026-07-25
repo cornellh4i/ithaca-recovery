@@ -14,6 +14,25 @@ Group related files under one bullet when they're part of the same change, e.g.:
 <!-- Concrete steps a reviewer can actually run — specific commands or repro steps, not "tested thoroughly". -->
 - [ ]
 
+## Area(s) Touched
+<!-- Check all that apply — automatically applies matching labels, re-synced on every edit. -->
+**Product areas**
+- [ ] auth — sign-in, sessions, NextAuth, role-based access
+- [ ] admin — /admin shell (Diagnostics, Users, Import, Export tabs)
+- [ ] billing — lease export, XLSX import, anything affecting invoicing
+- [ ] ui/ux — frontend layout/styling not tied to a specific integration
+
+**Integrations**
+- [ ] google-calendar — Google Calendar sync
+- [ ] zoom-api — Zoom meeting/host sync
+
+**Engineering**
+- [ ] security — auth hardening, data exposure, dependency/security scanning
+- [ ] testing — test suite (Jest/Playwright) changes
+- [ ] github-actions — workflows, Dependabot config, other .github/ CI tooling
+- [ ] cleanup — refactor or dead-code removal, no behavior change
+- [ ] documentation — docs/ or README changes only
+
 ## Pre-merge Checklist
 <!-- Check every box below before merging to master. -->
 - [ ] Code follows current formatting conventions and passes lint (`yarn lint`).
