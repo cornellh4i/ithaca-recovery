@@ -65,7 +65,13 @@
 // breaking the sticky positioning below.
 .viewContainer {
   display: flex;
-  height: calc(100% - 60px); // Account for the navigation header, matching WeeklyView
+
+  // .outerContainer is a flex column with only this child, so this fills whatever's left
+  // under CalendarNavbar instead of guessing a fixed offset (which previously left ~36px
+  // of dead space at the bottom, unused and unclipped since .outerContainer's overflow is
+  // hidden, not scrollable).
+  flex: 1 1 auto;
+  min-height: 0;
   margin-top: 24px;
   overflow: auto;
   scroll-snap-type: x mandatory;

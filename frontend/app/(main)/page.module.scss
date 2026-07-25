@@ -16,6 +16,7 @@
   min-height: 0;
   background-color: #ffffff;
   padding: 10px;
+
   // DailyView/WeeklyView each own their own bounded internal scroll region now, so this
   // never needs to scroll itself -- letting it stay a scroll container (even via the
   // overflow-x-only auto-quirk) just chains leftover wheel scroll into it once the inner

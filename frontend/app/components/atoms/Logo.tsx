@@ -8,7 +8,7 @@ const Logo = () => {
         <Image
           src={IcrLogo}
           alt="Logo"
-          style={{ height: '50px', width: 'auto', padding: '10px' }}
+          style={{ height: '50px', width: 'auto', padding: '6px' }}
         />
     </>
   );
