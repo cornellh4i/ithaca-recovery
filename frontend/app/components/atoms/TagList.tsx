@@ -19,11 +19,16 @@ const TagList: React.FC<TagListProps> = ({ tags, color, gap = 3, containerStyle,
   const containerRef = useRef<HTMLDivElement>(null);
   const probeRef = useRef<HTMLDivElement>(null);
   const [visibleCount, setVisibleCount] = useState(sorted.length);
-  const sortedKey = sorted.join('|');
-  // Stringified rather than the raw object -- tagStyle is an inline object literal at call
-  // sites (e.g. BoxText's `compact ? {...} : undefined`), so a new reference every render
-  // would otherwise re-run this effect constantly instead of only when compact toggles.
+  // JSON-encoded rather than joined -- a plain `sorted.join('|')` would collide for
+  // differently-split tag lists that happen to share the same joined text (e.g.
+  // ["a|b"] vs ["a", "b"]), silently skipping a needed recompute.
+  const sortedKey = JSON.stringify(sorted);
+  // Stringified rather than the raw object -- tagStyle/containerStyle are inline object
+  // literals at call sites (e.g. BoxText's `compact ? {...} : undefined`, or its
+  // `fillHeight`-driven marginTop), so a new reference every render would otherwise
+  // re-run this effect constantly instead of only when the actual style values change.
   const tagStyleKey = JSON.stringify(tagStyle ?? {});
+  const containerStyleKey = JSON.stringify(containerStyle ?? {});
 
   // Tags wrap onto as many rows as the surrounding box actually has room for -- e.g. a tall
   // WeeklyView card can fit 2+ rows, while a short stacked DailyView card fits barely one --
@@ -94,7 +99,7 @@ const TagList: React.FC<TagListProps> = ({ tags, color, gap = 3, containerStyle,
     if (container.parentElement) observer.observe(container.parentElement);
     return () => observer.disconnect();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sortedKey, gap, tagStyleKey]);
+  }, [sortedKey, gap, tagStyleKey, containerStyleKey]);
 
   if (sorted.length === 0) return null;
 
