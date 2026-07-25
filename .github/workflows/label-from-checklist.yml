@@ -24,7 +24,7 @@ jobs:
           script: |
             const AREAS = [
               'auth', 'admin', 'google-calendar', 'zoom-api', 'documentation',
-              'cleanup', 'billing', 'ui/ux', 'security', 'testing',
+              'cleanup', 'billing', 'ui/ux', 'security', 'testing', 'github-actions',
             ];
 
             const item = context.payload.pull_request ?? context.payload.issue;

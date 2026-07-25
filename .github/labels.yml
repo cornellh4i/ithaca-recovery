@@ -31,4 +31,7 @@
   description: Auth hardening, data exposure, dependency/security scanning
 - name: testing
   color: "0E8A16"
-  description: Test suite (Jest/Playwright) or CI workflow changes
+  description: Test suite (Jest/Playwright) changes
+- name: github-actions
+  color: "24292E"
+  description: Workflows, Dependabot config, other .github/ CI tooling
