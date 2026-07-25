@@ -16,6 +16,13 @@
   // (.roomCorner) so it can be sticky-positioned alongside the room names below it.
   grid-template-rows: 42px repeat(11, 113px);
   width: 180px;
+
+  // .viewContainer is a flex row and .scrollContainer (its sibling) is thousands of px
+  // wide, so without this the default flex-shrink: 1 compresses this column down to its
+  // min-content (~175px) to make room -- 5px short of the 180px .scrollContainer's meeting
+  // boxes assume is fully covered, letting a sliver of whatever's scrolled underneath
+  // peek out past this column's real (shrunk) edge.
+  flex-shrink: 0;
   position: sticky;
   left: 0;
   z-index: 20;
@@ -53,7 +60,11 @@
 
 .scrollContainer {
   display: grid;
-  grid-template-rows: auto repeat(11, 113px);
+
+  // First row must be a literal 42px, not auto -- auto sizes .headerRow off its own
+  // content (padding + line-height + border), which renders 1px short of .roomCorner's
+  // hardcoded 42px and throws every room/hour row below it out of alignment.
+  grid-template-rows: 42px repeat(11, 113px);
   width: calc(100% - 180px);
   margin-left: 30px;
 }
