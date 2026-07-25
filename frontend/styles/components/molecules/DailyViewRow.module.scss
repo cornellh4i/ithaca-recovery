@@ -1,0 +1,28 @@
+.meetingWrapper {
+  position: absolute;
+  border-radius: 6px;
+  z-index: 10;
+}
+
+// Stands in for meetings beyond the 2 stacked lanes a room's row shows -- a small pill
+// rather than a third, even-thinner lane, which would be too short to show anything
+// readable. Anchored to the cluster's start time (left) since DailyView's time axis runs
+// horizontally -- the rotated equivalent of WeeklyViewColumn's `right: 4px, top: <cluster start>`.
+.overflowIndicator {
+  position: absolute;
+  top: 2px;
+  z-index: 12;
+  background: #3A3E49;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1;
+  padding: 3px 6px;
+  border-radius: 999px;
+  white-space: nowrap;
+  cursor: pointer;
+
+  &:hover {
+    opacity: 0.85;
+  }
+}

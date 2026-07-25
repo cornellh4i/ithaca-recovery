@@ -16,6 +16,11 @@ interface BoxProps {
   // used by WeeklyView, where the wrapping div's height already encodes the meeting's
   // duration (DailyView instead encodes duration as width, on a fixed-height row).
   fillHeight?: boolean;
+  // Tightens padding/font-size/tag sizing so title + time + tags all still fit when
+  // fillHeight has shrunk the box well below its normal Meeting Block height — used by
+  // DailyView for a meeting sharing its room's row with an overlapping neighbor, where
+  // the box is roughly half-height. Without this, tags get clipped off the bottom.
+  compact?: boolean;
   // Extra badge alongside tags, e.g. flagging a Zoom-room mismatch.
   zoomTag?: string;
   onClick: (meetingId: string, e: React.MouseEvent<HTMLDivElement, MouseEvent>) => void;
@@ -31,6 +36,7 @@ const BoxText: React.FC<BoxProps> = ({
   meetingId,
   syncError = false,
   fillHeight = false,
+  compact = false,
   zoomTag,
   selected = false,
   onClick
@@ -67,7 +73,7 @@ const BoxText: React.FC<BoxProps> = ({
   return (
     <div
       data-testid={boxType === 'Meeting Block' ? `meeting-card-${meetingId}` : undefined}
-      className={`${styles.box} ${boxType === 'Meeting Block' ? styles.meeting : styles.room} ${fillHeight ? styles.fillHeight : ''} ${selected ? styles.selected : ''}`}
+      className={`${styles.box} ${boxType === 'Meeting Block' ? styles.meeting : styles.room} ${fillHeight ? styles.fillHeight : ''} ${compact ? styles.compact : ''} ${selected ? styles.selected : ''}`}
       style={{ backgroundColor: bgColor, borderLeft: `6px solid ${primaryColor}`, position: 'relative' }}
       onClick={(e) => onClick(meetingId, e)}
     >

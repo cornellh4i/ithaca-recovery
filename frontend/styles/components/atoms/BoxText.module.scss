@@ -13,11 +13,11 @@
     min-width: 16px;
     height: 105px;
     overflow: hidden;
-    padding: 6px;
+    padding: 5px;
     border-radius: 6px;
 
     .title {
-      font-size: 14px;
+      font-size: 13px;
       margin-top: 0;
       margin-bottom: 0;
       font-weight: 600;
@@ -53,10 +53,10 @@
   }
 
   .time {
-    font-size: 13px;
+    font-size: 12px;
     font-style: normal;
     font-weight: 400;
-    margin-top: 0;
+    margin: 0;
     padding: 0;
     color: #3A3E49;
     overflow-x: hidden;
@@ -77,6 +77,38 @@
     // matching where they'd sit in a 1-hour box, regardless of actual duration.
     .tags {
       margin-top: 4px;
+    }
+  }
+
+  // Tightens spacing so title + time + tags all still fit in a fillHeight box shrunk to
+  // roughly half its normal height (DailyView: two meetings sharing one room row) --
+  // without this, tags get pushed past the box's bottom edge and clipped by overflow: hidden.
+  &.compact {
+    padding: 3px 5px;
+
+    .title {
+      font-size: 12px;
+      line-height: 1.15;
+    }
+
+    .time {
+      font-size: 11px;
+      line-height: 1.15;
+    }
+
+    .tags {
+      // Back to the base (non-fillHeight) rule's auto margin -- not .fillHeight's fixed 4px
+      // (that's for Weekly's tall boxes, keeping tags pinned under the time line regardless
+      // of how much taller the box is than one hour). Here the auto margin instead absorbs
+      // whatever slack is left after title+time and pushes tags down flush against the box's
+      // own padding-bottom -- the same amount of breathing room the title gets from
+      // padding-top at the top, so top and bottom insets end up visually equal.
+      margin-top: auto;
+
+      .tag {
+        padding: 1px 6px;
+        line-height: 1;
+      }
     }
   }
 
@@ -126,11 +158,11 @@
     // Anchors to the bottom of the box
     margin-top: auto;
     padding: 0;
-    gap: 4px;
+    gap: 3px;
     align-items: center;
 
     .tag {
-      padding: 2px 12px;
+      padding: 2px 7px;
       border-radius: 10.593px;
       font-size: 10px;
       font-weight: 400;

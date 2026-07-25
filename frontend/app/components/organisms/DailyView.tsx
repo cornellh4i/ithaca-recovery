@@ -2,22 +2,16 @@ import React, { useCallback, useEffect, useState, useRef } from "react";
 import styles from '../../../styles/components/organisms/DailyView.module.scss';
 import BoxText from '../atoms/BoxText';
 import DailyViewRow from "../molecules/DailyViewRow";
-import { convertUTCToET, formatETDateString, getETDayBounds } from "../../../util/timeUtils";
+import { formatETDateString, getETDayBounds } from "../../../util/timeUtils";
 import { IMeeting } from "../../../util/models";
 import { passesTagFilters, passesRoomFilter, MeetingFilters } from "../../../util/meetingFilters";
 import { createCache } from "../../../util/simpleCache";
 import { defaultRooms } from "../../../util/rooms";
+import { layoutOverlappingMeetings, OverlapMeeting } from "../../../util/meetingOverlapLayout";
 
-type Meeting = {
-  id: string;
-  title: string;
-  startTime: string; // clipped to this day, for positioning
-  endTime: string; // clipped to this day, for positioning
-  displayStartTime: string; // true time, for the label
-  displayEndTime: string; // true time, for the label
-  tags: string[];
+interface Meeting extends OverlapMeeting {
   syncError?: boolean;
-};
+}
 
 type Room = {
   name: string;
@@ -26,6 +20,13 @@ type Room = {
 };
 
 const dayMeetingCache = createCache<Room[]>();
+
+// Extracts ET wall-clock time as "HH:MM" (24hr) -- the format layoutOverlappingMeetings'
+// clustering math (and WeeklyView's equivalent startTime/endTime) expects.
+const etTimeFmt = new Intl.DateTimeFormat('en-GB', {
+  timeZone: 'America/New_York',
+  hour: '2-digit', minute: '2-digit', hour12: false,
+});
 
 export const fetchMeetingsByDay = async (date: Date): Promise<Room[]> => {
   const formattedDate = formatETDateString(date); // ET calendar date, e.g. "2025-04-09"
@@ -84,16 +85,17 @@ export const fetchMeetingsByDay = async (date: Date): Promise<Room[]> => {
         const startUTC = new Date(meeting.startDateTime);
         const endUTC = new Date(meeting.endDateTime);
 
-        const startEDT = convertUTCToET(startUTC.toISOString());
-        const endEDT = convertUTCToET(endUTC.toISOString());
+        const startEDT = etTimeFmt.format(startUTC);
+        const endEDT = etTimeFmt.format(endUTC);
 
-        const meetingEntry: Meeting = {
+        const meetingEntry = {
           id: meeting.mid,
           title: meeting.title,
           startTime: startEDT,
           endTime: endEDT,
-          displayStartTime: convertUTCToET(new Date(meeting.trueStartDateTime).toISOString()),
-          displayEndTime: convertUTCToET(new Date(meeting.trueEndDateTime).toISOString()),
+          displayStartTime: etTimeFmt.format(new Date(meeting.trueStartDateTime)),
+          displayEndTime: etTimeFmt.format(new Date(meeting.trueEndDateTime)),
+          date: formattedDate,
           tags: [...meeting.calType, meeting.modeType],
           syncError: meeting.syncStatus === 'error' || meeting.zoomSyncStatus === 'error',
         };
@@ -107,7 +109,10 @@ export const fetchMeetingsByDay = async (date: Date): Promise<Room[]> => {
           if (!groupedRooms[roomName]) {
             groupedRooms[roomName] = [];
           }
-          groupedRooms[roomName].push(meetingEntry);
+          // Own copy per room bucket -- a Hybrid meeting appears in both its physical
+          // room and Zoom room rows, and each row lays out overlap independently, so
+          // they can't share one `room` field value.
+          groupedRooms[roomName].push({ ...meetingEntry, room: roomName });
         });
       });
 
@@ -233,10 +238,13 @@ const DailyView: React.FC<DailyViewProps> = ({
     }
   }, [refreshTrigger, fetchData]);
 
-  // filter meetings based on meeting type and room filters
+  // filter meetings based on meeting type and room filters, then lay out any that overlap
+  // in time within this room (stacked top/bottom, capped at 2, folded into a "+N" beyond that)
   const filterMeetings = (room: Room): Room => ({
     ...room,
-    meetings: room.meetings.filter(meeting => passesTagFilters(meeting.tags, filters)),
+    meetings: layoutOverlappingMeetings(
+      room.meetings.filter(meeting => passesTagFilters(meeting.tags, filters))
+    ),
   });
 
   // First filter rooms by room name, then filter meetings within each room by meeting type
