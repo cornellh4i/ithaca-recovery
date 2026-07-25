@@ -164,7 +164,10 @@ const DailyViewRow: React.FC<DailyViewRowProps> = ({
         {/* Render meetings */}
         {meetings.map((meeting, index) => {
           if (meeting.isOverflowIndicator) {
-            const startOffset = timeToPixels(meeting.startTime);
+            // Anchored to the cluster's end time so the pill sits at the top-right of its
+            // time slot instead of top-left, where it would sit directly over the start of
+            // the meeting cards it stands in for (title/time text starts from the left edge).
+            const endOffset = timeToPixels(meeting.endTime);
             return (
               <div
                 key={index}
@@ -172,7 +175,7 @@ const DailyViewRow: React.FC<DailyViewRowProps> = ({
                 tabIndex={0}
                 aria-label={`${meeting.overflowCount} more meetings at this time`}
                 className={styles.overflowIndicator}
-                style={{ left: `${startOffset}px` }}
+                style={{ left: `${endOffset}px`, transform: 'translateX(-100%)' }}
                 title={`${meeting.overflowCount} more meeting${meeting.overflowCount === 1 ? '' : 's'} at this time — click to see all meetings`}
                 onClick={(e) => {
                   e.stopPropagation(); // Prevent row click handler from firing

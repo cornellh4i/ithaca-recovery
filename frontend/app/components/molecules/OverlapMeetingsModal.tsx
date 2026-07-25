@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import styles from '../../../styles/components/molecules/OverlapMeetingsModal.module.scss';
 import { formatCompactTimeRange } from '../../../util/timeFormat';
 import { toPastelColor } from '../../../util/color';
@@ -32,7 +33,13 @@ const OverlapMeetingsModal: React.FC<OverlapMeetingsModalProps> = ({
 }) => {
     if (!isOpen) return null;
 
-    return (
+    // Portaled to document.body -- both Day and Week view render this from deep inside
+    // absolutely-positioned, z-indexed ancestors (e.g. DailyView's .gridMeetingRow), each
+    // of which forms its own stacking context. Left in place, this modal's z-index would
+    // only be compared *within* that ancestor's context, so a sibling with a higher
+    // z-index at the parent level (e.g. the sticky room-label column) would still paint
+    // over it despite `position: fixed` and z-index: 1000 here.
+    return createPortal(
         <div className={styles.modalOverlay} onClick={(e) => e.stopPropagation()}>
             <div className={styles.modalContent}>
                 <div className={styles.header}>
@@ -80,7 +87,8 @@ const OverlapMeetingsModal: React.FC<OverlapMeetingsModalProps> = ({
                     })}
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body,
     );
 };
 

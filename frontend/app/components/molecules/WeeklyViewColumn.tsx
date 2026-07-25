@@ -174,7 +174,10 @@ const WeeklyViewColumn: React.FC<WeeklyViewColumnProps> = ({
 
                 {meetings.map((meeting, index) => {
                     if (meeting.isOverflowIndicator) {
-                        const topOffset = timeToPixels(meeting.startTime);
+                        // Matches renderMeetingCard's topOffset (line 94) so the pill lines up
+                        // with the top of the meeting cards it sits beside, instead of sitting
+                        // VERTICAL_GAP/2 higher than they do.
+                        const topOffset = timeToPixels(meeting.startTime) + VERTICAL_GAP / 2;
                         return (
                             <div
                                 key={index}
