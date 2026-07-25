@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
 import styles from "../../../styles/components/organisms/CalendarNavbar.module.scss";
-import { formatMeetingDateLine } from "../../../util/timeFormat";
+import { formatMeetingDateLine, monthNameForETDateString, formatMeetingWeekLine } from "../../../util/timeFormat";
 import {
   formatETDateString,
   convertETToUTC,
-  getWeekDatesET,
   addDaysToETDateString,
   addMonthsToETDateString,
 } from "../../../util/timeUtils";
@@ -15,45 +14,22 @@ type CalendarNavbarProps = {
     onViewChange: (view: string) => void;
   };
 
-// Calendar-only month name for an ET "YYYY-MM-DD" string -- formatted with a UTC-pinned Intl
-// formatter on a UTC-constructed Date, so the label matches the string's own y/m/d without ever
-// being reinterpreted through a real timezone (same Date.UTC-as-calculator pattern used by
-// util/timeUtils.ts's getWeekDatesET and WeeklyView.tsx's getFirstDayOfWeek/getDaysOfWeek).
-const monthNameForETDate = (etDateStr: string): string => {
-  const [year, month, day] = etDateStr.split('-').map(Number);
-  return new Intl.DateTimeFormat('en-US', { month: 'long', timeZone: 'UTC' }).format(
-    new Date(Date.UTC(year, month - 1, day)),
-  );
-};
-
 const CalendarNavbar: React.FC<CalendarNavbarProps> = ({ selectedDate, onDateChange, onViewChange }) => {
     const [selectedView, setSelectedView] = useState('Day');
 
     const getDateRange = (date: Date) => {
-      const etDateStr = formatETDateString(date);
-
       if (selectedView === 'Day') {
         return formatMeetingDateLine(date);
       }
 
       if (selectedView === 'Week') {
-        const week = getWeekDatesET(etDateStr);
-        const [startYear, , startDayStr] = week[0].split('-');
-        const [endYear, , endDayStr] = week[6].split('-');
-        const startMonth = monthNameForETDate(week[0]);
-        const endMonth = monthNameForETDate(week[6]);
-        const startDay = Number(startDayStr);
-        const endDay = Number(endDayStr);
-
-        if (startMonth === endMonth && startYear === endYear) {
-          return `${startMonth} ${startDay}-${endDay}, ${startYear}`;
-        }
-        return `${startMonth} ${startDay}, ${startYear} - ${endMonth} ${endDay}, ${endYear}`;
+        return formatMeetingWeekLine(date);
       }
 
       // Month
+      const etDateStr = formatETDateString(date);
       const [year] = etDateStr.split('-');
-      return `${monthNameForETDate(etDateStr)} ${year}`;
+      return `${monthNameForETDateString(etDateStr)} ${year}`;
     };
   
     const handleViewChange: React.ChangeEventHandler<HTMLSelectElement> = (event) => {
