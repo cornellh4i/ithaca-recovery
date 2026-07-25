@@ -15,12 +15,12 @@ test.describe("filters", () => {
     await expect(aaCheckbox).toBeChecked();
   });
 
-  test("8.2 Week view starts with room filters unchecked", async ({ adminPage }) => {
+  test("8.2 Week view starts with every filter checked", async ({ adminPage }) => {
     const { page } = adminPage;
     await page.goto("/");
     await selectView(page, "Week");
     const serenityCheckbox = page.locator('label:has-text("Serenity Room")').first().locator('input[type="checkbox"]');
-    await expect(serenityCheckbox).not.toBeChecked();
+    await expect(serenityCheckbox).toBeChecked();
   });
 
   test("8.3 applying a room filter shows only that room's meetings", async ({ adminPage }) => {

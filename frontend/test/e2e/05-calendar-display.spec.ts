@@ -1,7 +1,7 @@
 import { test, expect } from "./support/fixtures";
 import { seedMeeting } from "../factories/meeting";
 import { convertETToUTC, formatETDateString } from "../../util/timeUtils";
-import { selectView, toggleFilter } from "./support/formHelpers";
+import { selectView } from "./support/formHelpers";
 
 // Manual script §5 (Calendar Display). §5.9 (2+ overlapping meetings sharing space
 // with a "+N more" indicator) is WeeklyViewColumn-specific behavior — DailyView lays
@@ -16,15 +16,11 @@ test.describe("calendar display", () => {
     await expect(page.getByText("Today Meeting")).toBeVisible();
   });
 
-  test("5.2 Week view shows the full week once a room filter is checked", async ({ adminPage }) => {
+  test("5.2 Week view shows the full week with every room checked by default", async ({ adminPage }) => {
     const { page } = adminPage;
     await seedMeeting({ title: "Week View Meeting", room: "Serenity Room" });
     await page.goto("/");
     await selectView(page, "Week");
-
-    // Week defaults rooms unchecked (opt-in) — nothing shows until one is picked.
-    await expect(page.getByText("Week View Meeting")).toHaveCount(0);
-    await toggleFilter(page, "Serenity Room");
     await expect(page.getByText("Week View Meeting")).toBeVisible();
   });
 
