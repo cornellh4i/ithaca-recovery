@@ -62,6 +62,80 @@ const WeeklyViewColumn: React.FC<WeeklyViewColumnProps> = ({
         setAnchorEl(el);
     };
 
+    // Renders a single meeting's card. `forceSelected` is used to promote a folded
+    // "+N" meeting (picked via the overflow modal) onto the stack even though it has
+    // no normal slot of its own -- same full-width/shadow treatment as selecting one
+    // of the two already-shown stacked meetings.
+    const renderMeetingCard = (meeting: Meeting, key: React.Key, forceSelected = false) => {
+        // Remote-only meetings have no physical room, so fall back to the
+        // Zoom room — otherwise the location line would be blank.
+        const locationLabel = meeting.room || meeting.zoomRoom || '';
+        const topOffset = timeToPixels(meeting.startTime);
+        const bottomOffset = timeToPixels(meeting.endTime);
+        const height = bottomOffset - topOffset;
+
+        // A single meeting fills the column exactly; overlapping meetings split it evenly
+        let width = '100%';
+        let left = '0%';
+
+        if (meeting.totalOverlapping && meeting.totalOverlapping > 1) {
+            const singleWidth = 100 / meeting.totalOverlapping;
+            width = `${singleWidth}%`;
+            left = `${(meeting.positionIndex || 0) * singleWidth}%`;
+        }
+
+        // Selecting a meeting that's sharing space in an overlapping cluster brings
+        // it fully into view (and above its siblings) instead of leaving it in its
+        // narrow shared column -- reverts on its own once deselected, since this is
+        // just a render-time override, not stored state.
+        const isSelected = forceSelected || meeting.id === selectedMeetingID;
+
+        return (
+            <div
+                key={key}
+                className={styles.meetingWrapper}
+                style={{
+                    top: `${topOffset}px`,
+                    height: `${height}px`,
+                    width: isSelected ? '100%' : width,
+                    left: isSelected ? '0%' : left,
+                    // Above the "+N" overflow pill's z-index (12, WeeklyViewColumn.module.scss)
+                    // too, so a selected meeting is unambiguously the topmost thing in the column.
+                    zIndex: isSelected ? 13 : undefined,
+                }}
+                onClick={(e) => e.stopPropagation()} // Prevent column click handler from firing
+            >
+                <BoxText
+                    boxType="Meeting Block"
+                    title={meeting.title}
+                    primaryColor={meeting.primaryColor || roomColor}
+                    time={`${locationLabel ? `${locationLabel} · ` : ''}${formatCompactTimeRange(meeting.displayStartTime ?? meeting.startTime, meeting.displayEndTime ?? meeting.endTime)}`}
+                    tags={meeting.tags}
+                    meetingId={meeting.id}
+                    zoomTag={
+                        meeting.room && isZoomRoomMismatched(meeting.room, meeting.zoomRoom)
+                            ? formatZoomRoomLabel(meeting.zoomRoom!)
+                            : undefined
+                    }
+                    fillHeight
+                    selected={isSelected}
+                    onClick={(meetingId, e) => {
+                        handleBoxClick(meetingId, e.currentTarget);
+                        e.stopPropagation(); // Prevent column click handler from firing
+                    }}
+                />
+            </div>
+        );
+    };
+
+    // If the selected meeting was picked from an overflow "+N" popup rather than one
+    // of the two normally-rendered stacked cards, it has no slot of its own -- find it
+    // in the folded cluster so it can be promoted onto the stack (see renderMeetingCard).
+    const renderedIds = new Set(meetings.filter(m => !m.isOverflowIndicator).map(m => m.id));
+    const promotedMeeting = selectedMeetingID && !renderedIds.has(selectedMeetingID)
+        ? meetings.flatMap(m => m.overflowMeetings ?? []).find(m => m.id === selectedMeetingID)
+        : undefined;
+
     return (
         <div className={styles.columnWrapper}>
             <div className={styles.columnBody}>
@@ -75,12 +149,8 @@ const WeeklyViewColumn: React.FC<WeeklyViewColumnProps> = ({
                 ))}
 
                 {meetings.map((meeting, index) => {
-                    // Remote-only meetings have no physical room, so fall back to the
-                    // Zoom room — otherwise the location line would be blank.
-                    const locationLabel = meeting.room || meeting.zoomRoom || '';
-                    const topOffset = timeToPixels(meeting.startTime);
-
                     if (meeting.isOverflowIndicator) {
+                        const topOffset = timeToPixels(meeting.startTime);
                         return (
                             <div
                                 key={index}
@@ -98,62 +168,10 @@ const WeeklyViewColumn: React.FC<WeeklyViewColumnProps> = ({
                         );
                     }
 
-                    const bottomOffset = timeToPixels(meeting.endTime);
-                    const height = bottomOffset - topOffset;
-
-                    // A single meeting fills the column exactly; overlapping meetings split it evenly
-                    let width = '100%';
-                    let left = '0%';
-
-                    if (meeting.totalOverlapping && meeting.totalOverlapping > 1) {
-                        const singleWidth = 100 / meeting.totalOverlapping;
-                        width = `${singleWidth}%`;
-                        left = `${(meeting.positionIndex || 0) * singleWidth}%`;
-                    }
-
-                    // Selecting a meeting that's sharing space in an overlapping cluster brings
-                    // it fully into view (and above its siblings) instead of leaving it in its
-                    // narrow shared column -- reverts on its own once deselected, since this is
-                    // just a render-time override, not stored state.
-                    const isSelected = meeting.id === selectedMeetingID;
-
-                    return (
-                        <div
-                            key={index}
-                            className={styles.meetingWrapper}
-                            style={{
-                                top: `${topOffset}px`,
-                                height: `${height}px`,
-                                width: isSelected ? '100%' : width,
-                                left: isSelected ? '0%' : left,
-                                // Above the "+N" overflow pill's z-index (12, WeeklyViewColumn.module.scss)
-                                // too, so a selected meeting is unambiguously the topmost thing in the column.
-                                zIndex: isSelected ? 13 : undefined,
-                            }}
-                            onClick={(e) => e.stopPropagation()} // Prevent column click handler from firing
-                        >
-                            <BoxText
-                                boxType="Meeting Block"
-                                title={meeting.title}
-                                primaryColor={meeting.primaryColor || roomColor}
-                                time={`${locationLabel ? `${locationLabel} · ` : ''}${formatCompactTimeRange(meeting.displayStartTime ?? meeting.startTime, meeting.displayEndTime ?? meeting.endTime)}`}
-                                tags={meeting.tags}
-                                meetingId={meeting.id}
-                                zoomTag={
-                                    meeting.room && isZoomRoomMismatched(meeting.room, meeting.zoomRoom)
-                                        ? formatZoomRoomLabel(meeting.zoomRoom!)
-                                        : undefined
-                                }
-                                fillHeight
-                                selected={isSelected}
-                                onClick={(meetingId, e) => {
-                                    handleBoxClick(meetingId, e.currentTarget);
-                                    e.stopPropagation(); // Prevent column click handler from firing
-                                }}
-                            />
-                        </div>
-                    );
+                    return renderMeetingCard(meeting, index);
                 })}
+
+                {promotedMeeting && renderMeetingCard(promotedMeeting, `promoted-${promotedMeeting.id}`, true)}
             </div>
 
             <OverlapMeetingsModal

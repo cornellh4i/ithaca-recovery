@@ -64,6 +64,78 @@ const DailyViewRow: React.FC<DailyViewRowProps> = ({
     setAnchorEl(el);
   };
 
+  // Renders a single meeting's card. `forceSelected` is used to promote a folded
+  // "+N" meeting (picked via the overflow modal) onto the stack even though it has
+  // no lane of its own -- same full-row/shadow treatment as selecting one of the two
+  // already-shown stacked meetings.
+  const renderMeetingCard = (meeting: Meeting, key: React.Key, forceSelected = false) => {
+    const startOffset = timeToPixels(meeting.startTime);
+    const endOffset = timeToPixels(meeting.endTime);
+    const width = endOffset - startOffset;
+
+    // Compact ET display (e.g. "9-10AM", "9-9:30AM", "11AM-12:30PM") — uses the true,
+    // unclipped time so a split overnight meeting still labels the same on both halves.
+    const compactTime = formatCompactTimeRange(
+      meeting.displayStartTime ?? meeting.startTime,
+      meeting.displayEndTime ?? meeting.endTime,
+    );
+
+    // Selecting a meeting brings it above any other overlapping meeting in this row --
+    // otherwise stacking just follows DOM/array order, so the clicked one could render
+    // underneath a later-starting neighbor it visually overlaps. Reverts on its own once
+    // deselected, since this is just a render-time override, not stored state.
+    const isSelected = forceSelected || meeting.id === selectedMeetingID;
+
+    // A single meeting fills the room's row exactly; overlapping meetings split it into
+    // top/bottom lanes instead (time already reads along the horizontal axis here, so
+    // overlap splits vertically -- the rotated equivalent of WeeklyView's side-by-side
+    // columns, where time reads vertically and overlap splits horizontally).
+    const isStacked = !!meeting.totalOverlapping && meeting.totalOverlapping > 1;
+    const laneTop = isStacked ? (meeting.positionIndex ?? 0) * (LANE_HEIGHT + LANE_GAP) : undefined;
+
+    return (
+      <div
+        key={key}
+        className={styles.meetingWrapper}
+        style={{
+          left: `${startOffset}px`,
+          width: `${width}px`,
+          top: isSelected ? 0 : laneTop,
+          height: isSelected ? undefined : (isStacked ? `${LANE_HEIGHT}px` : undefined),
+          // Above the "+N" overflow pill's z-index (12, DailyViewRow.module.scss) too,
+          // so a selected meeting is unambiguously the topmost thing in the row.
+          zIndex: isSelected ? 13 : undefined,
+        }}
+        onClick={(e) => e.stopPropagation()} // Prevent row click handler from firing
+      >
+        <BoxText
+          boxType="Meeting Block"
+          title={meeting.title}
+          primaryColor={roomColor}
+          time={compactTime}
+          tags={meeting.tags}
+          meetingId={meeting.id}
+          syncError={meeting.syncError}
+          selected={isSelected}
+          fillHeight={isStacked && !isSelected}
+          compact={isStacked && !isSelected}
+          onClick={(meetingId, e) => {
+            handleBoxClick(meetingId, e.currentTarget);
+            e.stopPropagation();
+          }}
+        />
+      </div>
+    );
+  };
+
+  // If the selected meeting was picked from an overflow "+N" popup rather than one
+  // of the two normally-rendered stacked cards, it has no lane of its own -- find it
+  // in the folded cluster so it can be promoted onto the stack (see renderMeetingCard).
+  const renderedIds = new Set(meetings.filter(m => !m.isOverflowIndicator).map(m => m.id));
+  const promotedMeeting = selectedMeetingID && !renderedIds.has(selectedMeetingID)
+    ? meetings.flatMap(m => m.overflowMeetings ?? []).find(m => m.id === selectedMeetingID)
+    : undefined;
+
   return (
     <div style={{ cursor: "pointer", position: 'relative', width: '100%', height: '100%' }}>
       <div>
@@ -74,12 +146,8 @@ const DailyViewRow: React.FC<DailyViewRowProps> = ({
 
         {/* Render meetings */}
         {meetings.map((meeting, index) => {
-          // Convert times to EDT before calculating pixels
-          const startOffset = timeToPixels(meeting.startTime);
-          const endOffset = timeToPixels(meeting.endTime);
-          const width = endOffset - startOffset;
-
           if (meeting.isOverflowIndicator) {
+            const startOffset = timeToPixels(meeting.startTime);
             return (
               <div
                 key={index}
@@ -99,60 +167,10 @@ const DailyViewRow: React.FC<DailyViewRowProps> = ({
             );
           }
 
-          // Compact ET display (e.g. "9-10AM", "9-9:30AM", "11AM-12:30PM") — uses the true,
-          // unclipped time so a split overnight meeting still labels the same on both halves.
-          const compactTime = formatCompactTimeRange(
-            meeting.displayStartTime ?? meeting.startTime,
-            meeting.displayEndTime ?? meeting.endTime,
-          );
-
-          // Selecting a meeting brings it above any other overlapping meeting in this row --
-          // otherwise stacking just follows DOM/array order, so the clicked one could render
-          // underneath a later-starting neighbor it visually overlaps. Reverts on its own once
-          // deselected, since this is just a render-time override, not stored state.
-          const isSelected = meeting.id === selectedMeetingID;
-
-          // A single meeting fills the room's row exactly; overlapping meetings split it into
-          // top/bottom lanes instead (time already reads along the horizontal axis here, so
-          // overlap splits vertically -- the rotated equivalent of WeeklyView's side-by-side
-          // columns, where time reads vertically and overlap splits horizontally).
-          const isStacked = !!meeting.totalOverlapping && meeting.totalOverlapping > 1;
-          const laneTop = isStacked ? (meeting.positionIndex ?? 0) * (LANE_HEIGHT + LANE_GAP) : undefined;
-
-          return (
-            <div
-              key={index}
-              className={styles.meetingWrapper}
-              style={{
-                left: `${startOffset}px`,
-                width: `${width}px`,
-                top: isSelected ? 0 : laneTop,
-                height: isSelected ? undefined : (isStacked ? `${LANE_HEIGHT}px` : undefined),
-                // Above the "+N" overflow pill's z-index (12, DailyViewRow.module.scss) too,
-                // so a selected meeting is unambiguously the topmost thing in the row.
-                zIndex: isSelected ? 13 : undefined,
-              }}
-              onClick={(e) => e.stopPropagation()} // Prevent row click handler from firing
-            >
-              <BoxText
-                boxType="Meeting Block"
-                title={meeting.title}
-                primaryColor={roomColor}
-                time={compactTime}
-                tags={meeting.tags}
-                meetingId={meeting.id}
-                syncError={meeting.syncError}
-                selected={isSelected}
-                fillHeight={isStacked && !isSelected}
-                compact={isStacked && !isSelected}
-                onClick={(meetingId, e) => {
-                  handleBoxClick(meetingId, e.currentTarget);
-                  e.stopPropagation();
-                }}
-              />
-            </div>
-          );
+          return renderMeetingCard(meeting, index);
         })}
+
+        {promotedMeeting && renderMeetingCard(promotedMeeting, `promoted-${promotedMeeting.id}`, true)}
       </div>
 
       <OverlapMeetingsModal
