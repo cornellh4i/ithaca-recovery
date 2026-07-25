@@ -28,10 +28,12 @@ const TextField: React.FC<TextFieldProps> = ({
 
   const toggleFocus = () => setUnderlineOnFocus((prev) => !prev);
 
-  // Determine font size based on label presence
+  // Determine font size based on label presence -- "" (passed for description fields
+  // that intentionally render no label) must count as unlabeled, same as undefined/null.
+  const hasLabel = Boolean(label);
   const fontSize = compact
-    ? (label == null ? "19.2px" : "14.4px")
-    : (label == null ? "24px" : "18px");
+    ? (hasLabel ? "14.4px" : "19.2px")
+    : (hasLabel ? "18px" : "24px");
   const labelFontSize = compact ? "14.4px" : "18px";
 
   const inputClassName = `${styles.textfieldinput} ${multiline ? styles.multiline : ''} ${underlineOnFocus ? styles.focused : styles.default}`;

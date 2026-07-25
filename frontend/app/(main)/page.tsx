@@ -137,11 +137,9 @@ export default function HomePage() {
     if (!isSidebarOpen && showEditMeeting) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       handleBack();
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setShowEditMeeting(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isSidebarOpen]);
+  }, [isSidebarOpen, showEditMeeting]);
 
   // Switching Day/Week view backs out to neutral (CalendarSidebar, no popup) entirely --
   // not just closing Edit, since the clicked box's anchorEl also goes stale across the

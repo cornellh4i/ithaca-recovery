@@ -25,7 +25,7 @@ export async function selectFromDropdown(page: Page, buttonName: string, optionT
   // Not `exact` — Dropdown.tsx's button has a CSS-generated "▼" suffix appended
   // to its accessible name.
   await page.getByRole("button", { name: buttonName }).click();
-  await page.getByRole("listitem").filter({ hasText: optionText }).click();
+  await page.getByRole("option").filter({ hasText: optionText }).click();
 }
 
 // Toggles one of the AA/Al-Anon/Other checkboxes, scoped to the meeting form's
@@ -54,7 +54,7 @@ export async function toggleFilter(page: Page, label: string): Promise<void> {
 export async function selectView(page: Page, view: "Day" | "Week"): Promise<void> {
   const dropdown = page.locator('[class*="viewDropdown"]');
   await dropdown.getByRole("button").click();
-  await dropdown.getByRole("listitem").filter({ hasText: view }).click();
+  await dropdown.getByRole("option").filter({ hasText: view }).click();
 }
 
 // Today's date in MM/DD/YYYY, for form fixtures that need to land on a real day

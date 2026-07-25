@@ -76,7 +76,6 @@ const CalendarNavbar: React.FC<CalendarNavbarProps> = ({ selectedDate, onDateCha
         <div className={styles.navbarContainerLeft}>
           <div className={styles.viewDropdown}>
             <Dropdown
-              key={selectedView}
               label=""
               value={selectedView}
               isVisible={true}
