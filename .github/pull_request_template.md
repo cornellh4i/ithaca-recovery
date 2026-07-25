@@ -1,5 +1,7 @@
 Resolves #<!-- issue number — delete this line if there isn't one -->
 
+@coderabbitai summary
+
 ## Description
 <!--
 Bullet list. Bold the primary file/path first, then what changed and briefly why.
