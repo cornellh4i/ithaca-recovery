@@ -63,24 +63,45 @@
     color: $black-color;
     text-decoration: none;
   }
+}
 
-  select {
-    font-size: 18px;
-    border: none;
-    background: transparent;
-    color: $black-color;
-    cursor: pointer;
+// The in-house Dropdown atom (app/components/atoms/Dropdown.tsx) brings its own bordered
+// button chrome and defaults to width: 100%, which would otherwise stretch to fill this
+// flex row -- constrain it to fit "Day"/"Week" instead, alongside the .box pill buttons,
+// and override its default look (fixed 42px height, 6px radius, lighter border, native
+// button font) to mirror .box/.box a's exact styling so the two sit consistently side by side.
+.viewDropdown {
+  width: 110px;
+  flex-shrink: 0;
+
+  button {
+    height: auto;
+    padding: 12px 18px;
+    justify-content: center;
+    gap: 8px;
+    border-radius: 8px;
+    border: 1.5px solid $medium-grey-color;
     font-family: 'Source Sans Pro', sans-serif;
-    appearance: none;
-    padding-right: 24px;
-    background-image: url('/svg/drop-down-arrow.svg');
-    background-repeat: no-repeat;
-    background-position: right 10px center;
+    font-size: 18px;
+    font-weight: 400;
   }
-  
-  select:focus {
-    outline: none;
-    border-color: $medium-grey-color;
+
+  // No visible caption label here (label=""), so the list doesn't need the 30px offset
+  // .elementList reserves for a real text caption sitting to its left -- align it flush
+  // under the button instead, matching .elementListFullWidth's behavior. Rounded to match
+  // the button's own 8px radius (its default is a subtler 6px).
+  ul {
+    left: 0;
+    width: 100%;
+    border-radius: 8px;
+    overflow: hidden;
   }
-  
+
+  // Dropdown's default list item is left-aligned (suited to a form field's option list) --
+  // centered here instead, to read as one consistent visual language with the centered
+  // button text above it.
+  li {
+    justify-content: center;
+    font-size: 18px;
+  }
 }

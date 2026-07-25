@@ -152,6 +152,10 @@ interface DailyViewProps {
   setSelectedNewMeeting: (newMeetingExists: boolean) => void;
   setAnchorEl: (el: HTMLElement) => void;
   refreshTrigger?: number;
+  // Disables scrolling this view while the ViewMeeting popup is open -- it's anchored to
+  // the clicked box's on-screen position, so scrolling underneath it while open just
+  // fights the popup's own reposition-on-scroll logic instead of being useful.
+  scrollLocked?: boolean;
 }
 
 const DailyView: React.FC<DailyViewProps> = ({
@@ -161,7 +165,8 @@ const DailyView: React.FC<DailyViewProps> = ({
   setSelectedMeetingID,
   setSelectedNewMeeting,
   setAnchorEl,
-  refreshTrigger = 0
+  refreshTrigger = 0,
+  scrollLocked = false,
 }) => {
   const [currentTimePosition, setCurrentTimePosition] = useState(0);
   const [meetings, setMeetings] = useState<Room[]>([]);
@@ -249,7 +254,11 @@ const DailyView: React.FC<DailyViewProps> = ({
 
   return (
     <div className={styles.outerContainer}>
-      <div ref={scrollContainerRef} className={styles.viewContainer}>
+      <div
+        ref={scrollContainerRef}
+        className={styles.viewContainer}
+        style={scrollLocked ? { overflow: 'hidden' } : undefined}
+      >
         <div className={styles.roomContainer}>
           <div className={styles.roomCorner} />
           {combinedRooms.map((room, index) => (

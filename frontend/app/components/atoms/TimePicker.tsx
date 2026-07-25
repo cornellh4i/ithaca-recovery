@@ -7,6 +7,8 @@ interface TimePickerProps {
   onChange: (value: string) => void;
   underlineOnFocus?: boolean;
   disablePast?: boolean;
+  // Scales font-size to ~80% for narrow embedding contexts (the 280px Main Calendar sidebar).
+  compact?: boolean;
   [key: string]: unknown;
 }
 
@@ -30,7 +32,7 @@ const getTimeDifferenceInMinutes = (startTime: string, endTime: string): number 
   return (endDate.getTime() - startDate.getTime()) / (1000 * 60);
 };
 
-const TimePicker = ({ label, value: propValue = '', disablePast, onChange, ...props }: TimePickerProps) => {
+const TimePicker = ({ label, value: propValue = '', disablePast, onChange, compact = false, ...props }: TimePickerProps) => {
 
   // Parse the initial value when component mounts
   const parseTimeRange = (value: string): { startTime: string, endTime: string } => {
@@ -105,7 +107,7 @@ const TimePicker = ({ label, value: propValue = '', disablePast, onChange, ...pr
   };
 
   return (
-    <div className={styles['time-picker-wrapper']}>
+    <div className={`${styles['time-picker-wrapper']} ${compact ? styles.compact : ''}`}>
       <label className={styles['time-picker-label']}>
         {typeof label === 'string' ? <span>{label}</span> : label}
       </label>

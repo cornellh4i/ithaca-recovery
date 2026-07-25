@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import styles from '../../../styles/components/organisms/ViewMeeting.module.scss';
 import DeleteRecurringModal from '../molecules/DeleteRecurringModal';
@@ -105,6 +105,28 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
   const [descNode, setDescNode] = useState<HTMLParagraphElement | null>(null);
   const [popupPosition, setPopupPosition] = useState<{ top: number; left: number } | null>(null);
 
+  // Before the popup has ever mounted, popupRef.current is null, so the first calculation
+  // below falls back to a capped estimate (min(80% of viewport, 600px)) for its height --
+  // real popups are usually much shorter (e.g. ~350-400px for a non-recurring meeting with
+  // no description), so that estimate over-clamps `top` upward far more than necessary,
+  // landing the popup well away from the anchor box that was actually clicked. The
+  // useLayoutEffect below corrects this once the real height is known post-mount.
+  const updatePosition = useCallback(() => {
+    if (!anchorEl) return;
+    const rect = anchorEl.getBoundingClientRect();
+    let left = rect.right + ANCHOR_GAP;
+    if (left + POPUP_WIDTH > window.innerWidth - POPUP_MARGIN) {
+      left = rect.left - POPUP_WIDTH - ANCHOR_GAP;
+    }
+    left = Math.max(POPUP_MARGIN, Math.min(left, window.innerWidth - POPUP_WIDTH - POPUP_MARGIN));
+    // Clamp against the popup's own (measured, or capped-height-estimated pre-mount) height --
+    // window.innerHeight alone is the viewport's bottom edge, not the popup's, so an anchor low
+    // in the day grid would otherwise render the popup mostly off-screen.
+    const popupHeight = popupRef.current?.offsetHeight ?? Math.min(0.8 * window.innerHeight, 600);
+    const top = Math.max(POPUP_MARGIN, Math.min(rect.top, window.innerHeight - popupHeight - POPUP_MARGIN));
+    setPopupPosition({ top, left });
+  }, [anchorEl]);
+
   // Tracks the clicked box's on-screen position while the popup is open, so the portaled
   // popup (position:fixed) stays anchored beside it -- recomputed on scroll (capture:true
   // catches scrolling within any nested scroll container, not just the window) and resize.
@@ -112,21 +134,6 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
   // recomputing there would just churn popupPosition with an equivalent-but-new object.
   useEffect(() => {
     if (!anchorEl) return;
-
-    const updatePosition = () => {
-      const rect = anchorEl.getBoundingClientRect();
-      let left = rect.right + ANCHOR_GAP;
-      if (left + POPUP_WIDTH > window.innerWidth - POPUP_MARGIN) {
-        left = rect.left - POPUP_WIDTH - ANCHOR_GAP;
-      }
-      left = Math.max(POPUP_MARGIN, Math.min(left, window.innerWidth - POPUP_WIDTH - POPUP_MARGIN));
-      // Clamp against the popup's own (measured, or capped-height-estimated pre-mount) height --
-      // window.innerHeight alone is the viewport's bottom edge, not the popup's, so an anchor low
-      // in the day grid would otherwise render the popup mostly off-screen.
-      const popupHeight = popupRef.current?.offsetHeight ?? Math.min(0.8 * window.innerHeight, 600);
-      const top = Math.max(POPUP_MARGIN, Math.min(rect.top, window.innerHeight - popupHeight - POPUP_MARGIN));
-      setPopupPosition({ top, left });
-    };
 
     const handleScroll = (event: Event) => {
       if (popupRef.current?.contains(event.target as Node)) return;
@@ -140,7 +147,19 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
       window.removeEventListener('scroll', handleScroll, true);
       window.removeEventListener('resize', updatePosition);
     };
-  }, [anchorEl]);
+  }, [anchorEl, updatePosition]);
+
+  // Runs once the popup's real DOM node exists (right after the first render above sets
+  // popupPosition and the portal actually mounts) and corrects `top` using its real
+  // offsetHeight in place of the pre-mount estimate -- see the comment on updatePosition.
+  useLayoutEffect(() => {
+    if (!popupPosition || !popupRef.current) return;
+    updatePosition();
+    // Deliberately excludes updatePosition/popupPosition to run only on the transition to
+    // mounted, not on every position update updatePosition itself causes (which would still
+    // be harmless/idempotent, just redundant).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [!!popupPosition]);
 
   // Closes the whole popup on an outside click -- clicks on the anchor box itself are left
   // alone since that box's own onClick already handles re-selecting/toggling it.

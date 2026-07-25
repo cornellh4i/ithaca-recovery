@@ -47,6 +47,9 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
     } = useMeetingForm(meeting);
 
     const [isSubmitting, setIsSubmitting] = useState(false);
+    // Narrow Main Calendar sidebar gets ~80%-scaled field fonts; the "wide" embed (e.g.
+    // Diagnostics Conflicts panel) has room to spare and keeps full size.
+    const compact = layout === "sidebar";
 
     const updateMeeting = async () => {
       // Guards against duplicate/racing updates from rapid/double clicks — the
@@ -100,22 +103,26 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
             input="Meeting title"
             value={inputMeetingTitleValue}
             onChange={setMeetingTitleValue}
+            compact={compact}
           />}
           modeTypeButtons={<ModeTypeButtons
             selectedMode={selectedMode}
             onModeSelect={handleModeSelect}
+            compact={compact}
           />}
           selectedMode={selectedMode}
           DatePicker={<DatePicker
             label={<img src='/svg/calendar-icon.svg' alt="Calendar Icon" />}
             value={dateValue}
             onChange={setDateValue}
+            compact={compact}
           />}
           TimePicker={<TimePicker
             label={<img src='/svg/clock-icon.svg' alt="Clock Icon" />}
             value={timeValue}
             onChange={setTimeValue}
             disablePast={true}
+            compact={compact}
           />}
           RecurringMeeting={
             <RecurringMeetingForm
@@ -136,6 +143,7 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
               elements={physicalRoomOptions}
               name="Select Room"
               onChange={handleRoomChange}
+              compact={compact}
             />
           }
           meetingTypeDropdown={
@@ -155,6 +163,7 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
                     onChange={(_e) => handleCalTypeToggle(type)}
                     color={CAL_TYPE_COLOR}
                     uncheckedBg="#fff"
+                    compact={compact}
                   />
                 ))}
               </div>
@@ -169,6 +178,7 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
               elements={zoomRoomOptions}
               name="Select Zoom Room"
               onChange={setSelectedZoomRoom}
+              compact={compact}
             />
           }
           emailTextField={<TextField
@@ -176,6 +186,7 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
             label={<img src="svg/mail-icon.svg" alt="Mail Icon" />}
             value={inputEmailValue}
             onChange={setEmailValue}
+            compact={compact}
           />}
           descriptionTextField={<TextField
             input="Description"
@@ -184,6 +195,7 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
             onChange={setDescriptionValue}
             multiline
             maxLength={DESCRIPTION_MAX_LENGTH}
+            compact={compact}
           />}
           handleMeetingSubmit={updateMeeting}
           buttonText={isSubmitting ? "Updating…" : "Update Meeting"}

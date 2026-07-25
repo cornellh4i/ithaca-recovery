@@ -34,7 +34,9 @@
 
   .dayButtons {
     display: flex;
-    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 4px;
     margin-bottom: 16px;
 
     .dayButton {

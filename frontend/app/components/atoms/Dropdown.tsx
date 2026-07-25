@@ -5,19 +5,23 @@ interface DropdownProps {
   label: string | React.ReactNode;
   value?: string;
   isVisible: boolean;
-  elements: string[]; 
-  name: string; 
+  elements: string[];
+  name: string;
   onChange: (value: string) => void;
+  // Scales font-size to ~80% for narrow embedding contexts (the 280px Main Calendar sidebar).
+  compact?: boolean;
 }
 
 
-const Dropdown: React.FC<DropdownProps> = ({ 
-  label, 
+const Dropdown: React.FC<DropdownProps> = ({
+  label,
   value,
-  isVisible, 
-  elements, 
-  name, 
-  onChange,}) => {
+  isVisible,
+  elements,
+  name,
+  onChange,
+  compact = false,
+}) => {
   const [selectedElement, setselectedElement] = useState<string | null>(value ?? null);
 
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
@@ -50,7 +54,7 @@ const Dropdown: React.FC<DropdownProps> = ({
   const isStringLabel = typeof label === 'string';
 
   return (
-    <div className={styles.dropdown}>
+    <div className={`${styles.dropdown} ${compact ? styles.compact : ''}`}>
       <div className={styles.DropdownContainer}>
         {isStringLabel && (
           <label className={styles.DropdownLabel}>
@@ -65,6 +69,7 @@ const Dropdown: React.FC<DropdownProps> = ({
             {!isStringLabel && label && <span className={styles.DropdownIcon}>{label}</span>}
             <span className={styles.DropdownButtonText}>{selectedElement ? selectedElement : name}</span>
           </span>
+          <img src="/svg/drop-down-arrow.svg" alt="" className={styles.dropdownArrow} />
         </button>
         {activeDropdown === "element" && (
           <ul className={`${styles.elementList} ${!isStringLabel ? styles.elementListFullWidth : ''}`}>

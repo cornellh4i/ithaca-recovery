@@ -8,10 +8,12 @@ interface DatePickerProps {
   value?: string; // Expect value to be in 'MM/DD/YYYY' format
   onChange: (value: string) => void;
   underlineOnFocus?: boolean;
+  // Scales font-size to ~80% for narrow embedding contexts (the 280px Main Calendar sidebar).
+  compact?: boolean;
   [key: string]: unknown;
 }
 
-const DatePicker = ({ label, value: propValue = '', onChange, underlineOnFocus = true, ...props }: DatePickerProps) => {
+const DatePicker = ({ label, value: propValue = '', onChange, underlineOnFocus = true, compact = false, ...props }: DatePickerProps) => {
   const [internalValue, setInternalValue] = useState<string>(propValue);
   const [isFocused, setIsFocused] = useState<boolean>(false);
   const [showCalendar, setShowCalendar] = useState<boolean>(false);
@@ -226,7 +228,7 @@ const DatePicker = ({ label, value: propValue = '', onChange, underlineOnFocus =
 };
 
   return (
-    <div className={`${styles['date-picker-wrapper']} ${isFocused && underlineOnFocus ? styles['underline'] : ''}`} ref={datePickerRef}>
+    <div className={`${styles['date-picker-wrapper']} ${compact ? styles.compact : ''} ${isFocused && underlineOnFocus ? styles['underline'] : ''}`} ref={datePickerRef}>
       <label className={styles['date-picker-label']}>
         {typeof label === 'string' ? <span>{label}</span> : label}
       </label>

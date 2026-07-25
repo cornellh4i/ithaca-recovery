@@ -110,11 +110,13 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({
             input="Meeting title"
             value={inputMeetingTitleValue}
             onChange={setMeetingTitleValue}
+            compact
           />}
           modeTypeButtons={
             <ModeTypeButtons
               selectedMode={selectedMode}
               onModeSelect={handleModeSelect}
+              compact
             />
           }
           selectedMode={selectedMode}
@@ -122,12 +124,14 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({
             label={<img src='/svg/calendar-icon.svg' alt="Calendar Icon" />}
             value={dateValue}
             onChange={setDateValue}
+            compact
           />}
           TimePicker={<TimePicker
             label={<img src='/svg/clock-icon.svg' alt="Clock Icon" />}
             value={timeValue}
             onChange={setTimeValue}
             disablePast={true}
+            compact
           />}
           RecurringMeeting={
             <RecurringMeetingForm
@@ -142,6 +146,7 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({
               elements={physicalRoomOptions}
               name="Select Room"
               onChange={handleRoomChange}
+              compact
             />
           }
           meetingTypeDropdown={
@@ -161,6 +166,7 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({
                     onChange={(_e) => handleCalTypeToggle(type)}
                     color={CAL_TYPE_COLOR}
                     uncheckedBg="#fff"
+                    compact
                   />
                 ))}
               </div>
@@ -175,6 +181,7 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({
               elements={zoomRoomOptions}
               name="Select Zoom Room"
               onChange={setSelectedZoomRoom}
+              compact
             />
           }
           emailTextField={<TextField
@@ -182,6 +189,7 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({
             label={<img src="svg/mail-icon.svg" alt="Mail Icon" />}
             value={inputEmailValue}
             onChange={setEmailValue}
+            compact
           />}
           descriptionTextField={<TextField
             input="Description"
@@ -190,6 +198,7 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({
             onChange={setDescriptionValue}
             multiline
             maxLength={DESCRIPTION_MAX_LENGTH}
+            compact
           />}
           handleMeetingSubmit={createMeeting}
           buttonText={isSubmitting ? "Creating…" : "Create Meeting"}

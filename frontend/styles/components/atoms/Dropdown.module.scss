@@ -9,6 +9,15 @@
     width: 100%;
 }
 
+// Scales font-size to ~80% for narrow embedding contexts (the 280px Main Calendar sidebar).
+.dropdown.compact .DropdownLabel {
+    font-size: 14.4px;
+}
+
+.dropdown.compact .DropdownButton {
+    font-size: 12px;
+}
+
 .meetingTitleInput {
     width: 100%;
 
@@ -51,14 +60,22 @@
 
 .elementList {
     position: absolute;
-    top: calc(100% + 5px); 
+    top: calc(100% + 5px);
     left: 30px;
-    width: calc(100% - 30px); 
+    width: calc(100% - 30px);
     background-color: white;
-    border: 1px solid #ccc;
-    box-shadow: 0 4px 8px rgb(0 0 0 / 20%); 
-    z-index: 10; 
-    border-radius: 4px;
+
+    // Same bordered field-box language as MeetingForm's own fields (TextField, DatePicker,
+    // .DropdownButton above all use $grey-border-color + 6px radius) instead of a hardcoded
+    // #ccc/4px that didn't match anything else in the form.
+    border: 1px solid $grey-border-color;
+    border-radius: 6px;
+    box-shadow: 0 4px 8px rgb(0 0 0 / 20%);
+
+    // Above any page content that establishes its own stacking context with a competing
+    // z-index -- e.g. DailyView/WeeklyView's sticky headers go up to 20/21, which used to
+    // render on top of this list (CalendarNavbar's view-switcher dropdown, confirmed 2026-07-25).
+    z-index: 100;
     list-style: none;
     padding: 8px 0;
     margin: 0;
@@ -114,15 +131,15 @@
     white-space: nowrap;
 }
 
+.dropdownArrow {
+    width: 8px;
+    height: 5px;
+    flex-shrink: 0;
+}
+
 .elementListFullWidth {
     left: 0;
     width: 100%;
-}
-
-.DropdownButton::after {
-    content: '\25BC'; /* Downward arrow icon (Unicode) */
-    font-size: 0.7rem; /* Adjust the icon size */
-    color: $medium-grey-color; /* Lighter gray color for the icon */
 }
 
 /* Add active class for when the dropdown is clicked */
@@ -146,25 +163,29 @@
 }
 
 .dropdownItem {
-    padding: 10px 12px;
+    // Matches MeetingForm's field typography (TextField/DatePicker/.DropdownButton above
+    // all use this same family + $black-color) instead of falling back to the browser's
+    // default UI font and a bespoke #333.
+    font-family: 'Source Sans Pro', sans-serif;
+    font-size: 15px;
+    color: $black-color;
+    padding: 14px 12px;
+
+    // Insets each row from the list's own border, and rounds it to match -- reads as its
+    // own field-box-like row highlighting on hover, rather than a flat, undifferentiated strip.
+    margin: 2px 6px;
+    border-radius: 4px;
     cursor: pointer;
-    color: #333; /* Darker text color */
     display: flex;
     align-items: center;
-    justify-content: space-between; /* Space between the text and icon */
 }
 
 .dropdownItem:hover {
-    background-color: #f0f0f0;
+    background-color: $grey-lightest-color;
 }
 
-.dropdownItem::after {
-    content: '\2713'; /* Checkmark icon (Unicode) */
-    font-size: 0.9rem; /* Adjust icon size */
-    color: #d22e55; /* Red color for checkmark */
-    opacity: 0; /* Hide by default */
-}
-
-.dropdownItem.selected::after {
-    opacity: 1; /* Show checkmark if selected */
+// Selected state is a persistent row highlight instead of a checkmark -- reads at a
+// glance without needing to scan each row's trailing edge for a small glyph.
+.dropdownItem.selected {
+    background-color: $grey-lightest-color;
 }
