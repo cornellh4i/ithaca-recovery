@@ -1,19 +1,27 @@
+// No global stylesheet exists in this app (SCSS modules only) -- this is the one file
+// guaranteed to load on every page, so it owns zeroing the browser's default 8px body
+// margin. Without this, that margin is 16px (top+bottom) of real, page-level scroll room
+// that nothing else here accounts for: once an inner scroll region (.sidebar, a calendar
+// view's own scroll container) is exhausted, continued wheel input chains up into it,
+// scrolling the actual document and clipping .navigation's top edge -- even though
+// .mainlayout itself is correctly capped to exactly 100vh.
+:global(body) {
+    margin: 0;
+}
+
 .mainlayout {
     display: flex;
-    flex-direction: column; 
-    min-height: 100vh; 
+    flex-direction: column;
+    height: 100vh;
     width: 100vw;
 
     .navigation {
-        flex: 0 1 auto; 
+        flex: 0 1 auto;
     }
 
     .content {
         flex: 1 1 auto;
+        min-height: 0; // lets this shrink to the space left under the navbar, so overflow-y actually scrolls instead of growing past the viewport
         overflow-y: auto;
     }
-}
-
-.navigation {
-    height: 100%;
 }

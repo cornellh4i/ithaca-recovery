@@ -249,8 +249,9 @@ const DailyView: React.FC<DailyViewProps> = ({
 
   return (
     <div className={styles.outerContainer}>
-      <div className={styles.viewContainer}>
+      <div ref={scrollContainerRef} className={styles.viewContainer}>
         <div className={styles.roomContainer}>
+          <div className={styles.roomCorner} />
           {combinedRooms.map((room, index) => (
             <div key={index} className={styles.roomColumn}>
               <BoxText
@@ -265,7 +266,7 @@ const DailyView: React.FC<DailyViewProps> = ({
           ))}
         </div>
 
-        <div ref={scrollContainerRef} className={styles.scrollContainer}>
+        <div className={styles.scrollContainer}>
           <div className={styles.headerRow}>
             {timeSlots.map((time, index) => (
               <div key={index} className={styles.timeLabel}>{time}</div>
