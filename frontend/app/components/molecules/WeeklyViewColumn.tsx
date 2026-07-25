@@ -92,7 +92,10 @@ const WeeklyViewColumn: React.FC<WeeklyViewColumnProps> = ({
         // Zoom room — otherwise the location line would be blank.
         const locationLabel = meeting.room || meeting.zoomRoom || '';
         const topOffset = timeToPixels(meeting.startTime) + VERTICAL_GAP / 2;
-        const height = timeToPixels(meeting.endTime) - timeToPixels(meeting.startTime) - VERTICAL_GAP;
+        const height = Math.max(
+            timeToPixels(meeting.endTime) - timeToPixels(meeting.startTime) - VERTICAL_GAP,
+            1,
+        );
 
         // A single meeting fills the column exactly; overlapping meetings split it evenly
         let width = '100%';
