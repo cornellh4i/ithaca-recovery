@@ -129,7 +129,15 @@ export default function HomePage() {
   // not just closing Edit, since the clicked box's anchorEl also goes stale across the
   // switch (Day view's boxes aren't in the DOM once Week view renders, and vice versa),
   // so leaving the View Meeting popup open underneath would anchor to a detached element.
+  // Skipped on mount: this effect also fires on initial render (selectedView's first value
+  // counts as a "change"), which would race the deep-link effect above and immediately
+  // clear the ?mid=&edit=1 selection it just queued.
+  const isInitialViewRender = useRef(true);
   useEffect(() => {
+    if (isInitialViewRender.current) {
+      isInitialViewRender.current = false;
+      return;
+    }
     handleBack();
     setShowEditMeeting(false);
   }, [selectedView]);
@@ -139,6 +147,7 @@ export default function HomePage() {
   };
 
   const handleCloseEdit = () => {
+    setShowEditMeeting(false);
     // Backing out of Edit goes straight to neutral (CalendarSidebar, no popup) rather than
     // revealing the View Meeting popup underneath and requiring a second "back" click.
     handleBack();

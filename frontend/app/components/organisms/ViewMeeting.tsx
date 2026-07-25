@@ -9,6 +9,7 @@ import { formatCompactTimeRange, formatMeetingDateLine } from "../../../util/tim
 import { ROOM_COLORS, ZOOM_ROOM_COLOR } from "../../../util/filterColors";
 import { formatDayColumn } from "../../../util/recurrenceDisplay";
 import { isZoomRoomMismatched } from "../../../util/rooms";
+import { linkify } from "../../../util/linkify";
 
 // Extracts ET wall-clock time as "HH:MM" (24hr), which is what formatCompactTimeRange expects.
 const etTimeFmt = new Intl.DateTimeFormat('en-GB', {
@@ -119,7 +120,11 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
         left = rect.left - POPUP_WIDTH - ANCHOR_GAP;
       }
       left = Math.max(POPUP_MARGIN, Math.min(left, window.innerWidth - POPUP_WIDTH - POPUP_MARGIN));
-      const top = Math.max(POPUP_MARGIN, Math.min(rect.top, window.innerHeight - POPUP_MARGIN));
+      // Clamp against the popup's own (measured, or capped-height-estimated pre-mount) height --
+      // window.innerHeight alone is the viewport's bottom edge, not the popup's, so an anchor low
+      // in the day grid would otherwise render the popup mostly off-screen.
+      const popupHeight = popupRef.current?.offsetHeight ?? Math.min(0.8 * window.innerHeight, 600);
+      const top = Math.max(POPUP_MARGIN, Math.min(rect.top, window.innerHeight - popupHeight - POPUP_MARGIN));
       setPopupPosition({ top, left });
     };
 
@@ -315,7 +320,13 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
             {modeType}
           </span>
           <div className={styles.moreOptions} ref={kebabRef}>
-            <button onClick={() => setKebabOpen((open) => !open)}>⋮</button>
+            <button
+              aria-label="Meeting options"
+              aria-expanded={kebabOpen}
+              onClick={() => setKebabOpen((open) => !open)}
+            >
+              ⋮
+            </button>
             {kebabOpen && (
               <div className={styles.optionsMenu}>
                 <button onClick={() => { setKebabOpen(false); onEdit(); }}>Edit</button>
@@ -382,7 +393,7 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
             </div>
           )}
           {zoomInvitation && showInvitation && (
-            <pre className={styles.invitationText}>{zoomInvitation}</pre>
+            <pre className={styles.invitationText}>{linkify(zoomInvitation)}</pre>
           )}
 
           {zoomSyncStatus === 'synced' && (
@@ -418,7 +429,7 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
               <img src="/svg/description-icon.svg" alt="" />
               <div className={styles.descriptionContent}>
                 <p ref={setDescNode} className={descExpanded ? undefined : styles.descriptionClamped}>
-                  {description}
+                  {linkify(description)}
                 </p>
                 {isDescTruncated && (
                   <button className={styles.showMoreToggle} onClick={() => setDescExpanded((v) => !v)}>

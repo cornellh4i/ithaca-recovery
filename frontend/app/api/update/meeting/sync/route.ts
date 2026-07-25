@@ -119,7 +119,9 @@ const syncMeeting = async (request: Request): Promise<Response> => {
 
             zoomSyncStatus = zoomSynced ? 'synced' : 'error';
             zoomSyncError = zoomSynced ? null : zoomSyncError;
-            const zoomInvitation = zid ? await getZoomMeetingInvitation(zid) : null;
+            // See the comment in app/api/update/meeting/route.ts's syncUpdatedMeeting: a fetch
+            // failure here (collapsed to null) shouldn't overwrite an already-stored invitation.
+            const zoomInvitation = zid ? (await getZoomMeetingInvitation(zid)) ?? meeting.zoomInvitation : null;
             await prisma.meeting.update({
                 where: { mid },
                 data: { zid, zoomLink, zoomPasscode, zoomInvitation, zoomHost, zoomCalendarEventId, zoomSyncStatus, zoomSyncError },

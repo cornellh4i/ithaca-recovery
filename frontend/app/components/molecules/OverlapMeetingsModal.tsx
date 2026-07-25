@@ -20,7 +20,7 @@ interface OverlapMeetingsModalProps {
     isOpen: boolean;
     meetings: OverlapMeeting[];
     onClose: () => void;
-    onSelectMeeting: (meetingId: string, el: HTMLElement) => void;
+    onSelectMeeting: (meetingId: string) => void;
 }
 
 const OverlapMeetingsModal: React.FC<OverlapMeetingsModalProps> = ({
@@ -54,7 +54,7 @@ const OverlapMeetingsModal: React.FC<OverlapMeetingsModalProps> = ({
                                     borderLeftColor: meeting.primaryColor,
                                     backgroundColor: meeting.primaryColor ? toPastelColor(meeting.primaryColor) : undefined,
                                 }}
-                                onClick={(e) => onSelectMeeting(meeting.id, e.currentTarget)}
+                                onClick={() => onSelectMeeting(meeting.id)}
                             >
                                 <h3 className={styles.title}>{meeting.title}</h3>
                                 {locationLabel && (

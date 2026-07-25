@@ -126,7 +126,10 @@ async function syncUpdatedMeeting(
       }
     }
 
-    const zoomInvitation = zid ? await getZoomMeetingInvitation(zid) : null;
+    // getZoomMeetingInvitation collapses every failure mode (missing scope, non-2xx, network
+    // error) to null, so a fetch failure here shouldn't overwrite an already-stored invitation
+    // for a Zoom meeting that's otherwise unchanged -- only a torn-down zid actually clears it.
+    const zoomInvitation = zid ? (await getZoomMeetingInvitation(zid)) ?? existingMeeting.zoomInvitation : null;
 
     await prisma.meeting.update({
       where: { mid },

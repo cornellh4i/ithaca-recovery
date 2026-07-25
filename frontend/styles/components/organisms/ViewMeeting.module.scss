@@ -200,6 +200,16 @@
       font-size: 13px;
       color: #555;
       margin: 0 0 14px 30px;
+
+      a {
+        color: $link-color;
+        text-decoration: none;
+        word-break: break-all;
+
+        &:hover {
+          text-decoration: underline;
+        }
+      }
     }
 
     a.zoomLink {
@@ -233,6 +243,16 @@
           margin: 0;
           color: #555;
           white-space: pre-line;
+
+          a {
+            color: $link-color;
+            text-decoration: none;
+            word-break: break-all;
+
+            &:hover {
+              text-decoration: underline;
+            }
+          }
         }
 
         .descriptionClamped {
