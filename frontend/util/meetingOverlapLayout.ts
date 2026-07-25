@@ -102,13 +102,17 @@ export const layoutOverlappingMeetings = (meetings: OverlapMeeting[]): OverlapMe
             result.push({ ...meeting, totalOverlapping: MAX_VISIBLE_OVERLAP });
         });
 
-        const overflowStart = Math.min(...overflow.map(m => toMinutes(m.startTime)));
-        const overflowEnd = Math.max(...overflow.map(m => toMinutes(m.endTime)));
+        // Anchored to the whole cluster's time range (not just the folded subset) so the "+N"
+        // pill always renders at the top of the cluster, regardless of which specific meetings
+        // the greedy column assignment above happened to show vs. fold -- a folded meeting can
+        // easily start later than the two shown ones despite still overlapping all of them.
+        const clusterStartMinutes = Math.min(...cluster.map(m => toMinutes(m.startTime)));
+        const clusterEndMinutes = Math.max(...cluster.map(m => toMinutes(m.endTime)));
         result.push({
-            id: `overflow-${cluster[0].date}-${overflowStart}`,
+            id: `overflow-${cluster[0].date}-${clusterStartMinutes}`,
             title: '',
-            startTime: minutesToTime(overflowStart),
-            endTime: minutesToTime(overflowEnd),
+            startTime: minutesToTime(clusterStartMinutes),
+            endTime: minutesToTime(clusterEndMinutes),
             date: cluster[0].date,
             tags: [],
             room: '',

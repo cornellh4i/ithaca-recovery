@@ -126,7 +126,9 @@ const WeeklyViewColumn: React.FC<WeeklyViewColumnProps> = ({
                                 height: `${height}px`,
                                 width: isSelected ? '100%' : width,
                                 left: isSelected ? '0%' : left,
-                                zIndex: isSelected ? 11 : undefined,
+                                // Above the "+N" overflow pill's z-index (12, WeeklyViewColumn.module.scss)
+                                // too, so a selected meeting is unambiguously the topmost thing in the column.
+                                zIndex: isSelected ? 13 : undefined,
                             }}
                             onClick={(e) => e.stopPropagation()} // Prevent column click handler from firing
                         >

@@ -99,6 +99,12 @@ const DailyViewRow: React.FC<DailyViewRowProps> = ({
             et24HourFmt.format(new Date(meeting.displayEndTime ?? meeting.endTime)),
           );
 
+          // Selecting a meeting brings it above any other overlapping meeting in this row --
+          // otherwise stacking just follows DOM/array order, so the clicked one could render
+          // underneath a later-starting neighbor it visually overlaps. Reverts on its own once
+          // deselected, since this is just a render-time override, not stored state.
+          const isSelected = meeting.id === selectedMeetingID;
+
           return (
             <div
               key={index}
@@ -107,6 +113,7 @@ const DailyViewRow: React.FC<DailyViewRowProps> = ({
                 left: `${startOffset}px`,
                 width: `${width}px`,
                 borderRadius: '6px',
+                zIndex: isSelected ? 1 : undefined,
               }}
               onClick={(e) => e.stopPropagation()} // Prevent row click handler from firing
             >
@@ -118,7 +125,7 @@ const DailyViewRow: React.FC<DailyViewRowProps> = ({
                 tags={meeting.tags}
                 meetingId={meeting.id}
                 syncError={meeting.syncError}
-                selected={meeting.id === selectedMeetingID}
+                selected={isSelected}
                 onClick={(meetingId, e) => {
                   handleBoxClick(meetingId, e.currentTarget);
                   e.stopPropagation();
