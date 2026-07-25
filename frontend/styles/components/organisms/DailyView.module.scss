@@ -23,6 +23,15 @@
   // boxes assume is fully covered, letting a sliver of whatever's scrolled underneath
   // peek out past this column's real (shrunk) edge.
   flex-shrink: 0;
+
+  // .viewContainer is a flex row with the default align-items: stretch, which clamps this
+  // column's height down to .viewContainer's own (viewport-sized) height instead of its
+  // true content height (42px + 11*113px = 1285px). The room label rows still render past
+  // that via overflow, but this element's own background-color -- the opaque backdrop that
+  // hides scrolled-under meeting content -- only paints within its own (clamped) box, so
+  // rows below the fold lose their white backing at the row-border seams. flex-start lets
+  // this size to its real content height instead.
+  align-self: flex-start;
   position: sticky;
   left: 0;
   z-index: 20;
