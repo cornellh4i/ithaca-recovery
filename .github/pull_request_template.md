@@ -14,6 +14,19 @@ Group related files under one bullet when they're part of the same change, e.g.:
 <!-- Concrete steps a reviewer can actually run — specific commands or repro steps, not "tested thoroughly". -->
 - [ ]
 
+## Area(s) Touched
+<!-- Check all that apply — automatically applies matching labels, re-synced on every edit. -->
+- [ ] auth
+- [ ] admin
+- [ ] google-calendar
+- [ ] zoom-api
+- [ ] documentation
+- [ ] cleanup
+- [ ] billing
+- [ ] ui/ux
+- [ ] security
+- [ ] testing
+
 ## Pre-merge Checklist
 <!-- Check every box below before merging to master. -->
 - [ ] Code follows current formatting conventions and passes lint (`yarn lint`).

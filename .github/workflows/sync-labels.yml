@@ -1,0 +1,26 @@
+name: Sync labels
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - .github/labels.yml
+  workflow_dispatch:
+
+permissions:
+  issues: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      # skip-delete: labels.yml only owns the "area touched" labels, not GitHub's/Dependabot's
+      # defaults (bug, enhancement, dependencies, ...) -- without this the labeler would delete
+      # every label not listed in the file.
+      - name: Sync area labels
+        uses: crazy-max/ghaction-github-labeler@v5
+        with:
+          yaml-file: .github/labels.yml
+          skip-delete: true

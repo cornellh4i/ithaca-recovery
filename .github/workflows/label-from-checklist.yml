@@ -1,0 +1,57 @@
+name: Label from checklist
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize]
+  issues:
+    types: [opened, edited]
+
+permissions:
+  pull-requests: write
+  issues: write
+
+jobs:
+  sync-area-labels:
+    runs-on: ubuntu-latest
+    steps:
+      # Checked boxes under "Area(s) Touched" drive labels directly from the PR/issue body --
+      # re-run on every edit (not just open) so unchecking a box removes its label too. Only
+      # ever adds/removes labels from the fixed AREAS list below, never touches type labels
+      # (bug/enhancement) or anything else already on the issue/PR.
+      - name: Sync area labels from checklist
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const AREAS = [
+              'auth', 'admin', 'google-calendar', 'zoom-api', 'documentation',
+              'cleanup', 'billing', 'ui/ux', 'security', 'testing',
+            ];
+
+            const item = context.payload.pull_request ?? context.payload.issue;
+            const body = item.body ?? '';
+            const number = item.number;
+            const { owner, repo } = context.repo;
+
+            const checked = AREAS.filter((area) => {
+              const escaped = area.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+              return new RegExp(`^\\s*[-*]\\s*\\[[xX]\\]\\s*${escaped}\\b`, 'mi').test(body);
+            });
+
+            const { data: current } = await github.rest.issues.listLabelsOnIssue({
+              owner,
+              repo,
+              issue_number: number,
+            });
+            const currentAreaLabels = current.map((l) => l.name).filter((n) => AREAS.includes(n));
+
+            const toAdd = checked.filter((a) => !currentAreaLabels.includes(a));
+            const toRemove = currentAreaLabels.filter((a) => !checked.includes(a));
+
+            if (toAdd.length) {
+              await github.rest.issues.addLabels({ owner, repo, issue_number: number, labels: toAdd });
+            }
+            for (const name of toRemove) {
+              await github.rest.issues
+                .removeLabel({ owner, repo, issue_number: number, name })
+                .catch(() => {});
+            }

@@ -25,3 +25,17 @@ description is fine if it's one cohesive change. Each piece should:
 log output, or before/after comparison — not vague ("works correctly") unless paired with
 what "correctly" actually means here. -->
 - [ ]
+
+## Area(s) Touched
+<!-- Check all that apply — automatically applies matching labels, re-synced on every edit.
+A best guess is fine; this gets corrected during triage if wrong. -->
+- [ ] auth
+- [ ] admin
+- [ ] google-calendar
+- [ ] zoom-api
+- [ ] documentation
+- [ ] cleanup
+- [ ] billing
+- [ ] ui/ux
+- [ ] security
+- [ ] testing
