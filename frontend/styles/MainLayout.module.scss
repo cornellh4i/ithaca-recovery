@@ -1,19 +1,16 @@
 .mainlayout {
     display: flex;
-    flex-direction: column; 
-    min-height: 100vh; 
+    flex-direction: column;
+    height: 100vh;
     width: 100vw;
 
     .navigation {
-        flex: 0 1 auto; 
+        flex: 0 1 auto;
     }
 
     .content {
         flex: 1 1 auto;
+        min-height: 0; // lets this shrink to the space left under the navbar, so overflow-y actually scrolls instead of growing past the viewport
         overflow-y: auto;
     }
-}
-
-.navigation {
-    height: 100%;
 }
