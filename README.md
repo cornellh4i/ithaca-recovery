@@ -110,10 +110,11 @@ Opens at [http://localhost:3000](http://localhost:3000). See [`docs/project-stru
 ### Running Tests
 
 ```bash
-yarn test:unit          # pure functions, seconds, no setup
-yarn test:integration   # route handlers against an in-memory Mongo replica set
-yarn test:e2e           # full Playwright E2E suite (needs `npx playwright install --with-deps chromium` once)
-yarn test:all           # unit + integration + e2e, in that order
+yarn lint                # ESLint
+yarn test:unit           # pure functions, seconds, no setup
+yarn test:integration    # route handlers against an in-memory Mongo replica set
+yarn test:e2e            # full Playwright E2E suite (needs `npx playwright install --with-deps chromium` once)
+yarn test:all            # lint + unit + integration + e2e, in that order
 ```
 
 See [`docs/testing/README.md`](docs/testing/README.md) for how the suite and CI work.
