@@ -1,63 +1,59 @@
 import React, { useState } from 'react';
 import styles from "../../../styles/components/organisms/CalendarNavbar.module.scss";
 import { formatMeetingDateLine } from "../../../util/timeFormat";
+import {
+  formatETDateString,
+  convertETToUTC,
+  getWeekDatesET,
+  addDaysToETDateString,
+  addMonthsToETDateString,
+} from "../../../util/timeUtils";
 
 type CalendarNavbarProps = {
     selectedDate: Date;
     onDateChange: (date : Date) => void;
     onViewChange: (view: string) => void;
   };
-  
+
+// Calendar-only month name for an ET "YYYY-MM-DD" string -- formatted with a UTC-pinned Intl
+// formatter on a UTC-constructed Date, so the label matches the string's own y/m/d without ever
+// being reinterpreted through a real timezone (same Date.UTC-as-calculator pattern used by
+// util/timeUtils.ts's getWeekDatesET and WeeklyView.tsx's getFirstDayOfWeek/getDaysOfWeek).
+const monthNameForETDate = (etDateStr: string): string => {
+  const [year, month, day] = etDateStr.split('-').map(Number);
+  return new Intl.DateTimeFormat('en-US', { month: 'long', timeZone: 'UTC' }).format(
+    new Date(Date.UTC(year, month - 1, day)),
+  );
+};
+
 const CalendarNavbar: React.FC<CalendarNavbarProps> = ({ selectedDate, onDateChange, onViewChange }) => {
     const [selectedView, setSelectedView] = useState('Day');
-  
+
     const getDateRange = (date: Date) => {
-      let startDate, endDate;
-  
-      switch (selectedView) {
-        case 'Day':
-          startDate = new Date(date);
-          endDate = new Date(date);
-          break;
-  
-        case 'Week':
-          const firstDayOfWeek = date.getDate() - date.getDay(); // Sunday
-          const lastDayOfWeek = firstDayOfWeek + 6; // Saturday
-  
-          startDate = new Date(date);
-          startDate.setDate(firstDayOfWeek);
-  
-          endDate = new Date(date);
-          endDate.setDate(lastDayOfWeek);
-          break;
-  
-        case 'Month':
-          startDate = new Date(date.getFullYear(), date.getMonth(), 1);
-          endDate = new Date(date.getFullYear(), date.getMonth() + 1, 0); // Last day of the month
-          break;
-  
-        default:
-          startDate = endDate = date; // Default to current date
+      const etDateStr = formatETDateString(date);
+
+      if (selectedView === 'Day') {
+        return formatMeetingDateLine(date);
       }
 
-      const startMonth = startDate.toLocaleDateString('en-US', { month: 'long' });
-      const startDay = startDate.getDate();
-      const startYear = startDate.getFullYear();
-  
-      const endMonth = endDate.toLocaleDateString('en-US', { month: 'long' });
-      const endDay = endDate.getDate();
-      const endYear = endDate.getFullYear();
-  
-      // Format the output depending on whether the months or years are the same
-      if (selectedView === 'Day') {
-        return formatMeetingDateLine(startDate);
-      } else if (selectedView === 'Month') {
-        return `${startMonth} ${startYear}`;
-      } else if (startMonth === endMonth && startYear === endYear) {
-        return `${startMonth} ${startDay}-${endDay}, ${startYear}`;
-      } else {
+      if (selectedView === 'Week') {
+        const week = getWeekDatesET(etDateStr);
+        const [startYear, , startDayStr] = week[0].split('-');
+        const [endYear, , endDayStr] = week[6].split('-');
+        const startMonth = monthNameForETDate(week[0]);
+        const endMonth = monthNameForETDate(week[6]);
+        const startDay = Number(startDayStr);
+        const endDay = Number(endDayStr);
+
+        if (startMonth === endMonth && startYear === endYear) {
+          return `${startMonth} ${startDay}-${endDay}, ${startYear}`;
+        }
         return `${startMonth} ${startDay}, ${startYear} - ${endMonth} ${endDay}, ${endYear}`;
       }
+
+      // Month
+      const [year] = etDateStr.split('-');
+      return `${monthNameForETDate(etDateStr)} ${year}`;
     };
   
     const handleViewChange: React.ChangeEventHandler<HTMLSelectElement> = (event) => {
@@ -71,41 +67,31 @@ const CalendarNavbar: React.FC<CalendarNavbarProps> = ({ selectedDate, onDateCha
       onDateChange(new Date()); // Call the external function as well
     };
 
-    const handlePrevious = () => {
-      const newDate = new Date(selectedDate);
+    // Shifts the ET calendar date `selectedDate` represents by a day count (Day/Week) or month
+    // count (Month), then hands back an ET-noon Date for the result -- noon (not midnight) so
+    // re-deriving the ET date string from it later can't roll back a day, matching
+    // WeeklyView.tsx's getFirstDayOfWeek/getDaysOfWeek convention.
+    const shiftSelectedDate = (direction: 1 | -1) => {
+      const etDateStr = formatETDateString(selectedDate);
+      let newEtDateStr: string;
       switch (selectedView) {
         case 'Day':
-          newDate.setDate(newDate.getDate() - 1);
+          newEtDateStr = addDaysToETDateString(etDateStr, direction);
           break;
         case 'Week':
-          newDate.setDate(newDate.getDate() - 7);
+          newEtDateStr = addDaysToETDateString(etDateStr, direction * 7);
           break;
         case 'Month':
-          newDate.setMonth(newDate.getMonth() - 1);
+          newEtDateStr = addMonthsToETDateString(etDateStr, direction);
           break;
         default:
-          break;
+          newEtDateStr = etDateStr;
       }
-      onDateChange(newDate);
+      onDateChange(new Date(convertETToUTC(`${newEtDateStr}T12:00:00`)));
     };
-  
-    const handleNext = () => {
-      const newDate = new Date(selectedDate);
-      switch (selectedView) {
-        case 'Day':
-          newDate.setDate(newDate.getDate() + 1);
-          break;
-        case 'Week':
-          newDate.setDate(newDate.getDate() + 7);
-          break;
-        case 'Month':
-          newDate.setMonth(newDate.getMonth() + 1);
-          break;
-        default:
-          break;
-      }
-      onDateChange(newDate);
-    };
+
+    const handlePrevious = () => shiftSelectedDate(-1);
+    const handleNext = () => shiftSelectedDate(1);
 
     return (
       <div className={styles.navbarContainer}>
