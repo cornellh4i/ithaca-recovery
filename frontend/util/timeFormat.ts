@@ -58,11 +58,11 @@ export const monthNameForETDateString = (etDateStr: string): string => {
 };
 
 /**
- * ET week range as "July 19-25" (same month) or "July 28 - Aug 3" (crossing months), for the
+ * ET week range as "July 19-25" (same month) or "July 28 - August 3" (crossing months), for the
  * Sunday-Saturday ET week containing the given date. Each boundary's year is appended only when
  * it differs from the current ET year -- same convention as formatMeetingDateLine above, extended
  * to a two-ended range (so a week spanning a year boundary can show a year on one side only, e.g.
- * "Dec 29 - Jan 4, 2027").
+ * "December 29 - January 4, 2027").
  */
 export const formatMeetingWeekLine = (date: Date): string => {
     const week = getWeekDatesET(formatETDateString(date));
