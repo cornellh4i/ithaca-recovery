@@ -1,6 +1,7 @@
 import React, { useLayoutEffect, useRef, useState } from "react";
 import styles from '../../../styles/components/atoms/BoxText.module.scss';
 import { toPastelColor } from '../../../util/color';
+import TagList from './TagList';
 
 interface BoxProps {
   boxType: 'Meeting Block' | 'Room Block';
@@ -94,15 +95,15 @@ const BoxText: React.FC<BoxProps> = ({
 
       {boxType === 'Meeting Block' && <p className={styles.time}>{time}</p>}
       {tags && tags.length > 0 && (
-        <div className={styles.tags}>
-          {tags.map((tag, index) => (
-            <span key={index}
-              style={{ backgroundColor: primaryColor }}
-              className={styles.tag}>
-              {tag}
-            </span>
-          ))}
-        </div>
+        <TagList
+          tags={tags}
+          color={primaryColor}
+          // WeeklyView's tall fillHeight boxes pin tags right under the time line rather
+          // than at the bottom (see BoxText.module.scss's .fillHeight comment) -- but not
+          // when compact, where it's back to DailyView's half-height stacked case.
+          containerStyle={fillHeight && !compact ? { marginTop: 4 } : undefined}
+          tagStyle={compact ? { padding: '1px 6px', lineHeight: 1 } : undefined}
+        />
       )}
     </div>
   );

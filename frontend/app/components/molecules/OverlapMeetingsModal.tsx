@@ -2,6 +2,7 @@ import React from 'react';
 import styles from '../../../styles/components/molecules/OverlapMeetingsModal.module.scss';
 import { formatCompactTimeRange } from '../../../util/timeFormat';
 import { toPastelColor } from '../../../util/color';
+import TagList from '../atoms/TagList';
 
 interface OverlapMeeting {
     id: string;
@@ -67,17 +68,12 @@ const OverlapMeetingsModal: React.FC<OverlapMeetingsModalProps> = ({
                                     {formatCompactTimeRange(meeting.displayStartTime ?? meeting.startTime, meeting.displayEndTime ?? meeting.endTime)}
                                 </p>
                                 {meeting.tags && meeting.tags.length > 0 && (
-                                    <div className={styles.tags}>
-                                        {meeting.tags.map((tag, index) => (
-                                            <span
-                                                key={index}
-                                                className={styles.tag}
-                                                style={{ backgroundColor: meeting.primaryColor }}
-                                            >
-                                                {tag}
-                                            </span>
-                                        ))}
-                                    </div>
+                                    <TagList
+                                        tags={meeting.tags}
+                                        color={meeting.primaryColor ?? '#999'}
+                                        gap={4}
+                                        tagStyle={{ padding: '2px 12px', color: '#1E1E1E' }}
+                                    />
                                 )}
                             </div>
                         );

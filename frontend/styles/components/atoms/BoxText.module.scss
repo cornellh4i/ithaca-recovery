@@ -67,17 +67,11 @@
 
   // Stretch to fill the parent's height instead of the fixed Meeting Block height —
   // used by WeeklyView, where the wrapping div's height already encodes the meeting's
-  // duration. Must come after &.meeting so it wins the height tie-break.
+  // duration. Must come after &.meeting so it wins the height tie-break. TagList's
+  // containerStyle override (BoxText.tsx) handles pinning tags under the time line
+  // instead of the bottom for this case.
   &.fillHeight {
     height: 100%;
-
-    // .tags's margin-top:auto anchors it to the bottom of the box, which is invisible
-    // on DailyView's fixed-height cards but drifts badges far below the time line on
-    // WeeklyView's longer (taller) meetings. Keep them right under the time line here,
-    // matching where they'd sit in a 1-hour box, regardless of actual duration.
-    .tags {
-      margin-top: 4px;
-    }
   }
 
   // Tightens spacing so title + time + tags all still fit in a fillHeight box shrunk to
@@ -96,20 +90,11 @@
       line-height: 1.15;
     }
 
-    .tags {
-      // Back to the base (non-fillHeight) rule's auto margin -- not .fillHeight's fixed 4px
-      // (that's for Weekly's tall boxes, keeping tags pinned under the time line regardless
-      // of how much taller the box is than one hour). Here the auto margin instead absorbs
-      // whatever slack is left after title+time and pushes tags down flush against the box's
-      // own padding-bottom -- the same amount of breathing room the title gets from
-      // padding-top at the top, so top and bottom insets end up visually equal.
-      margin-top: auto;
-
-      .tag {
-        padding: 1px 6px;
-        line-height: 1;
-      }
-    }
+    // TagList's tagStyle override (BoxText.tsx) shrinks tag padding/line-height for this
+    // case; its default margin-top:auto (not fillHeight's fixed 4px) still applies, which
+    // pushes tags flush against the box's own padding-bottom -- the same amount of
+    // breathing room the title gets from padding-top at the top, so top and bottom insets
+    // end up visually equal.
   }
 
   // Highlights the box while its View Meeting popup is open.
@@ -149,24 +134,5 @@
   .zoomTagIcon {
     width: 10px;
     height: 10px;
-  }
-
-  .tags {
-    display: flex;
-    flex-wrap: wrap;
-
-    // Anchors to the bottom of the box
-    margin-top: auto;
-    padding: 0;
-    gap: 3px;
-    align-items: center;
-
-    .tag {
-      padding: 2px 7px;
-      border-radius: 10.593px;
-      font-size: 10px;
-      font-weight: 400;
-      white-space: nowrap;
-    }
   }
 }

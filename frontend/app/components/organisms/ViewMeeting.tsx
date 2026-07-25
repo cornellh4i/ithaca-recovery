@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import styles from '../../../styles/components/organisms/ViewMeeting.module.scss';
 import DeleteRecurringModal from '../molecules/DeleteRecurringModal';
 import DeleteMeetingModal from '../molecules/DeleteMeetingModal';
+import TagList from '../atoms/TagList';
 
 import { IRecurrencePattern } from '../../../util/models';
 import { formatCompactTimeRange, formatMeetingDateLine } from "../../../util/timeFormat";
@@ -462,13 +463,12 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
           <hr className={styles.divider} />
 
           {calType && calType.length > 0 && (
-            <div className={styles.tags}>
-              {calType.map((tag, index) => (
-                <span key={index} style={{ backgroundColor: primaryColor }} className={styles.tag}>
-                  {tag}
-                </span>
-              ))}
-            </div>
+            <TagList
+              tags={calType}
+              color={primaryColor}
+              gap={4}
+              tagStyle={{ padding: '2px 12px', fontSize: '12px', color: '#000' }}
+            />
           )}
         </div>
       </div>
