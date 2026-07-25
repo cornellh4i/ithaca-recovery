@@ -38,7 +38,7 @@ Group related files under one bullet when they're part of the same change, e.g.:
 - [ ] Code follows current formatting conventions and passes lint (`yarn lint`).
 - [ ] Comments are appropriate — only where genuinely non-obvious, not restating what the code already says.
 - [ ] All test suites pass, both run locally and green in GitHub CI. **Do not merge if any test suite is failing.**
-- [ ] A test suite was added or updated for the feature/fix in this PR.
+- [ ] A test suite was added or updated for the feature/fix in this PR. **Double-check this if you change a feature and did not update the test suites**.
 - [ ] Only files relevant to this change are committed — no stray or unrelated files.
 - [ ] If this branch has a merge conflict with master, master was merged into this branch first (not the other way around).
 - [ ] The rest of this PR description (Description, Testing) is filled out, not left as template placeholders.

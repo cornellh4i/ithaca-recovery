@@ -43,7 +43,7 @@ export const MAX_VISIBLE_OVERLAP = 2;
  *    occupant has already ended (classic interval-graph-coloring calendar layout) — the
  *    cluster's column count becomes every meeting's totalOverlapping/width divisor.
  */
-export const layoutOverlappingMeetings = (meetings: OverlapMeeting[]): OverlapMeeting[] => {
+export const layoutOverlappingMeetings = <T extends OverlapMeeting>(meetings: T[]): T[] => {
     // Title as a tiebreaker keeps column/overflow assignment consistent across renders
     // and across days — meetings sharing a start time would otherwise fall back to
     // whatever order the database happened to return them in, which isn't guaranteed
@@ -52,8 +52,8 @@ export const layoutOverlappingMeetings = (meetings: OverlapMeeting[]): OverlapMe
         toMinutes(a.startTime) - toMinutes(b.startTime) || a.title.localeCompare(b.title)
     );
 
-    const clusters: OverlapMeeting[][] = [];
-    let currentCluster: OverlapMeeting[] = [];
+    const clusters: T[][] = [];
+    let currentCluster: T[] = [];
     let clusterEnd = -Infinity;
 
     sorted.forEach(meeting => {
@@ -68,7 +68,7 @@ export const layoutOverlappingMeetings = (meetings: OverlapMeeting[]): OverlapMe
     });
     if (currentCluster.length > 0) clusters.push(currentCluster);
 
-    const result: OverlapMeeting[] = [];
+    const result: T[] = [];
     clusters.forEach(cluster => {
         const columnEnds: number[] = []; // end time (minutes) currently occupying each column
         const positioned = cluster.map(meeting => {
@@ -108,6 +108,9 @@ export const layoutOverlappingMeetings = (meetings: OverlapMeeting[]): OverlapMe
         // easily start later than the two shown ones despite still overlapping all of them.
         const clusterStartMinutes = Math.min(...cluster.map(m => toMinutes(m.startTime)));
         const clusterEndMinutes = Math.max(...cluster.map(m => toMinutes(m.endTime)));
+        // Only OverlapMeeting's own fields are known here -- any extra fields a caller's T
+        // adds on (e.g. Day View's `syncError`) are meaningless for a pseudo-entry that isn't
+        // a real meeting, so this is asserted rather than genuinely satisfying T.
         result.push({
             id: `overflow-${cluster[0].date}-${clusterStartMinutes}`,
             title: '',
@@ -119,7 +122,7 @@ export const layoutOverlappingMeetings = (meetings: OverlapMeeting[]): OverlapMe
             isOverflowIndicator: true,
             overflowCount: overflow.length,
             overflowMeetings: cluster,
-        });
+        } as unknown as T);
     });
 
     return result;

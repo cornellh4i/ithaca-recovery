@@ -207,10 +207,11 @@ export default function HomePage() {
     }
   };
 
-  // Day view defaults to all rooms visible; Week defaults to none (opt-in), since
-  // showing every room at once in Week view produces too many overlapping meetings.
+  // Both views default to every room visible -- Week previously defaulted rooms off
+  // (opt-in), but a signed-out user has no sidebar/filter UI to ever check a box, so
+  // Week view rendered permanently empty for them.
   const [dayFilters, setDayFilters] = useState(() => createDefaultFilters(true));
-  const [weekFilters, setWeekFilters] = useState(() => createDefaultFilters(false));
+  const [weekFilters, setWeekFilters] = useState(() => createDefaultFilters(true));
   const filters = selectedView === "Day" ? dayFilters : weekFilters;
   const setFilters = selectedView === "Day" ? setDayFilters : setWeekFilters;
   const convertESTStringToDate = (estDateString: string): Date => {

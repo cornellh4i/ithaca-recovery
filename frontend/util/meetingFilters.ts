@@ -14,9 +14,8 @@ const CATEGORY_FILTER_KEYS = ['AA', 'AlAnon', 'Other', 'InPerson', 'Hybrid', 'Re
 
 /**
  * Builds a default MeetingsFilter state. Category filters always default on; room
- * filters default per `roomsEnabled` — Week view defaults rooms off (opt-in) since
- * showing every room at once produces too many overlapping meetings, while Day view
- * defaults rooms on.
+ * filters default per `roomsEnabled` -- both Day and Week view currently pass `true`,
+ * so every room starts checked.
  */
 export const createDefaultFilters = (roomsEnabled: boolean): MeetingFilters => {
     const filters: MeetingFilters = {};

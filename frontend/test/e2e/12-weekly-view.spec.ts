@@ -1,6 +1,6 @@
 import { test, expect } from "./support/fixtures";
 import { seedMeeting, seedRecurringMeeting } from "../factories/meeting";
-import { toggleFilter, selectView } from "./support/formHelpers";
+import { selectView } from "./support/formHelpers";
 import { convertETToUTC, formatETDateString } from "../../util/timeUtils";
 
 // Manual script §12 (Weekly View). §12.5 (Zoom-room mismatch indicator) is also
@@ -8,20 +8,19 @@ import { convertETToUTC, formatETDateString } from "../../util/timeUtils";
 // since it's the section that actually owns Week view's rendering.
 
 test.describe("weekly view", () => {
-  test("12.1 Week view shows nothing until a room filter is checked", async ({ adminPage }) => {
+  test("12.1 Week view shows a room's meetings by default (rooms start checked)", async ({ adminPage }) => {
     const { page } = adminPage;
-    await seedMeeting({ title: "Hidden Until Filtered", room: "Serenity Room" });
+    await seedMeeting({ title: "Shown By Default", room: "Serenity Room" });
     await page.goto("/");
     await selectView(page, "Week");
-    await expect(page.getByText("Hidden Until Filtered")).toHaveCount(0);
+    await expect(page.getByText("Shown By Default")).toBeVisible();
   });
 
-  test("12.2 checking a room filter shows that room's meetings, correctly positioned", async ({ adminPage }) => {
+  test("12.2 a room's meetings are correctly positioned", async ({ adminPage }) => {
     const { page } = adminPage;
     await seedMeeting({ title: "Week Room Meeting", room: "Serenity Room" });
     await page.goto("/");
     await selectView(page, "Week");
-    await toggleFilter(page, "Serenity Room");
     await expect(page.getByText("Week Room Meeting")).toBeVisible();
   });
 
@@ -44,7 +43,6 @@ test.describe("weekly view", () => {
     );
     await page.goto("/");
     await selectView(page, "Week");
-    await toggleFilter(page, "Serenity Room");
     await expect(page.getByText("Multi Day Recurring")).toHaveCount(2);
   });
 
@@ -58,7 +56,6 @@ test.describe("weekly view", () => {
     }
     await page.goto("/");
     await selectView(page, "Week");
-    await toggleFilter(page, "Serenity Room");
 
     // layoutOverlappingMeetings shows up to 2 cards side-by-side plus a "+N" pill.
     await expect(page.getByText("+1")).toBeVisible();
@@ -74,7 +71,6 @@ test.describe("weekly view", () => {
     });
     await page.goto("/");
     await selectView(page, "Week");
-    await toggleFilter(page, "Serenity Room");
     await expect(page.getByTitle("Zoom room: Unity Room")).toBeVisible();
   });
 });
