@@ -109,8 +109,10 @@ interface WeeklyViewProps {
     filters: MeetingFilters;
     selectedDate: Date;
     setSelectedDate: (date: Date) => void;
+    selectedMeetingID: string | null;
     setSelectedMeetingID: (meetingId: string) => void;
     setSelectedNewMeeting: (newMeetingExists: boolean) => void;
+    setAnchorEl: (el: HTMLElement) => void;
     refreshTrigger?: number;
 }
 
@@ -118,8 +120,10 @@ const WeeklyView: React.FC<WeeklyViewProps> = ({
     filters,
     selectedDate,
     setSelectedDate,
+    selectedMeetingID,
     setSelectedMeetingID,
     setSelectedNewMeeting,
+    setAnchorEl,
     refreshTrigger = 0
 }) => {
     const [currentTimePosition, setCurrentTimePosition] = useState(0);
@@ -307,8 +311,10 @@ const WeeklyView: React.FC<WeeklyViewProps> = ({
                                             primaryColor: getRoomColor(m)
                                         })),
                                     }))}
+                                    selectedMeetingID={selectedMeetingID}
                                     setSelectedMeetingID={setSelectedMeetingID}
                                     setSelectedNewMeeting={setSelectedNewMeeting}
+                                    setAnchorEl={setAnchorEl}
                                 />
 
                                 {/* Current time indicator - only show for current day */}

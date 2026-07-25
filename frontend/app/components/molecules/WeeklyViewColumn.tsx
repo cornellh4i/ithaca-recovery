@@ -29,8 +29,10 @@ const formatZoomRoomLabel = (zoomRoom: string) => zoomRoom.replace(/ - Zoom$/, '
 interface WeeklyViewColumnProps {
     roomColor: string;
     meetings: Meeting[];
+    selectedMeetingID: string | null;
     setSelectedMeetingID: (meetingId: string) => void;
     setSelectedNewMeeting: (newMeetingExists: boolean) => void;
+    setAnchorEl: (el: HTMLElement) => void;
 }
 
 // 1 hour is 100px in height (100/60 px per minute), matching .timeSlot's 100px row height
@@ -42,15 +44,22 @@ const timeToPixels = (time: string) => {
 const WeeklyViewColumn: React.FC<WeeklyViewColumnProps> = ({
     roomColor,
     meetings,
+    selectedMeetingID,
     setSelectedMeetingID,
     setSelectedNewMeeting,
+    setAnchorEl,
 }) => {
     const [overlapModalMeetings, setOverlapModalMeetings] = useState<Meeting[] | null>(null);
+    // The "+N" pill that opened the modal -- kept as the popup anchor for whichever meeting
+    // gets selected from it, since the modal's own row is unmounted the instant it closes and
+    // getBoundingClientRect() on a detached node would anchor the popup nowhere useful.
+    const [overlapAnchorEl, setOverlapAnchorEl] = useState<HTMLElement | null>(null);
 
-    const handleBoxClick = (meetingId: string) => {
+    const handleBoxClick = (meetingId: string, el: HTMLElement) => {
         console.log(`Meeting ${meetingId} clicked`);
         setSelectedMeetingID(meetingId);
         setSelectedNewMeeting(false);
+        setAnchorEl(el);
     };
 
     return (
@@ -81,6 +90,7 @@ const WeeklyViewColumn: React.FC<WeeklyViewColumnProps> = ({
                                 onClick={(e) => {
                                     e.stopPropagation(); // Prevent column click handler from firing
                                     setOverlapModalMeetings(meeting.overflowMeetings ?? []);
+                                    setOverlapAnchorEl(e.currentTarget);
                                 }}
                             >
                                 +{meeting.overflowCount}
@@ -101,11 +111,25 @@ const WeeklyViewColumn: React.FC<WeeklyViewColumnProps> = ({
                         left = `${(meeting.positionIndex || 0) * singleWidth}%`;
                     }
 
+                    // Selecting a meeting that's sharing space in an overlapping cluster brings
+                    // it fully into view (and above its siblings) instead of leaving it in its
+                    // narrow shared column -- reverts on its own once deselected, since this is
+                    // just a render-time override, not stored state.
+                    const isSelected = meeting.id === selectedMeetingID;
+
                     return (
                         <div
                             key={index}
                             className={styles.meetingWrapper}
-                            style={{ top: `${topOffset}px`, height: `${height}px`, width, left }}
+                            style={{
+                                top: `${topOffset}px`,
+                                height: `${height}px`,
+                                width: isSelected ? '100%' : width,
+                                left: isSelected ? '0%' : left,
+                                // Above the "+N" overflow pill's z-index (12, WeeklyViewColumn.module.scss)
+                                // too, so a selected meeting is unambiguously the topmost thing in the column.
+                                zIndex: isSelected ? 13 : undefined,
+                            }}
                             onClick={(e) => e.stopPropagation()} // Prevent column click handler from firing
                         >
                             <BoxText
@@ -121,8 +145,9 @@ const WeeklyViewColumn: React.FC<WeeklyViewColumnProps> = ({
                                         : undefined
                                 }
                                 fillHeight
+                                selected={isSelected}
                                 onClick={(meetingId, e) => {
-                                    handleBoxClick(meetingId);
+                                    handleBoxClick(meetingId, e.currentTarget);
                                     e.stopPropagation(); // Prevent column click handler from firing
                                 }}
                             />
@@ -136,7 +161,7 @@ const WeeklyViewColumn: React.FC<WeeklyViewColumnProps> = ({
                 meetings={overlapModalMeetings ?? []}
                 onClose={() => setOverlapModalMeetings(null)}
                 onSelectMeeting={(meetingId) => {
-                    handleBoxClick(meetingId);
+                    if (overlapAnchorEl) handleBoxClick(meetingId, overlapAnchorEl);
                     setOverlapModalMeetings(null);
                 }}
             />

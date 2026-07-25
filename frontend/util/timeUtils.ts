@@ -119,6 +119,28 @@ export const getWeekDatesET = (etDateStr: string): string[] => {
   });
 };
 
+/**
+ * Adds `days` calendar days to an ET "YYYY-MM-DD" string, returning a new ET date string.
+ * Date.UTC is used purely as a proleptic-Gregorian calculator here (same construction as
+ * getWeekDatesET above) -- the result is read back with toISOString(), never reinterpreted
+ * through a real timezone, so it stays correct regardless of DST or the runtime's local zone.
+ */
+export const addDaysToETDateString = (etDateStr: string, days: number): string => {
+  const [year, month, day] = etDateStr.split('-').map(Number);
+  return new Date(Date.UTC(year, month - 1, day + days)).toISOString().slice(0, 10);
+};
+
+/**
+ * Adds `months` calendar months to an ET "YYYY-MM-DD" string, clamping the day if the target
+ * month is shorter (e.g. Jan 31 + 1 month -> Feb 28/29, not rolling into March).
+ */
+export const addMonthsToETDateString = (etDateStr: string, months: number): string => {
+  const [year, month, day] = etDateStr.split('-').map(Number);
+  const targetMonthIndex = month - 1 + months;
+  const daysInTargetMonth = new Date(Date.UTC(year, targetMonthIndex + 1, 0)).getUTCDate();
+  return new Date(Date.UTC(year, targetMonthIndex, Math.min(day, daysInTargetMonth))).toISOString().slice(0, 10);
+};
+
 // en-GB (not en-US) specifically -- some Intl/ICU builds render en-US midnight as "24"
 // instead of "00" with hour12:false, which would corrupt the minutes-since-midnight math
 // below. Same pattern as ConflictList.tsx's etTimeFmt.

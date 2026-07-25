@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react';
 import { IMeeting, IRecurrencePattern } from '../util/models';
 import { convertUTCToET, convertETToUTC, formatETDateString, getWeekDatesET, getCurrentETMinutesSinceMidnight } from '../util/timeUtils';
 import { roomToZoomRoom } from '../util/rooms';
+import { DESCRIPTION_MAX_LENGTH } from '../util/meetingValidation';
 
 // What the calendar is currently showing, used to seed a brand-new meeting's default
 // Date field -- see computeDefaultDate below.
@@ -15,6 +16,7 @@ export interface MeetingFormDefaultContext {
 
 export const CAL_TYPE_OPTIONS = ["AA", "Al-Anon", "Other"];
 export const CAL_TYPE_COLOR = "#CC3366";
+export { DESCRIPTION_MAX_LENGTH };
 
 const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
@@ -199,6 +201,10 @@ export function useMeetingForm(initialMeeting?: IMeeting, defaultContext?: Meeti
         }
 
         if (calTypes.length === 0) errors.push("At least one calendar type is required.");
+
+        if (description.length > DESCRIPTION_MAX_LENGTH) {
+            errors.push(`Description must be ${DESCRIPTION_MAX_LENGTH} characters or fewer (Zoom's limit) — currently ${description.length}.`);
+        }
 
         if (mode === "Hybrid" && (!room || !zoomRoom)) {
             errors.push("Hybrid meetings require both a physical room and a Zoom room.");

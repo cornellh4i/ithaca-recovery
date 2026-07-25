@@ -1,15 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import styles from '../../../styles/components/organisms/ViewMeeting.module.scss';
-import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
-import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import DeleteRecurringModal from '../molecules/DeleteRecurringModal';
 import DeleteMeetingModal from '../molecules/DeleteMeetingModal';
 
 import { IRecurrencePattern } from '../../../util/models';
-import { convertUTCToET } from "../../../util/timeUtils";
-import { formatCompactTimeRange } from "../../../util/timeFormat";
+import { formatCompactTimeRange, formatMeetingDateLine } from "../../../util/timeFormat";
 import { ROOM_COLORS, ZOOM_ROOM_COLOR } from "../../../util/filterColors";
 import { formatDayColumn } from "../../../util/recurrenceDisplay";
+import { isZoomRoomMismatched } from "../../../util/rooms";
+import { linkify } from "../../../util/linkify";
 
 // Extracts ET wall-clock time as "HH:MM" (24hr), which is what formatCompactTimeRange expects.
 const etTimeFmt = new Intl.DateTimeFormat('en-GB', {
@@ -17,6 +17,12 @@ const etTimeFmt = new Intl.DateTimeFormat('en-GB', {
   hour: '2-digit', minute: '2-digit', hour12: false,
 });
 
+const stripZoomSuffix = (name: string): string => name.replace(/ - Zoom$/, '');
+
+// Fixed popup width; kept in sync with .meetingDetails's width in ViewMeeting.module.scss.
+const POPUP_WIDTH = 380;
+const POPUP_MARGIN = 8;
+const ANCHOR_GAP = 12;
 
 type ViewMeetingDetailsProps = {
   mid: string; // Maps to 'mid' in the model
@@ -31,6 +37,8 @@ type ViewMeetingDetailsProps = {
   zoomRoom?: string | null; // Maps to 'zoomRoom' in the model (optional)
   zoomLink?: string | null; // Maps to 'zoomLink' in the model (optional)
   zid?: string | null; // Maps to 'zid' in the model (optional)
+  zoomPasscode?: string | null; // Maps to 'zoomPasscode' in the model (optional)
+  zoomInvitation?: string | null; // Zoom's auto-generated invitation text (optional)
   zoomHost?: string | null; // Pooled Zoom account this meeting's Zoom meeting is running under (optional)
   calType: string[]; // Maps to 'calType' in the model
   room: string; // Maps to 'room' in the model
@@ -41,6 +49,8 @@ type ViewMeetingDetailsProps = {
   syncStatus?: string | null;
   zoomSyncStatus?: string | null;
   zoomSyncError?: string | null;
+  // The clicked meeting box, so the popup can anchor itself beside it.
+  anchorEl: HTMLElement | null;
   onBack: () => void;
   onEdit: () => void;
   onDelete: (mid: string, deleteOption?: 'this' | 'thisAndFollowing' | 'all') => void;
@@ -57,6 +67,9 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
   email,
   zoomRoom,
   zoomLink,
+  zid,
+  zoomPasscode,
+  zoomInvitation,
   zoomHost,
   calType,
   room,
@@ -66,6 +79,7 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
   syncStatus: initialSyncStatus,
   zoomSyncStatus: initialZoomSyncStatus,
   zoomSyncError: initialZoomSyncError,
+  anchorEl,
   onBack,
   onEdit,
   onDelete,
@@ -77,6 +91,96 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
   const [zoomSyncStatus, setZoomSyncStatus] = useState(initialZoomSyncStatus ?? null);
   const [zoomSyncError, setZoomSyncError] = useState(initialZoomSyncError ?? null);
   const [syncing, setSyncing] = useState(false);
+  const [kebabOpen, setKebabOpen] = useState(false);
+  const [showInvitation, setShowInvitation] = useState(false);
+  const [descExpanded, setDescExpanded] = useState(false);
+  const [isDescTruncated, setIsDescTruncated] = useState(false);
+
+  const popupRef = useRef<HTMLDivElement>(null);
+  const kebabRef = useRef<HTMLDivElement>(null);
+  // Ref *callback* rather than a plain useRef -- it fires exactly once when the paragraph
+  // actually mounts (the portal renders nothing until popupPosition is set, so a plain ref
+  // wouldn't be attached yet on the render where we'd otherwise want to measure it), and,
+  // unlike a dependency on popupPosition, does NOT re-fire on every reposition.
+  const [descNode, setDescNode] = useState<HTMLParagraphElement | null>(null);
+  const [popupPosition, setPopupPosition] = useState<{ top: number; left: number } | null>(null);
+
+  // Tracks the clicked box's on-screen position while the popup is open, so the portaled
+  // popup (position:fixed) stays anchored beside it -- recomputed on scroll (capture:true
+  // catches scrolling within any nested scroll container, not just the window) and resize.
+  // Scrolling inside the popup's own content is ignored: the anchor box hasn't moved, so
+  // recomputing there would just churn popupPosition with an equivalent-but-new object.
+  useEffect(() => {
+    if (!anchorEl) return;
+
+    const updatePosition = () => {
+      const rect = anchorEl.getBoundingClientRect();
+      let left = rect.right + ANCHOR_GAP;
+      if (left + POPUP_WIDTH > window.innerWidth - POPUP_MARGIN) {
+        left = rect.left - POPUP_WIDTH - ANCHOR_GAP;
+      }
+      left = Math.max(POPUP_MARGIN, Math.min(left, window.innerWidth - POPUP_WIDTH - POPUP_MARGIN));
+      // Clamp against the popup's own (measured, or capped-height-estimated pre-mount) height --
+      // window.innerHeight alone is the viewport's bottom edge, not the popup's, so an anchor low
+      // in the day grid would otherwise render the popup mostly off-screen.
+      const popupHeight = popupRef.current?.offsetHeight ?? Math.min(0.8 * window.innerHeight, 600);
+      const top = Math.max(POPUP_MARGIN, Math.min(rect.top, window.innerHeight - popupHeight - POPUP_MARGIN));
+      setPopupPosition({ top, left });
+    };
+
+    const handleScroll = (event: Event) => {
+      if (popupRef.current?.contains(event.target as Node)) return;
+      updatePosition();
+    };
+
+    updatePosition();
+    window.addEventListener('scroll', handleScroll, true);
+    window.addEventListener('resize', updatePosition);
+    return () => {
+      window.removeEventListener('scroll', handleScroll, true);
+      window.removeEventListener('resize', updatePosition);
+    };
+  }, [anchorEl]);
+
+  // Closes the whole popup on an outside click -- clicks on the anchor box itself are left
+  // alone since that box's own onClick already handles re-selecting/toggling it.
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (popupRef.current?.contains(target)) return;
+      if (anchorEl?.contains(target)) return;
+      onBack();
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [anchorEl, onBack]);
+
+  // Closes just the kebab dropdown on an outside click, independent of the popup-level one above.
+  useEffect(() => {
+    if (!kebabOpen) return;
+
+    const handleClickOutside = (event: MouseEvent) => {
+      if (!kebabRef.current?.contains(event.target as Node)) {
+        setKebabOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [kebabOpen]);
+
+  // Measures whether the (clamped) description overflows 3 lines, so the "Show more" toggle
+  // only appears when there's actually more to show. Runs once against descNode's initial
+  // (clamped) layout -- not re-keyed on descExpanded, so later expanding/collapsing doesn't
+  // re-measure against the now-unclamped height and wrongly conclude "not truncated".
+  useLayoutEffect(() => {
+    if (!description || !descNode) {
+      setIsDescTruncated(false);
+      return;
+    }
+    setIsDescTruncated(descNode.scrollHeight > descNode.clientHeight + 1);
+  }, [description, descNode]);
 
   const handleRetrySync = async () => {
     setSyncing(true);
@@ -112,13 +216,13 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
       const dayOfWeek = date.toLocaleDateString('en-US', { weekday: 'long' });
       if (!(recurrencePattern.daysOfWeek ?? []).includes(dayOfWeek)) {
         return false;
-      }      
+      }
 
       const originalDate = new Date(startDateTime);
       const diffTime = Math.abs(date.getTime() - originalDate.getTime());
       const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
       const diffWeeks = Math.floor(diffDays / 7);
-      
+
       return diffWeeks % recurrencePattern.interval === 0;
     }
 
@@ -133,9 +237,9 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
     newStartDate.setFullYear(currentOccurrenceDate.getFullYear());
     newStartDate.setMonth(currentOccurrenceDate.getMonth());
     newStartDate.setDate(currentOccurrenceDate.getDate());
-    
+
     displayStartDate = newStartDate;
-    
+
     const duration = endDateTime.getTime() - startDateTime.getTime();
     displayEndDate = new Date(displayStartDate.getTime() + duration);
   }
@@ -143,6 +247,7 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
   const handleDelete = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
     e.stopPropagation();
+    setKebabOpen(false);
     if (isRecurring) {
       setShowDeleteModal(true);
     } else {
@@ -151,7 +256,6 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
   };
 
   const handleModalDelete = (option: 'this' | 'thisAndFollowing' | 'all') => {
-    console.log("Deleting recurring meeting with option:", option);
     onDelete(mid, option);
     setShowDeleteModal(false);
   };
@@ -186,108 +290,170 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
     return day ? `${intervalText} · ${day}` : intervalText;
   };
 
-  console.log("Rendering ViewMeetingDetails with dates:", {
-    startDateTime,
-    endDateTime,
-    displayStartDate,
-    displayEndDate,
-    currentOccurrenceDate,
-    doesOccur: currentOccurrenceDate ? doesMeetingOccurOnDate(currentOccurrenceDate) : false
-  });
-
-  const startDateEST = convertUTCToET(startDateTime.toISOString());
-
   const timeRangeText = formatCompactTimeRange(
-    etTimeFmt.format(startDateTime),
-    etTimeFmt.format(endDateTime)
+    etTimeFmt.format(displayStartDate),
+    etTimeFmt.format(displayEndDate)
   );
 
   const primaryColor = ROOM_COLORS[room] ?? ZOOM_ROOM_COLOR;
+  const primaryLocation = room || (zoomRoom ? stripZoomSuffix(zoomRoom) : '');
+  const showZoomMismatchRow = !!(room && zoomRoom && isZoomRoomMismatched(room, zoomRoom));
 
-  return (
-    <div className={styles.meetingDetails}>
-      <div className={styles.header}>
-        <button className={styles.backButton} onClick={onBack}>←</button>
-        <h1>{title}</h1>
-        <span
-          className={styles.settingLabel}
-          style={{ backgroundColor: primaryColor, borderColor: primaryColor }}
-        >
-          {modeType}
-        </span>
-        <div className={styles.moreOptions}>
-          <button>⋮</button>
-          <div className={styles.optionsMenu}>
-            <button onClick={onEdit}>Edit Meeting</button>
-            <button onClick={handleDelete}>Delete Meeting</button>
+  if (!anchorEl || !popupPosition) return null;
+
+  return createPortal(
+    <div
+      ref={popupRef}
+      className={styles.popupAnchor}
+      style={{ top: popupPosition.top, left: popupPosition.left, width: POPUP_WIDTH }}
+    >
+      <div className={styles.meetingDetails}>
+        <div className={styles.header}>
+          <button className={styles.backButton} onClick={onBack}>
+            <img src="/svg/back-arrow.svg" alt="Back" />
+          </button>
+          <h1>{title}</h1>
+          <span
+            className={styles.settingLabel}
+            style={{ backgroundColor: primaryColor, borderColor: primaryColor }}
+          >
+            {modeType}
+          </span>
+          <div className={styles.moreOptions} ref={kebabRef}>
+            <button
+              aria-label="Meeting options"
+              aria-expanded={kebabOpen}
+              onClick={() => setKebabOpen((open) => !open)}
+            >
+              ⋮
+            </button>
+            {kebabOpen && (
+              <div className={styles.optionsMenu}>
+                <button onClick={() => { setKebabOpen(false); onEdit(); }}>Edit</button>
+                <button className={styles.deleteOption} onClick={handleDelete}>Delete</button>
+              </div>
+            )}
           </div>
         </div>
+
+        <hr className={styles.divider} />
+
+        <div className={styles.details}>
+          <p className={styles.row}>
+            <img src="/svg/clock-icon.svg" alt="" />
+            <span>
+              {formatMeetingDateLine(displayStartDate)} ⋅ {timeRangeText}
+              {isRecurring && <span className={styles.recurringInfo}>{getRecurrenceText()}</span>}
+            </span>
+          </p>
+
+          {primaryLocation && (
+            <p className={styles.row}>
+              <img src="/svg/location-icon.svg" alt="" />
+              <span>{primaryLocation}</span>
+            </p>
+          )}
+
+          {syncStatus === 'synced' && (
+            <p className={styles.syncSuccess}>Synced to Google Calendar ✓</p>
+          )}
+          {syncStatus === 'error' && (
+            <p className={styles.syncWarning}>Google Calendar sync failed ⚠</p>
+          )}
+
+          {showZoomMismatchRow && (
+            <p className={styles.row}>
+              <img src="/svg/video-call-icon.svg" alt="" />
+              <span>{stripZoomSuffix(zoomRoom as string)}</span>
+            </p>
+          )}
+
+          {zoomLink && zid && (
+            <div className={styles.zoomSection}>
+              <img src="/svg/zoom-icon.svg" alt="" />
+              <div className={styles.zoomInfo}>
+                <a href={zoomLink} target="_blank" rel="noopener noreferrer" className={styles.zoomLink}>
+                  Join Zoom Meeting
+                </a>
+                <span>ID: {zid}</span>
+                {zoomPasscode && <span>Passcode: {zoomPasscode}</span>}
+              </div>
+              {zoomInvitation && (
+                <button
+                  className={styles.invitationToggle}
+                  title={showInvitation ? "Hide conference details" : "View conference details"}
+                  onClick={() => setShowInvitation((v) => !v)}
+                >
+                  <img
+                    src={showInvitation ? "/svg/arrow-up-icon.svg" : "/svg/arrow-down-icon.svg"}
+                    alt=""
+                  />
+                </button>
+              )}
+            </div>
+          )}
+          {zoomInvitation && showInvitation && (
+            <pre className={styles.invitationText}>{linkify(zoomInvitation)}</pre>
+          )}
+
+          {zoomSyncStatus === 'synced' && (
+            <p className={styles.syncSuccess}>Synced to Zoom ✓</p>
+          )}
+          {zoomSyncStatus === 'error' && (
+            <p className={styles.syncWarning}>Zoom sync failed ⚠{zoomSyncError ? `: ${zoomSyncError}` : ''}</p>
+          )}
+          {(syncStatus === 'error' || zoomSyncStatus === 'error') && (
+            <button
+              onClick={handleRetrySync}
+              disabled={syncing}
+              className={styles.retryButton}
+            >
+              {syncing ? 'Retrying…' : 'Retry sync'}
+            </button>
+          )}
+
+          <p className={styles.row}>
+            <img src="/svg/mail-icon.svg" alt="" />
+            <span>{email}</span>
+          </p>
+
+          {zoomHost && (
+            <p className={styles.row}>
+              <img src="/svg/person-icon.svg" alt="" />
+              <span>Zoom host: {zoomHost}</span>
+            </p>
+          )}
+
+          {description && (
+            <div className={styles.descriptionRow}>
+              <img src="/svg/description-icon.svg" alt="" />
+              <div className={styles.descriptionContent}>
+                <p ref={setDescNode} className={descExpanded ? undefined : styles.descriptionClamped}>
+                  {linkify(description)}
+                </p>
+                {isDescTruncated && (
+                  <button className={styles.showMoreToggle} onClick={() => setDescExpanded((v) => !v)}>
+                    {descExpanded ? 'Show less' : 'Show more'}
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
+          <hr className={styles.divider} />
+
+          {calType && calType.length > 0 && (
+            <div className={styles.tags}>
+              {calType.map((tag, index) => (
+                <span key={index} style={{ backgroundColor: primaryColor }} className={styles.tag}>
+                  {tag}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
-      <div className={styles.details}>
-      <p style={{ color: 'gray' }}>
-          <CalendarTodayIcon />&nbsp;
-          {startDateEST.split(',')[0]} 
-        </p>
-        <p style={{ color: 'gray' }}>
-          <AccessTimeIcon />&nbsp;{timeRangeText}
-        </p>
 
-        {isRecurring && (
-          <p className={styles.recurringInfo}>
-            {getRecurrenceText()}
-          </p>
-        )}
-
-        <hr className={styles.divider} />
-
-        <p><strong>Email:</strong>&nbsp;{email}</p>
-        <p><strong>Meeting Mode:</strong>&nbsp;{modeType}</p>
-        <p><strong>Calendar:</strong>&nbsp;{Array.isArray(calType) ? calType.join(', ') : calType}</p>
-        {syncStatus === 'synced' && (
-          <p style={{ color: '#3a9e3a', fontSize: '13px', margin: '2px 0 8px' }}>
-            Synced to Google Calendar ✓
-          </p>
-        )}
-        {syncStatus === 'error' && (
-          <p style={{ color: '#e07000', fontSize: '13px', margin: '2px 0 4px' }}>
-            Google Calendar sync failed ⚠
-          </p>
-        )}
-        {zoomSyncStatus === 'synced' && (
-          <p style={{ color: '#3a9e3a', fontSize: '13px', margin: '2px 0 8px' }}>
-            Synced to Zoom ✓
-          </p>
-        )}
-        {zoomSyncStatus === 'error' && (
-          <p style={{ color: '#e07000', fontSize: '13px', margin: '2px 0 4px' }}>
-            Zoom sync failed ⚠{zoomSyncError ? `: ${zoomSyncError}` : ''}
-          </p>
-        )}
-        {(syncStatus === 'error' || zoomSyncStatus === 'error') && (
-          <button
-            onClick={handleRetrySync}
-            disabled={syncing}
-            style={{
-              fontSize: '12px', padding: '3px 10px', marginBottom: '8px',
-              cursor: syncing ? 'not-allowed' : 'pointer', opacity: syncing ? 0.6 : 1,
-            }}
-          >
-            {syncing ? 'Retrying…' : 'Retry sync'}
-          </button>
-        )}
-        {room && <p><strong>Location:</strong>&nbsp;{room}</p>}
-        {zoomRoom && <p><strong>Zoom:</strong>&nbsp;{zoomRoom.replace(/ - Zoom$/, '')}</p>}
-        {zoomLink && <a href={zoomLink} target="_blank" rel="noopener noreferrer" className={styles.zoomLink}>
-          <img src="/svg/zoom-icon.svg" alt="Zoom" /> {zoomLink}
-        </a>}
-        {zoomHost && <p><strong>Zoom Host:</strong>&nbsp;{zoomHost}</p>}
-
-        <hr className={styles.divider} />
-
-        {description && <p className={styles.placeholderText}>{description}</p>}
-        <hr className={styles.divider} />
-
-      </div>
       <DeleteRecurringModal
         isOpen={showDeleteModal}
         onClose={() => setShowDeleteModal(false)}
@@ -300,7 +466,8 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
         onCancel={() => setShowDeleteConfirm(false)}
         onConfirm={handleConfirmDelete}
       />
-    </div>
+    </div>,
+    document.body
   );
 };
 

@@ -22,6 +22,8 @@ interface IMeeting {
   zoomRoom?: string | null;
   zoomLink?: string | null;
   zid?: string | null;
+  zoomPasscode?: string | null;
+  zoomInvitation?: string | null;
   calType: string[];
   modeType: string;
   room: string;

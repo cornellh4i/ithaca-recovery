@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { requireRole } from "../../../../../services/auth";
 import { IMeeting } from "../../../../../util/models";
 import { createCalendarEvent, updateCalendarEvent, reconcileMeetingCalendars } from "../../../../../services/googleCalendar";
-import { createZoomMeeting, updateZoomMeeting, resolveZoomHost, zoomRoomCalendarId } from "../../../../../services/zoom";
+import { createZoomMeeting, updateZoomMeeting, getZoomMeetingInvitation, resolveZoomHost, zoomRoomCalendarId } from "../../../../../services/zoom";
 import { findResourceConflicts } from "../../../../../util/resourceOverlap";
 import { prisma } from "../../../../../lib/prisma";
 
@@ -58,6 +58,7 @@ const syncMeeting = async (request: Request): Promise<Response> => {
         if (meeting.zoomRoom) {
             let zid = meeting.zid;
             let zoomLink = meeting.zoomLink;
+            let zoomPasscode = meeting.zoomPasscode;
             let zoomHost = meeting.zoomHost;
             let zoomCalendarEventId = meeting.zoomCalendarEventId;
             let zoomSynced = true;
@@ -89,6 +90,7 @@ const syncMeeting = async (request: Request): Promise<Response> => {
                     if (created) {
                         zid = created.zid;
                         zoomLink = created.zoomLink;
+                        zoomPasscode = created.zoomPasscode;
                         zoomHost = host;
                     } else {
                         zoomSynced = false;
@@ -117,9 +119,12 @@ const syncMeeting = async (request: Request): Promise<Response> => {
 
             zoomSyncStatus = zoomSynced ? 'synced' : 'error';
             zoomSyncError = zoomSynced ? null : zoomSyncError;
+            // See the comment in app/api/update/meeting/route.ts's syncUpdatedMeeting: a fetch
+            // failure here (collapsed to null) shouldn't overwrite an already-stored invitation.
+            const zoomInvitation = zid ? (await getZoomMeetingInvitation(zid)) ?? meeting.zoomInvitation : null;
             await prisma.meeting.update({
                 where: { mid },
-                data: { zid, zoomLink, zoomHost, zoomCalendarEventId, zoomSyncStatus, zoomSyncError },
+                data: { zid, zoomLink, zoomPasscode, zoomInvitation, zoomHost, zoomCalendarEventId, zoomSyncStatus, zoomSyncError },
             });
         }
 

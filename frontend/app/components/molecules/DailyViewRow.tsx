@@ -24,8 +24,10 @@ interface Meeting {
 interface DailyViewRowProps {
   roomColor: string;
   meetings: Meeting[];
+  selectedMeetingID: string | null;
   setSelectedMeetingID: (meetingId: string) => void;
   setSelectedNewMeeting: (newMeetingExists: boolean) => void;
+  setAnchorEl: (el: HTMLElement) => void;
 }
 
 const timeToPixels = (datetime: string) => {
@@ -62,14 +64,17 @@ const timeToPixels = (datetime: string) => {
 const DailyViewRow: React.FC<DailyViewRowProps> = ({
   roomColor,
   meetings,
+  selectedMeetingID,
   setSelectedMeetingID,
   setSelectedNewMeeting,
+  setAnchorEl,
 }) => {
 
-  const handleBoxClick = (meetingId: string) => {
+  const handleBoxClick = (meetingId: string, el: HTMLElement) => {
     console.log(`Meeting ${meetingId} clicked`);
     setSelectedMeetingID(meetingId);
     setSelectedNewMeeting(false);
+    setAnchorEl(el);
   };
 
   return (
@@ -94,6 +99,12 @@ const DailyViewRow: React.FC<DailyViewRowProps> = ({
             et24HourFmt.format(new Date(meeting.displayEndTime ?? meeting.endTime)),
           );
 
+          // Selecting a meeting brings it above any other overlapping meeting in this row --
+          // otherwise stacking just follows DOM/array order, so the clicked one could render
+          // underneath a later-starting neighbor it visually overlaps. Reverts on its own once
+          // deselected, since this is just a render-time override, not stored state.
+          const isSelected = meeting.id === selectedMeetingID;
+
           return (
             <div
               key={index}
@@ -102,6 +113,7 @@ const DailyViewRow: React.FC<DailyViewRowProps> = ({
                 left: `${startOffset}px`,
                 width: `${width}px`,
                 borderRadius: '6px',
+                zIndex: isSelected ? 1 : undefined,
               }}
               onClick={(e) => e.stopPropagation()} // Prevent row click handler from firing
             >
@@ -113,8 +125,9 @@ const DailyViewRow: React.FC<DailyViewRowProps> = ({
                 tags={meeting.tags}
                 meetingId={meeting.id}
                 syncError={meeting.syncError}
+                selected={isSelected}
                 onClick={(meetingId, e) => {
-                  handleBoxClick(meetingId);
+                  handleBoxClick(meetingId, e.currentTarget);
                   e.stopPropagation();
                 }}
               />

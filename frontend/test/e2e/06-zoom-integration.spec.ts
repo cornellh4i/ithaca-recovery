@@ -76,6 +76,7 @@ test.describe("zoom integration", () => {
       modeType: "Hybrid",
       zoomRoom: "Serenity Room - Zoom",
       zoomSyncStatus: "synced",
+      zid: "1234567890",
       zoomLink: "https://zoom.us/j/1234567890",
     });
     await page.goto("/");
@@ -83,7 +84,7 @@ test.describe("zoom integration", () => {
     // column) — .first() picks either, they're the same underlying meeting.
     await page.getByText("Synced Zoom Meeting", { exact: true }).first().click();
     await expect(page.getByText("Synced to Zoom ✓")).toBeVisible();
-    await expect(page.getByRole("link", { name: /zoom\.us/ })).toHaveAttribute(
+    await expect(page.getByRole("link", { name: "Join Zoom Meeting" })).toHaveAttribute(
       "href",
       "https://zoom.us/j/1234567890",
     );

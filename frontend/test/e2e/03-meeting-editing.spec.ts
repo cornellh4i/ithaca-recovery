@@ -21,8 +21,8 @@ async function openMeeting(page: import("@playwright/test").Page, title: string)
 }
 
 async function openEditFromDetails(page: import("@playwright/test").Page) {
-  await page.locator('[class*="moreOptions"]').hover();
-  await page.getByRole("button", { name: "Edit Meeting" }).click();
+  await page.getByRole("button", { name: "Meeting options" }).click();
+  await page.getByRole("button", { name: "Edit", exact: true }).click();
 }
 
 test.describe("meeting editing", () => {

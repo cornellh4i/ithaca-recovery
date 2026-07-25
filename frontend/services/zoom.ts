@@ -129,7 +129,7 @@ function buildZoomMeetingBody(meeting: IMeeting) {
   };
 }
 
-export async function createZoomMeeting(meeting: IMeeting, hostEmail: string): Promise<{ zoomLink: string; zid: string } | null> {
+export async function createZoomMeeting(meeting: IMeeting, hostEmail: string): Promise<{ zoomLink: string; zid: string; zoomPasscode: string | null } | null> {
   try {
     const token = await getZoomAccessToken();
     if (!token) return null;
@@ -145,9 +145,32 @@ export async function createZoomMeeting(meeting: IMeeting, hostEmail: string): P
       return null;
     }
     const data = await res.json();
-    return { zoomLink: data.join_url, zid: String(data.id) };
+    return { zoomLink: data.join_url, zid: String(data.id), zoomPasscode: data.password ?? null };
   } catch (error) {
     console.error("Zoom createMeeting error:", error);
+    return null;
+  }
+}
+
+// Zoom's own boilerplate invitation text (join link, meeting ID, passcode, dial-in numbers)
+// that it auto-generates for every meeting -- not returned by the create/update endpoints,
+// only by this dedicated one.
+export async function getZoomMeetingInvitation(zid: string): Promise<string | null> {
+  try {
+    const token = await getZoomAccessToken();
+    if (!token) return null;
+
+    const res = await fetch(`${ZOOM_BASE_API}/meetings/${zid}/invitation`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) {
+      console.error("Zoom getMeetingInvitation error:", await res.text());
+      return null;
+    }
+    const data = await res.json();
+    return data.invitation ?? null;
+  } catch (error) {
+    console.error("Zoom getMeetingInvitation error:", error);
     return null;
   }
 }
@@ -162,6 +185,7 @@ export async function updateZoomMeeting(zid: string, meeting: IMeeting): Promise
       headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
       body: JSON.stringify(buildZoomMeetingBody(meeting)),
     });
+    if (!res.ok) console.error("Zoom updateMeeting error:", await res.text());
     return res.ok;
   } catch (error) {
     console.error("Zoom updateMeeting error:", error);
@@ -178,6 +202,7 @@ export async function deleteZoomMeeting(zid: string): Promise<boolean> {
       method: "DELETE",
       headers: { Authorization: `Bearer ${token}` },
     });
+    if (!res.ok) console.error("Zoom deleteMeeting error:", await res.text());
     return res.ok;
   } catch (error) {
     console.error("Zoom deleteMeeting error:", error);

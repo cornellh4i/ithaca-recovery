@@ -80,6 +80,11 @@
     }
   }
 
+  // Highlights the box while its View Meeting popup is open.
+  &.selected {
+    box-shadow: 0 4px 10px rgb(0 0 0 / 25%);
+  }
+
   .syncError {
     position: absolute;
     top: 4px;

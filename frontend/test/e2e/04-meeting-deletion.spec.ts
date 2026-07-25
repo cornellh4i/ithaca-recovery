@@ -6,7 +6,7 @@ import type { Page } from "@playwright/test";
 async function openMeetingOptions(page: Page, title: string) {
   // level: 3 avoids colliding with ViewMeeting's <h1> of the same title.
   await page.getByRole("heading", { name: title, exact: true, level: 3 }).click();
-  await page.locator('[class*="moreOptions"]').hover();
+  await page.getByRole("button", { name: "Meeting options" }).click();
 }
 
 test.describe("meeting deletion", () => {
@@ -16,9 +16,9 @@ test.describe("meeting deletion", () => {
     await page.goto("/");
     const prisma = getTestPrismaClient();
 
-    // Clicking "Delete Meeting" opens a confirmation modal rather than deleting immediately.
+    // Clicking "Delete" opens a confirmation modal rather than deleting immediately.
     await openMeetingOptions(page, "One-Off To Delete");
-    await page.getByRole("button", { name: "Delete Meeting", exact: true }).click();
+    await page.getByRole("button", { name: "Delete", exact: true }).click();
     await expect(page.getByText("Delete this meeting?")).toBeVisible();
     await expect(page.getByText(/will be permanently removed from the calendar/)).toBeVisible();
     await page.getByRole("button", { name: "Cancel" }).click();
@@ -30,7 +30,7 @@ test.describe("meeting deletion", () => {
     // Confirming via "Delete meeting" actually deletes it.
     page.on("dialog", (dialog) => dialog.accept());
     await openMeetingOptions(page, "One-Off To Delete");
-    await page.getByRole("button", { name: "Delete Meeting", exact: true }).click();
+    await page.getByRole("button", { name: "Delete", exact: true }).click();
     const deleteResponse = page.waitForResponse((r) => r.url().includes("/api/delete/meeting"));
     await page.getByRole("button", { name: "Delete meeting", exact: true }).click();
     await deleteResponse;
@@ -49,7 +49,7 @@ test.describe("meeting deletion", () => {
     const { meeting } = await seedRecurringMeeting({ title: "Recurring To Delete" });
     await page.goto("/");
     await openMeetingOptions(page, "Recurring To Delete");
-    await page.getByRole("button", { name: "Delete Meeting" }).click();
+    await page.getByRole("button", { name: "Delete", exact: true }).click();
 
     await expect(page.getByLabel("This event")).toBeVisible();
     await expect(page.getByLabel("This and following events")).toBeVisible();
@@ -65,7 +65,7 @@ test.describe("meeting deletion", () => {
     const { meeting } = await seedRecurringMeeting({ title: "Delete This Occurrence" });
     await page.goto("/");
     await openMeetingOptions(page, "Delete This Occurrence");
-    await page.getByRole("button", { name: "Delete Meeting" }).click();
+    await page.getByRole("button", { name: "Delete", exact: true }).click();
     await page.getByLabel("This event").check();
 
     page.on("dialog", (dialog) => dialog.accept());
@@ -85,7 +85,7 @@ test.describe("meeting deletion", () => {
     const { meeting } = await seedRecurringMeeting({ title: "Delete Whole Series" });
     await page.goto("/");
     await openMeetingOptions(page, "Delete Whole Series");
-    await page.getByRole("button", { name: "Delete Meeting" }).click();
+    await page.getByRole("button", { name: "Delete", exact: true }).click();
     await page.getByLabel("All events").check();
 
     page.on("dialog", (dialog) => dialog.accept());

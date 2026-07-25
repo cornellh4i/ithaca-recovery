@@ -1,10 +1,25 @@
+@import '../../Variables.module.scss';
 @import 'https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;600&display=swap';
+
+// Wraps the visual card below; carries only the portal's fixed positioning so the card's
+// own overflow:auto never risks clipping the Delete modals, which are siblings of the card
+// (not descendants) further down in this file's markup.
+.popupAnchor {
+  position: fixed;
+  z-index: 2000;
+}
 
 .meetingDetails {
   font-family: "Source Sans Pro", sans-serif;
   text-align: left;
-  padding: 18px;
   color: #333;
+  background: #fff;
+  border: 1px solid $grey-border-color;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgb(0 0 0 / 15%);
+  max-height: min(80vh, 600px);
+  overflow-y: auto;
+  padding: 18px;
 
   .header {
     display: flex;
@@ -15,31 +30,37 @@
     .backButton {
       background: none;
       border: none;
-      font-size: 18px;
       cursor: pointer;
-      color: #333;
+      display: flex;
+      align-items: center;
+      padding: 0;
+
+      img {
+        width: 20px;
+        height: 20px;
+      }
     }
 
     h1 {
-      font-size: 24px;
-      font-weight:600;
+      font-size: 20px;
+      font-weight: 600;
       flex: 1;
-      margin:0;
+      margin: 0;
     }
 
     .settingLabel {
-    // Styled like a meeting card's tag pill (BoxText.module.scss's .tag).
-    color: #000;
-    border: 1.5px solid;
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 18px;
-    font-weight: 600;
+      // Styled like a meeting card's tag pill (BoxText.module.scss's .tag).
+      color: #000;
+      border: 1.5px solid;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 16px;
+      font-weight: 600;
     }
 
     .moreOptions {
       position: relative;
-      display:flex;
+      display: flex;
       align-items: center;
 
       button {
@@ -51,7 +72,6 @@
       }
 
       .optionsMenu {
-        display: none;
         position: absolute;
         right: 0;
         top: 24px;
@@ -65,49 +85,135 @@
           font-family: "Source Sans Pro", sans-serif;
           width: 100%;
           padding: 8px 16px;
-          font-size: 18px;
+          font-size: 16px;
           cursor: pointer;
           text-align: left;
           border: none;
           background: none;
           color: #333;
+          white-space: nowrap;
 
           &:hover {
             background-color: #f8f8f8;
           }
-
-          &:last-child {
-            color: red;
-          }
         }
-      }
 
-      &:hover .optionsMenu {
-        display: block;
+        .deleteOption {
+          color: $danger-color;
+        }
       }
     }
   }
 
   .details {
-    padding-top: 16px;
-    font-size: 18px;
+    padding-top: 12px;
+    font-size: 15px;
     line-height: 1.5;
 
-    p {
-      margin: 4px 0;
+    .row {
+      margin: 0 0 14px;
       display: flex;
-      align-items: center;
+      align-items: flex-start;
+      gap: 10px;
       font-weight: 400;
       color: #555;
-      margin-top:20px;
+
+      img {
+        width: 20px;
+        height: 20px;
+        flex-shrink: 0;
+        margin-top: 1px;
+      }
     }
-  
-    // p:first-of-type, p:nth-of-type(2) {
-  //   color: rgb(114, 110, 110);
-  // }
+
+    .recurringInfo {
+      display: block;
+      font-style: italic;
+      color: #777;
+      font-size: 13px;
+      margin-top: 2px;
+    }
+
+    .syncSuccess {
+      color: $success-text-color;
+      font-size: 13px;
+      margin: -6px 0 12px 30px;
+    }
+
+    .syncWarning {
+      color: $warning-text-color;
+      font-size: 13px;
+      margin: -6px 0 12px 30px;
+    }
+
+    .retryButton {
+      font-size: 12px;
+      padding: 3px 10px;
+      margin: -6px 0 14px 30px;
+      cursor: pointer;
+
+      &:disabled {
+        cursor: not-allowed;
+        opacity: 0.6;
+      }
+    }
+
+    .zoomSection {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      margin-bottom: 6px;
+
+      img {
+        width: 20px;
+        height: 20px;
+        flex-shrink: 0;
+        margin-top: 1px;
+      }
+
+      .zoomInfo {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        min-width: 0;
+      }
+
+      .invitationToggle {
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 2px;
+        flex-shrink: 0;
+
+        img {
+          width: 16px;
+          height: 16px;
+        }
+      }
+    }
+
+    .invitationText {
+      white-space: pre-line;
+      overflow-wrap: break-word;
+      font-family: "Source Sans Pro", sans-serif;
+      font-size: 13px;
+      color: #555;
+      margin: 0 0 14px 30px;
+
+      a {
+        color: $link-color;
+        text-decoration: none;
+        word-break: break-all;
+
+        &:hover {
+          text-decoration: underline;
+        }
+      }
+    }
 
     a.zoomLink {
-      color: #007bff;
+      color: $link-color;
       text-decoration: none;
       word-break: break-all;
 
@@ -116,69 +222,79 @@
       }
     }
 
-    .pandaDocs {
+    .descriptionRow {
       display: flex;
-      align-items: center;
-      border: 2px solid #c36;
-      padding: 8px;
-      margin-top: 12px;
-      border-radius: 4px;
+      align-items: flex-start;
+      gap: 10px;
+      margin-bottom: 14px;
+
+      img {
+        width: 20px;
+        height: 20px;
+        flex-shrink: 0;
+        margin-top: 1px;
+      }
+
+      .descriptionContent {
+        flex: 1;
+        min-width: 0;
+
+        p {
+          margin: 0;
+          color: #555;
+          white-space: pre-line;
+
+          a {
+            color: $link-color;
+            text-decoration: none;
+            word-break: break-all;
+
+            &:hover {
+              text-decoration: underline;
+            }
+          }
+        }
+
+        .descriptionClamped {
+          display: -webkit-box;
+          -webkit-line-clamp: 3;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
+        }
+
+        .showMoreToggle {
+          display: block;
+          margin-left: auto;
+          margin-top: 4px;
+          background: none;
+          border: none;
+          color: $link-color;
+          font-size: 13px;
+          cursor: pointer;
+          padding: 0;
+        }
+      }
     }
-
-    .pandaDocsLink {
-      display: flex;
-      align-items: center;
-      text-decoration: none;
-      color: inherit;
-      width: 100%;
-    }
-
-    .docsEmoji {
-      font-size: 24px; /* Adjust emoji size as needed */
-      margin-right: 8px; /* Space between emoji and text */
-    }
-
-    .pandaDocsName {
-      font-size: 18px;
-      font-weight: 600;
-      color: #333;
-    }
-
-    .pandaDocsSize {
-      font-size: 14px;
-      color: #888;
-      margin-top: 4px;
-    }
-
-    .pandaDocsText {
-      display: flex;
-      flex-direction: column;
-    }
-
-    .downloadEmoji {
-      font-size: 24px;
-      margin-left: auto;
-      color: #333;
-    }
-
-
   }
 
   .divider {
     border: none;
-    border-top: 2px solid #d6d5d5; // Customize color
-    margin: 16px 0; // Adjust spacing above and below the divider
+    border-top: 2px solid #d6d5d5;
+    margin: 4px 0 16px;
   }
 
-  .placeholderText {
-    margin-top: 16px;
-    font-size: 15px;
-    color: #666;
-  }
+  .tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
 
-  .recurringInfo {
-    font-style: italic;
-    color: #777;
-    margin-top: 8px;
+    .tag {
+      padding: 2px 12px;
+      border-radius: 10.593px;
+      font-size: 12px;
+      font-weight: 400;
+      white-space: nowrap;
+      color: #000;
+    }
   }
 }

@@ -84,8 +84,10 @@ function SignageContent() {
     filters,
     selectedDate,
     setSelectedDate,
+    selectedMeetingID: null, // signage is read-only, nothing is ever selected
     setSelectedMeetingID: () => {}, // no-op: signage is read-only
     setSelectedNewMeeting: () => {}, // no-op: signage is read-only
+    setAnchorEl: () => {}, // no-op: signage is read-only
     refreshTrigger,
   };
 
