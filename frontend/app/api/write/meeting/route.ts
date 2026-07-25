@@ -3,7 +3,7 @@ import { Role } from "@prisma/client";
 import { NextResponse, after } from "next/server";
 import { requireRole } from "../../../../services/auth";
 import { createCalendarEvent, calendarIdsForMeeting } from "../../../../services/googleCalendar";
-import { createZoomMeeting, resolveZoomHost, zoomRoomCalendarId } from "../../../../services/zoom";
+import { createZoomMeeting, getZoomMeetingInvitation, resolveZoomHost, zoomRoomCalendarId } from "../../../../services/zoom";
 import { convertETToUTC } from "../../../../util/timeUtils";
 import { meetingSchema } from "../../../../util/meetingValidation";
 import { prisma } from "../../../../lib/prisma";
@@ -42,6 +42,7 @@ async function syncNewMeeting(
   if (meetingData.zoomRoom && meetingData.status !== 'Suspended') {
     let zid = meetingData.zid ?? null;
     let zoomLink = meetingData.zoomLink ?? null;
+    let zoomPasscode = meetingData.zoomPasscode ?? null;
     const zoomHost = resolvedHost;
     let zoomCalendarEventId: string | null = null;
     let zoomSynced = true;
@@ -56,12 +57,15 @@ async function syncNewMeeting(
         if (created) {
           zid = created.zid;
           zoomLink = created.zoomLink;
+          zoomPasscode = created.zoomPasscode;
         } else {
           zoomSynced = false;
           zoomSyncError = "Failed to create the Zoom meeting.";
         }
       }
     }
+
+    const zoomInvitation = zid ? await getZoomMeetingInvitation(zid) : null;
 
     if (accessToken && zoomLink) {
       const calId = zoomRoomCalendarId[meetingData.zoomRoom];
@@ -78,7 +82,7 @@ async function syncNewMeeting(
     await prisma.meeting.update({
       where: { mid },
       data: {
-        zid, zoomLink, zoomHost, zoomCalendarEventId,
+        zid, zoomLink, zoomPasscode, zoomInvitation, zoomHost, zoomCalendarEventId,
         zoomSyncStatus: zoomSynced ? 'synced' : 'error',
         zoomSyncError: zoomSynced ? null : zoomSyncError,
       },

@@ -29,8 +29,10 @@ const formatZoomRoomLabel = (zoomRoom: string) => zoomRoom.replace(/ - Zoom$/, '
 interface WeeklyViewColumnProps {
     roomColor: string;
     meetings: Meeting[];
+    selectedMeetingID: string | null;
     setSelectedMeetingID: (meetingId: string) => void;
     setSelectedNewMeeting: (newMeetingExists: boolean) => void;
+    setAnchorEl: (el: HTMLElement) => void;
 }
 
 // 1 hour is 100px in height (100/60 px per minute), matching .timeSlot's 100px row height
@@ -42,15 +44,18 @@ const timeToPixels = (time: string) => {
 const WeeklyViewColumn: React.FC<WeeklyViewColumnProps> = ({
     roomColor,
     meetings,
+    selectedMeetingID,
     setSelectedMeetingID,
     setSelectedNewMeeting,
+    setAnchorEl,
 }) => {
     const [overlapModalMeetings, setOverlapModalMeetings] = useState<Meeting[] | null>(null);
 
-    const handleBoxClick = (meetingId: string) => {
+    const handleBoxClick = (meetingId: string, el: HTMLElement) => {
         console.log(`Meeting ${meetingId} clicked`);
         setSelectedMeetingID(meetingId);
         setSelectedNewMeeting(false);
+        setAnchorEl(el);
     };
 
     return (
@@ -121,8 +126,9 @@ const WeeklyViewColumn: React.FC<WeeklyViewColumnProps> = ({
                                         : undefined
                                 }
                                 fillHeight
+                                selected={meeting.id === selectedMeetingID}
                                 onClick={(meetingId, e) => {
-                                    handleBoxClick(meetingId);
+                                    handleBoxClick(meetingId, e.currentTarget);
                                     e.stopPropagation(); // Prevent column click handler from firing
                                 }}
                             />
@@ -135,8 +141,8 @@ const WeeklyViewColumn: React.FC<WeeklyViewColumnProps> = ({
                 isOpen={overlapModalMeetings !== null}
                 meetings={overlapModalMeetings ?? []}
                 onClose={() => setOverlapModalMeetings(null)}
-                onSelectMeeting={(meetingId) => {
-                    handleBoxClick(meetingId);
+                onSelectMeeting={(meetingId, el) => {
+                    handleBoxClick(meetingId, el);
                     setOverlapModalMeetings(null);
                 }}
             />

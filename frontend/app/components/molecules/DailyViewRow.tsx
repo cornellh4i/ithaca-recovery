@@ -24,8 +24,10 @@ interface Meeting {
 interface DailyViewRowProps {
   roomColor: string;
   meetings: Meeting[];
+  selectedMeetingID: string | null;
   setSelectedMeetingID: (meetingId: string) => void;
   setSelectedNewMeeting: (newMeetingExists: boolean) => void;
+  setAnchorEl: (el: HTMLElement) => void;
 }
 
 const timeToPixels = (datetime: string) => {
@@ -62,14 +64,17 @@ const timeToPixels = (datetime: string) => {
 const DailyViewRow: React.FC<DailyViewRowProps> = ({
   roomColor,
   meetings,
+  selectedMeetingID,
   setSelectedMeetingID,
   setSelectedNewMeeting,
+  setAnchorEl,
 }) => {
 
-  const handleBoxClick = (meetingId: string) => {
+  const handleBoxClick = (meetingId: string, el: HTMLElement) => {
     console.log(`Meeting ${meetingId} clicked`);
     setSelectedMeetingID(meetingId);
     setSelectedNewMeeting(false);
+    setAnchorEl(el);
   };
 
   return (
@@ -113,8 +118,9 @@ const DailyViewRow: React.FC<DailyViewRowProps> = ({
                 tags={meeting.tags}
                 meetingId={meeting.id}
                 syncError={meeting.syncError}
+                selected={meeting.id === selectedMeetingID}
                 onClick={(meetingId, e) => {
-                  handleBoxClick(meetingId);
+                  handleBoxClick(meetingId, e.currentTarget);
                   e.stopPropagation();
                 }}
               />

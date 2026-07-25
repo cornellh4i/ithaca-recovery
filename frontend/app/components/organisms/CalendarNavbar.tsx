@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import styles from "../../../styles/components/organisms/CalendarNavbar.module.scss";
+import { formatMeetingDateLine } from "../../../util/timeFormat";
 
 type CalendarNavbarProps = {
     selectedDate: Date;
@@ -49,7 +50,7 @@ const CalendarNavbar: React.FC<CalendarNavbarProps> = ({ selectedDate, onDateCha
   
       // Format the output depending on whether the months or years are the same
       if (selectedView === 'Day') {
-        return `${startMonth} ${startDay}, ${startYear}`;
+        return formatMeetingDateLine(startDate);
       } else if (selectedView === 'Month') {
         return `${startMonth} ${startYear}`;
       } else if (startMonth === endMonth && startYear === endYear) {

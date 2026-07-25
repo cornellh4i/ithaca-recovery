@@ -1,5 +1,11 @@
 import { z } from "zod";
 
+// Zoom's `agenda` field (which the description is sent as, see services/zoom.ts's
+// buildZoomMeetingBody) hard-caps at 1024 chars -- lower than Google Calendar's description
+// limit, so a too-long description silently fails only the Zoom half of the sync. The form UI
+// (hooks/useMeetingForm.ts) enforces this too; this is the server-side backstop.
+export const DESCRIPTION_MAX_LENGTH = 1024;
+
 // Shared by write/meeting and update/meeting — both expect the full IMeeting shape
 // (update is a full replace, not a partial patch). Validates shape/types only, not
 // business rules (e.g. endDateTime > startDateTime) — Prisma already rejects those
@@ -21,7 +27,7 @@ const recurrencePatternSchema = z.object({
 export const meetingSchema = z.object({
   title: z.string().min(1),
   mid: z.string().min(1),
-  description: z.string(),
+  description: z.string().max(DESCRIPTION_MAX_LENGTH),
   creator: z.string(),
   group: z.string(),
   startDateTime: z.coerce.date(),
@@ -30,6 +36,8 @@ export const meetingSchema = z.object({
   zoomRoom: z.string().nullable().optional(),
   zoomLink: z.string().nullable().optional(),
   zid: z.string().nullable().optional(),
+  zoomPasscode: z.string().nullable().optional(),
+  zoomInvitation: z.string().nullable().optional(),
   calType: z.array(z.string()),
   modeType: z.string(),
   room: z.string(),

@@ -3,7 +3,7 @@ import { NextResponse, after } from "next/server";
 import { requireRole } from "../../../../services/auth";
 import { IMeeting } from "../../../../util/models";
 import { createCalendarEvent, updateCalendarEvent, deleteCalendarEvent, reconcileMeetingCalendars } from "../../../../services/googleCalendar";
-import { createZoomMeeting, updateZoomMeeting, deleteZoomMeeting, resolveZoomHost, zoomRoomCalendarId } from "../../../../services/zoom";
+import { createZoomMeeting, updateZoomMeeting, deleteZoomMeeting, getZoomMeetingInvitation, resolveZoomHost, zoomRoomCalendarId } from "../../../../services/zoom";
 import { findResourceConflicts } from "../../../../util/resourceOverlap";
 import { meetingSchema } from "../../../../util/meetingValidation";
 import { prisma } from "../../../../lib/prisma";
@@ -39,6 +39,7 @@ async function syncUpdatedMeeting(
     const newZoomRoom = newMeeting.zoomRoom;
     let zid = existingMeeting.zid;
     let zoomLink = existingMeeting.zoomLink;
+    let zoomPasscode = existingMeeting.zoomPasscode;
     let zoomHost = existingMeeting.zoomHost;
     let zoomCalendarEventId = existingMeeting.zoomCalendarEventId;
     let zoomSynced = true;
@@ -59,6 +60,7 @@ async function syncUpdatedMeeting(
       }
       zid = null;
       zoomLink = null;
+      zoomPasscode = null;
       zoomHost = null;
       zoomCalendarEventId = null;
     }
@@ -96,6 +98,7 @@ async function syncUpdatedMeeting(
           if (created) {
             zid = created.zid;
             zoomLink = created.zoomLink;
+            zoomPasscode = created.zoomPasscode;
             zoomHost = host;
           } else {
             zoomSynced = false;
@@ -123,10 +126,12 @@ async function syncUpdatedMeeting(
       }
     }
 
+    const zoomInvitation = zid ? await getZoomMeetingInvitation(zid) : null;
+
     await prisma.meeting.update({
       where: { mid },
       data: {
-        zid, zoomLink, zoomHost, zoomCalendarEventId,
+        zid, zoomLink, zoomPasscode, zoomInvitation, zoomHost, zoomCalendarEventId,
         zoomSyncStatus: zoomSynced ? 'synced' : 'error',
         zoomSyncError: zoomSynced ? null : zoomSyncError,
       },

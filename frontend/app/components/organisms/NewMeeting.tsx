@@ -13,7 +13,7 @@ import IconButton from '@mui/material/IconButton';
 
 import { v4 as uuidv4 } from 'uuid';
 import { physicalRoomOptions, zoomRoomOptions } from "../../../util/rooms";
-import { useMeetingForm, CAL_TYPE_OPTIONS, CAL_TYPE_COLOR } from '../../../hooks/useMeetingForm';
+import { useMeetingForm, CAL_TYPE_OPTIONS, CAL_TYPE_COLOR, DESCRIPTION_MAX_LENGTH } from '../../../hooks/useMeetingForm';
 
 import styles from '../../../styles/components/organisms/MeetingForm.module.scss';
 
@@ -169,7 +169,7 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({
           zoomRoomDropdown={
             <Dropdown
               key={selectedZoomRoom}
-              label={<img src="svg/zoom-icon.svg" alt="Zoom Icon" />}
+              label={<img src="/svg/video-call-icon.svg" alt="Zoom Icon" />}
               value={selectedZoomRoom}
               isVisible={selectedMode !== "In Person"}
               elements={zoomRoomOptions}
@@ -189,6 +189,7 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({
             value={inputDescriptionValue}
             onChange={setDescriptionValue}
             multiline
+            maxLength={DESCRIPTION_MAX_LENGTH}
           />}
           handleMeetingSubmit={createMeeting}
           buttonText={isSubmitting ? "Creating…" : "Create Meeting"}

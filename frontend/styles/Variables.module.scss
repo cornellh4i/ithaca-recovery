@@ -8,4 +8,13 @@ $dark-pink-color: #C36;
 $grey-border-color: #DDD;
 $grey-lightest-color: #F1F1F1;
 
+// Semantic — named for what they mean (success, danger, warning, link), not for any one
+// component, so any part of the UI needing that meaning reuses the same token.
+$success-bg-color: #D4F4D2;
+$success-text-color: #4CAF50;
+$danger-color: #F00;
+$link-color: #007BFF;
+$warning-bg-color: #FDF3DC;
+$warning-text-color: #B4790A;
+
 @import 'https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400&display=swap';

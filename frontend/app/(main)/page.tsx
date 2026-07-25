@@ -55,6 +55,8 @@ export default function HomePage() {
   const [, setSelectedNewMeeting] = useState<boolean | null>(false);
   const [showEditMeeting, setShowEditMeeting] = useState(false);
   const [lastClickedDate, setLastClickedDate] = useState<Date | null>(null);
+  // The clicked meeting box, so the View Meeting popup can anchor itself beside it.
+  const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
 
   // Ref instead of a `selectedDate` closure/dependency so navigating the calendar while a
   // meeting is open doesn't re-trigger this fetch — we only want selectedDate's value *at
@@ -120,14 +122,26 @@ export default function HomePage() {
     setSelectedMeetingID(null);
     setSelectedNewMeeting(false);
     setLastClickedDate(null);
+    setAnchorEl(null);
   };
+
+  // Switching Day/Week view backs out to neutral (CalendarSidebar, no popup) entirely --
+  // not just closing Edit, since the clicked box's anchorEl also goes stale across the
+  // switch (Day view's boxes aren't in the DOM once Week view renders, and vice versa),
+  // so leaving the View Meeting popup open underneath would anchor to a detached element.
+  useEffect(() => {
+    handleBack();
+    setShowEditMeeting(false);
+  }, [selectedView]);
 
   const handleOpenEdit = () => {
     setShowEditMeeting(true);
   };
 
   const handleCloseEdit = () => {
-    setShowEditMeeting(false);
+    // Backing out of Edit goes straight to neutral (CalendarSidebar, no popup) rather than
+    // revealing the View Meeting popup underneath and requiring a second "back" click.
+    handleBack();
   };
 
   const handleDelete = async (mid: string, deleteOption?: 'this' | 'thisAndFollowing' | 'all') => {
@@ -204,53 +218,7 @@ export default function HomePage() {
                 console.log("Meeting updated!");
                 triggerCalendarRefresh();
               }}
-            />) :
-            selectedMeeting ? (
-              <ViewMeetingDetails
-                key={selectedMeeting.mid}
-                mid={selectedMeeting.mid}
-                title={selectedMeeting.title}
-                description={selectedMeeting.description}
-                creator={selectedMeeting.creator}
-                group={selectedMeeting.group}
-
-                startDateTime={convertESTStringToDate(
-                  convertUTCToET(
-                    selectedMeeting.startDateTime instanceof Date
-                      ? selectedMeeting.startDateTime.toISOString()
-                      : selectedMeeting.startDateTime
-                  )
-                )}
-
-                endDateTime={convertESTStringToDate(
-                  convertUTCToET(
-                    selectedMeeting.endDateTime instanceof Date
-                      ? selectedMeeting.endDateTime.toISOString()
-                      : selectedMeeting.endDateTime
-                  )
-                )}
-
-                email={selectedMeeting.email}
-
-                zoomRoom={selectedMeeting.zoomRoom}
-                zoomLink={selectedMeeting.zoomLink}
-                zid={selectedMeeting.zid}
-                zoomHost={selectedMeeting.zoomHost}
-                modeType={selectedMeeting.modeType}
-                calType={selectedMeeting.calType}
-                room={selectedMeeting.room}
-                isRecurring={selectedMeeting.isRecurring ?? false}
-                recurrencePattern={selectedMeeting.recurrencePattern || undefined}
-                syncStatus={selectedMeeting.syncStatus}
-                zoomSyncStatus={selectedMeeting.zoomSyncStatus}
-                zoomSyncError={selectedMeeting.zoomSyncError}
-                currentOccurrenceDate={lastClickedDate || undefined} // Pass the date when the meeting was clicked
-                onBack={handleBack}
-                onEdit={handleOpenEdit}
-                onDelete={handleDelete}
-                onSyncSuccess={triggerCalendarRefresh}
-              />
-            ) : (
+            />) : (
               <CalendarSidebar
                 filters={filters}
                 setFilters={setFilters}
@@ -261,6 +229,55 @@ export default function HomePage() {
               />
             )}
       </div>
+      {selectedMeeting && !showEditMeeting && (
+        <ViewMeetingDetails
+          key={selectedMeeting.mid}
+          mid={selectedMeeting.mid}
+          title={selectedMeeting.title}
+          description={selectedMeeting.description}
+          creator={selectedMeeting.creator}
+          group={selectedMeeting.group}
+
+          startDateTime={convertESTStringToDate(
+            convertUTCToET(
+              selectedMeeting.startDateTime instanceof Date
+                ? selectedMeeting.startDateTime.toISOString()
+                : selectedMeeting.startDateTime
+            )
+          )}
+
+          endDateTime={convertESTStringToDate(
+            convertUTCToET(
+              selectedMeeting.endDateTime instanceof Date
+                ? selectedMeeting.endDateTime.toISOString()
+                : selectedMeeting.endDateTime
+            )
+          )}
+
+          email={selectedMeeting.email}
+
+          zoomRoom={selectedMeeting.zoomRoom}
+          zoomLink={selectedMeeting.zoomLink}
+          zid={selectedMeeting.zid}
+          zoomPasscode={selectedMeeting.zoomPasscode}
+          zoomInvitation={selectedMeeting.zoomInvitation}
+          zoomHost={selectedMeeting.zoomHost}
+          modeType={selectedMeeting.modeType}
+          calType={selectedMeeting.calType}
+          room={selectedMeeting.room}
+          isRecurring={selectedMeeting.isRecurring ?? false}
+          recurrencePattern={selectedMeeting.recurrencePattern || undefined}
+          syncStatus={selectedMeeting.syncStatus}
+          zoomSyncStatus={selectedMeeting.zoomSyncStatus}
+          zoomSyncError={selectedMeeting.zoomSyncError}
+          currentOccurrenceDate={lastClickedDate || undefined} // Pass the date when the meeting was clicked
+          anchorEl={anchorEl}
+          onBack={handleBack}
+          onEdit={handleOpenEdit}
+          onDelete={handleDelete}
+          onSyncSuccess={triggerCalendarRefresh}
+        />
+      )}
       <div className={styles.primaryCalendar}>
         <CalendarNavbar
           selectedDate={selectedDate}
@@ -272,8 +289,10 @@ export default function HomePage() {
             filters={filters}
             selectedDate={selectedDate}
             setSelectedDate={setSelectedDate}
+            selectedMeetingID={selectedMeetingID}
             setSelectedMeetingID={setSelectedMeetingID}
             setSelectedNewMeeting={setSelectedNewMeeting}
+            setAnchorEl={setAnchorEl}
             refreshTrigger={refreshTrigger}
           />
         ) : (
@@ -281,8 +300,10 @@ export default function HomePage() {
             filters={filters}
             selectedDate={selectedDate}
             setSelectedDate={setSelectedDate}
+            selectedMeetingID={selectedMeetingID}
             setSelectedMeetingID={setSelectedMeetingID}
             setSelectedNewMeeting={setSelectedNewMeeting}
+            setAnchorEl={setAnchorEl}
             refreshTrigger={refreshTrigger}
           />
         )}

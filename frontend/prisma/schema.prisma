@@ -37,6 +37,8 @@ model Meeting {
   zoomRoom               String?
   zoomLink               String?
   zid                    String?
+  zoomPasscode           String?
+  zoomInvitation         String?
   room                   String
   modeType               String
   status                 String               @default("Active")

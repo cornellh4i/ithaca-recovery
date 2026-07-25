@@ -147,16 +147,20 @@ interface DailyViewProps {
   filters: MeetingFilters;
   selectedDate: Date;
   setSelectedDate: (date: Date) => void;
+  selectedMeetingID: string | null;
   setSelectedMeetingID: (meetingId: string) => void;
   setSelectedNewMeeting: (newMeetingExists: boolean) => void;
+  setAnchorEl: (el: HTMLElement) => void;
   refreshTrigger?: number;
 }
 
-const DailyView: React.FC<DailyViewProps> = ({ 
+const DailyView: React.FC<DailyViewProps> = ({
   filters,
   selectedDate,
+  selectedMeetingID,
   setSelectedMeetingID,
   setSelectedNewMeeting,
+  setAnchorEl,
   refreshTrigger = 0
 }) => {
   const [currentTimePosition, setCurrentTimePosition] = useState(0);
@@ -273,7 +277,14 @@ const DailyView: React.FC<DailyViewProps> = ({
             return (
               <div key={rowIndex} className={styles.gridRow}>
                 <div className={styles.gridMeetingRow}>
-                  <DailyViewRow roomColor={room.primaryColor} meetings={room.meetings} setSelectedMeetingID={setSelectedMeetingID} setSelectedNewMeeting={setSelectedNewMeeting}/>
+                  <DailyViewRow
+                    roomColor={room.primaryColor}
+                    meetings={room.meetings}
+                    selectedMeetingID={selectedMeetingID}
+                    setSelectedMeetingID={setSelectedMeetingID}
+                    setSelectedNewMeeting={setSelectedNewMeeting}
+                    setAnchorEl={setAnchorEl}
+                  />
                 </div>
                 {timeSlots.map((_, colIndex) => (
                   <div key={colIndex} className={styles.gridCell}></div>

@@ -10,6 +10,8 @@ interface BoxProps {
   tags?: string[]; // For badges like "Hybrid", "AA"
   meetingId: string;
   syncError?: boolean;
+  // Highlights the box (drop shadow) while its View Meeting popup is open.
+  selected?: boolean;
   // Stretch to fill the parent's height instead of the fixed Meeting Block height —
   // used by WeeklyView, where the wrapping div's height already encodes the meeting's
   // duration (DailyView instead encodes duration as width, on a fixed-height row).
@@ -30,6 +32,7 @@ const BoxText: React.FC<BoxProps> = ({
   syncError = false,
   fillHeight = false,
   zoomTag,
+  selected = false,
   onClick
 }) => {
 
@@ -64,7 +67,7 @@ const BoxText: React.FC<BoxProps> = ({
   return (
     <div
       data-testid={boxType === 'Meeting Block' ? `meeting-card-${meetingId}` : undefined}
-      className={`${styles.box} ${boxType === 'Meeting Block' ? styles.meeting : styles.room} ${fillHeight ? styles.fillHeight : ''}`}
+      className={`${styles.box} ${boxType === 'Meeting Block' ? styles.meeting : styles.room} ${fillHeight ? styles.fillHeight : ''} ${selected ? styles.selected : ''}`}
       style={{ backgroundColor: bgColor, borderLeft: `7px solid ${primaryColor}`, position: 'relative' }}
       onClick={(e) => onClick(meetingId, e)}
     >
@@ -75,7 +78,7 @@ const BoxText: React.FC<BoxProps> = ({
       )}
       {zoomTag && (
         <span ref={zoomTagRef} className={styles.zoomTag} title={`Zoom room: ${zoomTag}`}>
-          <img src="/svg/zoom-icon.svg" alt="" className={styles.zoomTagIcon} />
+          <img src="/svg/video-call-icon.svg" alt="" className={styles.zoomTagIcon} />
           {zoomTag}
         </span>
       )}

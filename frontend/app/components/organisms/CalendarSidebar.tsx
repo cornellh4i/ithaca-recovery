@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import TextButton from '../atoms/TextButton';
 
 import MiniCalendar from '../atoms/MiniCalendar';
@@ -19,6 +19,11 @@ interface CalendarSidebarProps {
 const CalendarSidebar: React.FC<CalendarSidebarProps> = ({filters, setFilters, selectedDate, setSelectedDate, selectedView, triggerCalendarRefresh}) => {
   // State declarations for New Meeting button
   const [isNewMeetingOpen, setIsNewMeetingOpen] = useState(false);
+
+  // Switching Day/Week view backs out of the New Meeting form, back to the standard sidebar.
+  useEffect(() => {
+    setIsNewMeetingOpen(false);
+  }, [selectedView]);
 
   const handleMiniCalendarSelect = (date: Date) => {
     setSelectedDate(date);
