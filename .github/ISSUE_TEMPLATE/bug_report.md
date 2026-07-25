@@ -1,8 +1,8 @@
 ---
-name: Ticket
-about: Bug report or planned work item
+name: Bug Report
+about: Something is broken, wrong, or slower than expected
 title: ''
-labels: ''
+labels: bug
 ---
 
 ## Background
