@@ -20,6 +20,10 @@ const TagList: React.FC<TagListProps> = ({ tags, color, gap = 3, containerStyle,
   const probeRef = useRef<HTMLDivElement>(null);
   const [visibleCount, setVisibleCount] = useState(sorted.length);
   const sortedKey = sorted.join('|');
+  // Stringified rather than the raw object -- tagStyle is an inline object literal at call
+  // sites (e.g. BoxText's `compact ? {...} : undefined`), so a new reference every render
+  // would otherwise re-run this effect constantly instead of only when compact toggles.
+  const tagStyleKey = JSON.stringify(tagStyle ?? {});
 
   // Tags wrap onto as many rows as the surrounding box actually has room for -- e.g. a tall
   // WeeklyView card can fit 2+ rows, while a short stacked DailyView card fits barely one --
@@ -90,7 +94,7 @@ const TagList: React.FC<TagListProps> = ({ tags, color, gap = 3, containerStyle,
     if (container.parentElement) observer.observe(container.parentElement);
     return () => observer.disconnect();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sortedKey, gap]);
+  }, [sortedKey, gap, tagStyleKey]);
 
   if (sorted.length === 0) return null;
 

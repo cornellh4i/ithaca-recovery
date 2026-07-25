@@ -178,6 +178,9 @@ const WeeklyViewColumn: React.FC<WeeklyViewColumnProps> = ({
                         return (
                             <div
                                 key={index}
+                                role="button"
+                                tabIndex={0}
+                                aria-label={`${meeting.overflowCount} more meetings at this time`}
                                 className={styles.overflowIndicator}
                                 style={{ top: `${topOffset}px` }}
                                 title={`${meeting.overflowCount} more meeting${meeting.overflowCount === 1 ? '' : 's'} at this time — click to see all meetings`}
@@ -185,6 +188,14 @@ const WeeklyViewColumn: React.FC<WeeklyViewColumnProps> = ({
                                     e.stopPropagation(); // Prevent column click handler from firing
                                     setOverlapModalMeetings(meeting.overflowMeetings ?? []);
                                     setOverlapAnchorEl(e.currentTarget);
+                                }}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' || e.key === ' ') {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        setOverlapModalMeetings(meeting.overflowMeetings ?? []);
+                                        setOverlapAnchorEl(e.currentTarget);
+                                    }
                                 }}
                             >
                                 +{meeting.overflowCount}

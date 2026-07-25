@@ -168,6 +168,9 @@ const DailyViewRow: React.FC<DailyViewRowProps> = ({
             return (
               <div
                 key={index}
+                role="button"
+                tabIndex={0}
+                aria-label={`${meeting.overflowCount} more meetings at this time`}
                 className={styles.overflowIndicator}
                 style={{ left: `${startOffset}px` }}
                 title={`${meeting.overflowCount} more meeting${meeting.overflowCount === 1 ? '' : 's'} at this time — click to see all meetings`}
@@ -177,6 +180,16 @@ const DailyViewRow: React.FC<DailyViewRowProps> = ({
                     (meeting.overflowMeetings ?? []).map(m => ({ ...m, primaryColor: roomColor }))
                   );
                   setOverlapAnchorEl(e.currentTarget);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setOverlapModalMeetings(
+                      (meeting.overflowMeetings ?? []).map(m => ({ ...m, primaryColor: roomColor }))
+                    );
+                    setOverlapAnchorEl(e.currentTarget);
+                  }
                 }}
               >
                 +{meeting.overflowCount}
