@@ -7,6 +7,7 @@ import DiagnosticsTab from "./DiagnosticsTab";
 import UsersTab from "./UsersTab";
 import ImportTab from "./ImportTab";
 import ExportTab from "./ExportTab";
+import { flags } from "../../../lib/flags";
 import styles from "../../../styles/components/organisms/AdminShell.module.scss";
 
 interface AdminShellProps {
@@ -19,7 +20,7 @@ type TabKey = "diagnostics" | "users" | "import" | "export";
 const allTabs: { key: TabKey; label: string; superAdminOnly: boolean }[] = [
   { key: "diagnostics", label: "Diagnostics", superAdminOnly: false },
   { key: "users", label: "Users", superAdminOnly: true },
-  { key: "import", label: "Import", superAdminOnly: true },
+  ...(flags.importTab ? [{ key: "import" as const, label: "Import", superAdminOnly: true }] : []),
   { key: "export", label: "Export", superAdminOnly: true },
 ];
 
