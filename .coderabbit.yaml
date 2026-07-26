@@ -1,4 +1,8 @@
 reviews:
+  auto_title_instructions: >
+    Titles must follow Conventional Commits (see frontend/config/commitlint.config.mjs):
+    "<type>(<optional scope>): <description>", type one of
+    build|chore|ci|docs|feat|fix|perf|refactor|revert|style|test, lowercase, no trailing period.
   auto_review:
     # Dependency bumps from these bots are already gated by CI + the auto-merge
     # policy in dependabot.yml/dependabot-auto-merge.yml -- a CodeRabbit review
