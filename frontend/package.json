@@ -10,6 +10,7 @@
     "lint:fix": "eslint --config config/eslint.config.mjs . --fix",
     "lint:css": "stylelint --config config/stylelint.config.mjs \"styles/**/*.scss\"",
     "lint:css:fix": "stylelint --config config/stylelint.config.mjs \"styles/**/*.scss\" --fix",
+    "commitlint": "commitlint --config config/commitlint.config.mjs",
     "postinstall": "prisma generate",
     "test:unit": "jest --config config/jest.config.ts",
     "test:integration": "jest --config config/jest.integration.config.ts",
@@ -46,6 +47,8 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@commitlint/cli": "^21.2.1",
+    "@commitlint/config-conventional": "^21.2.0",
     "@playwright/test": "^1.61.1",
     "@swc/core": "^1.15.46",
     "@swc/jest": "^0.2.39",
