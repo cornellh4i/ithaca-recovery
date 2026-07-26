@@ -1,6 +1,6 @@
 # Integration Guides
 
-Step-by-step setup instructions for every external service the platform depends on. For the *why* behind each choice, see [technical-decisions.md](technical-decisions.md).
+Step-by-step setup instructions for every external service the platform depends on. For the *why* behind each choice, see [technical-decisions.md](../02-handoff/technical-decisions.md).
 
 ---
 
@@ -115,7 +115,7 @@ Authenticates board members via their Google account and grants the server an OA
 8. Set `NEXTAUTH_URL` to the app's own URL (NextAuth uses this to build its callback URLs).
 
 ### Adding or removing who can sign in
-Sign-in is invite-only, gated by the `Admin` table — there is no separate Google Cloud "allowlist" step to manage day-to-day. See [user-guide.md, Section 12](user-guide.md#12-admin-user-management) for the in-app flow (Admin → Users → Send Invite), or call `POST /api/write/admin` directly.
+Sign-in is invite-only, gated by the `Admin` table — there is no separate Google Cloud "allowlist" step to manage day-to-day. See [user-guide.md, Section 12](../01-user-guide/user-guide.md#12-admin-user-management) for the in-app flow (Admin → Users → Send Invite), or call `POST /api/write/admin` directly.
 
 ### Bootstrapping the first Admin
 
@@ -171,7 +171,7 @@ When a meeting is created, updated, or deleted, the platform publishes a matchin
    GOOGLE_CALENDAR_ALANON="..."
    GOOGLE_CALENDAR_OTHER="..."
    ```
-3. No separate service-account credentials are needed — calls use the signed-in admin's own OAuth token (`calendar.events` scope, requested at login — see section 3). This means **each of these three calendars must be individually shared with every Google account that needs to create/edit/delete meetings**, with at least "Make changes to events" permission (Calendar Settings → "Share with specific people" → their Google account → permission level). Being an app `Admin`/`SUPER_ADMIN` and being able to write to these calendars are two separate, unsynced permission systems — an admin can pass every in-app gate and still get silent GCal sync failures (the ⚠ badge, see [user-guide.md, Section 4](user-guide.md#4-viewing-a-meeting)) if their Google account was never shared onto the relevant calendar(s).
+3. No separate service-account credentials are needed — calls use the signed-in admin's own OAuth token (`calendar.events` scope, requested at login — see section 3). This means **each of these three calendars must be individually shared with every Google account that needs to create/edit/delete meetings**, with at least "Make changes to events" permission (Calendar Settings → "Share with specific people" → their Google account → permission level). Being an app `Admin`/`SUPER_ADMIN` and being able to write to these calendars are two separate, unsynced permission systems — an admin can pass every in-app gate and still get silent GCal sync failures (the ⚠ badge, see [user-guide.md, Section 4](../01-user-guide/user-guide.md#4-viewing-a-meeting)) if their Google account was never shared onto the relevant calendar(s).
 
 ### Key client code
 `frontend/services/googleCalendar.ts` — `calendarIdForCategory`, `calendarIdsForMeeting`, `checkCalendarReachable`, `createCalendarEvent`, `updateCalendarEvent`, `deleteCalendarEvent`, `deleteCalendarOccurrence` (adds an EXDATE for a single recurring occurrence), `trimCalendarEventSeries` (trims a recurring event's RRULE `UNTIL`).
@@ -179,14 +179,14 @@ When a meeting is created, updated, or deleted, the platform publishes a matchin
 ### Sync behavior
 Sync is fail-soft: on failure, the meeting's `syncStatus` is set to `"error"` and a ⚠ badge appears in the UI; a Super/regular Admin can retry via `POST /api/update/meeting/sync`. Suspended meetings (`status: "Suspended"`) are skipped entirely — no calendar calls are made for them.
 
-Sync also runs **after** the write/update/delete response is sent, not before — the route returns as soon as the MongoDB write succeeds, then syncs via `@vercel/functions`' `waitUntil()` in the background. Practical implication: the response body's `syncStatus`/`zoomSyncStatus` reflects the state *before* this sync attempt (usually `null` on a fresh create), not its outcome — the UI only sees the real result on a later fetch (page reload, re-navigating the day). `POST /api/update/meeting/sync` (the manual retry route) is the one exception — it stays synchronous, since a user clicking "Retry sync" expects an immediate result. See [technical-decisions.md](technical-decisions.md#google-calendar-sync) for why (`waitUntil` is a workaround for this Next.js version lacking `after()`, not the long-term answer).
+Sync also runs **after** the write/update/delete response is sent, not before — the route returns as soon as the MongoDB write succeeds, then syncs via `@vercel/functions`' `waitUntil()` in the background. Practical implication: the response body's `syncStatus`/`zoomSyncStatus` reflects the state *before* this sync attempt (usually `null` on a fresh create), not its outcome — the UI only sees the real result on a later fetch (page reload, re-navigating the day). `POST /api/update/meeting/sync` (the manual retry route) is the one exception — it stays synchronous, since a user clicking "Retry sync" expects an immediate result. See [technical-decisions.md](../02-handoff/technical-decisions.md#google-calendar-sync) for why (`waitUntil` is a workaround for this Next.js version lacking `after()`, not the long-term answer).
 
 ---
 
 ## 5. Zoom API
 
 ### What it does
-Creates/updates/deletes a real Zoom meeting whenever a meeting has a `zoomRoom` set, then publishes the join link to that room's own Google Calendar as the event's `location` (which Zoom Room hardware uses for one-touch join detection). See [technical-decisions.md](technical-decisions.md#zoom-integration) for the full design, the per-room-host rationale, and a timezone gotcha worth reading before touching this code.
+Creates/updates/deletes a real Zoom meeting whenever a meeting has a `zoomRoom` set, then publishes the join link to that room's own Google Calendar as the event's `location` (which Zoom Room hardware uses for one-touch join detection). See [technical-decisions.md](../02-handoff/technical-decisions.md#zoom-integration) for the full design, the per-room-host rationale, and a timezone gotcha worth reading before touching this code.
 
 ### Zoom App setup
 

@@ -97,7 +97,7 @@ yarn test:e2e           # spawns a real `next dev` server + Chromium
 
 ## CI
 
-[`.github/workflows/test.yml`](../../.github/workflows/test.yml) runs on every push/PR to
+[`.github/workflows/test.yml`](../../../.github/workflows/test.yml) runs on every push/PR to
 `main`/`master`, as three separate jobs (`unit`, `integration`, `e2e`) rather than one — a slow or
 flaky e2e run shouldn't hold up the fast unit-test signal on a PR. The `e2e` job deliberately has
 no Google/Zoom secrets configured, per the fail-soft design above, so it never makes a real

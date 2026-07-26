@@ -6,7 +6,7 @@
 
 > **What this is now:** Originally a full 96-case manual QA script for every feature. Now that
 > `frontend/test/e2e/`, `frontend/test/integration/`, and `frontend/test/unit/` cover the
-> application logic in CI on every push (see [`docs/testing/README.md`](README.md) for how that
+> application logic in CI on every push (see [`docs/03-development/testing/README.md`](README.md) for how that
 > suite works), this doc only keeps what CI structurally can't check: cases that need **live**
 > Zoom/Google Calendar credentials, a **real** Google OAuth login, **cross-browser/responsive**
 > rendering, or **real-time** behavior across minutes. Manual cases are numbered X.1, X.2... per
@@ -26,7 +26,7 @@
 
 - **URL:** [https://ithaca-recovery.vercel.app/](https://ithaca-recovery.vercel.app/)
 - **Browser:** Chrome (latest), also verify in Firefox and Safari — CI's Playwright suite only runs Chromium
-- **Test Accounts:** at least one Google account added as `ADMIN`, and one added as `SUPER_ADMIN` (see [user-guide.md, Section 12](../handoff/user-guide.md#12-admin-user-management)) — several tests require both roles
+- **Test Accounts:** at least one Google account added as `ADMIN`, and one added as `SUPER_ADMIN` (see [user-guide.md, Section 12](../../01-user-guide/user-guide.md#12-admin-user-management)) — several tests require both roles
 - **Tester Name:** _______________
 - **Date Tested:** _______________
 

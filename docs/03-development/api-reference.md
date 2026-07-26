@@ -92,7 +92,7 @@ Retrieve all meetings for the calendar month of the provided date.
 ---
 
 ### `PUT /api/update/meeting`
-**Requires:** `ADMIN`. Request body validated the same way as `POST /api/write/meeting` (same `zod` schema) before anything else. Update an existing meeting, identified by `mid`. Upserts or deletes the associated `RecurrencePattern` depending on whether `recurrencePattern` is present in the body. The response is sent as soon as this DB write succeeds; Google Calendar/Zoom sync runs afterward in the background (see [integration-guides.md](handoff/integration-guides.md#4-google-calendar-api)) — creates/updates events for categories now in `calType`, deletes events for categories removed from it.
+**Requires:** `ADMIN`. Request body validated the same way as `POST /api/write/meeting` (same `zod` schema) before anything else. Update an existing meeting, identified by `mid`. Upserts or deletes the associated `RecurrencePattern` depending on whether `recurrencePattern` is present in the body. The response is sent as soon as this DB write succeeds; Google Calendar/Zoom sync runs afterward in the background (see [integration-guides.md](integration-guides.md#4-google-calendar-api)) — creates/updates events for categories now in `calType`, deletes events for categories removed from it.
 
 Zoom sync is independent and runs the same way, in the background. If `zoomRoom` changed, the old room's Zoom meeting and calendar event are deleted and a fresh Zoom meeting/calendar event are created under the new room (a Zoom meeting can't move host); if unchanged, it's updated in place.
 
@@ -290,7 +290,7 @@ NextAuth's own sign-in/sign-out/callback routes. Not called directly by app code
 
 Not a set of proxy routes — the old `/api/zoom/*` endpoints were deleted (zero callers, superseded by this). Zoom is a server-only service (`frontend/services/zoom.ts`) called directly from the meeting routes above (`write`, `update`, `delete`, `update/meeting/sync`), gated by the same `requireRole(ADMIN)` check as those routes — there's no separate unauthenticated Zoom surface.
 
-Each of the 5 Zoom-enabled rooms has its own licensed Zoom host account (so up to 5 rooms can host simultaneously without conflicting) and its own Google Calendar (separate from the 3 category calendars) that the join link gets published to. See [technical-decisions.md](handoff/technical-decisions.md#zoom-integration) for why, and [integration-guides.md](handoff/integration-guides.md#5-zoom-api) for setup.
+Each of the 5 Zoom-enabled rooms has its own licensed Zoom host account (so up to 5 rooms can host simultaneously without conflicting) and its own Google Calendar (separate from the 3 category calendars) that the join link gets published to. See [technical-decisions.md](../02-handoff/technical-decisions.md#zoom-integration) for why, and [integration-guides.md](integration-guides.md#5-zoom-api) for setup.
 
 ---
 

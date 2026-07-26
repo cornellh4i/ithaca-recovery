@@ -121,7 +121,7 @@ Diagnostics (`GET /api/admin/diagnostics`, surfaced on `/admin`) checks room cal
 **Provisional tests:** features referenced in the manual QA script but not yet built (conflict detection, XLSX import, the suspend workflow's UI) get tests that lock in their *current* stub behavior rather than being skipped, tagged `@provisional-<ticket>` with a comment pointing at the exact stub line. The goal is that whoever ships the real feature finds the test immediately instead of it silently asserting the old absence of behavior forever.
 
 **Trade-offs:**
-- CI only runs Chromium (`projects: [{ name: "chromium" }]` in `config/playwright.config.ts`), and no automated tier touches real Zoom/Google credentials. Cross-browser rendering and live-credential behavior (a real Zoom meeting actually getting created, a real Google Calendar event actually appearing) are covered instead by a trimmed manual checklist (`docs/testing/manual-test-script-template.md`), not automation.
+- CI only runs Chromium (`projects: [{ name: "chromium" }]` in `config/playwright.config.ts`), and no automated tier touches real Zoom/Google credentials. Cross-browser rendering and live-credential behavior (a real Zoom meeting actually getting created, a real Google Calendar event actually appearing) are covered instead by a trimmed manual checklist (`docs/03-development/testing/manual-test-script-template.md`), not automation.
 - `workers: 1` — the whole E2E run shares one in-memory Mongo replica set serially rather than one per worker. Fine at this suite's size; documented as a future step if parallelism is ever needed.
 
 ---
