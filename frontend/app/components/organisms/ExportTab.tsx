@@ -15,6 +15,7 @@ import { ROOM_COLORS, ZOOM_ROOM_COLOR, CATEGORY_COLOR } from "../../../util/filt
 import type { ILeaseSettings, IRoomRate } from "../../../util/models";
 import FilterGroup, { FilterGroupItem } from "../molecules/FilterGroup";
 import CardHeader from "../molecules/CardHeader";
+import { flags } from "../../../lib/flags";
 import styles from "../../../styles/components/organisms/ExportTab.module.scss";
 
 type ExportKind = "meetings" | "lease";
@@ -426,68 +427,72 @@ const ExportTab: React.FC = () => {
       {settingsError && <div className={styles.errorBanner}>{settingsError}</div>}
 
       <div className={styles.grid}>
-        <div className={`${styles.card} ${styles.exportCard}`}>
-          <CardHeader icon={<BackupIcon />} title="Export Meetings (XLSX)" />
-          <div className={styles.cardDesc}>
-            Full backup of every meeting. Include meeting mode, room, contact, and schedule fields.
-          </div>
-          <div className={styles.cardFooter}>
-            <div className={styles.filename}>{meetingsFilename}</div>
-            <button
-              className={styles.exportButton}
-              onClick={() => handleExport("meetings")}
-              disabled={downloading === "meetings"}
-            >
-              {downloaded === "meetings" ? "Downloaded ✓" : downloading === "meetings" ? "Exporting…" : "Export Meetings"}
-            </button>
-          </div>
-        </div>
-
-        <div className={`${styles.card} ${styles.exportCard}`}>
-          <CardHeader
-            icon={<DescriptionIcon />}
-            title="Export PandaDocs Lease (CSV)"
-            action={{
-              icon: <MoreVertIcon fontSize="small" />,
-              onClick: () => setConfigOpen(true),
-              ariaLabel: "Configure export",
-              title: "Configure export…",
-              disabled: !leaseSettings,
-            }}
-          />
-          <div className={styles.cardDesc}>
-            Billing fields formatted for the PandaDocs lease-renewal mail merge. 
-            Include room rate, billable time, rent charge, and client contact per group.
-          </div>
-          {leaseSettings && (
-            <div className={styles.summaryRow}>
-              <span className={styles.summaryText}>{leaseSummary}</span>
-              <button className={styles.viewRatesButton} onClick={() => setRatesOpen((v) => !v)}>
-                View rates
-              </button>
-              {ratesOpen && (
-                <div className={styles.ratesPopover}>
-                  {leaseSettings.rooms.map((room) => (
-                    <div key={room.room} className={styles.ratesPopoverRow}>
-                      <span>{room.room}</span>
-                      <span>${room.rate}/{room.unit}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
+        {flags.exportXlsx && (
+          <div className={`${styles.card} ${styles.exportCard}`}>
+            <CardHeader icon={<BackupIcon />} title="Export Meetings (XLSX)" />
+            <div className={styles.cardDesc}>
+              Full backup of every meeting. Include meeting mode, room, contact, and schedule fields.
             </div>
-          )}
-          <div className={styles.cardFooter}>
-            <div className={styles.filename}>{leaseFilename}</div>
-            <button
-              className={styles.exportButton}
-              onClick={() => handleExport("lease")}
-              disabled={downloading === "lease" || !leaseSettings}
-            >
-              {downloaded === "lease" ? "Downloaded ✓" : downloading === "lease" ? "Exporting…" : "Export Lease CSV"}
-            </button>
+            <div className={styles.cardFooter}>
+              <div className={styles.filename}>{meetingsFilename}</div>
+              <button
+                className={styles.exportButton}
+                onClick={() => handleExport("meetings")}
+                disabled={downloading === "meetings"}
+              >
+                {downloaded === "meetings" ? "Downloaded ✓" : downloading === "meetings" ? "Exporting…" : "Export Meetings"}
+              </button>
+            </div>
           </div>
-        </div>
+        )}
+
+        {flags.exportCsv && (
+          <div className={`${styles.card} ${styles.exportCard}`}>
+            <CardHeader
+              icon={<DescriptionIcon />}
+              title="Export PandaDocs Lease (CSV)"
+              action={{
+                icon: <MoreVertIcon fontSize="small" />,
+                onClick: () => setConfigOpen(true),
+                ariaLabel: "Configure export",
+                title: "Configure export…",
+                disabled: !leaseSettings,
+              }}
+            />
+            <div className={styles.cardDesc}>
+              Billing fields formatted for the PandaDocs lease-renewal mail merge.
+              Include room rate, billable time, rent charge, and client contact per group.
+            </div>
+            {leaseSettings && (
+              <div className={styles.summaryRow}>
+                <span className={styles.summaryText}>{leaseSummary}</span>
+                <button className={styles.viewRatesButton} onClick={() => setRatesOpen((v) => !v)}>
+                  View rates
+                </button>
+                {ratesOpen && (
+                  <div className={styles.ratesPopover}>
+                    {leaseSettings.rooms.map((room) => (
+                      <div key={room.room} className={styles.ratesPopoverRow}>
+                        <span>{room.room}</span>
+                        <span>${room.rate}/{room.unit}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+            <div className={styles.cardFooter}>
+              <div className={styles.filename}>{leaseFilename}</div>
+              <button
+                className={styles.exportButton}
+                onClick={() => handleExport("lease")}
+                disabled={downloading === "lease" || !leaseSettings}
+              >
+                {downloaded === "lease" ? "Downloaded ✓" : downloading === "lease" ? "Exporting…" : "Export Lease CSV"}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       <SignageUrlCard />
