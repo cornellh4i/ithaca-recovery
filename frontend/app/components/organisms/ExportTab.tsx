@@ -372,6 +372,8 @@ const ExportTab: React.FC = () => {
   };
 
   useEffect(() => {
+    if (!flags.exportCsv) return;
+    
     // Async fetch-then-set; the lint rule can't see the setState calls sit after an
     // await, so this is a false positive for the standard "load on mount" pattern.
     // eslint-disable-next-line react-hooks/set-state-in-effect
