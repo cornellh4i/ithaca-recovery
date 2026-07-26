@@ -15,7 +15,9 @@ Group related files under one bullet when they're part of the same change, e.g.:
 - [ ]
 
 ## Area(s) Touched
-<!-- Check all that apply — automatically applies matching labels, re-synced on every edit. -->
+<!-- Select something by placing an x or X inside a bracket.
+Automatically applies matching "scope:"/"type:" labels, re-synced on every edit.
+A best guess is fine; this gets corrected during triage if wrong. -->
 **Product areas**
 - [ ] auth — sign-in, sessions, NextAuth, role-based access
 - [ ] admin — /admin shell (Diagnostics, Users, Import, Export tabs)
