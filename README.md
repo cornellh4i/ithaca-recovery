@@ -64,14 +64,10 @@ This project aims to develop internal tooling and automation to streamline ICR's
 <!-- Setup -->
 ## Documents
 
-Documentation lives in [`docs/`](docs/):
-* [`docs/project-structure.md`](docs/project-structure.md) — tech stack, folder layout, data models, auth flow
-* [`docs/api-reference.md`](docs/api-reference.md) — every API route, request/response shapes
-* [`docs/handoff/user-guide.md`](docs/handoff/user-guide.md) — end-user/admin walkthrough
-* [`docs/handoff/technical-decisions.md`](docs/handoff/technical-decisions.md) — why the stack is built the way it is
-* [`docs/handoff/integration-guides.md`](docs/handoff/integration-guides.md) — setup steps for each external service
-* [`docs/testing/README.md`](docs/testing/README.md) — how the automated test suite (unit/integration/e2e) and CI work
-* [`docs/testing/manual-test-script-template.md`](docs/testing/manual-test-script-template.md) — manual pre-release checklist (what CI can't cover)
+Documentation lives in [`docs/`](docs/), organized by audience — see [`docs/README.md`](docs/README.md) for the full index:
+* **`docs/01-user-guide/`** — for ICR board members using the platform day to day
+* **`docs/02-handoff/`** — for ICR leadership and future maintainers: ownership, credentials, deployment, backups, support, contingency
+* **`docs/03-development/`** — for developers working on the codebase: architecture, API reference, integration setup, testing
 
 ### Project Structure
 
@@ -86,7 +82,7 @@ Documentation lives in [`docs/`](docs/):
 
 Everything under [`.github/`](.github/) runs automatically on push/PR to `master`, or on a schedule - no manual triggering needed.
 
-* [`workflows/test.yml`](.github/workflows/test.yml) — lint, unit, integration, Playwright e2e (see [Running Tests](`#running-tests`) below), and a `doc-freshness` job that fails if README.md / `docs/project-structure.md` cite a Node or Next.js major version that no longer matches `frontend/package.json` (via [`.github/scripts/check-doc-versions.sh`](.github/scripts/check-doc-versions.sh))
+* [`workflows/test.yml`](.github/workflows/test.yml) — lint, unit, integration, Playwright e2e (see [Running Tests](`#running-tests`) below), and a `doc-freshness` job that fails if README.md / `docs/03-development/project-structure.md` cite a Node or Next.js major version that no longer matches `frontend/package.json` (via [`.github/scripts/check-doc-versions.sh`](.github/scripts/check-doc-versions.sh))
 * [`workflows/codeql.yml`](.github/workflows/codeql.yml) — CodeQL static analysis for security vulnerabilities, on every PR plus a weekly scheduled scan
 * [`workflows/bump-node-version.yml`](.github/workflows/bump-node-version.yml) — monthly check for a new Node.js Active LTS release; opens a PR bumping `.nvmrc`/`package.json`/`test.yml` if one exists (Vercel's supported versions still need a manual check before merging)
 * [`dependabot.yml`](.github/dependabot.yml) + [`workflows/dependabot-auto-merge.yml`](.github/workflows/dependabot-auto-merge.yml) — weekly dependency-update PRs; the `safe-updates` group (patch- and minor-level bumps, prod or dev) auto-merges once CI is green — major bumps and all GitHub Actions bumps are left for manual review, since those are the ones most likely to carry breaking changes CI doesn't always catch
@@ -101,11 +97,11 @@ Everything under [`.github/`](.github/) runs automatically on push/PR to `master
 ```bash
 cd frontend
 yarn install
-# add a .env file — see docs/handoff/integration-guides.md, section 1, for every variable needed
+# add a .env file — see docs/03-development/integration-guides.md, section 1, for every variable needed
 yarn dev
 ```
 
-Opens at [http://localhost:3000](http://localhost:3000). See [`docs/project-structure.md`](docs/project-structure.md) and [`docs/handoff/integration-guides.md`](docs/handoff/integration-guides.md) for the full setup (MongoDB, Google OAuth, Google Calendar).
+Opens at [http://localhost:3000](http://localhost:3000). See [`docs/03-development/project-structure.md`](docs/03-development/project-structure.md) and [`docs/03-development/integration-guides.md`](docs/03-development/integration-guides.md) for the full setup (MongoDB, Google OAuth, Google Calendar).
 
 ### Running Tests
 
@@ -117,7 +113,7 @@ yarn test:e2e            # full Playwright E2E suite (needs `npx playwright inst
 yarn test:all            # lint + unit + integration + e2e, in that order
 ```
 
-See [`docs/testing/README.md`](docs/testing/README.md) for how the suite and CI work.
+See [`docs/03-development/testing/README.md`](docs/03-development/testing/README.md) for how the suite and CI work.
 
 <!-- Developers -->
 ## Developers

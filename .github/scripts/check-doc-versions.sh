@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Fails if README.md / docs/project-structure.md cite a Node or Next.js major
+# Fails if README.md / docs/03-development/project-structure.md cite a Node or Next.js major
 # version that no longer matches frontend/package.json. Run from repo root.
 set -euo pipefail
 
@@ -15,13 +15,13 @@ if ! grep -qE "Node\.js ${node_major}\.x" README.md; then
     fail=1
 fi
 
-if ! grep -qE "Next\.js ${next_major}" docs/project-structure.md; then
-    echo "docs/project-structure.md doesn't mention Next.js ${next_major} — frontend/package.json now pins that major. Update the Framework row."
+if ! grep -qE "Next\.js ${next_major}" docs/03-development/project-structure.md; then
+    echo "docs/03-development/project-structure.md doesn't mention Next.js ${next_major} — frontend/package.json now pins that major. Update the Framework row."
     fail=1
 fi
 
 if [ "$fail" -eq 0 ]; then
-    echo "README.md and docs/project-structure.md are in sync with Node ${node_major}.x / Next.js ${next_major}."
+    echo "README.md and docs/03-development/project-structure.md are in sync with Node ${node_major}.x / Next.js ${next_major}."
 fi
 
 exit "$fail"
