@@ -75,7 +75,9 @@ jobs:
               await github.rest.issues.addLabels({ owner, repo, issue_number: number, labels: toAdd });
             }
             for (const name of toRemove) {
-              await github.rest.issues
-                .removeLabel({ owner, repo, issue_number: number, name })
-                .catch(() => {});
+              try {
+                await github.rest.issues.removeLabel({ owner, repo, issue_number: number, name });
+              } catch (error) {
+                if (error.status !== 404) throw error;
+              }
             }
