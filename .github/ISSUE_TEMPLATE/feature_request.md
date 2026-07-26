@@ -2,7 +2,6 @@
 name: Feature Request
 about: Planned or proposed new functionality
 title: ''
-labels: enhancement
 ---
 
 ## Background
@@ -26,9 +25,22 @@ log output, or before/after comparison — not vague ("works correctly") unless 
 what "correctly" actually means here. -->
 - [ ]
 
+## Type
+<!-- Select something by placing an x or X inside a bracket.
+    Select one. Automatically applies "type: enhancement" or "type: feature" label. -->
+- [ ] Enhancement — improves or extends an existing feature.
+- [ ] New feature — adds functionality that doesn't exist yet.
+
+## Priority
+<!-- Select one. Automatically applies "priority:" label.-->
+- [ ] Critical — urgent fix: a core feature is broken, fix right now.
+- [ ] High — blocks other work/testing, or has a near-term deadline.
+- [ ] Medium — standard work, a minor bug with an easy workaround, or next up after high-priority items.
+- [ ] Low — nice-to-have, distant goal, or minor typo.
+
 ## Area(s) Touched
-<!-- Check all that apply — automatically applies matching labels, re-synced on every edit.
-A best guess is fine; this gets corrected during triage if wrong. -->
+<!-- Automatically applies matching "scope:"/"type:" labels, re-synced on every edit.
+    Select one or many. A best guess is fine; this gets corrected during triage if wrong. -->
 **Product areas**
 - [ ] auth — sign-in, sessions, NextAuth, role-based access
 - [ ] admin — /admin shell (Diagnostics, Users, Import, Export tabs)

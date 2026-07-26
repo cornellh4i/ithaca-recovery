@@ -1,37 +1,97 @@
-# Area labels applied automatically from the "Area(s) Touched" checklist in the PR/issue
-# templates -- see .github/workflows/label-from-checklist.yml. This file only owns those
-# area labels, not GitHub's/Dependabot's defaults (bug, enhancement, dependencies, etc.) --
-# the sync workflow runs with skip-delete so it never touches labels outside this list.
-- name: auth
+# Labels are grouped by category prefix ("type:", "scope:", "priority:", "status:"). "type:",
+# "scope:", and "priority:" labels are applied automatically from checkbox sections in the
+# issue/PR templates -- see .github/workflows/label-from-checklist.yml. "status:" labels are
+# applied manually during triage since an issue's status changes over its lifetime and can't be
+# known at filing time.
+#
+# `from:` renames an existing label in place so issues/PRs that already carry the old name (e.g.
+# "bug", "auth") keep it under the new name instead of losing it. The sync workflow runs with
+# skip-delete, so labels not listed here (GitHub/Dependabot defaults like "good first issue",
+# "dependencies") are left alone.
+
+# --- Type ---
+- name: "type: bug"
+  from: bug
+  color: "d73a4a"
+  description: Something isn't working correctly.
+- name: "type: feature"
+  from: enhancement
+  color: "a2eeef"
+  description: New product functionality or additions.
+- name: "type: enhancement"
+  color: "1d76db"
+  description: Improves or extends an existing feature.
+- name: "type: documentation"
+  from: documentation
+  color: "0075ca"
+  description: Improvements or additions to documentation.
+- name: "type: maintenance"
+  from: cleanup
+  color: "7057ff"
+  description: Refactoring, dependencies, or code cleanup, no behavior change.
+
+# --- Scope (areas touched) ---
+- name: "scope: auth"
+  from: auth
   color: "5319E7"
   description: Sign-in, sessions, NextAuth, role-based access
-- name: admin
+- name: "scope: admin"
+  from: admin
   color: "0052CC"
   description: "/admin shell — Diagnostics, Users, Import, Export tabs"
-- name: google-calendar
+- name: "scope: google-calendar"
+  from: google-calendar
   color: "4285F4"
   description: Google Calendar sync (services/googleCalendar.ts)
-- name: zoom-api
+- name: "scope: zoom-api"
+  from: zoom-api
   color: "2D8CFF"
   description: Zoom meeting/host sync (services/zoom.ts)
-- name: documentation
-  color: "0075CA"
-  description: docs/ or README changes only
-- name: cleanup
-  color: "C5DEF5"
-  description: Refactor or dead-code removal, no behavior change
-- name: billing
+- name: "scope: billing"
+  from: billing
   color: "B60205"
   description: Lease export, XLSX import, anything affecting invoicing
-- name: ui/ux
+- name: "scope: ui/ux"
+  from: ui/ux
   color: "D93F0B"
   description: Frontend layout/styling not tied to a specific integration
-- name: security
+- name: "scope: security"
+  from: security
   color: "E99695"
   description: Auth hardening, data exposure, dependency/security scanning
-- name: testing
+- name: "scope: testing"
+  from: testing
   color: "0E8A16"
   description: Test suite (Jest/Playwright) changes
-- name: github-actions
+- name: "scope: github-actions"
+  from: github-actions
   color: "24292E"
   description: Workflows, Dependabot config, other .github/ CI tooling
+
+# --- Priority ---
+- name: "priority: critical"
+  color: "b60205"
+  description: "Urgent fixes: a core feature is broken, fix right now."
+- name: "priority: high"
+  color: "ff4400"
+  description: "Blockers or close deadlines: stops other work, or due very soon."
+- name: "priority: medium"
+  color: "fef2c0"
+  description: "Standard work, a minor bug with an easy workaround, or next up after high-priority items."
+- name: "priority: low"
+  color: "cfd3d7"
+  description: "Nice-to-have, distant goal, or minor typo."
+
+# --- Status (applied manually during triage, not from a template checklist) ---
+- name: "status: triage"
+  color: "e99695"
+  description: Needs review or categorization.
+- name: "status: in-progress"
+  color: "fef2c0"
+  description: Active development has started.
+- name: "status: blocked"
+  color: "000000"
+  description: Waiting on another task or decision.
+- name: "status: review-needed"
+  color: "fbca04"
+  description: Waiting for peer or maintainer review.

@@ -11,20 +11,42 @@ permissions:
   issues: write
 
 jobs:
-  sync-area-labels:
+  sync-checklist-labels:
     runs-on: ubuntu-latest
     steps:
-      # Checked boxes under "Area(s) Touched" drive labels directly from the PR/issue body --
-      # re-run on every edit (not just open) so unchecking a box removes its label too. Only
-      # ever adds/removes labels from the fixed AREAS list below, never touches type labels
-      # (bug/enhancement) or anything else already on the issue/PR.
-      - name: Sync area labels from checklist
+      # Checked boxes in the templates drive labels directly from the PR/issue body -- re-run on
+      # every edit (not just open) so unchecking a box removes its label too. A single {text,
+      # label} list covers both true multi-select sections (Area(s) Touched) and single-select
+      # ones (Type, Priority): GitHub checkboxes can't enforce mutual exclusivity on their own, so
+      # the template just documents "select one" and this script mirrors whatever is checked.
+      # Only ever adds/removes labels from the MAPPINGS list below, never touches labels applied
+      # elsewhere (status:, good first issue, etc).
+      - name: Sync checklist labels
         uses: actions/github-script@v7
         with:
           script: |
-            const AREAS = [
-              'auth', 'admin', 'google-calendar', 'zoom-api', 'documentation',
-              'cleanup', 'billing', 'ui/ux', 'security', 'testing', 'github-actions',
+            const MAPPINGS = [
+              // Area(s) Touched -- Product areas / Integrations
+              { text: 'auth', label: 'scope: auth' },
+              { text: 'admin', label: 'scope: admin' },
+              { text: 'billing', label: 'scope: billing' },
+              { text: 'ui/ux', label: 'scope: ui/ux' },
+              { text: 'google-calendar', label: 'scope: google-calendar' },
+              { text: 'zoom-api', label: 'scope: zoom-api' },
+              // Area(s) Touched -- Engineering
+              { text: 'security', label: 'scope: security' },
+              { text: 'testing', label: 'scope: testing' },
+              { text: 'github-actions', label: 'scope: github-actions' },
+              { text: 'cleanup', label: 'type: maintenance' },
+              { text: 'documentation', label: 'type: documentation' },
+              // Type (Feature Request / Epic templates)
+              { text: 'Enhancement', label: 'type: enhancement' },
+              { text: 'New feature', label: 'type: feature' },
+              // Priority (Feature Request / Bug Report / Epic templates)
+              { text: 'Critical', label: 'priority: critical' },
+              { text: 'High', label: 'priority: high' },
+              { text: 'Medium', label: 'priority: medium' },
+              { text: 'Low', label: 'priority: low' },
             ];
 
             const item = context.payload.pull_request ?? context.payload.issue;
@@ -32,20 +54,22 @@ jobs:
             const number = item.number;
             const { owner, repo } = context.repo;
 
-            const checked = AREAS.filter((area) => {
-              const escaped = area.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const checkedLabels = MAPPINGS.filter(({ text }) => {
+              const escaped = text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
               return new RegExp(`^\\s*[-*]\\s*\\[[xX]\\]\\s*${escaped}\\b`, 'mi').test(body);
-            });
+            }).map(({ label }) => label);
+
+            const managedLabels = MAPPINGS.map(({ label }) => label);
 
             const { data: current } = await github.rest.issues.listLabelsOnIssue({
               owner,
               repo,
               issue_number: number,
             });
-            const currentAreaLabels = current.map((l) => l.name).filter((n) => AREAS.includes(n));
+            const currentManagedLabels = current.map((l) => l.name).filter((n) => managedLabels.includes(n));
 
-            const toAdd = checked.filter((a) => !currentAreaLabels.includes(a));
-            const toRemove = currentAreaLabels.filter((a) => !checked.includes(a));
+            const toAdd = checkedLabels.filter((l) => !currentManagedLabels.includes(l));
+            const toRemove = currentManagedLabels.filter((l) => !checkedLabels.includes(l));
 
             if (toAdd.length) {
               await github.rest.issues.addLabels({ owner, repo, issue_number: number, labels: toAdd });
