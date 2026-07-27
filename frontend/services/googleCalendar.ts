@@ -83,8 +83,9 @@ const modeTitleSuffix: Record<string, string> = {
     Remote: "Zoom Only",
 };
 
-const MEETING_LOCATION_URL =
-    "https://maps.google.com/maps?hl=en&q=518%20W%20Seneca%20St%2C%20Ithaca%2C%20NY%2014850%2C%20USA";
+// MEETING_LOCATION used for public-facing Google Calendars only,
+// Zoom Room calendars pass their own join link.
+const MEETING_LOCATION = "518 W Seneca St, Ithaca, NY 14850";
 
 function buildEventTitle(meeting: IMeeting): string {
     const suffix = modeTitleSuffix[meeting.modeType];
@@ -95,17 +96,20 @@ function buildEventTitle(meeting: IMeeting): string {
 // joinable meeting from the location field, not the description.
 function buildEventBody(meeting: IMeeting, locationOverride?: string) {
     const descriptionLines = [
-        meeting.description,
         meeting.calType?.length ? `Type: ${meeting.calType.join(', ')}` : null,
         meeting.modeType ? `Mode: ${meeting.modeType}` : null,
         meeting.room ? `Room: ${meeting.room}` : null,
         meeting.zoomLink ? `Zoom: ${meeting.zoomLink}` : null,
-    ].filter(Boolean);
+].filter(Boolean);
+if (meeting.description) {
+    if (descriptionLines.length) descriptionLines.push("");
+    descriptionLines.push(`Description: ${meeting.description}`);
+}
 
     const event: Record<string, unknown> = {
         summary: buildEventTitle(meeting),
         description: descriptionLines.join("\n"),
-        location: locationOverride ?? MEETING_LOCATION_URL,
+        location: locationOverride ?? MEETING_LOCATION,
         start: { dateTime: new Date(meeting.startDateTime).toISOString(), timeZone: "America/New_York" },
         end: { dateTime: new Date(meeting.endDateTime).toISOString(), timeZone: "America/New_York" },
     };
