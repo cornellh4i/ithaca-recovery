@@ -2,10 +2,8 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import styles from "./page.module.scss";
 import CalendarNavbar from "../components/organisms/CalendarNavbar";
-import CalendarSidebar from "../components/organisms/CalendarSidebar";
-import SignInPrompt from "../components/organisms/SignInPrompt";
+import CalendarSidebarShell from "../components/organisms/CalendarSidebarShell";
 import ViewMeetingDetails from "../components/organisms/ViewMeeting";
-import EditMeetingSidebar from "../components/organisms/EditMeeting";
 import DailyView from "../components/organisms/DailyView";
 import WeeklyView from "../components/organisms/WeeklyView";
 
@@ -242,31 +240,18 @@ export default function HomePage() {
   return (
     <div className={styles.container}>
       {isSidebarOpen && (
-        <div
-          className={styles.sidebar}
-          style={isViewMeetingOpen ? { overflowY: 'hidden' } : undefined}
-        >
-          {isLoggedIn === null ? null : !isLoggedIn ? (
-            <SignInPrompt />
-          ) : showEditMeeting && selectedMeeting ? (
-              <EditMeetingSidebar
-                meeting={selectedMeeting}
-                onClose={handleCloseEdit}
-                onUpdateSuccess={() => {
-                  console.log("Meeting updated!");
-                  triggerCalendarRefresh();
-                }}
-              />) : (
-                <CalendarSidebar
-                  filters={filters}
-                  setFilters={setFilters}
-                  selectedDate={selectedDate}
-                  setSelectedDate={setSelectedDate}
-                  selectedView={selectedView}
-                  triggerCalendarRefresh={triggerCalendarRefresh}
-                />
-              )}
-        </div>
+        <CalendarSidebarShell
+          isLoggedIn={isLoggedIn}
+          filters={filters}
+          setFilters={setFilters}
+          selectedDate={selectedDate}
+          setSelectedDate={setSelectedDate}
+          selectedView={selectedView}
+          triggerCalendarRefresh={triggerCalendarRefresh}
+          selectedMeeting={selectedMeeting}
+          showEditMeeting={showEditMeeting}
+          onCloseEdit={handleCloseEdit}
+        />
       )}
       {selectedMeeting && !showEditMeeting && (
         <ViewMeetingDetails
