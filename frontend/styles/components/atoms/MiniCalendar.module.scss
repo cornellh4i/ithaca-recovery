@@ -11,12 +11,10 @@
 
     // box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     z-index: 999; // Increased z-index to ensure visibility
-    // .sidebar (page.module.scss) uses the default content-box sizing, so its own
-    // `width: 280px` already *is* its content area -- sibling cards (New Meeting button,
-    // Location/Zoom Rooms filter panel) are plain width:auto blocks that fill exactly that
-    // 280px. Matching it here with a fixed width (rather than width: 100%, which depends on
-    // whatever this happens to be nested inside) is what actually lines this up with them.
-    width: 280px;
+    // Flexible so this also fits the 196px compact-rail flyout, not just the 280px full
+    // sidebar -- the --rdp-day-width vars below still target the 280px case (table-layout:
+    // fixed on .rdp-month_grid shrinks the columns proportionally in the narrower flyout).
+    width: 100%;
     box-sizing: border-box;
 
     span {

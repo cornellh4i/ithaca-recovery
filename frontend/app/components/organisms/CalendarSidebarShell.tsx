@@ -6,6 +6,7 @@ import CalendarSidebar from "./CalendarSidebar";
 import CompactCalendarSidebar from "./CompactCalendarSidebar";
 import IconButton from "../atoms/IconButton";
 import { useSidebar } from "../../context/SidebarContext";
+import { useBreakpoint } from "../../../hooks/useBreakpoint";
 import { IMeeting } from "../../../util/models";
 import { MeetingFilters } from "../../../util/meetingFilters";
 
@@ -36,6 +37,7 @@ const CalendarSidebarShell: React.FC<CalendarSidebarShellProps> = ({
 }) => {
   const { isCompact, collapseSidebar, expandSidebar } = useSidebar();
   const [isNewMeetingOpen, setIsNewMeetingOpen] = useState(false);
+  useBreakpoint(collapseSidebar);
 
   // Switching Day/Week view backs out of the New Meeting form, back to the standard sidebar.
   useEffect(() => {
@@ -67,13 +69,12 @@ const CalendarSidebarShell: React.FC<CalendarSidebarShellProps> = ({
       className={styles.sidebar}
       style={isRailCompact ? { width: 64, padding: "10px 0" } : undefined}
     >
-      <div
-        className={styles.sidebarScroll}
-        style={isViewMeetingOpen ? { overflowY: "hidden" } : undefined}
-      >
-        {isLoggedIn === null ? null : !isLoggedIn ? (
+      {isLoggedIn === null ? null : !isLoggedIn ? (
+        <div className={styles.sidebarScroll}>
           <SignInPrompt />
-        ) : showEditMeeting && selectedMeeting ? (
+        </div>
+      ) : showEditMeeting && selectedMeeting ? (
+        <div className={styles.sidebarScroll} style={isViewMeetingOpen ? { overflowY: "hidden" } : undefined}>
           <EditMeetingSidebar
             meeting={selectedMeeting}
             onClose={onCloseEdit}
@@ -82,9 +83,24 @@ const CalendarSidebarShell: React.FC<CalendarSidebarShellProps> = ({
               triggerCalendarRefresh();
             }}
           />
-        ) : isCompact ? (
-          <CompactCalendarSidebar />
-        ) : (
+        </div>
+      ) : isCompact ? (
+        // Not wrapped in .sidebarScroll -- that div's overflow-y: auto forces overflow-x to
+        // compute as auto too (same clipping quirk as the toggle button's tooltip, see
+        // .sidebar's comment in page.module.scss), which would clip the rail's flyouts where
+        // they pop out past the 64px rail's right edge.
+        <CompactCalendarSidebar
+          filters={filters}
+          handleFilterChange={handleFilterChange}
+          selectedDate={selectedDate}
+          handleMiniCalendarSelect={handleMiniCalendarSelect}
+          onOpenNewMeeting={() => {
+            expandSidebar();
+            setIsNewMeetingOpen(true);
+          }}
+        />
+      ) : (
+        <div className={styles.sidebarScroll} style={isViewMeetingOpen ? { overflowY: "hidden" } : undefined}>
           <CalendarSidebar
             filters={filters}
             isNewMeetingOpen={isNewMeetingOpen}
@@ -95,8 +111,8 @@ const CalendarSidebarShell: React.FC<CalendarSidebarShellProps> = ({
             selectedView={selectedView}
             triggerCalendarRefresh={triggerCalendarRefresh}
           />
-        )}
-      </div>
+        </div>
+      )}
       {showSidebarToggle && (
         <div className={styles.sidebarToggleWrapper}>
           <IconButton
