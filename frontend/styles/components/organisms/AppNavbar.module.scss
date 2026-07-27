@@ -37,26 +37,6 @@
     gap: 8px;
 }
 
-.sidebarToggleWrapper {
-    position: relative;
-    display: inline-flex;
-    align-items: center;
-
-    &:hover .tooltip,
-    &:focus-within .tooltip {
-        opacity: 1;
-        visibility: visible;
-    }
-
-    // This trigger sits at the far left edge of the screen, so the shared .tooltip rule's
-    // centered left:50%/translateX(-50%) would push it off-screen -- anchor to the left
-    // edge of the button instead of centering under it.
-    .tooltip {
-        left: 0;
-        transform: none;
-    }
-}
-
 .sidebarToggleButton {
     color: $black-color;
 
@@ -107,16 +87,6 @@
             }
         }
 
-        &.navTooltipWrapper {
-            position: relative;
-
-            &:hover .tooltip,
-            &:focus-within .tooltip {
-                opacity: 1;
-                visibility: visible;
-            }
-        }
-
         .navLocked {
             display: inline-flex;
             align-items: center;
@@ -162,28 +132,6 @@
 .lockIcon {
     width: 14px;
     height: 14px;
-}
-
-.tooltip {
-    position: absolute;
-    top: 100%;
-    left: 50%;
-    transform: translateX(-50%);
-    margin-top: 6px;
-    padding: 4px 8px;
-    border-radius: 4px;
-    background-color: $black-color;
-    color: #fff;
-    font-size: 12px;
-    width: max-content;
-    max-width: 220px;
-    text-align: center;
-    line-height: 1.4;
-    opacity: 0;
-    visibility: hidden;
-    transition: opacity 0.15s ease;
-    pointer-events: none;
-    z-index: 10;
 }
 
 .accountGroup {

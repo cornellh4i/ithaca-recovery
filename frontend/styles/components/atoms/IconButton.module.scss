@@ -36,6 +36,17 @@
     }
 }
 
+.outlined {
+    background-color: #fff;
+    border: 1px solid $grey-border-color;
+    border-radius: 50%;
+
+    &:hover,
+    &:focus {
+        background-color: $grey-lightest-color;
+    }
+}
+
 .iconWrap {
     display: inline-flex;
     align-items: center;
@@ -53,38 +64,4 @@
 .compact .iconWrap {
     width: 18px;
     height: 18px;
-}
-
-.tooltipWrapper {
-    position: relative;
-    display: inline-flex;
-    align-items: center;
-
-    &:hover .tooltip,
-    &:focus-within .tooltip {
-        opacity: 1;
-        visibility: visible;
-    }
-}
-
-.tooltip {
-    position: absolute;
-    top: 100%;
-    left: 50%;
-    transform: translateX(-50%);
-    margin-top: 6px;
-    padding: 4px 8px;
-    border-radius: 4px;
-    background-color: $black-color;
-    color: #fff;
-    font-size: 12px;
-    width: max-content;
-    max-width: 220px;
-    text-align: center;
-    line-height: 1.4;
-    opacity: 0;
-    visibility: hidden;
-    transition: opacity 0.15s ease;
-    pointer-events: none;
-    z-index: 10;
 }

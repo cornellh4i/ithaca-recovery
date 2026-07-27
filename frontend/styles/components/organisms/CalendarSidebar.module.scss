@@ -7,15 +7,3 @@
   background: #FFF;
   color: rgb(0 0 0);
 }
-
-// No position/height rules here on purpose -- the button's containing block is
-// the outer .sidebar (page.module.scss), which is what actually has the fixed,
-// viewport-matched height. Anchoring to a wrapper in here instead would center
-// the button against the scrollable content's full height rather than the
-// visible sidebar area.
-.collapseButtonWrapper {
-  position: absolute;
-  top: 50%;
-  right: 0;
-  transform: translateY(-50%);
-}

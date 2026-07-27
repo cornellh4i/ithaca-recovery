@@ -1,8 +1,5 @@
-// No position/height rules on .rail on purpose -- see CalendarSidebar.module.scss's
-// .collapseButtonWrapper comment. The containing block is the outer .sidebar.
-.expandButtonWrapper {
-  position: absolute;
-  top: 50%;
-  right: 0;
-  transform: translateY(-50%);
+.rail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }

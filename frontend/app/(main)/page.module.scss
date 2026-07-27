@@ -1,3 +1,5 @@
+@import '../../styles/Variables.module.scss';
+
 .container {
   display: flex;
   height: 100%;
@@ -9,8 +11,30 @@
   width: 280px;
   background-color: #ffffff;
   padding: 10px;
-  min-height: 0; // lets the flex item shrink so overflow-y actually scrolls
+  min-height: 0; // lets the flex item shrink so .sidebarScroll's height: 100% is bounded
+  // No overflow here on purpose -- overflow-y auto/hidden forces overflow-x to compute as
+  // auto too (CSS can't mix visible with non-visible per-axis), which would clip the toggle
+  // button's tooltip where it pokes past the sidebar's right edge. Scrolling instead lives
+  // on .sidebarScroll below, so this box (and the button that's a sibling of that div) stays
+  // unclipped.
+}
+
+.sidebarScroll {
+  height: 100%;
   overflow-y: auto;
+}
+
+.sidebarToggleWrapper {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  transform: translateY(-50%);
+  // `transform` establishes a new stacking context, which traps the tooltip's own z-index
+  // inside it -- without an explicit z-index here too, this wrapper paints in plain DOM
+  // order at the root stacking context, so .primaryCalendar's content (which comes later
+  // in the DOM) paints over it regardless of the tooltip's z-index. An explicit z-index
+  // promotes the whole wrapper (tooltip included) above that plain in-flow content.
+  z-index: $z-index-dropdown;
 }
 
 .primaryCalendar {
