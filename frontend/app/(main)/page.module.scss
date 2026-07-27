@@ -4,6 +4,8 @@
 }
 
 .sidebar {
+  position: relative; // anchors the collapse/expand chevron to the visible viewport,
+                       // not to whatever height the scrollable content grows to
   width: 280px;
   background-color: #ffffff;
   padding: 10px;

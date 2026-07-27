@@ -3,6 +3,8 @@ import styles from "../../(main)/page.module.scss";
 import SignInPrompt from "./SignInPrompt";
 import EditMeetingSidebar from "./EditMeeting";
 import CalendarSidebar from "./CalendarSidebar";
+import CompactCalendarSidebar from "./CompactCalendarSidebar";
+import { useSidebar } from "../../context/SidebarContext";
 import { IMeeting } from "../../../util/models";
 import { MeetingFilters } from "../../../util/meetingFilters";
 
@@ -31,6 +33,7 @@ const CalendarSidebarShell: React.FC<CalendarSidebarShellProps> = ({
   showEditMeeting,
   onCloseEdit,
 }) => {
+  const { isCompact } = useSidebar();
   const [isNewMeetingOpen, setIsNewMeetingOpen] = useState(false);
 
   // Switching Day/Week view backs out of the New Meeting form, back to the standard sidebar.
@@ -50,10 +53,17 @@ const CalendarSidebarShell: React.FC<CalendarSidebarShellProps> = ({
   // sidebar while it's open just fights that anchoring instead of being useful.
   const isViewMeetingOpen = !!(selectedMeeting && !showEditMeeting);
 
+  // Editing always shows the full-width form, regardless of the last compact/expanded choice.
+  const isEditing = showEditMeeting && !!selectedMeeting;
+  const isRailCompact = isLoggedIn === true && !isEditing && isCompact;
+
   return (
     <div
       className={styles.sidebar}
-      style={isViewMeetingOpen ? { overflowY: "hidden" } : undefined}
+      style={{
+        ...(isViewMeetingOpen ? { overflowY: "hidden" } : {}),
+        ...(isRailCompact ? { width: 64, padding: "10px 0" } : {}),
+      }}
     >
       {isLoggedIn === null ? null : !isLoggedIn ? (
         <SignInPrompt />
@@ -66,6 +76,8 @@ const CalendarSidebarShell: React.FC<CalendarSidebarShellProps> = ({
             triggerCalendarRefresh();
           }}
         />
+      ) : isCompact ? (
+        <CompactCalendarSidebar />
       ) : (
         <CalendarSidebar
           filters={filters}
