@@ -17,4 +17,11 @@ $link-color: #007BFF;
 $warning-bg-color: #FDF3DC;
 $warning-text-color: #B4790A;
 
+// Responsive breakpoints. $breakpoint-tablet (768px) is also the value MeetingForm.module.scss
+// already uses in its own media query — same threshold, not a conflict, just worth knowing
+// they now overlap in purpose. Kept in sync manually with util/breakpoints.ts (Sass vars
+// aren't importable into TS).
+$breakpoint-phone: 480px;
+$breakpoint-tablet: 768px;
+
 @import 'https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400&display=swap';
