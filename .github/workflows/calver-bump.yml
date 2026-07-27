@@ -1,0 +1,49 @@
+name: CalVer Version Bump
+
+on:
+  schedule:
+    - cron: "0 9 1 * *" # 1st of each month
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  bump-version:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Compute new CalVer version
+        id: version
+        run: |
+          CURRENT=$(grep -oP '"version": "\K[^"]+' frontend/package.json)
+          CURRENT_YM="${CURRENT%.*}"
+          NEW_YM="$(date -u +%Y).$(date -u +%-m)"
+          echo "current=$CURRENT" >> "$GITHUB_OUTPUT"
+          echo "new=$NEW_YM.0" >> "$GITHUB_OUTPUT"
+          if [ "$CURRENT_YM" != "$NEW_YM" ]; then
+            echo "should_bump=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "should_bump=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Update package.json version
+        if: steps.version.outputs.should_bump == 'true'
+        run: |
+          sed -i 's/"version": "[^"]*"/"version": "${{ steps.version.outputs.new }}"/' frontend/package.json
+
+      - name: Open PR
+        if: steps.version.outputs.should_bump == 'true'
+        uses: peter-evans/create-pull-request@v8
+        with:
+          commit-message: "chore(release): bump version to ${{ steps.version.outputs.new }}"
+          title: "chore(release): bump version to ${{ steps.version.outputs.new }}"
+          body: |
+            Monthly CalVer bump: `${{ steps.version.outputs.current }}` -> `${{ steps.version.outputs.new }}`.
+
+            Patch resets to `0` at the start of each month. Bump it manually (e.g. `2026.8.1`)
+            for any additional release within the same month.
+          branch: calver-bump
+          labels: infra
