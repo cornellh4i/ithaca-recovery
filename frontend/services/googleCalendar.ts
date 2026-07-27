@@ -100,9 +100,16 @@ function buildEventBody(meeting: IMeeting, locationOverride?: string) {
         meeting.modeType ? `Mode: ${meeting.modeType}` : null,
         meeting.room ? `Room: ${meeting.room}` : null,
         meeting.zoomLink ? `Zoom: ${meeting.zoomLink}` : null,
-        " ",
-        meeting.description ? `Description: ${meeting.description}` : null
-    ].filter(Boolean);
+const descriptionLines = [
+    meeting.calType?.length ? `Type: ${meeting.calType.join(', ')}` : null,
+    meeting.modeType ? `Mode: ${meeting.modeType}` : null,
+    meeting.room ? `Room: ${meeting.room}` : null,
+    meeting.zoomLink ? `Zoom: ${meeting.zoomLink}` : null,
+].filter(Boolean);
+if (meeting.description) {
+    if (descriptionLines.length) descriptionLines.push("");
+    descriptionLines.push(`Description: ${meeting.description}`);
+}
 
     const event: Record<string, unknown> = {
         summary: buildEventTitle(meeting),
