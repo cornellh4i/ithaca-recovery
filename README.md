@@ -43,6 +43,9 @@
     <li>
       <a href="#developers">Developers</a> 
     </li> 
+    <li>
+      <a href="#versioning">Versioning</a>
+    </li>
   </ol> 
 </details>
 
@@ -85,6 +88,7 @@ Everything under [`.github/`](.github/) runs automatically on push/PR to `master
 * [`workflows/test.yml`](.github/workflows/test.yml) — lint, unit, integration, Playwright e2e (see [Running Tests](`#running-tests`) below), and a `doc-freshness` job that fails if README.md / `docs/03-development/project-structure.md` cite a Node or Next.js major version that no longer matches `frontend/package.json` (via [`.github/scripts/check-doc-versions.sh`](.github/scripts/check-doc-versions.sh))
 * [`workflows/codeql.yml`](.github/workflows/codeql.yml) — CodeQL static analysis for security vulnerabilities, on every PR plus a weekly scheduled scan
 * [`workflows/bump-node-version.yml`](.github/workflows/bump-node-version.yml) — monthly check for a new Node.js Active LTS release; opens a PR bumping `.nvmrc`/`package.json`/`test.yml` if one exists (Vercel's supported versions still need a manual check before merging)
+* [`workflows/calver-bump.yml`](.github/workflows/calver-bump.yml) — monthly CalVer bump (see [Versioning](#versioning)); opens a PR resetting `PATCH` to `0` on the 1st of each month
 * [`dependabot.yml`](.github/dependabot.yml) + [`workflows/dependabot-auto-merge.yml`](.github/workflows/dependabot-auto-merge.yml) — weekly dependency-update PRs; the `safe-updates` group (patch- and minor-level bumps, prod or dev) auto-merges once CI is green — major bumps and all GitHub Actions bumps are left for manual review, since those are the ones most likely to carry breaking changes CI doesn't always catch
 
 ### Prerequisites
@@ -160,6 +164,11 @@ See [`docs/03-development/testing/README.md`](docs/03-development/testing/README
   - Sanya Mahajan
   - Srija Ghosh
 </details>
+
+<!-- Versioning -->
+## Versioning
+
+This project uses [CalVer](https://calver.org/) (`YYYY.MM.PATCH`). For a detailed history of changes about across versions, please refer to our [release notes](https://github.com/cornellh4i/ithaca-recovery/releases/).
 
 <!-- MARKDOWN LINKS & IMAGES -->
 <!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
