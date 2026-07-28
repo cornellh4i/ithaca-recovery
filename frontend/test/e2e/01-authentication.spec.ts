@@ -28,8 +28,16 @@ test("1.6 session persists across a page reload", async ({ adminPage }) => {
 test("1.7 Sign Out clears the session and reverts to the signed-out view", async ({ adminPage }) => {
   const { page } = adminPage;
   await page.goto("/");
+  
+  // 1. Click the user profile avatar button to open the flyout
+  await expect(page.getByRole("button", { name: "User menu" })).toBeVisible();
+  await page.getByRole("button", { name: "User menu" }).click();
+
+  // 2. Click the "Sign Out" button inside the opened flyout
   await expect(page.getByRole("button", { name: "Sign Out" })).toBeVisible();
   await page.getByRole("button", { name: "Sign Out" }).click();
+
+  // 3. Verify it reverts to the signed-out view
   await expect(page.getByRole("link", { name: "Sign In" })).toBeVisible();
 });
 

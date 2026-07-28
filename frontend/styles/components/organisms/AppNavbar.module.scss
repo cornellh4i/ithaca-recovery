@@ -26,7 +26,7 @@
     align-items: center;
     justify-content: space-between;
     width: 100%;
-    padding-right: 24px;
+    padding-right: 12px;
     box-sizing: border-box;
 }
 
@@ -160,9 +160,23 @@
   gap: 12px;
   padding-bottom: 12px;
 }
+.profileButton {
+  background: none; 
+  border: none; 
+  padding: 0; 
+  cursor: pointer;
+}
 
-.flyoutAvatar,
-.flyoutAvatarFallback {
+.avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.cardAvatar,
+.avatarFallback {
   width: 40px;
   height: 40px;
   border-radius: 50%;
@@ -170,9 +184,9 @@
   flex-shrink: 0;
 }
 
-.flyoutAvatarFallback {
-  background-color: #fce7f3; // Soft pink fallback matching your screenshot
-  color: #9d174d;
+.avatarFallback {
+  background-color: color-mix(in srgb, $dark-pink-color 35%, transparent);
+  color: $dark-pink-color;
   display: flex;
   align-items: center;
   justify-content: center;
