@@ -5,14 +5,19 @@ import { TABLET_BREAKPOINT } from "../util/breakpoints";
 // One-way trigger: it only ever calls collapseSidebar() on a downward crossing, never
 // fights a manual expandSidebar() afterward (e.g. widening back past the threshold does
 // not auto re-expand, and narrowing again while already compact is a no-op call).
-export function useBreakpoint(collapseSidebar: () => void): void {
+export function useBreakpoint(collapseSidebar: () => void, expandSidebar: () => void): void {
   useEffect(() => {
     let wasAboveThreshold = window.innerWidth >= TABLET_BREAKPOINT;
+    if (!wasAboveThreshold) {  
+      collapseSidebar();  
+    }  
 
     const handleResize = () => {
       const isAboveThreshold = window.innerWidth >= TABLET_BREAKPOINT;
       if (wasAboveThreshold && !isAboveThreshold) {
         collapseSidebar();
+      } else if (!wasAboveThreshold && isAboveThreshold) {
+        expandSidebar();
       }
       wasAboveThreshold = isAboveThreshold;
     };

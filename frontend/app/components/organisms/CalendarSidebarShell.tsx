@@ -62,7 +62,7 @@ const CalendarSidebarShell: React.FC<CalendarSidebarShellProps> = ({
 }) => {
   const { isCompact, collapseSidebar, expandSidebar } = useSidebar();
   const [isNewMeetingOpen, setIsNewMeetingOpen] = useState(false);
-  useBreakpoint(collapseSidebar);
+  useBreakpoint(collapseSidebar, expandSidebar);
 
   // Drives the full <-> compact staggered cross-fade. renderedMode is the "live" (interactive)
   // variant; outgoingMode, when set, is the previous variant still mounted long enough to fade
@@ -154,13 +154,13 @@ const CalendarSidebarShell: React.FC<CalendarSidebarShellProps> = ({
   // sidebar while it's open just fights that anchoring instead of being useful.
   const isViewMeetingOpen = !!(selectedMeeting && !showEditMeeting);
 
-  // Editing always shows the full-width form, regardless of the last compact/expanded choice.
+  // New and Editing Meeting always shows the full-width form, regardless of the last compact/expanded choice.
   const isEditing = showEditMeeting && !!selectedMeeting;
-  const isRailCompact = isLoggedIn === true && !isEditing && isCompact;
+  const isRailCompact = isLoggedIn === true && !isEditing && !isNewMeetingOpen && isCompact;
 
   // SignInPrompt/EditMeetingSidebar have nothing to collapse -- the toggle only makes sense
   // once the full or compact CalendarSidebar is what's actually showing.
-  const showSidebarToggle = isLoggedIn === true && !isEditing;
+  const showSidebarToggle = isLoggedIn === true && !isEditing && !isNewMeetingOpen;
 
   return (
     <div
