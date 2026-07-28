@@ -123,6 +123,25 @@ const CalendarSidebarShell: React.FC<CalendarSidebarShellProps> = ({
     setIsNewMeetingOpen(false);
   }, [selectedView]);
 
+  // Opening New Meeting from the compact rail force-expands the sidebar (the form needs the
+  // full 280px width) -- stashedCompactRef remembers that this expand was forced rather than
+  // user-chosen, so closing the form can put the rail back instead of leaving it expanded.
+  // Edit Meeting doesn't need this: it overrides its own width via isRailCompact below without
+  // ever touching isCompact, so there's nothing to restore there.
+  const stashedCompactRef = useRef(false);
+  const wasNewMeetingOpenRef = useRef(isNewMeetingOpen);
+
+  useEffect(() => {
+    const wasOpen = wasNewMeetingOpenRef.current;
+    wasNewMeetingOpenRef.current = isNewMeetingOpen;
+    if (wasOpen && !isNewMeetingOpen && stashedCompactRef.current) {
+      collapseSidebar();
+    }
+    if (!isNewMeetingOpen) {
+      stashedCompactRef.current = false;
+    }
+  }, [isNewMeetingOpen, collapseSidebar]);
+
   const handleMiniCalendarSelect = (date: Date) => {
     setSelectedDate(date);
   };
@@ -215,6 +234,7 @@ const CalendarSidebarShell: React.FC<CalendarSidebarShellProps> = ({
                 selectedDate={selectedDate}
                 handleMiniCalendarSelect={handleMiniCalendarSelect}
                 onOpenNewMeeting={() => {
+                  stashedCompactRef.current = isCompact;
                   expandSidebar();
                   setIsNewMeetingOpen(true);
                 }}
