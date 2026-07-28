@@ -49,13 +49,29 @@
   overflow: hidden;
 }
 
-.sidebarLayerFading {
-  // Only the outgoing layer gets a transition property -- the incoming one snaps to visible
-  // immediately underneath it, so this fade-out (on top, via z-index) is what reads as a
-  // cross-fade without needing a separate fade-in animation for the incoming layer.
+.sidebarLayerOutgoing {
+  // Fades out immediately on toggle, no delay. The incoming layer (see
+  // .sidebarLayerEntering/.sidebarLayerEntered below) waits out a short delay before fading in,
+  // so the two never visibly cross-fade over each other -- there's a brief gap where neither is
+  // visible instead.
   opacity: 0;
-  transition: opacity 0.2s ease;
+  transition: opacity 0.12s ease;
   z-index: 1;
+}
+
+.sidebarLayerEntering {
+  // Pre-transition mount state for a freshly-swapped-in layer: opacity 0, no transition
+  // property yet. CSS transitions only animate a *change* observed after a paint -- mounting
+  // straight into .sidebarLayerEntered's opacity: 1 would leave nothing to animate from. See
+  // CalendarSidebarShell's double-rAF flip from this class to .sidebarLayerEntered.
+  opacity: 0;
+}
+
+.sidebarLayerEntered {
+  // Fades in only after .sidebarLayerOutgoing's fade-out (120ms) plus a short gap have passed,
+  // so the outgoing and incoming layers never overlap.
+  opacity: 1;
+  transition: opacity 0.12s ease 0.15s;
 }
 
 .sidebarToggleWrapper {

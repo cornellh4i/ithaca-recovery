@@ -23,13 +23,30 @@ interface CalendarSidebarShellProps {
   onCloseEdit: () => void;
 }
 
-// Matches the opacity transition duration set on .sidebarLayerFading in page.module.scss --
-// kept in sync manually (CSS durations aren't readable from JS) so the outgoing layer is
-// unmounted right as its fade-out finishes, not before (cutting the animation short) or
-// noticeably after (leaving a dead, already-invisible node around).
-const SIDEBAR_FADE_MS = 200;
+// Matches the staggered fade durations set on .sidebarLayerOutgoing/.sidebarLayerEntered in
+// page.module.scss -- kept in sync manually (CSS durations aren't readable from JS). The
+// outgoing layer fades out immediately (no delay); the incoming layer waits out the delay
+// before fading in, so there's a brief gap where neither is visible instead of the two
+// cross-fading over each other. The outgoing layer is unmounted once the whole sequence
+// (delay + incoming fade-in) has finished.
+const SIDEBAR_INCOMING_DELAY_MS = 150;
+const SIDEBAR_INCOMING_FADE_MS = 120;
+const SIDEBAR_TOTAL_TRANSITION_MS = SIDEBAR_INCOMING_DELAY_MS + SIDEBAR_INCOMING_FADE_MS;
 
 type SidebarMode = "full" | "compact";
+
+// Outgoing layers fade out immediately; the live layer fades in only once it's been flipped
+// past its pre-transition mount state (see the `entered` state in the component below).
+function sidebarLayerTransitionClass(
+  mode: SidebarMode,
+  renderedMode: SidebarMode,
+  outgoingMode: SidebarMode | null,
+  entered: boolean
+): string {
+  if (outgoingMode === mode) return styles.sidebarLayerOutgoing;
+  if (renderedMode === mode) return entered ? styles.sidebarLayerEntered : styles.sidebarLayerEntering;
+  return "";
+}
 
 const CalendarSidebarShell: React.FC<CalendarSidebarShellProps> = ({
   isLoggedIn,
@@ -47,29 +64,56 @@ const CalendarSidebarShell: React.FC<CalendarSidebarShellProps> = ({
   const [isNewMeetingOpen, setIsNewMeetingOpen] = useState(false);
   useBreakpoint(collapseSidebar);
 
-  // Drives the full <-> compact cross-fade. renderedMode is the "live" (interactive) variant;
-  // outgoingMode, when set, is the previous variant still mounted just long enough to fade out
-  // on top of it. Both use a stable `key` per mode (see render below) so React updates the
+  // Drives the full <-> compact staggered cross-fade. renderedMode is the "live" (interactive)
+  // variant; outgoingMode, when set, is the previous variant still mounted long enough to fade
+  // out on top of it. Both use a stable `key` per mode (see render below) so React updates the
   // existing DOM node's class instead of remounting it -- remounting would mean the node never
   // painted at opacity: 1 first, so there'd be nothing for the CSS transition to animate from.
+  //
+  // `entered` tracks whether the current renderedMode's layer has been flipped from its
+  // pre-transition mount state (opacity 0, no transition -- .sidebarLayerEntering) to its
+  // animating-in state (opacity 1, transition delayed by SIDEBAR_INCOMING_DELAY_MS --
+  // .sidebarLayerEntered). CSS transitions only animate a *change* observed after a paint, so a
+  // freshly-mounted layer has to sit at opacity 0 for a frame before switching classes, or there
+  // would be nothing for the browser to interpolate from.
   const [renderedMode, setRenderedMode] = useState<SidebarMode>(isCompact ? "compact" : "full");
   const [outgoingMode, setOutgoingMode] = useState<SidebarMode | null>(null);
-  const fadeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [entered, setEntered] = useState(true);
+  const outgoingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const enterRafRef = useRef<number[]>([]);
 
   useEffect(() => {
     const nextMode: SidebarMode = isCompact ? "compact" : "full";
     setRenderedMode((current) => {
       if (current === nextMode) return current;
       setOutgoingMode(current);
-      if (fadeTimeoutRef.current) clearTimeout(fadeTimeoutRef.current);
-      fadeTimeoutRef.current = setTimeout(() => setOutgoingMode(null), SIDEBAR_FADE_MS);
+      setEntered(false);
+      if (outgoingTimeoutRef.current) clearTimeout(outgoingTimeoutRef.current);
+      outgoingTimeoutRef.current = setTimeout(() => setOutgoingMode(null), SIDEBAR_TOTAL_TRANSITION_MS);
       return nextMode;
     });
   }, [isCompact]);
 
+  // Flips the incoming layer from its pre-transition mount state to its animating-in state one
+  // paint later. Double rAF (rather than a single one) reliably lands after React's commit has
+  // actually painted the opacity: 0 state, which a single rAF can sometimes race.
+  useEffect(() => {
+    if (entered) return;
+    const raf1 = requestAnimationFrame(() => {
+      const raf2 = requestAnimationFrame(() => setEntered(true));
+      enterRafRef.current.push(raf2);
+    });
+    enterRafRef.current.push(raf1);
+    return () => {
+      enterRafRef.current.forEach(cancelAnimationFrame);
+      enterRafRef.current = [];
+    };
+  }, [entered, renderedMode]);
+
   useEffect(
     () => () => {
-      if (fadeTimeoutRef.current) clearTimeout(fadeTimeoutRef.current);
+      if (outgoingTimeoutRef.current) clearTimeout(outgoingTimeoutRef.current);
+      enterRafRef.current.forEach(cancelAnimationFrame);
     },
     []
   );
@@ -127,7 +171,7 @@ const CalendarSidebarShell: React.FC<CalendarSidebarShellProps> = ({
               className={[
                 styles.sidebarLayer,
                 styles.sidebarLayerFull,
-                outgoingMode === "full" ? styles.sidebarLayerFading : "",
+                sidebarLayerTransitionClass("full", renderedMode, outgoingMode, entered),
               ]
                 .filter(Boolean)
                 .join(" ")}
@@ -151,11 +195,12 @@ const CalendarSidebarShell: React.FC<CalendarSidebarShellProps> = ({
           {(renderedMode === "compact" || outgoingMode === "compact") && (
             <div
               key="compact"
-              className={
-                outgoingMode === "compact"
-                  ? [styles.sidebarLayer, styles.sidebarLayerFading].join(" ")
-                  : styles.sidebarLayer
-              }
+              className={[
+                styles.sidebarLayer,
+                sidebarLayerTransitionClass("compact", renderedMode, outgoingMode, entered),
+              ]
+                .filter(Boolean)
+                .join(" ")}
               aria-hidden={outgoingMode === "compact" ? true : undefined}
               style={outgoingMode === "compact" ? { pointerEvents: "none" } : undefined}
             >
