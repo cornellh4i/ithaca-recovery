@@ -37,20 +37,6 @@
     gap: 8px;
 }
 
-.sidebarToggleButton {
-    color: $black-color;
-
-    &:hover,
-    &:focus {
-        background-color: $grey-lightest-color;
-    }
-}
-
-.menuIcon {
-    width: 24px;
-    height: 24px;
-}
-
 .navigationlist {
     display: contents;
     color: #000;

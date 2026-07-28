@@ -6,9 +6,7 @@ import { usePathname } from "next/navigation";
 import Logo from "../atoms/Logo";
 import type { Session } from "next-auth";
 import { signOut } from "next-auth/react";
-import IconButton from "@mui/material/IconButton";
 import Tooltip from "../atoms/Tooltip";
-import { useSidebar } from "../../context/SidebarContext";
 import styles from "../../../styles/components/organisms/AppNavbar.module.scss";
 
 interface AppNavbarProps {
@@ -19,21 +17,11 @@ const AppNavbar: React.FC<AppNavbarProps> = ({ session }) => {
     const isAdmin = session?.user?.role === "ADMIN" || session?.user?.role === "SUPER_ADMIN";
     const pathname = usePathname();
     const navItemClass = (isActive: boolean) => `btn btn-ghost ${isActive ? styles.active : ""}`;
-    const { isSidebarOpen, toggleSidebar } = useSidebar();
 
     return (
         <div className={styles.navbar}>
             <div className={styles.navcontainer}>
                 <div className={styles.navLeft}>
-                    <Tooltip content="Show/Hide calendar sidebar" align="left">
-                        <IconButton
-                            className={styles.sidebarToggleButton}
-                            onClick={toggleSidebar}
-                            aria-label={isSidebarOpen ? "Hide calendar sidebar" : "Show calendar sidebar"}
-                        >
-                            <img src="/svg/menu-icon.svg" alt="" className={styles.menuIcon} />
-                        </IconButton>
-                    </Tooltip>
                     <Logo />
                 </div>
                 <ul className={styles.navigationlist}>

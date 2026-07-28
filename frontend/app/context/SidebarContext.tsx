@@ -3,9 +3,6 @@
 import React, { createContext, useCallback, useContext, useState } from "react";
 
 interface SidebarContextValue {
-    isSidebarOpen: boolean;
-    toggleSidebar: () => void;
-    openSidebar: () => void;
     isCompact: boolean;
     collapseSidebar: () => void;
     expandSidebar: () => void;
@@ -14,20 +11,14 @@ interface SidebarContextValue {
 const SidebarContext = createContext<SidebarContextValue | undefined>(undefined);
 
 export const SidebarProvider: React.FC<React.PropsWithChildren> = ({ children }) => {
-    const [isSidebarOpen, setIsSidebarOpen] = useState(true);
     const [isCompact, setIsCompact] = useState(false);
 
-    const toggleSidebar = useCallback(() => setIsSidebarOpen((prev) => !prev), []);
-    const openSidebar = useCallback(() => setIsSidebarOpen(true), []);
     const collapseSidebar = useCallback(() => setIsCompact(true), []);
     const expandSidebar = useCallback(() => setIsCompact(false), []);
 
     return (
         <SidebarContext.Provider
             value={{
-                isSidebarOpen,
-                toggleSidebar,
-                openSidebar,
                 isCompact,
                 collapseSidebar,
                 expandSidebar,
