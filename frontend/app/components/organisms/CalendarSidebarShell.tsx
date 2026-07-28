@@ -67,7 +67,7 @@ const CalendarSidebarShell: React.FC<CalendarSidebarShellProps> = ({
   return (
     <div
       className={styles.sidebar}
-      style={isRailCompact ? { width: 64, padding: "10px 0" } : undefined}
+      style={isRailCompact ? { width: 64, padding: "0 24px 0 0" } : undefined}
     >
       {isLoggedIn === null ? null : !isLoggedIn ? (
         <div className={styles.sidebarScroll}>
@@ -119,10 +119,11 @@ const CalendarSidebarShell: React.FC<CalendarSidebarShellProps> = ({
             icon={<img src={isCompact ? "/svg/chevron-right-icon.svg" : "/svg/chevron-left-icon.svg"} alt="" />}
             ariaLabel={isCompact ? "Show calendar sidebar" : "Collapse sidebar"}
             tooltip={isCompact ? "Show calendar sidebar" : "Collapse sidebar"}
+            tooltipAlign={isCompact ? "left" : "center"}
             variant="outlined"
             size="compact"
             onClick={isCompact ? expandSidebar : collapseSidebar}
-          />
+          /> 
         </div>
       )}
     </div>

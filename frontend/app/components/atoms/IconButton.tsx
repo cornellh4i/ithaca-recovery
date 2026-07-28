@@ -32,12 +32,23 @@ const IconButton: React.FC<IconButtonProps> = ({
     const variantClass =
         variant === "filled" ? styles.filled : variant === "outlined" ? styles.outlined : styles.ghost;
 
+    // A mouse click leaves the button focused, keeping its focus ring showing after the
+    // interaction is done. e.detail is 0 for a "click" synthesized by keyboard activation
+    // (Enter/Space) and >0 for a real pointer click, so this only drops focus for the mouse
+    // case -- tabbing to the button still shows a focus ring until the user tabs away.
+    const handleClick: React.MouseEventHandler<HTMLButtonElement> = (e) => {
+        if (e.detail > 0) {
+            e.currentTarget.blur();
+        }
+        onClick?.();
+    };
+
     const button = (
         <MuiIconButton
             className={[styles.iconButton, sizeClass, variantClass, className]
                 .filter(Boolean)
                 .join(" ")}
-            onClick={onClick}
+            onClick={handleClick}
             aria-label={ariaLabel}
             style={variant === "filled" && backgroundColor ? { backgroundColor } : undefined}
         >

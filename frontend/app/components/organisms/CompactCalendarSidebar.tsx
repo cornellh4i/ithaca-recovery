@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import IconButton from '../atoms/IconButton';
 import MiniCalendar from '../atoms/MiniCalendar';
 import FilterGroup from '../molecules/FilterGroup';
@@ -24,17 +24,36 @@ const CompactCalendarSidebar: React.FC<CompactCalendarSidebarProps> = ({
   onOpenNewMeeting,
 }) => {
   const [openFlyout, setOpenFlyout] = useState<FlyoutKey | null>(null);
+  const railRef = useRef<HTMLDivElement>(null);
 
   const toggleFlyout = (key: FlyoutKey) => {
     setOpenFlyout((prev) => (prev === key ? null : key));
   };
 
+  // Same pattern as DatePicker's outside-click handling: a mousedown anywhere outside the
+  // rail (the icons and their flyouts) closes whichever flyout is open. Clicks on a rail icon
+  // or inside a flyout's own content stay inside railRef, so they're left to their own click
+  // handlers (toggleFlyout, checkbox onChange, etc.) instead of being fought here.
+  useEffect(() => {
+    if (!openFlyout) return;
+
+    const handleClickOutside = (event: MouseEvent) => {
+      if (!railRef.current?.contains(event.target as Node)) {
+        setOpenFlyout(null);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [openFlyout]);
+
   return (
-    <div className={styles.rail}>
+    <div className={styles.rail} ref={railRef}>
       <IconButton
         icon={<img src="/svg/plus-icon-white.svg" alt="" />}
         ariaLabel="New Meeting"
         tooltip="New Meeting"
+        tooltipAlign="left"
         variant="filled"
         backgroundColor="#CC3366"
         onClick={onOpenNewMeeting}
@@ -45,6 +64,7 @@ const CompactCalendarSidebar: React.FC<CompactCalendarSidebarProps> = ({
           icon={<img src="/svg/calendar-icon.svg" alt="" />}
           ariaLabel="Show mini calendar"
           tooltip="Calendar"
+          tooltipAlign="left"
           onClick={() => toggleFlyout('calendar')}
         />
         {openFlyout === 'calendar' && (
@@ -59,6 +79,7 @@ const CompactCalendarSidebar: React.FC<CompactCalendarSidebarProps> = ({
           icon={<img src="/svg/location-icon.svg" alt="" />}
           ariaLabel="Show location filters"
           tooltip="Location"
+          tooltipAlign="left"
           onClick={() => toggleFlyout('location')}
         />
         {openFlyout === 'location' && (
@@ -79,6 +100,7 @@ const CompactCalendarSidebar: React.FC<CompactCalendarSidebarProps> = ({
           icon={<img src="/svg/video-call-icon.svg" alt="" />}
           ariaLabel="Show Zoom Room filters"
           tooltip="Zoom Rooms"
+          tooltipAlign="left"
           onClick={() => toggleFlyout('video')}
         />
         {openFlyout === 'video' && (
@@ -99,6 +121,7 @@ const CompactCalendarSidebar: React.FC<CompactCalendarSidebarProps> = ({
           icon={<img src="/svg/group-icon.svg" alt="" />}
           ariaLabel="Show calendar and mode filters"
           tooltip="Calendar & Mode"
+          tooltipAlign="left"
           onClick={() => toggleFlyout('group')}
         />
         {openFlyout === 'group' && (

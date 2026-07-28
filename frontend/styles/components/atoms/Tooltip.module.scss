@@ -5,8 +5,7 @@
     display: inline-flex;
     align-items: center;
 
-    &:hover .tooltip,
-    &:focus-within .tooltip {
+    &:hover .tooltip {
         opacity: 1;
         visibility: visible;
     }
