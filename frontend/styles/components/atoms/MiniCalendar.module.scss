@@ -11,12 +11,10 @@
 
     // box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     z-index: 999; // Increased z-index to ensure visibility
-    // .sidebar (page.module.scss) uses the default content-box sizing, so its own
-    // `width: 280px` already *is* its content area -- sibling cards (New Meeting button,
-    // Location/Zoom Rooms filter panel) are plain width:auto blocks that fill exactly that
-    // 280px. Matching it here with a fixed width (rather than width: 100%, which depends on
-    // whatever this happens to be nested inside) is what actually lines this up with them.
-    width: 280px;
+    // Flexible so this also fits the 196px compact-rail flyout, not just the 280px full
+    // sidebar -- the --rdp-day-width vars below still target the 280px case (table-layout:
+    // fixed on .rdp-month_grid shrinks the columns proportionally in the narrower flyout).
+    width: 100%;
     box-sizing: border-box;
 
     span {
@@ -102,8 +100,34 @@
     :global(.rdp-day_button) {
         cursor: pointer;
 
-        &:hover:not(:disabled) {
+        // z-index (not just position: relative) is required here -- without an explicit value
+        // this stays z-index: auto, which does NOT create a stacking context, so the ::before's
+        // z-index: -1 below would escape to the nearest ancestor that does (.container, which
+        // has its own z-index) and paint behind the whole opaque calendar grid instead of just
+        // behind this button's own text. .selectedDay's ::before below works for the same
+        // reason: it sets z-index: 1 on itself, not just position: relative.
+        position: relative;
+        z-index: 0;
+
+        // Fills its cell instead of the fixed --rdp-day_button-width/height above -- those
+        // only match the cell size in the 280px sidebar. In the 196px flyout, .rdp-month_grid's
+        // table-layout: fixed shrinks the actual column below 32px, so a button still pinned to
+        // 32px overflows its cell and renders off-center from .selectedDay's centered ::before
+        // circle (which centers on the cell, not the oversized button).
+        width: 100%;
+        height: 100%;
+
+        &:hover:not(:disabled)::before {
+            content: "";
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 100%;
+            aspect-ratio: 1;
+            border-radius: 4px;
             background-color: color.adjust($dark-pink-color, $lightness: 35%);
+            z-index: -1;
         }
     }
 }
@@ -125,9 +149,19 @@
         left: 50%;
         transform: translate(-50%, -50%);
         z-index: -1;
-        width: 25px;
-        height: 25px;
+        width: 100%;
+        aspect-ratio: 1;
     }
+
+}
+
+// The hover rule above actually compiles to .container .rdp-day_button:hover:not(:disabled)::before
+// (four selectors + a pseudo-element, since it's nested inside .container) -- matching that
+// specificity here (.container + .selectedDay + .rdp-day_button + :hover, also with a
+// pseudo-element) and coming later in source order is what makes this win, so hovering an
+// already-selected day doesn't show the lighter hover square behind its solid circle.
+.container .selectedDay :global(.rdp-day_button):hover::before {
+    content: none;
 }
 
 // Outside days (days not in the current month)
@@ -138,7 +172,7 @@
 
 // Today styling
 .today:not(.selectedDay) {
-    color: black;
+    color: $dark-pink-color;
     font-weight: bold;
     text-decoration: underline;
 }

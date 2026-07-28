@@ -1,0 +1,67 @@
+@import '../../Variables.module.scss';
+
+.iconButton {
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+}
+
+.default {
+    width: 48px;
+    height: 48px;
+}
+
+.compact {
+    width: 32px;
+    height: 32px;
+}
+
+.ghost {
+    background-color: transparent;
+
+    &:hover,
+    &:focus {
+        background-color: $grey-lightest-color;
+    }
+}
+
+.filled {
+    border-radius: 50%;
+
+    &:hover,
+    &:focus {
+        opacity: 0.85;
+    }
+}
+
+.outlined {
+    background-color: #fff;
+    border: 1px solid $grey-border-color;
+    border-radius: 50%;
+
+    &:hover,
+    &:focus {
+        background-color: $grey-lightest-color;
+    }
+}
+
+.iconWrap {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+
+    img {
+        width: 100%;
+        height: 100%;
+        display: block;
+    }
+}
+
+.compact .iconWrap {
+    width: 18px;
+    height: 18px;
+}

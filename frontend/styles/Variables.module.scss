@@ -17,4 +17,21 @@ $link-color: #007BFF;
 $warning-bg-color: #FDF3DC;
 $warning-text-color: #B4790A;
 
+// Responsive breakpoints. $breakpoint-tablet (768px) is also the value MeetingForm.module.scss
+// already uses in its own media query — same threshold, not a conflict, just worth knowing
+// they now overlap in purpose. Kept in sync manually with util/breakpoints.ts (Sass vars
+// aren't importable into TS).
+$breakpoint-phone: 480px;
+$breakpoint-tablet: 768px;
+
+// Z-index scheme -- ground truth for all NEW z-indexing going forward. Existing z-index
+// values elsewhere in the codebase predate this scheme and are not guaranteed to conform;
+// don't assume a bare number in older CSS maps onto one of these tiers.
+$z-index-background: -1; // Background styling, shadows, or submerged decorative elements.
+$z-index-base: 0; // Normal page content, flowing text, standard grid/flex items.
+$z-index-dropdown: 100; // Floating menus, tooltips, autocomplete boxes just above normal content.
+$z-index-sticky: 200; // Sticky headers, navigation bars, floating action buttons.
+$z-index-modal: 300; // Backdrops and dialog popup windows.
+$z-index-toast: 400; // Alert banners, system toasts, global messages that must always stay on top.
+
 @import 'https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400&display=swap';

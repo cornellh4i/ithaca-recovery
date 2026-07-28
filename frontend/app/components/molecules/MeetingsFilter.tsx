@@ -10,7 +10,7 @@ interface MeetingsFilterProps {
     onFilterChange: (name: string, value: boolean) => void;
 }
 
-const LOCATION_ITEMS: FilterGroupItem[] = [
+export const LOCATION_ITEMS: FilterGroupItem[] = [
     { key: 'SerenityRoom', label: 'Serenity Room', color: ROOM_COLORS['Serenity Room'] },
     { key: 'SeedsofHopeRoom', label: 'Seeds of Hope Room', color: ROOM_COLORS['Seeds of Hope Room'] },
     { key: 'UnityRoom', label: 'Unity Room', color: ROOM_COLORS['Unity Room'] },
@@ -19,7 +19,7 @@ const LOCATION_ITEMS: FilterGroupItem[] = [
     { key: 'RoomforGratitude', label: 'Room for Gratitude', color: ROOM_COLORS['Room for Gratitude'] },
 ];
 
-const ZOOM_ITEMS: FilterGroupItem[] = [
+export const ZOOM_ITEMS: FilterGroupItem[] = [
     { key: 'SerenityRoomZoom', label: 'Serenity Room', color: ZOOM_ROOM_COLOR },
     { key: 'SeedsofHopeRoomZoom', label: 'Seeds of Hope Room', color: ZOOM_ROOM_COLOR },
     { key: 'UnityRoomZoom', label: 'Unity Room', color: ZOOM_ROOM_COLOR },
@@ -27,13 +27,13 @@ const ZOOM_ITEMS: FilterGroupItem[] = [
     { key: "Children'sRoom@518Zoom", label: "Children's Room @ 518", color: ZOOM_ROOM_COLOR },
 ];
 
-const CALENDAR_ITEMS: FilterGroupItem[] = [
+export const CALENDAR_ITEMS: FilterGroupItem[] = [
     { key: 'AA', label: 'AA', color: CATEGORY_COLOR },
     { key: 'AlAnon', label: 'Al-Anon', color: CATEGORY_COLOR },
     { key: 'Other', label: 'Other', color: CATEGORY_COLOR },
 ];
 
-const MODE_ITEMS: FilterGroupItem[] = [
+export const MODE_ITEMS: FilterGroupItem[] = [
     { key: 'InPerson', label: 'In Person', color: CATEGORY_COLOR },
     { key: 'Hybrid', label: 'Hybrid', color: CATEGORY_COLOR },
     { key: 'Remote', label: 'Remote', color: CATEGORY_COLOR },

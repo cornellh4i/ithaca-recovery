@@ -78,4 +78,11 @@
   background-color: white;
   box-shadow: 0 4px 12px rgb(0 0 0 / 15%);
   border-radius: 4px;
+
+  // MiniCalendar's own .container is width: 100% now (needed so it also fits the Main
+  // Calendar sidebar's 196px compact-rail flyout) -- this popup used to get its width for
+  // free from that being a fixed 280px, so without setting it here directly, an
+  // unconstrained position: fixed popup shrinks to fit its content instead of showing the
+  // intended 280px card.
+  width: 280px;
 }
