@@ -160,6 +160,7 @@
   gap: 12px;
   padding-bottom: 12px;
 }
+
 .profileButton {
   background: none; 
   border: none; 
@@ -226,7 +227,7 @@
 .flyoutSeparator {
   border: none;
   border-top: 1px solid #e5e7eb;
-  margin: 0 -12px 8px -12px; // Stretches rule edge-to-edge across the flyout box padding
+  margin: 0 -12px 8px; // Stretches rule edge-to-edge across the flyout box padding
 }
 
 // Sign Out Button
@@ -236,7 +237,7 @@
   text-align: left;
   background: transparent;
   border: none;
-  padding: 8px 8px;
+  padding: 8px;
   border-radius: 4px;
   font: inherit;
   font-size: 14px;
