@@ -26,7 +26,7 @@
     align-items: center;
     justify-content: space-between;
     width: 100%;
-    padding-right: 24px;
+    padding-right: 12px;
     box-sizing: border-box;
 }
 
@@ -120,13 +120,116 @@
     height: 14px;
 }
 
-.accountGroup {
-    display: flex;
-    align-items: center;
-    gap: 16px;
+// Anchor for profile icon flyout -- position: relative (no transform) so it doesn't
+// trap the flyout's z-index in a local stacking context the way .sidebarToggleWrapper's
+// transform does (see page.module.scss's comment on that).
+.flyoutAnchor {
+  position: relative;
+}
+
+.flyout {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 8px;
+  width: 240px;
+  background-color: #fff;
+  border: 1px solid $grey-border-color;
+  border-radius: 6px;
+  box-shadow: 0 4px 8px rgb(0 0 0 / 20%);
+  padding: 12px;
+  z-index: $z-index-dropdown;
+}
+
+// First Big Row Layout
+.flyoutHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 12px;
+}
+
+.profileButton {
+  background: none; 
+  border: none; 
+  padding: 0; 
+  cursor: pointer;
+}
+
+.cardAvatar,
+.avatar,
+.avatarFallback {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.avatarFallback {
+  background-color: color-mix(in srgb, $dark-pink-color 35%, transparent);
+  color: $dark-pink-color;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+}
+
+.flyoutInfo {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .welcome {
-    font-size: 16px;
-    white-space: nowrap;
+  font-size: 15px;
+  font-weight: 600;
+  color: #111827;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.flyoutEmail {
+  font-size: 13px;
+  color: #4b5563;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.flyoutRole {
+  font-size: 12px;
+  color: #6b7280;
+  margin-top: 2px;
+}
+
+// Separator
+.flyoutSeparator {
+  border: none;
+  border-top: 1px solid #e5e7eb;
+  margin: 0 -12px 8px; // Stretches rule edge-to-edge across the flyout box padding
+}
+
+// Sign Out Button
+.signOutButton {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  padding: 8px;
+  border-radius: 4px;
+  font: inherit;
+  font-size: 14px;
+  color: #111827;
+  cursor: pointer;
+  transition: background-color 0.2s;
+
+  &:hover,
+  &:focus {
+    background-color: #f3f4f6;
+    color: #111827;
+    outline: none;
+  }
 }

@@ -32,11 +32,12 @@ export const authOptions: NextAuthOptions = {
             const admin = await prisma.admin.findUnique({ where: { email: user.email } });
             return !!admin;
         },
-        async jwt({ token, account, profile }) {
+        async jwt({ token, account, user, profile }) {
             if (account) {
                 token.accessToken = account.access_token;
                 token.refreshToken = account.refresh_token;
                 token.expiresAt = account.expires_at;
+                token.picture = user?.image ?? (profile as { picture?: string })?.picture;
 
                 if (token.email) {
                     // signIn already guarantees this row exists (invite or bootstrap) — update, don't create.
@@ -51,7 +52,7 @@ export const authOptions: NextAuthOptions = {
                             name: existing?.name ? undefined : (token.name ?? (profile as { name?: string })?.name ?? undefined),
                             googleId: account.providerAccountId,
                             refreshToken: account.refresh_token ?? undefined,
-                            tokenExpiresAt: account.expires_at ?? undefined,
+                            tokenExpiresAt: account.expires_at ?? undefined
                         },
                         select: { role: true },
                     });
@@ -85,7 +86,10 @@ export const authOptions: NextAuthOptions = {
         },
         async session({ session, token }) {
             session.accessToken = token.accessToken;
-            if (session.user) session.user.role = token.role;
+            if (session.user) {
+                session.user.role = token.role;
+                session.user.image = token.picture as string | undefined;
+            }
             return session;
         },
     },
