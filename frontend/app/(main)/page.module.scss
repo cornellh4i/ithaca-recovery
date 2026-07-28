@@ -17,6 +17,10 @@
   // button's tooltip where it pokes past the sidebar's right edge. Scrolling instead lives
   // on .sidebarScroll below, so this box (and the button that's a sibling of that div) stays
   // unclipped.
+
+  // width/padding are also driven from an inline style (CalendarSidebarShell) when compact --
+  // this transition is what makes that swap animate instead of snapping instantly.
+  transition: width 0.25s ease, padding 0.25s ease;
 }
 
 .sidebarScroll {
@@ -24,10 +28,40 @@
   overflow-y: auto;
 }
 
+// Wraps the full <-> compact cross-fade (see CalendarSidebarShell).
+.sidebarSwap {
+  position: relative;
+  height: 100%;
+}
+
+.sidebarLayer {
+  position: absolute;
+  inset: 0;
+  height: 100%;
+}
+
+// Only the full sidebar's layer clips -- its 280px content needs to stay bounded to the
+// animating .sidebar width during a collapse so it doesn't visibly spill past the shrinking
+// edge. The compact rail's layer deliberately has no such clip: its flyouts pop out past the
+// 64px rail on purpose (see CompactCalendarSidebar.module.scss), and clipping .sidebarSwap
+// itself (as an earlier version of this rule did) cut those off entirely.
+.sidebarLayerFull {
+  overflow: hidden;
+}
+
+.sidebarLayerFading {
+  // Only the outgoing layer gets a transition property -- the incoming one snaps to visible
+  // immediately underneath it, so this fade-out (on top, via z-index) is what reads as a
+  // cross-fade without needing a separate fade-in animation for the incoming layer.
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  z-index: 1;
+}
+
 .sidebarToggleWrapper {
   position: absolute;
   top: 50%;
-  right: -10;
+  right: -10px;
   transform: translateY(-50%);
   // `transform` establishes a new stacking context, which traps the tooltip's own z-index
   // inside it -- without an explicit z-index here too, this wrapper paints in plain DOM
