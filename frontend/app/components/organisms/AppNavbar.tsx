@@ -18,6 +18,7 @@ const AppNavbar: React.FC = () => {
     const [openFlyout, setOpenFlyout] = useState<boolean>(false);
     const [imageError, setImageError] = useState(false);
     const flyoutRef = useRef<HTMLDivElement>(null);
+    const buttonRef = useRef<HTMLButtonElement>(null);
 
     // Close flyout on outside click or Escape key press
     useEffect(() => {
@@ -32,6 +33,7 @@ const AppNavbar: React.FC = () => {
         const handleKeyDown = (event: KeyboardEvent) => {
             if (event.key === "Escape") {
                 setOpenFlyout(false);
+                buttonRef.current?.focus(); // Return focus to the trigger button
             }
         };
 
@@ -52,11 +54,16 @@ const AppNavbar: React.FC = () => {
             return;
         }
 
+        let isCurrent = true;
         const img = new Image();
         img.src = imageUrl;
 
-        img.onload = () => setImageError(false);
-        img.onerror = () => setImageError(true);
+        img.onload = () => { if (isCurrent) setImageError(false)};
+        img.onerror = () => { if (isCurrent) setImageError(true)};
+
+        return () => {
+            isCurrent = false;
+        };
     }, [session?.user?.image]);
 
     return (
@@ -112,10 +119,12 @@ const AppNavbar: React.FC = () => {
                             <div className={styles.flyoutAnchor} ref={flyoutRef}>
                                 <Tooltip content="User menu">
                                     <button
+                                        ref={buttonRef}
                                         type="button"
                                         aria-label="User menu"
-                                        aria-haspopup="true"
+                                        aria-haspopup="dialog"
                                         aria-expanded={openFlyout}
+                                        aria-controls="user-profile-flyout"
                                         className={styles.profileButton}
                                         onClick={() => setOpenFlyout((prev) => !prev)}
                                     >
@@ -135,7 +144,10 @@ const AppNavbar: React.FC = () => {
                                     </button>
                                 </Tooltip>
                                 {openFlyout && (
-                                    <div className={styles.flyout} role="menu">
+                                    <div 
+                                        id="user-profile-flyout" 
+                                        className={styles.flyout}
+                                    >
                                         <div className={styles.flyoutHeader}>
                                             {session.user.image && !imageError ? (
                                                 <img
@@ -164,6 +176,7 @@ const AppNavbar: React.FC = () => {
                                         </div>
                                         <hr className={styles.flyoutSeparator} />
                                         <button
+                                            type="button"
                                             className={styles.signOutButton}
                                             onClick={() => signOut({ callbackUrl: "/" })}
                                         >
