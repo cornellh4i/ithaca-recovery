@@ -66,6 +66,20 @@ const AppNavbar: React.FC = () => {
         };
     }, [session?.user?.image]);
 
+    const userAvatar = (
+        session?.user.image && !imageError ? (
+            <img
+                src={session.user.image}
+                alt={session.user.name ?? "User avatar"}
+                title={session.user.name ?? "Account"}
+                className={styles.avatar}
+                onError={() => setImageError(true)}
+            />
+        ) : (
+            <div className={styles.avatarFallback}>{session?.user.name?.[0] ?? "U"}</div>
+        )
+    );
+
     return (
         <div className={styles.navbar}>
             <div className={styles.navcontainer}>
@@ -128,19 +142,7 @@ const AppNavbar: React.FC = () => {
                                         className={styles.profileButton}
                                         onClick={() => setOpenFlyout((prev) => !prev)}
                                     >
-                                        {session.user.image && !imageError ? (
-                                            <img
-                                                src={session.user.image}
-                                                alt={session.user.name ?? "User avatar"}
-                                                title={session.user.name ?? "Account"}
-                                                className={styles.avatar}
-                                                onError={() => setImageError(true)}
-                                            />
-                                        ) : (
-                                            <div className={styles.avatarFallback}>
-                                                {session.user.name?.[0] ?? "U"}
-                                            </div>
-                                        )}
+                                        {userAvatar}
                                     </button>
                                 </Tooltip>
                                 {openFlyout && (
@@ -149,19 +151,7 @@ const AppNavbar: React.FC = () => {
                                         className={styles.flyout}
                                     >
                                         <div className={styles.flyoutHeader}>
-                                            {session.user.image && !imageError ? (
-                                                <img
-                                                    src={session.user.image}
-                                                    alt={session.user.name ?? "User avatar"}
-                                                    title={session.user.name ?? "Account"}
-                                                    className={styles.avatar}
-                                                    onError={() => setImageError(true)}
-                                                />
-                                            ) : (
-                                                <div className={styles.avatarFallback}>
-                                                    {session.user.name?.[0] ?? "U"}
-                                                </div>
-                                            )}
+                                            {userAvatar}
                                             <div className={styles.flyoutInfo}>
                                                 <span className={styles.welcome}>Hi, {session.user.name}</span>
                                                 <span className={styles.flyoutEmail}>{session.user.email}</span>
