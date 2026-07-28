@@ -20,6 +20,7 @@ const AppNavbar: React.FC<AppNavbarProps> = ({ session }) => {
     const navItemClass = (isActive: boolean) => `btn btn-ghost ${isActive ? styles.active : ""}`;
 
     const [openFlyout, setOpenFlyout] = useState<boolean>(false);
+    const [imageError, setImageError] = useState(false);
     const flyoutRef = useRef<HTMLDivElement>(null);
     useEffect(() => {
         // Guard clause: Only add the listener if the flyout is open
@@ -88,18 +89,25 @@ const AppNavbar: React.FC<AppNavbarProps> = ({ session }) => {
                     <li>
                         {session ? (
                             <div className={styles.flyoutAnchor} ref = {flyoutRef}>
+                                {session.user.image && (
                                 <IconButton
-                                    icon={<img 
-                                        src={session.user.image ?? undefined}
-                                        alt={session.user.name ?? "User avatar"} 
-                                        title={session.user.name ?? "Account"}
-                                    />}
+                                    icon={imageError ? (
+                                        <span>{session.user.name?.[0] ?? "U"}</span>
+                                    ) : (
+                                        <img 
+                                            src={session.user.image}
+                                            alt={session.user.name ?? "User avatar"} 
+                                            title={session.user.name ?? "Account"}
+                                            onError={() => setImageError(true)}
+                                        />
+                                    )}
                                     ariaLabel="User avatar"
                                     onClick={() => setOpenFlyout(true)}
                                     variant="filled"
                                     tooltip="Profile"
                                     tooltipAlign="center"
                                 />
+                            )}
                                 {openFlyout && (
                                     <div className={styles.flyout}>
                                         {/* Left Avatar, Right Info */}
