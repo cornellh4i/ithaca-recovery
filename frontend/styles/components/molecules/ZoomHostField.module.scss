@@ -4,20 +4,47 @@
     width: 100%;
 }
 
-.checkAvailabilityButton {
-    background: none;
-    border: none;
-    padding: 0;
-    margin-bottom: 6px;
-    color: $dark-pink-color;
+.checkingIndicator {
+    margin: 0 0 6px;
+    color: $medium-grey-color;
     font-size: 13px;
     font-family: 'Source Sans Pro', sans-serif;
-    cursor: pointer;
+}
 
-    &:disabled {
-        cursor: default;
-        opacity: 0.6;
-    }
+// One row per host option (both the closed button's selected value and each open-list row,
+// see Dropdown.tsx's renderElement) -- label on the left, availability icon pinned to the
+// row's right edge instead of trailing right after the label text.
+.hostOption {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    gap: 8px;
+}
+
+.hostLabel {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
+    // Without this, a flex child won't shrink below its content's natural width, so long
+    // labels would push the icon out past the row's right edge instead of truncating.
+    min-width: 0;
+}
+
+.checkIcon,
+.crossIcon {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+}
+
+.checkIcon path {
+    fill: $success-text-color;
+}
+
+.crossIcon path {
+    fill: $danger-color;
 }
 
 .busyWarning {

@@ -303,7 +303,7 @@ ICR's 5 licensed Zoom accounts (`ZOOM_HOSTS` env var, comma-separated) are a sha
 ---
 
 ### `POST /api/retrieve/zoom-host-availability`
-**Requires:** `ADMIN`. Backs the Meeting Form's "Check host availability" action — checks every pool host (not just the first free one) against a candidate meeting's schedule. Body accepts the same shape the create/update routes take; only `mid` (optional, excludes that meeting from its own conflict check), `startDateTime`, `endDateTime`, `isRecurring`, and `recurrencePattern` are read.
+**Requires:** `ADMIN`. Backs the Meeting Form's Zoom Host dropdown, which calls this automatically (debounced) whenever the meeting's date/time/recurrence changes — checks every pool host (not just the first free one) against the candidate schedule. Body accepts the same shape the create/update routes take; only `mid` (optional, excludes that meeting from its own conflict check), `startDateTime`, `endDateTime`, `isRecurring`, and `recurrencePattern` are read.
 
 **Request body:**
 ```json
