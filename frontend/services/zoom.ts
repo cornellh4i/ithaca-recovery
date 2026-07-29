@@ -80,6 +80,23 @@ export async function checkZoomHostPool(): Promise<Record<string, { ok: boolean;
   return result;
 }
 
+// Reports every pool host's availability against `candidate`, instead of stopping at the
+// first free one (contrast resolveZoomHost below) -- backs the Meeting Form's "Check host
+// availability" action, which needs to show a check/cross per host, not just resolve one.
+// Pool is small (<=5), so checking all of them in parallel is cheap.
+export async function checkZoomHostPoolAvailability(
+  candidate: OccurrenceInput,
+  opts: { excludeMid?: string } = {},
+): Promise<{ host: string; available: boolean }[]> {
+  return Promise.all(zoomHostPool.map(async (host) => {
+    const conflicts = await findResourceConflicts("zoomHost", host, candidate, {
+      excludeMid: opts.excludeMid,
+      includeSuspended: true,
+    });
+    return { host, available: conflicts.length === 0 };
+  }));
+}
+
 // Picks the first host in the pool (list order) with zero conflicts against `candidate`'s
 // occurrences, per the resource-generic overlap check in util/resourceOverlap.ts. Suspended
 // meetings are included in the occupancy check (opts.excludeMid lets an update re-check a

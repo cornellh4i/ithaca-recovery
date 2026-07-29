@@ -10,7 +10,7 @@ export const DESCRIPTION_MAX_LENGTH = 1024;
 // (update is a full replace, not a partial patch). Validates shape/types only, not
 // business rules (e.g. endDateTime > startDateTime) — Prisma already rejects those
 // that matter, and the form UI enforces the rest.
-const recurrencePatternSchema = z.object({
+export const recurrencePatternSchema = z.object({
   mid: z.string().optional(),
   type: z.string(),
   startDate: z.coerce.date(),
@@ -53,4 +53,16 @@ export const meetingSchema = z.object({
   zoomSyncError: z.string().nullable().optional(),
   deletedAt: z.coerce.date().nullable().optional(),
   updatedAt: z.coerce.date().nullable().optional(),
+});
+
+// Narrower shape for the Zoom host-availability check — only the fields
+// checkZoomHostPoolAvailability's OccurrenceInput actually needs. The client posts the same
+// full buildMeetingPayload() object the real submit uses (no separate conversion logic), and
+// zod strips the extra keys (title/email/etc.) rather than rejecting them.
+export const zoomHostAvailabilityCheckSchema = z.object({
+  mid: z.string().optional(),
+  startDateTime: z.coerce.date(),
+  endDateTime: z.coerce.date(),
+  isRecurring: z.boolean(),
+  recurrencePattern: recurrencePatternSchema.nullable().optional(),
 });
