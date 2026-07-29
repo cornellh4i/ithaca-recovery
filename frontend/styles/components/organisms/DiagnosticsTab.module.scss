@@ -132,3 +132,37 @@
   color: #555;
   margin-top: 2px;
 }
+
+.syncIssueRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.issueLine {
+  font-size: 13px;
+  color: $dark-pink-color;
+  margin-top: 4px;
+}
+
+.retryButton {
+  flex-shrink: 0;
+  background: none;
+  border: 1px solid $grey-border-color;
+  border-radius: 6px;
+  padding: 6px 12px;
+  color: $black-color;
+  font-size: 13px;
+  font-family: 'Source Sans Pro', sans-serif;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    background-color: $grey-lightest-color;
+  }
+
+  &:disabled {
+    cursor: default;
+    opacity: 0.6;
+  }
+}

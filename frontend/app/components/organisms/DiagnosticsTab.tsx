@@ -32,6 +32,16 @@ interface DiagnosticsData {
     pendingZoomSync: number;
   };
   conflicts: ConflictListRow[];
+  syncIssues: {
+    mid: string;
+    title: string;
+    group: string;
+    room: string;
+    modeType: string;
+    calType: string[];
+    issues: string[];
+    updatedAt: string | null;
+  }[];
   suspendedMeetings: {
     mid: string;
     title: string;
@@ -55,6 +65,9 @@ const DiagnosticsTab: React.FC<DiagnosticsTabProps> = ({ email, role }) => {
   // ConflictList's onMeetingUpdated, so a slow initial fetch could otherwise resolve after (and
   // overwrite) a faster post-edit refresh.
   const latestRequestId = useRef(0);
+  // Which sync-issue row's "Retry sync" is in flight, so only that row shows "Retrying…"
+  // instead of every row disabling at once.
+  const [retryingMid, setRetryingMid] = useState<string | null>(null);
 
   const loadDiagnostics = async () => {
     const requestId = ++latestRequestId.current;
@@ -76,6 +89,24 @@ const DiagnosticsTab: React.FC<DiagnosticsTabProps> = ({ email, role }) => {
     loadDiagnostics();
   }, []);
 
+  // Same endpoint/shape as ViewMeeting.tsx's "Retry sync" button -- reused here so a Sync
+  // Issues row can be retried without navigating to the meeting's own detail view first.
+  const retrySync = async (mid: string) => {
+    setRetryingMid(mid);
+    try {
+      await fetch("/api/update/meeting/sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mid }),
+      });
+      await loadDiagnostics();
+    } catch (err) {
+      console.error("Error retrying sync:", err);
+    } finally {
+      setRetryingMid(null);
+    }
+  };
+
   if (error) return <div className={styles.card}>{error}</div>;
   if (!data) return <div className={styles.card}>Loading diagnostics…</div>;
 
@@ -86,6 +117,10 @@ const DiagnosticsTab: React.FC<DiagnosticsTabProps> = ({ email, role }) => {
   const roomCalendarOkCount = roomCalendarEntries.filter(([, ok]) => ok).length;
 
   const hostPoolEntries = Object.entries(data.zoom.hostPool);
+  const hostPoolReachableCount = hostPoolEntries.filter(([, s]) => s.ok).length;
+  // "OK" = reachable AND Licensed. A host can be reachable but still not "OK" if it's a
+  // Basic-plan account (type 1, not 2) -- Basic caps meetings at 40 minutes, so it's flagged
+  // separately from a genuinely unreachable host rather than folded into the same failure.
   const hostPoolOkCount = hostPoolEntries.filter(([, s]) => s.ok && s.licensed !== false).length;
 
   return (
@@ -122,7 +157,8 @@ const DiagnosticsTab: React.FC<DiagnosticsTabProps> = ({ email, role }) => {
           <span className={styles.statusDetail}>
             {data.zoom.reachable ? "Account reachable" : "Account unreachable"}
             {" · "}{roomCalendarOkCount}/{roomCalendarEntries.length} room calendars reachable
-            {" · "}{hostPoolOkCount}/{hostPoolEntries.length} pooled hosts OK
+            {" · "}{hostPoolReachableCount}/{hostPoolEntries.length} pooled hosts reachable
+            {" · "}{hostPoolOkCount}/{hostPoolEntries.length} licensed
           </span>
         </div>
         <div className={styles.gcalSubRow}>
@@ -187,10 +223,46 @@ const DiagnosticsTab: React.FC<DiagnosticsTabProps> = ({ email, role }) => {
         )}
       </div>
 
+      <div className={styles.card} data-testid="diagnostics-sync-issues-panel">
+        <div className={styles.panelHeader}>⚠ Sync Issues ({data.syncIssues.length})</div>
+        <div className={styles.panelSubhead}>
+          Meetings that failed to sync to Zoom or Google Calendar, or are waiting on a Zoom host to
+          become available. Retry here, or open the meeting to edit it if retrying doesn&apos;t resolve it.
+        </div>
+        {data.syncIssues.length === 0 ? (
+          <div className={styles.emptyState}>No sync issues.</div>
+        ) : (
+          data.syncIssues.map((meeting) => (
+            <div key={meeting.mid} className={styles.meetingRow}>
+              <div className={styles.syncIssueRow}>
+                <div>
+                  <span className={styles.meetingTitle}>{meeting.title}</span>{" "}
+                  <span className={styles.meetingTags}>({meeting.group})</span>
+                  <div className={styles.meetingMeta}>
+                    {meeting.room} · {meeting.modeType} · {meeting.calType.join(", ")}
+                  </div>
+                  {meeting.issues.map((issue) => (
+                    <div key={issue} className={styles.issueLine}>{issue}</div>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  className={styles.retryButton}
+                  onClick={() => retrySync(meeting.mid)}
+                  disabled={retryingMid === meeting.mid}
+                >
+                  {retryingMid === meeting.mid ? "Retrying…" : "Retry sync"}
+                </button>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
       <div className={styles.card} data-testid="diagnostics-conflicts-panel">
         <div className={styles.panelHeader}>⚠ Conflicts ({data.conflicts.length})</div>
         <div className={styles.panelSubhead}>
-          These meetings share a room or Zoom room at overlapping times. Review and edit one to resolve.
+          These meetings share a room, Zoom room, or Zoom host at overlapping times. Review and edit one to resolve.
         </div>
         <ConflictList conflicts={data.conflicts} onMeetingUpdated={loadDiagnostics} />
       </div>

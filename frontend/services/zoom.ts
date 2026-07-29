@@ -55,29 +55,28 @@ export async function checkZoomReachable(): Promise<boolean> {
 // account, and flags non-Licensed (Basic, type 1) hosts — a Basic host caps meetings at 40
 // minutes, which silently breaks longer meetings assigned to that host.
 export async function checkZoomHostPool(): Promise<Record<string, { ok: boolean; licensed: boolean | null }>> {
-  const result: Record<string, { ok: boolean; licensed: boolean | null }> = {};
-
   const token = await getZoomAccessToken();
-  if (!token) {
-    zoomHostPool.forEach((email) => { result[email] = { ok: false, licensed: null }; });
-    return result;
-  }
 
-  await Promise.all(zoomHostPool.map(async (email) => {
+  // Built as an array first, in zoomHostPool's own order, then assembled into an object in
+  // one pass -- object key order otherwise follows whichever host's fetch happens to resolve
+  // first, which varies run to run (Promise.all itself preserves the input array's order in
+  // its resolved array regardless of completion order, so this part doesn't race).
+  const entries = await Promise.all(zoomHostPool.map(async (email): Promise<[string, { ok: boolean; licensed: boolean | null }]> => {
+    if (!token) return [email, { ok: false, licensed: null }];
     try {
       const res = await fetch(`${ZOOM_BASE_API}/users/${encodeURIComponent(email)}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (!res.ok) { result[email] = { ok: false, licensed: null }; return; }
+      if (!res.ok) return [email, { ok: false, licensed: null }];
       const data = await res.json();
-      result[email] = { ok: true, licensed: data.type === 2 };
+      return [email, { ok: true, licensed: data.type === 2 }];
     } catch (error) {
       console.error("Zoom checkHostPool error for a pooled host:", error);
-      result[email] = { ok: false, licensed: null };
+      return [email, { ok: false, licensed: null }];
     }
   }));
 
-  return result;
+  return Object.fromEntries(entries);
 }
 
 // Reports every pool host's availability against `candidate`, instead of stopping at the

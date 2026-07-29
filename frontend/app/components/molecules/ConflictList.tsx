@@ -5,6 +5,8 @@ import { formatDayColumn } from "../../../util/recurrenceDisplay";
 import { formatCompactTimeRange } from "../../../util/timeFormat";
 import EditMeetingSidebar from "../organisms/EditMeeting";
 import { IMeeting } from "../../../util/models";
+import { useZoomHostPool } from "../../../hooks/useZoomHostPool";
+import { zoomHostLabel } from "../../../util/zoomHosts";
 import styles from "../../../styles/components/molecules/ConflictList.module.scss";
 
 export interface ConflictRecurrenceSummary {
@@ -26,7 +28,7 @@ export interface ConflictMeetingSummary {
 }
 
 export interface ConflictListRow {
-  field: "room" | "zoomRoom";
+  field: "room" | "zoomRoom" | "zoomHost";
   value: string;
   // ISO strings -- Dates don't survive JSON as-is.
   overlap: { start: string; end: string };
@@ -41,7 +43,11 @@ interface ConflictListProps {
   onMeetingUpdated?: () => void;
 }
 
-const fieldLabel = (field: "room" | "zoomRoom"): string => (field === "room" ? "Room" : "Zoom Room");
+const fieldLabel = (field: "room" | "zoomRoom" | "zoomHost"): string => {
+  if (field === "room") return "Room";
+  if (field === "zoomRoom") return "Zoom Room";
+  return "Zoom Host";
+};
 
 // Extracts ET wall-clock time as "HH:MM" (24hr), which is what formatCompactTimeRange expects
 // -- mirrors ViewMeeting.tsx's etTimeFmt.
@@ -107,6 +113,9 @@ const ConflictList: React.FC<ConflictListProps> = ({ conflicts, emptyLabel = "No
   const [meetingCache, setMeetingCache] = useState<Record<string, IMeeting>>({});
   const [loadingMid, setLoadingMid] = useState<string | null>(null);
   const [fetchError, setFetchError] = useState<string | null>(null);
+  // Only needed to turn a zoomHost conflict row's raw email into "Zoom Host N — email" (see
+  // conflictValueLabel below) -- room/zoomRoom rows don't touch this.
+  const hosts = useZoomHostPool();
 
   const collapse = () => {
     setExpandedMid(null);
@@ -146,12 +155,19 @@ const ConflictList: React.FC<ConflictListProps> = ({ conflicts, emptyLabel = "No
     return <div className={styles.emptyState}>{emptyLabel}</div>;
   }
 
+  // A raw zoomHost email means nothing at a glance -- room/zoomRoom values are already
+  // human-readable names, so they pass through untouched.
+  const conflictValueLabel = (conflict: ConflictListRow): string =>
+    conflict.field === "zoomHost"
+      ? `${zoomHostLabel(conflict.value, hosts.indexOf(conflict.value))} — ${conflict.value}`
+      : conflict.value;
+
   return (
     <div data-testid="conflict-list">
       {conflicts.map((conflict, i) => (
         <div key={`${conflict.field}-${conflict.value}-${i}`} className={styles.conflictGroup}>
           <div className={styles.conflictMeta}>
-            {fieldLabel(conflict.field)}: <span className={styles.conflictValue}>{conflict.value}</span>
+            {fieldLabel(conflict.field)}: <span className={styles.conflictValue}>{conflictValueLabel(conflict)}</span>
           </div>
           <div className={styles.overlapSummary}>{formatOverlapSummary(conflict.overlap, conflict.meetings)}</div>
           {conflict.meetings.map((meeting) => {

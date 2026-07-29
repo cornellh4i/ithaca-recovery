@@ -56,6 +56,7 @@ test("counts a Remote meeting's Zoom sync error even though it has no zoomRoom",
       modeType: "Remote",
       room: "",
       zoomSyncStatus: "error",
+      zoomSyncError: "No Zoom host available for this meeting's schedule (pool exhausted).",
     }),
   });
   await prisma.meeting.create({
@@ -72,4 +73,29 @@ test("counts a Remote meeting's Zoom sync error even though it has no zoomRoom",
 
   expect(body.meetingCounts.zoomSyncErrors).toBeGreaterThanOrEqual(1);
   expect(body.meetingCounts.pendingZoomSync).toBeGreaterThanOrEqual(1);
+
+  // Same regression, but for the actual list of affected meetings (not just the counts) --
+  // an admin needs to be able to find *which* meeting has the problem, not just how many.
+  const remoteIssue = body.syncIssues.find((s: { title: string; modeType: string }) => s.title === "Diagnostics Count Meeting" && s.modeType === "Remote");
+  expect(remoteIssue.issues.some((i: string) => i.includes("Zoom sync failed"))).toBe(true);
+
+  const pendingIssue = body.syncIssues.find((s: { modeType: string }) => s.modeType === "Hybrid");
+  expect(pendingIssue.issues.some((i: string) => i.includes("Waiting on a Zoom host"))).toBe(true);
+});
+
+test("a stale zoomSyncStatus on an In Person meeting doesn't surface as a sync issue", async () => {
+  const prisma = getTestPrismaClient();
+
+  // Only Hybrid/Remote meetings ever attempt a real Zoom sync under the current mode-based
+  // gate -- a leftover "error" on an In Person meeting (e.g. from before that gate existed)
+  // shouldn't be listed as something to retry, since retrying it wouldn't attempt Zoom at all.
+  const mid = `m-${randomUUID()}`;
+  await prisma.meeting.create({
+    data: buildMeetingData({ mid, modeType: "In Person", zoomSyncStatus: "error" }),
+  });
+
+  const response = await GET();
+  const body = await response.json();
+
+  expect(body.syncIssues.find((s: { mid: string }) => s.mid === mid)).toBeUndefined();
 });
