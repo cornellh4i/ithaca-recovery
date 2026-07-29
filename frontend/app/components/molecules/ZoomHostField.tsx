@@ -73,7 +73,17 @@ export const ZoomHostField: React.FC<ZoomHostFieldProps> = ({
   // result/clearing `checking`, so it can't clobber a check that's since taken its place.
   const checkIdRef = useRef(0);
   const isMountedRef = useRef(true);
-  useEffect(() => () => { isMountedRef.current = false; }, []);
+  // Must reset to true in the effect body, not just rely on useRef(true)'s initial value --
+  // React 18 Strict Mode (dev only) mounts, immediately fires this cleanup once to simulate an
+  // unmount, then mounts again. Without the reset here, that synthetic cleanup permanently flips
+  // this to false even though the component is genuinely still mounted, which silently blocked
+  // every check's setChecking(false)/setAvailability from ever running -- confirmed via
+  // [zoom-availability-debug-client] logs showing `mounted=false` on a check that otherwise
+  // completed normally.
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => { isMountedRef.current = false; };
+  }, []);
 
   // Deliberately excludes mid: NewMeeting.tsx's getCandidate calls buildMeetingPayload(uuidv4(),
   // ...) -- a fresh random mid on every single call, including ones this effect itself causes
