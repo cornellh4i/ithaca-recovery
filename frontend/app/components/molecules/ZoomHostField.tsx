@@ -48,13 +48,19 @@ const DEBOUNCE_MS = 500;
 // flash on and off almost instantly -- distracting rather than informative. Holding it visible
 // for at least this long (padding out the remainder in checkAvailability's finally block) reads
 // as an actual status update instead of a flicker.
-const MIN_CHECKING_DISPLAY_MS = 2000;
+const MIN_CHECKING_DISPLAY_MS = 1000;
+
+// How long the post-success "Check done" line stays up before disappearing on its own. Unlike
+// MIN_CHECKING_DISPLAY_MS (a floor -- padded out to at least this long), this is a fixed
+// duration -- it always shows for exactly this long, then clears, unless a new candidate change
+// clears it first.
+const DONE_DISPLAY_MS = 2000;
 
 // A plain `fetch` with no signal can hang forever if the request never settles (a stalled
 // connection, a hung server-side query) -- with nothing to stop it, the "Checking..." indicator
 // would then stay up indefinitely, since checkAvailability's finally block never gets a chance
 // to run. Aborting after this long guarantees the fetch always eventually settles one way or
-// another, so `checking` always eventually clears.
+// another, so `status` always eventually clears out of 'checking'.
 const FETCH_TIMEOUT_MS = 8000;
 
 export const ZoomHostField: React.FC<ZoomHostFieldProps> = ({
@@ -66,11 +72,15 @@ export const ZoomHostField: React.FC<ZoomHostFieldProps> = ({
 }) => {
   const hosts = useZoomHostPool();
   const [availability, setAvailability] = useState<Record<string, boolean> | null>(null);
-  const [checking, setChecking] = useState(false);
+  // 'checking' while the request is in flight; 'done'/'noHostAvailable' once it resolves.
+  // 'done' clears itself after DONE_DISPLAY_MS; 'noHostAvailable' has no timer -- it stays up
+  // until the debounce effect below clears it on the next date/time/recurrence change.
+  const [status, setStatus] = useState<'checking' | 'done' | 'noHostAvailable' | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const doneTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Identifies the most recently started check -- a superseded one (a newer candidateKey
   // fired another check before this one's minimum display time elapsed) skips writing its
-  // result/clearing `checking`, so it can't clobber a check that's since taken its place.
+  // result/updating `status`, so it can't clobber a check that's since taken its place.
   const checkIdRef = useRef(0);
   const isMountedRef = useRef(true);
   // Must reset to true in the effect body, not just rely on useRef(true)'s initial value --
@@ -108,8 +118,12 @@ export const ZoomHostField: React.FC<ZoomHostFieldProps> = ({
     if (!freshCandidate) return;
 
     const checkId = ++checkIdRef.current;
-    setChecking(true);
+    setStatus('checking');
     const startedAt = Date.now();
+    // Set inside the try block on success only -- an error/timeout below falls through to
+    // 'finally' with this still null, which just clears the indicator with no status message
+    // (there's nothing to report; the check didn't produce a real answer).
+    let outcome: 'done' | 'noHostAvailable' | null = null;
     try {
       const res = await fetch('/api/retrieve/zoom-host-availability', {
         method: 'POST',
@@ -120,16 +134,28 @@ export const ZoomHostField: React.FC<ZoomHostFieldProps> = ({
       if (!res.ok) return;
       const data = await res.json();
       const next: Record<string, boolean> = {};
+      let anyAvailable = false;
       (data.hosts ?? []).forEach((h: { host: string; available: boolean }) => {
         next[h.host] = h.available;
+        if (h.available) anyAvailable = true;
       });
-      if (checkId === checkIdRef.current && isMountedRef.current) setAvailability(next);
+      if (checkId === checkIdRef.current && isMountedRef.current) {
+        setAvailability(next);
+        outcome = anyAvailable ? 'done' : 'noHostAvailable';
+      }
     } catch (err) {
       console.error('Error checking Zoom host availability:', err);
     } finally {
       const remaining = MIN_CHECKING_DISPLAY_MS - (Date.now() - startedAt);
       if (remaining > 0) await new Promise((resolve) => setTimeout(resolve, remaining));
-      if (checkId === checkIdRef.current && isMountedRef.current) setChecking(false);
+      if (checkId === checkIdRef.current && isMountedRef.current) {
+        setStatus(outcome);
+        if (outcome === 'done') {
+          doneTimeoutRef.current = setTimeout(() => {
+            if (checkId === checkIdRef.current) setStatus(null);
+          }, DONE_DISPLAY_MS);
+        }
+      }
     }
   };
 
@@ -141,7 +167,9 @@ export const ZoomHostField: React.FC<ZoomHostFieldProps> = ({
   // would describe a time that's no longer selected -- actively misleading, not just stale.
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (doneTimeoutRef.current) clearTimeout(doneTimeoutRef.current);
     setAvailability(null);
+    setStatus(null);
     if (!candidateKey) return;
 
     debounceRef.current = setTimeout(() => {
@@ -150,6 +178,7 @@ export const ZoomHostField: React.FC<ZoomHostFieldProps> = ({
 
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
+      if (doneTimeoutRef.current) clearTimeout(doneTimeoutRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [candidateKey]);
@@ -191,7 +220,15 @@ export const ZoomHostField: React.FC<ZoomHostFieldProps> = ({
 
   return (
     <div className={styles.zoomHostField}>
-      {checking && <p className={styles.checkingIndicator}>Checking host availability…</p>}
+      {status === 'checking' && (
+        <p className={styles.checkingIndicator}>Checking host availability…</p>
+      )}
+      {status === 'done' && (
+        <p className={styles.checkDoneIndicator}><CheckIcon /> Check done</p>
+      )}
+      {status === 'noHostAvailable' && (
+        <p className={styles.noHostIndicator}>No host available</p>
+      )}
       <Dropdown
         key={selectedLabel}
         label={<img src="/svg/person-icon.svg" alt="Person Icon" />}

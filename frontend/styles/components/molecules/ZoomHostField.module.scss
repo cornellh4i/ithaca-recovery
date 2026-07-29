@@ -11,6 +11,23 @@
     font-family: 'Source Sans Pro', sans-serif;
 }
 
+.checkDoneIndicator {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0 0 6px;
+    color: $success-text-color;
+    font-size: 13px;
+    font-family: 'Source Sans Pro', sans-serif;
+}
+
+.noHostIndicator {
+    margin: 0 0 6px;
+    color: $danger-color;
+    font-size: 13px;
+    font-family: 'Source Sans Pro', sans-serif;
+}
+
 // One row per host option (both the closed button's selected value and each open-list row,
 // see Dropdown.tsx's renderElement) -- label on the left, availability icon pinned to the
 // row's right edge instead of trailing right after the label text.
