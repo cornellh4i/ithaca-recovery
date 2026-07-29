@@ -115,4 +115,28 @@ test.describe("zoom integration", () => {
     // fails again — the point here is that the retry control fires the request.
     await expect(page.getByText("Zoom sync failed ⚠")).toBeVisible();
   });
+
+  test("6.15 Remote mode shows only the Zoom Host field, hiding Room and Zoom Room", async ({ adminPage }) => {
+    const { page } = adminPage;
+    await page.goto("/");
+    await page.getByText("New Meeting").click();
+    await page.getByRole("button", { name: "Remote" }).click();
+
+    await expect(page.getByRole("button", { name: "Select Room" })).not.toBeVisible();
+    await expect(page.getByRole("button", { name: "Select Zoom Room" })).not.toBeVisible();
+    // ZoomHostField defaults its Dropdown's value to "Automatic assignment", so (unlike
+    // Room/Zoom Room, which start unselected) it never shows the "name" placeholder text.
+    await expect(page.getByRole("button", { name: "Automatic assignment" })).toBeVisible();
+  });
+
+  test("6.16 In Person mode shows neither Zoom Room nor Zoom Host", async ({ adminPage }) => {
+    const { page } = adminPage;
+    await page.goto("/");
+    await page.getByText("New Meeting").click();
+    await page.getByRole("button", { name: "In Person" }).click();
+
+    await expect(page.getByRole("button", { name: "Select Room" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Select Zoom Room" })).not.toBeVisible();
+    await expect(page.getByRole("button", { name: "Automatic assignment" })).not.toBeVisible();
+  });
 });
