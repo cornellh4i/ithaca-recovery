@@ -44,6 +44,12 @@ const CrossIcon: React.FC = () => (
 // once they stop.
 const DEBOUNCE_MS = 500;
 
+// The check usually resolves in well under a second, which made "Checking host availability…"
+// flash on and off almost instantly -- distracting rather than informative. Holding it visible
+// for at least this long (padding out the remainder in checkAvailability's finally block) reads
+// as an actual status update instead of a flicker.
+const MIN_CHECKING_DISPLAY_MS = 2000;
+
 export const ZoomHostField: React.FC<ZoomHostFieldProps> = ({
   zoomHost,
   onZoomHostChange,
@@ -55,6 +61,12 @@ export const ZoomHostField: React.FC<ZoomHostFieldProps> = ({
   const [availability, setAvailability] = useState<Record<string, boolean> | null>(null);
   const [checking, setChecking] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Identifies the most recently started check -- a superseded one (a newer candidateKey
+  // fired another check before this one's minimum display time elapsed) skips writing its
+  // result/clearing `checking`, so it can't clobber a check that's since taken its place.
+  const checkIdRef = useRef(0);
+  const isMountedRef = useRef(true);
+  useEffect(() => () => { isMountedRef.current = false; }, []);
 
   // Deliberately excludes mid: NewMeeting.tsx's getCandidate calls buildMeetingPayload(uuidv4(),
   // ...) -- a fresh random mid on every single call, including ones this effect itself causes
@@ -78,7 +90,9 @@ export const ZoomHostField: React.FC<ZoomHostFieldProps> = ({
     const freshCandidate = getCandidate();
     if (!freshCandidate) return;
 
+    const checkId = ++checkIdRef.current;
     setChecking(true);
+    const startedAt = Date.now();
     try {
       const res = await fetch('/api/retrieve/zoom-host-availability', {
         method: 'POST',
@@ -91,9 +105,11 @@ export const ZoomHostField: React.FC<ZoomHostFieldProps> = ({
       (data.hosts ?? []).forEach((h: { host: string; available: boolean }) => {
         next[h.host] = h.available;
       });
-      setAvailability(next);
+      if (checkId === checkIdRef.current && isMountedRef.current) setAvailability(next);
     } finally {
-      setChecking(false);
+      const remaining = MIN_CHECKING_DISPLAY_MS - (Date.now() - startedAt);
+      if (remaining > 0) await new Promise((resolve) => setTimeout(resolve, remaining));
+      if (checkId === checkIdRef.current && isMountedRef.current) setChecking(false);
     }
   };
 
