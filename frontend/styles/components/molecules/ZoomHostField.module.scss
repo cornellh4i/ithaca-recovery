@@ -22,6 +22,9 @@
 }
 
 .noHostIndicator {
+    display: flex;
+    align-items: center;
+    gap: 6px;
     margin: 0 0 6px;
     color: $danger-color;
     font-size: 13px;
@@ -49,19 +52,12 @@
     min-width: 0;
 }
 
+// Color is baked into check-icon.svg/close-icon.svg themselves -- nothing to fill here.
 .checkIcon,
 .crossIcon {
     width: 14px;
     height: 14px;
     flex-shrink: 0;
-}
-
-.checkIcon path {
-    fill: $success-text-color;
-}
-
-.crossIcon path {
-    fill: $danger-color;
 }
 
 .busyWarning {

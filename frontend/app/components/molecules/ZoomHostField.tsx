@@ -23,19 +23,16 @@ export interface ZoomHostFieldProps {
   getCandidate: () => IMeeting | null;
 }
 
-// Google Material Symbols "check" / "close" glyphs -- fill is driven entirely by CSS
-// (.checkIcon/.crossIcon below), not the path's own fill attribute, so the same markup
-// works for both colors without two separate asset files.
+// public/svg/check-icon.svg and close-icon.svg -- Google Material Symbols "check"/"close"
+// glyphs, in $success-text-color/$danger-color respectively (baked into the file, matching
+// this codebase's existing two-file-per-color convention -- see plus-icon.svg vs.
+// plus-icon-white.svg -- rather than one recolorable asset).
 const CheckIcon: React.FC = () => (
-  <svg viewBox="0 -960 960 960" className={styles.checkIcon} aria-hidden="true">
-    <path d="M382-240 154-468l57-57 171 171 367-367 57 57-424 424Z" />
-  </svg>
+  <img src="/svg/check-icon.svg" alt="Available" className={styles.checkIcon} />
 );
 
 const CrossIcon: React.FC = () => (
-  <svg viewBox="0 -960 960 960" className={styles.crossIcon} aria-hidden="true">
-    <path d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z" />
-  </svg>
+  <img src="/svg/close-icon.svg" alt="Busy" className={styles.crossIcon} />
 );
 
 // How long to wait, after the candidate (date/time/recurrence) last changed, before firing
@@ -227,7 +224,7 @@ export const ZoomHostField: React.FC<ZoomHostFieldProps> = ({
         <p className={styles.checkDoneIndicator}><CheckIcon /> Check done</p>
       )}
       {status === 'noHostAvailable' && (
-        <p className={styles.noHostIndicator}>No host available</p>
+        <p className={styles.noHostIndicator}><CrossIcon /> No host available</p>
       )}
       <Dropdown
         key={selectedLabel}
