@@ -178,6 +178,14 @@
     cursor: pointer;
     display: flex;
     align-items: center;
+
+    // Long option text (e.g. the Zoom Host dropdown's decorated labels) truncates with an
+    // ellipsis instead of wrapping unpredictably inside the narrow 280px sidebar -- matches
+    // .DropdownButtonText's existing closed-state behavior above. A `title` attribute on the
+    // element (set by callers with long option text) surfaces the full string on hover.
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .dropdownItem:hover {

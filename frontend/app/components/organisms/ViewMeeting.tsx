@@ -11,6 +11,8 @@ import { ROOM_COLORS, ZOOM_ROOM_COLOR } from "../../../util/filterColors";
 import { formatDayColumn } from "../../../util/recurrenceDisplay";
 import { isZoomRoomMismatched } from "../../../util/rooms";
 import { linkify } from "../../../util/linkify";
+import { zoomHostLabel } from "../../../util/zoomHosts";
+import { useZoomHostPool } from "../../../hooks/useZoomHostPool";
 
 // Extracts ET wall-clock time as "HH:MM" (24hr), which is what formatCompactTimeRange expects.
 const etTimeFmt = new Intl.DateTimeFormat('en-GB', {
@@ -96,6 +98,7 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
   const [showInvitation, setShowInvitation] = useState(false);
   const [descExpanded, setDescExpanded] = useState(false);
   const [isDescTruncated, setIsDescTruncated] = useState(false);
+  const zoomHostPool = useZoomHostPool();
 
   const popupRef = useRef<HTMLDivElement>(null);
   const kebabRef = useRef<HTMLDivElement>(null);
@@ -440,7 +443,7 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
           {zoomHost && (
             <p className={styles.row}>
               <img src="/svg/person-icon.svg" alt="" />
-              <span>Zoom host: {zoomHost}</span>
+              <span>Zoom host: {zoomHostLabel(zoomHost, zoomHostPool.indexOf(zoomHost))} — {zoomHost}</span>
             </p>
           )}
 
