@@ -49,7 +49,7 @@ export const GET = async () => {
       where: notDeleted,
       select: {
         mid: true, title: true, status: true, calType: true, isRecurring: true,
-        syncStatus: true, zoomRoom: true, zoomSyncStatus: true, room: true,
+        syncStatus: true, zoomRoom: true, zoomSyncStatus: true, room: true, modeType: true,
         startDateTime: true, endDateTime: true, recurrencePattern: true,
       },
     });
@@ -61,6 +61,7 @@ export const GET = async () => {
     let recurring = 0;
     let gcalSyncErrors = 0;
     let zoomSyncErrors = 0;
+    let pendingZoomSync = 0;
     for (const m of meetings) {
       if (m.status === "Suspended") suspended++; else active++;
       if (m.isRecurring) recurring++;
@@ -68,7 +69,11 @@ export const GET = async () => {
         if (cat in byCategory) byCategory[cat]++;
       }
       if (m.syncStatus === "error") gcalSyncErrors++;
-      if (m.zoomRoom && m.zoomSyncStatus === "error") zoomSyncErrors++;
+      if (m.syncStatus === "pending") pendingZoomSync++;
+      // mode-based, not zoomRoom-truthy -- Remote meetings need Zoom too but no longer have
+      // a zoomRoom, so gating this on zoomRoom would silently stop counting their errors.
+      const needsZoom = m.modeType === "Hybrid" || m.modeType === "Remote";
+      if (needsZoom && m.zoomSyncStatus === "error") zoomSyncErrors++;
     }
 
     const suspendedMeetings = await prisma.meeting.findMany({
@@ -92,6 +97,7 @@ export const GET = async () => {
         oneTime: meetings.length - recurring,
         gcalSyncErrors,
         zoomSyncErrors,
+        pendingZoomSync,
       },
       conflicts: computeConflicts(meetings),
       suspendedMeetings,

@@ -105,6 +105,7 @@ test("a same-room time edit that now conflicts with another meeting on the same 
   const busyMid = `m-${randomUUID()}`;
   const { recurrencePattern: _rp1, ...busyMeetingData } = buildMeetingPayload({
     mid: busyMid,
+    modeType: "Hybrid",
     room: "Fellowship Room",
     zoomRoom: "Fellowship Room - Zoom",
     zid: "zid-busy",
@@ -117,6 +118,7 @@ test("a same-room time edit that now conflicts with another meeting on the same 
   const editedMid = `m-${randomUUID()}`;
   const { recurrencePattern: _rp2, ...editedMeetingData } = buildMeetingPayload({
     mid: editedMid,
+    modeType: "Hybrid",
     room: "Serenity Room",
     zoomRoom: "Serenity Room - Zoom",
     zid: "zid-edited",
@@ -129,6 +131,7 @@ test("a same-room time edit that now conflicts with another meeting on the same 
   // Same room/Zoom room/host as before — only the time moves, into busyMid's window.
   const payload = buildMeetingPayload({
     mid: editedMid,
+    modeType: "Hybrid",
     room: "Serenity Room",
     zoomRoom: "Serenity Room - Zoom",
     zid: "zid-edited",
@@ -168,10 +171,10 @@ test("a newly resolved Zoom host is persisted synchronously when a meeting first
 
   const prisma = getTestPrismaClient();
   const mid = `m-${randomUUID()}`;
-  const { recurrencePattern: _rp, ...existingMeetingData } = buildMeetingPayload({ mid, zoomRoom: "" });
+  const { recurrencePattern: _rp, ...existingMeetingData } = buildMeetingPayload({ mid, modeType: "Hybrid", zoomRoom: "" });
   await prisma.meeting.create({ data: existingMeetingData });
 
-  const payload = buildMeetingPayload({ mid, zoomRoom: "Serenity Room - Zoom" });
+  const payload = buildMeetingPayload({ mid, modeType: "Hybrid", zoomRoom: "Serenity Room - Zoom" });
   const request = new Request("http://localhost/api/update/meeting", {
     method: "PUT",
     body: JSON.stringify(payload),
@@ -195,10 +198,10 @@ test("an exhausted Zoom host pool on update fails soft, synchronously, without t
 
   const prisma = getTestPrismaClient();
   const mid = `m-${randomUUID()}`;
-  const { recurrencePattern: _rp, ...existingMeetingData } = buildMeetingPayload({ mid, zoomRoom: "" });
+  const { recurrencePattern: _rp, ...existingMeetingData } = buildMeetingPayload({ mid, modeType: "Hybrid", zoomRoom: "" });
   await prisma.meeting.create({ data: existingMeetingData });
 
-  const payload = buildMeetingPayload({ mid, zoomRoom: "Serenity Room - Zoom" });
+  const payload = buildMeetingPayload({ mid, modeType: "Hybrid", zoomRoom: "Serenity Room - Zoom" });
   const request = new Request("http://localhost/api/update/meeting", {
     method: "PUT",
     body: JSON.stringify(payload),

@@ -107,7 +107,7 @@ test("a resolved Zoom host is persisted synchronously, before the deferred sync 
     () => new Promise((resolve) => setTimeout(() => resolve("fake-event-id"), SYNC_DELAY_MS)),
   );
 
-  const payload = buildMeetingPayload({ zoomRoom: "Serenity Room - Zoom" });
+  const payload = buildMeetingPayload({ modeType: "Hybrid", zoomRoom: "Serenity Room - Zoom" });
   const request = new Request("http://localhost/api/write/meeting", {
     method: "POST",
     body: JSON.stringify(payload),
@@ -152,7 +152,7 @@ test("a malformed body returns 400 with validation issues instead of a raw 500",
 test("an exhausted Zoom host pool fails soft: the meeting is still created", async () => {
   mockedResolveZoomHost.mockResolvedValue(null);
 
-  const payload = buildMeetingPayload({ zoomRoom: "Serenity Room - Zoom" });
+  const payload = buildMeetingPayload({ modeType: "Hybrid", zoomRoom: "Serenity Room - Zoom" });
   const request = new Request("http://localhost/api/write/meeting", {
     method: "POST",
     body: JSON.stringify(payload),

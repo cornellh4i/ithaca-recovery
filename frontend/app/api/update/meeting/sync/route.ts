@@ -38,26 +38,18 @@ const syncMeeting = async (request: Request): Promise<Response> => {
             recurrencePattern: meeting.recurrencePattern ?? null,
         };
 
-        const { updatedEventIds, allSynced } = await reconcileMeetingCalendars(
-            auth.accessToken,
-            meetingForCalendar,
-            existingEventIds,
-        );
+        const zoomEnabled = meeting.modeType === 'Hybrid' || meeting.modeType === 'Remote';
 
-        await prisma.meeting.update({
-            where: { mid },
-            data: {
-                googleCalendarEventIds: updatedEventIds,
-                syncStatus: allSynced ? 'synced' : 'error',
-            },
-        });
-
-        // Zoom sync retry — independent from Google Calendar sync above (own status field).
+        // Zoom retry runs FIRST, before the calendar reconcile below -- same reasoning as
+        // write/meeting/route.ts and update/meeting/route.ts: the calType calendars need the
+        // real zoomLink, and if this retry still can't get a working Zoom meeting, the
+        // calendar reconcile is skipped again rather than publishing with a missing link.
         let zoomSyncStatus = meeting.zoomSyncStatus;
         let zoomSyncError: string | null = meeting.zoomSyncError ?? null;
-        if (meeting.zoomRoom) {
-            let zid = meeting.zid;
-            let zoomLink = meeting.zoomLink;
+        let zid = meeting.zid;
+        let zoomLink = meeting.zoomLink;
+
+        if (zoomEnabled) {
             let zoomPasscode = meeting.zoomPasscode;
             let zoomHost = meeting.zoomHost;
             let zoomCalendarEventId = meeting.zoomCalendarEventId;
@@ -99,7 +91,10 @@ const syncMeeting = async (request: Request): Promise<Response> => {
                 }
             }
 
-            if (auth.accessToken && zoomLink && !skipCalendarTimeSync) {
+            // Only Hybrid meetings have a zoomRoom -- Remote's dedicated per-room Zoom-Room
+            // calendar publish naturally no-ops here; its link is carried by the main
+            // calType-calendar reconcile below instead.
+            if (auth.accessToken && zoomLink && meeting.zoomRoom && !skipCalendarTimeSync) {
                 const calId = zoomRoomCalendarId[meeting.zoomRoom];
                 if (calId) {
                     const meetingWithZoomLink = { ...meetingForCalendar, zoomLink };
@@ -128,7 +123,29 @@ const syncMeeting = async (request: Request): Promise<Response> => {
             });
         }
 
-        return NextResponse.json({ syncStatus: allSynced ? 'synced' : 'error', zoomSyncStatus, zoomSyncError });
+        // True when this meeting needs Zoom but doesn't have a working Zoom meeting after the
+        // retry above -- the calendar reconcile below is deferred, not run with a missing link.
+        const zoomBlocking = zoomEnabled && !zid;
+        let syncStatus: string;
+
+        if (zoomBlocking) {
+            syncStatus = 'pending';
+            await prisma.meeting.update({ where: { mid }, data: { syncStatus } });
+        } else {
+            const { updatedEventIds, allSynced } = await reconcileMeetingCalendars(
+                auth.accessToken,
+                { ...meetingForCalendar, zoomLink },
+                existingEventIds,
+            );
+
+            syncStatus = allSynced ? 'synced' : 'error';
+            await prisma.meeting.update({
+                where: { mid },
+                data: { googleCalendarEventIds: updatedEventIds, syncStatus },
+            });
+        }
+
+        return NextResponse.json({ syncStatus, zoomSyncStatus, zoomSyncError });
     } catch (error) {
         console.error("Sync retry error:", error);
         return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });

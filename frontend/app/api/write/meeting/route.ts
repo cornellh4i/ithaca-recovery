@@ -11,8 +11,16 @@ import { prisma } from "../../../../lib/prisma";
 // Runs after the response is sent (see after() call below) — failure sets syncStatus but
 // does not fail the request, which has already returned by the time this runs. `resolvedHost`
 // was already resolved (and persisted) synchronously in createMeeting, before this ever runs —
-// see the comment there for why. This only does the network-bound half: actually creating the
-// Zoom meeting under that host.
+// see the comment there for why.
+//
+// Zoom resolves/creates FIRST, before the main calType-calendar publish -- two reasons, not
+// just one: (1) so the calType events actually carry the real zoomLink (services/
+// googleCalendar.ts's buildEventBody already writes "Zoom: {link}" into the description
+// whenever it's present; previously this loop ran first, so it never had one), and (2) so a
+// meeting that needs Zoom but doesn't have a working one yet (host pool exhausted, or the
+// Zoom API call failed) can skip the calendar publish entirely this run rather than
+// publishing "fully scheduled" with a missing link -- a later "Retry sync"
+// (update/meeting/sync/route.ts) picks this back up once a host becomes available.
 async function syncNewMeeting(
   mid: string,
   meetingData: IMeeting,
@@ -20,9 +28,43 @@ async function syncNewMeeting(
   accessToken: string | undefined,
   resolvedHost: string | null,
 ): Promise<void> {
-  const meetingForSync: IMeeting = { ...meetingData, isRecurring };
+  if (meetingData.status === 'Suspended') return;
 
-  if (accessToken && meetingData.status !== 'Suspended') {
+  const zoomEnabled = meetingData.modeType === 'Hybrid' || meetingData.modeType === 'Remote';
+
+  let zid = meetingData.zid ?? null;
+  let zoomLink = meetingData.zoomLink ?? null;
+  let zoomPasscode = meetingData.zoomPasscode ?? null;
+  const zoomHost = resolvedHost;
+  let zoomCalendarEventId: string | null = null;
+  let zoomSynced = true;
+  let zoomSyncError: string | null = null;
+
+  if (zoomEnabled && !zid && !zoomLink) {
+    if (!zoomHost) {
+      zoomSynced = false;
+      zoomSyncError = "No Zoom host available for this meeting's schedule (pool exhausted).";
+    } else {
+      const created = await createZoomMeeting({ ...meetingData, isRecurring }, zoomHost);
+      if (created) {
+        zid = created.zid;
+        zoomLink = created.zoomLink;
+        zoomPasscode = created.zoomPasscode;
+      } else {
+        zoomSynced = false;
+        zoomSyncError = "Failed to create the Zoom meeting.";
+      }
+    }
+  }
+
+  // True when this meeting needs Zoom but doesn't have a working Zoom meeting after the
+  // attempt above -- the calendar publish below is deferred, not attempted with a missing link.
+  const zoomBlocking = zoomEnabled && !zid;
+  const meetingForSync: IMeeting = { ...meetingData, isRecurring, zoomLink };
+
+  if (zoomBlocking) {
+    await prisma.meeting.update({ where: { mid }, data: { syncStatus: 'pending' } });
+  } else if (accessToken) {
     const calendarIds = calendarIdsForMeeting(meetingData.calType ?? []);
     const eventIds: Record<string, string> = {};
     for (const [cat, calId] of Object.entries(calendarIds)) {
@@ -39,35 +81,13 @@ async function syncNewMeeting(
     });
   }
 
-  if (meetingData.zoomRoom && meetingData.status !== 'Suspended') {
-    let zid = meetingData.zid ?? null;
-    let zoomLink = meetingData.zoomLink ?? null;
-    let zoomPasscode = meetingData.zoomPasscode ?? null;
-    const zoomHost = resolvedHost;
-    let zoomCalendarEventId: string | null = null;
-    let zoomSynced = true;
-    let zoomSyncError: string | null = null;
-
-    if (!zid && !zoomLink) {
-      if (!zoomHost) {
-        zoomSynced = false;
-        zoomSyncError = "No Zoom host available for this meeting's schedule (pool exhausted).";
-      } else {
-        const created = await createZoomMeeting(meetingForSync, zoomHost);
-        if (created) {
-          zid = created.zid;
-          zoomLink = created.zoomLink;
-          zoomPasscode = created.zoomPasscode;
-        } else {
-          zoomSynced = false;
-          zoomSyncError = "Failed to create the Zoom meeting.";
-        }
-      }
-    }
-
+  if (zoomEnabled) {
     const zoomInvitation = zid ? await getZoomMeetingInvitation(zid) : null;
 
-    if (accessToken && zoomLink) {
+    // Only Hybrid meetings have a zoomRoom -- Remote's dedicated per-room Zoom-Room calendar
+    // publish naturally no-ops here (zoomRoomCalendarId[""] is undefined); its Zoom link is
+    // carried by the main calType-calendar event above instead.
+    if (accessToken && zoomLink && meetingData.zoomRoom) {
       const calId = zoomRoomCalendarId[meetingData.zoomRoom];
       if (calId) {
         const eventId = await createCalendarEvent(accessToken, { ...meetingForSync, zoomLink }, calId, zoomLink);
@@ -104,10 +124,17 @@ const createMeeting = async (request: Request) => {
     const { recurrencePattern, ...meetingDetails } = meetingData;
     const isRecurring = !!recurrencePattern;
 
+    const zoomEnabled = (meetingData.modeType === 'Hybrid' || meetingData.modeType === 'Remote')
+      && meetingData.status !== 'Suspended';
+
     let resolvedHost: string | null = null;
     let zoomSyncError: string | null = null;
-    if (meetingData.zoomRoom && meetingData.status !== 'Suspended' && !meetingData.zid && !meetingData.zoomLink) {
-      resolvedHost = await resolveZoomHost({ ...meetingData, isRecurring }, { excludeMid: meetingData.mid });
+    if (zoomEnabled && !meetingData.zid && !meetingData.zoomLink) {
+      // A manually-selected host (see the Meeting Form's Zoom Host dropdown) is used as-is,
+      // no server-side conflict re-check -- the form's own "Check host availability" already
+      // surfaced any conflict, and manual selection is explicitly for admin overrides.
+      resolvedHost = meetingData.zoomHost
+        || (await resolveZoomHost({ ...meetingData, isRecurring }, { excludeMid: meetingData.mid }));
       if (!resolvedHost) {
         zoomSyncError = "No Zoom host available for this meeting's schedule (pool exhausted).";
       }

@@ -29,6 +29,7 @@ interface DiagnosticsData {
     oneTime: number;
     gcalSyncErrors: number;
     zoomSyncErrors: number;
+    pendingZoomSync: number;
   };
   conflicts: ConflictListRow[];
   suspendedMeetings: {
@@ -173,6 +174,14 @@ const DiagnosticsTab: React.FC<DiagnosticsTabProps> = ({ email, role }) => {
           <div className={styles.countsSecondaryRow}>
             <span className={styles.gcalDown}>
               ⚠ Sync errors — Google Calendar: {data.meetingCounts.gcalSyncErrors} · Zoom: {data.meetingCounts.zoomSyncErrors}
+            </span>
+          </div>
+        )}
+        {data.meetingCounts.pendingZoomSync > 0 && (
+          <div className={styles.countsSecondaryRow}>
+            <span className={styles.gcalDown}>
+              ⏳ Waiting on a Zoom host: {data.meetingCounts.pendingZoomSync} — calendars
+              won&apos;t publish until a host becomes available (retry from the meeting&apos;s detail view)
             </span>
           </div>
         )}
