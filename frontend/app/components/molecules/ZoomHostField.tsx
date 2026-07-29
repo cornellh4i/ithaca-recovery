@@ -56,14 +56,17 @@ export const ZoomHostField: React.FC<ZoomHostFieldProps> = ({
   const [checking, setChecking] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Only mid/startDateTime/endDateTime/isRecurring/recurrencePattern actually reach the
-  // availability endpoint (see zoomHostAvailabilityCheckSchema) -- keying the effect on just
-  // those fields means an unrelated edit (title, description, room) doesn't re-trigger a
-  // check whose result wouldn't have changed anyway.
+  // Deliberately excludes mid: NewMeeting.tsx's getCandidate calls buildMeetingPayload(uuidv4(),
+  // ...) -- a fresh random mid on every single call, including ones this effect itself causes
+  // via setAvailability(null) below. Including it here made every render look like "the
+  // candidate changed" (the mid is never the same twice), which reset the debounce timer every
+  // render in a tight loop instead of only on an actual date/time/recurrence edit. mid only
+  // matters for excluding the meeting from its own conflict check server-side (see
+  // zoomHostAvailabilityCheckSchema) -- it doesn't affect what the check itself should return,
+  // so it has no business being part of "did the candidate change."
   const candidate = isVisible ? getCandidate() : null;
   const candidateKey = candidate
     ? JSON.stringify({
-      mid: candidate.mid,
       start: candidate.startDateTime,
       end: candidate.endDateTime,
       isRecurring: candidate.isRecurring,
