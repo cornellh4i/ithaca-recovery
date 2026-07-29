@@ -13,3 +13,9 @@ export const ROOM_COLORS: Record<string, string> = {
 
 export const ZOOM_ROOM_COLOR = "#CECECE";
 export const CATEGORY_COLOR = "#CC3366";
+
+// Distinguishes the "Remote" virtual room (util/rooms.ts's defaultRooms) from the grey
+// used for a Hybrid meeting's Zoom room -- Remote has no physical presence at all, so
+// pairing it with the same grey as a room's Zoom companion would read as if it belonged
+// to one of the physical rooms' Zoom pairings.
+export const REMOTE_COLOR = "#7ED9C3";

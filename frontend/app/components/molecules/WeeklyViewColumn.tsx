@@ -88,9 +88,10 @@ const WeeklyViewColumn: React.FC<WeeklyViewColumnProps> = ({
     // no normal slot of its own -- same full-width/shadow treatment as selecting one
     // of the two already-shown stacked meetings.
     const renderMeetingCard = (meeting: Meeting, key: React.Key, forceSelected = false) => {
-        // Remote-only meetings have no physical room, so fall back to the
-        // Zoom room — otherwise the location line would be blank.
-        const locationLabel = meeting.room || meeting.zoomRoom || '';
+        // Remote meetings have neither a physical room nor a Zoom room -- fall back to a
+        // literal "Remote" label (matches the virtual room DailyView buckets them into,
+        // see util/rooms.ts's defaultRooms), otherwise the location line would be blank.
+        const locationLabel = meeting.room || meeting.zoomRoom || (meeting.tags?.includes('Remote') ? 'Remote' : '');
         const topOffset = timeToPixels(meeting.startTime) + VERTICAL_GAP / 2;
         const height = Math.max(
             timeToPixels(meeting.endTime) - timeToPixels(meeting.startTime) - VERTICAL_GAP,
