@@ -50,6 +50,13 @@ const DEBOUNCE_MS = 500;
 // as an actual status update instead of a flicker.
 const MIN_CHECKING_DISPLAY_MS = 2000;
 
+// A plain `fetch` with no signal can hang forever if the request never settles (a stalled
+// connection, a hung server-side query) -- with nothing to stop it, the "Checking..." indicator
+// would then stay up indefinitely, since checkAvailability's finally block never gets a chance
+// to run. Aborting after this long guarantees the fetch always eventually settles one way or
+// another, so `checking` always eventually clears.
+const FETCH_TIMEOUT_MS = 8000;
+
 export const ZoomHostField: React.FC<ZoomHostFieldProps> = ({
   zoomHost,
   onZoomHostChange,
@@ -98,6 +105,7 @@ export const ZoomHostField: React.FC<ZoomHostFieldProps> = ({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(freshCandidate),
+        signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
       });
       if (!res.ok) return;
       const data = await res.json();
@@ -106,6 +114,8 @@ export const ZoomHostField: React.FC<ZoomHostFieldProps> = ({
         next[h.host] = h.available;
       });
       if (checkId === checkIdRef.current && isMountedRef.current) setAvailability(next);
+    } catch (err) {
+      console.error('Error checking Zoom host availability:', err);
     } finally {
       const remaining = MIN_CHECKING_DISPLAY_MS - (Date.now() - startedAt);
       if (remaining > 0) await new Promise((resolve) => setTimeout(resolve, remaining));
