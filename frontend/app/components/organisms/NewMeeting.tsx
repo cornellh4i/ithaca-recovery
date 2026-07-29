@@ -8,6 +8,7 @@ import TimePicker from '../atoms/TimePicker';
 import Dropdown from '../atoms/Dropdown';
 import LabeledCheckbox from '../atoms/CheckBox';
 import RecurringMeetingForm from '../molecules/RecurringMeeting';
+import ZoomHostField from '../molecules/ZoomHostField';
 import CloseIcon from '@mui/icons-material/Close';
 import IconButton from '@mui/material/IconButton';
 
@@ -41,6 +42,7 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({
       description: inputDescriptionValue, setDescription: setDescriptionValue,
       calTypes: selectedCalTypes,
       zoomRoom: selectedZoomRoom, setZoomRoom: setSelectedZoomRoom,
+      zoomHost: selectedZoomHost, setZoomHost: setSelectedZoomHost,
       handleRecurringMeetingChange,
       handleRoomChange,
       handleModeSelect,
@@ -177,11 +179,20 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({
               key={selectedZoomRoom}
               label={<img src="/svg/video-call-icon.svg" alt="Zoom Icon" />}
               value={selectedZoomRoom}
-              isVisible={selectedMode !== "In Person"}
+              isVisible={selectedMode === "Hybrid"}
               elements={zoomRoomOptions}
               name="Select Zoom Room"
               onChange={setSelectedZoomRoom}
               compact
+            />
+          }
+          zoomHostDropdown={
+            <ZoomHostField
+              zoomHost={selectedZoomHost}
+              onZoomHostChange={setSelectedZoomHost}
+              isVisible={selectedMode === "Hybrid" || selectedMode === "Remote"}
+              compact
+              getCandidate={() => buildMeetingPayload(uuidv4(), 'Active')}
             />
           }
           emailTextField={<TextField

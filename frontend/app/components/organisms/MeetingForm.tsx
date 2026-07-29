@@ -13,6 +13,10 @@ export interface MeetingFormProps {
   roomSelectionDropdown: React.ReactElement;
   meetingTypeDropdown: React.ReactElement;
   zoomRoomDropdown: React.ReactElement;
+  // Self-contained: renders the dropdown, its "Check host availability" action, and any
+  // busy-host warning together (see molecules/ZoomHostField.tsx) -- not just a bare dropdown
+  // like the other *Dropdown props.
+  zoomHostDropdown: React.ReactElement;
   emailTextField: React.ReactElement;
   descriptionTextField: React.ReactElement;
   handleMeetingSubmit: () => Promise<void>;
@@ -46,6 +50,7 @@ export const MeetingForm: React.FC<MeetingFormProps> = ({
   roomSelectionDropdown,
   meetingTypeDropdown,
   zoomRoomDropdown,
+  zoomHostDropdown,
   emailTextField,
   descriptionTextField,
   handleMeetingSubmit,
@@ -90,9 +95,14 @@ export const MeetingForm: React.FC<MeetingFormProps> = ({
           {roomSelectionDropdown}
         </Field>
         )}
-        {(selectedMode === "Hybrid" || selectedMode === "Remote") && (
+        {selectedMode === "Hybrid" && (
         <Field caption="Zoom room" className={styles.dummyComponent}>
           {zoomRoomDropdown}
+        </Field>
+        )}
+        {(selectedMode === "Hybrid" || selectedMode === "Remote") && (
+        <Field caption="Zoom host" className={styles.dummyComponent}>
+          {zoomHostDropdown}
         </Field>
         )}
         <Field caption="Email" className={`${styles.dummyComponent} ${styles.fieldFullWidth}`}>

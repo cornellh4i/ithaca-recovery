@@ -133,7 +133,13 @@ export function useMeetingForm(initialMeeting?: IMeeting, defaultContext?: Meeti
                 : initialMeeting.calType ? [initialMeeting.calType as unknown as string] : []
             : []
     );
-    const [zoomRoom, setZoomRoom] = useState(initialMeeting?.zoomRoom ?? "");
+    // Every existing Remote meeting today has a non-null zoomRoom (the old rules required
+    // it), but Remote no longer collects/shows this field -- don't resubmit a stale value
+    // the new UI can't display or let the user clear.
+    const [zoomRoom, setZoomRoom] = useState(
+        initialMeeting?.modeType === "Remote" ? "" : (initialMeeting?.zoomRoom ?? "")
+    );
+    const [zoomHost, setZoomHost] = useState(initialMeeting?.zoomHost ?? "");
     const [isRecurring, setIsRecurring] = useState(!!initialMeeting?.recurrencePattern);
     const [recurrencePattern, setRecurrencePattern] = useState<IRecurrencePattern | null>(
         initialMeeting?.recurrencePattern ?? null
@@ -160,8 +166,8 @@ export function useMeetingForm(initialMeeting?: IMeeting, defaultContext?: Meeti
     const handleModeSelect = (newMode: string) => {
         setMode(newMode);
         // Clear the fields the new mode doesn't use, so stale selections aren't submitted
-        if (newMode === "In Person") setZoomRoom("");
-        if (newMode === "Remote") setRoom("");
+        if (newMode === "In Person") { setZoomRoom(""); setZoomHost(""); }
+        if (newMode === "Remote") { setRoom(""); setZoomRoom(""); }
     };
 
     const handleCalTypeToggle = (type: string) => {
@@ -181,6 +187,7 @@ export function useMeetingForm(initialMeeting?: IMeeting, defaultContext?: Meeti
         setRoom("");
         setCalTypes([]);
         setZoomRoom("");
+        setZoomHost("");
         setIsRecurring(false);
         setRecurrencePattern(null);
     };
@@ -210,8 +217,6 @@ export function useMeetingForm(initialMeeting?: IMeeting, defaultContext?: Meeti
             errors.push("Hybrid meetings require both a physical room and a Zoom room.");
         } else if (mode === "In Person" && !room) {
             errors.push("In Person meetings require a physical room.");
-        } else if (mode === "Remote" && !zoomRoom) {
-            errors.push("Remote meetings require a Zoom room.");
         }
 
         if (isRecurring && recurrencePattern === null) {
@@ -256,6 +261,7 @@ export function useMeetingForm(initialMeeting?: IMeeting, defaultContext?: Meeti
             endDateTime: endDateTimeUTC,
             email,
             zoomRoom,
+            zoomHost: zoomHost || null,
             calType: calTypes,
             status,
             room,
@@ -279,6 +285,7 @@ export function useMeetingForm(initialMeeting?: IMeeting, defaultContext?: Meeti
         room, setRoom,
         calTypes, setCalTypes,
         zoomRoom, setZoomRoom,
+        zoomHost, setZoomHost,
         isRecurring, setIsRecurring,
         recurrencePattern, setRecurrencePattern,
         handleRecurringMeetingChange,
