@@ -6,9 +6,9 @@ const config: Config = {
   displayName: "unit",
   testEnvironment: "node",
   rootDir: "..",
-  testMatch: ["<rootDir>/test/unit/**/*.test.ts"],
+  testMatch: ["<rootDir>/tests/unit/**/*.test.ts"],
   transform: { "^.+\\.tsx?$": "@swc/jest" },
-  moduleNameMapper: { "^server-only$": "<rootDir>/test/mocks/server-only.js" },
+  moduleNameMapper: { "^server-only$": "<rootDir>/tests/mocks/server-only.js" },
 };
 
 export default config;

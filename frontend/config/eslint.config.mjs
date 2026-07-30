@@ -20,7 +20,7 @@ const eslintConfig = [
   },
   {
     // False positive: Playwright's `use` fixture param, not the React hook.
-    files: ["test/**"],
+    files: ["tests/**"],
     rules: {
       "react-hooks/rules-of-hooks": "off",
     },

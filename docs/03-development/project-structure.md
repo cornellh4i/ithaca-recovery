@@ -30,7 +30,7 @@ ithaca-recovery/
 │   ├── public/        # Static assets (svg/, favicon)
 │   ├── config/        # jest/playwright/eslint configs (next.config.mjs and tsconfig.json stay
 │   │                  #   at the frontend/ root — both tools require that)
-│   ├── test/          # Playwright + Jest suite — see Testing section below
+│   ├── tests/         # Playwright + Jest suite — see Testing section below
 │   └── util/          # Shared types, formatting, and domain-logic utilities (incl. lease defaults)
 ├── .github/workflows/ # CI (test.yml — unit/integration/e2e jobs)
 └── docs/              # Documentation
@@ -129,7 +129,7 @@ See [api-reference.md](api-reference.md#data-types-reference) for the matching `
 2. The `signIn` callback looks up the user's email in the `Admin` table and rejects sign-in entirely if no row exists — accounts are invite-only, added via the Users tab (`POST /api/write/admin`), never self-registered.
 3. The `jwt` callback stores the Google access/refresh token on the session token, persists them onto the `Admin` row, and re-reads `role` from the DB on every token refresh (not just at login), so a role change or removal takes effect without waiting for the session to expire.
 4. Near-expiry access tokens are refreshed automatically against Google's token endpoint (`frontend/services/googleTokenRefresh.ts`); a revoked refresh token forces re-login. `frontend/proxy.ts` is what actually persists a refreshed token to the session cookie — `getServerSession()`'s single-argument code path (used elsewhere via `getAuth()`) can't write cookies, so without the proxy doing this, a refresh would silently re-run on every request instead of roughly once an hour. See [technical-decisions.md](../02-handoff/technical-decisions.md) for why.
-5. Route handlers call `requireRole(minRole)` (`frontend/services/auth.ts`) to gate access — see [api-reference.md](api-reference.md) for which routes require `ADMIN` vs `SUPER_ADMIN`. `frontend/test/unit/routeGuards.test.ts` enforces that every route either has this guard or is explicitly allowlisted as public, so a new route can't silently ship unguarded.
+5. Route handlers call `requireRole(minRole)` (`frontend/services/auth.ts`) to gate access — see [api-reference.md](api-reference.md) for which routes require `ADMIN` vs `SUPER_ADMIN`. `frontend/tests/unit/routeGuards.test.ts` enforces that every route either has this guard or is explicitly allowlisted as public, so a new route can't silently ship unguarded.
 
 ---
 
@@ -151,7 +151,7 @@ No Redis instance is required to run the app — the unused `redis` package and 
 
 ---
 
-## Testing (`frontend/test/`)
+## Testing (`frontend/tests/`)
 
 ```
 test/
