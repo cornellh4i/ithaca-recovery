@@ -226,7 +226,7 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
       // legitimately null for a meeting that doesn't need Zoom, so null shouldn't count against
       // it, but 'error' on either side must still block onSyncSuccess (previously an ||, which
       // fired as soon as just one side synced, even while the other was still failing).
-      const calendarOk = data.syncStatus === 'synced';
+      const calendarOk = data.syncStatus == null || data.syncStatus === 'synced';
       const zoomOk = data.zoomSyncStatus == null || data.zoomSyncStatus === 'synced';
       if (calendarOk && zoomOk) onSyncSuccess?.();
     } catch {

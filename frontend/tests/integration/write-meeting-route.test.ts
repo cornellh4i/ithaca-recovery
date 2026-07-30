@@ -38,6 +38,22 @@ const mockedCreateCalendarEvent = createCalendarEvent as jest.Mock;
 const mockedResolveZoomHost = resolveZoomHost as jest.Mock;
 const mockedCreateZoomMeeting = createZoomMeeting as jest.Mock;
 
+// Polls for the deferred sync job's persisted terminal syncStatus instead of guessing a
+// fixed delay -- race-prone under slower CI/database conditions, per CodeRabbit's review
+// of this file. Only safe to use for a meeting whose deferred job writes syncStatus as its
+// last step (e.g. a non-Zoom-enabled meeting, where the calendar-sync update is the only
+// write left after the response returns).
+async function waitForSyncStatus(mid: string, timeoutMs = 2000) {
+  const prisma = getTestPrismaClient();
+  const start = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    const meeting = await prisma.meeting.findUnique({ where: { mid } });
+    if (meeting?.syncStatus != null) return meeting;
+    await new Promise((resolve) => setTimeout(resolve, 25));
+  }
+  return prisma.meeting.findUnique({ where: { mid } });
+}
+
 function buildMeetingPayload(overrides: Partial<IMeeting> = {}): IMeeting {
   return {
     mid: `m-${randomUUID()}`,
@@ -236,10 +252,7 @@ test("a category with no configured calendar fails the meeting's sync, even if i
   const response = await POST(request);
   expect(response.status).toBe(201);
 
-  await new Promise((resolve) => setTimeout(resolve, 100));
-
-  const prisma = getTestPrismaClient();
-  const afterSync = await prisma.meeting.findUnique({ where: { mid: payload.mid } });
+  const afterSync = await waitForSyncStatus(payload.mid);
 
   // AA's event was created successfully, but "Other" never even attempted to sync (no
   // calendar ID resolved for it) -- the meeting as a whole must still report an error, not

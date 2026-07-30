@@ -184,13 +184,19 @@ export async function reconcileMeetingCalendars(
         if (calendarIds[cat]) continue;
         const calId = calendarIdForCategory[cat];
         const eventId = existingEventIds[cat];
-        if (calId && eventId) {
-            const ok = await deleteCalendarEvent(accessToken, eventId, calId);
-            if (ok) delete updatedEventIds[cat];
-            else allSynced = false;
-        } else {
-            delete updatedEventIds[cat];
+        if (!calId || !eventId) {
+            // calId missing means this category's env var isn't configured -- we can't
+            // actually delete the remote event, so keep its reference (and flag the
+            // meeting as unsynced) rather than silently forgetting it. Forgetting it here
+            // would create a duplicate event once the calendar is reconfigured, since
+            // reconcileMeetingCalendars would then see no existing event to update.
+            allSynced = false;
+            continue;
         }
+
+        const ok = await deleteCalendarEvent(accessToken, eventId, calId);
+        if (ok) delete updatedEventIds[cat];
+        else allSynced = false;
     }
 
     for (const [cat, calId] of Object.entries(calendarIds)) {
