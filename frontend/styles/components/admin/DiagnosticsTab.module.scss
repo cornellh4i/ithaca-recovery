@@ -41,11 +41,11 @@
 }
 
 .dotOk {
-  background-color: #4CAF50;
+  background-color: $success-text-color;
 }
 
 .dotDown {
-  background-color: $dark-pink-color;
+  background-color: $brand-pink-color;
 }
 
 .statusLabel {
@@ -75,7 +75,7 @@
 }
 
 .gcalDown {
-  color: $dark-pink-color;
+  color: $brand-pink-color;
 }
 
 .countsRow {
@@ -110,7 +110,7 @@
 }
 
 .meetingRow {
-  border-top: 1px solid #F1F1F1;
+  border-top: 1px solid $grey-lightest-color;
   padding: 10px 0;
 
   &:first-of-type {
@@ -142,7 +142,7 @@
 
 .issueLine {
   font-size: 13px;
-  color: $dark-pink-color;
+  color: $brand-pink-color;
   margin-top: 4px;
 }
 

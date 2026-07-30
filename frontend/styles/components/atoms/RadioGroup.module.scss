@@ -35,7 +35,7 @@
         display: flex;
         gap: 12px;
         cursor: pointer;
-        accent-color: $dark-pink-color;
+        accent-color: $brand-pink-color;
 
         input[type="radio"] {
             position: absolute; /* Prevents the native radio button from taking up space */

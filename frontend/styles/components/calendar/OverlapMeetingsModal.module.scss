@@ -21,7 +21,7 @@
   max-height: 80vh;
   padding: 24px;
   font-family: "Source Sans Pro", sans-serif;
-  color: #1E1E1E;
+  color: $black-color;
   box-shadow: 0 4px 12px rgb(0 0 0 / 15%);
   display: flex;
   flex-direction: column;
@@ -58,7 +58,7 @@
 }
 
 .meetingItem {
-  border-left: 4px solid #CECECE;
+  border-left: 4px solid $light-grey-color;
   border-radius: 4px;
   padding: 10px 12px;
   cursor: pointer;

@@ -19,7 +19,7 @@
   justify-content: space-between;
   align-items: center;
   padding: 10px 20px;
-  border-bottom: 1px solid #ddd;
+  border-bottom: 1px solid $grey-border-color;
 }
 
 .navButton {
@@ -67,7 +67,7 @@
   min-width: 60px;
   display: flex;
   flex-direction: column;
-  border-right: 1px solid #ddd;
+  border-right: 1px solid $grey-border-color;
   position: sticky;
   left: 0;
   z-index: 20;
@@ -126,7 +126,7 @@
 
   /* Consistent with daily view's 155px column width */
   position: relative;
-  border-right: 1px solid #ddd;
+  border-right: 1px solid $grey-border-color;
   scroll-snap-align: start;
 
   // 40px .dayHeader + 2880px meeting grid. Was 2880px alone — under-subscribed by
@@ -150,7 +150,7 @@
   left: 0;
   width: 100%;
   height: 2px;
-  background-color: #c36; // Matching the DailyView color
+  background-color: $brand-pink-color; // Matching the DailyView color
   z-index: 12; // Above meeting boxes (10), below the sticky .dayHeader (15) so it
                // doesn't draw over the day header when they overlap during scroll.
 
@@ -161,7 +161,7 @@
     top: -4px;
     width: 10px;
     height: 10px;
-    background-color: #c36;
+    background-color: $brand-pink-color;
     border-radius: 50%;
   }
 }
@@ -170,7 +170,7 @@
 .dayHeader {
   padding: 10px;
   font-weight: 700;
-  border-bottom: 1px solid #ddd;
+  border-bottom: 1px solid $grey-border-color;
   background-color: #fff;
   text-align: center;
   height: 40px; // Fixed height to ensure consistent alignment
@@ -199,7 +199,7 @@
 
 // Style for current date - now a square without rounded edges
 .currentDate {
-  background-color: #c36;
+  background-color: $brand-pink-color;
   color: white;
   border-radius: 0; // No rounded edges
   width: 24px;
@@ -222,7 +222,7 @@
   left: 0;
   width: 100%;
   height: 1px;
-  background-color: #ddd;
+  background-color: $grey-border-color;
 
   &::after {
     content: '';

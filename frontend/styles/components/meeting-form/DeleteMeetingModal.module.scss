@@ -18,7 +18,7 @@
   max-width: 90%;
   padding: 24px;
   font-family: "Source Sans Pro", sans-serif;
-  color: #1E1E1E;
+  color: $black-color;
   box-shadow: 0 4px 12px rgb(0 0 0 / 15%);
 }
 
@@ -66,9 +66,9 @@
 .cancelButton {
   padding: 8px 16px;
   border-radius: 6px;
-  border: 1.5px solid #CECECE;
+  border: 1.5px solid $light-grey-color;
   background-color: white;
-  color: #1E1E1E;
+  color: $black-color;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;

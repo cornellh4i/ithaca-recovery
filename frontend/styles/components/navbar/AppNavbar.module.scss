@@ -4,7 +4,7 @@
 .navbar {
     width: 100%;
     background-color: #fff;
-    border-bottom: 2px solid #CECECE;
+    border-bottom: 2px solid $light-grey-color;
 }
 
 .logo {
@@ -94,8 +94,8 @@
         }
 
         a.signInButton {
-            background-color: $dark-pink-color;
-            border-color: $dark-pink-color;
+            background-color: $brand-pink-color;
+            border-color: $brand-pink-color;
             color: #fff;
             font-weight: 600;
             font-size: 16px;
@@ -107,8 +107,8 @@
 
             &:hover,
             &:focus {
-                background-color: color.adjust($dark-pink-color, $lightness: -8%);
-                border-color: color.adjust($dark-pink-color, $lightness: -8%);
+                background-color: color.adjust($brand-pink-color, $lightness: -8%);
+                border-color: color.adjust($brand-pink-color, $lightness: -8%);
                 color: #fff;
             }
         }
@@ -167,8 +167,8 @@
 }
 
 .avatarFallback {
-  background-color: color-mix(in srgb, $dark-pink-color 35%, transparent);
-  color: $dark-pink-color;
+  background-color: color-mix(in srgb, $brand-pink-color 35%, transparent);
+  color: $brand-pink-color;
   display: flex;
   align-items: center;
   justify-content: center;

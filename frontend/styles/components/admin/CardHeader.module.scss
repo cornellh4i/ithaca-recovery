@@ -8,7 +8,7 @@
 }
 
 .cardIcon {
-  color: $dark-pink-color;
+  color: $brand-pink-color;
   display: inline-flex;
 }
 
@@ -30,7 +30,7 @@
   border-radius: 6px;
 
   &:hover:not(:disabled) {
-    background: #F1F1F1;
+    background: $grey-lightest-color;
   }
 
   &:disabled {

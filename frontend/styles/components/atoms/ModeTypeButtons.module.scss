@@ -39,7 +39,7 @@
 }
 
 .button:focus-visible {
-  box-shadow: inset 0 0 0 2px $dark-pink-color;
+  box-shadow: inset 0 0 0 2px $brand-pink-color;
 }
 
 .button.selected:focus-visible {
@@ -47,12 +47,12 @@
 }
 
 .button.selected {
-  background: $dark-pink-color;
+  background: $brand-pink-color;
   color: #fff;
 }
 
 .button.selected:hover {
-  background: $dark-pink-color;
+  background: $brand-pink-color;
 }
 
 .button.compact {

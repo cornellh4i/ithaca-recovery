@@ -5,7 +5,7 @@
 **Prepared by:** Cornell Hack4Impact
 
 > **What this is now:** Originally a full 96-case manual QA script for every feature. Now that
-> `frontend/test/e2e/`, `frontend/test/integration/`, and `frontend/test/unit/` cover the
+> `frontend/tests/e2e/`, `frontend/tests/integration/`, and `frontend/tests/unit/` cover the
 > application logic in CI on every push (see [`docs/03-development/testing/README.md`](README.md) for how that
 > suite works), this doc only keeps what CI structurally can't check: cases that need **live**
 > Zoom/Google Calendar credentials, a **real** Google OAuth login, **cross-browser/responsive**
@@ -34,7 +34,7 @@
 
 ## 1. Authentication — Google SSO Login
 
-> **Automated (minted-session cases):** `frontend/test/e2e/01-authentication.spec.ts` — the cases
+> **Automated (minted-session cases):** `frontend/tests/e2e/01-authentication.spec.ts` — the cases
 > below need a *real* Google OAuth round-trip, which the automated suite deliberately doesn't do.
 
 | # | Step | Expected Result | Pass/Fail | Notes |
@@ -47,7 +47,7 @@
 
 ## 2. Meeting Creation
 
-> **Automated (fail-soft path):** `frontend/test/e2e/02-meeting-creation.spec.ts` — the case below
+> **Automated (fail-soft path):** `frontend/tests/e2e/02-meeting-creation.spec.ts` — the case below
 > needs live Zoom credentials to verify the real success path.
 
 | # | Step | Expected Result | Pass/Fail | Notes |
@@ -58,7 +58,7 @@
 
 ## 3. Meeting Editing
 
-> **Automated (fail-soft path):** `frontend/test/e2e/03-meeting-editing.spec.ts` — the cases below
+> **Automated (fail-soft path):** `frontend/tests/e2e/03-meeting-editing.spec.ts` — the cases below
 > need live Zoom credentials to verify the real success/teardown path.
 
 | # | Step | Expected Result | Pass/Fail | Notes |
@@ -70,10 +70,10 @@
 
 ## 6. Zoom Room Integration
 
-> **Automated (fail-soft path + auto-pairing logic):** `frontend/test/e2e/06-zoom-integration.spec.ts`
+> **Automated (fail-soft path + auto-pairing logic):** `frontend/tests/e2e/06-zoom-integration.spec.ts`
 > — most cases below require live Zoom/Google credentials to verify against the real services.
 > 6.10 (conflicts) doesn't — it's covered by
-> `frontend/test/e2e/11-admin-panel.spec.ts`'s conflict-detection cases with zero real network calls.
+> `frontend/tests/e2e/11-admin-panel.spec.ts`'s conflict-detection cases with zero real network calls.
 
 | # | Step | Expected Result | Pass/Fail | Notes |
 |---|------|-----------------|-----------|-------|
@@ -110,7 +110,7 @@
 
 ## 9. Edge Cases and Error Handling
 
-> **Automated:** `frontend/test/e2e/09-edge-cases.spec.ts` — the cases below are either exploratory
+> **Automated:** `frontend/tests/e2e/09-edge-cases.spec.ts` — the cases below are either exploratory
 > (no fixed pass/fail expectation) or environmental/visual, which don't fit a deterministic
 > automated assertion.
 
@@ -124,7 +124,7 @@
 
 ## 11. Admin Panel — Roles & Tabs
 
-> **Automated:** `frontend/test/e2e/11-admin-panel.spec.ts` — the case below needs live Zoom/Google
+> **Automated:** `frontend/tests/e2e/11-admin-panel.spec.ts` — the case below needs live Zoom/Google
 > reachability checks against the real services.
 
 | # | Step | Expected Result | Pass/Fail | Notes |
@@ -135,7 +135,7 @@
 
 ## 13. Digital Signage
 
-> **Automated:** `frontend/test/e2e/13-digital-signage.spec.ts` — the cases below play out over
+> **Automated:** `frontend/tests/e2e/13-digital-signage.spec.ts` — the cases below play out over
 > real minutes/hours, which isn't practical to assert deterministically in CI.
 
 | # | Step | Expected Result | Pass/Fail | Notes |

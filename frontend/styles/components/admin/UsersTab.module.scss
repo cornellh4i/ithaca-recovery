@@ -42,7 +42,7 @@
 
   td {
     padding: 12px 8px;
-    border-bottom: 1px solid #F1F1F1;
+    border-bottom: 1px solid $grey-lightest-color;
     font-size: 15px;
     color: $black-color;
   }
@@ -82,7 +82,7 @@
 .updatedBadge {
   font-size: 13px;
   font-weight: 600;
-  color: #4CAF50;
+  color: $success-text-color;
 }
 
 .menuCaption {
@@ -107,11 +107,11 @@
 }
 
 .removeButton {
-  color: $dark-pink-color;
+  color: $brand-pink-color;
 
   &:hover {
     background: #FBE1E7;
-    border-color: $dark-pink-color;
+    border-color: $brand-pink-color;
   }
 }
 
@@ -132,7 +132,7 @@
 }
 
 .inviteButton {
-  background: $dark-pink-color;
+  background: $brand-pink-color;
   color: #fff;
   border: none;
   border-radius: 8px;

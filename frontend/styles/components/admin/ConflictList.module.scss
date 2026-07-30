@@ -33,7 +33,7 @@
 }
 
 .conflictEntry {
-  border-top: 1px solid #F1F1F1;
+  border-top: 1px solid $grey-lightest-color;
 
   &:first-of-type {
     border-top: none;

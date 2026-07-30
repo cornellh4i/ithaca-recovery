@@ -7,16 +7,16 @@ onto the repo, this doc is the walkthrough; if you're about to sign off a releas
 
 ## The three tiers
 
-All test code lives under `frontend/test/`, split by tier:
+All test code lives under `frontend/tests/`, split by tier:
 
 ```
-frontend/test/
+frontend/tests/
   unit/         # pure functions, no I/O
   integration/  # route handlers against a real (in-memory) database
   e2e/          # full app, real browser, real dev server
 ```
 
-**Unit** (`test/unit/`, `yarn test:unit`) — pure functions in isolation: no database, no network,
+**Unit** (`tests/unit/`, `yarn test:unit`) — pure functions in isolation: no database, no network,
 no rendering. `timeUtils.test.ts`, `meetingOccurrences.test.ts`, `googleCalendar.test.ts`,
 `googleTokenRefresh.test.ts` (mocks `fetch`), `authCookies.test.ts`. Also `routeGuards.test.ts` — a
 structural check, not a pure-function test, but still no DB/network: it
@@ -34,13 +34,13 @@ needed. It mocks `services/googleTokenRefresh.ts` to assert `proxy.ts`'s own log
 decides to refresh, what it writes to `Set-Cookie`) independently of the real Google network call,
 which `googleTokenRefresh.test.ts` covers separately.
 
-**Integration** (`test/integration/`, `yarn test:integration`) — a Next.js route handler talking
+**Integration** (`tests/integration/`, `yarn test:integration`) — a Next.js route handler talking
 to a *real* database (an in-memory MongoDB replica set via `mongodb-memory-server`), with external
 services (Zoom, Google Calendar) mocked via `jest.mock()` for precise control over timing and
 return values. Answers "does this route correctly orchestrate DB + services?" without browser
 overhead.
 
-**E2E** (`test/e2e/`, `yarn test:e2e`) — Playwright driving a real browser against a real spawned
+**E2E** (`tests/e2e/`, `yarn test:e2e`) — Playwright driving a real browser against a real spawned
 `next dev` server: UI, routing, API routes, database, end to end. This is where UI-wiring bugs
 actually get caught (a broken click handler, a locator that stops matching, a race between two
 rapid clicks). It's also where most of this suite's weight is — see below for why.
@@ -78,7 +78,7 @@ need live credentials (real Zoom meetings getting created, real Google Calendar 
 ### Provisional tests
 
 Some features referenced in the manual script aren't built yet (conflict detection, XLSX import,
-the suspend workflow's read path). Rather than skip testing them, `test/e2e/provisional.spec.ts`
+the suspend workflow's read path). Rather than skip testing them, `tests/e2e/provisional.spec.ts`
 (plus one Jest integration test) locks in their *current* stub behavior — e.g. the Diagnostics
 conflicts panel always renders empty because `GET /api/admin/diagnostics` hardcodes
 `conflicts: []`. These are tagged `@provisional-<ticket>` and titled `[PROVISIONAL:X]`, with a
@@ -111,7 +111,7 @@ setting.
 
 ## What's still manual
 
-`test/e2e/` only runs Chromium, and none of the automated tiers touch real Zoom/Google
+`tests/e2e/` only runs Chromium, and none of the automated tiers touch real Zoom/Google
 credentials. What's left — real OAuth login, live Zoom/Google Calendar behavior,
 cross-browser/responsive rendering, real-time behavior playing out over minutes — is covered by
 [`manual-test-script-template.md`](manual-test-script-template.md), which has been trimmed down to
