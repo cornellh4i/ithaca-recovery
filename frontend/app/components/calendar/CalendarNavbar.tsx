@@ -57,36 +57,27 @@ const CalendarNavbar: React.FC<CalendarNavbarProps> = ({ selectedDate, onDateCha
     const handleNext = () => shiftSelectedDate(1);
 
     return (
-      <>
-        <div className={styles.navbarContainer}>
-          <CalendarHeader selectedDate={selectedDate} selectedView={selectedView} />
-          <div className={styles.navbarControls}>
-            <div className={styles.viewDropdown}>
-              <Dropdown
-                label=""
-                value={selectedView}
-                isVisible={true}
-                elements={['Day', 'Week']}
-                name="Select view"
-                onChange={handleViewChange}
-              />
-            </div>
-            <div className={styles.box}>
-              <a href="#" onClick={handleToday}>Today</a>
-            </div>
-            <div className={styles.dateToggle}>
-              <img src="/svg/left-arrow.svg" alt="Left Arrow" width={24} height={24} onClick={handlePrevious} />
-              <img src="/svg/right-arrow.svg" alt="Right Arrow" width={24} height={24} onClick={handleNext} />
-            </div>
+      <CalendarHeader selectedDate={selectedDate} selectedView={selectedView} isAdmin={isAdmin}>
+        <div className={styles.navbarControls}>
+          <div className={styles.viewDropdown}>
+            <Dropdown
+              label=""
+              value={selectedView}
+              isVisible={true}
+              elements={['Day', 'Week']}
+              name="Select view"
+              onChange={handleViewChange}
+            />
+          </div>
+          <div className={styles.box}>
+            <a href="#" onClick={handleToday}>Today</a>
+          </div>
+          <div className={styles.dateToggle}>
+            <img src="/svg/left-arrow.svg" alt="Left Arrow" width={24} height={24} onClick={handlePrevious} />
+            <img src="/svg/right-arrow.svg" alt="Right Arrow" width={24} height={24} onClick={handleNext} />
           </div>
         </div>
-        {!isAdmin && (
-          <div className={styles.viewOnlyPill}>
-            <img src="/svg/lock-icon.svg" alt="" className={styles.viewOnlyIcon} />
-            <span>View only - sign in as Admin to manage meetings</span>
-          </div>
-        )}
-      </>
+      </CalendarHeader>
     );
   };
   
