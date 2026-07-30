@@ -22,6 +22,7 @@ interface Meeting {
     isOverflowIndicator?: boolean; // "+N more" pseudo-entry, rendered as a small pill instead of a meeting card
     overflowCount?: number;
     overflowMeetings?: Meeting[]; // Full overlapping cluster, shown in the "+N" popup
+    clusterRange?: { start: string; end: string; key: string }; // Full cluster time range, shared by every member -- see meetingOverlapLayout.ts
 }
 
 // Drops the " - Zoom" suffix for a more compact badge label
@@ -167,6 +168,15 @@ const WeeklyViewColumn: React.FC<WeeklyViewColumnProps> = ({
         ? meetings.flatMap(m => m.overflowMeetings ?? []).find(m => m.id === selectedMeetingID)
         : undefined;
 
+    // One background container per overlapping cluster, deduped by clusterRange.key --
+    // several meetings (and an overflow indicator) can share the same cluster.
+    const clusterRanges = new Map<string, { start: string; end: string }>();
+    meetings.forEach(meeting => {
+        if (meeting.clusterRange && !clusterRanges.has(meeting.clusterRange.key)) {
+            clusterRanges.set(meeting.clusterRange.key, meeting.clusterRange);
+        }
+    });
+
     return (
         <div className={styles.columnWrapper}>
             <div className={styles.columnBody}>
@@ -178,6 +188,26 @@ const WeeklyViewColumn: React.FC<WeeklyViewColumnProps> = ({
                         style={{ top: `${hourIndex * 120}px` }}
                     />
                 ))}
+
+                {/* Cluster containers -- rendered beneath the meeting cards and "+N" pill (see
+                    z-index in WeeklyViewColumn.module.scss), spanning each cluster's full time
+                    range so it reads as one connected group, like a single meeting spanning the
+                    whole cluster. Same VERTICAL_GAP treatment as renderMeetingCard so it lines up
+                    exactly as if it were a real meeting card for that time range. */}
+                {Array.from(clusterRanges.entries()).map(([key, range]) => {
+                    const topOffset = timeToPixels(range.start) + VERTICAL_GAP / 2;
+                    const height = Math.max(
+                        timeToPixels(range.end) - timeToPixels(range.start) - VERTICAL_GAP,
+                        1,
+                    );
+                    return (
+                        <div
+                            key={key}
+                            className={styles.clusterContainer}
+                            style={{ top: `${topOffset}px`, height: `${height}px` }}
+                        />
+                    );
+                })}
 
                 {meetings.map((meeting, index) => {
                     if (meeting.isOverflowIndicator) {

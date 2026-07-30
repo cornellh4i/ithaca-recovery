@@ -19,6 +19,7 @@ interface Meeting {
   isOverflowIndicator?: boolean; // "+N more" pseudo-entry standing in for meetings past the 2 shown lanes
   overflowCount?: number;
   overflowMeetings?: Meeting[]; // Full overlapping cluster (shown + folded), for the "+N" popup
+  clusterRange?: { start: string; end: string; key: string }; // Full cluster time range, shared by every member -- see meetingOverlapLayout.ts
 }
 
 // DailyViewRowProps Interface
@@ -157,6 +158,15 @@ const DailyViewRow: React.FC<DailyViewRowProps> = ({
     ? meetings.flatMap(m => m.overflowMeetings ?? []).find(m => m.id === selectedMeetingID)
     : undefined;
 
+  // One background container per overlapping cluster, deduped by clusterRange.key --
+  // several meetings (and an overflow indicator) can share the same cluster.
+  const clusterRanges = new Map<string, { start: string; end: string }>();
+  meetings.forEach(meeting => {
+    if (meeting.clusterRange && !clusterRanges.has(meeting.clusterRange.key)) {
+      clusterRanges.set(meeting.clusterRange.key, meeting.clusterRange);
+    }
+  });
+
   return (
     <div style={{ cursor: "pointer", position: 'relative', width: '100%', height: '100%' }}>
       <div>
@@ -164,6 +174,24 @@ const DailyViewRow: React.FC<DailyViewRowProps> = ({
         {Array.from({ length: 24 }).map((_, colIndex) => (
           <div key={colIndex}></div>
         ))}
+
+        {/* Cluster containers -- rendered beneath the meeting cards and "+N" pill (see
+            z-index in DailyViewRow.module.scss), spanning each cluster's full time range so
+            it reads as one connected group, like a single meeting spanning the whole cluster. */}
+        {Array.from(clusterRanges.entries()).map(([key, range]) => {
+          const startOffset = timeToPixels(range.start);
+          const endOffset = timeToPixels(range.end);
+          return (
+            <div
+              key={key}
+              className={styles.clusterContainer}
+              // Explicit pixel height, not the CSS class's percentage -- .gridMeetingRow
+              // (an ancestor) is itself position:absolute with no explicit height, which
+              // breaks the percentage-height resolution chain for an empty div.
+              style={{ left: `${startOffset}px`, width: `${endOffset - startOffset}px`, height: `${MEETING_SLOT_HEIGHT}px` }}
+            />
+          );
+        })}
 
         {/* Render meetings */}
         {meetings.map((meeting, index) => {

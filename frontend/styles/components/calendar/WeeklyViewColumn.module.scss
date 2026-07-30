@@ -1,3 +1,5 @@
+@import '../../Variables.module.scss';
+
 .columnWrapper {
   display: flex;
   flex-direction: column;
@@ -29,6 +31,19 @@
   position: absolute;
   border-radius: 6px;
   z-index: 10;
+}
+
+// Background container spanning an overlapping cluster's full time range, rendered beneath
+// the cluster's meeting cards and the "+N" pill (z-index 10/12 below) -- no left-accent
+// border, unlike a real meeting card, since it isn't standing in for any one meeting.
+.clusterContainer {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  border-radius: 6px;
+  background: $grey-lightest-color;
+  z-index: 5;
+  pointer-events: none;
 }
 
 // Stands in for meetings beyond MAX_VISIBLE_OVERLAP columns — a small pill rather
