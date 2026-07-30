@@ -24,7 +24,7 @@ const CalendarHeader: React.FC<CalendarHeaderProps> = ({ selectedDate, selectedV
     return `${monthNameForETDateString(etDateStr)} ${year}`;
   };
 
-  return <h2 className={styles.navbarContainerRight}>{getDateRange(selectedDate)}</h2>;
+  return <h2 className={styles.navbarHeading}>{getDateRange(selectedDate)}</h2>;
 };
 
 export default CalendarHeader;

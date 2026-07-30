@@ -60,7 +60,7 @@ const CalendarNavbar: React.FC<CalendarNavbarProps> = ({ selectedDate, onDateCha
       <>
         <div className={styles.navbarContainer}>
           <CalendarHeader selectedDate={selectedDate} selectedView={selectedView} />
-          <div className={styles.navbarContainerLeft}>
+          <div className={styles.navbarControls}>
             <div className={styles.viewDropdown}>
               <Dropdown
                 label=""

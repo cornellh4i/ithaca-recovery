@@ -6,6 +6,13 @@
   gap: 24px;
   font-family: 'Source Sans Pro', sans-serif;
   align-self: stretch;
+  // Lets .navbarHeading/.navbarControls query *this row's* actual available
+  // width below, rather than the viewport's -- the sidebar (CalendarSidebarShell) eats an
+  // arbitrary chunk of viewport width first, so a viewport-based breakpoint doesn't know
+  // how much room this row really has and can fire too late (still 36px when the date text
+  // is already crowding the Day/Today/arrow controls) or too early.
+  container-type: inline-size;
+  container-name: calendar-navbar;
 
   img {
     cursor: pointer;
@@ -18,48 +25,55 @@
   }
 }
 
-.navbarContainerRight {
-  font-size: 36px;
+.navbarHeading {
+  // Scales continuously with the row's own inline size instead of snapping at one fixed
+  // breakpoint -- shrinks exactly as it starts to crowd .navbarControls, and clamps to
+  // the original 36px/18px range so it's a no-op until the row actually gets tight.
+  font-size: clamp(18px, 4cqi, 36px);
   font-weight: 600;
   white-space: nowrap; // Prevent wrapping
   overflow: hidden; // Hide overflow text
-
-  @media (width <= 700px) {
-    font-size: 18px;
-  }
+  text-overflow: ellipsis; // Graceful truncation if it still runs out of room at the 18px floor
+  min-width: 0; // Allow shrinking below the untruncated text's natural width in the flex row
 }
 
-.navbarContainerLeft {
+.navbarControls {
   display: flex;
   justify-content: flex-end;
   align-items: center;
-  gap: 24px;
+  // Same clamp(min, Xcqi, max) approach as .navbarHeading below, so the whole row
+  // shrinks together continuously instead of .navbarHeading fading smoothly into a
+  // gap that's still pinned at 24px. min is exactly half of max throughout this file
+  // (matching the old scale(0.5) floor this replaces), and every clamp here shares the same
+  // container-width transition zone (450px-900px) as .navbarHeading's, so nothing in
+  // the row snaps to a different size than its neighbors.
+  gap: clamp(12px, 2.67cqi, 24px);
   flex: 1;
-
-  @media (width <= 700px) {
-    transform: scale(0.5);
-    transform-origin: top right; // Scale from the top right corner
-    width: 0;
-    height: 0;
-  }
 }
 
 .dateToggle {
   display: flex;
   align-items: flex-start;
-  gap: 48px;
+  gap: clamp(24px, 5.33cqi, 48px);
+
+  img {
+    // Overrides the 24x24 width/height HTML attributes CalendarNavbar sets on the arrow
+    // <img>s -- CSS wins over presentational attributes, so this still shrinks them.
+    width: clamp(12px, 2.67cqi, 24px);
+    height: clamp(12px, 2.67cqi, 24px);
+  }
 }
 
 .box {
   border-radius: 8px;
   border: 1.5px solid $medium-grey-color;
   display: flex;
-  padding: 12px 18px;
+  padding: clamp(6px, 1.33cqi, 12px) clamp(9px, 2cqi, 18px);
   align-items: center;
   cursor: pointer;
 
   a {
-    font-size: 18px;
+    font-size: clamp(9px, 2cqi, 18px);
     color: $black-color;
     text-decoration: none;
   }
@@ -71,18 +85,18 @@
 // and override its default look (fixed 42px height, 6px radius, lighter border, native
 // button font) to mirror .box/.box a's exact styling so the two sit consistently side by side.
 .viewDropdown {
-  width: 110px;
+  width: clamp(55px, 12.22cqi, 110px);
   flex-shrink: 0;
 
   button {
     height: auto;
-    padding: 12px 18px;
+    padding: clamp(6px, 1.33cqi, 12px) clamp(9px, 2cqi, 18px);
     justify-content: center;
     gap: 8px;
     border-radius: 8px;
     border: 1.5px solid $medium-grey-color;
     font-family: 'Source Sans Pro', sans-serif;
-    font-size: 18px;
+    font-size: clamp(9px, 2cqi, 18px);
     font-weight: 400;
   }
 
