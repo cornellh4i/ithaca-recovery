@@ -94,16 +94,19 @@ const DiagnosticsTab: React.FC<DiagnosticsTabProps> = ({ email, role }) => {
   const retrySync = async (mid: string) => {
     setRetryingMid(mid);
     try {
-      await fetch("/api/update/meeting/sync", {
+      const response = await fetch("/api/update/meeting/sync", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ mid }),
       });
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
       await loadDiagnostics();
     } catch (err) {
       console.error("Error retrying sync:", err);
     } finally {
-      setRetryingMid(null);
+      // Only clear if this is still the row that started this retry -- a second row's
+      // retry starting before this one resolves must not un-disable/mislabel it early.
+      setRetryingMid((current) => (current === mid ? null : current));
     }
   };
 
@@ -118,10 +121,10 @@ const DiagnosticsTab: React.FC<DiagnosticsTabProps> = ({ email, role }) => {
 
   const hostPoolEntries = Object.entries(data.zoom.hostPool);
   const hostPoolReachableCount = hostPoolEntries.filter(([, s]) => s.ok).length;
-  // "OK" = reachable AND Licensed. A host can be reachable but still not "OK" if it's a
-  // Basic-plan account (type 1, not 2) -- Basic caps meetings at 40 minutes, so it's flagged
-  // separately from a genuinely unreachable host rather than folded into the same failure.
-  const hostPoolOkCount = hostPoolEntries.filter(([, s]) => s.ok && s.licensed !== false).length;
+  // Confirmed Licensed only (licensed === true) -- licensed === null means the check couldn't
+  // determine license status (e.g. Zoom unreachable), and counting that alongside a confirmed
+  // Licensed host would overstate this line, which reads as a positive claim ("N licensed").
+  const hostPoolLicensedCount = hostPoolEntries.filter(([, s]) => s.licensed === true).length;
 
   return (
     <div className={styles.container}>
@@ -158,7 +161,7 @@ const DiagnosticsTab: React.FC<DiagnosticsTabProps> = ({ email, role }) => {
             {data.zoom.reachable ? "Account reachable" : "Account unreachable"}
             {" · "}{roomCalendarOkCount}/{roomCalendarEntries.length} room calendars reachable
             {" · "}{hostPoolReachableCount}/{hostPoolEntries.length} pooled hosts reachable
-            {" · "}{hostPoolOkCount}/{hostPoolEntries.length} licensed
+            {" · "}{hostPoolLicensedCount}/{hostPoolEntries.length} licensed
           </span>
         </div>
         <div className={styles.gcalSubRow}>
@@ -217,7 +220,7 @@ const DiagnosticsTab: React.FC<DiagnosticsTabProps> = ({ email, role }) => {
           <div className={styles.countsSecondaryRow}>
             <span className={styles.gcalDown}>
               ⏳ Waiting on a Zoom host: {data.meetingCounts.pendingZoomSync} — calendars
-              won&apos;t publish until a host becomes available (retry from the meeting&apos;s detail view)
+              won&apos;t publish until a host becomes available (see Sync Issues below to retry)
             </span>
           </div>
         )}

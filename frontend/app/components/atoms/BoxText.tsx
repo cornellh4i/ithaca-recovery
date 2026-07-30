@@ -99,7 +99,15 @@ const BoxText: React.FC<BoxProps> = ({
           {zoomTag}
         </span>
       )}
-      <h3 className={styles.title} style={titlePaddingRight ? { paddingRight: titlePaddingRight } : undefined}>
+      <h3
+        className={styles.title}
+        style={{
+          ...(titlePaddingRight ? { paddingRight: titlePaddingRight } : undefined),
+          // .conflictBadge is a fixed single-glyph icon (unlike zoomTag's variable-width
+          // text), so a static reservation is enough -- no ResizeObserver needed.
+          ...(hasConflict ? { paddingLeft: 16 } : undefined),
+        }}
+      >
         {title}
       </h3>
 

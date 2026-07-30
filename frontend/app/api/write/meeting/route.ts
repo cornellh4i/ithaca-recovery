@@ -59,7 +59,10 @@ async function syncNewMeeting(
 
   // True when this meeting needs Zoom but doesn't have a working Zoom meeting after the
   // attempt above -- the calendar publish below is deferred, not attempted with a missing link.
-  const zoomBlocking = zoomEnabled && !zid;
+  // Matches the creation gate above (!zid && !zoomLink), not just !zid -- a payload that
+  // already carried a zoomLink (no zid) skips creation at that gate and would otherwise be
+  // misclassified as blocking despite already having a working link to publish.
+  const zoomBlocking = zoomEnabled && !zid && !zoomLink;
   const meetingForSync: IMeeting = { ...meetingData, isRecurring, zoomLink };
 
   if (zoomBlocking) {

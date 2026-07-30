@@ -14,10 +14,12 @@ import { useConflictMids } from "../../hooks/useConflictMids";
 
 export default function HomePage() {
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
-  // Admin-only -- skipped entirely for a signed-out viewer rather than firing a fetch that's
-  // certain to 401 (see useConflictMids' `enabled` param).
-  const conflictMids = useConflictMids(refreshTrigger, isLoggedIn === true);
+  // Admin-only -- the endpoint itself rejects non-admins, so gate on role (not just being
+  // signed in) to avoid every non-admin viewer firing a denied request on mount and every
+  // 30s refresh (see useConflictMids' `enabled` param).
+  const conflictMids = useConflictMids(refreshTrigger, isAdmin);
 
   const triggerCalendarRefresh = useCallback(() => {
     setRefreshTrigger(prev => prev + 1);
@@ -41,9 +43,11 @@ export default function HomePage() {
         }
         const data = await response.json();
         setIsLoggedIn(data.isAuthenticated);
+        setIsAdmin(data.role === "ADMIN" || data.role === "SUPER_ADMIN");
       } catch (error) {
         console.error("Error checking authentication status:", error);
         setIsLoggedIn(false);
+        setIsAdmin(false);
       }
     };
 

@@ -157,10 +157,15 @@ const ConflictList: React.FC<ConflictListProps> = ({ conflicts, emptyLabel = "No
 
   // A raw zoomHost email means nothing at a glance -- room/zoomRoom values are already
   // human-readable names, so they pass through untouched.
-  const conflictValueLabel = (conflict: ConflictListRow): string =>
-    conflict.field === "zoomHost"
-      ? `${zoomHostLabel(conflict.value, hosts.indexOf(conflict.value))} — ${conflict.value}`
-      : conflict.value;
+  const conflictValueLabel = (conflict: ConflictListRow): string => {
+    if (conflict.field !== "zoomHost") return conflict.value;
+    const index = hosts.indexOf(conflict.value);
+    const label = zoomHostLabel(conflict.value, index);
+    // zoomHostLabel already returns the raw email for index -1 (host not in the current
+    // pool, or the pool hasn't loaded yet) -- appending the email again there would render
+    // "email — email".
+    return index === -1 ? label : `${label} — ${conflict.value}`;
+  };
 
   return (
     <div data-testid="conflict-list">

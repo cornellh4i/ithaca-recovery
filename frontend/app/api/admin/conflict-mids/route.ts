@@ -6,6 +6,15 @@ import { prisma } from "../../../../lib/prisma";
 
 const notDeleted = { OR: [{ deletedAt: null }, { deletedAt: { isSet: false } }] };
 
+// The Day/Week calendar polls this every 30s (see page.tsx's refresh interval) for every admin
+// viewer, but computeConflicts recomputes the full conflict graph (pairwise overlap over every
+// meeting's expanded occurrences) from scratch -- a short TTL means back-to-back polls across
+// admins/tabs within the window share one computation instead of each re-running it.
+// Module-scope, so it only helps within a single warm server instance -- fine here since a
+// stale-by-at-most-CACHE_TTL_MS badge is a cosmetic lag, not a correctness issue.
+const CACHE_TTL_MS = 15_000;
+let cache: { expiresAt: number; mids: string[] } | null = null;
+
 // Admin-only: which meetings currently have an unresolved room/zoomRoom/zoomHost conflict --
 // backs the Day/Week calendar's conflict badge (see BoxText's hasConflict prop). Deliberately
 // not folded into the public day/week retrieve routes (util/publicMeeting.ts's allowlist) --
@@ -17,6 +26,10 @@ const notDeleted = { OR: [{ deletedAt: null }, { deletedAt: { isSet: false } }] 
 export const GET = async () => {
   const auth = await requireRole(Role.ADMIN);
   if (auth instanceof Response) return auth;
+
+  if (cache && cache.expiresAt > Date.now()) {
+    return NextResponse.json({ mids: cache.mids });
+  }
 
   const meetings = await prisma.meeting.findMany({
     where: notDeleted,
@@ -30,5 +43,8 @@ export const GET = async () => {
   const mids = new Set<string>();
   conflicts.forEach((row) => row.meetings.forEach((m) => mids.add(m.mid)));
 
-  return NextResponse.json({ mids: Array.from(mids) });
+  const result = Array.from(mids);
+  cache = { expiresAt: Date.now() + CACHE_TTL_MS, mids: result };
+
+  return NextResponse.json({ mids: result });
 };

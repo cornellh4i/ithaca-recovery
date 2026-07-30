@@ -3,7 +3,10 @@ import { getAuth } from "../../../../services/auth";
 const authenticateStatus = async () => {
     try {
         const session = await getAuth();
-        return new Response(JSON.stringify({ isAuthenticated: session !== null }), {
+        return new Response(JSON.stringify({
+            isAuthenticated: session !== null,
+            role: session?.user?.role ?? null,
+        }), {
             status: 200,
             headers: {
                 "Content-Type": "application/json",

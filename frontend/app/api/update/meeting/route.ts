@@ -37,6 +37,10 @@ async function syncUpdatedMeeting(
   let zoomCalendarEventId = existingMeeting.zoomCalendarEventId;
   let zoomSynced = true;
   let zoomSyncError: string | null = null;
+  // Set true when the kept Zoom meeting couldn't actually be moved to the new time (a host
+  // time-conflict, below) -- read outside this block by zoomBlocking, so the calType calendar
+  // reconcile doesn't publish the new time while Zoom itself is still sitting at the old one.
+  let skipCalendarTimeSync = false;
 
   if (zoomEnabled) {
     // A Zoom meeting can't move rooms or change host in place -- tear down and recreate
@@ -70,7 +74,6 @@ async function syncUpdatedMeeting(
     // the time itself may have changed, so re-check that the current host is still free for
     // the new schedule before pushing the update to Zoom — otherwise a time edit could
     // silently double-book a host that's fine for the old time but busy at the new one.
-    let skipCalendarTimeSync = false;
     if (zid) {
       const timeConflicts = zoomHost
         ? await findResourceConflicts("zoomHost", zoomHost, newMeeting, { excludeMid: mid, includeSuspended: true })
@@ -129,8 +132,10 @@ async function syncUpdatedMeeting(
   }
 
   // True when this meeting needs Zoom but doesn't have a working Zoom meeting after the
-  // block above -- the calendar reconcile below is deferred, not run with a missing link.
-  const zoomBlocking = zoomEnabled && !zid;
+  // block above (host pool exhausted / API failure), OR the kept Zoom meeting couldn't be
+  // moved to the new time (a host time-conflict, see skipCalendarTimeSync above) -- either
+  // way, the calendar reconcile below is deferred, not run with a missing or stale link.
+  const zoomBlocking = zoomEnabled && (!zid || skipCalendarTimeSync);
   const meetingForCalendar: IMeeting = { ...newMeeting, zoomLink };
 
   if (zoomBlocking) {
@@ -208,9 +213,14 @@ const updateMeeting = async (request: Request): Promise<Response> => {
     // different from whatever's currently assigned) needs a fresh Zoom meeting too, same as
     // a room change -- Zoom has no in-place host-transfer for this app's stable-meeting model.
     const explicitHostChange = !!newMeeting.zoomHost && newMeeting.zoomHost !== existingMeeting.zoomHost;
+    // Remote meetings submit zoomRoom as "" (no Zoom Room field at all), while older stored
+    // rows may hold null for the same "no room" state -- normalize both sides so an unchanged
+    // Remote meeting isn't misdetected as a room change and torn down/recreated for nothing.
     const needsNewHost =
       zoomEnabled &&
-      (!existingMeeting.zid || existingMeeting.zoomRoom !== newMeeting.zoomRoom || explicitHostChange);
+      (!existingMeeting.zid ||
+        (existingMeeting.zoomRoom || "") !== (newMeeting.zoomRoom || "") ||
+        explicitHostChange);
 
     let resolvedHost: string | null = null;
     let hostSyncError: string | null = null;
