@@ -166,8 +166,8 @@ No Redis instance is required to run the app — the unused `redis` package and 
 
 ## Testing (`frontend/tests/`)
 
-```
-test/
+```text
+tests/
 ├── e2e/           # Playwright specs, 1:1 with docs/testing/manual-test-script-template.md's sections
 │   └── support/   # Auth cookie minting, fail-soft sync-state fixtures
 ├── unit/          # Jest — pure functions, no I/O (plus routeGuards.test.ts, an AST-based check
