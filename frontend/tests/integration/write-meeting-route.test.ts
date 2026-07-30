@@ -220,3 +220,30 @@ test("a Remote meeting (no zoomRoom) still gets a Zoom meeting created, and its 
     "fake-calendar-id",
   );
 });
+
+test("a category with no configured calendar fails the meeting's sync, even if its other category succeeds", async () => {
+  // The top-level calendarIdsForMeeting mock always resolves only { AA: "fake-calendar-id" }
+  // regardless of calType -- passing "Other" here simulates a real category whose
+  // GOOGLE_CALENDAR_* env var isn't set, i.e. calendarIds never contains an "Other" entry.
+  mockedCreateCalendarEvent.mockResolvedValue("fake-event-id");
+
+  const payload = buildMeetingPayload({ calType: ["AA", "Other"] });
+  const request = new Request("http://localhost/api/write/meeting", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+
+  const response = await POST(request);
+  expect(response.status).toBe(201);
+
+  await new Promise((resolve) => setTimeout(resolve, 100));
+
+  const prisma = getTestPrismaClient();
+  const afterSync = await prisma.meeting.findUnique({ where: { mid: payload.mid } });
+
+  // AA's event was created successfully, but "Other" never even attempted to sync (no
+  // calendar ID resolved for it) -- the meeting as a whole must still report an error, not
+  // a false "synced" from only checking the categories that happened to resolve.
+  expect(mockedCreateCalendarEvent).toHaveBeenCalledTimes(1);
+  expect(afterSync?.syncStatus).toBe("error");
+});

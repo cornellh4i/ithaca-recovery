@@ -1,5 +1,5 @@
-import { toRRule } from "../../services/googleCalendar";
-import { IRecurrencePattern } from "../../util/models";
+import { toRRule, reconcileMeetingCalendars } from "../../services/googleCalendar";
+import { IMeeting, IRecurrencePattern } from "../../util/models";
 
 const base: IRecurrencePattern = {
   type: "weekly",
@@ -8,6 +8,74 @@ const base: IRecurrencePattern = {
   interval: 1,
   daysOfWeek: ["Monday"],
 };
+
+function buildMeeting(overrides: Partial<IMeeting> = {}): IMeeting {
+  return {
+    mid: "m-test",
+    title: "Test Meeting",
+    description: "",
+    creator: "Creator",
+    group: "Group",
+    startDateTime: new Date("2026-08-01T18:00:00Z"),
+    endDateTime: new Date("2026-08-01T19:00:00Z"),
+    email: "test@test.icr",
+    calType: ["AA"],
+    modeType: "In Person",
+    room: "Serenity Room",
+    isRecurring: false,
+    ...overrides,
+  };
+}
+
+// No GOOGLE_CALENDAR_* env vars are set in the unit-test environment (no .env loaded here),
+// so calendarIdForCategory resolves every real category ("AA", "Al-Anon", "Other") to "" --
+// exactly the "all calendars commented out" misconfiguration this regression test locks in.
+// Every scenario below is deliberately chosen so calendarIds never resolves a real ID, which
+// keeps both of reconcileMeetingCalendars' internal loops as no-ops -- no real Google Calendar
+// API call is ever attempted, so these stay fast, deterministic, network-free unit tests.
+describe("reconcileMeetingCalendars", () => {
+  const FAKE_TOKEN = "fake-access-token";
+
+  it("reports allSynced: false when every requested calType category is unconfigured", async () => {
+    const meeting = buildMeeting({ calType: ["AA"] });
+    const { allSynced, updatedEventIds } = await reconcileMeetingCalendars(FAKE_TOKEN, meeting, {});
+
+    expect(allSynced).toBe(false);
+    expect(updatedEventIds).toEqual({});
+  });
+
+  it("reports allSynced: false when multiple requested categories are all unconfigured", async () => {
+    // Regression coverage for the exact bug found in production: with every category
+    // unconfigured, calendarIds resolves to {} and both loops below never run -- allSynced
+    // must not be left at its vacuously-true initial value.
+    const meeting = buildMeeting({ calType: ["AA", "Other"] });
+    const { allSynced } = await reconcileMeetingCalendars(FAKE_TOKEN, meeting, {});
+
+    expect(allSynced).toBe(false);
+  });
+
+  it("reports allSynced: true when calType is empty -- nothing to sync isn't a failure", async () => {
+    const meeting = buildMeeting({ calType: [] });
+    const { allSynced } = await reconcileMeetingCalendars(FAKE_TOKEN, meeting, {});
+
+    expect(allSynced).toBe(true);
+  });
+
+  it("drops a stale event for a category that's no longer configured, without failing the meeting", async () => {
+    // The category itself isn't part of calType anymore (or never resolves), so there's
+    // nothing to actively delete it from -- the stale mapping is just forgotten, and that
+    // alone shouldn't count as a sync failure.
+    const meeting = buildMeeting({ calType: [] });
+    const { allSynced, updatedEventIds } = await reconcileMeetingCalendars(
+      FAKE_TOKEN,
+      meeting,
+      { Other: "stale-event-id" },
+    );
+
+    expect(allSynced).toBe(true);
+    expect(updatedEventIds).toEqual({});
+  });
+});
 
 describe("toRRule — weekly", () => {
   it("builds a basic weekly BYDAY rule", () => {
