@@ -9,7 +9,7 @@ onto the repo, this doc is the walkthrough; if you're about to sign off a releas
 
 All test code lives under `frontend/tests/`, split by tier:
 
-```
+```text
 frontend/tests/
   unit/         # pure functions, no I/O
   integration/  # route handlers against a real (in-memory) database
