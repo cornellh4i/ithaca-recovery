@@ -14,7 +14,12 @@
 
   // Leading 42px row replaces the old padding-top spacer -- it's now a real element
   // (.roomCorner) so it can be sticky-positioned alongside the room names below it.
-  grid-template-rows: 42px repeat(11, 113px);
+  // The "12" must match util/rooms.ts's defaultRooms.length (6 physical + 5 Zoom + 1
+  // Remote) -- CSS can't derive it from that array, so it's a hand-kept number here and in
+  // .scrollContainer below. Previously hardcoded at 11 and never updated when the Remote
+  // room was added, so its row silently fell back to grid-auto-rows sizing instead of this
+  // 113px track, throwing every row below it out of alignment with .scrollContainer.
+  grid-template-rows: 42px repeat(12, 113px);
   width: 180px;
 
   // .viewContainer is a flex row and .scrollContainer (its sibling) is thousands of px
@@ -72,8 +77,10 @@
 
   // First row must be a literal 42px, not auto -- auto sizes .headerRow off its own
   // content (padding + line-height + border), which renders 1px short of .roomCorner's
-  // hardcoded 42px and throws every room/hour row below it out of alignment.
-  grid-template-rows: 42px repeat(11, 113px);
+  // hardcoded 42px and throws every room/hour row below it out of alignment. The "12"
+  // must match .roomContainer's (see its comment above) -- both grids need identical row
+  // tracks so a room's label and its hour cells line up.
+  grid-template-rows: 42px repeat(12, 113px);
   width: calc(100% - 180px);
   margin-left: 30px;
 }
