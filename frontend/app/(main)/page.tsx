@@ -1,11 +1,11 @@
 "use client";
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import styles from "./page.module.scss";
-import CalendarNavbar from "../components/organisms/CalendarNavbar";
-import CalendarSidebarShell from "../components/organisms/CalendarSidebarShell";
-import ViewMeetingDetails from "../components/organisms/ViewMeeting";
-import DailyView from "../components/organisms/DailyView";
-import WeeklyView from "../components/organisms/WeeklyView";
+import CalendarNavbar from "../components/calendar/CalendarNavbar";
+import CalendarSidebarShell from "../components/calendar/CalendarSidebarShell";
+import ViewMeetingDetails from "../components/meeting-form/ViewMeeting";
+import DailyView from "../components/calendar/DailyView";
+import WeeklyView from "../components/calendar/WeeklyView";
 
 import { convertUTCToET } from "../../util/timeUtils";
 import { IMeeting } from "../../util/models";

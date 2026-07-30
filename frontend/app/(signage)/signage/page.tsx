@@ -5,12 +5,12 @@ export const dynamic = "force-dynamic";
 import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Logo from "../../components/atoms/Logo";
-import CalendarNavbar from "../../components/organisms/CalendarNavbar";
-import DailyView from "../../components/organisms/DailyView";
-import WeeklyView from "../../components/organisms/WeeklyView";
+import CalendarNavbar from "../../components/calendar/CalendarNavbar";
+import DailyView from "../../components/calendar/DailyView";
+import WeeklyView from "../../components/calendar/WeeklyView";
 import { parseSignageFilters, parseSignageView } from "../../../util/signageFilters";
 import { formatETDateString } from "../../../util/timeUtils";
-import navbarStyles from "../../../styles/components/organisms/AppNavbar.module.scss";
+import navbarStyles from "../../../styles/components/navbar/AppNavbar.module.scss";
 
 const REFRESH_INTERVAL_MS = 2 * 60 * 1000;
 const MIDNIGHT_CHECK_INTERVAL_MS = 30 * 1000;
