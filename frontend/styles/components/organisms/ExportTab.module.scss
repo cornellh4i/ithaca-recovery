@@ -58,8 +58,8 @@
 
 .errorBanner {
   background: #FBE1E7;
-  color: $dark-pink-color;
-  border: 1.5px solid $dark-pink-color;
+  color: $brand-pink-color;
+  border: 1.5px solid $brand-pink-color;
   border-radius: 8px;
   padding: 10px 16px;
   font-size: 14px;
@@ -85,7 +85,7 @@
 }
 
 .exportButton {
-  background: $dark-pink-color;
+  background: $brand-pink-color;
   color: #fff;
   border: none;
   border-radius: 8px;
@@ -128,7 +128,7 @@
   white-space: nowrap;
 
   &:hover {
-    border-color: $dark-pink-color;
+    border-color: $brand-pink-color;
   }
 }
 
@@ -199,7 +199,7 @@
 
 .dateError {
   font-size: 12px;
-  color: $dark-pink-color;
+  color: $brand-pink-color;
   margin: 6px 0 0;
 }
 
@@ -256,7 +256,7 @@
 
   td {
     padding: 6px;
-    border-bottom: 1px solid #F1F1F1;
+    border-bottom: 1px solid $grey-lightest-color;
     font-size: 14px;
     color: $black-color;
   }
@@ -282,7 +282,7 @@
 }
 
 .code {
-  background: #F1F1F1;
+  background: $grey-lightest-color;
   padding: 1px 5px;
   border-radius: 4px;
 }
@@ -306,7 +306,7 @@
 }
 
 .saveButton {
-  background: $dark-pink-color;
+  background: $brand-pink-color;
   color: #fff;
   border: none;
   border-radius: 8px;
@@ -353,8 +353,8 @@
 }
 
 .viewButtonActive {
-  background: $dark-pink-color;
-  border-color: $dark-pink-color;
+  background: $brand-pink-color;
+  border-color: $brand-pink-color;
   color: #fff;
   font-weight: 600;
 }
@@ -370,7 +370,7 @@
   font-family: monospace;
   font-size: 13px;
   color: $black-color;
-  background: #F1F1F1;
+  background: $grey-lightest-color;
   border: 1.5px solid #E5E5E5;
   border-radius: 6px;
   padding: 8px 12px;
@@ -378,7 +378,7 @@
 }
 
 .copyButton {
-  background: $dark-pink-color;
+  background: $brand-pink-color;
   color: #fff;
   border: none;
   border-radius: 8px;

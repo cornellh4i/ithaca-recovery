@@ -65,7 +65,7 @@
   top: 0;
   height: 100%;
   width: 4px;
-  background-color: #c36;
+  background-color: $brand-pink-color;
   z-index: 10; 
 }
 
@@ -126,7 +126,7 @@
   grid-template-columns: repeat(24, 155px);
   font-weight: 600;
   background-color: #fff;
-  border-bottom: 1px solid #ddd;
+  border-bottom: 1px solid $grey-border-color;
   scroll-snap-align: start;
   position: sticky;
   top: 0;
@@ -135,7 +135,7 @@
 
 .timeLabel {
   padding: 10px 20px;
-  border-left: 1px solid #ddd;
+  border-left: 1px solid $grey-border-color;
   white-space: nowrap;
   scroll-snap-align: start;
 }
@@ -155,8 +155,8 @@
 
   .gridCell {
     position: relative;
-    border-left: 1px solid #ddd;
-    border-bottom: 1px solid #ddd;
+    border-left: 1px solid $grey-border-color;
+    border-bottom: 1px solid $grey-border-color;
 
     &::before {
       content: '';
@@ -178,5 +178,5 @@
   padding: 5px 10px;
   height: 113px;
   box-sizing: border-box;
-  border-bottom: 1px solid #ddd;
+  border-bottom: 1px solid $grey-border-color;
 }

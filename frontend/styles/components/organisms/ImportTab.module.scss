@@ -49,18 +49,18 @@
 }
 
 .dropzoneActive {
-  border-color: $dark-pink-color;
+  border-color: $brand-pink-color;
   background: #FBE1E7;
 }
 
 .chooseFile {
-  color: $dark-pink-color;
+  color: $brand-pink-color;
   text-decoration: underline;
   cursor: pointer;
 }
 
 .uploadButton {
-  background: $dark-pink-color;
+  background: $brand-pink-color;
   color: #fff;
   border: none;
   border-radius: 8px;
@@ -105,7 +105,7 @@
 
   td {
     padding: 10px 8px;
-    border-bottom: 1px solid #F1F1F1;
+    border-bottom: 1px solid $grey-lightest-color;
     font-size: 14px;
     color: $black-color;
     vertical-align: top;
