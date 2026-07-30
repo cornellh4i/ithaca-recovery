@@ -69,6 +69,19 @@ afterAll(async () => {
   await disconnectTestPrismaClient();
 });
 
+// Neither jest config sets clearMocks/resetMocks globally, and mockImplementation/mockResolvedValue
+// set in one test otherwise leaks into later tests -- e.g. a leftover resolveZoomHost or
+// reconcileMeetingCalendars call count from an earlier test would make this file's
+// not.toHaveBeenCalled() assertions depend on run order instead of just the current test.
+beforeEach(() => {
+  mockedUpdateZoomMeeting.mockReset();
+  mockedCreateZoomMeeting.mockReset();
+  mockedDeleteZoomMeeting.mockReset();
+  mockedResolveZoomHost.mockReset();
+  mockedReconcileMeetingCalendars.mockReset();
+  mockedCreateCalendarEvent.mockReset();
+});
+
 test("a malformed body returns 400 with validation issues instead of a raw 500", async () => {
   const malformed = buildMeetingPayload({ email: "not-an-email" });
   // @ts-expect-error - deliberately wrong type to trigger schema validation, not a DB error
@@ -95,7 +108,6 @@ test("a malformed body returns 400 with validation issues instead of a raw 500",
 });
 
 test("a same-room time edit that now conflicts with another meeting on the same Zoom host fails soft instead of double-booking it", async () => {
-  mockedUpdateZoomMeeting.mockClear();
   mockedUpdateZoomMeeting.mockResolvedValue(true);
   mockedReconcileMeetingCalendars.mockResolvedValue({ updatedEventIds: {}, allSynced: true });
 
@@ -164,9 +176,9 @@ test("a same-room time edit that now conflicts with another meeting on the same 
 });
 
 test("a newly resolved Zoom host is persisted synchronously when a meeting first gets a Zoom room", async () => {
-  mockedResolveZoomHost.mockReset().mockResolvedValue("new-host@icr.test");
+  mockedResolveZoomHost.mockResolvedValue("new-host@icr.test");
   const SYNC_DELAY_MS = 300;
-  mockedCreateZoomMeeting.mockReset().mockImplementation(
+  mockedCreateZoomMeeting.mockImplementation(
     () => new Promise((resolve) => setTimeout(() => resolve({ zid: "new-zid", zoomLink: "http://zoom.test/new" }), SYNC_DELAY_MS)),
   );
   mockedReconcileMeetingCalendars.mockResolvedValue({ updatedEventIds: {}, allSynced: true });
@@ -195,8 +207,8 @@ test("a newly resolved Zoom host is persisted synchronously when a meeting first
 });
 
 test("an exhausted Zoom host pool on update fails soft, synchronously, without touching the existing meeting fields", async () => {
-  mockedResolveZoomHost.mockReset().mockResolvedValue(null);
-  mockedReconcileMeetingCalendars.mockReset().mockResolvedValue({ updatedEventIds: {}, allSynced: true });
+  mockedResolveZoomHost.mockResolvedValue(null);
+  mockedReconcileMeetingCalendars.mockResolvedValue({ updatedEventIds: {}, allSynced: true });
 
   const prisma = getTestPrismaClient();
   const mid = `m-${randomUUID()}`;
@@ -228,9 +240,9 @@ test("an exhausted Zoom host pool on update fails soft, synchronously, without t
 });
 
 test("an explicit host reassignment tears down the old Zoom meeting and creates a new one under the new host", async () => {
-  mockedDeleteZoomMeeting.mockReset().mockResolvedValue(true);
-  mockedCreateZoomMeeting.mockReset().mockResolvedValue({ zid: "zid-reassigned", zoomLink: "http://zoom.test/reassigned", zoomPasscode: null });
-  mockedCreateCalendarEvent.mockReset().mockResolvedValue("fake-zoom-cal-event-id");
+  mockedDeleteZoomMeeting.mockResolvedValue(true);
+  mockedCreateZoomMeeting.mockResolvedValue({ zid: "zid-reassigned", zoomLink: "http://zoom.test/reassigned", zoomPasscode: null });
+  mockedCreateCalendarEvent.mockResolvedValue("fake-zoom-cal-event-id");
   mockedReconcileMeetingCalendars.mockResolvedValue({ updatedEventIds: {}, allSynced: true });
 
   const prisma = getTestPrismaClient();
