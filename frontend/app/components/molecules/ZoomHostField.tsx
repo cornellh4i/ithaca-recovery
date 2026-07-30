@@ -47,7 +47,7 @@ const DEBOUNCE_MS = 500;
 // as an actual status update instead of a flicker.
 const MIN_CHECKING_DISPLAY_MS = 1000;
 
-// How long the post-success "Check done" line stays up before disappearing on its own. Unlike
+// How long the post-success "Host available" line stays up before disappearing on its own. Unlike
 // MIN_CHECKING_DISPLAY_MS (a floor -- padded out to at least this long), this is a fixed
 // duration -- it always shows for exactly this long, then clears, unless a new candidate change
 // clears it first.
@@ -221,7 +221,7 @@ export const ZoomHostField: React.FC<ZoomHostFieldProps> = ({
         <p className={styles.checkingIndicator}>Checking host availability…</p>
       )}
       {status === 'done' && (
-        <p className={styles.checkDoneIndicator}><CheckIcon /> Check done</p>
+        <p className={styles.checkDoneIndicator}><CheckIcon /> Host available</p>
       )}
       {status === 'noHostAvailable' && (
         <p className={styles.noHostIndicator}><CrossIcon /> No host available</p>
