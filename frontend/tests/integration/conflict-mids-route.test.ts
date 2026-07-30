@@ -7,28 +7,18 @@ jest.mock("../../services/auth", () => ({
 
 import { requireRole } from "../../services/auth";
 import { getTestPrismaClient, disconnectTestPrismaClient } from "../factories/db";
+import { buildMeetingData as buildBaseMeetingData } from "../factories/meeting";
 import { GET } from "../../app/api/admin/conflict-mids/route";
 
 const mockedRequireRole = requireRole as jest.Mock;
 
 function buildMeetingData(overrides: Partial<Meeting> = {}) {
-  return {
-    mid: `m-${randomUUID()}`,
+  return buildBaseMeetingData({
     title: "Conflict Mids Meeting",
     modeType: "Hybrid",
-    description: "",
-    creator: "Creator",
-    group: "Group",
-    startDateTime: new Date("2026-08-01T22:00:00Z"),
-    endDateTime: new Date("2026-08-01T23:00:00Z"),
-    email: "route-test@test.icr",
     zoomRoom: "Serenity Room - Zoom",
-    calType: ["AA"],
-    status: "Active",
-    room: "Serenity Room",
-    isRecurring: false,
     ...overrides,
-  };
+  });
 }
 
 afterAll(async () => {
@@ -69,6 +59,11 @@ test("returns the mids of meetings sharing a busy Zoom host at overlapping times
     }),
   });
   // A third meeting with no shared resource -- must not show up as a false positive.
+  // Deliberately a day apart from midA/midB's default date, same as before this
+  // switched from a fixed literal to a today-relative one.
+  const dayAfterStart = new Date(Date.now() + 24 * 60 * 60 * 1000);
+  dayAfterStart.setUTCHours(22, 0, 0, 0);
+  const dayAfterEnd = new Date(dayAfterStart.getTime() + 60 * 60 * 1000);
   await prisma.meeting.create({
     data: buildMeetingData({
       mid: midUnrelated,
@@ -76,8 +71,8 @@ test("returns the mids of meetings sharing a busy Zoom host at overlapping times
       room: "Room for Gratitude",
       zoomRoom: null,
       zoomHost: null,
-      startDateTime: new Date("2026-08-02T22:00:00Z"),
-      endDateTime: new Date("2026-08-02T23:00:00Z"),
+      startDateTime: dayAfterStart,
+      endDateTime: dayAfterEnd,
     }),
   });
 

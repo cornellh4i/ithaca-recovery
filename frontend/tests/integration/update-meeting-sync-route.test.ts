@@ -1,4 +1,3 @@
-import { randomUUID } from "crypto";
 import type { Meeting } from "@prisma/client";
 
 jest.mock("../../services/auth", () => ({
@@ -23,6 +22,7 @@ jest.mock("../../services/zoom", () => ({
 }));
 
 import { getTestPrismaClient, disconnectTestPrismaClient } from "../factories/db";
+import { buildMeetingData as buildBaseMeetingData } from "../factories/meeting";
 import { POST } from "../../app/api/update/meeting/sync/route";
 import { resolveZoomHost, createZoomMeeting } from "../../services/zoom";
 import { reconcileMeetingCalendars } from "../../services/googleCalendar";
@@ -32,26 +32,15 @@ const mockedCreateZoomMeeting = createZoomMeeting as jest.Mock;
 const mockedReconcileMeetingCalendars = reconcileMeetingCalendars as jest.Mock;
 
 function buildMeetingData(overrides: Partial<Meeting> = {}) {
-  return {
-    mid: `m-${randomUUID()}`,
+  return buildBaseMeetingData({
     title: "Retry Sync Meeting",
     modeType: "Remote",
-    description: "",
-    creator: "Creator",
-    group: "Group",
-    startDateTime: new Date("2026-08-01T22:00:00Z"),
-    endDateTime: new Date("2026-08-01T23:00:00Z"),
-    email: "route-test@test.icr",
-    zoomRoom: null,
-    calType: ["AA"],
-    status: "Active",
     room: "",
-    isRecurring: false,
     syncStatus: "pending",
     zoomSyncStatus: "error",
     zoomSyncError: "No Zoom host available for this meeting's schedule (pool exhausted).",
     ...overrides,
-  };
+  });
 }
 
 afterAll(async () => {

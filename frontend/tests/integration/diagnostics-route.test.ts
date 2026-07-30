@@ -20,26 +20,11 @@ jest.mock("../../services/zoom", () => ({
 }));
 
 import { getTestPrismaClient, disconnectTestPrismaClient } from "../factories/db";
+import { buildMeetingData as buildBaseMeetingData } from "../factories/meeting";
 import { GET } from "../../app/api/admin/diagnostics/route";
 
 function buildMeetingData(overrides: Partial<Meeting> = {}) {
-  return {
-    mid: `m-${randomUUID()}`,
-    title: "Diagnostics Count Meeting",
-    modeType: "In Person",
-    description: "",
-    creator: "Creator",
-    group: "Group",
-    startDateTime: new Date("2026-08-01T22:00:00Z"),
-    endDateTime: new Date("2026-08-01T23:00:00Z"),
-    email: "route-test@test.icr",
-    zoomRoom: null,
-    calType: ["AA"],
-    status: "Active",
-    room: "Serenity Room",
-    isRecurring: false,
-    ...overrides,
-  };
+  return buildBaseMeetingData({ title: "Diagnostics Count Meeting", ...overrides });
 }
 
 afterAll(async () => {
