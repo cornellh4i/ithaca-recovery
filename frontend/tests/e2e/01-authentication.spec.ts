@@ -115,6 +115,24 @@ test("1.5j an Admin visiting an edit deep link (?mid=&edit=1) sees the Edit Meet
   await expect(page.getByRole("heading", { name: "Edit Meeting" })).toBeVisible();
 });
 
+test("1.5k guests and non-admins viewing a meeting with a sync error cannot see or trigger Retry sync", async ({
+  page,
+  context,
+}) => {
+  await seedMeeting({ title: "Guest Sync Error Meeting", googleSyncStatus: "error" });
+  await page.goto("/");
+  await page.getByText("Guest Sync Error Meeting", { exact: true }).click();
+  await expect(page.getByText("Failed to sync to Google Calendar")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Retry sync" })).toHaveCount(0);
+
+  await seedMeeting({ title: "Non-Admin Sync Error Meeting", googleSyncStatus: "error" });
+  await loginAs(context, "not-an-admin@test.icr");
+  await page.goto("/");
+  await page.getByText("Non-Admin Sync Error Meeting", { exact: true }).click();
+  await expect(page.getByText("Failed to sync to Google Calendar")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Retry sync" })).toHaveCount(0);
+});
+
 test("1.6 session persists across a page reload", async ({ adminPage }) => {
   const { page } = adminPage;
   await page.goto("/");

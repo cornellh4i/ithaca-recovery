@@ -45,11 +45,12 @@ const etYearFmt = new Intl.DateTimeFormat('en-US', {
  * falls on the current ET calendar day.
  */
 export const formatMeetingDateLine = (date: Date): ReactNode => {
+    const now = new Date();
     const base = etDateLineFmt.format(date);
     const dateYear = etYearFmt.format(date);
-    const currentYear = etYearFmt.format(new Date());
+    const currentYear = etYearFmt.format(now);
     const label = dateYear === currentYear ? base : `${base}, ${dateYear}`;
-    const isToday = formatETDateString(date) === formatETDateString(new Date());
+    const isToday = formatETDateString(date) === formatETDateString(now);
 
     if (!isToday) return label;
 

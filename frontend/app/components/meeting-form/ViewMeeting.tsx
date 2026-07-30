@@ -385,10 +385,10 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
               <img src="/svg/sync-error-icon.svg" alt="" />
               <span>
                 {googleSyncStatus === 'error' && zoomSyncStatus === 'error'
-                  ? 'Failed to sync to Google Calendar and Zoom — use Retry sync below.'
+                  ? `Failed to sync to Google Calendar and Zoom${isAdmin ? ' — use Retry sync below.' : '.'}`
                   : googleSyncStatus === 'error'
-                  ? 'Failed to sync to Google Calendar — this meeting may not appear there. Use Retry sync below.'
-                  : `Failed to sync to Zoom${zoomSyncError ? `: ${zoomSyncError}` : ''} — use Retry sync below.`}
+                  ? `Failed to sync to Google Calendar — this meeting may not appear there.${isAdmin ? ' Use Retry sync below.' : ''}`
+                  : `Failed to sync to Zoom${zoomSyncError ? `: ${zoomSyncError}` : ''}${isAdmin ? ' — use Retry sync below.' : '.'}`}
               </span>
             </p>
           )}
@@ -466,7 +466,7 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
           {zoomSyncStatus === 'error' && (
             <p className={styles.syncError}>Zoom sync failed ⚠{zoomSyncError ? `: ${zoomSyncError}` : ''}</p>
           )}
-          {(googleSyncStatus === 'error' || zoomSyncStatus === 'error') && (
+          {isAdmin && (googleSyncStatus === 'error' || zoomSyncStatus === 'error') && (
             <button
               onClick={handleRetrySync}
               disabled={syncing}
