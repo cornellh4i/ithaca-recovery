@@ -74,10 +74,12 @@ test.describe("edge cases", () => {
       button.dispatchEvent("click"),
       button.dispatchEvent("click"),
     ]);
-    await page.waitForTimeout(1000);
-
     const prisma = getTestPrismaClient();
-    const created = await prisma.meeting.findMany({ where: { title: "Rapid Click Meeting" } });
-    expect(created).toHaveLength(1);
+    await expect
+      .poll(async () => {
+        const created = await prisma.meeting.findMany({ where: { title: "Rapid Click Meeting" } });
+        return created.length;
+      })
+      .toBe(1);
   });
 });
