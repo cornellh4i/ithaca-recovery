@@ -36,7 +36,7 @@ function buildMeetingData(overrides: Partial<Meeting> = {}) {
     title: "Retry Sync Meeting",
     modeType: "Remote",
     room: "",
-    syncStatus: "pending",
+    googleSyncStatus: "pending",
     zoomSyncStatus: "error",
     zoomSyncError: "No Zoom host available for this meeting's schedule (pool exhausted).",
     ...overrides,
@@ -70,7 +70,7 @@ test("a retry that newly succeeds at getting a host both creates the Zoom meetin
   const response = await POST(request);
   expect(response.status).toBe(200);
   const body = await response.json();
-  expect(body.syncStatus).toBe("synced");
+  expect(body.googleSyncStatus).toBe("synced");
   expect(body.zoomSyncStatus).toBe("synced");
 
   // The calendar reconcile is called with the newly-resolved zoomLink, not the stale null one
@@ -83,7 +83,7 @@ test("a retry that newly succeeds at getting a host both creates the Zoom meetin
 
   const afterRetry = await prisma.meeting.findUnique({ where: { mid: meetingData.mid } });
   expect(afterRetry?.zid).toBe("retried-zid");
-  expect(afterRetry?.syncStatus).toBe("synced");
+  expect(afterRetry?.googleSyncStatus).toBe("synced");
   expect(afterRetry?.googleCalendarEventIds).toEqual({ AA: "fake-event-id" });
 });
 
@@ -102,10 +102,10 @@ test("a retry that still can't get a host stays pending and does not attempt the
   const response = await POST(request);
   expect(response.status).toBe(200);
   const body = await response.json();
-  expect(body.syncStatus).toBe("pending");
+  expect(body.googleSyncStatus).toBe("pending");
   expect(body.zoomSyncError).toMatch(/pool exhausted/i);
   expect(mockedReconcileMeetingCalendars).not.toHaveBeenCalled();
 
   const afterRetry = await prisma.meeting.findUnique({ where: { mid: meetingData.mid } });
-  expect(afterRetry?.syncStatus).toBe("pending");
+  expect(afterRetry?.googleSyncStatus).toBe("pending");
 });

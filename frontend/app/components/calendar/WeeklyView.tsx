@@ -52,7 +52,7 @@ const fetchMeetingsByWeek = async (startDate: Date, endDate: Date): Promise<Meet
                     tags: [...meeting.calType, meeting.modeType],
                     room: meeting.room,
                     zoomRoom: meeting.zoomRoom,
-                    syncError: meeting.syncStatus === 'error' || meeting.zoomSyncStatus === 'error',
+                    syncError: meeting.googleSyncStatus === 'error' || meeting.zoomSyncStatus === 'error',
                 };
             });
 

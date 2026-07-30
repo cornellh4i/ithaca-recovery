@@ -118,7 +118,7 @@ test.describe("meeting editing", () => {
 
   test("3.7 opening a different meeting doesn't carry over a stale sync-error banner", async ({ adminPage }) => {
     const { page } = adminPage;
-    await seedMeeting({ title: "Sync Error Meeting", syncStatus: "error" });
+    await seedMeeting({ title: "Sync Error Meeting", googleSyncStatus: "error" });
     await seedMeeting({ title: "Synced Meeting", ...laterSlot() });
     await page.goto("/");
 

@@ -46,7 +46,7 @@ export const meetingSchema = z.object({
   recurrencePattern: recurrencePatternSchema.nullable().optional(),
   googleCalendarEventId: z.string().nullable().optional(),
   googleCalendarEventIds: z.record(z.string(), z.string()).nullable().optional(),
-  syncStatus: z.string().nullable().optional(),
+  googleSyncStatus: z.string().nullable().optional(),
   zoomCalendarEventId: z.string().nullable().optional(),
   zoomSyncStatus: z.string().nullable().optional(),
   zoomHost: z.string().nullable().optional(),

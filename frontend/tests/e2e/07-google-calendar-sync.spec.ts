@@ -35,7 +35,7 @@ test.describe("google calendar sync", () => {
 
     const prisma = getTestPrismaClient();
     const created = await prisma.meeting.findFirst({ where: { title: "No Token Meeting" } });
-    expect(created?.syncStatus).toBeNull();
+    expect(created?.googleSyncStatus).toBeNull();
   });
 
   test("7.8 creating a meeting with a session accessToken attempts a sync for every checked category", async ({ page, context }) => {
@@ -65,13 +65,13 @@ test.describe("google calendar sync", () => {
     const prisma = getTestPrismaClient();
     await expect.poll(async () => {
       const created = await prisma.meeting.findFirst({ where: { title: "Dual Calendar Meeting" } });
-      return created?.syncStatus;
+      return created?.googleSyncStatus;
     }).toBe("error");
   });
 
   test("7.9 a failed sync shows a ⚠ badge and offers a retry", async ({ adminPage }) => {
     const { page } = adminPage;
-    await seedMeeting({ title: "GCal Retry Meeting", syncStatus: "error" });
+    await seedMeeting({ title: "GCal Retry Meeting", googleSyncStatus: "error" });
     await page.goto("/");
     await page.getByText("GCal Retry Meeting", { exact: true }).click();
     await expect(page.getByText("Google Calendar sync failed ⚠")).toBeVisible();
@@ -80,7 +80,7 @@ test.describe("google calendar sync", () => {
 
   test("7.10 a successfully-synced meeting shows the success state", async ({ adminPage }) => {
     const { page } = adminPage;
-    await seedMeeting({ title: "GCal Synced Meeting", syncStatus: "synced" });
+    await seedMeeting({ title: "GCal Synced Meeting", googleSyncStatus: "synced" });
     await page.goto("/");
     await page.getByText("GCal Synced Meeting", { exact: true }).click();
     await expect(page.getByText("Synced to Google Calendar ✓")).toBeVisible();

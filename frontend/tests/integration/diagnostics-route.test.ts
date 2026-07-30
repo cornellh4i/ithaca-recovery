@@ -48,7 +48,7 @@ test("counts a Remote meeting's Zoom sync error even though it has no zoomRoom",
     data: buildMeetingData({
       modeType: "Hybrid",
       zoomRoom: "Serenity Room - Zoom",
-      syncStatus: "pending",
+      googleSyncStatus: "pending",
     }),
   });
 

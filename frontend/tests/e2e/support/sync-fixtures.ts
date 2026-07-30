@@ -12,7 +12,7 @@
 //     evaluates false anyway). In the test env, GOOGLE_CALENDAR_AA/ALANON/
 //     OTHER are deliberately left unset, so calendarIdsForMeeting() always
 //     returns {} — meaning a truthy-but-fake accessToken alone already
-//     produces `syncStatus: 'error'`, with zero real HTTP calls.
+//     produces `googleSyncStatus: 'error'`, with zero real HTTP calls.
 //   - Zoom sync only runs if `meetingData.zoomRoom` is set. Leave it unset to
 //     skip; set it (with ZOOM_CLIENT_ID/SECRET/ACCOUNT_ID also left unset in
 //     the test env) to get `zoomSyncStatus: 'error'` — getZoomAccessToken()
@@ -20,10 +20,10 @@
 //
 // For "renders a successfully-synced meeting" assertions, don't try to drive
 // a real success through these routes — seed the end state directly via
-// seedMeeting({ zoomSyncStatus: 'synced', zoomLink: ..., syncStatus: 'synced',
+// seedMeeting({ zoomSyncStatus: 'synced', zoomLink: ..., googleSyncStatus: 'synced',
 // googleCalendarEventIds: {...} }) instead. These are rendering assertions,
 // not integration assertions.
 
 // A truthy accessToken with no real GCal calendars configured deterministically
-// produces syncStatus: 'error' on write/update — see the top-of-file note.
+// produces googleSyncStatus: 'error' on write/update — see the top-of-file note.
 export const FAKE_ACCESS_TOKEN = "fake-access-token-for-error-path-testing";

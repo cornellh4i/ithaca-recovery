@@ -38,17 +38,17 @@ const mockedCreateCalendarEvent = createCalendarEvent as jest.Mock;
 const mockedResolveZoomHost = resolveZoomHost as jest.Mock;
 const mockedCreateZoomMeeting = createZoomMeeting as jest.Mock;
 
-// Polls for the deferred sync job's persisted terminal syncStatus instead of guessing a
+// Polls for the deferred sync job's persisted terminal googleSyncStatus instead of guessing a
 // fixed delay -- race-prone under slower CI/database conditions, per CodeRabbit's review
-// of this file. Only safe to use for a meeting whose deferred job writes syncStatus as its
+// of this file. Only safe to use for a meeting whose deferred job writes googleSyncStatus as its
 // last step (e.g. a non-Zoom-enabled meeting, where the calendar-sync update is the only
 // write left after the response returns).
-async function waitForSyncStatus(mid: string, timeoutMs = 2000) {
+async function waitForGoogleSyncStatus(mid: string, timeoutMs = 2000) {
   const prisma = getTestPrismaClient();
   const start = Date.now();
   while (Date.now() - start < timeoutMs) {
     const meeting = await prisma.meeting.findUnique({ where: { mid } });
-    if (meeting?.syncStatus != null) return meeting;
+    if (meeting?.googleSyncStatus != null) return meeting;
     await new Promise((resolve) => setTimeout(resolve, 25));
   }
   return prisma.meeting.findUnique({ where: { mid } });
@@ -109,13 +109,13 @@ test("the response resolves before Google Calendar sync completes, which runs in
 
   const prisma = getTestPrismaClient();
   const rightAfterResponse = await prisma.meeting.findUnique({ where: { mid: payload.mid } });
-  expect(rightAfterResponse?.syncStatus).toBeNull();
+  expect(rightAfterResponse?.googleSyncStatus).toBeNull();
 
   // waitUntil has no real lifecycle hook outside Vercel, but the background
   // function still runs to completion on its own — just give it time to finish.
   await new Promise((resolve) => setTimeout(resolve, SYNC_DELAY_MS + 100));
   const afterSync = await prisma.meeting.findUnique({ where: { mid: payload.mid } });
-  expect(afterSync?.syncStatus).toBe("synced");
+  expect(afterSync?.googleSyncStatus).toBe("synced");
 });
 
 test("a resolved Zoom host is persisted synchronously, before the deferred sync runs", async () => {
@@ -199,8 +199,8 @@ test("an exhausted Zoom host pool fails soft: the meeting is still created", asy
 
   // The direct regression test for Matt's confirmation: a meeting that needs Zoom but has no
   // working Zoom meeting yet must NOT be published to the calendars with a missing link —
-  // syncStatus is 'pending', not 'synced'/'error', and the calendar-publish loop never ran.
-  expect(afterSync?.syncStatus).toBe("pending");
+  // googleSyncStatus is 'pending', not 'synced'/'error', and the calendar-publish loop never ran.
+  expect(afterSync?.googleSyncStatus).toBe("pending");
   expect(afterSync?.googleCalendarEventIds).toBeNull();
   expect(mockedCreateCalendarEvent).not.toHaveBeenCalled();
 });
@@ -225,7 +225,7 @@ test("a Remote meeting (no zoomRoom) still gets a Zoom meeting created, and its 
   const afterSync = await prisma.meeting.findUnique({ where: { mid: payload.mid } });
   expect(afterSync?.zid).toBe("remote-zid");
   expect(afterSync?.zoomLink).toBe("http://zoom.test/remote");
-  expect(afterSync?.syncStatus).toBe("synced");
+  expect(afterSync?.googleSyncStatus).toBe("synced");
 
   // Remote has no dedicated Zoom-Room calendar (no zoomRoom) -- the main calType-calendar
   // event is the only place its Zoom link can appear, so it must carry the real link, not
@@ -252,11 +252,11 @@ test("a category with no configured calendar fails the meeting's sync, even if i
   const response = await POST(request);
   expect(response.status).toBe(201);
 
-  const afterSync = await waitForSyncStatus(payload.mid);
+  const afterSync = await waitForGoogleSyncStatus(payload.mid);
 
   // AA's event was created successfully, but "Other" never even attempted to sync (no
   // calendar ID resolved for it) -- the meeting as a whole must still report an error, not
   // a false "synced" from only checking the categories that happened to resolve.
   expect(mockedCreateCalendarEvent).toHaveBeenCalledTimes(1);
-  expect(afterSync?.syncStatus).toBe("error");
+  expect(afterSync?.googleSyncStatus).toBe("error");
 });

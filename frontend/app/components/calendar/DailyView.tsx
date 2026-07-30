@@ -97,7 +97,7 @@ export const fetchMeetingsByDay = async (date: Date): Promise<Room[]> => {
           displayEndTime: etTimeFmt.format(new Date(meeting.trueEndDateTime)),
           date: formattedDate,
           tags: [...meeting.calType, meeting.modeType],
-          syncError: meeting.syncStatus === 'error' || meeting.zoomSyncStatus === 'error',
+          syncError: meeting.googleSyncStatus === 'error' || meeting.zoomSyncStatus === 'error',
         };
 
         // A Hybrid meeting occupies both its physical room and its Zoom room; In Person

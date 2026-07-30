@@ -8,7 +8,7 @@ import { convertETToUTC } from "../../../../util/timeUtils";
 import { meetingSchema } from "../../../../util/meetingValidation";
 import { prisma } from "../../../../lib/prisma";
 
-// Runs after the response is sent (see after() call below) — failure sets syncStatus but
+// Runs after the response is sent (see after() call below) — failure sets googleSyncStatus but
 // does not fail the request, which has already returned by the time this runs. `resolvedHost`
 // was already resolved (and persisted) synchronously in createMeeting, before this ever runs —
 // see the comment there for why.
@@ -66,7 +66,7 @@ async function syncNewMeeting(
   const meetingForSync: IMeeting = { ...meetingData, isRecurring, zoomLink };
 
   if (zoomBlocking) {
-    await prisma.meeting.update({ where: { mid }, data: { syncStatus: 'pending' } });
+    await prisma.meeting.update({ where: { mid }, data: { googleSyncStatus: 'pending' } });
   } else if (accessToken) {
     const requestedCalTypes = meetingData.calType ?? [];
     const calendarIds = calendarIdsForMeeting(requestedCalTypes);
@@ -84,7 +84,7 @@ async function syncNewMeeting(
       where: { mid },
       data: {
         googleCalendarEventIds: eventIds,
-        syncStatus: synced ? 'synced' : 'error',
+        googleSyncStatus: synced ? 'synced' : 'error',
       },
     });
   }

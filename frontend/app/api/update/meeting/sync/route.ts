@@ -27,7 +27,7 @@ const syncMeeting = async (request: Request): Promise<Response> => {
         }
 
         if (meeting.status === 'Suspended') {
-            return NextResponse.json({ syncStatus: meeting.syncStatus ?? null });
+            return NextResponse.json({ googleSyncStatus: meeting.googleSyncStatus ?? null });
         }
 
         const existingEventIds = (meeting.googleCalendarEventIds ?? {}) as Record<string, string>;
@@ -126,11 +126,11 @@ const syncMeeting = async (request: Request): Promise<Response> => {
         // True when this meeting needs Zoom but doesn't have a working Zoom meeting after the
         // retry above -- the calendar reconcile below is deferred, not run with a missing link.
         const zoomBlocking = zoomEnabled && !zid;
-        let syncStatus: string;
+        let googleSyncStatus: string;
 
         if (zoomBlocking) {
-            syncStatus = 'pending';
-            await prisma.meeting.update({ where: { mid }, data: { syncStatus } });
+            googleSyncStatus = 'pending';
+            await prisma.meeting.update({ where: { mid }, data: { googleSyncStatus } });
         } else {
             const { updatedEventIds, allSynced } = await reconcileMeetingCalendars(
                 auth.accessToken,
@@ -138,14 +138,14 @@ const syncMeeting = async (request: Request): Promise<Response> => {
                 existingEventIds,
             );
 
-            syncStatus = allSynced ? 'synced' : 'error';
+            googleSyncStatus = allSynced ? 'synced' : 'error';
             await prisma.meeting.update({
                 where: { mid },
-                data: { googleCalendarEventIds: updatedEventIds, syncStatus },
+                data: { googleCalendarEventIds: updatedEventIds, googleSyncStatus },
             });
         }
 
-        return NextResponse.json({ syncStatus, zoomSyncStatus, zoomSyncError });
+        return NextResponse.json({ googleSyncStatus, zoomSyncStatus, zoomSyncError });
     } catch (error) {
         console.error("Sync retry error:", error);
         return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });

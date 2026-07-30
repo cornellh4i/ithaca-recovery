@@ -46,7 +46,7 @@ model Meeting {
   recurrencePattern      RecurrencePattern?   @relation("MeetingToRecurrencePattern")
   googleCalendarEventId  String?
   googleCalendarEventIds Json?
-  syncStatus             String?
+  googleSyncStatus       String?
   zoomCalendarEventId    String?
   zoomSyncStatus         String?
   zoomHost               String?

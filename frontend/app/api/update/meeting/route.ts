@@ -8,7 +8,7 @@ import { findResourceConflicts } from "../../../../util/resourceOverlap";
 import { meetingSchema } from "../../../../util/meetingValidation";
 import { prisma } from "../../../../lib/prisma";
 
-// Runs after the response is sent (see after() call below) — failure updates syncStatus
+// Runs after the response is sent (see after() call below) — failure updates googleSyncStatus
 // but does not fail the request, which has already returned by the time this runs.
 //
 // Zoom resolves/updates FIRST, before the main calType-calendar reconcile -- same reasoning
@@ -139,7 +139,7 @@ async function syncUpdatedMeeting(
   const meetingForCalendar: IMeeting = { ...newMeeting, zoomLink };
 
   if (zoomBlocking) {
-    await prisma.meeting.update({ where: { mid }, data: { syncStatus: 'pending' } });
+    await prisma.meeting.update({ where: { mid }, data: { googleSyncStatus: 'pending' } });
   } else if (accessToken) {
     const existingEventIds = (existingMeeting.googleCalendarEventIds ?? {}) as Record<string, string>;
     const { updatedEventIds, allSynced } = await reconcileMeetingCalendars(
@@ -152,7 +152,7 @@ async function syncUpdatedMeeting(
       where: { mid },
       data: {
         googleCalendarEventIds: updatedEventIds,
-        syncStatus: allSynced ? 'synced' : 'error',
+        googleSyncStatus: allSynced ? 'synced' : 'error',
       },
     });
   }

@@ -278,7 +278,7 @@ export default function HomePage() {
           room={selectedMeeting.room}
           isRecurring={selectedMeeting.isRecurring ?? false}
           recurrencePattern={selectedMeeting.recurrencePattern || undefined}
-          syncStatus={selectedMeeting.syncStatus}
+          googleSyncStatus={selectedMeeting.googleSyncStatus}
           zoomSyncStatus={selectedMeeting.zoomSyncStatus}
           zoomSyncError={selectedMeeting.zoomSyncError}
           conflictCount={conflictCounts.get(selectedMeeting.mid) ?? 0}

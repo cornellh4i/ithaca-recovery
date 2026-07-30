@@ -233,9 +233,9 @@ test("an exhausted Zoom host pool on update fails soft, synchronously, without t
 
   // Direct regression test for Matt's confirmation, on the update path: a meeting that needs
   // Zoom but has no working Zoom meeting after this run must not have its calendars reconciled
-  // with a missing link -- syncStatus is 'pending', reconcileMeetingCalendars never ran.
+  // with a missing link -- googleSyncStatus is 'pending', reconcileMeetingCalendars never ran.
   const afterSync = await prisma.meeting.findUnique({ where: { mid } });
-  expect(afterSync?.syncStatus).toBe("pending");
+  expect(afterSync?.googleSyncStatus).toBe("pending");
   expect(mockedReconcileMeetingCalendars).not.toHaveBeenCalled();
 });
 

@@ -16,7 +16,7 @@ const toETDateStr = (date: Date): string =>
   new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' }).format(date);
 
 // The three sync* functions below all run after the response is sent (see the
-// after() calls in each branch) — no syncStatus field to reconcile for deletes,
+// after() calls in each branch) — no googleSyncStatus field to reconcile for deletes,
 // so errors are just logged, not written back anywhere.
 async function syncDeleteOccurrence(
   accessToken: string | undefined,

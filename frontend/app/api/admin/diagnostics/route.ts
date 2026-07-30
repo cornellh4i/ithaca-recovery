@@ -50,7 +50,7 @@ export const GET = async () => {
       where: notDeleted,
       select: {
         mid: true, title: true, group: true, status: true, calType: true, isRecurring: true,
-        syncStatus: true, zoomRoom: true, zoomHost: true, zoomSyncStatus: true, zoomSyncError: true,
+        googleSyncStatus: true, zoomRoom: true, zoomHost: true, zoomSyncStatus: true, zoomSyncError: true,
         room: true, modeType: true, startDateTime: true, endDateTime: true,
         recurrencePattern: true, updatedAt: true,
       },
@@ -70,8 +70,8 @@ export const GET = async () => {
       for (const cat of m.calType) {
         if (cat in byCategory) byCategory[cat]++;
       }
-      if (m.syncStatus === "error") gcalSyncErrors++;
-      if (m.syncStatus === "pending") pendingZoomSync++;
+      if (m.googleSyncStatus === "error") gcalSyncErrors++;
+      if (m.googleSyncStatus === "pending") pendingZoomSync++;
       // mode-based, not zoomRoom-truthy -- Remote meetings need Zoom too but no longer have
       // a zoomRoom, so gating this on zoomRoom would silently stop counting their errors.
       const needsZoom = m.modeType === "Hybrid" || m.modeType === "Remote";
@@ -86,9 +86,9 @@ export const GET = async () => {
       .map((m) => {
         const needsZoom = m.modeType === "Hybrid" || m.modeType === "Remote";
         const issues: string[] = [];
-        if (m.syncStatus === "pending") {
+        if (m.googleSyncStatus === "pending") {
           issues.push("Waiting on a Zoom host to become available — calendars not yet published.");
-        } else if (m.syncStatus === "error") {
+        } else if (m.googleSyncStatus === "error") {
           issues.push("Google Calendar sync failed.");
         }
         if (needsZoom && m.zoomSyncStatus === "error") {

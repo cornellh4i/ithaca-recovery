@@ -32,7 +32,7 @@ interface IMeeting {
   recurrencePattern?: IRecurrencePattern | null;
   googleCalendarEventId?: string | null;
   googleCalendarEventIds?: Record<string, string> | null;
-  syncStatus?: string | null;
+  googleSyncStatus?: string | null;
   zoomCalendarEventId?: string | null;
   zoomSyncStatus?: string | null;
   zoomHost?: string | null;

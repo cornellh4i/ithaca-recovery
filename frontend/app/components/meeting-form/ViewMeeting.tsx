@@ -49,7 +49,7 @@ type ViewMeetingDetailsProps = {
   isRecurring: boolean;
   recurrencePattern?: IRecurrencePattern
   currentOccurrenceDate?: Date; // Handles the specific occurrence date
-  syncStatus?: string | null;
+  googleSyncStatus?: string | null;
   zoomSyncStatus?: string | null;
   zoomSyncError?: string | null;
   // How many other meetings this one currently conflicts with (room/zoomRoom/zoomHost) --
@@ -83,7 +83,7 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
   isRecurring,
   recurrencePattern,
   currentOccurrenceDate,
-  syncStatus: initialSyncStatus,
+  googleSyncStatus: initialGoogleSyncStatus,
   zoomSyncStatus: initialZoomSyncStatus,
   zoomSyncError: initialZoomSyncError,
   conflictCount = 0,
@@ -95,7 +95,7 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
 }) => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [syncStatus, setSyncStatus] = useState(initialSyncStatus ?? null);
+  const [googleSyncStatus, setGoogleSyncStatus] = useState(initialGoogleSyncStatus ?? null);
   const [zoomSyncStatus, setZoomSyncStatus] = useState(initialZoomSyncStatus ?? null);
   const [zoomSyncError, setZoomSyncError] = useState(initialZoomSyncError ?? null);
   const [syncing, setSyncing] = useState(false);
@@ -219,18 +219,18 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
         body: JSON.stringify({ mid }),
       });
       const data = await res.json();
-      setSyncStatus(data.syncStatus ?? 'error');
+      setGoogleSyncStatus(data.googleSyncStatus ?? 'error');
       setZoomSyncStatus(data.zoomSyncStatus ?? null);
       setZoomSyncError(data.zoomSyncError ?? null);
       // Only report success once every *applicable* channel is synced -- zoomSyncStatus is
       // legitimately null for a meeting that doesn't need Zoom, so null shouldn't count against
       // it, but 'error' on either side must still block onSyncSuccess (previously an ||, which
       // fired as soon as just one side synced, even while the other was still failing).
-      const calendarOk = data.syncStatus == null || data.syncStatus === 'synced';
+      const calendarOk = data.googleSyncStatus == null || data.googleSyncStatus === 'synced';
       const zoomOk = data.zoomSyncStatus == null || data.zoomSyncStatus === 'synced';
       if (calendarOk && zoomOk) onSyncSuccess?.();
     } catch {
-      setSyncStatus('error');
+      setGoogleSyncStatus('error');
     } finally {
       setSyncing(false);
     }
@@ -373,13 +373,13 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
         <hr className={styles.divider} />
 
         <div className={styles.details}>
-          {(syncStatus === 'error' || zoomSyncStatus === 'error') && (
+          {(googleSyncStatus === 'error' || zoomSyncStatus === 'error') && (
             <p className={styles.dangerRow}>
               <img src="/svg/sync-error-icon.svg" alt="" />
               <span>
-                {syncStatus === 'error' && zoomSyncStatus === 'error'
+                {googleSyncStatus === 'error' && zoomSyncStatus === 'error'
                   ? 'Failed to sync to Google Calendar and Zoom — use Retry sync below.'
-                  : syncStatus === 'error'
+                  : googleSyncStatus === 'error'
                   ? 'Failed to sync to Google Calendar — this meeting may not appear there. Use Retry sync below.'
                   : `Failed to sync to Zoom${zoomSyncError ? `: ${zoomSyncError}` : ''} — use Retry sync below.`}
               </span>
@@ -411,10 +411,10 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
             </p>
           )}
 
-          {syncStatus === 'synced' && (
+          {googleSyncStatus === 'synced' && (
             <p className={styles.syncSuccess}>Synced to Google Calendar ✓</p>
           )}
-          {syncStatus === 'error' && (
+          {googleSyncStatus === 'error' && (
             <p className={styles.syncError}>Google Calendar sync failed ⚠</p>
           )}
 
@@ -459,7 +459,7 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
           {zoomSyncStatus === 'error' && (
             <p className={styles.syncError}>Zoom sync failed ⚠{zoomSyncError ? `: ${zoomSyncError}` : ''}</p>
           )}
-          {(syncStatus === 'error' || zoomSyncStatus === 'error') && (
+          {(googleSyncStatus === 'error' || zoomSyncStatus === 'error') && (
             <button
               onClick={handleRetrySync}
               disabled={syncing}

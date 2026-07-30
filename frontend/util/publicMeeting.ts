@@ -16,7 +16,7 @@ export type PublicMeeting = Pick<
   | "zoomRoom"
   | "isRecurring"
   | "recurrencePattern"
-  | "syncStatus"
+  | "googleSyncStatus"
   | "zoomSyncStatus"
 >;
 
@@ -31,6 +31,6 @@ export const toPublicMeeting = (meeting: PublicMeeting): PublicMeeting => ({
   zoomRoom: meeting.zoomRoom,
   isRecurring: meeting.isRecurring,
   recurrencePattern: meeting.recurrencePattern,
-  syncStatus: meeting.syncStatus,
+  googleSyncStatus: meeting.googleSyncStatus,
   zoomSyncStatus: meeting.zoomSyncStatus,
 });
