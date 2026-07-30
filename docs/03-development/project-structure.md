@@ -61,9 +61,12 @@ app/
 │   ├── retrieve/lease-settings/, update/lease-settings/
 │   └── auth/authConfig.ts, auth/status/, auth/[...nextauth]/
 ├── components/
-│   ├── atoms/                   # Primitive UI elements
-│   ├── molecules/               # Composite components
-│   └── organisms/               # Feature-level components
+│   ├── atoms/                   # Primitive UI elements, shared across every domain
+│   ├── calendar/                # Day/Week views, calendar sidebar, meeting filters
+│   ├── meeting-form/            # New/Edit/View meeting, recurrence, Zoom host field
+│   ├── admin/                   # AdminShell + Diagnostics/Users/Import/Export tabs
+│   ├── navbar/                  # App-wide top nav
+│   └── shared/                  # Cross-domain components (kept intentionally small)
 ├── ClientLayout.tsx             # Client-side layout wrapper
 └── ProviderWrapper.tsx          # React context providers
 ```
@@ -76,13 +79,23 @@ app/
 | `/admin` | Admin shell: Diagnostics, Users, Import, Export tabs |
 | `/signage` | Read-only kiosk calendar for the physical display board |
 
-### Component Hierarchy (Atomic Design)
+### Component Hierarchy (by domain)
 
-**Atoms** — `app/components/atoms/`: `CheckBox`, `CheckButton`, `DatePicker`, `TimePicker`, `Dropdown`, `Logo`, `MiniCalendar`, `ModeTypeButtons`, `RadioGroup`, `SpinnerInput`, `StatCounter`, `StatusPill`, `TextButton`, `TextField`, `BoxText`
+Components are grouped by domain/feature rather than by atomic-design tier — with more components landing as the mobile view rolls out, "which folder is this in" is meant to answer "what does it do," not "how composite is it." `atoms/` is the one exception: it stays a single flat tier since primitives (`CheckBox`, `Dropdown`, `TextField`, etc.) are inherently domain-agnostic and get composed by every domain folder below.
 
-**Molecules** — `app/components/molecules/`: `CardHeader`, `DailyViewRow`, `DeleteRecurringModal`, `FilterGroup`, `MeetingsFilter`, `OverlapMeetingsModal`, `RecurringMeeting`, `WeeklyViewColumn`
+**`atoms/`** — `CheckBox`, `CheckButton`, `DatePicker`, `TimePicker`, `Dropdown`, `Logo`, `MiniCalendar`, `ModeTypeButtons`, `RadioGroup`, `SpinnerInput`, `StatCounter`, `StatusPill`, `TextButton`, `TextField`, `BoxText`, `GoogleSignInButton`, `IconButton`, `TagList`, `Tooltip`
 
-**Organisms** — `app/components/organisms/`: `AdminShell`, `AppNavbar`, `CalendarNavbar`, `CalendarSidebar`, `DailyView`, `WeeklyView`, `DiagnosticsTab`, `UsersTab`, `ImportTab`, `ExportTab`, `SignInPrompt`, `MeetingForm`, `NewMeeting`, `EditMeeting`, `ViewMeeting`
+**`calendar/`** — `CalendarNavbar`, `CalendarSidebar`, `CalendarSidebarShell`, `CompactCalendarSidebar`, `DailyView`, `DailyViewRow`, `WeeklyView`, `WeeklyViewColumn`, `MeetingsFilter`, `OverlapMeetingsModal`, `SignInPrompt` (the logged-out sidebar prompt — not a separate `auth/` domain; `/login` is self-contained and imports nothing from the shared component tree)
+
+**`meeting-form/`** — `NewMeeting`, `EditMeeting`, `MeetingForm`, `ViewMeeting`, `RecurringMeeting`, `ZoomHostField`, `DeleteMeetingModal`, `DeleteRecurringModal`
+
+**`admin/`** — `AdminShell`, `DiagnosticsTab`, `UsersTab`, `ImportTab`, `ExportTab`, `CardHeader`, `ConflictList` (imports `meeting-form/EditMeeting` so an admin can jump straight to editing a conflicting meeting — a normal cross-domain dependency, not a reason to relocate either component)
+
+**`navbar/`** — `AppNavbar`
+
+**`shared/`** — components genuinely used by 2+ domains, kept deliberately small: currently just `FilterGroup` (used by `calendar/MeetingsFilter`, `calendar/CompactCalendarSidebar`, and `admin/ExportTab`). Not a general dumping ground — if a component only has one caller, it belongs in that caller's domain, not here.
+
+`styles/components/` mirrors this exact folder structure (`atoms/`, `calendar/`, `meeting-form/`, `admin/`, `navbar/`, `shared/`) since every component imports its `.module.scss` by relative path — there are no barrel/index files in either tree.
 
 There's no `templates/` and `pages/` tier — page-level composition is inlined directly into `(main)/page.tsx`, `(signage)/page.tsx`, and `(main)/admin/page.tsx`.
 
