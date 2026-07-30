@@ -92,6 +92,29 @@ test("1.5h an Admin viewing a meeting sees the email row, Zoom host row, and Edi
   await expect(page.getByRole("button", { name: "Meeting options" })).toBeVisible();
 });
 
+test("1.5i a non-admin visiting an edit deep link (?mid=&edit=1) does not see the Edit Meeting form", async ({
+  page,
+  context,
+}) => {
+  // Deep link support (see page.tsx's ?mid=&edit=1 handling) is meant for the Admin
+  // Diagnostics panel's "Edit" button -- a non-admin who ends up with the same URL (e.g. a
+  // forwarded link) should still land on the ordinary read-only sidebar, not the edit form.
+  const meeting = await seedMeeting({ title: "Deep Link Meeting" });
+  await loginAs(context, "not-an-admin@test.icr");
+  await page.goto(`/?mid=${meeting.mid}&edit=1`);
+
+  await expect(page.getByRole("heading", { name: "Edit Meeting" })).toHaveCount(0);
+  await expect(page.getByText("New Meeting")).toHaveCount(0);
+});
+
+test("1.5j an Admin visiting an edit deep link (?mid=&edit=1) sees the Edit Meeting form", async ({ adminPage }) => {
+  const { page } = adminPage;
+  const meeting = await seedMeeting({ title: "Deep Link Meeting Admin" });
+  await page.goto(`/?mid=${meeting.mid}&edit=1`);
+
+  await expect(page.getByRole("heading", { name: "Edit Meeting" })).toBeVisible();
+});
+
 test("1.6 session persists across a page reload", async ({ adminPage }) => {
   const { page } = adminPage;
   await page.goto("/");

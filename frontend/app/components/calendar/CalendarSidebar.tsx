@@ -36,7 +36,7 @@ const CalendarSidebar: React.FC<CalendarSidebarProps> = ({
 
   return (
     <div>
-      {isNewMeetingOpen ? (
+      {isNewMeetingOpen && isAdmin ? (
         <NewMeetingSidebar
           setIsNewMeetingOpen={setIsNewMeetingOpen}
           triggerCalendarRefresh={triggerCalendarRefresh}

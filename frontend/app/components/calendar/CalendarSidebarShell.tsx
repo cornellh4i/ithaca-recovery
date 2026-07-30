@@ -156,7 +156,9 @@ const CalendarSidebarShell: React.FC<CalendarSidebarShellProps> = ({
   const isViewMeetingOpen = !!(selectedMeeting && !showEditMeeting);
 
   // New and Editing Meeting always shows the full-width form, regardless of the last compact/expanded choice.
-  const isEditing = showEditMeeting && !!selectedMeeting;
+  // Both are admin-only -- a non-admin whose showEditMeeting/isNewMeetingOpen somehow got set
+  // (e.g. a stale deep link) falls through to the ordinary sidebar below instead of the form.
+  const isEditing = showEditMeeting && !!selectedMeeting && isAdmin;
   const isRailCompact = !isEditing && !isNewMeetingOpen && isCompact;
 
   // EditMeetingSidebar has nothing to collapse -- the toggle only makes sense once the full
@@ -169,7 +171,7 @@ const CalendarSidebarShell: React.FC<CalendarSidebarShellProps> = ({
       className={styles.sidebar}
       style={isRailCompact ? { width: 64, padding: "0 24px 0 0" } : undefined}
     >
-      {isLoggedIn === null ? null : showEditMeeting && selectedMeeting ? (
+      {isLoggedIn === null ? null : showEditMeeting && selectedMeeting && isAdmin ? (
         <div className={styles.sidebarScroll} style={isViewMeetingOpen ? { overflowY: "hidden" } : undefined}>
           <EditMeetingSidebar
             meeting={selectedMeeting}
