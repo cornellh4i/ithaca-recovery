@@ -85,12 +85,12 @@ const BoxText: React.FC<BoxProps> = ({
     >
       {syncError && (
         <span title="Sync failed" className={styles.syncError}>
-          ⚠
+          <img src="/svg/sync-error-icon.svg" alt="" />
         </span>
       )}
       {hasConflict && (
         <span title="Conflicts with another meeting (see Diagnostics)" className={styles.conflictBadge}>
-          ⛔
+          <img src="/svg/warning-icon.svg" alt="" />
         </span>
       )}
       {zoomTag && (

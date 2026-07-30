@@ -13,7 +13,7 @@ const notDeleted = { OR: [{ deletedAt: null }, { deletedAt: { isSet: false } }] 
 // Module-scope, so it only helps within a single warm server instance -- fine here since a
 // stale-by-at-most-CACHE_TTL_MS badge is a cosmetic lag, not a correctness issue.
 const CACHE_TTL_MS = 15_000;
-let cache: { expiresAt: number; mids: string[] } | null = null;
+let cache: { expiresAt: number; mids: string[]; counts: Record<string, number> } | null = null;
 
 // Admin-only: which meetings currently have an unresolved room/zoomRoom/zoomHost conflict --
 // backs the Day/Week calendar's conflict badge (see BoxText's hasConflict prop). Deliberately
@@ -28,7 +28,7 @@ export const GET = async () => {
   if (auth instanceof Response) return auth;
 
   if (cache && cache.expiresAt > Date.now()) {
-    return NextResponse.json({ mids: cache.mids });
+    return NextResponse.json({ mids: cache.mids, counts: cache.counts });
   }
 
   const meetings = await prisma.meeting.findMany({
@@ -40,11 +40,22 @@ export const GET = async () => {
   });
 
   const conflicts = computeConflicts(meetings);
-  const mids = new Set<string>();
-  conflicts.forEach((row) => row.meetings.forEach((m) => mids.add(m.mid)));
+  // Per-mid set of the *other* mids it conflicts with, deduped across rows -- a meeting can
+  // appear in more than one conflict row (e.g. both a room conflict and a separate zoomHost
+  // conflict), so this is a union, not a raw row count.
+  const conflictingWith = new Map<string, Set<string>>();
+  conflicts.forEach((row) => {
+    const [a, b] = row.meetings;
+    if (!conflictingWith.has(a.mid)) conflictingWith.set(a.mid, new Set());
+    if (!conflictingWith.has(b.mid)) conflictingWith.set(b.mid, new Set());
+    conflictingWith.get(a.mid)!.add(b.mid);
+    conflictingWith.get(b.mid)!.add(a.mid);
+  });
 
-  const result = Array.from(mids);
-  cache = { expiresAt: Date.now() + CACHE_TTL_MS, mids: result };
+  const result = Array.from(conflictingWith.keys());
+  const counts: Record<string, number> = {};
+  conflictingWith.forEach((others, mid) => { counts[mid] = others.size; });
+  cache = { expiresAt: Date.now() + CACHE_TTL_MS, mids: result, counts };
 
-  return NextResponse.json({ mids: result });
+  return NextResponse.json({ mids: result, counts });
 };

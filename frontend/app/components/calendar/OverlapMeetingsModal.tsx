@@ -16,11 +16,16 @@ interface OverlapMeeting {
     zoomRoom?: string | null;
     tags?: string[];
     primaryColor?: string;
+    syncError?: boolean;
 }
 
 interface OverlapMeetingsModalProps {
     isOpen: boolean;
     meetings: OverlapMeeting[];
+    // Admin-only (see hooks/useConflictMids) -- mids with an unresolved conflict. Same source
+    // BoxText's corner badge reads from; kept as the live Set (not baked into each meeting at
+    // click time) so a conflict that appears/resolves while the modal is open stays accurate.
+    conflictMids?: Set<string>;
     onClose: () => void;
     onSelectMeeting: (meetingId: string) => void;
 }
@@ -28,6 +33,7 @@ interface OverlapMeetingsModalProps {
 const OverlapMeetingsModal: React.FC<OverlapMeetingsModalProps> = ({
     isOpen,
     meetings,
+    conflictMids,
     onClose,
     onSelectMeeting,
 }) => {
@@ -54,6 +60,7 @@ const OverlapMeetingsModal: React.FC<OverlapMeetingsModalProps> = ({
                 <div className={styles.list}>
                     {meetings.map(meeting => {
                         const locationLabel = meeting.room || meeting.zoomRoom || '';
+                        const hasConflict = conflictMids?.has(meeting.id);
                         return (
                             <div
                                 key={meeting.id}
@@ -64,7 +71,19 @@ const OverlapMeetingsModal: React.FC<OverlapMeetingsModalProps> = ({
                                 }}
                                 onClick={() => onSelectMeeting(meeting.id)}
                             >
-                                <h3 className={styles.title}>{meeting.title}</h3>
+                                {meeting.syncError && (
+                                    <span title="Sync failed" className={styles.syncError}>
+                                        <img src="/svg/sync-error-icon.svg" alt="" />
+                                    </span>
+                                )}
+                                {hasConflict && (
+                                    <span title="Conflicts with another meeting (see Diagnostics)" className={styles.conflictBadge}>
+                                        <img src="/svg/warning-icon.svg" alt="" />
+                                    </span>
+                                )}
+                                <h3 className={styles.title} style={hasConflict ? { paddingLeft: 16 } : undefined}>
+                                    {meeting.title}
+                                </h3>
                                 {locationLabel && (
                                     <div className={styles.location}>
                                         <span className={styles.dot} style={{ backgroundColor: meeting.primaryColor }} />

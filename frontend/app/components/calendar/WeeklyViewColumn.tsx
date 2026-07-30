@@ -16,6 +16,7 @@ interface Meeting {
     room?: string; // Added room property
     zoomRoom?: string | null;
     primaryColor?: string; // Added to support different colored meetings
+    syncError?: boolean;
     positionIndex?: number; // For handling overlapping meetings
     totalOverlapping?: number; // For handling overlapping meetings
     isOverflowIndicator?: boolean; // "+N more" pseudo-entry, rendered as a small pill instead of a meeting card
@@ -145,6 +146,7 @@ const WeeklyViewColumn: React.FC<WeeklyViewColumnProps> = ({
                             ? formatZoomRoomLabel(meeting.zoomRoom!)
                             : undefined
                     }
+                    syncError={meeting.syncError}
                     hasConflict={conflictMids?.has(meeting.id)}
                     fillHeight
                     selected={isSelected}
@@ -220,6 +222,7 @@ const WeeklyViewColumn: React.FC<WeeklyViewColumnProps> = ({
             <OverlapMeetingsModal
                 isOpen={overlapModalMeetings !== null}
                 meetings={overlapModalMeetings ?? []}
+                conflictMids={conflictMids}
                 onClose={() => setOverlapModalMeetings(null)}
                 onSelectMeeting={(meetingId) => {
                     pendingModalAnchorRef.current = true;

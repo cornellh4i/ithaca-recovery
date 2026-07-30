@@ -52,6 +52,10 @@ type ViewMeetingDetailsProps = {
   syncStatus?: string | null;
   zoomSyncStatus?: string | null;
   zoomSyncError?: string | null;
+  // How many other meetings this one currently conflicts with (room/zoomRoom/zoomHost) --
+  // 0 or undefined renders nothing. Mirrors the calendar box's ⛔ conflict badge (BoxText.tsx),
+  // which only signals *that* a conflict exists, not what it means.
+  conflictCount?: number;
   // The clicked meeting box, so the popup can anchor itself beside it.
   anchorEl: HTMLElement | null;
   onBack: () => void;
@@ -82,6 +86,7 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
   syncStatus: initialSyncStatus,
   zoomSyncStatus: initialZoomSyncStatus,
   zoomSyncError: initialZoomSyncError,
+  conflictCount = 0,
   anchorEl,
   onBack,
   onEdit,
@@ -217,7 +222,13 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
       setSyncStatus(data.syncStatus ?? 'error');
       setZoomSyncStatus(data.zoomSyncStatus ?? null);
       setZoomSyncError(data.zoomSyncError ?? null);
-      if (data.syncStatus === 'synced' || data.zoomSyncStatus === 'synced') onSyncSuccess?.();
+      // Only report success once every *applicable* channel is synced -- zoomSyncStatus is
+      // legitimately null for a meeting that doesn't need Zoom, so null shouldn't count against
+      // it, but 'error' on either side must still block onSyncSuccess (previously an ||, which
+      // fired as soon as just one side synced, even while the other was still failing).
+      const calendarOk = data.syncStatus === 'synced';
+      const zoomOk = data.zoomSyncStatus == null || data.zoomSyncStatus === 'synced';
+      if (calendarOk && zoomOk) onSyncSuccess?.();
     } catch {
       setSyncStatus('error');
     } finally {
@@ -362,6 +373,29 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
         <hr className={styles.divider} />
 
         <div className={styles.details}>
+          {(syncStatus === 'error' || zoomSyncStatus === 'error') && (
+            <p className={styles.dangerRow}>
+              <img src="/svg/sync-error-icon.svg" alt="" />
+              <span>
+                {syncStatus === 'error' && zoomSyncStatus === 'error'
+                  ? 'Failed to sync to Google Calendar and Zoom — use Retry sync below.'
+                  : syncStatus === 'error'
+                  ? 'Failed to sync to Google Calendar — this meeting may not appear there. Use Retry sync below.'
+                  : `Failed to sync to Zoom${zoomSyncError ? `: ${zoomSyncError}` : ''} — use Retry sync below.`}
+              </span>
+            </p>
+          )}
+
+          {conflictCount > 0 && (
+            <p className={styles.warningRow}>
+              <img src="/svg/warning-icon.svg" alt="" />
+              <span>
+                Conflicts with {conflictCount} other meeting{conflictCount === 1 ? '' : 's'} —
+                view the Admin Diagnostics page for more info.
+              </span>
+            </p>
+          )}
+
           <p className={styles.row}>
             <img src="/svg/clock-icon.svg" alt="" />
             <span>
@@ -381,7 +415,7 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
             <p className={styles.syncSuccess}>Synced to Google Calendar ✓</p>
           )}
           {syncStatus === 'error' && (
-            <p className={styles.syncWarning}>Google Calendar sync failed ⚠</p>
+            <p className={styles.syncError}>Google Calendar sync failed ⚠</p>
           )}
 
           {showZoomMismatchRow && (
@@ -423,7 +457,7 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
             <p className={styles.syncSuccess}>Synced to Zoom ✓</p>
           )}
           {zoomSyncStatus === 'error' && (
-            <p className={styles.syncWarning}>Zoom sync failed ⚠{zoomSyncError ? `: ${zoomSyncError}` : ''}</p>
+            <p className={styles.syncError}>Zoom sync failed ⚠{zoomSyncError ? `: ${zoomSyncError}` : ''}</p>
           )}
           {(syncStatus === 'error' || zoomSyncStatus === 'error') && (
             <button

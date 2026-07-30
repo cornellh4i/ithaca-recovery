@@ -172,7 +172,12 @@ export async function reconcileMeetingCalendars(
 ): Promise<{ updatedEventIds: Record<string, string>; allSynced: boolean }> {
     const calendarIds = calendarIdsForMeeting(meeting.calType ?? []);
     const updatedEventIds: Record<string, string> = { ...existingEventIds };
-    let allSynced = true;
+    // Any calType category missing from calendarIds means its GOOGLE_CALENDAR_* env var isn't
+    // configured -- a real misconfiguration, not "nothing to sync." Without this check, a
+    // meeting whose categories are all unconfigured would skip both loops below entirely (no
+    // existing events to remove, no calendarIds to create) and allSynced would stay vacuously
+    // true, reporting full success despite zero calendar work actually happening.
+    let allSynced = (meeting.calType ?? []).every((cat) => calendarIds[cat]);
 
     // Remove events from calendars whose category is no longer part of this meeting's calType
     for (const cat of Object.keys(existingEventIds)) {

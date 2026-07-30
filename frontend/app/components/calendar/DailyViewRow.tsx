@@ -213,6 +213,7 @@ const DailyViewRow: React.FC<DailyViewRowProps> = ({
       <OverlapMeetingsModal
         isOpen={overlapModalMeetings !== null}
         meetings={overlapModalMeetings ?? []}
+        conflictMids={conflictMids}
         onClose={() => setOverlapModalMeetings(null)}
         onSelectMeeting={(meetingId) => {
           pendingModalAnchorRef.current = true;
