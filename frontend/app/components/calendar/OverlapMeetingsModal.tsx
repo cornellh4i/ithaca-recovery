@@ -39,6 +39,18 @@ const OverlapMeetingsModal: React.FC<OverlapMeetingsModalProps> = ({
 }) => {
     if (!isOpen) return null;
 
+    // Full range across every meeting shown (true, unclipped times where available) --
+    // e.g. "9 - 11 AM" for meetings spanning 9-10, 9:30-10:30, and 10-11.
+    const timeRangeLabel = meetings.reduce<{ start: string; end: string } | null>((range, meeting) => {
+        const start = meeting.displayStartTime ?? meeting.startTime;
+        const end = meeting.displayEndTime ?? meeting.endTime;
+        if (!range) return { start, end };
+        return {
+            start: start < range.start ? start : range.start,
+            end: end > range.end ? end : range.end,
+        };
+    }, null);
+
     // Portaled to document.body -- both Day and Week view render this from deep inside
     // absolutely-positioned, z-indexed ancestors (e.g. DailyView's .gridMeetingRow), each
     // of which forms its own stacking context. Left in place, this modal's z-index would
@@ -50,7 +62,8 @@ const OverlapMeetingsModal: React.FC<OverlapMeetingsModalProps> = ({
             <div className={styles.modalContent}>
                 <div className={styles.header}>
                     <h2 className={styles.modalTitle}>
-                        {meetings.length} Meeting{meetings.length === 1 ? '' : 's'} at This Time
+                        {meetings.length} Meeting{meetings.length === 1 ? '' : 's'}
+                        {timeRangeLabel && ` (${formatCompactTimeRange(timeRangeLabel.start, timeRangeLabel.end)})`}
                     </h2>
                     <button className={styles.closeButton} onClick={onClose} aria-label="Close">
                         ✕

@@ -17,6 +17,13 @@ export interface OverlapMeeting {
     isOverflowIndicator?: boolean; // "+N more" pseudo-entry standing in for meetings past MAX_VISIBLE_OVERLAP
     overflowCount?: number;
     overflowMeetings?: OverlapMeeting[]; // Full overlapping cluster (shown + folded), for the "+N" popup
+    // Full cluster time range (min start, max end across every meeting in the cluster, not
+    // just the shown/overflowing subset) -- shared by every meeting and the overflow
+    // indicator belonging to the same cluster. Only set when the cluster has more than one
+    // meeting. Callers use this to render a single background container spanning the whole
+    // cluster, beneath its meeting cards -- ties a "+N" pill visually to the cards it
+    // summarizes instead of leaving it floating with nothing connecting it to them.
+    clusterRange?: { start: string; end: string; key: string };
 }
 
 const toMinutes = (time: string): number => {
@@ -86,9 +93,22 @@ export const layoutOverlappingMeetings = <T extends OverlapMeeting>(meetings: T[
 
         const totalOverlapping = columnEnds.length;
 
+        // Anchored to the whole cluster's time range (every meeting in `cluster`, not just a
+        // shown/overflowing subset) -- a folded meeting can easily start later (or a shown one
+        // end earlier) than the cluster's true bounds despite all still mutually overlapping.
+        const clusterStartMinutes = Math.min(...cluster.map(m => toMinutes(m.startTime)));
+        const clusterEndMinutes = Math.max(...cluster.map(m => toMinutes(m.endTime)));
+        const clusterRange = cluster.length > 1
+            ? {
+                start: minutesToTime(clusterStartMinutes),
+                end: minutesToTime(clusterEndMinutes),
+                key: `cluster-${cluster[0].date}-${clusterStartMinutes}`,
+            }
+            : undefined;
+
         if (totalOverlapping <= MAX_VISIBLE_OVERLAP) {
             positioned.forEach(meeting => {
-                result.push(totalOverlapping > 1 ? { ...meeting, totalOverlapping } : meeting);
+                result.push(totalOverlapping > 1 ? { ...meeting, totalOverlapping, clusterRange } : meeting);
             });
             return;
         }
@@ -99,15 +119,9 @@ export const layoutOverlappingMeetings = <T extends OverlapMeeting>(meetings: T[
         const overflow = positioned.filter(m => (m.positionIndex ?? 0) >= MAX_VISIBLE_OVERLAP);
 
         shown.forEach(meeting => {
-            result.push({ ...meeting, totalOverlapping: MAX_VISIBLE_OVERLAP });
+            result.push({ ...meeting, totalOverlapping: MAX_VISIBLE_OVERLAP, clusterRange });
         });
 
-        // Anchored to the whole cluster's time range (not just the folded subset) so the "+N"
-        // pill always renders at the top of the cluster, regardless of which specific meetings
-        // the greedy column assignment above happened to show vs. fold -- a folded meeting can
-        // easily start later than the two shown ones despite still overlapping all of them.
-        const clusterStartMinutes = Math.min(...cluster.map(m => toMinutes(m.startTime)));
-        const clusterEndMinutes = Math.max(...cluster.map(m => toMinutes(m.endTime)));
         // Only OverlapMeeting's own fields are known here -- any extra fields a caller's T
         // adds on (e.g. Day View's `syncError`) are meaningless for a pseudo-entry that isn't
         // a real meeting, so this is asserted rather than genuinely satisfying T.
@@ -122,6 +136,7 @@ export const layoutOverlappingMeetings = <T extends OverlapMeeting>(meetings: T[
             isOverflowIndicator: true,
             overflowCount: overflow.length,
             overflowMeetings: cluster,
+            clusterRange,
         } as unknown as T);
     });
 
