@@ -230,6 +230,7 @@ export default function HomePage() {
     <div className={styles.container}>
       <CalendarSidebarShell
         isLoggedIn={isLoggedIn}
+        isAdmin={isAdmin}
         filters={filters}
         setFilters={setFilters}
         selectedDate={selectedDate}
@@ -284,6 +285,7 @@ export default function HomePage() {
           conflictCount={conflictCounts.get(selectedMeeting.mid) ?? 0}
           currentOccurrenceDate={lastClickedDate || undefined} // Pass the date when the meeting was clicked
           anchorEl={anchorEl}
+          isAdmin={isAdmin}
           onBack={handleBack}
           onEdit={handleOpenEdit}
           onDelete={handleDelete}
@@ -295,6 +297,7 @@ export default function HomePage() {
           selectedDate={selectedDate}
           onDateChange={setSelectedDate}
           onViewChange={setSelectedView}
+          isAdmin={isAdmin}
         />
         {selectedView === "Day" ? (
           <DailyView

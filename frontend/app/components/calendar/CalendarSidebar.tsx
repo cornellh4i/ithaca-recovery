@@ -16,6 +16,7 @@ interface CalendarSidebarProps {
   selectedDate: Date;
   selectedView: string;
   triggerCalendarRefresh: () => void;
+  isAdmin: boolean;
 }
 
 const CalendarSidebar: React.FC<CalendarSidebarProps> = ({
@@ -27,6 +28,7 @@ const CalendarSidebar: React.FC<CalendarSidebarProps> = ({
   selectedDate,
   selectedView,
   triggerCalendarRefresh,
+  isAdmin,
 }) => {
   const handleOpenNewMeeting = () => {
     setIsNewMeetingOpen(true);
@@ -34,7 +36,7 @@ const CalendarSidebar: React.FC<CalendarSidebarProps> = ({
 
   return (
     <div>
-      {isNewMeetingOpen ? (
+      {isNewMeetingOpen && isAdmin ? (
         <NewMeetingSidebar
           setIsNewMeetingOpen={setIsNewMeetingOpen}
           triggerCalendarRefresh={triggerCalendarRefresh}
@@ -43,7 +45,9 @@ const CalendarSidebar: React.FC<CalendarSidebarProps> = ({
         />
       ) : (
         <>
-          <TextButton label="New Meeting" onClick={handleOpenNewMeeting} icon={<AddIcon />} />
+          {isAdmin && (
+            <TextButton label="New Meeting" onClick={handleOpenNewMeeting} icon={<AddIcon />} />
+          )}
           <div>
             <MiniCalendar selectedDate={selectedDate} onSelect={handleMiniCalendarSelect}/>
           </div>

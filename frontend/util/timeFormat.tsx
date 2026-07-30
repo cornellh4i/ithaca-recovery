@@ -1,6 +1,12 @@
 // Shared compact time-range formatting used by both DailyView and WeeklyView meeting cards.
 
+import type { ReactNode } from "react";
 import { formatETDateString, getWeekDatesET } from "./timeUtils";
+
+// Matches $brand-pink-color in styles/Variables.module.scss -- Sass vars aren't importable
+// into TS, so this is kept in sync manually (same pattern as CompactCalendarSidebar's inline
+// backgroundColor="#CC3366").
+const BRAND_PINK = "#CC3366";
 
 /** "7:00"/"8:30" (24hr "HH:MM") -> { label: "7"/"8:30", period: "AM"/"PM" } — drops :00 on the hour */
 const splitHourMinute = (time: string): { label: string; period: 'AM' | 'PM' } => {
@@ -35,13 +41,25 @@ const etYearFmt = new Intl.DateTimeFormat('en-US', {
 
 /**
  * ET calendar date as "Fri, July 24", with the year appended ("Fri, July 24, 2027") only
- * when it differs from the current ET year.
+ * when it differs from the current ET year. Appends a brand-pink " · Today" when `date`
+ * falls on the current ET calendar day.
  */
-export const formatMeetingDateLine = (date: Date): string => {
+export const formatMeetingDateLine = (date: Date): ReactNode => {
+    const now = new Date();
     const base = etDateLineFmt.format(date);
     const dateYear = etYearFmt.format(date);
-    const currentYear = etYearFmt.format(new Date());
-    return dateYear === currentYear ? base : `${base}, ${dateYear}`;
+    const currentYear = etYearFmt.format(now);
+    const label = dateYear === currentYear ? base : `${base}, ${dateYear}`;
+    const isToday = formatETDateString(date) === formatETDateString(now);
+
+    if (!isToday) return label;
+
+    return (
+        <>
+            {label}
+            <span style={{ color: BRAND_PINK }}> · Today</span>
+        </>
+    );
 };
 
 /**
