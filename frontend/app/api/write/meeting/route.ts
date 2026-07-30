@@ -68,13 +68,18 @@ async function syncNewMeeting(
   if (zoomBlocking) {
     await prisma.meeting.update({ where: { mid }, data: { syncStatus: 'pending' } });
   } else if (accessToken) {
-    const calendarIds = calendarIdsForMeeting(meetingData.calType ?? []);
+    const requestedCalTypes = meetingData.calType ?? [];
+    const calendarIds = calendarIdsForMeeting(requestedCalTypes);
     const eventIds: Record<string, string> = {};
     for (const [cat, calId] of Object.entries(calendarIds)) {
       const id = await createCalendarEvent(accessToken, meetingForSync, calId);
       if (id) eventIds[cat] = id;
     }
-    const synced = Object.keys(eventIds).length === Object.keys(calendarIds).length && Object.keys(calendarIds).length > 0;
+    // Checked against requestedCalTypes, not calendarIds -- a category missing from calendarIds
+    // (its GOOGLE_CALENDAR_* env var isn't configured) must still count against `synced`, same
+    // as one whose event failed to create. Comparing against calendarIds alone would silently
+    // report success whenever some (or all) requested categories never even attempted to sync.
+    const synced = requestedCalTypes.length > 0 && requestedCalTypes.every((cat) => eventIds[cat]);
     await prisma.meeting.update({
       where: { mid },
       data: {

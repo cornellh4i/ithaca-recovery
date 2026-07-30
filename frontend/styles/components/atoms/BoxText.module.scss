@@ -107,9 +107,13 @@
     position: absolute;
     top: 4px;
     right: 4px;
-    font-size: 11px;
-    color: #e07000;
     line-height: 1;
+
+    img {
+      width: 14px;
+      height: 14px;
+      display: block;
+    }
   }
 
   // Admin-only conflict badge (see BoxText's hasConflict prop) -- top-left, opposite corner
@@ -119,9 +123,13 @@
     position: absolute;
     top: 4px;
     left: 4px;
-    font-size: 11px;
-    color: $danger-color;
     line-height: 1;
+
+    img {
+      width: 14px;
+      height: 14px;
+      display: block;
+    }
   }
 
   // Flags a Hybrid meeting whose Zoom room isn't the default pairing for its physical

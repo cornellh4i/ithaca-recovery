@@ -59,6 +59,7 @@
 }
 
 .meetingItem {
+  position: relative;
   border-left: 4px solid $light-grey-color;
   border-radius: 4px;
   padding: 10px 12px;
@@ -66,6 +67,35 @@
 
   &:hover {
     filter: brightness(0.97);
+  }
+}
+
+// Same corner-badge convention as BoxText.module.scss's .syncError/.conflictBadge -- top-right
+// for a sync failure, top-left for a resource conflict, so the same meeting reads identically
+// whether it's shown as a calendar card or a row in this modal.
+.syncError {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  line-height: 1;
+
+  img {
+    width: 14px;
+    height: 14px;
+    display: block;
+  }
+}
+
+.conflictBadge {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  line-height: 1;
+
+  img {
+    width: 14px;
+    height: 14px;
+    display: block;
   }
 }
 

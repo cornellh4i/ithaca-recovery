@@ -8,7 +8,9 @@ import { layoutOverlappingMeetings, OverlapMeeting } from "../../../util/meeting
 import { createCache } from "../../../util/simpleCache";
 import { IMeeting } from "../../../util/models";
 
-type Meeting = OverlapMeeting;
+interface Meeting extends OverlapMeeting {
+    syncError?: boolean;
+}
 
 const weekMeetingCache = createCache<Meeting[]>();
 
@@ -50,6 +52,7 @@ const fetchMeetingsByWeek = async (startDate: Date, endDate: Date): Promise<Meet
                     tags: [...meeting.calType, meeting.modeType],
                     room: meeting.room,
                     zoomRoom: meeting.zoomRoom,
+                    syncError: meeting.syncStatus === 'error' || meeting.zoomSyncStatus === 'error',
                 };
             });
 

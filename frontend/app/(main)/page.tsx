@@ -19,7 +19,7 @@ export default function HomePage() {
   // Admin-only -- the endpoint itself rejects non-admins, so gate on role (not just being
   // signed in) to avoid every non-admin viewer firing a denied request on mount and every
   // 30s refresh (see useConflictMids' `enabled` param).
-  const conflictMids = useConflictMids(refreshTrigger, isAdmin);
+  const { mids: conflictMids, counts: conflictCounts } = useConflictMids(refreshTrigger, isAdmin);
 
   const triggerCalendarRefresh = useCallback(() => {
     setRefreshTrigger(prev => prev + 1);
@@ -281,6 +281,7 @@ export default function HomePage() {
           syncStatus={selectedMeeting.syncStatus}
           zoomSyncStatus={selectedMeeting.zoomSyncStatus}
           zoomSyncError={selectedMeeting.zoomSyncError}
+          conflictCount={conflictCounts.get(selectedMeeting.mid) ?? 0}
           currentOccurrenceDate={lastClickedDate || undefined} // Pass the date when the meeting was clicked
           anchorEl={anchorEl}
           onBack={handleBack}

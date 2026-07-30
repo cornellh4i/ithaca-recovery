@@ -38,6 +38,22 @@ const mockedCreateCalendarEvent = createCalendarEvent as jest.Mock;
 const mockedResolveZoomHost = resolveZoomHost as jest.Mock;
 const mockedCreateZoomMeeting = createZoomMeeting as jest.Mock;
 
+// Polls for the deferred sync job's persisted terminal syncStatus instead of guessing a
+// fixed delay -- race-prone under slower CI/database conditions, per CodeRabbit's review
+// of this file. Only safe to use for a meeting whose deferred job writes syncStatus as its
+// last step (e.g. a non-Zoom-enabled meeting, where the calendar-sync update is the only
+// write left after the response returns).
+async function waitForSyncStatus(mid: string, timeoutMs = 2000) {
+  const prisma = getTestPrismaClient();
+  const start = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    const meeting = await prisma.meeting.findUnique({ where: { mid } });
+    if (meeting?.syncStatus != null) return meeting;
+    await new Promise((resolve) => setTimeout(resolve, 25));
+  }
+  return prisma.meeting.findUnique({ where: { mid } });
+}
+
 function buildMeetingPayload(overrides: Partial<IMeeting> = {}): IMeeting {
   return {
     mid: `m-${randomUUID()}`,
@@ -219,4 +235,28 @@ test("a Remote meeting (no zoomRoom) still gets a Zoom meeting created, and its 
     expect.objectContaining({ zoomLink: "http://zoom.test/remote" }),
     "fake-calendar-id",
   );
+});
+
+test("a category with no configured calendar fails the meeting's sync, even if its other category succeeds", async () => {
+  // The top-level calendarIdsForMeeting mock always resolves only { AA: "fake-calendar-id" }
+  // regardless of calType -- passing "Other" here simulates a real category whose
+  // GOOGLE_CALENDAR_* env var isn't set, i.e. calendarIds never contains an "Other" entry.
+  mockedCreateCalendarEvent.mockResolvedValue("fake-event-id");
+
+  const payload = buildMeetingPayload({ calType: ["AA", "Other"] });
+  const request = new Request("http://localhost/api/write/meeting", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+
+  const response = await POST(request);
+  expect(response.status).toBe(201);
+
+  const afterSync = await waitForSyncStatus(payload.mid);
+
+  // AA's event was created successfully, but "Other" never even attempted to sync (no
+  // calendar ID resolved for it) -- the meeting as a whole must still report an error, not
+  // a false "synced" from only checking the categories that happened to resolve.
+  expect(mockedCreateCalendarEvent).toHaveBeenCalledTimes(1);
+  expect(afterSync?.syncStatus).toBe("error");
 });

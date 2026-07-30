@@ -172,20 +172,31 @@ export async function reconcileMeetingCalendars(
 ): Promise<{ updatedEventIds: Record<string, string>; allSynced: boolean }> {
     const calendarIds = calendarIdsForMeeting(meeting.calType ?? []);
     const updatedEventIds: Record<string, string> = { ...existingEventIds };
-    let allSynced = true;
+    // Any calType category missing from calendarIds means its GOOGLE_CALENDAR_* env var isn't
+    // configured -- a real misconfiguration, not "nothing to sync." Without this check, a
+    // meeting whose categories are all unconfigured would skip both loops below entirely (no
+    // existing events to remove, no calendarIds to create) and allSynced would stay vacuously
+    // true, reporting full success despite zero calendar work actually happening.
+    let allSynced = (meeting.calType ?? []).every((cat) => calendarIds[cat]);
 
     // Remove events from calendars whose category is no longer part of this meeting's calType
     for (const cat of Object.keys(existingEventIds)) {
         if (calendarIds[cat]) continue;
         const calId = calendarIdForCategory[cat];
         const eventId = existingEventIds[cat];
-        if (calId && eventId) {
-            const ok = await deleteCalendarEvent(accessToken, eventId, calId);
-            if (ok) delete updatedEventIds[cat];
-            else allSynced = false;
-        } else {
-            delete updatedEventIds[cat];
+        if (!calId || !eventId) {
+            // calId missing means this category's env var isn't configured -- we can't
+            // actually delete the remote event, so keep its reference (and flag the
+            // meeting as unsynced) rather than silently forgetting it. Forgetting it here
+            // would create a duplicate event once the calendar is reconfigured, since
+            // reconcileMeetingCalendars would then see no existing event to update.
+            allSynced = false;
+            continue;
         }
+
+        const ok = await deleteCalendarEvent(accessToken, eventId, calId);
+        if (ok) delete updatedEventIds[cat];
+        else allSynced = false;
     }
 
     for (const [cat, calId] of Object.entries(calendarIds)) {

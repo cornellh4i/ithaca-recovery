@@ -126,6 +126,40 @@
       }
     }
 
+    // Conflict banner -- warning-icon + amber text, rendered above the time section.
+    .warningRow {
+      margin: 0 0 14px;
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-weight: 400;
+      color: $warning-text-color;
+
+      img {
+        width: 20px;
+        height: 20px;
+        flex-shrink: 0;
+        margin-top: 1px;
+      }
+    }
+
+    // Sync-error banner -- sync-error-icon + red text, rendered above the conflict banner.
+    .dangerRow {
+      margin: 0 0 14px;
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-weight: 400;
+      color: $danger-color;
+
+      img {
+        width: 20px;
+        height: 20px;
+        flex-shrink: 0;
+        margin-top: 1px;
+      }
+    }
+
     .recurringInfo {
       display: block;
       font-style: italic;
@@ -140,8 +174,8 @@
       margin: -6px 0 12px 30px;
     }
 
-    .syncWarning {
-      color: $warning-text-color;
+    .syncError {
+      color: $danger-color;
       font-size: 13px;
       margin: -6px 0 12px 30px;
     }
