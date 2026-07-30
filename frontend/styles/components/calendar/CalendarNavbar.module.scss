@@ -105,3 +105,25 @@
     font-size: 18px;
   }
 }
+
+// "View only" footer pill -- shown beneath the main nav row for anyone not signed in as
+// Admin (mirrors AppNavbar's .navLocked lock-icon treatment, but in brand-pink to read as
+// an informational notice rather than a disabled control).
+.viewOnlyPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  margin-top: 8px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: rgb(204 51 102 / 8%);
+  color: $brand-pink-color;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.viewOnlyIcon {
+  width: 14px;
+  height: 14px;
+}

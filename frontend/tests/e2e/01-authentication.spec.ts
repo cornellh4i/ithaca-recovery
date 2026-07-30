@@ -1,11 +1,14 @@
 import { test, expect } from "./support/fixtures";
 import { loginAs } from "./support/auth";
+import { seedMeeting } from "../factories/meeting";
 
 // Manual script §1 (Authentication — Google SSO Login). Real Google OAuth
 // itself (1.4 redirect to Google, 1.5/1.8 actual sign-in outcomes) can't be
 // driven headlessly without real credentials — those stay manual-only. What's
 // covered here is everything downstream of a session existing (or not), which
 // is what the app's own logic controls.
+
+const VIEW_ONLY_PILL_TEXT = "View only - sign in as Admin to manage meetings";
 
 test("1.4 unauthenticated visitor sees the calendar and a Sign In link", async ({ page }) => {
   await page.goto("/");
@@ -15,6 +18,78 @@ test("1.4 unauthenticated visitor sees the calendar and a Sign In link", async (
 test("1.5 unauthenticated visitor has no meeting creation controls", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByText("New Meeting")).toHaveCount(0);
+});
+
+test("1.5b unauthenticated visitor still sees the mini calendar and room/zoom filters", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.getByRole("grid")).toBeVisible();
+  await expect(page.locator('label:has-text("Serenity Room")').first()).toBeVisible();
+});
+
+test("1.5c unauthenticated visitor sees the 'View only' pill in the navbar", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.getByText(VIEW_ONLY_PILL_TEXT)).toBeVisible();
+});
+
+test("1.5d a signed-in non-admin user has no meeting creation controls and sees the 'View only' pill", async ({
+  page,
+  context,
+}) => {
+  // No seeded Admin row for this email -- a real session, but role never resolves to
+  // ADMIN/SUPER_ADMIN (same setup as 1.10's "not-an-admin" case).
+  await loginAs(context, "not-an-admin@test.icr");
+  await page.goto("/");
+  await expect(page.getByText("New Meeting")).toHaveCount(0);
+  await expect(page.getByText(VIEW_ONLY_PILL_TEXT)).toBeVisible();
+});
+
+test("1.5e an Admin sees meeting creation controls and no 'View only' pill", async ({ adminPage }) => {
+  const { page } = adminPage;
+  await page.goto("/");
+  await expect(page.getByText("New Meeting")).toBeVisible();
+  await expect(page.getByText(VIEW_ONLY_PILL_TEXT)).toHaveCount(0);
+});
+
+test("1.5f unauthenticated visitor viewing a meeting sees no email, Zoom host, or Edit/Delete controls", async ({
+  page,
+}) => {
+  await seedMeeting({ title: "Guest View Meeting", email: "hidden@test.icr", zoomHost: "host@test.icr" });
+  await page.goto("/");
+  await page.getByText("Guest View Meeting", { exact: true }).click();
+
+  await expect(page.getByRole("heading", { level: 1, name: "Guest View Meeting" })).toBeVisible();
+  await expect(page.getByText("hidden@test.icr")).toHaveCount(0);
+  await expect(page.getByText("Zoom host:")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Meeting options" })).toHaveCount(0);
+});
+
+test("1.5g a signed-in non-admin user viewing a meeting sees no email, Zoom host, or Edit/Delete controls", async ({
+  page,
+  context,
+}) => {
+  await seedMeeting({ title: "Non-Admin View Meeting", email: "hidden2@test.icr", zoomHost: "host@test.icr" });
+  await loginAs(context, "not-an-admin@test.icr");
+  await page.goto("/");
+  await page.getByText("Non-Admin View Meeting", { exact: true }).click();
+
+  await expect(page.getByRole("heading", { level: 1, name: "Non-Admin View Meeting" })).toBeVisible();
+  await expect(page.getByText("hidden2@test.icr")).toHaveCount(0);
+  await expect(page.getByText("Zoom host:")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Meeting options" })).toHaveCount(0);
+});
+
+test("1.5h an Admin viewing a meeting sees the email row, Zoom host row, and Edit/Delete kebab", async ({
+  adminPage,
+}) => {
+  const { page } = adminPage;
+  await seedMeeting({ title: "Admin View Meeting", email: "visible@test.icr", zoomHost: "host@test.icr" });
+  await page.goto("/");
+  await page.getByText("Admin View Meeting", { exact: true }).click();
+
+  await expect(page.getByRole("heading", { level: 1, name: "Admin View Meeting" })).toBeVisible();
+  await expect(page.getByText("visible@test.icr")).toBeVisible();
+  await expect(page.getByText("Zoom host:")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Meeting options" })).toBeVisible();
 });
 
 test("1.6 session persists across a page reload", async ({ adminPage }) => {

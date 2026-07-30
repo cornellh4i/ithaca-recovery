@@ -58,6 +58,10 @@ type ViewMeetingDetailsProps = {
   conflictCount?: number;
   // The clicked meeting box, so the popup can anchor itself beside it.
   anchorEl: HTMLElement | null;
+  // Gates the email row, Zoom host row, and the Edit/Delete kebab menu -- all of them are
+  // either PII or actions a non-admin viewer can't act on (the backend already rejects the
+  // writes; this just stops the UI from offering them in the first place).
+  isAdmin: boolean;
   onBack: () => void;
   onEdit: () => void;
   onDelete: (mid: string, deleteOption?: 'this' | 'thisAndFollowing' | 'all') => void;
@@ -88,6 +92,7 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
   zoomSyncError: initialZoomSyncError,
   conflictCount = 0,
   anchorEl,
+  isAdmin,
   onBack,
   onEdit,
   onDelete,
@@ -353,21 +358,23 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
           >
             {modeType}
           </span>
-          <div className={styles.moreOptions} ref={kebabRef}>
-            <button
-              aria-label="Meeting options"
-              aria-expanded={kebabOpen}
-              onClick={() => setKebabOpen((open) => !open)}
-            >
-              ⋮
-            </button>
-            {kebabOpen && (
-              <div className={styles.optionsMenu}>
-                <button onClick={() => { setKebabOpen(false); onEdit(); }}>Edit</button>
-                <button className={styles.deleteOption} onClick={handleDelete}>Delete</button>
-              </div>
-            )}
-          </div>
+          {isAdmin && (
+            <div className={styles.moreOptions} ref={kebabRef}>
+              <button
+                aria-label="Meeting options"
+                aria-expanded={kebabOpen}
+                onClick={() => setKebabOpen((open) => !open)}
+              >
+                ⋮
+              </button>
+              {kebabOpen && (
+                <div className={styles.optionsMenu}>
+                  <button onClick={() => { setKebabOpen(false); onEdit(); }}>Edit</button>
+                  <button className={styles.deleteOption} onClick={handleDelete}>Delete</button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         <hr className={styles.divider} />
@@ -469,12 +476,14 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
             </button>
           )}
 
-          <p className={styles.row}>
-            <img src="/svg/mail-icon.svg" alt="" />
-            <span>{email}</span>
-          </p>
+          {isAdmin && (
+            <p className={styles.row}>
+              <img src="/svg/mail-icon.svg" alt="" />
+              <span>{email}</span>
+            </p>
+          )}
 
-          {zoomHost && (
+          {isAdmin && zoomHost && (
             <p className={styles.row}>
               <img src="/svg/person-icon.svg" alt="" />
               <span>Zoom host: {zoomHostLabel(zoomHost, zoomHostPool.indexOf(zoomHost))} — {zoomHost}</span>

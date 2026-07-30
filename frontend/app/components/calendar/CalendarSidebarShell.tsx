@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
 import styles from "../../(main)/page.module.scss";
-import SignInPrompt from "./SignInPrompt";
 import EditMeetingSidebar from "../meeting-form/EditMeeting";
 import CalendarSidebar from "./CalendarSidebar";
 import CompactCalendarSidebar from "./CompactCalendarSidebar";
@@ -12,6 +11,7 @@ import { MeetingFilters } from "../../../util/meetingFilters";
 
 interface CalendarSidebarShellProps {
   isLoggedIn: boolean | null;
+  isAdmin: boolean;
   filters: MeetingFilters;
   setFilters: React.Dispatch<React.SetStateAction<MeetingFilters>>;
   selectedDate: Date;
@@ -50,6 +50,7 @@ function sidebarLayerTransitionClass(
 
 const CalendarSidebarShell: React.FC<CalendarSidebarShellProps> = ({
   isLoggedIn,
+  isAdmin,
   filters,
   setFilters,
   selectedDate,
@@ -156,22 +157,19 @@ const CalendarSidebarShell: React.FC<CalendarSidebarShellProps> = ({
 
   // New and Editing Meeting always shows the full-width form, regardless of the last compact/expanded choice.
   const isEditing = showEditMeeting && !!selectedMeeting;
-  const isRailCompact = isLoggedIn === true && !isEditing && !isNewMeetingOpen && isCompact;
+  const isRailCompact = !isEditing && !isNewMeetingOpen && isCompact;
 
-  // SignInPrompt/EditMeetingSidebar have nothing to collapse -- the toggle only makes sense
-  // once the full or compact CalendarSidebar is what's actually showing.
-  const showSidebarToggle = isLoggedIn === true && !isEditing && !isNewMeetingOpen;
+  // EditMeetingSidebar has nothing to collapse -- the toggle only makes sense once the full
+  // or compact CalendarSidebar is what's actually showing. Shown for every visitor now (not
+  // just logged-in ones) since the mini calendar/filters underneath are visible to everyone.
+  const showSidebarToggle = !isEditing && !isNewMeetingOpen;
 
   return (
     <div
       className={styles.sidebar}
       style={isRailCompact ? { width: 64, padding: "0 24px 0 0" } : undefined}
     >
-      {isLoggedIn === null ? null : !isLoggedIn ? (
-        <div className={styles.sidebarScroll}>
-          <SignInPrompt />
-        </div>
-      ) : showEditMeeting && selectedMeeting ? (
+      {isLoggedIn === null ? null : showEditMeeting && selectedMeeting ? (
         <div className={styles.sidebarScroll} style={isViewMeetingOpen ? { overflowY: "hidden" } : undefined}>
           <EditMeetingSidebar
             meeting={selectedMeeting}
@@ -207,6 +205,7 @@ const CalendarSidebarShell: React.FC<CalendarSidebarShellProps> = ({
                   selectedDate={selectedDate}
                   selectedView={selectedView}
                   triggerCalendarRefresh={triggerCalendarRefresh}
+                  isAdmin={isAdmin}
                 />
               </div>
             </div>
@@ -238,6 +237,7 @@ const CalendarSidebarShell: React.FC<CalendarSidebarShellProps> = ({
                   expandSidebar();
                   setIsNewMeetingOpen(true);
                 }}
+                isAdmin={isAdmin}
               />
             </div>
           )}

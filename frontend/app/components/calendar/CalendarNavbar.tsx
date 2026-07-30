@@ -13,12 +13,13 @@ type CalendarNavbarProps = {
     selectedDate: Date;
     onDateChange: (date : Date) => void;
     onViewChange: (view: string) => void;
+    isAdmin: boolean;
   };
 
-const CalendarNavbar: React.FC<CalendarNavbarProps> = ({ selectedDate, onDateChange, onViewChange }) => {
+const CalendarNavbar: React.FC<CalendarNavbarProps> = ({ selectedDate, onDateChange, onViewChange, isAdmin }) => {
     const [selectedView, setSelectedView] = useState('Day');
 
-    const getDateRange = (date: Date) => {
+    const getDateRange = (date: Date): React.ReactNode => {
       if (selectedView === 'Day') {
         return formatMeetingDateLine(date);
       }
@@ -71,28 +72,36 @@ const CalendarNavbar: React.FC<CalendarNavbarProps> = ({ selectedDate, onDateCha
     const handleNext = () => shiftSelectedDate(1);
 
     return (
-      <div className={styles.navbarContainer}>
-        <h2 className={styles.navbarContainerRight}>{getDateRange(selectedDate)}</h2>
-        <div className={styles.navbarContainerLeft}>
-          <div className={styles.viewDropdown}>
-            <Dropdown
-              label=""
-              value={selectedView}
-              isVisible={true}
-              elements={['Day', 'Week']}
-              name="Select view"
-              onChange={handleViewChange}
-            />
-          </div>
-          <div className={styles.box}>
-            <a href="#" onClick={handleToday}>Today</a>
-          </div>
-          <div className={styles.dateToggle}>
-            <img src="/svg/left-arrow.svg" alt="Left Arrow" width={24} height={24} onClick={handlePrevious} />
-            <img src="/svg/right-arrow.svg" alt="Right Arrow" width={24} height={24} onClick={handleNext} />
+      <>
+        <div className={styles.navbarContainer}>
+          <h2 className={styles.navbarContainerRight}>{getDateRange(selectedDate)}</h2>
+          <div className={styles.navbarContainerLeft}>
+            <div className={styles.viewDropdown}>
+              <Dropdown
+                label=""
+                value={selectedView}
+                isVisible={true}
+                elements={['Day', 'Week']}
+                name="Select view"
+                onChange={handleViewChange}
+              />
+            </div>
+            <div className={styles.box}>
+              <a href="#" onClick={handleToday}>Today</a>
+            </div>
+            <div className={styles.dateToggle}>
+              <img src="/svg/left-arrow.svg" alt="Left Arrow" width={24} height={24} onClick={handlePrevious} />
+              <img src="/svg/right-arrow.svg" alt="Right Arrow" width={24} height={24} onClick={handleNext} />
+            </div>
           </div>
         </div>
-      </div>
+        {!isAdmin && (
+          <div className={styles.viewOnlyPill}>
+            <img src="/svg/lock-icon.svg" alt="" className={styles.viewOnlyIcon} />
+            <span>View only - sign in as Admin to manage meetings</span>
+          </div>
+        )}
+      </>
     );
   };
   

@@ -14,6 +14,7 @@ interface CompactCalendarSidebarProps {
   selectedDate: Date;
   handleMiniCalendarSelect: (date: Date) => void;
   onOpenNewMeeting: () => void;
+  isAdmin: boolean;
 }
 
 const CompactCalendarSidebar: React.FC<CompactCalendarSidebarProps> = ({
@@ -22,6 +23,7 @@ const CompactCalendarSidebar: React.FC<CompactCalendarSidebarProps> = ({
   selectedDate,
   handleMiniCalendarSelect,
   onOpenNewMeeting,
+  isAdmin,
 }) => {
   const [openFlyout, setOpenFlyout] = useState<FlyoutKey | null>(null);
   const railRef = useRef<HTMLDivElement>(null);
@@ -49,15 +51,17 @@ const CompactCalendarSidebar: React.FC<CompactCalendarSidebarProps> = ({
 
   return (
     <div className={styles.rail} ref={railRef}>
-      <IconButton
-        icon={<img src="/svg/plus-icon-white.svg" alt="" />}
-        ariaLabel="New Meeting"
-        tooltip="New Meeting"
-        tooltipAlign="left"
-        variant="filled"
-        backgroundColor="#CC3366"
-        onClick={onOpenNewMeeting}
-      />
+      {isAdmin && (
+        <IconButton
+          icon={<img src="/svg/plus-icon-white.svg" alt="" />}
+          ariaLabel="New Meeting"
+          tooltip="New Meeting"
+          tooltipAlign="left"
+          variant="filled"
+          backgroundColor="#CC3366"
+          onClick={onOpenNewMeeting}
+        />
+      )}
 
       <div className={styles.flyoutAnchor}>
         <IconButton
