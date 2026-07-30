@@ -5,7 +5,15 @@
   flex-direction: column;
   width: 100%;
   font-family: 'Source Sans Pro', sans-serif;
-  height: 100%;
+
+  // Fills whatever's left under CalendarNavbar in .primaryCalendar (page.module.scss), not
+  // this element's full containing-block height -- `height: 100%` resolved against
+  // .primaryCalendar's *whole* box (which also contains CalendarNavbar above this), pushing
+  // this box's bottom edge past .primaryCalendar's own overflow:hidden clip by exactly
+  // CalendarNavbar's height, unreachable at any scroll position. Requires .primaryCalendar to
+  // actually be a flex column for this to resolve correctly (see its comment).
+  flex: 1 1 auto;
+  min-height: 0;
   overflow: hidden;
 }
 

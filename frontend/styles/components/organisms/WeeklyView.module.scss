@@ -5,7 +5,12 @@
   flex-direction: column;
   width: 100%;
   font-family: 'Source Sans Pro', sans-serif;
-  height: 100%;
+
+  // Fills whatever's left under CalendarNavbar in .primaryCalendar (page.module.scss), not
+  // this element's full containing-block height -- see DailyView.module.scss's matching
+  // .outerContainer comment for the full explanation (same shared parent, same bug).
+  flex: 1 1 auto;
+  min-height: 0;
   overflow: hidden;
 }
 
@@ -39,7 +44,12 @@
   display: flex;
   flex: 1;
   width: 100%;
-  height: calc(100% - 60px); // Account for the navigation header
+
+  // No height override needed -- .outerContainer's own flex: 1 1 auto (see its comment) now
+  // correctly represents the real remaining space under CalendarNavbar, so this flex child
+  // just fills 100% of that on its own. The previous `calc(100% - 60px)` was hand-tuning
+  // around the same CalendarNavbar-height bug fixed one level up in .primaryCalendar
+  // (page.module.scss) -- kept alongside that fix, it would double-subtract.
   overflow: auto; // This single scroll container will control both time and days
   margin-top: 24px;
 
