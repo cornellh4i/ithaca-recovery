@@ -35,13 +35,15 @@ jest.mock("../../services/zoom", () => ({
 
 import { getTestPrismaClient, disconnectTestPrismaClient } from "../factories/db";
 import { PUT } from "../../app/api/update/meeting/route";
-import { updateZoomMeeting, createZoomMeeting, resolveZoomHost } from "../../services/zoom";
-import { reconcileMeetingCalendars } from "../../services/googleCalendar";
+import { updateZoomMeeting, createZoomMeeting, deleteZoomMeeting, resolveZoomHost } from "../../services/zoom";
+import { reconcileMeetingCalendars, createCalendarEvent } from "../../services/googleCalendar";
 
 const mockedUpdateZoomMeeting = updateZoomMeeting as jest.Mock;
 const mockedCreateZoomMeeting = createZoomMeeting as jest.Mock;
+const mockedDeleteZoomMeeting = deleteZoomMeeting as jest.Mock;
 const mockedResolveZoomHost = resolveZoomHost as jest.Mock;
 const mockedReconcileMeetingCalendars = reconcileMeetingCalendars as jest.Mock;
+const mockedCreateCalendarEvent = createCalendarEvent as jest.Mock;
 
 function buildMeetingPayload(overrides: Partial<IMeeting> = {}): IMeeting {
   return {
@@ -105,6 +107,7 @@ test("a same-room time edit that now conflicts with another meeting on the same 
   const busyMid = `m-${randomUUID()}`;
   const { recurrencePattern: _rp1, ...busyMeetingData } = buildMeetingPayload({
     mid: busyMid,
+    modeType: "Hybrid",
     room: "Fellowship Room",
     zoomRoom: "Fellowship Room - Zoom",
     zid: "zid-busy",
@@ -117,6 +120,7 @@ test("a same-room time edit that now conflicts with another meeting on the same 
   const editedMid = `m-${randomUUID()}`;
   const { recurrencePattern: _rp2, ...editedMeetingData } = buildMeetingPayload({
     mid: editedMid,
+    modeType: "Hybrid",
     room: "Serenity Room",
     zoomRoom: "Serenity Room - Zoom",
     zid: "zid-edited",
@@ -129,6 +133,7 @@ test("a same-room time edit that now conflicts with another meeting on the same 
   // Same room/Zoom room/host as before — only the time moves, into busyMid's window.
   const payload = buildMeetingPayload({
     mid: editedMid,
+    modeType: "Hybrid",
     room: "Serenity Room",
     zoomRoom: "Serenity Room - Zoom",
     zid: "zid-edited",
@@ -168,10 +173,10 @@ test("a newly resolved Zoom host is persisted synchronously when a meeting first
 
   const prisma = getTestPrismaClient();
   const mid = `m-${randomUUID()}`;
-  const { recurrencePattern: _rp, ...existingMeetingData } = buildMeetingPayload({ mid, zoomRoom: "" });
+  const { recurrencePattern: _rp, ...existingMeetingData } = buildMeetingPayload({ mid, modeType: "Hybrid", zoomRoom: "" });
   await prisma.meeting.create({ data: existingMeetingData });
 
-  const payload = buildMeetingPayload({ mid, zoomRoom: "Serenity Room - Zoom" });
+  const payload = buildMeetingPayload({ mid, modeType: "Hybrid", zoomRoom: "Serenity Room - Zoom" });
   const request = new Request("http://localhost/api/update/meeting", {
     method: "PUT",
     body: JSON.stringify(payload),
@@ -191,14 +196,14 @@ test("a newly resolved Zoom host is persisted synchronously when a meeting first
 
 test("an exhausted Zoom host pool on update fails soft, synchronously, without touching the existing meeting fields", async () => {
   mockedResolveZoomHost.mockReset().mockResolvedValue(null);
-  mockedReconcileMeetingCalendars.mockResolvedValue({ updatedEventIds: {}, allSynced: true });
+  mockedReconcileMeetingCalendars.mockReset().mockResolvedValue({ updatedEventIds: {}, allSynced: true });
 
   const prisma = getTestPrismaClient();
   const mid = `m-${randomUUID()}`;
-  const { recurrencePattern: _rp, ...existingMeetingData } = buildMeetingPayload({ mid, zoomRoom: "" });
+  const { recurrencePattern: _rp, ...existingMeetingData } = buildMeetingPayload({ mid, modeType: "Hybrid", zoomRoom: "" });
   await prisma.meeting.create({ data: existingMeetingData });
 
-  const payload = buildMeetingPayload({ mid, zoomRoom: "Serenity Room - Zoom" });
+  const payload = buildMeetingPayload({ mid, modeType: "Hybrid", zoomRoom: "Serenity Room - Zoom" });
   const request = new Request("http://localhost/api/update/meeting", {
     method: "PUT",
     body: JSON.stringify(payload),
@@ -213,4 +218,56 @@ test("an exhausted Zoom host pool on update fails soft, synchronously, without t
   expect(rightAfterResponse?.zoomSyncError).toMatch(/pool exhausted/i);
 
   await new Promise((resolve) => setTimeout(resolve, 100));
+
+  // Direct regression test for Matt's confirmation, on the update path: a meeting that needs
+  // Zoom but has no working Zoom meeting after this run must not have its calendars reconciled
+  // with a missing link -- syncStatus is 'pending', reconcileMeetingCalendars never ran.
+  const afterSync = await prisma.meeting.findUnique({ where: { mid } });
+  expect(afterSync?.syncStatus).toBe("pending");
+  expect(mockedReconcileMeetingCalendars).not.toHaveBeenCalled();
+});
+
+test("an explicit host reassignment tears down the old Zoom meeting and creates a new one under the new host", async () => {
+  mockedDeleteZoomMeeting.mockReset().mockResolvedValue(true);
+  mockedCreateZoomMeeting.mockReset().mockResolvedValue({ zid: "zid-reassigned", zoomLink: "http://zoom.test/reassigned", zoomPasscode: null });
+  mockedCreateCalendarEvent.mockReset().mockResolvedValue("fake-zoom-cal-event-id");
+  mockedReconcileMeetingCalendars.mockResolvedValue({ updatedEventIds: {}, allSynced: true });
+
+  const prisma = getTestPrismaClient();
+  const mid = `m-${randomUUID()}`;
+  const { recurrencePattern: _rp, ...existingMeetingData } = buildMeetingPayload({
+    mid,
+    modeType: "Hybrid",
+    zoomRoom: "Serenity Room - Zoom",
+    zid: "zid-original",
+    zoomHost: "old-host@icr.test",
+    zoomCalendarEventId: "old-zoom-cal-event-id",
+  });
+  await prisma.meeting.create({ data: existingMeetingData });
+
+  // Same room, same time -- only the manually-selected host changes.
+  const payload = buildMeetingPayload({
+    mid,
+    modeType: "Hybrid",
+    zoomRoom: "Serenity Room - Zoom",
+    zid: "zid-original",
+    zoomHost: "new-host@icr.test",
+  });
+  const request = new Request("http://localhost/api/update/meeting", {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+
+  const response = await PUT(request);
+  expect(response.status).toBe(200);
+
+  await new Promise((resolve) => setTimeout(resolve, 100));
+
+  expect(mockedDeleteZoomMeeting).toHaveBeenCalledWith("zid-original");
+  expect(mockedUpdateZoomMeeting).not.toHaveBeenCalled();
+
+  const afterSync = await prisma.meeting.findUnique({ where: { mid } });
+  expect(afterSync?.zid).toBe("zid-reassigned");
+  expect(afterSync?.zoomHost).toBe("new-host@icr.test");
+  expect(afterSync?.zoomSyncStatus).toBe("synced");
 });

@@ -33,6 +33,8 @@ interface WeeklyViewColumnProps {
     setSelectedMeetingID: (meetingId: string) => void;
     setSelectedNewMeeting: (newMeetingExists: boolean) => void;
     setAnchorEl: (el: HTMLElement) => void;
+    // Admin-only (see hooks/useConflictMids) -- mids with an unresolved conflict.
+    conflictMids?: Set<string>;
 }
 
 // 1 hour is 120px in height (120/60 px per minute), matching .timeSlot's 120px row height
@@ -53,6 +55,7 @@ const WeeklyViewColumn: React.FC<WeeklyViewColumnProps> = ({
     setSelectedMeetingID,
     setSelectedNewMeeting,
     setAnchorEl,
+    conflictMids,
 }) => {
     const [overlapModalMeetings, setOverlapModalMeetings] = useState<Meeting[] | null>(null);
     // The "+N" pill that opened the modal -- kept as a fallback popup anchor, since the
@@ -88,9 +91,10 @@ const WeeklyViewColumn: React.FC<WeeklyViewColumnProps> = ({
     // no normal slot of its own -- same full-width/shadow treatment as selecting one
     // of the two already-shown stacked meetings.
     const renderMeetingCard = (meeting: Meeting, key: React.Key, forceSelected = false) => {
-        // Remote-only meetings have no physical room, so fall back to the
-        // Zoom room — otherwise the location line would be blank.
-        const locationLabel = meeting.room || meeting.zoomRoom || '';
+        // Remote meetings have neither a physical room nor a Zoom room -- fall back to a
+        // literal "Remote" label (matches the virtual room DailyView buckets them into,
+        // see util/rooms.ts's defaultRooms), otherwise the location line would be blank.
+        const locationLabel = meeting.room || meeting.zoomRoom || (meeting.tags?.includes('Remote') ? 'Remote' : '');
         const topOffset = timeToPixels(meeting.startTime) + VERTICAL_GAP / 2;
         const height = Math.max(
             timeToPixels(meeting.endTime) - timeToPixels(meeting.startTime) - VERTICAL_GAP,
@@ -141,6 +145,7 @@ const WeeklyViewColumn: React.FC<WeeklyViewColumnProps> = ({
                             ? formatZoomRoomLabel(meeting.zoomRoom!)
                             : undefined
                     }
+                    hasConflict={conflictMids?.has(meeting.id)}
                     fillHeight
                     selected={isSelected}
                     onClick={(meetingId, e) => {

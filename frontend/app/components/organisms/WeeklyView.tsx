@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import styles from '../../../styles/components/organisms/WeeklyView.module.scss';
 import WeeklyViewColumn from "../molecules/WeeklyViewColumn";
 import { passesTagFilters, passesRoomFilter, MeetingFilters } from "../../../util/meetingFilters";
-import { ROOM_COLORS, ZOOM_ROOM_COLOR } from "../../../util/filterColors";
+import { ROOM_COLORS, ZOOM_ROOM_COLOR, REMOTE_COLOR } from "../../../util/filterColors";
 import { formatETDateString, convertETToUTC } from "../../../util/timeUtils";
 import { layoutOverlappingMeetings, OverlapMeeting } from "../../../util/meetingOverlapLayout";
 import { createCache } from "../../../util/simpleCache";
@@ -118,6 +118,9 @@ interface WeeklyViewProps {
     // the clicked box's on-screen position, so scrolling underneath it while open just
     // fights the popup's own reposition-on-scroll logic instead of being useful.
     scrollLocked?: boolean;
+    // Admin-only (see hooks/useConflictMids) -- mids with an unresolved conflict. Omitted
+    // entirely by /signage's public kiosk render, which defaults to no badges ever showing.
+    conflictMids?: Set<string>;
 }
 
 const WeeklyView: React.FC<WeeklyViewProps> = ({
@@ -130,6 +133,7 @@ const WeeklyView: React.FC<WeeklyViewProps> = ({
     setAnchorEl,
     refreshTrigger = 0,
     scrollLocked = false,
+    conflictMids,
 }) => {
     const [currentTimePosition, setCurrentTimePosition] = useState(0);
     const [weekStartDate, setWeekStartDate] = useState<Date>(() => getFirstDayOfWeek(selectedDate));
@@ -241,10 +245,14 @@ const WeeklyView: React.FC<WeeklyViewProps> = ({
             const matchesDate = meeting.date === formattedDate;
 
             // A Hybrid meeting occupies both its physical room and its Zoom room, so it
-            // should stay visible if either resource's filter is enabled.
-            const isRoomIncluded =
-                passesRoomFilter(meeting.room, filters) ||
-                (!!meeting.zoomRoom && passesRoomFilter(meeting.zoomRoom, filters));
+            // should stay visible if either resource's filter is enabled. Remote has
+            // neither -- it's gated on the virtual "Remote" room key instead (see
+            // util/rooms.ts's defaultRooms), or it would never pass either check below.
+            const isRemote = meeting.tags.includes('Remote');
+            const isRoomIncluded = isRemote
+                ? passesRoomFilter('Remote', filters)
+                : passesRoomFilter(meeting.room, filters) ||
+                    (!!meeting.zoomRoom && passesRoomFilter(meeting.zoomRoom, filters));
 
             return matchesDate && isRoomIncluded && passesTagFilters(meeting.tags, filters);
         });
@@ -252,8 +260,10 @@ const WeeklyView: React.FC<WeeklyViewProps> = ({
         return layoutOverlappingMeetings(filteredMeetings);
     };
 
-    // Get room color for a meeting (physical rooms have distinct colors; Zoom rooms are all gray)
+    // Get room color for a meeting (physical rooms have distinct colors; Zoom rooms are all
+    // gray; Remote -- no physical or Zoom room at all -- gets its own distinct color).
     const getRoomColor = (meeting: Meeting) => {
+        if (meeting.tags.includes('Remote')) return REMOTE_COLOR;
         return ROOM_COLORS[meeting.room] ?? ZOOM_ROOM_COLOR;
     };
 
@@ -324,6 +334,7 @@ const WeeklyView: React.FC<WeeklyViewProps> = ({
                                     setSelectedMeetingID={setSelectedMeetingID}
                                     setSelectedNewMeeting={setSelectedNewMeeting}
                                     setAnchorEl={setAnchorEl}
+                                    conflictMids={conflictMids}
                                 />
 
                                 {/* Current time indicator - only show for current day */}

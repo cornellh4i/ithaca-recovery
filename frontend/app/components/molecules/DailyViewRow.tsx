@@ -29,6 +29,8 @@ interface DailyViewRowProps {
   setSelectedMeetingID: (meetingId: string) => void;
   setSelectedNewMeeting: (newMeetingExists: boolean) => void;
   setAnchorEl: (el: HTMLElement) => void;
+  // Admin-only (see hooks/useConflictMids) -- mids with an unresolved conflict.
+  conflictMids?: Set<string>;
 }
 
 // 1 hour is 155px in width (155/60 px per minute), matching the 155px-wide hour columns.
@@ -50,6 +52,7 @@ const DailyViewRow: React.FC<DailyViewRowProps> = ({
   setSelectedMeetingID,
   setSelectedNewMeeting,
   setAnchorEl,
+  conflictMids,
 }) => {
   const [overlapModalMeetings, setOverlapModalMeetings] = useState<Meeting[] | null>(null);
   // The "+N" pill that opened the modal -- kept as a fallback popup anchor, since the
@@ -133,6 +136,7 @@ const DailyViewRow: React.FC<DailyViewRowProps> = ({
           tags={meeting.tags}
           meetingId={meeting.id}
           syncError={meeting.syncError}
+          hasConflict={conflictMids?.has(meeting.id)}
           selected={isSelected}
           fillHeight={isStacked && !isSelected}
           compact={isStacked && !isSelected}

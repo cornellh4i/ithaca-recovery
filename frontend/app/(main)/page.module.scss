@@ -93,6 +93,20 @@
   background-color: #ffffff;
   padding: 10px;
 
+  // Must be a real flex column, not plain block flow: CalendarNavbar and the Day/Week view
+  // below it are siblings, and the Day/Week view's own root (.outerContainer in
+  // DailyView.module.scss/WeeklyView.module.scss) sizes itself with `flex: 1 1 auto` to fill
+  // whatever's left under CalendarNavbar -- that only resolves correctly against a flex
+  // parent. Without this, block layout instead sized that root to 100% of *this whole box*
+  // (double-counting CalendarNavbar's own height), and the overflow:hidden below silently
+  // clipped exactly that surplus off the bottom -- landing partway through the last visible
+  // row, unreachable at any scroll position, independent of which room happened to be last.
+  // (CalendarNavbar.module.scss's `.navbarContainer { align-self: stretch; }` already assumed
+  // this flex-column context -- a no-op without it, since align-self only means something
+  // inside a flex/grid parent.)
+  display: flex;
+  flex-direction: column;
+
   // DailyView/WeeklyView each own their own bounded internal scroll region now, so this
   // never needs to scroll itself -- letting it stay a scroll container (even via the
   // overflow-x-only auto-quirk) just chains leftover wheel scroll into it once the inner

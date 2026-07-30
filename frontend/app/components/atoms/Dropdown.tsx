@@ -10,6 +10,11 @@ interface DropdownProps {
   onChange: (value: string) => void;
   // Scales font-size to ~80% for narrow embedding contexts (the 280px Main Calendar sidebar).
   compact?: boolean;
+  // Optional custom rendering for an element's display (both the closed button's selected
+  // value and each open-list row) -- `element` is still the plain string used for selection/
+  // onChange; this only overrides what's shown. Falls back to plain text when omitted, so
+  // existing callers (Room, Zoom Room, view switcher) render exactly as before.
+  renderElement?: (element: string) => React.ReactNode;
 }
 
 
@@ -21,6 +26,7 @@ const Dropdown: React.FC<DropdownProps> = ({
   name,
   onChange,
   compact = false,
+  renderElement,
 }) => {
   const [selectedElement, setselectedElement] = useState<string | null>(value ?? null);
 
@@ -96,7 +102,9 @@ const Dropdown: React.FC<DropdownProps> = ({
         >
           <span className={styles.DropdownButtonContent}>
             {!isStringLabel && label && <span className={styles.DropdownIcon}>{label}</span>}
-            <span className={styles.DropdownButtonText}>{selectedElement ? selectedElement : name}</span>
+            <span className={styles.DropdownButtonText}>
+              {selectedElement ? (renderElement ? renderElement(selectedElement) : selectedElement) : name}
+            </span>
           </span>
           <img src="/svg/drop-down-arrow.svg" alt="" className={styles.dropdownArrow} />
         </button>
@@ -116,7 +124,7 @@ const Dropdown: React.FC<DropdownProps> = ({
                 onClick={() => handleElementClick(element)}
                 onKeyDown={(e) => handleOptionKeyDown(e, element)}
               >
-                {element}
+                {renderElement ? renderElement(element) : element}
               </li>
             ))}
           </ul>

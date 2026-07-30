@@ -11,6 +11,10 @@ interface BoxProps {
   tags?: string[]; // For badges like "Hybrid", "AA"
   meetingId: string;
   syncError?: boolean;
+  // Admin-only (see hooks/useConflictMids) -- this meeting shares a room/Zoom room/Zoom host
+  // with another meeting at an overlapping time. Positioned opposite corner from syncError/
+  // zoomTag (both top-right) so all three can coexist without overlapping each other.
+  hasConflict?: boolean;
   // Highlights the box (drop shadow) while its View Meeting popup is open.
   selected?: boolean;
   // Stretch to fill the parent's height instead of the fixed Meeting Block height —
@@ -36,6 +40,7 @@ const BoxText: React.FC<BoxProps> = ({
   tags,
   meetingId,
   syncError = false,
+  hasConflict = false,
   fillHeight = false,
   compact = false,
   zoomTag,
@@ -83,13 +88,26 @@ const BoxText: React.FC<BoxProps> = ({
           ⚠
         </span>
       )}
+      {hasConflict && (
+        <span title="Conflicts with another meeting (see Diagnostics)" className={styles.conflictBadge}>
+          ⛔
+        </span>
+      )}
       {zoomTag && (
         <span ref={zoomTagRef} className={styles.zoomTag} title={`Zoom room: ${zoomTag}`}>
           <img src="/svg/video-call-icon.svg" alt="" className={styles.zoomTagIcon} />
           {zoomTag}
         </span>
       )}
-      <h3 className={styles.title} style={titlePaddingRight ? { paddingRight: titlePaddingRight } : undefined}>
+      <h3
+        className={styles.title}
+        style={{
+          ...(titlePaddingRight ? { paddingRight: titlePaddingRight } : undefined),
+          // .conflictBadge is a fixed single-glyph icon (unlike zoomTag's variable-width
+          // text), so a static reservation is enough -- no ResizeObserver needed.
+          ...(hasConflict ? { paddingLeft: 16 } : undefined),
+        }}
+      >
         {title}
       </h3>
 

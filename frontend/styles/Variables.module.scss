@@ -17,6 +17,21 @@ $link-color: #007BFF;
 $warning-bg-color: #FDF3DC;
 $warning-text-color: #B4790A;
 
+// Room/Zoom-room/Remote color coding used by the calendar views and their filter chips.
+// Mirrors util/filterColors.ts's ROOM_COLORS/ZOOM_ROOM_COLOR/REMOTE_COLOR -- Sass vars aren't
+// importable into TS (same reason as the breakpoints above), so this pair has to be kept in
+// sync manually. util/filterColors.ts is the source of truth callers actually consume today
+// (room colors are applied via inline style/prop, not a CSS class); these exist for any SCSS
+// that needs to reference the same palette directly.
+$room-serenity-color: #B3EA75;
+$room-seeds-of-hope-color: #F7E57B;
+$room-unity-color: #96DBFE;
+$room-improvement-color: #FFAE73;
+$room-gratitude-color: #D2AFFF;
+$room-acceptance-color: #FFA3C2;
+$room-zoom-color: #CECECE;
+$room-remote-color: #7ED8C2;
+
 // Responsive breakpoints. $breakpoint-tablet (768px) is also the value MeetingForm.module.scss
 // already uses in its own media query — same threshold, not a conflict, just worth knowing
 // they now overlap in purpose. Kept in sync manually with util/breakpoints.ts (Sass vars

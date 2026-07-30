@@ -198,6 +198,55 @@ describe("computeConflicts", () => {
     expect(conflicts[0].field).toBe("zoomRoom");
   });
 
+  it("also flags shared zoomHost conflicts independently of room/zoomRoom conflicts", () => {
+    const withHost: ConflictCandidateMeeting = { ...baseMeeting, zoomHost: "host1@icr.test" };
+    const meetingTwo: ConflictCandidateMeeting = {
+      ...baseMeeting,
+      mid: "m2",
+      title: "Meeting Two",
+      room: "Unity Room",
+      zoomHost: "host1@icr.test",
+      startDateTime: utcDate(2026, 7, 6, 19, 30),
+      endDateTime: utcDate(2026, 7, 6, 20, 30),
+    };
+
+    const conflicts = computeConflicts([withHost, meetingTwo]);
+    expect(conflicts).toHaveLength(1);
+    expect(conflicts[0].field).toBe("zoomHost");
+    expect(conflicts[0].value).toBe("host1@icr.test");
+  });
+
+  it("flags a zoomHost conflict even when one of the two meetings is suspended", () => {
+    // Unlike room/zoomRoom, a suspended meeting's Zoom host is still genuinely reserved
+    // (its Zoom sync is skipped, not torn down) -- see resolveZoomHost's includeSuspended: true.
+    const withHost: ConflictCandidateMeeting = { ...baseMeeting, zoomHost: "host1@icr.test", status: "Suspended" };
+    const meetingTwo: ConflictCandidateMeeting = {
+      ...baseMeeting,
+      mid: "m2",
+      title: "Meeting Two",
+      zoomHost: "host1@icr.test",
+      startDateTime: utcDate(2026, 7, 6, 19, 30),
+      endDateTime: utcDate(2026, 7, 6, 20, 30),
+    };
+
+    const conflicts = computeConflicts([withHost, meetingTwo]);
+    expect(conflicts).toHaveLength(1);
+    expect(conflicts[0].field).toBe("zoomHost");
+  });
+
+  it("does not flag two suspended meetings sharing a room (room conflicts still exclude suspended)", () => {
+    const meetingOne: ConflictCandidateMeeting = { ...baseMeeting, status: "Suspended" };
+    const meetingTwo: ConflictCandidateMeeting = {
+      ...baseMeeting,
+      mid: "m2",
+      title: "Meeting Two",
+      status: "Suspended",
+      startDateTime: utcDate(2026, 7, 6, 19, 30),
+      endDateTime: utcDate(2026, 7, 6, 20, 30),
+    };
+    expect(computeConflicts([meetingOne, meetingTwo])).toEqual([]);
+  });
+
   it("respects the horizon boundary for a recurring series with no end date", () => {
     const recurringMeeting: ConflictCandidateMeeting = {
       ...baseMeeting,

@@ -8,6 +8,7 @@ import TimePicker from '../atoms/TimePicker';
 import Dropdown from '../atoms/Dropdown';
 import LabeledCheckbox from '../atoms/CheckBox';
 import RecurringMeetingForm from '../molecules/RecurringMeeting';
+import ZoomHostField from '../molecules/ZoomHostField';
 import CloseIcon from '@mui/icons-material/Close';
 import IconButton from '@mui/material/IconButton';
 
@@ -38,6 +39,7 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
       room: selectedRoom,
       calTypes: selectedCalTypes,
       zoomRoom: selectedZoomRoom, setZoomRoom: setSelectedZoomRoom,
+      zoomHost: selectedZoomHost, setZoomHost: setSelectedZoomHost,
       handleRecurringMeetingChange,
       handleRoomChange,
       handleModeSelect,
@@ -179,6 +181,15 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
               name="Select Zoom Room"
               onChange={setSelectedZoomRoom}
               compact={compact}
+            />
+          }
+          zoomHostDropdown={
+            <ZoomHostField
+              zoomHost={selectedZoomHost}
+              onZoomHostChange={setSelectedZoomHost}
+              isVisible={true}
+              compact={compact}
+              getCandidate={() => buildMeetingPayload(meeting.mid, meeting.status ?? 'Active')}
             />
           }
           emailTextField={<TextField

@@ -48,6 +48,7 @@ export type ConflictCandidateMeeting = OccurrenceInput & {
   title: string;
   room: string;
   zoomRoom?: string | null;
+  zoomHost?: string | null;
   status?: string | null;
   calType?: string[];
 };
@@ -244,7 +245,7 @@ export type ConflictMeetingSummary = {
 };
 
 export type ConflictRow = {
-  field: "room" | "zoomRoom";
+  field: "room" | "zoomRoom" | "zoomHost";
   value: string;
   // The earliest window where the two meetings' occurrences actually intersect (not just
   // either meeting's own start/end) — e.g. two meetings 7:00-8:00 and 7:30-8:30 overlap
@@ -274,11 +275,14 @@ const toMeetingSummary = (meeting: ConflictCandidateMeeting, occurrence: Occurre
   occurrence: { start: occurrence.start, end: occurrence.end },
 });
 
-// Pure/synchronous — groups a pre-fetched meeting list by room and by zoomRoom and
+// Pure/synchronous — groups a pre-fetched meeting list by room, zoomRoom, and zoomHost, and
 // pairwise-checks each bucket for overlaps. Kept DB-free (caller does the one Prisma query)
-// so this stays unit-testable without a database. Suspended meetings are excluded: this feeds
-// the Diagnostics conflicts panel, an admin scheduling tool with no reason to flag a meeting
-// that isn't currently running.
+// so this stays unit-testable without a database. Suspended meetings are excluded from the
+// room/zoomRoom checks: this feeds the Diagnostics conflicts panel, an admin scheduling tool
+// with no reason to flag a room/Zoom-room conflict for a meeting that isn't currently running.
+// zoomHost is the one exception -- a suspended meeting's Zoom sync is skipped, not torn down
+// (see resolveZoomHost/findResourceConflicts' own includeSuspended: true), so its Zoom host is
+// still genuinely reserved and a real scheduling conflict for another meeting at that time.
 export function computeConflicts(
   meetings: ConflictCandidateMeeting[],
   horizonYears: number = OVERLAP_HORIZON_YEARS,
@@ -287,9 +291,15 @@ export function computeConflicts(
   const activeMeetings = meetings.filter((m) => m.status !== "Suspended");
   const conflicts: ConflictRow[] = [];
 
-  (["room", "zoomRoom"] as const).forEach((field) => {
+  const fieldMeetings: Record<"room" | "zoomRoom" | "zoomHost", ConflictCandidateMeeting[]> = {
+    room: activeMeetings,
+    zoomRoom: activeMeetings,
+    zoomHost: meetings,
+  };
+
+  (["room", "zoomRoom", "zoomHost"] as const).forEach((field) => {
     const buckets = new Map<string, ConflictCandidateMeeting[]>();
-    for (const meeting of activeMeetings) {
+    for (const meeting of fieldMeetings[field]) {
       const value = meeting[field];
       if (!value) continue;
       const bucket = buckets.get(value);

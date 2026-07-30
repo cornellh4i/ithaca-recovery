@@ -31,11 +31,12 @@ jest.mock("../../services/zoom", () => ({
 }));
 
 import { createCalendarEvent } from "../../services/googleCalendar";
-import { resolveZoomHost } from "../../services/zoom";
+import { resolveZoomHost, createZoomMeeting } from "../../services/zoom";
 import { POST } from "../../app/api/write/meeting/route";
 
 const mockedCreateCalendarEvent = createCalendarEvent as jest.Mock;
 const mockedResolveZoomHost = resolveZoomHost as jest.Mock;
+const mockedCreateZoomMeeting = createZoomMeeting as jest.Mock;
 
 function buildMeetingPayload(overrides: Partial<IMeeting> = {}): IMeeting {
   return {
@@ -68,6 +69,7 @@ afterAll(async () => {
 beforeEach(() => {
   mockedCreateCalendarEvent.mockReset();
   mockedResolveZoomHost.mockReset();
+  mockedCreateZoomMeeting.mockReset();
 });
 
 test("the response resolves before Google Calendar sync completes, which runs in the background", async () => {
@@ -107,7 +109,7 @@ test("a resolved Zoom host is persisted synchronously, before the deferred sync 
     () => new Promise((resolve) => setTimeout(() => resolve("fake-event-id"), SYNC_DELAY_MS)),
   );
 
-  const payload = buildMeetingPayload({ zoomRoom: "Serenity Room - Zoom" });
+  const payload = buildMeetingPayload({ modeType: "Hybrid", zoomRoom: "Serenity Room - Zoom" });
   const request = new Request("http://localhost/api/write/meeting", {
     method: "POST",
     body: JSON.stringify(payload),
@@ -152,7 +154,7 @@ test("a malformed body returns 400 with validation issues instead of a raw 500",
 test("an exhausted Zoom host pool fails soft: the meeting is still created", async () => {
   mockedResolveZoomHost.mockResolvedValue(null);
 
-  const payload = buildMeetingPayload({ zoomRoom: "Serenity Room - Zoom" });
+  const payload = buildMeetingPayload({ modeType: "Hybrid", zoomRoom: "Serenity Room - Zoom" });
   const request = new Request("http://localhost/api/write/meeting", {
     method: "POST",
     body: JSON.stringify(payload),
@@ -178,4 +180,43 @@ test("an exhausted Zoom host pool fails soft: the meeting is still created", asy
   expect(afterSync?.zoomHost).toBeNull();
   expect(afterSync?.zoomSyncStatus).toBe("error");
   expect(afterSync?.zoomSyncError).toMatch(/pool exhausted/i);
+
+  // The direct regression test for Matt's confirmation: a meeting that needs Zoom but has no
+  // working Zoom meeting yet must NOT be published to the calendars with a missing link —
+  // syncStatus is 'pending', not 'synced'/'error', and the calendar-publish loop never ran.
+  expect(afterSync?.syncStatus).toBe("pending");
+  expect(afterSync?.googleCalendarEventIds).toBeNull();
+  expect(mockedCreateCalendarEvent).not.toHaveBeenCalled();
+});
+
+test("a Remote meeting (no zoomRoom) still gets a Zoom meeting created, and its main calendar event carries the real zoomLink", async () => {
+  mockedResolveZoomHost.mockResolvedValue("host@icr.test");
+  mockedCreateZoomMeeting.mockResolvedValue({ zid: "remote-zid", zoomLink: "http://zoom.test/remote", zoomPasscode: null });
+  mockedCreateCalendarEvent.mockResolvedValue("fake-event-id");
+
+  const payload = buildMeetingPayload({ modeType: "Remote", room: "", zoomRoom: "" });
+  const request = new Request("http://localhost/api/write/meeting", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+
+  const response = await POST(request);
+  expect(response.status).toBe(201);
+
+  await new Promise((resolve) => setTimeout(resolve, 100));
+
+  const prisma = getTestPrismaClient();
+  const afterSync = await prisma.meeting.findUnique({ where: { mid: payload.mid } });
+  expect(afterSync?.zid).toBe("remote-zid");
+  expect(afterSync?.zoomLink).toBe("http://zoom.test/remote");
+  expect(afterSync?.syncStatus).toBe("synced");
+
+  // Remote has no dedicated Zoom-Room calendar (no zoomRoom) -- the main calType-calendar
+  // event is the only place its Zoom link can appear, so it must carry the real link, not
+  // a null one left over from before Zoom resolved.
+  expect(mockedCreateCalendarEvent).toHaveBeenCalledWith(
+    "fake-token",
+    expect.objectContaining({ zoomLink: "http://zoom.test/remote" }),
+    "fake-calendar-id",
+  );
 });

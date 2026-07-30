@@ -11,9 +11,9 @@ All endpoints are Next.js Route Handlers under `frontend/app/api/`. Requests and
 ### `POST /api/write/meeting`
 **Requires:** `ADMIN`. Request body is validated against a `zod` schema (`frontend/util/meetingValidation.ts`) before anything else — malformed shapes/types get a `400` with the specific validation issues, never reach Prisma or the calendar services. Create a new meeting. If `recurrencePattern` is present, a `RecurrencePattern` record is created alongside it, with `endDate` calculated from `numberOfOccurrences` when not explicitly provided (weekly and monthly patterns both supported). The response is sent as soon as this DB write succeeds — Google Calendar/Zoom sync runs afterward in the background (see Sync behavior below), so the response body's `syncStatus`/`zoomSyncStatus` won't yet reflect that sync's outcome.
 
-Once it runs, sync publishes to Google Calendar per category in `calType` (skipped if `status: "Suspended"`), writing `googleCalendarEventIds` and `syncStatus` back onto the meeting.
+Zoom is needed when `modeType` is `"Hybrid"` or `"Remote"` (not `"In Person"`). Zoom resolves/creates *before* the Google Calendar publish below, and if it can't get a working Zoom meeting this run (host pool exhausted, or the Zoom API call failed), **the Google Calendar publish is skipped entirely and `syncStatus` is set to `"pending"`** rather than publishing the meeting with no Zoom link. A later `POST /api/update/meeting/sync` retry (below) picks this back up once a host becomes available, publishing both at once. See the Zoom section below for host selection.
 
-If `zoomRoom` is set, also runs in the background and independent of the above: creates a Zoom meeting under that room's dedicated host account and publishes the join link to that room's own Google Calendar, writing `zid`, `zoomLink`, `zoomCalendarEventId`, and `zoomSyncStatus` back onto the meeting. Skipped (persisted verbatim, marked synced) if `zid`/`zoomLink` already came in on the payload.
+Once Zoom has resolved (or wasn't needed), sync publishes to Google Calendar per category in `calType` (skipped if `status: "Suspended"`), writing `googleCalendarEventIds` and `syncStatus` back onto the meeting — the event body includes the Zoom join link when one exists. `zoomHost`, `zid`, `zoomLink`, `zoomCalendarEventId`, and `zoomSyncStatus` are also written back onto the meeting; only Hybrid meetings additionally get a dedicated Zoom-Room-calendar event (keyed by `zoomRoom`) with the join link as its location, for Zoom Room hardware to detect. Skipped (persisted verbatim, marked synced) if `zid`/`zoomLink` already came in on the payload.
 
 **Request body:** `IMeeting`
 ```json
@@ -94,7 +94,7 @@ Retrieve all meetings for the calendar month of the provided date.
 ### `PUT /api/update/meeting`
 **Requires:** `ADMIN`. Request body validated the same way as `POST /api/write/meeting` (same `zod` schema) before anything else. Update an existing meeting, identified by `mid`. Upserts or deletes the associated `RecurrencePattern` depending on whether `recurrencePattern` is present in the body. The response is sent as soon as this DB write succeeds; Google Calendar/Zoom sync runs afterward in the background (see [integration-guides.md](integration-guides.md#4-google-calendar-api)) — creates/updates events for categories now in `calType`, deletes events for categories removed from it.
 
-Zoom sync is independent and runs the same way, in the background. If `zoomRoom` changed, the old room's Zoom meeting and calendar event are deleted and a fresh Zoom meeting/calendar event are created under the new room (a Zoom meeting can't move host); if unchanged, it's updated in place.
+Zoom sync runs the same mode-gated, resolve-before-publish way as `POST /api/write/meeting` above (same `"pending"` deferral if Zoom can't resolve). If `zoomRoom` changed, or the Meeting Form's Zoom Host dropdown was used to explicitly reassign the host to a different pool account, the old Zoom meeting and (Hybrid-only) calendar event are deleted and a fresh Zoom meeting/calendar event are created under the new room/host — Zoom has no in-place host-transfer for this app's stable-meeting model. Otherwise the existing Zoom meeting is updated in place, after re-checking its host is still free for the (possibly moved) time.
 
 **Request body:** `IMeeting` (must include `mid`)
 
@@ -105,7 +105,7 @@ Zoom sync is independent and runs the same way, in the background. If `zoomRoom`
 ---
 
 ### `POST /api/update/meeting/sync`
-**Requires:** `ADMIN`. Retry Google Calendar and Zoom sync for a single meeting (used by the ⚠ sync-status badge's retry action in the UI). The two retry independently — `zoomSyncStatus` is only touched if the meeting has a `zoomRoom` set.
+**Requires:** `ADMIN`. Retry Google Calendar and Zoom sync for a single meeting (used by the ⚠ sync-status badge's retry action in the UI). Zoom retries first; `zoomSyncStatus` is only touched if the meeting needs Zoom (`modeType` is `Hybrid`/`Remote`). If Zoom still can't resolve a host, the Google Calendar reconcile is skipped again and `syncStatus` stays `"pending"` — a retry that *does* newly succeed at getting a host performs both the Zoom update/create and the (now-unblocked) calendar reconcile in this same call.
 
 **Request body:**
 ```json
@@ -114,7 +114,7 @@ Zoom sync is independent and runs the same way, in the background. If `zoomRoom`
 
 **Response:** `200 OK`
 ```json
-{ "syncStatus": "synced | error", "zoomSyncStatus": "synced | error | null" }
+{ "syncStatus": "synced | error | pending", "zoomSyncStatus": "synced | error | null" }
 ```
 
 ---
@@ -290,7 +290,37 @@ NextAuth's own sign-in/sign-out/callback routes. Not called directly by app code
 
 Not a set of proxy routes — the old `/api/zoom/*` endpoints were deleted (zero callers, superseded by this). Zoom is a server-only service (`frontend/services/zoom.ts`) called directly from the meeting routes above (`write`, `update`, `delete`, `update/meeting/sync`), gated by the same `requireRole(ADMIN)` check as those routes — there's no separate unauthenticated Zoom surface.
 
-Each of the 5 Zoom-enabled rooms has its own licensed Zoom host account (so up to 5 rooms can host simultaneously without conflicting) and its own Google Calendar (separate from the 3 category calendars) that the join link gets published to. See [technical-decisions.md](../02-handoff/technical-decisions.md#zoom-integration) for why, and [integration-guides.md](integration-guides.md#5-zoom-api) for setup.
+ICR's 5 licensed Zoom accounts (`ZOOM_HOSTS` env var, comma-separated) are a shared pool, not tied to any one room — each hosts only one meeting at a time. A meeting's host is auto-assigned at creation (first pool host with no schedule conflict) unless the Meeting Form's Zoom Host dropdown is used to manually pick one, for troubleshooting/admin exceptions. Only Hybrid meetings additionally have a `zoomRoom` (a Zoom Room device physically installed in that room) with its own Google Calendar the join link publishes to; Remote (online-only) meetings use a pool host but no physical Zoom Room device. See [technical-decisions.md](../02-handoff/technical-decisions.md#zoom-integration) for why, and [integration-guides.md](integration-guides.md#5-zoom-api) for setup.
+
+### `GET /api/retrieve/zoom-hosts`
+**Requires:** `ADMIN`. List the Zoom host pool, in `ZOOM_HOSTS` order — backs the Meeting Form's Zoom Host dropdown and its friendly "Zoom Host N" labels (derived from list position, not stored).
+
+**Response:** `200 OK`
+```json
+{ "hosts": ["host1@icr.example", "host2@icr.example"] }
+```
+
+---
+
+### `POST /api/retrieve/zoom-host-availability`
+**Requires:** `ADMIN`. Backs the Meeting Form's Zoom Host dropdown, which calls this automatically (debounced) whenever the meeting's date/time/recurrence changes — checks every pool host (not just the first free one) against the candidate schedule. Body accepts the same shape the create/update routes take; only `mid` (optional, excludes that meeting from its own conflict check), `startDateTime`, `endDateTime`, `isRecurring`, and `recurrencePattern` are read.
+
+**Request body:**
+```json
+{
+  "mid": "string (optional)",
+  "startDateTime": "ISO 8601",
+  "endDateTime": "ISO 8601",
+  "isRecurring": false,
+  "recurrencePattern": null
+}
+```
+
+**Response:** `200 OK`
+```json
+{ "hosts": [{ "host": "host1@icr.example", "available": true }] }
+```
+**Error:** `400 Bad Request` — request body fails schema validation
 
 ---
 
@@ -306,10 +336,11 @@ interface IMeeting {
   startDateTime: Date;
   endDateTime: Date;
   email: string;
-  zoomRoom?: string | null;        // a Zoom-room label, e.g. "Serenity Room - Zoom"
+  zoomRoom?: string | null;        // Hybrid only -- a Zoom Room device label, e.g. "Serenity Room - Zoom"
+  zoomHost?: string | null;        // assigned pool account email; null/omitted = auto-assign at creation
   zoomLink?: string | null;
   zid?: string | null;             // Zoom meeting ID
-  zoomCalendarEventId?: string | null;  // event ID on that room's own Google Calendar
+  zoomCalendarEventId?: string | null;  // event ID on that room's own Google Calendar (Hybrid only)
   zoomSyncStatus?: string | null;  // "synced" | "error", independent of syncStatus
   calType: string[];               // subset of ["AA", "Al-Anon", "Other"]
   modeType: string;                // "Remote" | "In Person" | "Hybrid"
@@ -319,7 +350,7 @@ interface IMeeting {
   recurrencePattern?: IRecurrencePattern | null;
   googleCalendarEventId?: string | null;         // legacy single-calendar ID
   googleCalendarEventIds?: Record<string, string> | null; // per-category, keyed by calType value
-  syncStatus?: string | null;      // "synced" | "error", sync status of meeting mode calendar
+  syncStatus?: string | null;      // "synced" | "error" | "pending" (deferred, waiting on Zoom)
   deletedAt?: Date | null;         // soft-delete marker
   updatedAt?: Date | null;
 }
