@@ -12,6 +12,7 @@
 .clusterContainer {
   position: absolute;
   top: 0;
+
   // Height is set inline (DailyViewRow.tsx) as an explicit pixel value, not here --
   // .gridMeetingRow (an ancestor) is position:absolute with no explicit height, which
   // breaks percentage-height resolution for this empty div.
