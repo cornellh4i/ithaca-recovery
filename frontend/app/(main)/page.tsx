@@ -14,7 +14,10 @@ import { useConflictMids } from "../../hooks/useConflictMids";
 
 export default function HomePage() {
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
+  // null until the auth check below resolves -- lets consumers that need to distinguish
+  // "don't know yet" from "confirmed not admin" (e.g. CalendarHeader's View-only pill) avoid
+  // flashing admin-gated UI in its wrong state during that initial fetch.
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   // Admin-only -- the endpoint itself rejects non-admins, so gate on role (not just being
   // signed in) to avoid every non-admin viewer firing a denied request on mount and every

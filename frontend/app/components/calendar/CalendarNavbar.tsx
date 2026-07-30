@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import Dropdown from '../atoms/Dropdown';
+import CalendarHeader from './CalendarHeader';
 import styles from "../../../styles/components/calendar/CalendarNavbar.module.scss";
-import { formatMeetingDateLine, monthNameForETDateString, formatMeetingWeekLine } from "../../../util/timeFormat";
 import {
   formatETDateString,
   convertETToUTC,
@@ -13,27 +13,16 @@ type CalendarNavbarProps = {
     selectedDate: Date;
     onDateChange: (date : Date) => void;
     onViewChange: (view: string) => void;
-    isAdmin: boolean;
+    // Optional: signage (a public kiosk with no sign-in concept at all) renders this without
+    // ever resolving a real admin status, CalendarHeader treats the resulting null the same as 
+    // "not yet known" and skips the View-only pill either way, whereas the main calendar always 
+    // supplies its resolved (or still-loading) boolean | null.
+    isAdmin?: boolean | null;
   };
 
-const CalendarNavbar: React.FC<CalendarNavbarProps> = ({ selectedDate, onDateChange, onViewChange, isAdmin }) => {
+const CalendarNavbar: React.FC<CalendarNavbarProps> = ({ selectedDate, onDateChange, onViewChange, isAdmin = null }) => {
     const [selectedView, setSelectedView] = useState('Day');
 
-    const getDateRange = (date: Date): React.ReactNode => {
-      if (selectedView === 'Day') {
-        return formatMeetingDateLine(date);
-      }
-
-      if (selectedView === 'Week') {
-        return formatMeetingWeekLine(date);
-      }
-
-      // Month
-      const etDateStr = formatETDateString(date);
-      const [year] = etDateStr.split('-');
-      return `${monthNameForETDateString(etDateStr)} ${year}`;
-    };
-  
     const handleViewChange = (value: string) => {
       setSelectedView(value);
       onViewChange(value); // Call the external function
@@ -72,36 +61,27 @@ const CalendarNavbar: React.FC<CalendarNavbarProps> = ({ selectedDate, onDateCha
     const handleNext = () => shiftSelectedDate(1);
 
     return (
-      <>
-        <div className={styles.navbarContainer}>
-          <h2 className={styles.navbarContainerRight}>{getDateRange(selectedDate)}</h2>
-          <div className={styles.navbarContainerLeft}>
-            <div className={styles.viewDropdown}>
-              <Dropdown
-                label=""
-                value={selectedView}
-                isVisible={true}
-                elements={['Day', 'Week']}
-                name="Select view"
-                onChange={handleViewChange}
-              />
-            </div>
-            <div className={styles.box}>
-              <a href="#" onClick={handleToday}>Today</a>
-            </div>
-            <div className={styles.dateToggle}>
-              <img src="/svg/left-arrow.svg" alt="Left Arrow" width={24} height={24} onClick={handlePrevious} />
-              <img src="/svg/right-arrow.svg" alt="Right Arrow" width={24} height={24} onClick={handleNext} />
-            </div>
+      <CalendarHeader selectedDate={selectedDate} selectedView={selectedView} isAdmin={isAdmin}>
+        <div className={styles.navbarControls}>
+          <div className={styles.viewDropdown}>
+            <Dropdown
+              label=""
+              value={selectedView}
+              isVisible={true}
+              elements={['Day', 'Week']}
+              name="Select view"
+              onChange={handleViewChange}
+            />
+          </div>
+          <div className={styles.box}>
+            <a href="#" onClick={handleToday}>Today</a>
+          </div>
+          <div className={styles.dateToggle}>
+            <img src="/svg/left-arrow.svg" alt="Left Arrow" width={24} height={24} onClick={handlePrevious} />
+            <img src="/svg/right-arrow.svg" alt="Right Arrow" width={24} height={24} onClick={handleNext} />
           </div>
         </div>
-        {!isAdmin && (
-          <div className={styles.viewOnlyPill}>
-            <img src="/svg/lock-icon.svg" alt="" className={styles.viewOnlyIcon} />
-            <span>View only - sign in as Admin to manage meetings</span>
-          </div>
-        )}
-      </>
+      </CalendarHeader>
     );
   };
   

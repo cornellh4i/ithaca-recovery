@@ -11,7 +11,7 @@ import { MeetingFilters } from "../../../util/meetingFilters";
 
 interface CalendarSidebarShellProps {
   isLoggedIn: boolean | null;
-  isAdmin: boolean;
+  isAdmin: boolean | null;
   filters: MeetingFilters;
   setFilters: React.Dispatch<React.SetStateAction<MeetingFilters>>;
   selectedDate: Date;

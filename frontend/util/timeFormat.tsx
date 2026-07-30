@@ -40,18 +40,21 @@ const etYearFmt = new Intl.DateTimeFormat('en-US', {
 });
 
 /**
- * ET calendar date as "Fri, July 24", with the year appended ("Fri, July 24, 2027") only
- * when it differs from the current ET year. Appends a brand-pink " · Today" when `date`
- * falls on the current ET calendar day.
+ * ET calendar date as "Friday, July 24", with the year appended ("Fri, July 24, 2027") only
+ * when it differs from the current ET year. When `isHeader` is true, also appends a
+ * brand-pink " · Today" when `date` falls on the current ET calendar day -- reserved for
+ * the calendar header, since surfacing "Today" on e.g. a meeting popup's date is redundant.
  */
-export const formatMeetingDateLine = (date: Date): ReactNode => {
+export const formatMeetingDateLine = (date: Date, isHeader: boolean = false): ReactNode => {
     const now = new Date();
     const base = etDateLineFmt.format(date);
     const dateYear = etYearFmt.format(date);
     const currentYear = etYearFmt.format(now);
     const label = dateYear === currentYear ? base : `${base}, ${dateYear}`;
-    const isToday = formatETDateString(date) === formatETDateString(now);
 
+    if (!isHeader) return label;
+
+    const isToday = formatETDateString(date) === formatETDateString(now);
     if (!isToday) return label;
 
     return (

@@ -110,10 +110,6 @@ function SignageContent() {
           selectedDate={selectedDate}
           onDateChange={setSelectedDate}
           onViewChange={(v) => setView(v === "Week" ? "Week" : "Day")}
-          // Signage is a read-only public kiosk display with no sign-in concept at all --
-          // the "View only" admin-hardening pill doesn't apply here, so this is pinned to
-          // true rather than wired to any real auth state.
-          isAdmin={true}
         />
         {view === "Day" ? <DailyView {...viewProps} /> : <WeeklyView {...viewProps} />}
       </div>

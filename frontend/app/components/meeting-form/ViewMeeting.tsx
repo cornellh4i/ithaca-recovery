@@ -60,8 +60,9 @@ type ViewMeetingDetailsProps = {
   anchorEl: HTMLElement | null;
   // Gates the email row, Zoom host row, and the Edit/Delete kebab menu -- all of them are
   // either PII or actions a non-admin viewer can't act on (the backend already rejects the
-  // writes; this just stops the UI from offering them in the first place).
-  isAdmin: boolean;
+  // writes; this just stops the UI from offering them in the first place). null while the
+  // caller's own auth check is still pending -- treated the same as false (hidden) below.
+  isAdmin: boolean | null;
   onBack: () => void;
   onEdit: () => void;
   onDelete: (mid: string, deleteOption?: 'this' | 'thisAndFollowing' | 'all') => void;
