@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import Dropdown from '../atoms/Dropdown';
+import CalendarHeader from './CalendarHeader';
 import styles from "../../../styles/components/calendar/CalendarNavbar.module.scss";
-import { formatMeetingDateLine, monthNameForETDateString, formatMeetingWeekLine } from "../../../util/timeFormat";
 import {
   formatETDateString,
   convertETToUTC,
@@ -19,21 +19,6 @@ type CalendarNavbarProps = {
 const CalendarNavbar: React.FC<CalendarNavbarProps> = ({ selectedDate, onDateChange, onViewChange, isAdmin }) => {
     const [selectedView, setSelectedView] = useState('Day');
 
-    const getDateRange = (date: Date): React.ReactNode => {
-      if (selectedView === 'Day') {
-        return formatMeetingDateLine(date);
-      }
-
-      if (selectedView === 'Week') {
-        return formatMeetingWeekLine(date);
-      }
-
-      // Month
-      const etDateStr = formatETDateString(date);
-      const [year] = etDateStr.split('-');
-      return `${monthNameForETDateString(etDateStr)} ${year}`;
-    };
-  
     const handleViewChange = (value: string) => {
       setSelectedView(value);
       onViewChange(value); // Call the external function
@@ -74,7 +59,7 @@ const CalendarNavbar: React.FC<CalendarNavbarProps> = ({ selectedDate, onDateCha
     return (
       <>
         <div className={styles.navbarContainer}>
-          <h2 className={styles.navbarContainerRight}>{getDateRange(selectedDate)}</h2>
+          <CalendarHeader selectedDate={selectedDate} selectedView={selectedView} />
           <div className={styles.navbarContainerLeft}>
             <div className={styles.viewDropdown}>
               <Dropdown
