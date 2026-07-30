@@ -11,6 +11,10 @@ interface BoxProps {
   tags?: string[]; // For badges like "Hybrid", "AA"
   meetingId: string;
   syncError?: boolean;
+  // Admin-only (see hooks/useConflictMids) -- this meeting shares a room/Zoom room/Zoom host
+  // with another meeting at an overlapping time. Positioned opposite corner from syncError/
+  // zoomTag (both top-right) so all three can coexist without overlapping each other.
+  hasConflict?: boolean;
   // Highlights the box (drop shadow) while its View Meeting popup is open.
   selected?: boolean;
   // Stretch to fill the parent's height instead of the fixed Meeting Block height —
@@ -36,6 +40,7 @@ const BoxText: React.FC<BoxProps> = ({
   tags,
   meetingId,
   syncError = false,
+  hasConflict = false,
   fillHeight = false,
   compact = false,
   zoomTag,
@@ -81,6 +86,11 @@ const BoxText: React.FC<BoxProps> = ({
       {syncError && (
         <span title="Sync failed" className={styles.syncError}>
           ⚠
+        </span>
+      )}
+      {hasConflict && (
+        <span title="Conflicts with another meeting (see Diagnostics)" className={styles.conflictBadge}>
+          ⛔
         </span>
       )}
       {zoomTag && (

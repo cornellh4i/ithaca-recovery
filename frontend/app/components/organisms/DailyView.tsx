@@ -165,6 +165,10 @@ interface DailyViewProps {
   // the clicked box's on-screen position, so scrolling underneath it while open just
   // fights the popup's own reposition-on-scroll logic instead of being useful.
   scrollLocked?: boolean;
+  // Admin-only (see hooks/useConflictMids) -- mids of meetings with an unresolved
+  // room/zoomRoom/zoomHost conflict, for the card's conflict badge. Omitted entirely by
+  // /signage's public kiosk render, which defaults to no badges ever showing.
+  conflictMids?: Set<string>;
 }
 
 const DailyView: React.FC<DailyViewProps> = ({
@@ -176,6 +180,7 @@ const DailyView: React.FC<DailyViewProps> = ({
   setAnchorEl,
   refreshTrigger = 0,
   scrollLocked = false,
+  conflictMids,
 }) => {
   const [currentTimePosition, setCurrentTimePosition] = useState(0);
   const [meetings, setMeetings] = useState<Room[]>([]);
@@ -306,6 +311,7 @@ const DailyView: React.FC<DailyViewProps> = ({
                     setSelectedMeetingID={setSelectedMeetingID}
                     setSelectedNewMeeting={setSelectedNewMeeting}
                     setAnchorEl={setAnchorEl}
+                    conflictMids={conflictMids}
                   />
                 </div>
                 {timeSlots.map((_, colIndex) => (

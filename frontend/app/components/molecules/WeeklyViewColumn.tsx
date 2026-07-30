@@ -33,6 +33,8 @@ interface WeeklyViewColumnProps {
     setSelectedMeetingID: (meetingId: string) => void;
     setSelectedNewMeeting: (newMeetingExists: boolean) => void;
     setAnchorEl: (el: HTMLElement) => void;
+    // Admin-only (see hooks/useConflictMids) -- mids with an unresolved conflict.
+    conflictMids?: Set<string>;
 }
 
 // 1 hour is 120px in height (120/60 px per minute), matching .timeSlot's 120px row height
@@ -53,6 +55,7 @@ const WeeklyViewColumn: React.FC<WeeklyViewColumnProps> = ({
     setSelectedMeetingID,
     setSelectedNewMeeting,
     setAnchorEl,
+    conflictMids,
 }) => {
     const [overlapModalMeetings, setOverlapModalMeetings] = useState<Meeting[] | null>(null);
     // The "+N" pill that opened the modal -- kept as a fallback popup anchor, since the
@@ -142,6 +145,7 @@ const WeeklyViewColumn: React.FC<WeeklyViewColumnProps> = ({
                             ? formatZoomRoomLabel(meeting.zoomRoom!)
                             : undefined
                     }
+                    hasConflict={conflictMids?.has(meeting.id)}
                     fillHeight
                     selected={isSelected}
                     onClick={(meetingId, e) => {

@@ -1,4 +1,5 @@
 @import 'https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;600&display=swap';
+@import '../../Variables.module.scss';
 
 .box {
   box-sizing: border-box;
@@ -108,6 +109,18 @@
     right: 4px;
     font-size: 11px;
     color: #e07000;
+    line-height: 1;
+  }
+
+  // Admin-only conflict badge (see BoxText's hasConflict prop) -- top-left, opposite corner
+  // from .syncError/.zoomTag (both top-right), so all three can coexist on one card without
+  // overlapping.
+  .conflictBadge {
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    font-size: 11px;
+    color: $danger-color;
     line-height: 1;
   }
 

@@ -118,6 +118,9 @@ interface WeeklyViewProps {
     // the clicked box's on-screen position, so scrolling underneath it while open just
     // fights the popup's own reposition-on-scroll logic instead of being useful.
     scrollLocked?: boolean;
+    // Admin-only (see hooks/useConflictMids) -- mids with an unresolved conflict. Omitted
+    // entirely by /signage's public kiosk render, which defaults to no badges ever showing.
+    conflictMids?: Set<string>;
 }
 
 const WeeklyView: React.FC<WeeklyViewProps> = ({
@@ -130,6 +133,7 @@ const WeeklyView: React.FC<WeeklyViewProps> = ({
     setAnchorEl,
     refreshTrigger = 0,
     scrollLocked = false,
+    conflictMids,
 }) => {
     const [currentTimePosition, setCurrentTimePosition] = useState(0);
     const [weekStartDate, setWeekStartDate] = useState<Date>(() => getFirstDayOfWeek(selectedDate));
@@ -330,6 +334,7 @@ const WeeklyView: React.FC<WeeklyViewProps> = ({
                                     setSelectedMeetingID={setSelectedMeetingID}
                                     setSelectedNewMeeting={setSelectedNewMeeting}
                                     setAnchorEl={setAnchorEl}
+                                    conflictMids={conflictMids}
                                 />
 
                                 {/* Current time indicator - only show for current day */}

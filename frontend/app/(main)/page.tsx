@@ -10,10 +10,14 @@ import WeeklyView from "../components/organisms/WeeklyView";
 import { convertUTCToET } from "../../util/timeUtils";
 import { IMeeting } from "../../util/models";
 import { createDefaultFilters } from "../../util/meetingFilters";
+import { useConflictMids } from "../../hooks/useConflictMids";
 
 export default function HomePage() {
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  // Admin-only -- skipped entirely for a signed-out viewer rather than firing a fetch that's
+  // certain to 401 (see useConflictMids' `enabled` param).
+  const conflictMids = useConflictMids(refreshTrigger, isLoggedIn === true);
 
   const triggerCalendarRefresh = useCallback(() => {
     setRefreshTrigger(prev => prev + 1);
@@ -298,6 +302,7 @@ export default function HomePage() {
             setAnchorEl={setAnchorEl}
             refreshTrigger={refreshTrigger}
             scrollLocked={isViewMeetingOpen}
+            conflictMids={conflictMids}
           />
         ) : (
           <WeeklyView
@@ -310,6 +315,7 @@ export default function HomePage() {
             setAnchorEl={setAnchorEl}
             refreshTrigger={refreshTrigger}
             scrollLocked={isViewMeetingOpen}
+            conflictMids={conflictMids}
           />
         )}
       </div>
