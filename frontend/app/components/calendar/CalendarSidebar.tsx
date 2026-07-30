@@ -16,7 +16,7 @@ interface CalendarSidebarProps {
   selectedDate: Date;
   selectedView: string;
   triggerCalendarRefresh: () => void;
-  isAdmin: boolean;
+  isAdmin: boolean | null;
 }
 
 const CalendarSidebar: React.FC<CalendarSidebarProps> = ({

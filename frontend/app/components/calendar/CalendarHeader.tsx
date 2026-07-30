@@ -6,7 +6,11 @@ import { formatETDateString } from "../../../util/timeUtils";
 type CalendarHeaderProps = {
   selectedDate: Date;
   selectedView: string;
-  isAdmin: boolean;
+  // null means "not yet known" (the caller's own auth check is still pending, or -- for
+  // signage -- there's no auth check at all): the View-only pill below only appears once
+  // isAdmin has actually resolved to false, not just whenever it's falsy, so it doesn't
+  // flash on into view for a beat before the real (often "is an admin") result comes in.
+  isAdmin: boolean | null;
   // The interactive Day/Week/Today/arrow controls -- CalendarNavbar owns their state and
   // handlers, but they must render as a flex sibling of the <h2> inside .navbarContainer for
   // the container-query-driven scaling below to work, so CalendarHeader takes them as children
@@ -36,7 +40,7 @@ const CalendarHeader: React.FC<CalendarHeaderProps> = ({ selectedDate, selectedV
         <h2 className={styles.navbarHeading}>{getDateRange(selectedDate)}</h2>
         {children}
       </div>
-      {!isAdmin && (
+      {isAdmin === false && (
         <div className={styles.viewOnlyPill}>
           <img src="/svg/lock-icon.svg" alt="" className={styles.viewOnlyIcon} />
           <span>View only - sign in as Admin to manage meetings</span>

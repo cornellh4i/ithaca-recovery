@@ -14,7 +14,7 @@ interface CompactCalendarSidebarProps {
   selectedDate: Date;
   handleMiniCalendarSelect: (date: Date) => void;
   onOpenNewMeeting: () => void;
-  isAdmin: boolean;
+  isAdmin: boolean | null;
 }
 
 const CompactCalendarSidebar: React.FC<CompactCalendarSidebarProps> = ({

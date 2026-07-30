@@ -13,10 +13,14 @@ type CalendarNavbarProps = {
     selectedDate: Date;
     onDateChange: (date : Date) => void;
     onViewChange: (view: string) => void;
-    isAdmin: boolean;
+    // Optional: signage (a public kiosk with no sign-in concept at all) renders this without
+    // ever resolving a real admin status, CalendarHeader treats the resulting null the same as 
+    // "not yet known" and skips the View-only pill either way, whereas the main calendar always 
+    // supplies its resolved (or still-loading) boolean | null.
+    isAdmin?: boolean | null;
   };
 
-const CalendarNavbar: React.FC<CalendarNavbarProps> = ({ selectedDate, onDateChange, onViewChange, isAdmin }) => {
+const CalendarNavbar: React.FC<CalendarNavbarProps> = ({ selectedDate, onDateChange, onViewChange, isAdmin = null }) => {
     const [selectedView, setSelectedView] = useState('Day');
 
     const handleViewChange = (value: string) => {
