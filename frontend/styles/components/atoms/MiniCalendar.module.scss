@@ -53,7 +53,7 @@
         --rdp-nav_button-width: 24px;
         --rdp-nav_button-height: 24px;
         /* stylelint-enable custom-property-pattern */
-        --rdp-accent-color: #{$dark-pink-color};
+        --rdp-accent-color: #{$brand-pink-color};
         --rdp-accent-background-color: #f5f5f5;
 
         margin: 0;
@@ -93,7 +93,7 @@
         cursor: pointer;
 
         &:hover {
-            background-color: color.adjust($dark-pink-color, $lightness: 35%);
+            background-color: color.adjust($brand-pink-color, $lightness: 35%);
         }
     }
 
@@ -126,7 +126,7 @@
             width: 100%;
             aspect-ratio: 1;
             border-radius: 4px;
-            background-color: color.adjust($dark-pink-color, $lightness: 35%);
+            background-color: color.adjust($brand-pink-color, $lightness: 35%);
             z-index: -1;
         }
     }
@@ -140,7 +140,7 @@
     
     &::before {
         background-clip: padding-box;
-        background-color: $dark-pink-color;
+        background-color: $brand-pink-color;
         border: solid transparent;
         border-radius: 4px;
         content: "";
@@ -166,13 +166,13 @@
 
 // Outside days (days not in the current month)
 .dayOutside {
-    color: #848484 !important;
+    color: $medium-grey-color !important;
     opacity: 0.6;
 }
 
 // Today styling
 .today:not(.selectedDay) {
-    color: $dark-pink-color;
+    color: $brand-pink-color;
     font-weight: bold;
     text-decoration: underline;
 }

@@ -1,0 +1,123 @@
+@import '../../Variables.module.scss';
+
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.card {
+  background: #fff;
+  border: 1.5px solid #E5E5E5;
+  border-radius: 8px;
+  padding: 20px 24px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.sectionLabel {
+  font-size: 16px;
+  font-weight: 600;
+  color: $medium-grey-color;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  margin-bottom: 16px;
+}
+
+.cardDesc {
+  font-size: 14px;
+  color: #555;
+  margin-bottom: 16px;
+}
+
+.dropzoneRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  border: 1.5px dashed $light-grey-color;
+  border-radius: 8px;
+  padding: 20px 24px;
+  font-size: 14px;
+  color: #555;
+
+  .uploadButton {
+    flex-shrink: 0;
+  }
+}
+
+.dropzoneActive {
+  border-color: $brand-pink-color;
+  background: #FBE1E7;
+}
+
+.chooseFile {
+  color: $brand-pink-color;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.uploadButton {
+  background: $brand-pink-color;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 20px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+
+  &:disabled {
+    background: $light-grey-color;
+    cursor: not-allowed;
+  }
+}
+
+.resultsHeader {
+  font-size: 16px;
+  font-weight: 600;
+  color: $black-color;
+  margin-bottom: 14px;
+}
+
+.pillRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.resultsTable {
+  width: 100%;
+  border-collapse: collapse;
+
+  th {
+    text-align: left;
+    font-size: 13px;
+    font-weight: 600;
+    color: $medium-grey-color;
+    border-bottom: 1.5px solid #E5E5E5;
+    padding: 0 8px 10px;
+  }
+
+  td {
+    padding: 10px 8px;
+    border-bottom: 1px solid $grey-lightest-color;
+    font-size: 14px;
+    color: $black-color;
+    vertical-align: top;
+  }
+
+  tr:last-child td {
+    border-bottom: none;
+  }
+}
+
+.resultNote {
+  font-size: 12px;
+  color: $medium-grey-color;
+  margin-top: 4px;
+}

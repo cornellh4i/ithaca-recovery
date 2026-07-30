@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { getAuth } from "../../../services/auth";
-import AdminShell from "../../components/organisms/AdminShell";
+import AdminShell from "../../components/admin/AdminShell";
 
 export const metadata: Metadata = {
     title: "Admin | Ithaca Community Recovery",

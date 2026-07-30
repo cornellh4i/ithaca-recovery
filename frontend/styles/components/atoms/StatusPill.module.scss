@@ -10,8 +10,8 @@
 }
 
 .success {
-  background: #D4F4D2;
-  color: #4CAF50;
+  background: $success-bg-color;
+  color: $success-text-color;
 }
 
 .warning {
@@ -20,11 +20,11 @@
 }
 
 .neutral {
-  background: #F1F1F1;
+  background: $grey-lightest-color;
   color: $medium-grey-color;
 }
 
 .error {
   background: #FBE1E7;
-  color: $dark-pink-color;
+  color: $brand-pink-color;
 }

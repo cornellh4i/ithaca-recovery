@@ -1,7 +1,7 @@
 "use client";
 
 import { PropsWithChildren } from "react";
-import AppNavbar from "./components/organisms/AppNavbar";
+import AppNavbar from "./components/navbar/AppNavbar";
 import { Inter } from "next/font/google";
 import styles from "../styles/MainLayout.module.scss";
 import type { Session } from "next-auth";

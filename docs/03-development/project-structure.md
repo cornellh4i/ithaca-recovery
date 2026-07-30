@@ -30,7 +30,7 @@ ithaca-recovery/
 │   ├── public/        # Static assets (svg/, favicon)
 │   ├── config/        # jest/playwright/eslint configs (next.config.mjs and tsconfig.json stay
 │   │                  #   at the frontend/ root — both tools require that)
-│   ├── test/          # Playwright + Jest suite — see Testing section below
+│   ├── tests/         # Playwright + Jest suite — see Testing section below
 │   └── util/          # Shared types, formatting, and domain-logic utilities (incl. lease defaults)
 ├── .github/workflows/ # CI (test.yml — unit/integration/e2e jobs)
 └── docs/              # Documentation
@@ -61,9 +61,12 @@ app/
 │   ├── retrieve/lease-settings/, update/lease-settings/
 │   └── auth/authConfig.ts, auth/status/, auth/[...nextauth]/
 ├── components/
-│   ├── atoms/                   # Primitive UI elements
-│   ├── molecules/               # Composite components
-│   └── organisms/               # Feature-level components
+│   ├── atoms/                   # Primitive UI elements, shared across every domain
+│   ├── calendar/                # Day/Week views, calendar sidebar, meeting filters
+│   ├── meeting-form/            # New/Edit/View meeting, recurrence, Zoom host field
+│   ├── admin/                   # AdminShell + Diagnostics/Users/Import/Export tabs
+│   ├── navbar/                  # App-wide top nav
+│   └── shared/                  # Cross-domain components (kept intentionally small)
 ├── ClientLayout.tsx             # Client-side layout wrapper
 └── ProviderWrapper.tsx          # React context providers
 ```
@@ -76,13 +79,23 @@ app/
 | `/admin` | Admin shell: Diagnostics, Users, Import, Export tabs |
 | `/signage` | Read-only kiosk calendar for the physical display board |
 
-### Component Hierarchy (Atomic Design)
+### Component Hierarchy (by domain)
 
-**Atoms** — `app/components/atoms/`: `CheckBox`, `CheckButton`, `DatePicker`, `TimePicker`, `Dropdown`, `Logo`, `MiniCalendar`, `ModeTypeButtons`, `RadioGroup`, `SpinnerInput`, `StatCounter`, `StatusPill`, `TextButton`, `TextField`, `BoxText`
+Components are grouped by domain/feature rather than by atomic-design tier — with more components landing as the mobile view rolls out, "which folder is this in" is meant to answer "what does it do," not "how composite is it." `atoms/` is the one exception: it stays a single flat tier since primitives (`CheckBox`, `Dropdown`, `TextField`, etc.) are inherently domain-agnostic and get composed by every domain folder below.
 
-**Molecules** — `app/components/molecules/`: `CardHeader`, `DailyViewRow`, `DeleteRecurringModal`, `FilterGroup`, `MeetingsFilter`, `OverlapMeetingsModal`, `RecurringMeeting`, `WeeklyViewColumn`
+**`atoms/`** — `CheckBox`, `CheckButton`, `DatePicker`, `TimePicker`, `Dropdown`, `Logo`, `MiniCalendar`, `ModeTypeButtons`, `RadioGroup`, `SpinnerInput`, `StatCounter`, `StatusPill`, `TextButton`, `TextField`, `BoxText`, `GoogleSignInButton`, `IconButton`, `TagList`, `Tooltip`
 
-**Organisms** — `app/components/organisms/`: `AdminShell`, `AppNavbar`, `CalendarNavbar`, `CalendarSidebar`, `DailyView`, `WeeklyView`, `DiagnosticsTab`, `UsersTab`, `ImportTab`, `ExportTab`, `SignInPrompt`, `MeetingForm`, `NewMeeting`, `EditMeeting`, `ViewMeeting`
+**`calendar/`** — `CalendarNavbar`, `CalendarSidebar`, `CalendarSidebarShell`, `CompactCalendarSidebar`, `DailyView`, `DailyViewRow`, `WeeklyView`, `WeeklyViewColumn`, `MeetingsFilter`, `OverlapMeetingsModal`, `SignInPrompt` (the logged-out sidebar prompt — not a separate `auth/` domain; `/login` is self-contained and imports nothing from the shared component tree)
+
+**`meeting-form/`** — `NewMeeting`, `EditMeeting`, `MeetingForm`, `ViewMeeting`, `RecurringMeeting`, `ZoomHostField`, `DeleteMeetingModal`, `DeleteRecurringModal`
+
+**`admin/`** — `AdminShell`, `DiagnosticsTab`, `UsersTab`, `ImportTab`, `ExportTab`, `CardHeader`, `ConflictList` (imports `meeting-form/EditMeeting` so an admin can jump straight to editing a conflicting meeting — a normal cross-domain dependency, not a reason to relocate either component)
+
+**`navbar/`** — `AppNavbar`
+
+**`shared/`** — components genuinely used by 2+ domains, kept deliberately small: currently just `FilterGroup` (used by `calendar/MeetingsFilter`, `calendar/CompactCalendarSidebar`, and `admin/ExportTab`). Not a general dumping ground — if a component only has one caller, it belongs in that caller's domain, not here.
+
+`styles/components/` mirrors this exact folder structure (`atoms/`, `calendar/`, `meeting-form/`, `admin/`, `navbar/`, `shared/`) since every component imports its `.module.scss` by relative path — there are no barrel/index files in either tree.
 
 There's no `templates/` and `pages/` tier — page-level composition is inlined directly into `(main)/page.tsx`, `(signage)/page.tsx`, and `(main)/admin/page.tsx`.
 
@@ -129,7 +142,7 @@ See [api-reference.md](api-reference.md#data-types-reference) for the matching `
 2. The `signIn` callback looks up the user's email in the `Admin` table and rejects sign-in entirely if no row exists — accounts are invite-only, added via the Users tab (`POST /api/write/admin`), never self-registered.
 3. The `jwt` callback stores the Google access/refresh token on the session token, persists them onto the `Admin` row, and re-reads `role` from the DB on every token refresh (not just at login), so a role change or removal takes effect without waiting for the session to expire.
 4. Near-expiry access tokens are refreshed automatically against Google's token endpoint (`frontend/services/googleTokenRefresh.ts`); a revoked refresh token forces re-login. `frontend/proxy.ts` is what actually persists a refreshed token to the session cookie — `getServerSession()`'s single-argument code path (used elsewhere via `getAuth()`) can't write cookies, so without the proxy doing this, a refresh would silently re-run on every request instead of roughly once an hour. See [technical-decisions.md](../02-handoff/technical-decisions.md) for why.
-5. Route handlers call `requireRole(minRole)` (`frontend/services/auth.ts`) to gate access — see [api-reference.md](api-reference.md) for which routes require `ADMIN` vs `SUPER_ADMIN`. `frontend/test/unit/routeGuards.test.ts` enforces that every route either has this guard or is explicitly allowlisted as public, so a new route can't silently ship unguarded.
+5. Route handlers call `requireRole(minRole)` (`frontend/services/auth.ts`) to gate access — see [api-reference.md](api-reference.md) for which routes require `ADMIN` vs `SUPER_ADMIN`. `frontend/tests/unit/routeGuards.test.ts` enforces that every route either has this guard or is explicitly allowlisted as public, so a new route can't silently ship unguarded.
 
 ---
 
@@ -151,10 +164,10 @@ No Redis instance is required to run the app — the unused `redis` package and 
 
 ---
 
-## Testing (`frontend/test/`)
+## Testing (`frontend/tests/`)
 
-```
-test/
+```text
+tests/
 ├── e2e/           # Playwright specs, 1:1 with docs/testing/manual-test-script-template.md's sections
 │   └── support/   # Auth cookie minting, fail-soft sync-state fixtures
 ├── unit/          # Jest — pure functions, no I/O (plus routeGuards.test.ts, an AST-based check

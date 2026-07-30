@@ -7,11 +7,11 @@ const config: Config = {
   displayName: "integration",
   testEnvironment: "node",
   rootDir: "..",
-  testMatch: ["<rootDir>/test/integration/**/*.test.ts"],
+  testMatch: ["<rootDir>/tests/integration/**/*.test.ts"],
   transform: { "^.+\\.tsx?$": "@swc/jest" },
-  moduleNameMapper: { "^server-only$": "<rootDir>/test/mocks/server-only.js" },
-  globalSetup: "<rootDir>/test/integration/globalSetup.ts",
-  globalTeardown: "<rootDir>/test/integration/globalTeardown.ts",
+  moduleNameMapper: { "^server-only$": "<rootDir>/tests/mocks/server-only.js" },
+  globalSetup: "<rootDir>/tests/integration/globalSetup.ts",
+  globalTeardown: "<rootDir>/tests/integration/globalTeardown.ts",
   testTimeout: 30_000,
 };
 

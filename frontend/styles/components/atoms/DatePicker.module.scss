@@ -14,7 +14,7 @@
   transition: border-color 0.15s ease;
 
   &:focus-within {
-    border-color: $dark-pink-color;
+    border-color: $brand-pink-color;
   }
 
   .date-picker-label {

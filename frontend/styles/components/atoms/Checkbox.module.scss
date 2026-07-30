@@ -1,3 +1,5 @@
+@import '../../Variables.module.scss';
+
 .checkbox {
     display: flex;
     align-items: center;
@@ -20,7 +22,7 @@
     }
   
     .checkboxLabel {
-      color: var(--black, #1E1E1E);
+      color: var(--black, $black-color);
       font-family: "Source Sans Pro", sans-serif;
       font-size: 18px;
       font-style: normal;

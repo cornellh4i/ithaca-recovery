@@ -20,7 +20,7 @@ const eslintConfig = [
   },
   {
     // False positive: Playwright's `use` fixture param, not the React hook.
-    files: ["test/**"],
+    files: ["tests/**"],
     rules: {
       "react-hooks/rules-of-hooks": "off",
     },
@@ -30,12 +30,12 @@ const eslintConfig = [
     // dangerouslyAllowSVG for these and gains nothing doing so.
     files: [
       "app/components/atoms/BoxText.tsx",
-      "app/components/organisms/AppNavbar.tsx",
-      "app/components/organisms/CalendarNavbar.tsx",
-      "app/components/organisms/EditMeeting.tsx",
-      "app/components/organisms/NewMeeting.tsx",
-      "app/components/organisms/SignInPrompt.tsx",
-      "app/components/organisms/ViewMeeting.tsx",
+      "app/components/navbar/AppNavbar.tsx",
+      "app/components/calendar/CalendarNavbar.tsx",
+      "app/components/meeting-form/EditMeeting.tsx",
+      "app/components/meeting-form/NewMeeting.tsx",
+      "app/components/calendar/SignInPrompt.tsx",
+      "app/components/meeting-form/ViewMeeting.tsx",
     ],
     rules: {
       "@next/next/no-img-element": "off",

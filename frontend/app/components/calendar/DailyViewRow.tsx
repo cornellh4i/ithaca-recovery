@@ -1,0 +1,227 @@
+import React, { useState, useRef, useEffect } from 'react';
+import BoxText from '../atoms/BoxText';
+import OverlapMeetingsModal from './OverlapMeetingsModal';
+import styles from '../../../styles/components/calendar/DailyViewRow.module.scss';
+import { formatCompactTimeRange } from '../../../util/timeFormat';
+
+// Meeting Interface
+interface Meeting {
+  title: string;
+  startTime: string; // clipped to this day, for positioning
+  endTime: string; // clipped to this day, for positioning
+  displayStartTime?: string; // true time, for the label
+  displayEndTime?: string; // true time, for the label
+  tags?: string[];
+  id: string;
+  syncError?: boolean;
+  positionIndex?: number; // Lane index among overlapping meetings in this room, assigned by layoutOverlappingMeetings
+  totalOverlapping?: number; // Lane count among overlapping meetings in this room
+  isOverflowIndicator?: boolean; // "+N more" pseudo-entry standing in for meetings past the 2 shown lanes
+  overflowCount?: number;
+  overflowMeetings?: Meeting[]; // Full overlapping cluster (shown + folded), for the "+N" popup
+}
+
+// DailyViewRowProps Interface
+interface DailyViewRowProps {
+  roomColor: string;
+  meetings: Meeting[];
+  selectedMeetingID: string | null;
+  setSelectedMeetingID: (meetingId: string) => void;
+  setSelectedNewMeeting: (newMeetingExists: boolean) => void;
+  setAnchorEl: (el: HTMLElement) => void;
+  // Admin-only (see hooks/useConflictMids) -- mids with an unresolved conflict.
+  conflictMids?: Set<string>;
+}
+
+// 1 hour is 155px in width (155/60 px per minute), matching the 155px-wide hour columns.
+const timeToPixels = (time: string) => {
+  const [hours, minutes] = time.split(':').map(Number);
+  return hours * 155 + minutes * (155 / 60);
+};
+
+// BoxText's fixed Meeting Block height (BoxText.module.scss `.meeting`). When 2 meetings
+// share this room's row at once, each gets half of it, minus a small gap between them.
+const MEETING_SLOT_HEIGHT = 105;
+const LANE_GAP = 5;
+const LANE_HEIGHT = (MEETING_SLOT_HEIGHT - LANE_GAP) / 2;
+
+const DailyViewRow: React.FC<DailyViewRowProps> = ({
+  roomColor,
+  meetings,
+  selectedMeetingID,
+  setSelectedMeetingID,
+  setSelectedNewMeeting,
+  setAnchorEl,
+  conflictMids,
+}) => {
+  const [overlapModalMeetings, setOverlapModalMeetings] = useState<Meeting[] | null>(null);
+  // The "+N" pill that opened the modal -- kept as a fallback popup anchor, since the
+  // modal's own row is unmounted the instant it closes and getBoundingClientRect() on a
+  // detached node would anchor the popup nowhere useful. Superseded by the selected
+  // meeting's own card (see selectedCardRef below) once that card renders, since the pill
+  // sits in a fixed corner of the row and can be far from where the card actually is.
+  const [overlapAnchorEl, setOverlapAnchorEl] = useState<HTMLElement | null>(null);
+
+  // DOM node of whichever card currently has isSelected===true (normal or promoted).
+  // Selecting a meeting from the overflow modal re-anchors ViewMeeting to this once it
+  // mounts/updates, since the modal-open pill is a poor stand-in for the card's position.
+  const selectedCardRef = useRef<HTMLDivElement | null>(null);
+  // Set right before a modal-driven selection, so the effect below knows to re-anchor.
+  const pendingModalAnchorRef = useRef(false);
+
+  const handleBoxClick = (meetingId: string, el: HTMLElement) => {
+    console.log(`Meeting ${meetingId} clicked`);
+    setSelectedMeetingID(meetingId);
+    setSelectedNewMeeting(false);
+    setAnchorEl(el);
+  };
+
+  useEffect(() => {
+    if (pendingModalAnchorRef.current && selectedCardRef.current) {
+      setAnchorEl(selectedCardRef.current);
+      pendingModalAnchorRef.current = false;
+    }
+  }, [selectedMeetingID, setAnchorEl]);
+
+  // Renders a single meeting's card. `forceSelected` is used to promote a folded
+  // "+N" meeting (picked via the overflow modal) onto the stack even though it has
+  // no lane of its own -- same full-row/shadow treatment as selecting one of the two
+  // already-shown stacked meetings.
+  const renderMeetingCard = (meeting: Meeting, key: React.Key, forceSelected = false) => {
+    const startOffset = timeToPixels(meeting.startTime);
+    const endOffset = timeToPixels(meeting.endTime);
+    const width = endOffset - startOffset;
+
+    // Compact ET display (e.g. "9-10AM", "9-9:30AM", "11AM-12:30PM") — uses the true,
+    // unclipped time so a split overnight meeting still labels the same on both halves.
+    const compactTime = formatCompactTimeRange(
+      meeting.displayStartTime ?? meeting.startTime,
+      meeting.displayEndTime ?? meeting.endTime,
+    );
+
+    // Selecting a meeting brings it above any other overlapping meeting in this row --
+    // otherwise stacking just follows DOM/array order, so the clicked one could render
+    // underneath a later-starting neighbor it visually overlaps. Reverts on its own once
+    // deselected, since this is just a render-time override, not stored state.
+    const isSelected = forceSelected || meeting.id === selectedMeetingID;
+
+    // A single meeting fills the room's row exactly; overlapping meetings split it into
+    // top/bottom lanes instead (time already reads along the horizontal axis here, so
+    // overlap splits vertically -- the rotated equivalent of WeeklyView's side-by-side
+    // columns, where time reads vertically and overlap splits horizontally).
+    const isStacked = !!meeting.totalOverlapping && meeting.totalOverlapping > 1;
+    const laneTop = isStacked ? (meeting.positionIndex ?? 0) * (LANE_HEIGHT + LANE_GAP) : undefined;
+
+    return (
+      <div
+        key={key}
+        ref={isSelected ? selectedCardRef : undefined}
+        className={styles.meetingWrapper}
+        style={{
+          left: `${startOffset}px`,
+          width: `${width}px`,
+          top: isSelected ? 0 : laneTop,
+          height: isSelected ? undefined : (isStacked ? `${LANE_HEIGHT}px` : undefined),
+          // Above the "+N" overflow pill's z-index (12, DailyViewRow.module.scss) too,
+          // so a selected meeting is unambiguously the topmost thing in the row.
+          zIndex: isSelected ? 13 : undefined,
+        }}
+        onClick={(e) => e.stopPropagation()} // Prevent row click handler from firing
+      >
+        <BoxText
+          boxType="Meeting Block"
+          title={meeting.title}
+          primaryColor={roomColor}
+          time={compactTime}
+          tags={meeting.tags}
+          meetingId={meeting.id}
+          syncError={meeting.syncError}
+          hasConflict={conflictMids?.has(meeting.id)}
+          selected={isSelected}
+          fillHeight={isStacked && !isSelected}
+          compact={isStacked && !isSelected}
+          onClick={(meetingId, e) => {
+            handleBoxClick(meetingId, e.currentTarget);
+            e.stopPropagation();
+          }}
+        />
+      </div>
+    );
+  };
+
+  // If the selected meeting was picked from an overflow "+N" popup rather than one
+  // of the two normally-rendered stacked cards, it has no lane of its own -- find it
+  // in the folded cluster so it can be promoted onto the stack (see renderMeetingCard).
+  const renderedIds = new Set(meetings.filter(m => !m.isOverflowIndicator).map(m => m.id));
+  const promotedMeeting = selectedMeetingID && !renderedIds.has(selectedMeetingID)
+    ? meetings.flatMap(m => m.overflowMeetings ?? []).find(m => m.id === selectedMeetingID)
+    : undefined;
+
+  return (
+    <div style={{ cursor: "pointer", position: 'relative', width: '100%', height: '100%' }}>
+      <div>
+        {/* Render 24-hour blocks */}
+        {Array.from({ length: 24 }).map((_, colIndex) => (
+          <div key={colIndex}></div>
+        ))}
+
+        {/* Render meetings */}
+        {meetings.map((meeting, index) => {
+          if (meeting.isOverflowIndicator) {
+            // Anchored to the cluster's end time so the pill sits at the top-right of its
+            // time slot instead of top-left, where it would sit directly over the start of
+            // the meeting cards it stands in for (title/time text starts from the left edge).
+            const endOffset = timeToPixels(meeting.endTime);
+            return (
+              <div
+                key={index}
+                role="button"
+                tabIndex={0}
+                aria-label={`${meeting.overflowCount} more meetings at this time`}
+                className={styles.overflowIndicator}
+                style={{ left: `${endOffset}px`, transform: 'translateX(-100%)' }}
+                title={`${meeting.overflowCount} more meeting${meeting.overflowCount === 1 ? '' : 's'} at this time — click to see all meetings`}
+                onClick={(e) => {
+                  e.stopPropagation(); // Prevent row click handler from firing
+                  setOverlapModalMeetings(
+                    (meeting.overflowMeetings ?? []).map(m => ({ ...m, primaryColor: roomColor }))
+                  );
+                  setOverlapAnchorEl(e.currentTarget);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setOverlapModalMeetings(
+                      (meeting.overflowMeetings ?? []).map(m => ({ ...m, primaryColor: roomColor }))
+                    );
+                    setOverlapAnchorEl(e.currentTarget);
+                  }
+                }}
+              >
+                +{meeting.overflowCount}
+              </div>
+            );
+          }
+
+          return renderMeetingCard(meeting, index);
+        })}
+
+        {promotedMeeting && renderMeetingCard(promotedMeeting, `promoted-${promotedMeeting.id}`, true)}
+      </div>
+
+      <OverlapMeetingsModal
+        isOpen={overlapModalMeetings !== null}
+        meetings={overlapModalMeetings ?? []}
+        onClose={() => setOverlapModalMeetings(null)}
+        onSelectMeeting={(meetingId) => {
+          pendingModalAnchorRef.current = true;
+          if (overlapAnchorEl) handleBoxClick(meetingId, overlapAnchorEl);
+          setOverlapModalMeetings(null);
+        }}
+      />
+    </div>
+  );
+};
+
+export default DailyViewRow;
