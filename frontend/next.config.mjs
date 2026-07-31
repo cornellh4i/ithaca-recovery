@@ -6,6 +6,13 @@ const nextConfig = {
   ...(process.env.DEV_LAN_ORIGIN
     ? { allowedDevOrigins: [process.env.DEV_LAN_ORIGIN] }
     : {}),
+  // Dev-only overlay badge defaults to bottom-left, the same corner the mobile New Meeting
+  // FAB (MobileFab.tsx) is pinned to per spec -- it visually and pointer-event-wise covers
+  // the FAB in dev (confirmed via e2e: "intercepts pointer events"). Doesn't exist in
+  // production, so this is purely a local/dev-server ergonomics fix.
+  devIndicators: {
+    position: "bottom-right",
+  },
   sassOptions: {
     // Our .module.scss files still use the legacy @import syntax -- silences the resulting
     // Dart Sass deprecation warning (and its noisy "Import traces" dump) without hiding other

@@ -4,6 +4,7 @@ import styles from '../../../styles/components/meeting-form/ViewMeeting.module.s
 import DeleteRecurringModal from './DeleteRecurringModal';
 import DeleteMeetingModal from './DeleteMeetingModal';
 import TagList from '../atoms/TagList';
+import BottomSheet from '../atoms/BottomSheet';
 
 import { IRecurrencePattern } from '../../../util/models';
 import { formatCompactTimeRange, formatMeetingDateLine } from "../../../util/timeFormat";
@@ -58,6 +59,9 @@ type ViewMeetingDetailsProps = {
   conflictCount?: number;
   // The clicked meeting box, so the popup can anchor itself beside it.
   anchorEl: HTMLElement | null;
+  // Renders inside a bottom sheet instead of the desktop anchor-positioned popup -- no
+  // anchorEl/popupPosition math needed there (BottomSheet is always bottom-fixed).
+  isPhone?: boolean;
   // Gates the email row, Zoom host row, and the Edit/Delete kebab menu -- all of them are
   // either PII or actions a non-admin viewer can't act on (the backend already rejects the
   // writes; this just stops the UI from offering them in the first place). null while the
@@ -93,6 +97,7 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
   zoomSyncError: initialZoomSyncError,
   conflictCount = 0,
   anchorEl,
+  isPhone = false,
   isAdmin,
   onBack,
   onEdit,
@@ -177,8 +182,15 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
   }, [!!popupPosition]);
 
   // Closes the whole popup on an outside click -- clicks on the anchor box itself are left
-  // alone since that box's own onClick already handles re-selecting/toggling it.
+  // alone since that box's own onClick already handles re-selecting/toggling it. Desktop
+  // only: popupRef is never attached on phone (that branch renders inside BottomSheet, not
+  // the ref={popupRef} div below), so popupRef.current would always be null there --
+  // treating *every* click, including ones inside the sheet's own kebab menu, as "outside"
+  // and closing it immediately. BottomSheet already has its own correct backdrop-click-to-
+  // close handling for the phone case, so this effect simply doesn't need to run there.
   useEffect(() => {
+    if (isPhone) return;
+
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Node;
       if (popupRef.current?.contains(target)) return;
@@ -188,7 +200,7 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [anchorEl, onBack]);
+  }, [anchorEl, onBack, isPhone]);
 
   // Closes just the kebab dropdown on an outside click, independent of the popup-level one above.
   useEffect(() => {
@@ -339,49 +351,42 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
   const primaryLocation = room || (zoomRoom ? stripZoomSuffix(zoomRoom) : '');
   const showZoomMismatchRow = !!(room && zoomRoom && isZoomRoomMismatched(room, zoomRoom));
 
-  if (!anchorEl || !popupPosition) return null;
+  const content = (
+    <div className={styles.meetingDetails}>
+      <div className={styles.header}>
+        <button className={styles.backButton} onClick={onBack}>
+          <img src="/svg/back-arrow.svg" alt="Back" />
+        </button>
+        <h1>{title}</h1>
+        <span
+          className={styles.settingLabel}
+          style={{ backgroundColor: primaryColor, borderColor: primaryColor }}
+        >
+          {modeType}
+        </span>
+        {isAdmin && (
+          <div className={styles.moreOptions} ref={kebabRef}>
+            <button
+              aria-label="Meeting options"
+              aria-expanded={kebabOpen}
+              onClick={() => setKebabOpen((open) => !open)}
+            >
+              ⋮
+            </button>
+            {kebabOpen && (
+              <div className={styles.optionsMenu}>
+                <button onClick={() => { setKebabOpen(false); onEdit(); }}>Edit</button>
+                <button className={styles.deleteOption} onClick={handleDelete}>Delete</button>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
 
-  return createPortal(
-    <div
-      ref={popupRef}
-      className={styles.popupAnchor}
-      style={{ top: popupPosition.top, left: popupPosition.left, width: POPUP_WIDTH }}
-    >
-      <div className={styles.meetingDetails}>
-        <div className={styles.header}>
-          <button className={styles.backButton} onClick={onBack}>
-            <img src="/svg/back-arrow.svg" alt="Back" />
-          </button>
-          <h1>{title}</h1>
-          <span
-            className={styles.settingLabel}
-            style={{ backgroundColor: primaryColor, borderColor: primaryColor }}
-          >
-            {modeType}
-          </span>
-          {isAdmin && (
-            <div className={styles.moreOptions} ref={kebabRef}>
-              <button
-                aria-label="Meeting options"
-                aria-expanded={kebabOpen}
-                onClick={() => setKebabOpen((open) => !open)}
-              >
-                ⋮
-              </button>
-              {kebabOpen && (
-                <div className={styles.optionsMenu}>
-                  <button onClick={() => { setKebabOpen(false); onEdit(); }}>Edit</button>
-                  <button className={styles.deleteOption} onClick={handleDelete}>Delete</button>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+      <hr className={styles.divider} />
 
-        <hr className={styles.divider} />
-
-        <div className={styles.details}>
-          {(googleSyncStatus === 'error' || zoomSyncStatus === 'error') && (
+      <div className={styles.details}>
+        {(googleSyncStatus === 'error' || zoomSyncStatus === 'error') && (
             <p className={styles.dangerRow}>
               <img src="/svg/sync-error-icon.svg" alt="" />
               <span>
@@ -517,9 +522,12 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
               tagStyle={{ padding: '2px 12px', fontSize: '12px', color: '#000' }}
             />
           )}
-        </div>
       </div>
+    </div>
+  );
 
+  const modals = (
+    <React.Fragment>
       <DeleteRecurringModal
         isOpen={showDeleteModal}
         onClose={() => setShowDeleteModal(false)}
@@ -532,6 +540,30 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
         onCancel={() => setShowDeleteConfirm(false)}
         onConfirm={handleConfirmDelete}
       />
+    </React.Fragment>
+  );
+
+  if (isPhone) {
+    return (
+      <React.Fragment>
+        <BottomSheet isOpen onClose={onBack} title={title} hideTitleVisually>
+          {content}
+        </BottomSheet>
+        {modals}
+      </React.Fragment>
+    );
+  }
+
+  if (!anchorEl || !popupPosition) return null;
+
+  return createPortal(
+    <div
+      ref={popupRef}
+      className={styles.popupAnchor}
+      style={{ top: popupPosition.top, left: popupPosition.left, width: POPUP_WIDTH }}
+    >
+      {content}
+      {modals}
     </div>,
     document.body
   );
