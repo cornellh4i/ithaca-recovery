@@ -4,8 +4,9 @@ import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Logo from "../atoms/Logo";
-import { useSession, signOut } from "next-auth/react";
+import { useSession } from "next-auth/react";
 import Tooltip from "../atoms/Tooltip";
+import ProfileCard from "./ProfileCard";
 import styles from "../../../styles/components/navbar/AppNavbar.module.scss";
 
 const AppNavbar: React.FC = () => {
@@ -146,32 +147,11 @@ const AppNavbar: React.FC = () => {
                                     </button>
                                 </Tooltip>
                                 {openFlyout && (
-                                    <div 
-                                        id="user-profile-flyout" 
+                                    <div
+                                        id="user-profile-flyout"
                                         className={styles.flyout}
                                     >
-                                        <div className={styles.flyoutHeader}>
-                                            {userAvatar}
-                                            <div className={styles.flyoutInfo}>
-                                                <span className={styles.welcome}>Hi, {session.user.name}</span>
-                                                <span className={styles.flyoutEmail}>{session.user.email}</span>
-                                                <span className={styles.flyoutRole}>
-                                                    {session.user.role === "SUPER_ADMIN"
-                                                        ? "Super Admin"
-                                                        : session.user.role === "ADMIN"
-                                                        ? "Admin"
-                                                        : "User"}
-                                                </span>
-                                            </div>
-                                        </div>
-                                        <hr className={styles.flyoutSeparator} />
-                                        <button
-                                            type="button"
-                                            className={styles.signOutButton}
-                                            onClick={() => signOut({ callbackUrl: "/" })}
-                                        >
-                                            <span>Sign Out</span>
-                                        </button>
+                                        <ProfileCard session={session} userAvatar={userAvatar} />
                                     </div>
                                 )}
                             </div>

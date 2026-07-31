@@ -50,7 +50,14 @@ export const MAX_VISIBLE_OVERLAP = 2;
  *    occupant has already ended (classic interval-graph-coloring calendar layout) — the
  *    cluster's column count becomes every meeting's totalOverlapping/width divisor.
  */
-export const layoutOverlappingMeetings = <T extends OverlapMeeting>(meetings: T[]): T[] => {
+export const layoutOverlappingMeetings = <T extends OverlapMeeting>(
+    meetings: T[],
+    maxVisibleOverlap: number = MAX_VISIBLE_OVERLAP,
+): T[] => {
+    if (!Number.isInteger(maxVisibleOverlap) || maxVisibleOverlap < 1) {
+        throw new RangeError('maxVisibleOverlap must be a positive integer');
+    }
+
     // Title as a tiebreaker keeps column/overflow assignment consistent across renders
     // and across days — meetings sharing a start time would otherwise fall back to
     // whatever order the database happened to return them in, which isn't guaranteed
@@ -106,20 +113,20 @@ export const layoutOverlappingMeetings = <T extends OverlapMeeting>(meetings: T[
             }
             : undefined;
 
-        if (totalOverlapping <= MAX_VISIBLE_OVERLAP) {
+        if (totalOverlapping <= maxVisibleOverlap) {
             positioned.forEach(meeting => {
                 result.push(totalOverlapping > 1 ? { ...meeting, totalOverlapping, clusterRange } : meeting);
             });
             return;
         }
 
-        // Cap at MAX_VISIBLE_OVERLAP full columns; fold the rest into one "+N more"
+        // Cap at maxVisibleOverlap full columns; fold the rest into one "+N more"
         // indicator spanning their combined time range.
-        const shown = positioned.filter(m => (m.positionIndex ?? 0) < MAX_VISIBLE_OVERLAP);
-        const overflow = positioned.filter(m => (m.positionIndex ?? 0) >= MAX_VISIBLE_OVERLAP);
+        const shown = positioned.filter(m => (m.positionIndex ?? 0) < maxVisibleOverlap);
+        const overflow = positioned.filter(m => (m.positionIndex ?? 0) >= maxVisibleOverlap);
 
         shown.forEach(meeting => {
-            result.push({ ...meeting, totalOverlapping: MAX_VISIBLE_OVERLAP, clusterRange });
+            result.push({ ...meeting, totalOverlapping: maxVisibleOverlap, clusterRange });
         });
 
         // Only OverlapMeeting's own fields are known here -- any extra fields a caller's T
