@@ -1,4 +1,4 @@
-import React, { useMemo, useRef } from "react";
+import React, { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
 import WeekStrip from "./WeekStrip";
 import CalendarHeader from "./CalendarHeader";
 import DayColumn from "./DayColumn";
@@ -87,10 +87,35 @@ const MobileCalendarView: React.FC<MobileCalendarViewProps> = ({
     }));
   }, [allMeetings, filters, selectedDate]);
 
-  const isToday = formatETDateString(selectedDate) === formatETDateString(new Date());
+  const selectedEtDateStr = formatETDateString(selectedDate);
+  const isToday = selectedEtDateStr === formatETDateString(new Date());
 
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const lastScrollTopRef = useRef(0);
+  // Gates .scrollArea's visibility until the very first scroll-to-current-time completes --
+  // same flash DailyView/WeeklyView's own scrollToCurrentTime has always had (a beat of the
+  // wrong scroll position at 12 AM before JS jumps it to "now"), which useLayoutEffect alone
+  // doesn't fully rule out (e.g. a slow first paint). One-way: only ever flips true once, on
+  // the very first date this view renders -- later date changes don't re-hide already-
+  // visible content.
+  const [initialScrollDone, setInitialScrollDone] = useState(false);
+
+  const scrollToCurrentTime = useCallback(() => {
+    const el = scrollAreaRef.current;
+    if (!el) return;
+    const now = new Date();
+    const nowPositionPx = (now.getHours() * 60 + now.getMinutes()) * (MOBILE_HOUR_HEIGHT / 60);
+    const scrollPosition = Math.max(0, nowPositionPx - MOBILE_HOUR_HEIGHT * 2);
+    el.scrollTop = scrollPosition;
+    // Keeps handleScroll's own delta calculation from seeing this programmatic jump as a
+    // user scroll-down and hiding the mobile navbar the instant this view mounts.
+    lastScrollTopRef.current = scrollPosition;
+  }, []);
+
+  useLayoutEffect(() => {
+    scrollToCurrentTime();
+    setInitialScrollDone(true);
+  }, [selectedEtDateStr, scrollToCurrentTime]);
 
   const handleScroll = () => {
     const el = scrollAreaRef.current;
@@ -113,7 +138,10 @@ const MobileCalendarView: React.FC<MobileCalendarViewProps> = ({
         className={styles.scrollArea}
         ref={scrollAreaRef}
         onScroll={handleScroll}
-        style={scrollLocked ? { overflow: "hidden" } : undefined}
+        style={{
+          ...(scrollLocked ? { overflow: "hidden" } : undefined),
+          visibility: initialScrollDone ? "visible" : "hidden",
+        }}
       >
         <div className={styles.timeColumn}>
           {timeSlots.map((time, index) => (
