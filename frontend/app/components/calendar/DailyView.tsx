@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useLayoutEffect, useState, useRef } from "react";
+import React, { useCallback, useEffect, useState, useRef } from "react";
 import styles from '../../../styles/components/calendar/DailyView.module.scss';
 import BoxText from '../atoms/BoxText';
 import DailyViewRow from "./DailyViewRow";
@@ -229,18 +229,9 @@ const DailyView: React.FC<DailyViewProps> = ({
     }
   }, [updateTimePosition]);
 
-  // Gates .viewContainer's visibility until the very first scroll-to-current-time
-  // completes -- without this there's a beat of the wrong scroll position visible before JS
-  // jumps it to "now". One-way: only ever flips true once, on this view's first mount --
-  // later date changes reset scroll position same as always but don't re-hide already-
-  // visible content.
-  const [initialScrollDone, setInitialScrollDone] = useState(false);
-
-  // useLayoutEffect (not useEffect) so the scroll jump happens before paint.
-  useLayoutEffect(() => {
+  useEffect(() => {
     fetchData();
     scrollToCurrentTime();
-    setInitialScrollDone(true);
 
     const intervalId = setInterval(updateTimePosition, 60000);
 
@@ -283,10 +274,7 @@ const DailyView: React.FC<DailyViewProps> = ({
       <div
         ref={scrollContainerRef}
         className={styles.viewContainer}
-        style={{
-          ...(scrollLocked ? { overflow: 'hidden' } : undefined),
-          visibility: initialScrollDone ? 'visible' : 'hidden',
-        }}
+        style={scrollLocked ? { overflow: 'hidden' } : undefined}
       >
         <div className={styles.roomContainer}>
           <div className={styles.roomCorner} />
