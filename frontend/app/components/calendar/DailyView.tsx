@@ -191,11 +191,11 @@ const DailyView: React.FC<DailyViewProps> = ({
 
   // Ref instead of a `selectedDate` closure/dependency so fetchData's identity stays
   // stable across date changes — needed so the refreshTrigger effect below doesn't fire
-  // an extra forced fetch every time the date changes (see that effect's comment).
+  // an extra forced fetch every time the date changes (see that effect's comment). Synced
+  // inside the useLayoutEffect below (not a separate useEffect) -- layout effects always
+  // run before passive effects regardless of declaration order, so a separate useEffect
+  // here would sync the ref *after* that layout effect's fetchData() already read it.
   const selectedDateRef = useRef(selectedDate);
-  useEffect(() => {
-    selectedDateRef.current = selectedDate;
-  }, [selectedDate]);
 
   const updateTimePosition = useCallback(() => {
     const now = new Date();
@@ -238,6 +238,7 @@ const DailyView: React.FC<DailyViewProps> = ({
 
   // useLayoutEffect (not useEffect) so the scroll jump happens before paint.
   useLayoutEffect(() => {
+    selectedDateRef.current = selectedDate;
     fetchData();
     scrollToCurrentTime();
     setInitialScrollDone(true);
