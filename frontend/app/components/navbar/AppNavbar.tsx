@@ -49,6 +49,14 @@ const AppNavbar: React.FC = () => {
         };
     }, [openFlyout]);
 
+    // null means useIsPhone() hasn't resolved yet (no window on the server, client hasn't
+    // measured) -- render nothing rather than falling through to the desktop nav below,
+    // which is exactly the flash on a real phone useIsPhone's own layout-effect fix already
+    // guards against; a null check here is the other half of that fix.
+    if (isPhone === null) {
+        return null;
+    }
+
     if (isPhone) {
         return <MobileAppNavbar session={session} status={status} userAvatar={userAvatar} />;
     }
