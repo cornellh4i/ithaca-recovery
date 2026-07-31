@@ -1,15 +1,16 @@
 "use client";
 
 import React, { useState } from "react";
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { Session } from "next-auth";
 import MenuIcon from "@mui/icons-material/Menu";
 import FilterListIcon from "@mui/icons-material/FilterList";
+import LockIcon from "@mui/icons-material/Lock";
 import IconButton from "../atoms/IconButton";
 import BottomSheet from "../atoms/BottomSheet";
 import AppSidebar from "./AppSidebar";
 import ProfileCard from "./ProfileCard";
+import MobileLoginSheet from "./MobileLoginSheet";
 import MiniCalendar from "../atoms/MiniCalendar";
 import MeetingsFilter from "../calendar/MeetingsFilter";
 import { useCalendarContext } from "../../context/CalendarProvider";
@@ -36,6 +37,7 @@ const MobileAppNavbar: React.FC<MobileAppNavbarProps> = ({ session, status, user
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [openSheet, setOpenSheet] = useState<OpenSheet>(null);
+  const [loginOpen, setLoginOpen] = useState(false);
   const closeSheet = () => setOpenSheet(null);
 
   const unselectedFilterCount = Object.values(dayFilters).filter((value) => !value).length;
@@ -101,9 +103,14 @@ const MobileAppNavbar: React.FC<MobileAppNavbarProps> = ({ session, status, user
             {userAvatar}
           </button>
         ) : (
-          <Link href="/login" className={styles.profileButton} aria-label="Sign in">
-            {userAvatar}
-          </Link>
+          <button
+            type="button"
+            className={`${styles.profileButton} ${styles.profileButtonSignedOut}`}
+            aria-label="Sign in"
+            onClick={() => setLoginOpen(true)}
+          >
+            <LockIcon className={styles.lockIcon} />
+          </button>
         )}
       </div>
 
@@ -133,6 +140,8 @@ const MobileAppNavbar: React.FC<MobileAppNavbarProps> = ({ session, status, user
           <ProfileCard session={session} userAvatar={userAvatar} />
         </BottomSheet>
       )}
+
+      <MobileLoginSheet isOpen={loginOpen} onBack={() => setLoginOpen(false)} />
     </div>
   );
 };

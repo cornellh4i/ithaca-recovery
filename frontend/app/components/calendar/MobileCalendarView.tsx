@@ -135,8 +135,8 @@ const MobileCalendarView: React.FC<MobileCalendarViewProps> = ({
   // same flash DailyView/WeeklyView's own scrollToCurrentTime has always had (a beat of the
   // wrong scroll position at 12 AM before JS jumps it to "now"), which useLayoutEffect alone
   // doesn't fully rule out (e.g. a slow first paint). One-way: only ever flips true once, on
-  // the very first date this view renders -- later date changes don't re-hide already-
-  // visible content.
+  // the very first date this view renders -- later date changes (day swipe/tap/mini-calendar
+  // pick) reset scroll position same as always but don't re-hide already-visible content.
   const [initialScrollDone, setInitialScrollDone] = useState(false);
 
   const scrollToCurrentTime = useCallback(() => {
