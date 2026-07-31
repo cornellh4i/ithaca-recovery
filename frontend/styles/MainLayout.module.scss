@@ -1,3 +1,5 @@
+@import 'Variables.module';
+
 // No global stylesheet exists in this app (SCSS modules only) -- this is the one file
 // guaranteed to load on every page, so it owns zeroing the browser's default 8px body
 // margin. Without this, that margin is 16px (top+bottom) of real, page-level scroll room
@@ -17,11 +19,24 @@
 
     .navigation {
         flex: 0 1 auto;
+
+        // MobileAppNavbar (rendered here below $breakpoint-phone -- see AppNavbar.tsx's
+        // useIsPhone() branch) is position: fixed so it can slide off-screen on scroll
+        // without leaving a gap in the flex flow -- this wrapper reserves no layout height
+        // of its own in that case, so .content below gets the matching top padding instead.
+        @media (width <= $breakpoint-phone) {
+            height: 0;
+            overflow: visible;
+        }
     }
 
     .content {
         flex: 1 1 auto;
         min-height: 0; // lets this shrink to the space left under the navbar, so overflow-y actually scrolls instead of growing past the viewport
         overflow-y: auto;
+
+        @media (width <= $breakpoint-phone) {
+            padding-top: 48px; // matches MobileAppNavbar.module.scss's fixed 48px height
+        }
     }
 }

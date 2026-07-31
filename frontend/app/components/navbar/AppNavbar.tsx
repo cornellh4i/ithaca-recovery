@@ -4,20 +4,22 @@ import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Logo from "../atoms/Logo";
-import { useSession } from "next-auth/react";
 import Tooltip from "../atoms/Tooltip";
 import ProfileCard from "./ProfileCard";
+import MobileAppNavbar from "./MobileAppNavbar";
+import { useIsPhone } from "../../../hooks/useIsPhone";
+import { useUserAvatar } from "../../../hooks/useUserAvatar";
 import styles from "../../../styles/components/navbar/AppNavbar.module.scss";
 
 const AppNavbar: React.FC = () => {
-    const { data: session, status } = useSession();
+    const isPhone = useIsPhone();
+    const { session, status, userAvatar } = useUserAvatar(styles.avatar, styles.avatarFallback);
 
     const isAdmin = session?.user?.role === "ADMIN" || session?.user?.role === "SUPER_ADMIN";
     const pathname = usePathname();
     const navItemClass = (isActive: boolean) => `btn btn-ghost ${isActive ? styles.active : ""}`;
 
     const [openFlyout, setOpenFlyout] = useState<boolean>(false);
-    const [imageError, setImageError] = useState(false);
     const flyoutRef = useRef<HTMLDivElement>(null);
     const buttonRef = useRef<HTMLButtonElement>(null);
 
@@ -47,39 +49,17 @@ const AppNavbar: React.FC = () => {
         };
     }, [openFlyout]);
 
-    // Pre-verify image URL viability when session updates
-    useEffect(() => {
-        const imageUrl = session?.user?.image;
-        if (!imageUrl) {
-            setImageError(true);
-            return;
-        }
+    // null means useIsPhone() hasn't resolved yet (no window on the server, client hasn't
+    // measured) -- render nothing rather than falling through to the desktop nav below,
+    // which is exactly the flash on a real phone useIsPhone's own layout-effect fix already
+    // guards against; a null check here is the other half of that fix.
+    if (isPhone === null) {
+        return null;
+    }
 
-        let isCurrent = true;
-        const img = new Image();
-        img.src = imageUrl;
-
-        img.onload = () => { if (isCurrent) setImageError(false)};
-        img.onerror = () => { if (isCurrent) setImageError(true)};
-
-        return () => {
-            isCurrent = false;
-        };
-    }, [session?.user?.image]);
-
-    const userAvatar = (
-        session?.user.image && !imageError ? (
-            <img
-                src={session.user.image}
-                alt={session.user.name ?? "User avatar"}
-                title={session.user.name ?? "Account"}
-                className={styles.avatar}
-                onError={() => setImageError(true)}
-            />
-        ) : (
-            <div className={styles.avatarFallback}>{session?.user.name?.[0] ?? "U"}</div>
-        )
-    );
+    if (isPhone) {
+        return <MobileAppNavbar session={session} status={status} userAvatar={userAvatar} />;
+    }
 
     return (
         <div className={styles.navbar}>

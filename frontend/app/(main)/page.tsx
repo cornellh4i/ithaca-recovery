@@ -9,8 +9,8 @@ import WeeklyView from "../components/calendar/WeeklyView";
 
 import { convertUTCToET } from "../../util/timeUtils";
 import { IMeeting } from "../../util/models";
-import { createDefaultFilters } from "../../util/meetingFilters";
 import { useConflictMids } from "../../hooks/useConflictMids";
+import { useCalendarContext } from "../context/CalendarProvider";
 
 export default function HomePage() {
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
@@ -57,10 +57,18 @@ export default function HomePage() {
     checkAuthStatus();
   }, []);
 
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const {
+    selectedDate,
+    setSelectedDate,
+    selectedView,
+    setSelectedView,
+    dayFilters,
+    setDayFilters,
+    weekFilters,
+    setWeekFilters,
+  } = useCalendarContext();
   const [selectedMeeting, setSelectedMeeting] = useState<IMeeting | null>(null);
   const [selectedMeetingID, setSelectedMeetingID] = useState<string | null>(null);
-  const [selectedView, setSelectedView] = useState<string>("Day");
   const [, setSelectedNewMeeting] = useState<boolean | null>(false);
   const [showEditMeeting, setShowEditMeeting] = useState(false);
   const [lastClickedDate, setLastClickedDate] = useState<Date | null>(null);
@@ -197,11 +205,6 @@ export default function HomePage() {
     }
   };
 
-  // Both views default to every room visible -- Week previously defaulted rooms off
-  // (opt-in), but a signed-out user has no sidebar/filter UI to ever check a box, so
-  // Week view rendered permanently empty for them.
-  const [dayFilters, setDayFilters] = useState(() => createDefaultFilters(true));
-  const [weekFilters, setWeekFilters] = useState(() => createDefaultFilters(true));
   const filters = selectedView === "Day" ? dayFilters : weekFilters;
   const setFilters = selectedView === "Day" ? setDayFilters : setWeekFilters;
   const convertESTStringToDate = (estDateString: string): Date => {
