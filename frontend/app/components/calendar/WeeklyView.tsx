@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import styles from '../../../styles/components/calendar/WeeklyView.module.scss';
 import WeeklyViewColumn from "./WeeklyViewColumn";
 import { passesTagFilters, passesRoomFilter, MeetingFilters } from "../../../util/meetingFilters";
@@ -195,14 +195,23 @@ const WeeklyView: React.FC<WeeklyViewProps> = ({
         }
     }
 
-    // Fetch meetings for the entire week
-    useEffect(() => {
+    // Gates .viewContainer's visibility until the very first scroll-to-current-time
+    // completes -- without this there's a beat of the wrong scroll position (12 AM) visible
+    // before JS jumps it to "now". One-way: only ever flips true once, on this view's first
+    // mount -- later week changes reset scroll position same as always but don't re-hide
+    // already-visible content.
+    const [initialScrollDone, setInitialScrollDone] = useState(false);
+
+    // Fetch meetings for the entire week. useLayoutEffect (not useEffect) so the scroll
+    // jump happens before paint.
+    useLayoutEffect(() => {
         fetchWeekMeetings();
         // Sets the current-time indicator immediately rather than leaving it blank for up
         // to 60s until the interval below first fires.
         // eslint-disable-next-line react-hooks/set-state-in-effect
         updateTimePosition();
         scrollToCurrentTime();
+        setInitialScrollDone(true);
 
         const intervalId = setInterval(updateTimePosition, 60000);
         return () => clearInterval(intervalId);
@@ -256,7 +265,10 @@ const WeeklyView: React.FC<WeeklyViewProps> = ({
             <div
                 className={styles.viewContainer}
                 ref={viewContainerRef}
-                style={scrollLocked ? { overflow: 'hidden' } : undefined}
+                style={{
+                    ...(scrollLocked ? { overflow: 'hidden' } : undefined),
+                    visibility: initialScrollDone ? 'visible' : 'hidden',
+                }}
             >
                 {/* Time column */}
                 <div className={styles.timeColumn}>
