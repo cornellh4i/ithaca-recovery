@@ -32,11 +32,15 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 32px;
-    height: 32px;
+    // Matches MiniCalendar's fixed 32px day circles minus the 2px ring width below, so a
+    // today (not selected) circle's outer edge lines up with a selected circle's outer edge
+    // instead of the ring making today's circle read larger.
+    width: 28px;
+    height: 28px;
     border-radius: 50%;
     font-size: 15px;
     color: $black-color;
+    box-sizing: border-box;
 }
 
 // Selected, not today -- $brand-pink-secondary instead of MiniCalendar's toPastelColor($brand-
@@ -46,10 +50,12 @@
     color: #fff;
 }
 
-// Today, not selected.
+// Today, not selected -- bold pink text alone reads too close to a plain bold day, so this
+// also gets an outline ring, matching MiniCalendar's today treatment.
 .today {
     color: $brand-pink-color;
     font-weight: 700;
+    border: 2px solid $brand-pink-color;
 }
 
 // Today and selected.
