@@ -90,9 +90,21 @@ const WeekStrip: React.FC = () => {
             {/* layoutId lets framer-motion FLIP-animate the highlight moving between
                 buttons within the same week (same-week tap/swipe); on a week-boundary
                 change the whole strip below swaps instead, so there's no shared element
-                to animate between the old and new week's buttons. */}
+                to animate between the old and new week's buttons. Explicit layout
+                transition (not framer-motion's default spring) matters here specifically
+                because this strip's own position also moves via MainLayout's unrelated,
+                CSS-driven `.content` padding-top collapse on scroll (see MainLayout.module
+                .scss) -- a longer/bouncier default spring would still be mid-flight
+                (re-measuring a stale box) after that 0.25s ease transition has already
+                settled, and CalendarHeader (which has no competing animation) would then
+                render flush against WeekStrip's *already-correct* final position while this
+                highlight visually lags behind, reading as the header overlapping the strip. */}
             {isSelected ? (
-              <motion.span layoutId="week-strip-highlight" className={circleClass}>
+              <motion.span
+                layoutId="week-strip-highlight"
+                className={circleClass}
+                transition={{ layout: { duration: 0.25, ease: "easeOut" } }}
+              >
                 {formatDayNumber(day)}
               </motion.span>
             ) : (
