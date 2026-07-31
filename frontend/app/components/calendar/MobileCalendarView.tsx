@@ -44,6 +44,14 @@ const SCROLL_HIDE_THRESHOLD_PX = 4;
 const SWIPE_OFFSET_THRESHOLD = 60;
 const SWIPE_VELOCITY_THRESHOLD = 400;
 
+// Caps how far dayColumnWrapper visually follows the drag before release snaps it back.
+// Without this, dragging rightward (swiping backward to the previous day) had nothing
+// stopping the wrapper from sliding arbitrarily far away from .timeColumn's fixed left
+// edge, opening an ever-growing gap between the two -- WeekStrip's own drag wrapper has no
+// such neighboring sibling to detach from, so it never needed a constraint. Larger than
+// SWIPE_OFFSET_THRESHOLD so the preview isn't clamped before a real swipe even registers.
+const DRAG_PREVIEW_MAX_PX = 100;
+
 interface MobileCalendarViewProps {
   filters: MeetingFilters;
   selectedDate: Date;
@@ -182,6 +190,8 @@ const MobileCalendarView: React.FC<MobileCalendarViewProps> = ({
         <motion.div
           className={styles.dayColumnWrapper}
           drag="x"
+          dragConstraints={{ left: -DRAG_PREVIEW_MAX_PX, right: DRAG_PREVIEW_MAX_PX }}
+          dragElastic={0.3}
           dragSnapToOrigin
           onDragEnd={handleDaySwipeEnd}
           style={{ touchAction: "pan-y" }}
