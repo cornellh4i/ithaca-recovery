@@ -236,6 +236,13 @@ export default function HomePage() {
 
   const isPhone = useIsPhone();
 
+  // Same null-during-resolution guard as AppNavbar: isPhone starts null until the client's
+  // first layout effect measures the viewport, and both branches below treat a falsy isPhone
+  // as "desktop" -- without this, every load would flash the desktop sidebar/grid first.
+  if (isPhone === null) {
+    return null;
+  }
+
   return (
     <div className={styles.container}>
       {/* No sidebar on mobile -- filters/mini-calendar move into MobileAppNavbar's bottom
