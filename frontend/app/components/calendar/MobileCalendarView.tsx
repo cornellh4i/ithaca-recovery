@@ -152,8 +152,10 @@ const MobileCalendarView: React.FC<MobileCalendarViewProps> = ({
   }, []);
 
   useLayoutEffect(() => {
-    scrollToCurrentTime();
-    setInitialScrollDone(true);
+    if (initialScrollDone === false){
+      scrollToCurrentTime();
+      setInitialScrollDone(true);
+    }
   }, [selectedEtDateStr, scrollToCurrentTime]);
 
   const handleScroll = () => {
