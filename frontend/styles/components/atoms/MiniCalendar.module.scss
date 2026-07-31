@@ -144,6 +144,7 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
+
             // Fixed at the nominal day-cell size rather than 100% of this button's own box --
             // table-layout: fixed on .rdp-month_grid stretches columns to fill the sidebar
             // width, so 100% would grow past the intended 32px circle (36.57px in the 280px
@@ -175,6 +176,7 @@
         left: 50%;
         transform: translate(-50%, -50%);
         z-index: -1;
+
         // Matches the hover circle's fixed sizing above -- see that comment for why 100%
         // (of this cell's own, table-stretched box) isn't used here.
         width: var(--rdp-day-width);

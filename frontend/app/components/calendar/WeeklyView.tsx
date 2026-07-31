@@ -205,16 +205,25 @@ const WeeklyView: React.FC<WeeklyViewProps> = ({
     // Fetch meetings for the entire week. useLayoutEffect (not useEffect) so the scroll
     // jump happens before paint.
     useLayoutEffect(() => {
-        fetchWeekMeetings();
-        // Sets the current-time indicator immediately rather than leaving it blank for up
-        // to 60s until the interval below first fires.
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        updateTimePosition();
-        scrollToCurrentTime();
-        setInitialScrollDone(true);
+        let cancelled = false;
+
+        const initialize = async () => {
+            // Sets the current-time indicator immediately rather than leaving it blank for up
+            // to 60s until the interval below first fires.
+            updateTimePosition();
+            scrollToCurrentTime();
+            await fetchWeekMeetings();
+            if (!cancelled) {
+                setInitialScrollDone(true);
+            }
+        };
+        void initialize();
 
         const intervalId = setInterval(updateTimePosition, 60000);
-        return () => clearInterval(intervalId);
+        return () => {
+            cancelled = true;
+            clearInterval(intervalId);
+        };
     }, [weekStartDate, fetchWeekMeetings, updateTimePosition, scrollToCurrentTime]);
 
     // Watch for refresh trigger changes

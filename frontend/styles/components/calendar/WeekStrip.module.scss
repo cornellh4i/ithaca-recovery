@@ -1,4 +1,4 @@
-@import '../../Variables.module.scss';
+@import '../../Variables.module';
 
 .strip {
     display: flex;
@@ -32,6 +32,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
+
     // Matches MiniCalendar's fixed 32px day circles minus the 2px ring width below, so a
     // today (not selected) circle's outer edge lines up with a selected circle's outer edge
     // instead of the ring making today's circle read larger.
