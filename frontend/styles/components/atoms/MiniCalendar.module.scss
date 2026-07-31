@@ -132,12 +132,13 @@
     }
 }
 
-// Selected day style
+// Selected day style. Today-and-selected stays solid brand-pink (below); a selected day that
+// isn't today gets the pastel tint instead, matching WeekStrip's coloring logic.
 .selectedDay {
     color: white !important;
     position: relative;
     z-index: 1;
-    
+
     &::before {
         background-clip: padding-box;
         background-color: $brand-pink-color;
@@ -153,6 +154,14 @@
         aspect-ratio: 1;
     }
 
+}
+
+// toPastelColor($brand-pink-color) from util/color.ts, computed once and hardcoded here --
+// Sass can't call that TS function directly (same reason breakpoints/room colors are kept in
+// sync manually elsewhere in this codebase). Re-run toPastelColor('#CC3366') if
+// $brand-pink-color ever changes.
+.selectedDay:not(.today)::before {
+    background-color: rgb(240 194 209);
 }
 
 // The hover rule above actually compiles to .container .rdp-day_button:hover:not(:disabled)::before
@@ -174,5 +183,4 @@
 .today:not(.selectedDay) {
     color: $brand-pink-color;
     font-weight: bold;
-    text-decoration: underline;
 }

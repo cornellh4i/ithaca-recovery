@@ -1,0 +1,61 @@
+@import '../../Variables.module.scss';
+
+.strip {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 4px;
+    background-color: #fff;
+    border-bottom: 1px solid $grey-border-color;
+}
+
+.dayButton {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    flex: 1 1 0;
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    font: inherit;
+}
+
+.weekday {
+    font-size: 11px;
+    font-weight: 600;
+    color: $medium-grey-color;
+    text-transform: uppercase;
+}
+
+.circle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    font-size: 15px;
+    color: $black-color;
+}
+
+// Selected, not today -- toPastelColor($brand-pink-color) from util/color.ts, computed once
+// and hardcoded here (Sass can't call that TS function directly; re-run
+// toPastelColor('#CC3366') if $brand-pink-color ever changes -- same manual-sync convention
+// as MiniCalendar.module.scss's matching rule).
+.selectedNotToday {
+    background-color: rgb(240 194 209);
+    color: #fff;
+}
+
+// Today, not selected.
+.today {
+    color: $brand-pink-color;
+    font-weight: 700;
+}
+
+// Today and selected.
+.selectedToday {
+    background-color: $brand-pink-color;
+    color: #fff;
+}
