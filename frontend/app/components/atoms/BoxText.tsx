@@ -67,7 +67,8 @@ const BoxText: React.FC<BoxProps> = ({
       ? toPastelColor(primaryColor)
       : primaryColor;
 
-  const modeIconSrc = tags?.map(tag => MODE_ICON_SRC[tag]).find(Boolean);
+  const modeTag = tags?.find(tag => MODE_ICON_SRC[tag]);
+  const modeIconSrc = modeTag ? MODE_ICON_SRC[modeTag] : undefined;
 
   // Measures the zoomTag badge's actual rendered width so the title reserves exactly
   // that much space (plus its own right offset).
@@ -130,7 +131,9 @@ const BoxText: React.FC<BoxProps> = ({
         }}
       >
         {hideTags && modeIconSrc && (
-          <img src={modeIconSrc} alt="" className={styles.modeIcon} />
+          <span role="img" aria-label={modeTag} title={modeTag} className={styles.modeIcon}>
+            <img src={modeIconSrc} alt="" />
+          </span>
         )}
         {title}
       </h3>

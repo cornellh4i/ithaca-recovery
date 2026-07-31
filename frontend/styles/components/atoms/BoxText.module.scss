@@ -10,10 +10,13 @@
   color: #000;
 
   .modeIcon {
-    width: 11px;
-    height: 11px;
     margin-right: 3px;
     vertical-align: -1px;
+
+    img {
+      width: 11px;
+      height: 11px;
+    }
   }
 
   &.meeting {

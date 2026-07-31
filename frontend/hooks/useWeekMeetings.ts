@@ -81,9 +81,16 @@ export function useWeekMeetings(weekStartDate: Date, refreshTrigger: number = 0)
     // stays stable across week changes -- needed so the refreshTrigger effect below doesn't
     // fire an extra forced fetch every time the week changes.
     const weekStartDateRef = useRef(weekStartDate);
+    // Stable ET-day string standing in for `weekStartDate` in dependency arrays below --
+    // `useEffect` compares deps with `Object.is`, so a caller that recomputes `weekStartDate`
+    // inline every render (e.g. MobileCalendarView) would otherwise re-run these effects on
+    // every unrelated re-render even though the actual week hasn't changed.
+    const weekStartKey = formatETDateString(weekStartDate);
     useEffect(() => {
         weekStartDateRef.current = weekStartDate;
-    }, [weekStartDate]);
+        // Keyed on weekStartKey (see its comment above), not the Date object, intentionally.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [weekStartKey]);
 
     // Guards against out-of-order responses: rapid date/filter changes can fire overlapping
     // fetches, and without this a slower-but-stale response can overwrite a newer one.
@@ -108,7 +115,8 @@ export function useWeekMeetings(weekStartDate: Date, refreshTrigger: number = 0)
 
     useEffect(() => {
         fetchWeekMeetings();
-    }, [weekStartDate, fetchWeekMeetings]);
+        // Keyed on weekStartKey, not the Date object reference (see its comment above).
+    }, [weekStartKey, fetchWeekMeetings]);
 
     useEffect(() => {
         if (refreshTrigger > 0) {

@@ -15,9 +15,9 @@ interface Meeting extends OverlapMeeting {
   syncError?: boolean;
 }
 
-// Mobile shows up to 4 overlapping meetings side by side before folding into a "+N"
+// Mobile shows up to 3 overlapping meetings side by side before folding into a "+N"
 // indicator, vs. desktop WeeklyView's default of 2 (see util/meetingOverlapLayout.ts).
-const MOBILE_MAX_VISIBLE_OVERLAP = 4;
+const MOBILE_MAX_VISIBLE_OVERLAP = 3;
 
 // Half of DayColumn's 120px/hour desktop default -- deliberately trades detail for fitting
 // more of the day on screen at once (see .timeColumn/.timeSlot/.dayColumnWrapper below,
