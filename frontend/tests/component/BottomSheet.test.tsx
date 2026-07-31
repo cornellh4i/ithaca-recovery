@@ -55,7 +55,8 @@ describe("BottomSheet", () => {
   });
 
   it("locks body scroll while open and restores it on close", () => {
-    const { unmount } = render(
+    const previousOverflow = document.body.style.overflow;
+    const { rerender } = render(
       <BottomSheet isOpen onClose={jest.fn()} title="Filters">
         <div>Sheet content</div>
       </BottomSheet>
@@ -63,8 +64,12 @@ describe("BottomSheet", () => {
 
     expect(document.body.style.overflow).toBe("hidden");
 
-    unmount();
+    rerender(
+      <BottomSheet isOpen={false} onClose={jest.fn()} title="Filters">
+        <div>Sheet content</div>
+      </BottomSheet>
+    );
 
-    expect(document.body.style.overflow).not.toBe("hidden");
+    expect(document.body.style.overflow).toBe(previousOverflow);
   });
 });
