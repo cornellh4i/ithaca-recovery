@@ -1,12 +1,13 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import styles from '../../../styles/components/calendar/WeeklyView.module.scss';
 import WeeklyViewColumn from "./WeeklyViewColumn";
 import { passesTagFilters, passesRoomFilter, MeetingFilters } from "../../../util/meetingFilters";
 import { ROOM_COLORS, ZOOM_ROOM_COLOR, REMOTE_COLOR } from "../../../util/filterColors";
-import { formatETDateString, convertETToUTC } from "../../../util/timeUtils";
+import { formatETDateString } from "../../../util/timeUtils";
 import { layoutOverlappingMeetings, OverlapMeeting } from "../../../util/meetingOverlapLayout";
 import { createCache } from "../../../util/simpleCache";
 import { IMeeting } from "../../../util/models";
+import { getFirstDayOfWeek, getDaysOfWeek } from "../../../util/weekDates";
 
 interface Meeting extends OverlapMeeting {
     syncError?: boolean;
@@ -71,30 +72,6 @@ export const invalidateWeekCache = (startDate: Date, endDate: Date) => {
     const formattedStart = formatETDateString(startDate);
     const formattedEnd = formatETDateString(endDate);
     weekMeetingCache.invalidate(`${formattedStart}-${formattedEnd}`);
-};
-
-// Get the first day (Sunday) of the ET week containing the provided date. Computed from ET
-// calendar-date integers, not Date.prototype.getDay()/getDate() -- those interpret in the
-// runtime's local timezone, which is correct on a machine set to America/New_York but silently
-// picks the wrong week in CI, where the runtime defaults to UTC: near ET's midnight boundary,
-// a UTC-local getDay() disagrees with the real ET calendar day by one. Returned as noon ET
-// (not midnight) so re-deriving an ET date string from it later can't roll back a day.
-const getFirstDayOfWeek = (date: Date): Date => {
-    const etDateStr = formatETDateString(date);
-    const [year, month, day] = etDateStr.split('-').map(Number);
-    const dow = new Date(Date.UTC(year, month - 1, day)).getUTCDay();
-    const sundayEtDateStr = new Date(Date.UTC(year, month - 1, day - dow)).toISOString().slice(0, 10);
-    return new Date(convertETToUTC(`${sundayEtDateStr}T12:00:00`));
-};
-
-// Generate an array of dates for the entire week, same ET-safe construction as above.
-const getDaysOfWeek = (startDate: Date): Date[] => {
-    const etDateStr = formatETDateString(startDate);
-    const [year, month, day] = etDateStr.split('-').map(Number);
-    return Array.from({ length: 7 }, (_, i) => {
-        const dayEtDateStr = new Date(Date.UTC(year, month - 1, day + i)).toISOString().slice(0, 10);
-        return new Date(convertETToUTC(`${dayEtDateStr}T12:00:00`));
-    });
 };
 
 // Format date to display in column header - just return the day number
@@ -218,17 +195,35 @@ const WeeklyView: React.FC<WeeklyViewProps> = ({
         }
     }
 
-    // Fetch meetings for the entire week
-    useEffect(() => {
-        fetchWeekMeetings();
-        // Sets the current-time indicator immediately rather than leaving it blank for up
-        // to 60s until the interval below first fires.
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        updateTimePosition();
-        scrollToCurrentTime();
+    // Gates .viewContainer's visibility until the very first scroll-to-current-time
+    // completes -- without this there's a beat of the wrong scroll position (12 AM) visible
+    // before JS jumps it to "now". One-way: only ever flips true once, on this view's first
+    // mount -- later week changes reset scroll position same as always but don't re-hide
+    // already-visible content.
+    const [initialScrollDone, setInitialScrollDone] = useState(false);
+
+    // Fetch meetings for the entire week. useLayoutEffect (not useEffect) so the scroll
+    // jump happens before paint.
+    useLayoutEffect(() => {
+        let cancelled = false;
+
+        const initialize = async () => {
+            // Sets the current-time indicator immediately rather than leaving it blank for up
+            // to 60s until the interval below first fires.
+            updateTimePosition();
+            scrollToCurrentTime();
+            await fetchWeekMeetings();
+            if (!cancelled) {
+                setInitialScrollDone(true);
+            }
+        };
+        void initialize();
 
         const intervalId = setInterval(updateTimePosition, 60000);
-        return () => clearInterval(intervalId);
+        return () => {
+            cancelled = true;
+            clearInterval(intervalId);
+        };
     }, [weekStartDate, fetchWeekMeetings, updateTimePosition, scrollToCurrentTime]);
 
     // Watch for refresh trigger changes
@@ -279,7 +274,10 @@ const WeeklyView: React.FC<WeeklyViewProps> = ({
             <div
                 className={styles.viewContainer}
                 ref={viewContainerRef}
-                style={scrollLocked ? { overflow: 'hidden' } : undefined}
+                style={{
+                    ...(scrollLocked ? { overflow: 'hidden' } : undefined),
+                    visibility: initialScrollDone ? 'visible' : 'hidden',
+                }}
             >
                 {/* Time column */}
                 <div className={styles.timeColumn}>

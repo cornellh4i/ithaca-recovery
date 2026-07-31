@@ -219,10 +219,7 @@ test("a Remote meeting (no zoomRoom) still gets a Zoom meeting created, and its 
   const response = await POST(request);
   expect(response.status).toBe(201);
 
-  await new Promise((resolve) => setTimeout(resolve, 100));
-
-  const prisma = getTestPrismaClient();
-  const afterSync = await prisma.meeting.findUnique({ where: { mid: payload.mid } });
+  const afterSync = await waitForGoogleSyncStatus(payload.mid);
   expect(afterSync?.zid).toBe("remote-zid");
   expect(afterSync?.zoomLink).toBe("http://zoom.test/remote");
   expect(afterSync?.googleSyncStatus).toBe("synced");

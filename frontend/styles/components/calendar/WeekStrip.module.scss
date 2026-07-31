@@ -1,0 +1,66 @@
+@import '../../Variables.module';
+
+.strip {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 4px;
+    background-color: #fff;
+    border-bottom: 1px solid $grey-border-color;
+}
+
+.dayButton {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    flex: 1 1 0;
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    font: inherit;
+}
+
+.weekday {
+    font-size: 11px;
+    font-weight: 600;
+    color: $medium-grey-color;
+    text-transform: uppercase;
+}
+
+.circle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    // Matches MiniCalendar's fixed 32px day circles minus the 2px ring width below, so a
+    // today (not selected) circle's outer edge lines up with a selected circle's outer edge
+    // instead of the ring making today's circle read larger.
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    font-size: 15px;
+    color: $black-color;
+    box-sizing: border-box;
+}
+
+// Selected, not today -- $brand-pink-secondary instead of MiniCalendar's toPastelColor($brand-
+// pink-color) pastel fill for better contrast against this circle's white text.
+.selectedNotToday {
+    background-color: $brand-pink-secondary;
+    color: #fff;
+}
+
+// Today, not selected -- bold pink text alone reads too close to a plain bold day, so this
+// also gets an outline ring, matching MiniCalendar's today treatment.
+.today {
+    color: $brand-pink-color;
+    font-weight: 700;
+    border: 2px solid $brand-pink-color;
+}
+
+// Today and selected.
+.selectedToday {
+    background-color: $brand-pink-color;
+    color: #fff;
+}
