@@ -22,7 +22,7 @@ jobs:
       # Only ever adds/removes labels from the MAPPINGS list below, never touches labels applied
       # elsewhere (status:, good first issue, etc).
       - name: Sync checklist labels
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const MAPPINGS = [
