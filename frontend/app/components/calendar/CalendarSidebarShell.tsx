@@ -15,7 +15,7 @@ interface CalendarSidebarShellProps {
   filters: MeetingFilters;
   setFilters: React.Dispatch<React.SetStateAction<MeetingFilters>>;
   selectedDate: Date;
-  setSelectedDate: React.Dispatch<React.SetStateAction<Date>>;
+  setSelectedDate: (date: Date) => void;
   selectedView: string;
   triggerCalendarRefresh: () => void;
   selectedMeeting: IMeeting | null;

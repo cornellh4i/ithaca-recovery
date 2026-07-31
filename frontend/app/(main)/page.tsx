@@ -65,7 +65,7 @@ export default function HomePage() {
 
   const {
     selectedDate,
-    setSelectedDate,
+    changeSelectedDate,
     selectedView,
     setSelectedView,
     dayFilters,
@@ -263,7 +263,7 @@ export default function HomePage() {
           filters={filters}
           setFilters={setFilters}
           selectedDate={selectedDate}
-          setSelectedDate={setSelectedDate}
+          setSelectedDate={changeSelectedDate}
           selectedView={selectedView}
           triggerCalendarRefresh={triggerCalendarRefresh}
           selectedMeeting={selectedMeeting}
@@ -365,7 +365,7 @@ export default function HomePage() {
           <React.Fragment>
             <CalendarNavbar
               selectedDate={selectedDate}
-              onDateChange={setSelectedDate}
+              onDateChange={changeSelectedDate}
               onViewChange={setSelectedView}
               isAdmin={isAdmin}
             />
@@ -373,7 +373,7 @@ export default function HomePage() {
               <DailyView
                 filters={filters}
                 selectedDate={selectedDate}
-                setSelectedDate={setSelectedDate}
+                setSelectedDate={changeSelectedDate}
                 selectedMeetingID={selectedMeetingID}
                 setSelectedMeetingID={setSelectedMeetingID}
                 setSelectedNewMeeting={setSelectedNewMeeting}
@@ -386,7 +386,7 @@ export default function HomePage() {
               <WeeklyView
                 filters={filters}
                 selectedDate={selectedDate}
-                setSelectedDate={setSelectedDate}
+                setSelectedDate={changeSelectedDate}
                 selectedMeetingID={selectedMeetingID}
                 setSelectedMeetingID={setSelectedMeetingID}
                 setSelectedNewMeeting={setSelectedNewMeeting}

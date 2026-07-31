@@ -13,12 +13,18 @@ import { getSwipeDirection, isSameWeek, SwipeDirection } from "../../util/weekSt
 // selectedDate/filters, so the Provider is the single bridge for all of it.
 //
 // transitionDirection/transitionCrossesWeek/changeSelectedDate: the shared animated-date-
-// change path for mobile. Every trigger that should animate (WeekStrip tap/swipe, DayColumn
-// swipe, mini-calendar pick) calls changeSelectedDate instead of setSelectedDate directly --
-// it derives direction/crossesWeek from the *previous* selectedDate before updating, so
-// WeekStrip and MobileCalendarView (which both just react to selectedDate + these two fields
-// changing, regardless of which trigger caused it) render the same transition no matter the
-// source. Desktop code keeps using plain setSelectedDate, which never touches these fields.
+// change path for both desktop and mobile -- every date change, from any trigger (desktop
+// nav arrows/mini-calendar/day click, WeekStrip tap/swipe, DayColumn swipe, mobile mini-
+// calendar pick), goes through changeSelectedDate rather than a raw setter. It derives
+// direction/crossesWeek from the *previous* selectedDate before updating, so WeekStrip and
+// MobileCalendarView (which just react to selectedDate + these fields changing, regardless of
+// which trigger caused it) render the same transition no matter the source -- desktop simply
+// never reads transitionDirection/transitionCrossesWeek/transitionAlreadyAnimatedByCaller, so
+// routing its changes through here too is a no-op for it, not a behavior change. There's
+// deliberately no raw setSelectedDate on this context: a desktop call site bypassing
+// changeSelectedDate would leave these three fields stale for whatever mobile view mounts
+// next after a desktop<->mobile resize (MobileCalendarView unmounts/remounts across that
+// boundary, but the context itself does not).
 //
 // transitionAlreadyAnimatedByCaller: set when the caller's own gesture already delivered the
 // motion (only MobileCalendarView's drag -- the pan itself slides the content into place), so
@@ -28,7 +34,6 @@ import { getSwipeDirection, isSameWeek, SwipeDirection } from "../../util/weekSt
 // read during render.
 interface CalendarContextValue {
   selectedDate: Date;
-  setSelectedDate: React.Dispatch<React.SetStateAction<Date>>;
   selectedView: string;
   setSelectedView: React.Dispatch<React.SetStateAction<string>>;
   dayFilters: MeetingFilters;
@@ -84,7 +89,6 @@ export const CalendarProvider: React.FC<CalendarProviderProps> = ({ children, in
   const value = useMemo(
     () => ({
       selectedDate,
-      setSelectedDate,
       selectedView,
       setSelectedView,
       dayFilters,
