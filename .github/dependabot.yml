@@ -5,6 +5,11 @@ updates:
     directory: "/frontend"
     schedule:
       interval: "weekly"
+    # Force conventional commit formatting
+    commit-message:
+      prefix: "chore"              # Prefixes production dependency updates (e.g., chore(deps): ...)
+      prefix-development: "chore"  # Prefixes dev dependency updates (e.g., chore(deps-dev): ...)
+      include: "scope"             # Formats as chore(deps): instead of just chore: 
     open-pull-requests-limit: 10
     groups:
       # Patch and minor bumps (prod or dev) are safe to auto-merge unattended once CI is
