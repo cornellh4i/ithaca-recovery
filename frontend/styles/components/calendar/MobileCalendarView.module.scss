@@ -56,15 +56,23 @@
     min-width: 0;
     position: relative;
     height: 1440px; // 24 hours * 60px -- matches DayColumn's own grid at MOBILE_HOUR_HEIGHT
-    overflow: hidden; // clips the swipe-in/out slide to this column's own width
+    overflow: hidden; // clips the carousel track to this column's own width; the track itself
+                       // is what drags, this wrapper never moves.
 }
 
-// The swap target for the date-keyed transition -- absolutely positioned so the exiting and
-// entering day both overlap exactly within .dayColumnWrapper's box while they slide past
-// each other.
-.dayColumnAnimatedInner {
-    position: absolute;
-    inset: 0;
+.carouselTrack {
+    display: flex;
+    height: 100%;
+}
+
+// Each panel needs its own clip since a panel's DayColumn is taller than the viewport and
+// scrolls vertically via the shared .scrollArea, not per-panel. position: relative so its
+// .currentTimeIndicator child (absolutely positioned) anchors to the panel, not the track.
+.dayPanel {
+    flex: 0 0 auto;
+    height: 100%;
+    overflow: hidden;
+    position: relative;
 }
 
 .currentTimeIndicator {

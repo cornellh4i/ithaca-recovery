@@ -1,5 +1,5 @@
 import React, { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { motion, useDragControls, type PanInfo } from "framer-motion";
+import { motion, useAnimationControls, useDragControls, type PanInfo } from "framer-motion";
 import WeekStrip from "./WeekStrip";
 import CalendarHeader from "./CalendarHeader";
 import DayColumn from "./DayColumn";
@@ -38,19 +38,11 @@ const timeSlots = Array.from({ length: 24 }, (_, i) => formatTime(i));
 // jitter (e.g. rubber-banding at the top) doesn't flicker the navbar in and out.
 const SCROLL_HIDE_THRESHOLD_PX = 4;
 
-// Distance/velocity a horizontal drag on the day column needs to clear before it counts as a
-// real "swipe to the next/previous day" gesture -- matches WeekStrip's own thresholds so both
-// gesture surfaces feel consistent.
+// Distance/velocity a horizontal drag on the carousel track needs to clear before it counts
+// as a real "swipe to the next/previous day" gesture -- matches WeekStrip's own thresholds so
+// both gesture surfaces feel consistent.
 const SWIPE_OFFSET_THRESHOLD = 60;
 const SWIPE_VELOCITY_THRESHOLD = 400;
-
-// Caps how far dayColumnWrapper visually follows the drag before release snaps it back.
-// Without this, dragging rightward (swiping backward to the previous day) had nothing
-// stopping the wrapper from sliding arbitrarily far away from .timeColumn's fixed left
-// edge, opening an ever-growing gap between the two -- WeekStrip's own drag wrapper has no
-// such neighboring sibling to detach from, so it never needed a constraint. Larger than
-// SWIPE_OFFSET_THRESHOLD so the preview isn't clamped before a real swipe even registers.
-const DRAG_PREVIEW_MAX_PX = 100;
 
 interface MobileCalendarViewProps {
   filters: MeetingFilters;
@@ -65,13 +57,15 @@ interface MobileCalendarViewProps {
   isAdmin: boolean | null;
 }
 
+const isDateToday = (date: Date): boolean => formatETDateString(date) === formatETDateString(new Date());
+
 // Mobile portrait day view: WeekStrip + CalendarHeader stay in place (plain flex siblings
 // above the scroll area, not competing for the same scroll container DayColumn uses) while
 // DayColumn's own wrapper scrolls independently underneath -- also where the mobile navbar's
 // scroll-hide listener attaches (writes navHidden to CalendarProvider, read by
-// MobileAppNavbar). CalendarHeader's heading and DayColumn share the same
-// transitionDirection/selectedDate-keyed swap (CalendarProvider's changeSelectedDate), so a
-// swipe/tap/mini-calendar-pick animates both together regardless of which one triggered it.
+// MobileAppNavbar). CalendarHeader's heading has its own independent tween (fires when the
+// date change commits, same as WeekStrip taps/mini-calendar picks) -- it is not unified into
+// the carousel drag below.
 const MobileCalendarView: React.FC<MobileCalendarViewProps> = ({
   filters,
   selectedDate,
@@ -84,26 +78,56 @@ const MobileCalendarView: React.FC<MobileCalendarViewProps> = ({
   conflictMids,
   isAdmin,
 }) => {
-  const { setNavHidden, changeSelectedDate, transitionDirection, transitionCrossesWeek } = useCalendarContext();
-  const weekStartDate = getFirstDayOfWeek(selectedDate);
-  const allMeetings = useWeekMeetings(weekStartDate, refreshTrigger);
+  const { setNavHidden, changeSelectedDate, transitionDirection } = useCalendarContext();
+
+  // A prev/current/next-day carousel needs whichever week(s) contain selectedDate - 1 and
+  // selectedDate + 1 -- these two always cover all 3 target dates, since selectedDate is
+  // always adjacent to both. In the common (non-boundary) case both calls target the same
+  // week; useWeekMeetings' underlying cache dedupes concurrent same-key fetches, so this is
+  // still exactly one network request.
+  const prevDate = addDaysToDate(selectedDate, -1);
+  const nextDate = addDaysToDate(selectedDate, 1);
+  const prevWeekMeetings = useWeekMeetings(getFirstDayOfWeek(prevDate), refreshTrigger);
+  const nextWeekMeetings = useWeekMeetings(getFirstDayOfWeek(nextDate), refreshTrigger);
+
+  const allMeetings = useMemo(() => {
+    const merged = new Map<string, Meeting>();
+    for (const meeting of prevWeekMeetings) merged.set(meeting.id, meeting);
+    for (const meeting of nextWeekMeetings) merged.set(meeting.id, meeting);
+    return Array.from(merged.values());
+  }, [prevWeekMeetings, nextWeekMeetings]);
 
   const getRoomColor = (meeting: Meeting) => {
     if (meeting.tags.includes("Remote")) return REMOTE_COLOR;
     return ROOM_COLORS[meeting.room] ?? ZOOM_ROOM_COLOR;
   };
 
-  const dayMeetings = useMemo(() => {
-    const filtered = filterMeetingsForDate(allMeetings, selectedDate, filters);
-    return layoutOverlappingMeetings(filtered, MOBILE_MAX_VISIBLE_OVERLAP).map((meeting) => ({
-      ...meeting,
-      primaryColor: getRoomColor(meeting),
-      overflowMeetings: meeting.overflowMeetings?.map((m) => ({ ...m, primaryColor: getRoomColor(m) })),
-    }));
-  }, [allMeetings, filters, selectedDate]);
+  const computeDayMeetings = useCallback(
+    (all: Meeting[], date: Date) => {
+      const filtered = filterMeetingsForDate(all, date, filters);
+      return layoutOverlappingMeetings(filtered, MOBILE_MAX_VISIBLE_OVERLAP).map((meeting) => ({
+        ...meeting,
+        primaryColor: getRoomColor(meeting),
+        overflowMeetings: meeting.overflowMeetings?.map((m) => ({ ...m, primaryColor: getRoomColor(m) })),
+      }));
+    },
+    [filters]
+  );
+
+  const prevMeetings = useMemo(
+    () => computeDayMeetings(allMeetings, prevDate),
+    [allMeetings, prevDate, computeDayMeetings]
+  );
+  const currentMeetings = useMemo(
+    () => computeDayMeetings(allMeetings, selectedDate),
+    [allMeetings, selectedDate, computeDayMeetings]
+  );
+  const nextMeetings = useMemo(
+    () => computeDayMeetings(allMeetings, nextDate),
+    [allMeetings, nextDate, computeDayMeetings]
+  );
 
   const selectedEtDateStr = formatETDateString(selectedDate);
-  const isToday = selectedEtDateStr === formatETDateString(new Date());
 
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const lastScrollTopRef = useRef(0);
@@ -144,26 +168,64 @@ const MobileCalendarView: React.FC<MobileCalendarViewProps> = ({
     lastScrollTopRef.current = el.scrollTop;
   };
 
-  const handleDaySwipeEnd = (_event: PointerEvent | MouseEvent | TouchEvent, info: PanInfo) => {
-    const pastThreshold =
-      Math.abs(info.offset.x) > SWIPE_OFFSET_THRESHOLD || Math.abs(info.velocity.x) > SWIPE_VELOCITY_THRESHOLD;
-    if (!pastThreshold) return;
+  // dayColumnWrapper is a pure clipping viewport that never itself moves -- .carouselTrack
+  // (measured in wrapperRef) is the thing that drags, so there's no gap that can open next to
+  // the fixed .timeColumn strip (both used to be siblings dragging apart from each other; see
+  // this file's git history for the bug that caused).
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const [panelWidth, setPanelWidth] = useState(0);
+  useLayoutEffect(() => {
+    const el = wrapperRef.current;
+    if (!el) return;
+    const updateWidth = () => setPanelWidth(el.clientWidth);
+    updateWidth();
+    const observer = new ResizeObserver(updateWidth);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
-    // Swipe left (negative offset) = forward = later; swipe right = backward = earlier.
-    changeSelectedDate(addDaysToDate(selectedDate, info.offset.x < 0 ? 1 : -1));
-  };
+  // Classic 3-panel infinite-carousel positioning: track is 3*panelWidth wide, prev panel at
+  // x:0, current (resting) panel at x:-panelWidth, next panel at x:-2*panelWidth. Recentered
+  // (no animation, just a position reset) whenever panelWidth or the selected date changes --
+  // covers both a resize and any non-drag date change (WeekStrip tap, mini-calendar pick),
+  // for which the freshly-computed prev/current/next panels should appear immediately rather
+  // than mid-slide.
+  const controls = useAnimationControls();
+  useLayoutEffect(() => {
+    controls.set({ x: -panelWidth });
+  }, [panelWidth, selectedEtDateStr, controls]);
 
-  // dayColumnWrapper's own drag="x" only recognizes a gesture that starts on itself -- but it
+  // .carouselTrack's own drag="x" only recognizes a gesture that starts on itself -- but it
   // sits to the right of .timeColumn (the ~50px time-label strip), which has no drag handler
   // at all. A swipe starting there (common when swiping left-to-right, since that gesture
   // naturally starts further left) was silently dropped instead of registering. Starting the
   // drag manually from a pointerdown anywhere in the row (dragListener={false} below stops
-  // dayColumnWrapper from also auto-starting one from its own pointerdown) widens the
+  // .carouselTrack from also auto-starting one from its own pointerdown) widens the
   // recognized area to the full row while .timeColumn itself still never visually moves --
-  // only dayColumnWrapper does.
+  // only .carouselTrack does.
   const dragControls = useDragControls();
   const handleRowPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
     dragControls.start(event);
+  };
+
+  const handleTrackDragEnd = async (_event: PointerEvent | MouseEvent | TouchEvent, info: PanInfo) => {
+    const pastThreshold =
+      Math.abs(info.offset.x) > SWIPE_OFFSET_THRESHOLD || Math.abs(info.velocity.x) > SWIPE_VELOCITY_THRESHOLD;
+
+    if (!pastThreshold) {
+      controls.start({ x: -panelWidth }, { type: "tween", duration: 0.25, ease: "easeOut" });
+      return;
+    }
+
+    // Swipe left (negative offset) = forward = later; swipe right = backward = earlier.
+    const forward = info.offset.x < 0;
+    // Parks the track fully on the neighbor's panel first -- since that panel's content *is*
+    // what the newly recomputed "current" panel becomes once changeSelectedDate commits, the
+    // recenter below is visually seamless (the standard infinite-carousel swap-while-at-the-
+    // edge trick).
+    await controls.start({ x: forward ? -2 * panelWidth : 0 }, { type: "tween", duration: 0.25, ease: "easeOut" });
+    changeSelectedDate(addDaysToDate(selectedDate, forward ? 1 : -1));
+    controls.set({ x: -panelWidth });
   };
 
   return (
@@ -195,54 +257,77 @@ const MobileCalendarView: React.FC<MobileCalendarViewProps> = ({
           ))}
         </div>
 
-        {/* Only this wrapper visually transforms on drag (not .timeColumn, not the whole
-            scrollArea) -- the gesture itself is started from .scrollArea's onPointerDown
-            above (see handleRowPointerDown) so it can begin over .timeColumn too, but
-            dragListener={false} here means it never starts a second, independent one from its
-            own pointerdown. touchAction: pan-y (both here and on .scrollArea) keeps vertical
-            touch-scroll on the time labels / day column working normally alongside it.
-            dragSnapToOrigin returns this wrapper to x:0 immediately on release regardless of
-            outcome; the actual slide is the inner date-keyed swap below. No AnimatePresence --
-            a plain key change unmounts the old day and mounts the new one in the same commit
-            (no dual-mount exit period to manage), and the new one plays its own enter
-            transition. See CalendarHeader.tsx's matching comment for why. */}
-        <motion.div
-          className={styles.dayColumnWrapper}
-          drag="x"
-          dragControls={dragControls}
-          dragListener={false}
-          dragConstraints={{ left: -DRAG_PREVIEW_MAX_PX, right: DRAG_PREVIEW_MAX_PX }}
-          dragElastic={0.3}
-          dragSnapToOrigin
-          onDragEnd={handleDaySwipeEnd}
-          style={{ touchAction: "pan-y" }}
-        >
+        <div className={styles.dayColumnWrapper} ref={wrapperRef}>
           <motion.div
-            key={selectedEtDateStr}
-            className={styles.dayColumnAnimatedInner}
-            initial={{ x: transitionCrossesWeek ? 0 : transitionDirection === "forward" ? "100%" : "-100%" }}
-            animate={{ x: 0 }}
-            transition={{ type: "tween", duration: 0.25, ease: "easeOut" }}
+            className={styles.carouselTrack}
+            drag="x"
+            dragControls={dragControls}
+            dragListener={false}
+            dragConstraints={{ left: -2 * panelWidth, right: 0 }}
+            dragElastic={0.2}
+            animate={controls}
+            onDragEnd={handleTrackDragEnd}
+            style={{ touchAction: "pan-y", width: panelWidth * 3 }}
           >
-            <DayColumn
-              roomColor={ZOOM_ROOM_COLOR} // Unused fallback: every meeting sets primaryColor via getRoomColor
-              meetings={dayMeetings}
-              selectedMeetingID={selectedMeetingID}
-              setSelectedMeetingID={setSelectedMeetingID}
-              setSelectedNewMeeting={setSelectedNewMeeting}
-              setAnchorEl={setAnchorEl}
-              conflictMids={conflictMids}
-              hourHeight={MOBILE_HOUR_HEIGHT}
-              hideTags
-            />
-            {isToday && (
-              <div
-                className={styles.currentTimeIndicator}
-                style={{ top: `${(new Date().getHours() * 60 + new Date().getMinutes()) * (MOBILE_HOUR_HEIGHT / 60)}px` }}
+            <div className={styles.dayPanel} style={{ width: panelWidth }}>
+              <DayColumn
+                roomColor={ZOOM_ROOM_COLOR} // Unused fallback: every meeting sets primaryColor via getRoomColor
+                meetings={prevMeetings}
+                selectedMeetingID={selectedMeetingID}
+                setSelectedMeetingID={setSelectedMeetingID}
+                setSelectedNewMeeting={setSelectedNewMeeting}
+                setAnchorEl={setAnchorEl}
+                conflictMids={conflictMids}
+                hourHeight={MOBILE_HOUR_HEIGHT}
+                hideTags
               />
-            )}
+              {isDateToday(prevDate) && (
+                <div
+                  className={styles.currentTimeIndicator}
+                  style={{ top: `${(new Date().getHours() * 60 + new Date().getMinutes()) * (MOBILE_HOUR_HEIGHT / 60)}px` }}
+                />
+              )}
+            </div>
+            <div className={styles.dayPanel} style={{ width: panelWidth }}>
+              <DayColumn
+                roomColor={ZOOM_ROOM_COLOR} // Unused fallback: every meeting sets primaryColor via getRoomColor
+                meetings={currentMeetings}
+                selectedMeetingID={selectedMeetingID}
+                setSelectedMeetingID={setSelectedMeetingID}
+                setSelectedNewMeeting={setSelectedNewMeeting}
+                setAnchorEl={setAnchorEl}
+                conflictMids={conflictMids}
+                hourHeight={MOBILE_HOUR_HEIGHT}
+                hideTags
+              />
+              {isDateToday(selectedDate) && (
+                <div
+                  className={styles.currentTimeIndicator}
+                  style={{ top: `${(new Date().getHours() * 60 + new Date().getMinutes()) * (MOBILE_HOUR_HEIGHT / 60)}px` }}
+                />
+              )}
+            </div>
+            <div className={styles.dayPanel} style={{ width: panelWidth }}>
+              <DayColumn
+                roomColor={ZOOM_ROOM_COLOR} // Unused fallback: every meeting sets primaryColor via getRoomColor
+                meetings={nextMeetings}
+                selectedMeetingID={selectedMeetingID}
+                setSelectedMeetingID={setSelectedMeetingID}
+                setSelectedNewMeeting={setSelectedNewMeeting}
+                setAnchorEl={setAnchorEl}
+                conflictMids={conflictMids}
+                hourHeight={MOBILE_HOUR_HEIGHT}
+                hideTags
+              />
+              {isDateToday(nextDate) && (
+                <div
+                  className={styles.currentTimeIndicator}
+                  style={{ top: `${(new Date().getHours() * 60 + new Date().getMinutes()) * (MOBILE_HOUR_HEIGHT / 60)}px` }}
+                />
+              )}
+            </div>
           </motion.div>
-        </motion.div>
+        </div>
       </div>
     </div>
   );
