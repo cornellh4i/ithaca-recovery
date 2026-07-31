@@ -19,7 +19,11 @@
     flex: 1 1 auto;
     min-height: 0;
     overflow-y: auto;
-    display: flex;
+
+    // overscroll-behavior-x doesn't inherit -- this is the actual scroll container an
+    // unclaimed horizontal gesture (one the carousel drag handlers didn't catch) would
+    // otherwise chain up from, same reasoning as MainLayout.module.scss's .content.
+    overscroll-behavior-x: none;
 
     &::-webkit-scrollbar {
         display: none;
@@ -29,14 +33,33 @@
     scrollbar-width: none;
 }
 
+.dayColumnWrapper {
+    width: 100%;
+    position: relative;
+    height: 1440px; // 24 hours * 60px -- matches DayColumn's own grid at MOBILE_HOUR_HEIGHT
+    overflow: hidden; // clips the carousel track to this column's own width; the track itself
+                       // is what drags, this wrapper never moves.
+}
+
+.carouselTrack {
+    display: flex;
+    height: 100%;
+}
+
+// Each panel bundles its own .timeColumn alongside its day content, so both slide together as
+// one unit during a swipe (see MobileCalendarView.tsx's renderDayPanel) instead of the time
+// labels staying fixed while only the meetings underneath move.
+.dayPanel {
+    flex: 0 0 auto;
+    height: 100%;
+    display: flex;
+}
+
 .timeColumn {
     min-width: 50px;
     display: flex;
     flex-direction: column;
     border-right: 1px solid $grey-border-color;
-    position: sticky;
-    left: 0;
-    z-index: 20;
     background-color: $grey-lightest-color;
     height: 1440px; // 24 hours * 60px -- matches DayColumn's own grid at MOBILE_HOUR_HEIGHT
 }
@@ -51,11 +74,14 @@
     color: $medium-grey-color;
 }
 
-.dayColumnWrapper {
+// The remainder of a .dayPanel after its .timeColumn -- position: relative so
+// .currentTimeIndicator (absolutely positioned) anchors here, not to the whole panel (the
+// indicator line should span only the meeting grid, not the time labels).
+.dayContent {
     flex: 1;
     min-width: 0;
     position: relative;
-    height: 1440px;
+    overflow: hidden;
 }
 
 .currentTimeIndicator {

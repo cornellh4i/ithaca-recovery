@@ -319,7 +319,6 @@ export default function HomePage() {
           <MobileCalendarView
             filters={dayFilters}
             selectedDate={selectedDate}
-            setSelectedDate={setSelectedDate}
             selectedMeetingID={selectedMeetingID}
             setSelectedMeetingID={setSelectedMeetingID}
             setSelectedNewMeeting={setSelectedNewMeeting}

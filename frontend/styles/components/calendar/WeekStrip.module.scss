@@ -1,5 +1,19 @@
 @import '../../Variables.module';
 
+// Clips the week-boundary slide (the whole strip animating off/on screen) so the outgoing/
+// incoming week isn't visible past the viewport edge mid-transition.
+.stripViewport {
+    overflow: hidden;
+    touch-action: pan-y;
+
+    // Inside MobileCalendarView's column flex layout, a flex item with non-visible overflow
+    // loses its content-based automatic minimum size (CSS Flexbox section 4.5) -- without
+    // this, the day-number circles get shrunk/clipped below their own 68px content height
+    // whenever the scrollArea sibling's huge (1440px) content competes for space.
+    // flex-shrink: 0 pins this to its natural content height regardless.
+    flex-shrink: 0;
+}
+
 .strip {
     display: flex;
     justify-content: space-between;

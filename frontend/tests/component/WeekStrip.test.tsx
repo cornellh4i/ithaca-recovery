@@ -1,6 +1,7 @@
 import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
 import WeekStrip from "../../app/components/calendar/WeekStrip";
+import { CalendarProvider, useCalendarContext } from "../../app/context/CalendarProvider";
 import { formatETDateString } from "../../util/timeUtils";
 
 // A fixed "today" (a Thursday) so tests don't depend on when they're run.
@@ -15,9 +16,24 @@ afterAll(() => {
 
 const etNoon = (y: number, m: number, d: number) => new Date(Date.UTC(y, m - 1, d, 16, 0));
 
+// Exposes the current context's selectedDate as text so tests can assert what a tap/swipe
+// actually did without reaching into WeekStrip's own internals.
+const SelectedDateProbe: React.FC = () => {
+  const { selectedDate } = useCalendarContext();
+  return <div data-testid="selected-date">{formatETDateString(selectedDate)}</div>;
+};
+
+const renderStrip = (initialDate: Date) =>
+  render(
+    <CalendarProvider initialDate={initialDate}>
+      <SelectedDateProbe />
+      <WeekStrip />
+    </CalendarProvider>
+  );
+
 describe("WeekStrip", () => {
   it("renders 7 days with 1-letter weekday abbreviations", () => {
-    render(<WeekStrip selectedDate={etNoon(2026, 7, 30)} setSelectedDate={jest.fn()} />);
+    renderStrip(etNoon(2026, 7, 30));
 
     const buttons = screen.getAllByRole("button");
     expect(buttons).toHaveLength(7);
@@ -25,29 +41,33 @@ describe("WeekStrip", () => {
     expect(buttons.map((b) => b.textContent?.[0])).toEqual(["S", "M", "T", "W", "T", "F", "S"]);
   });
 
-  it("marks today (not selected) with the today styling and aria-pressed=false", () => {
-    // Selected date is a different day in the same week (Monday), today is Thursday.
-    render(<WeekStrip selectedDate={etNoon(2026, 7, 27)} setSelectedDate={jest.fn()} />);
+  it("marks today (not selected) with aria-pressed=false", () => {
+    // Selected date is a different day in the same week (Monday); today is Thursday.
+    renderStrip(etNoon(2026, 7, 27));
 
     const todayButton = screen.getByRole("button", { name: /T\s*30/ });
     expect(todayButton).toHaveAttribute("aria-pressed", "false");
   });
 
-  it("marks the selected-and-today day distinctly from a selected-not-today day", () => {
-    render(<WeekStrip selectedDate={etNoon(2026, 7, 30)} setSelectedDate={jest.fn()} />);
+  it("marks the selected-and-today day as selected", () => {
+    renderStrip(etNoon(2026, 7, 30));
 
     const selectedTodayButton = screen.getByRole("button", { name: /T\s*30/ });
     expect(selectedTodayButton).toHaveAttribute("aria-pressed", "true");
   });
 
-  it("calls setSelectedDate with the tapped day's date", () => {
-    const setSelectedDate = jest.fn();
-    render(<WeekStrip selectedDate={etNoon(2026, 7, 30)} setSelectedDate={setSelectedDate} />);
+  it("tapping a day updates the shared selectedDate", () => {
+    renderStrip(etNoon(2026, 7, 30));
 
     fireEvent.click(screen.getByRole("button", { name: /M\s*27/ }));
 
-    expect(setSelectedDate).toHaveBeenCalledTimes(1);
-    const calledWith: Date = setSelectedDate.mock.calls[0][0];
-    expect(formatETDateString(calledWith)).toBe("2026-07-27");
+    expect(screen.getByTestId("selected-date")).toHaveTextContent("2026-07-27");
   });
+
+  // Swipe-drag gesture behavior (framer-motion's drag="x" + onDragEnd) isn't reliably
+  // triggerable via jsdom's fireEvent.pointer* -- framer-motion's own gesture recognition
+  // needs real pointer-capture/layout measurement jsdom doesn't provide. Covered instead by
+  // a real-browser Playwright spec (tests/e2e/16-mobile-swipe.spec.ts) using
+  // page.touchscreen. The underlying direction/same-week math (util/weekStripTransition.ts)
+  // has its own unit tests.
 });

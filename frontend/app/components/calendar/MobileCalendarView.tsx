@@ -1,4 +1,5 @@
-import React, { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { motion, useAnimationControls, useDragControls, type PanInfo } from "framer-motion";
 import WeekStrip from "./WeekStrip";
 import CalendarHeader from "./CalendarHeader";
 import DayColumn from "./DayColumn";
@@ -6,7 +7,7 @@ import { filterMeetingsForDate, MeetingFilters } from "../../../util/meetingFilt
 import { ROOM_COLORS, ZOOM_ROOM_COLOR, REMOTE_COLOR } from "../../../util/filterColors";
 import { formatETDateString } from "../../../util/timeUtils";
 import { layoutOverlappingMeetings, OverlapMeeting } from "../../../util/meetingOverlapLayout";
-import { getFirstDayOfWeek } from "../../../util/weekDates";
+import { getFirstDayOfWeek, addDaysToDate } from "../../../util/weekDates";
 import { useWeekMeetings } from "../../../hooks/useWeekMeetings";
 import { useCalendarContext } from "../../context/CalendarProvider";
 import styles from "../../../styles/components/calendar/MobileCalendarView.module.scss";
@@ -20,9 +21,9 @@ interface Meeting extends OverlapMeeting {
 const MOBILE_MAX_VISIBLE_OVERLAP = 3;
 
 // Half of DayColumn's 120px/hour desktop default -- deliberately trades detail for fitting
-// more of the day on screen at once (see .timeColumn/.timeSlot/.dayColumnWrapper below,
-// which must stay in sync with this), and DayColumn's tag row is dropped entirely to make
-// the shorter rows workable (see BoxText's hideTags).
+// more of the day on screen at once (see .timeColumn/.timeSlot/.dayPanel below, which must
+// stay in sync with this), and DayColumn's tag row is dropped entirely to make the shorter
+// rows workable (see BoxText's hideTags).
 const MOBILE_HOUR_HEIGHT = 60;
 
 const formatTime = (hour: number): string => {
@@ -37,10 +38,15 @@ const timeSlots = Array.from({ length: 24 }, (_, i) => formatTime(i));
 // jitter (e.g. rubber-banding at the top) doesn't flicker the navbar in and out.
 const SCROLL_HIDE_THRESHOLD_PX = 4;
 
+// Distance/velocity a horizontal drag on the carousel track needs to clear before it counts
+// as a real "swipe to the next/previous day" gesture -- matches WeekStrip's own thresholds so
+// both gesture surfaces feel consistent.
+const SWIPE_OFFSET_THRESHOLD = 60;
+const SWIPE_VELOCITY_THRESHOLD = 400;
+
 interface MobileCalendarViewProps {
   filters: MeetingFilters;
   selectedDate: Date;
-  setSelectedDate: (date: Date) => void;
   selectedMeetingID: string | null;
   setSelectedMeetingID: (meetingId: string) => void;
   setSelectedNewMeeting: (newMeetingExists: boolean) => void;
@@ -51,15 +57,18 @@ interface MobileCalendarViewProps {
   isAdmin: boolean | null;
 }
 
+const isDateToday = (date: Date): boolean => formatETDateString(date) === formatETDateString(new Date());
+
 // Mobile portrait day view: WeekStrip + CalendarHeader stay in place (plain flex siblings
 // above the scroll area, not competing for the same scroll container DayColumn uses) while
 // DayColumn's own wrapper scrolls independently underneath -- also where the mobile navbar's
 // scroll-hide listener attaches (writes navHidden to CalendarProvider, read by
-// MobileAppNavbar).
+// MobileAppNavbar). CalendarHeader's heading has its own independent tween (fires when the
+// date change commits, same as WeekStrip taps/mini-calendar picks) -- it is not unified into
+// the carousel drag below.
 const MobileCalendarView: React.FC<MobileCalendarViewProps> = ({
   filters,
   selectedDate,
-  setSelectedDate,
   selectedMeetingID,
   setSelectedMeetingID,
   setSelectedNewMeeting,
@@ -69,26 +78,56 @@ const MobileCalendarView: React.FC<MobileCalendarViewProps> = ({
   conflictMids,
   isAdmin,
 }) => {
-  const { setNavHidden } = useCalendarContext();
-  const weekStartDate = getFirstDayOfWeek(selectedDate);
-  const allMeetings = useWeekMeetings(weekStartDate, refreshTrigger);
+  const { setNavHidden, changeSelectedDate, transitionDirection } = useCalendarContext();
+
+  // A prev/current/next-day carousel needs whichever week(s) contain selectedDate - 1 and
+  // selectedDate + 1 -- these two always cover all 3 target dates, since selectedDate is
+  // always adjacent to both. In the common (non-boundary) case both calls target the same
+  // week; useWeekMeetings' underlying cache dedupes concurrent same-key fetches, so this is
+  // still exactly one network request.
+  const prevDate = addDaysToDate(selectedDate, -1);
+  const nextDate = addDaysToDate(selectedDate, 1);
+  const prevWeekMeetings = useWeekMeetings(getFirstDayOfWeek(prevDate), refreshTrigger);
+  const nextWeekMeetings = useWeekMeetings(getFirstDayOfWeek(nextDate), refreshTrigger);
+
+  const allMeetings = useMemo(() => {
+    const merged = new Map<string, Meeting>();
+    for (const meeting of prevWeekMeetings) merged.set(meeting.id, meeting);
+    for (const meeting of nextWeekMeetings) merged.set(meeting.id, meeting);
+    return Array.from(merged.values());
+  }, [prevWeekMeetings, nextWeekMeetings]);
 
   const getRoomColor = (meeting: Meeting) => {
     if (meeting.tags.includes("Remote")) return REMOTE_COLOR;
     return ROOM_COLORS[meeting.room] ?? ZOOM_ROOM_COLOR;
   };
 
-  const dayMeetings = useMemo(() => {
-    const filtered = filterMeetingsForDate(allMeetings, selectedDate, filters);
-    return layoutOverlappingMeetings(filtered, MOBILE_MAX_VISIBLE_OVERLAP).map((meeting) => ({
-      ...meeting,
-      primaryColor: getRoomColor(meeting),
-      overflowMeetings: meeting.overflowMeetings?.map((m) => ({ ...m, primaryColor: getRoomColor(m) })),
-    }));
-  }, [allMeetings, filters, selectedDate]);
+  const computeDayMeetings = useCallback(
+    (all: Meeting[], date: Date) => {
+      const filtered = filterMeetingsForDate(all, date, filters);
+      return layoutOverlappingMeetings(filtered, MOBILE_MAX_VISIBLE_OVERLAP).map((meeting) => ({
+        ...meeting,
+        primaryColor: getRoomColor(meeting),
+        overflowMeetings: meeting.overflowMeetings?.map((m) => ({ ...m, primaryColor: getRoomColor(m) })),
+      }));
+    },
+    [filters]
+  );
+
+  const prevMeetings = useMemo(
+    () => computeDayMeetings(allMeetings, prevDate),
+    [allMeetings, prevDate, computeDayMeetings]
+  );
+  const currentMeetings = useMemo(
+    () => computeDayMeetings(allMeetings, selectedDate),
+    [allMeetings, selectedDate, computeDayMeetings]
+  );
+  const nextMeetings = useMemo(
+    () => computeDayMeetings(allMeetings, nextDate),
+    [allMeetings, nextDate, computeDayMeetings]
+  );
 
   const selectedEtDateStr = formatETDateString(selectedDate);
-  const isToday = selectedEtDateStr === formatETDateString(new Date());
 
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const lastScrollTopRef = useRef(0);
@@ -113,8 +152,10 @@ const MobileCalendarView: React.FC<MobileCalendarViewProps> = ({
   }, []);
 
   useLayoutEffect(() => {
-    scrollToCurrentTime();
-    setInitialScrollDone(true);
+    if (initialScrollDone === false){
+      scrollToCurrentTime();
+      setInitialScrollDone(true);
+    }
   }, [selectedEtDateStr, scrollToCurrentTime]);
 
   const handleScroll = () => {
@@ -129,46 +170,167 @@ const MobileCalendarView: React.FC<MobileCalendarViewProps> = ({
     lastScrollTopRef.current = el.scrollTop;
   };
 
+  // dayColumnWrapper is a pure clipping viewport that never itself moves -- .carouselTrack
+  // (measured in wrapperRef) is the thing that drags. Each .dayPanel bundles its own
+  // .timeColumn alongside its DayColumn, so the time labels and the day's content always move
+  // together as one unit during a swipe -- there's no separate fixed time strip for a gap to
+  // open against, and each day reads as its own distinct panel rather than blending into the
+  // one next to it.
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const [panelWidth, setPanelWidth] = useState(0);
+  useLayoutEffect(() => {
+    const el = wrapperRef.current;
+    if (!el) return;
+    const updateWidth = () => setPanelWidth(el.clientWidth);
+    updateWidth();
+    const observer = new ResizeObserver(updateWidth);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  // Classic 3-panel infinite-carousel positioning: track is 3*panelWidth wide, prev panel at
+  // x:0, current (resting) panel at x:-panelWidth, next panel at x:-2*panelWidth. Recentered
+  // (no animation, just a position reset) whenever panelWidth or the selected date changes --
+  // covers both a resize and any non-drag date change (WeekStrip tap, mini-calendar pick),
+  // for which the freshly-computed prev/current/next panels should appear immediately rather
+  // than mid-slide.
+  const controls = useAnimationControls();
+  useLayoutEffect(() => {
+    controls.set({ x: -panelWidth });
+  }, [panelWidth, selectedEtDateStr, controls]);
+
+  // .carouselTrack's own drag="x" only recognizes a gesture that starts on itself. Starting
+  // the drag manually from a pointerdown anywhere in .scrollArea (dragListener={false} below
+  // stops .carouselTrack from also auto-starting one from its own pointerdown) reliably
+  // captures a swipe starting anywhere in the row, regardless of which descendant (a
+  // .timeColumn label, a meeting card, empty grid space) it began on.
+  const dragControls = useDragControls();
+  const handleRowPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    dragControls.start(event);
+  };
+
+  // Same problem WeekStrip guards against (see its isDraggingRef comment): a completed drag
+  // still fires a native click on whatever element the pointer started on -- here, a meeting
+  // card, which would open its popup on top of the day change. Set at drag start (recognition
+  // happens well before any click could fire), cleared once a click has actually been
+  // suppressed.
+  const isDraggingRef = useRef(false);
+  const handleTrackDragStart = () => {
+    isDraggingRef.current = true;
+  };
+
+  // Mirror of selectedDate so the awaited continuation in handleTrackDragEnd reads the
+  // current date rather than the one captured when the handler was created -- otherwise a
+  // second swipe completing before the first tween resolves would compute from a stale date.
+  const selectedDateRef = useRef(selectedDate);
+  useEffect(() => {
+    selectedDateRef.current = selectedDate;
+  }, [selectedDate]);
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
+  const handleTrackDragEnd = async (_event: PointerEvent | MouseEvent | TouchEvent, info: PanInfo) => {
+    const pastThreshold =
+      Math.abs(info.offset.x) > SWIPE_OFFSET_THRESHOLD || Math.abs(info.velocity.x) > SWIPE_VELOCITY_THRESHOLD;
+
+    if (!pastThreshold) {
+      controls.start({ x: -panelWidth }, { type: "tween", duration: 0.25, ease: "easeOut" });
+      return;
+    }
+
+    // Swipe left (negative offset) = forward = later; swipe right = backward = earlier.
+    const forward = info.offset.x < 0;
+    // Parks the track fully on the neighbor's panel first -- since that panel's content *is*
+    // what the newly recomputed "current" panel becomes once changeSelectedDate commits, the
+    // recenter below is visually seamless (the standard infinite-carousel swap-while-at-the-
+    // edge trick).
+    await controls.start({ x: forward ? -2 * panelWidth : 0 }, { type: "tween", duration: 0.25, ease: "easeOut" });
+    if (!mountedRef.current) return;
+    changeSelectedDate(addDaysToDate(selectedDateRef.current, forward ? 1 : -1));
+    controls.set({ x: -panelWidth });
+  };
+
+  // Each panel bundles its own time-label column with its DayColumn so both slide as one unit
+  // during a swipe (see the wrapperRef comment above) -- shared by all three panels below.
+  const renderDayPanel = (meetings: Meeting[], date: Date) => (
+    <div className={styles.dayPanel} style={{ width: panelWidth }}>
+      <div className={styles.timeColumn}>
+        {timeSlots.map((time, index) => (
+          <div key={index} className={styles.timeSlot}>
+            {time}
+          </div>
+        ))}
+      </div>
+      <div className={styles.dayContent}>
+        <DayColumn
+          roomColor={ZOOM_ROOM_COLOR} // Unused fallback: every meeting sets primaryColor via getRoomColor
+          meetings={meetings}
+          selectedMeetingID={selectedMeetingID}
+          setSelectedMeetingID={setSelectedMeetingID}
+          setSelectedNewMeeting={setSelectedNewMeeting}
+          setAnchorEl={setAnchorEl}
+          conflictMids={conflictMids}
+          hourHeight={MOBILE_HOUR_HEIGHT}
+          hideTags
+        />
+        {isDateToday(date) && (
+          <div
+            className={styles.currentTimeIndicator}
+            style={{ top: `${(new Date().getHours() * 60 + new Date().getMinutes()) * (MOBILE_HOUR_HEIGHT / 60)}px` }}
+          />
+        )}
+      </div>
+    </div>
+  );
+
   return (
     <div className={styles.container}>
-      <WeekStrip selectedDate={selectedDate} setSelectedDate={setSelectedDate} />
-      <CalendarHeader selectedDate={selectedDate} selectedView="Day" isAdmin={isAdmin} />
+      <WeekStrip />
+      <CalendarHeader
+        selectedDate={selectedDate}
+        selectedView="Day"
+        isAdmin={isAdmin}
+        animatedHeading={{ transitionKey: selectedEtDateStr, direction: transitionDirection }}
+      />
 
       <div
         className={styles.scrollArea}
         ref={scrollAreaRef}
         onScroll={handleScroll}
+        onPointerDown={handleRowPointerDown}
         style={{
           ...(scrollLocked ? { overflow: "hidden" } : undefined),
           visibility: initialScrollDone ? "visible" : "hidden",
+          touchAction: "pan-y",
         }}
       >
-        <div className={styles.timeColumn}>
-          {timeSlots.map((time, index) => (
-            <div key={index} className={styles.timeSlot}>
-              {time}
-            </div>
-          ))}
-        </div>
-
-        <div className={styles.dayColumnWrapper}>
-          <DayColumn
-            roomColor={ZOOM_ROOM_COLOR} // Unused fallback: every meeting sets primaryColor via getRoomColor
-            meetings={dayMeetings}
-            selectedMeetingID={selectedMeetingID}
-            setSelectedMeetingID={setSelectedMeetingID}
-            setSelectedNewMeeting={setSelectedNewMeeting}
-            setAnchorEl={setAnchorEl}
-            conflictMids={conflictMids}
-            hourHeight={MOBILE_HOUR_HEIGHT}
-            hideTags
-          />
-          {isToday && (
-            <div
-              className={styles.currentTimeIndicator}
-              style={{ top: `${(new Date().getHours() * 60 + new Date().getMinutes()) * (MOBILE_HOUR_HEIGHT / 60)}px` }}
-            />
-          )}
+        <div className={styles.dayColumnWrapper} ref={wrapperRef}>
+          <motion.div
+            className={styles.carouselTrack}
+            drag="x"
+            dragControls={dragControls}
+            dragListener={false}
+            dragConstraints={{ left: -2 * panelWidth, right: 0 }}
+            dragElastic={0.2}
+            animate={controls}
+            onDragStart={handleTrackDragStart}
+            onDragEnd={handleTrackDragEnd}
+            onClickCapture={(e) => {
+              if (isDraggingRef.current) {
+                e.stopPropagation();
+                isDraggingRef.current = false;
+              }
+            }}
+            style={{ touchAction: "pan-y", width: panelWidth * 3 }}
+          >
+            {renderDayPanel(prevMeetings, prevDate)}
+            {renderDayPanel(currentMeetings, selectedDate)}
+            {renderDayPanel(nextMeetings, nextDate)}
+          </motion.div>
         </div>
       </div>
     </div>
