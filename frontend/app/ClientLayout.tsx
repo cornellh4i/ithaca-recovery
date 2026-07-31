@@ -7,6 +7,7 @@ import styles from "../styles/MainLayout.module.scss";
 import type { Session } from "next-auth";
 import { SessionProvider } from "next-auth/react";
 import { SidebarProvider } from "./context/SidebarContext";
+import { CalendarProvider } from "./context/CalendarProvider";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -24,14 +25,16 @@ export default function ClientLayout({
             <body className={inter.className} suppressHydrationWarning>
                 <SessionProvider session={session}>
                     <SidebarProvider>
-                        <div className={styles.mainlayout}>
-                            <div className={styles.navigation}>
-                                <AppNavbar />
+                        <CalendarProvider>
+                            <div className={styles.mainlayout}>
+                                <div className={styles.navigation}>
+                                    <AppNavbar />
+                                </div>
+                                <div className={styles.content}>
+                                    {children}
+                                </div>
                             </div>
-                            <div className={styles.content}>
-                                {children}
-                            </div>
-                        </div>
+                        </CalendarProvider>
                     </SidebarProvider>
                 </SessionProvider>
             </body>

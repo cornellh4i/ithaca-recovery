@@ -1,0 +1,94 @@
+@import '../../Variables.module.scss';
+
+.navbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 48px;
+    z-index: $z-index-sticky;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 8px;
+    background-color: #fff;
+    border-bottom: 1px solid $grey-border-color;
+    transition: transform 0.25s ease;
+
+    &.hidden {
+        transform: translateY(-100%);
+    }
+}
+
+.left,
+.right {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.filterButtonWrapper {
+    position: relative;
+}
+
+// MUI's SvgIcon fills with currentColor, so setting color here (rather than reaching into
+// the icon itself) is enough to tint it -- matches how IconButton already lets a caller-
+// supplied className override its own styling.
+.filterActive {
+    color: $brand-pink-color !important;
+}
+
+.filterBadge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 3px;
+    border-radius: 8px;
+    background-color: $brand-pink-color;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 16px;
+    text-align: center;
+}
+
+.todayButton {
+    height: 32px;
+    padding: 0 12px;
+    border: 1px solid $grey-border-color;
+    border-radius: 16px;
+    background-color: #fff;
+    color: $black-color;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+
+    &:hover,
+    &:focus {
+        background-color: $grey-lightest-color;
+    }
+}
+
+.profileButton {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 1px solid $grey-border-color;
+    background: none;
+    padding: 0;
+    cursor: pointer;
+    overflow: hidden;
+    text-decoration: none;
+
+    img,
+    div {
+        width: 100%;
+        height: 100%;
+    }
+}

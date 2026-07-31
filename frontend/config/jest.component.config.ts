@@ -20,6 +20,7 @@ const config: Config = {
   moduleNameMapper: {
     "^server-only$": "<rootDir>/tests/mocks/server-only.js",
     "\\.module\\.scss$": "identity-obj-proxy",
+    "\\.css$": "identity-obj-proxy",
     "\\.(png|jpe?g|gif|svg)$": "<rootDir>/tests/mocks/fileMock.js",
   },
   setupFilesAfterEnv: ["<rootDir>/tests/component/setup.ts"],
