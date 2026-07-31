@@ -63,4 +63,10 @@ describe("ViewMeeting", () => {
     render(<ViewMeetingDetails {...baseProps} anchorEl={null} isPhone isAdmin />);
     expect(screen.getByRole("button", { name: "Meeting options" })).toBeInTheDocument();
   });
+
+  it("prefixes the mode label with its mode icon", () => {
+    render(<ViewMeetingDetails {...baseProps} anchorEl={makeAnchorEl()} isPhone={false} />);
+    const label = screen.getByText("In Person");
+    expect(label.querySelector("img")).toHaveAttribute("src", "/svg/location-icon.svg");
+  });
 });

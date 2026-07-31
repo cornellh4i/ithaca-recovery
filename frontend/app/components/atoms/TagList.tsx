@@ -1,6 +1,7 @@
 import React, { useLayoutEffect, useRef, useState } from "react";
 import styles from '../../../styles/components/atoms/TagList.module.scss';
 import { sortTags } from '../../../util/tagOrder';
+import { MODE_ICON_SRC } from '../../../util/modeIcons';
 
 interface TagListProps {
   tags: string[];
@@ -76,7 +77,13 @@ const TagList: React.FC<TagListProps> = ({ tags, color, gap = 3, containerStyle,
         const addPill = (text: string, isOverflow: boolean) => {
           const span = document.createElement('span');
           span.className = isOverflow ? styles.overflowTag : styles.tag;
-          span.textContent = text;
+          if (!isOverflow && MODE_ICON_SRC[text]) {
+            const icon = document.createElement('img');
+            icon.src = MODE_ICON_SRC[text];
+            icon.className = styles.tagIcon;
+            span.appendChild(icon);
+          }
+          span.appendChild(document.createTextNode(text));
           if (tagStyle) Object.assign(span.style, tagStyle as Record<string, string>);
           probe.appendChild(span);
         };
@@ -116,6 +123,7 @@ const TagList: React.FC<TagListProps> = ({ tags, color, gap = 3, containerStyle,
       <div ref={containerRef} className={styles.tags} style={{ gap, ...containerStyle }}>
         {sorted.slice(0, visibleCount).map(tag => (
           <span key={tag} className={styles.tag} style={{ backgroundColor: color, ...tagStyle }}>
+            {MODE_ICON_SRC[tag] && <img src={MODE_ICON_SRC[tag]} alt="" className={styles.tagIcon} />}
             {tag}
           </span>
         ))}
