@@ -62,6 +62,7 @@ const MobileAppNavbar: React.FC<MobileAppNavbarProps> = ({ session, status, user
               ariaLabel="Navigate to a day"
               variant="outlined"
               size="compact"
+              className={styles.squareIcon}
               onClick={() => setOpenSheet("calendar")}
             />
             <div className={styles.filterButtonWrapper}>
@@ -70,7 +71,7 @@ const MobileAppNavbar: React.FC<MobileAppNavbarProps> = ({ session, status, user
                 ariaLabel="Filter meetings"
                 variant="outlined"
                 size="compact"
-                className={hasActiveFilters ? styles.filterActive : undefined}
+                className={[styles.squareIcon, hasActiveFilters ? styles.filterActive : undefined].filter(Boolean).join(" ")}
                 onClick={() => setOpenSheet("filter")}
               />
               {hasActiveFilters && (

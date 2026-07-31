@@ -31,6 +31,15 @@
     position: relative;
 }
 
+// IconButton's .outlined variant defaults to a circular border (border-radius: 50%) --
+// overridden here for just the calendar-toggle/filter buttons, which read as a square
+// (8px radius, matching Claude Design's mobile-day-view mockup) box instead. !important
+// to win over .outlined regardless of the two CSS modules' relative bundle order (same
+// idiom as .filterActive below).
+.squareIcon {
+    border-radius: 8px !important;
+}
+
 // MUI's SvgIcon fills with currentColor, so setting color here (rather than reaching into
 // the icon itself) is enough to tint it -- matches how IconButton already lets a caller-
 // supplied className override its own styling.
