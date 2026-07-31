@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState } from "react";
+import React, { createContext, useContext, useMemo, useState } from "react";
 import { createDefaultFilters, MeetingFilters } from "../../util/meetingFilters";
 
 // Bridges calendar state between HomePage's page content and the globally-mounted AppNavbar
@@ -34,21 +34,24 @@ export const CalendarProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [weekFilters, setWeekFilters] = useState<MeetingFilters>(() => createDefaultFilters(true));
   const [navHidden, setNavHidden] = useState(false);
 
+  const value = useMemo(
+    () => ({
+      selectedDate,
+      setSelectedDate,
+      selectedView,
+      setSelectedView,
+      dayFilters,
+      setDayFilters,
+      weekFilters,
+      setWeekFilters,
+      navHidden,
+      setNavHidden,
+    }),
+    [selectedDate, selectedView, dayFilters, weekFilters, navHidden]
+  );
+
   return (
-    <CalendarContext.Provider
-      value={{
-        selectedDate,
-        setSelectedDate,
-        selectedView,
-        setSelectedView,
-        dayFilters,
-        setDayFilters,
-        weekFilters,
-        setWeekFilters,
-        navHidden,
-        setNavHidden,
-      }}
-    >
+    <CalendarContext.Provider value={value}>
       {children}
     </CalendarContext.Provider>
   );

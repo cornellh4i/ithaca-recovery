@@ -1,4 +1,4 @@
-@import 'Variables.module.scss';
+@import 'Variables.module';
 
 // No global stylesheet exists in this app (SCSS modules only) -- this is the one file
 // guaranteed to load on every page, so it owns zeroing the browser's default 8px body
