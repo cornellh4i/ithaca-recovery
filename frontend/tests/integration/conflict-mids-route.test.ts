@@ -46,8 +46,22 @@ test("returns the mids of meetings sharing a busy Zoom host at overlapping times
   const midB = `m-${randomUUID()}`;
   const midUnrelated = `m-${randomUUID()}`;
 
+  // buildMeetingData's default window is a fixed "today 18:00-19:00 ET" -- fine most of the
+  // day, but the conflict horizon starts at "now" (resourceOverlap.ts's horizonRange), so a
+  // test run after 7pm ET would find that default window already in the past and excluded.
+  // An hour-from-now window keeps this deterministic regardless of time of day.
+  const overlapStart = new Date(Date.now() + 60 * 60 * 1000);
+  const overlapEnd = new Date(overlapStart.getTime() + 60 * 60 * 1000);
+
   await prisma.meeting.create({
-    data: buildMeetingData({ mid: midA, title: "Zoom Zoom", room: "Serenity Room", zoomHost: sharedHost }),
+    data: buildMeetingData({
+      mid: midA,
+      title: "Zoom Zoom",
+      room: "Serenity Room",
+      zoomHost: sharedHost,
+      startDateTime: overlapStart,
+      endDateTime: overlapEnd,
+    }),
   });
   await prisma.meeting.create({
     data: buildMeetingData({
@@ -56,13 +70,13 @@ test("returns the mids of meetings sharing a busy Zoom host at overlapping times
       room: "Unity Room",
       zoomRoom: "Unity Room - Zoom",
       zoomHost: sharedHost,
+      startDateTime: overlapStart,
+      endDateTime: overlapEnd,
     }),
   });
   // A third meeting with no shared resource -- must not show up as a false positive.
-  // Deliberately a day apart from midA/midB's default date, same as before this
-  // switched from a fixed literal to a today-relative one.
-  const dayAfterStart = new Date(Date.now() + 24 * 60 * 60 * 1000);
-  dayAfterStart.setUTCHours(22, 0, 0, 0);
+  // Deliberately a day apart from midA/midB's overlap window.
+  const dayAfterStart = new Date(overlapStart.getTime() + 24 * 60 * 60 * 1000);
   const dayAfterEnd = new Date(dayAfterStart.getTime() + 60 * 60 * 1000);
   await prisma.meeting.create({
     data: buildMeetingData({
