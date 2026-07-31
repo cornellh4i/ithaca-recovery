@@ -13,6 +13,7 @@ import ProfileCard from "./ProfileCard";
 import MiniCalendar from "../atoms/MiniCalendar";
 import MeetingsFilter from "../calendar/MeetingsFilter";
 import { useCalendarContext } from "../../context/CalendarProvider";
+import { toNoonETOnLocalCalendarDay } from "../../../util/weekDates";
 import styles from "../../../styles/components/navbar/MobileAppNavbar.module.scss";
 
 type OpenSheet = "calendar" | "filter" | "profile" | null;
@@ -31,7 +32,7 @@ interface MobileAppNavbarProps {
 const MobileAppNavbar: React.FC<MobileAppNavbarProps> = ({ session, status, userAvatar }) => {
   const pathname = usePathname();
   const isCalendarRoute = pathname === "/";
-  const { selectedDate, setSelectedDate, dayFilters, setDayFilters, navHidden } = useCalendarContext();
+  const { selectedDate, changeSelectedDate, dayFilters, setDayFilters, navHidden } = useCalendarContext();
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [openSheet, setOpenSheet] = useState<OpenSheet>(null);
@@ -44,7 +45,7 @@ const MobileAppNavbar: React.FC<MobileAppNavbarProps> = ({ session, status, user
     setDayFilters((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleToday = () => setSelectedDate(new Date());
+  const handleToday = () => changeSelectedDate(new Date());
 
   return (
     <div className={`${styles.navbar} ${navHidden ? styles.hidden : ""}`}>
@@ -112,7 +113,12 @@ const MobileAppNavbar: React.FC<MobileAppNavbarProps> = ({ session, status, user
         <MiniCalendar
           selectedDate={selectedDate}
           onSelect={(date) => {
-            setSelectedDate(date);
+            // react-day-picker hands back a local-midnight-anchored Date -- re-anchor to
+            // noon ET on that same calendar day before it flows into the shared transition
+            // machinery (all of which assumes noon-ET-anchored Dates), or a runtime whose
+            // local timezone isn't ET could land on the wrong day. See
+            // toNoonETOnLocalCalendarDay's own comment.
+            changeSelectedDate(toNoonETOnLocalCalendarDay(date));
             closeSheet();
           }}
         />

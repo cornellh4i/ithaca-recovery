@@ -1,4 +1,5 @@
 import React, { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { motion, type PanInfo } from "framer-motion";
 import WeekStrip from "./WeekStrip";
 import CalendarHeader from "./CalendarHeader";
 import DayColumn from "./DayColumn";
@@ -6,7 +7,7 @@ import { filterMeetingsForDate, MeetingFilters } from "../../../util/meetingFilt
 import { ROOM_COLORS, ZOOM_ROOM_COLOR, REMOTE_COLOR } from "../../../util/filterColors";
 import { formatETDateString } from "../../../util/timeUtils";
 import { layoutOverlappingMeetings, OverlapMeeting } from "../../../util/meetingOverlapLayout";
-import { getFirstDayOfWeek } from "../../../util/weekDates";
+import { getFirstDayOfWeek, addDaysToDate } from "../../../util/weekDates";
 import { useWeekMeetings } from "../../../hooks/useWeekMeetings";
 import { useCalendarContext } from "../../context/CalendarProvider";
 import styles from "../../../styles/components/calendar/MobileCalendarView.module.scss";
@@ -37,10 +38,15 @@ const timeSlots = Array.from({ length: 24 }, (_, i) => formatTime(i));
 // jitter (e.g. rubber-banding at the top) doesn't flicker the navbar in and out.
 const SCROLL_HIDE_THRESHOLD_PX = 4;
 
+// Distance/velocity a horizontal drag on the day column needs to clear before it counts as a
+// real "swipe to the next/previous day" gesture -- matches WeekStrip's own thresholds so both
+// gesture surfaces feel consistent.
+const SWIPE_OFFSET_THRESHOLD = 60;
+const SWIPE_VELOCITY_THRESHOLD = 400;
+
 interface MobileCalendarViewProps {
   filters: MeetingFilters;
   selectedDate: Date;
-  setSelectedDate: (date: Date) => void;
   selectedMeetingID: string | null;
   setSelectedMeetingID: (meetingId: string) => void;
   setSelectedNewMeeting: (newMeetingExists: boolean) => void;
@@ -55,11 +61,12 @@ interface MobileCalendarViewProps {
 // above the scroll area, not competing for the same scroll container DayColumn uses) while
 // DayColumn's own wrapper scrolls independently underneath -- also where the mobile navbar's
 // scroll-hide listener attaches (writes navHidden to CalendarProvider, read by
-// MobileAppNavbar).
+// MobileAppNavbar). CalendarHeader's heading and DayColumn share the same
+// transitionDirection/selectedDate-keyed swap (CalendarProvider's changeSelectedDate), so a
+// swipe/tap/mini-calendar-pick animates both together regardless of which one triggered it.
 const MobileCalendarView: React.FC<MobileCalendarViewProps> = ({
   filters,
   selectedDate,
-  setSelectedDate,
   selectedMeetingID,
   setSelectedMeetingID,
   setSelectedNewMeeting,
@@ -69,7 +76,7 @@ const MobileCalendarView: React.FC<MobileCalendarViewProps> = ({
   conflictMids,
   isAdmin,
 }) => {
-  const { setNavHidden } = useCalendarContext();
+  const { setNavHidden, changeSelectedDate, transitionDirection, transitionCrossesWeek } = useCalendarContext();
   const weekStartDate = getFirstDayOfWeek(selectedDate);
   const allMeetings = useWeekMeetings(weekStartDate, refreshTrigger);
 
@@ -129,10 +136,24 @@ const MobileCalendarView: React.FC<MobileCalendarViewProps> = ({
     lastScrollTopRef.current = el.scrollTop;
   };
 
+  const handleDaySwipeEnd = (_event: PointerEvent | MouseEvent | TouchEvent, info: PanInfo) => {
+    const pastThreshold =
+      Math.abs(info.offset.x) > SWIPE_OFFSET_THRESHOLD || Math.abs(info.velocity.x) > SWIPE_VELOCITY_THRESHOLD;
+    if (!pastThreshold) return;
+
+    // Swipe left (negative offset) = forward = later; swipe right = backward = earlier.
+    changeSelectedDate(addDaysToDate(selectedDate, info.offset.x < 0 ? 1 : -1));
+  };
+
   return (
     <div className={styles.container}>
-      <WeekStrip selectedDate={selectedDate} setSelectedDate={setSelectedDate} />
-      <CalendarHeader selectedDate={selectedDate} selectedView="Day" isAdmin={isAdmin} />
+      <WeekStrip />
+      <CalendarHeader
+        selectedDate={selectedDate}
+        selectedView="Day"
+        isAdmin={isAdmin}
+        animatedHeading={{ transitionKey: selectedEtDateStr, direction: transitionDirection }}
+      />
 
       <div
         className={styles.scrollArea}
@@ -151,25 +172,46 @@ const MobileCalendarView: React.FC<MobileCalendarViewProps> = ({
           ))}
         </div>
 
-        <div className={styles.dayColumnWrapper}>
-          <DayColumn
-            roomColor={ZOOM_ROOM_COLOR} // Unused fallback: every meeting sets primaryColor via getRoomColor
-            meetings={dayMeetings}
-            selectedMeetingID={selectedMeetingID}
-            setSelectedMeetingID={setSelectedMeetingID}
-            setSelectedNewMeeting={setSelectedNewMeeting}
-            setAnchorEl={setAnchorEl}
-            conflictMids={conflictMids}
-            hourHeight={MOBILE_HOUR_HEIGHT}
-            hideTags
-          />
-          {isToday && (
-            <div
-              className={styles.currentTimeIndicator}
-              style={{ top: `${(new Date().getHours() * 60 + new Date().getMinutes()) * (MOBILE_HOUR_HEIGHT / 60)}px` }}
+        {/* drag="x" scoped to just this wrapper (not the whole scrollArea) so vertical
+            touch-scroll on the time labels / day column keeps working normally --
+            dragSnapToOrigin returns this wrapper to x:0 immediately on release regardless of
+            outcome; the actual slide is the inner date-keyed swap below. No AnimatePresence --
+            a plain key change unmounts the old day and mounts the new one in the same commit
+            (no dual-mount exit period to manage), and the new one plays its own enter
+            transition. See CalendarHeader.tsx's matching comment for why. */}
+        <motion.div
+          className={styles.dayColumnWrapper}
+          drag="x"
+          dragSnapToOrigin
+          onDragEnd={handleDaySwipeEnd}
+          style={{ touchAction: "pan-y" }}
+        >
+          <motion.div
+            key={selectedEtDateStr}
+            className={styles.dayColumnAnimatedInner}
+            initial={{ x: transitionCrossesWeek ? 0 : transitionDirection === "forward" ? "100%" : "-100%" }}
+            animate={{ x: 0 }}
+            transition={{ type: "tween", duration: 0.25, ease: "easeOut" }}
+          >
+            <DayColumn
+              roomColor={ZOOM_ROOM_COLOR} // Unused fallback: every meeting sets primaryColor via getRoomColor
+              meetings={dayMeetings}
+              selectedMeetingID={selectedMeetingID}
+              setSelectedMeetingID={setSelectedMeetingID}
+              setSelectedNewMeeting={setSelectedNewMeeting}
+              setAnchorEl={setAnchorEl}
+              conflictMids={conflictMids}
+              hourHeight={MOBILE_HOUR_HEIGHT}
+              hideTags
             />
-          )}
-        </div>
+            {isToday && (
+              <div
+                className={styles.currentTimeIndicator}
+                style={{ top: `${(new Date().getHours() * 60 + new Date().getMinutes()) * (MOBILE_HOUR_HEIGHT / 60)}px` }}
+              />
+            )}
+          </motion.div>
+        </motion.div>
       </div>
     </div>
   );

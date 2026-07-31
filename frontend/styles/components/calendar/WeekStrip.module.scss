@@ -1,5 +1,12 @@
 @import '../../Variables.module';
 
+// Clips the week-boundary slide (the whole strip animating off/on screen) so the outgoing/
+// incoming week isn't visible past the viewport edge mid-transition.
+.stripViewport {
+    overflow: hidden;
+    touch-action: pan-y;
+}
+
 .strip {
     display: flex;
     justify-content: space-between;
