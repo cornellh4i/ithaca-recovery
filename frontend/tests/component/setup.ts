@@ -1,9 +1,14 @@
 import "@testing-library/jest-dom";
 
-// jsdom doesn't implement ResizeObserver -- TagList (and anything else measuring its own
-// layout, e.g. BoxText's zoomTag width) needs a stub or it throws on mount.
-global.ResizeObserver = class ResizeObserver {
-  observe() {}
-  unobserve() {}
-  disconnect() {}
-};
+// jsdom has no ResizeObserver -- stubbed here (not per-test) since any component tree that
+// happens to mount TagList.tsx (or anything else that measures itself) needs this globally
+// available, not just the specific test that intentionally exercises it.
+if (typeof window !== "undefined" && !("ResizeObserver" in window)) {
+  class ResizeObserverStub {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  }
+  // @ts-expect-error -- test-only stub, not a spec-complete ResizeObserver
+  window.ResizeObserver = ResizeObserverStub;
+}

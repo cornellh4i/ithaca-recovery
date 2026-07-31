@@ -7,6 +7,10 @@ import ViewMeetingDetails from "../components/meeting-form/ViewMeeting";
 import DailyView from "../components/calendar/DailyView";
 import WeeklyView from "../components/calendar/WeeklyView";
 import MobileCalendarView from "../components/calendar/MobileCalendarView";
+import MobileFullScreenSheet from "../components/atoms/MobileFullScreenSheet";
+import MobileFab from "../components/calendar/MobileFab";
+import NewMeetingSidebar from "../components/meeting-form/NewMeeting";
+import EditMeetingSidebar from "../components/meeting-form/EditMeeting";
 
 import { convertUTCToET } from "../../util/timeUtils";
 import { IMeeting } from "../../util/models";
@@ -61,7 +65,7 @@ export default function HomePage() {
 
   const {
     selectedDate,
-    setSelectedDate,
+    changeSelectedDate,
     selectedView,
     setSelectedView,
     dayFilters,
@@ -73,6 +77,10 @@ export default function HomePage() {
   const [selectedMeetingID, setSelectedMeetingID] = useState<string | null>(null);
   const [, setSelectedNewMeeting] = useState<boolean | null>(false);
   const [showEditMeeting, setShowEditMeeting] = useState(false);
+  // Lifted here (rather than owned by CalendarSidebarShell, which isn't mounted at all on
+  // phone) so mobile's full-screen New Meeting form and desktop's embedded sidebar form
+  // share one source of truth.
+  const [isNewMeetingOpen, setIsNewMeetingOpen] = useState(false);
   const [lastClickedDate, setLastClickedDate] = useState<Date | null>(null);
   // The clicked meeting box, so the View Meeting popup can anchor itself beside it.
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
@@ -246,8 +254,8 @@ export default function HomePage() {
   return (
     <div className={styles.container}>
       {/* No sidebar on mobile -- filters/mini-calendar move into MobileAppNavbar's bottom
-          sheets instead (see CalendarProvider/MobileAppNavbar). New/Edit Meeting's mobile
-          full-screen equivalent lands in a later branch. */}
+          sheets instead (see CalendarProvider/MobileAppNavbar); New/Edit Meeting instead get
+          the full-screen sheets rendered below. */}
       {!isPhone && (
         <CalendarSidebarShell
           isLoggedIn={isLoggedIn}
@@ -255,13 +263,37 @@ export default function HomePage() {
           filters={filters}
           setFilters={setFilters}
           selectedDate={selectedDate}
-          setSelectedDate={setSelectedDate}
+          setSelectedDate={changeSelectedDate}
           selectedView={selectedView}
           triggerCalendarRefresh={triggerCalendarRefresh}
           selectedMeeting={selectedMeeting}
           showEditMeeting={showEditMeeting}
           onCloseEdit={handleCloseEdit}
+          isNewMeetingOpen={isNewMeetingOpen}
+          setIsNewMeetingOpen={setIsNewMeetingOpen}
         />
+      )}
+      {isPhone && isAdmin && (
+        <React.Fragment>
+          <MobileFullScreenSheet isOpen={isNewMeetingOpen}>
+            <NewMeetingSidebar
+              setIsNewMeetingOpen={setIsNewMeetingOpen}
+              triggerCalendarRefresh={triggerCalendarRefresh}
+              selectedDate={selectedDate}
+              selectedView={selectedView}
+            />
+          </MobileFullScreenSheet>
+          <MobileFullScreenSheet isOpen={showEditMeeting && !!selectedMeeting}>
+            {selectedMeeting && (
+              <EditMeetingSidebar
+                meeting={selectedMeeting}
+                onClose={handleCloseEdit}
+                onUpdateSuccess={triggerCalendarRefresh}
+              />
+            )}
+          </MobileFullScreenSheet>
+          <MobileFab onClick={() => setIsNewMeetingOpen(true)} />
+        </React.Fragment>
       )}
       {selectedMeeting && !showEditMeeting && (
         <ViewMeetingDetails
@@ -307,6 +339,7 @@ export default function HomePage() {
           conflictCount={conflictCounts.get(selectedMeeting.mid) ?? 0}
           currentOccurrenceDate={lastClickedDate || undefined} // Pass the date when the meeting was clicked
           anchorEl={anchorEl}
+          isPhone={isPhone}
           isAdmin={isAdmin}
           onBack={handleBack}
           onEdit={handleOpenEdit}
@@ -332,7 +365,7 @@ export default function HomePage() {
           <React.Fragment>
             <CalendarNavbar
               selectedDate={selectedDate}
-              onDateChange={setSelectedDate}
+              onDateChange={changeSelectedDate}
               onViewChange={setSelectedView}
               isAdmin={isAdmin}
             />
@@ -340,7 +373,7 @@ export default function HomePage() {
               <DailyView
                 filters={filters}
                 selectedDate={selectedDate}
-                setSelectedDate={setSelectedDate}
+                setSelectedDate={changeSelectedDate}
                 selectedMeetingID={selectedMeetingID}
                 setSelectedMeetingID={setSelectedMeetingID}
                 setSelectedNewMeeting={setSelectedNewMeeting}
@@ -353,7 +386,7 @@ export default function HomePage() {
               <WeeklyView
                 filters={filters}
                 selectedDate={selectedDate}
-                setSelectedDate={setSelectedDate}
+                setSelectedDate={changeSelectedDate}
                 selectedMeetingID={selectedMeetingID}
                 setSelectedMeetingID={setSelectedMeetingID}
                 setSelectedNewMeeting={setSelectedNewMeeting}

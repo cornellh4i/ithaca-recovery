@@ -78,7 +78,8 @@ const MobileCalendarView: React.FC<MobileCalendarViewProps> = ({
   conflictMids,
   isAdmin,
 }) => {
-  const { setNavHidden, changeSelectedDate, transitionDirection } = useCalendarContext();
+  const { setNavHidden, changeSelectedDate, transitionDirection, transitionAlreadyAnimatedByCaller } =
+    useCalendarContext();
 
   // A prev/current/next-day carousel needs whichever week(s) contain selectedDate - 1 and
   // selectedDate + 1 -- these two always cover all 3 target dates, since selectedDate is
@@ -135,8 +136,8 @@ const MobileCalendarView: React.FC<MobileCalendarViewProps> = ({
   // same flash DailyView/WeeklyView's own scrollToCurrentTime has always had (a beat of the
   // wrong scroll position at 12 AM before JS jumps it to "now"), which useLayoutEffect alone
   // doesn't fully rule out (e.g. a slow first paint). One-way: only ever flips true once, on
-  // the very first date this view renders -- later date changes don't re-hide already-
-  // visible content.
+  // the very first date this view renders -- later date changes (day swipe/tap/mini-calendar
+  // pick) reset scroll position same as always but don't re-hide already-visible content.
   const [initialScrollDone, setInitialScrollDone] = useState(false);
 
   const scrollToCurrentTime = useCallback(() => {
@@ -228,6 +229,12 @@ const MobileCalendarView: React.FC<MobileCalendarViewProps> = ({
   }, [selectedDate]);
   const mountedRef = useRef(true);
   useEffect(() => {
+    // Reset (not just declare via useRef(true)) on every effect run, not only cleanup -- React
+    // 18 Strict Mode's dev-only mount/cleanup/remount dance on initial mount runs this cleanup
+    // once before the "real" mount settles, which would otherwise leave this stuck at false
+    // forever despite the component actually being mounted (exactly what was silently no-op'ing
+    // every mobile day-swipe's changeSelectedDate call).
+    mountedRef.current = true;
     return () => {
       mountedRef.current = false;
     };
@@ -250,12 +257,18 @@ const MobileCalendarView: React.FC<MobileCalendarViewProps> = ({
     // edge trick).
     await controls.start({ x: forward ? -2 * panelWidth : 0 }, { type: "tween", duration: 0.25, ease: "easeOut" });
     if (!mountedRef.current) return;
-    changeSelectedDate(addDaysToDate(selectedDateRef.current, forward ? 1 : -1));
+    changeSelectedDate(addDaysToDate(selectedDateRef.current, forward ? 1 : -1), { alreadyAnimatedByCaller: true });
     controls.set({ x: -panelWidth });
   };
 
   // Each panel bundles its own time-label column with its DayColumn so both slide as one unit
   // during a swipe (see the wrapperRef comment above) -- shared by all three panels below.
+  // The inner motion.div plays CalendarHeader's own slide-in (same direction/duration, driven
+  // by the same transitionDirection) so the day grid visibly moves together with the heading
+  // for WeekStrip taps and mini-calendar picks -- previously only the heading animated, since a
+  // drag's own pan is the only thing that ever moved this carousel. initial={false} suppresses
+  // it specifically for drag-committed changes (transitionAlreadyAnimatedByCaller, set by this
+  // view's own handleTrackDragEnd), where the pan gesture itself already was that motion.
   const renderDayPanel = (meetings: Meeting[], date: Date) => (
     <div className={styles.dayPanel} style={{ width: panelWidth }}>
       <div className={styles.timeColumn}>
@@ -266,17 +279,28 @@ const MobileCalendarView: React.FC<MobileCalendarViewProps> = ({
         ))}
       </div>
       <div className={styles.dayContent}>
-        <DayColumn
-          roomColor={ZOOM_ROOM_COLOR} // Unused fallback: every meeting sets primaryColor via getRoomColor
-          meetings={meetings}
-          selectedMeetingID={selectedMeetingID}
-          setSelectedMeetingID={setSelectedMeetingID}
-          setSelectedNewMeeting={setSelectedNewMeeting}
-          setAnchorEl={setAnchorEl}
-          conflictMids={conflictMids}
-          hourHeight={MOBILE_HOUR_HEIGHT}
-          hideTags
-        />
+        <motion.div
+          key={formatETDateString(date)}
+          initial={
+            transitionAlreadyAnimatedByCaller
+              ? false
+              : { x: transitionDirection === "forward" ? 24 : -24, opacity: 0 }
+          }
+          animate={{ x: 0, opacity: 1 }}
+          transition={{ duration: 0.25, ease: "easeOut" }}
+        >
+          <DayColumn
+            roomColor={ZOOM_ROOM_COLOR} // Unused fallback: every meeting sets primaryColor via getRoomColor
+            meetings={meetings}
+            selectedMeetingID={selectedMeetingID}
+            setSelectedMeetingID={setSelectedMeetingID}
+            setSelectedNewMeeting={setSelectedNewMeeting}
+            setAnchorEl={setAnchorEl}
+            conflictMids={conflictMids}
+            hourHeight={MOBILE_HOUR_HEIGHT}
+            hideTags
+          />
+        </motion.div>
         {isDateToday(date) && (
           <div
             className={styles.currentTimeIndicator}

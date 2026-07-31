@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState } from "react";
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { Session } from "next-auth";
 import MenuIcon from "@mui/icons-material/Menu";
@@ -10,6 +9,7 @@ import IconButton from "../atoms/IconButton";
 import BottomSheet from "../atoms/BottomSheet";
 import AppSidebar from "./AppSidebar";
 import ProfileCard from "./ProfileCard";
+import MobileLoginSheet from "./MobileLoginSheet";
 import MiniCalendar from "../atoms/MiniCalendar";
 import MeetingsFilter from "../calendar/MeetingsFilter";
 import { useCalendarContext } from "../../context/CalendarProvider";
@@ -36,6 +36,7 @@ const MobileAppNavbar: React.FC<MobileAppNavbarProps> = ({ session, status, user
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [openSheet, setOpenSheet] = useState<OpenSheet>(null);
+  const [loginOpen, setLoginOpen] = useState(false);
   const closeSheet = () => setOpenSheet(null);
 
   const unselectedFilterCount = Object.values(dayFilters).filter((value) => !value).length;
@@ -101,9 +102,21 @@ const MobileAppNavbar: React.FC<MobileAppNavbarProps> = ({ session, status, user
             {userAvatar}
           </button>
         ) : (
-          <Link href="/login" className={styles.profileButton} aria-label="Sign in">
-            {userAvatar}
-          </Link>
+          <button
+            type="button"
+            className={`${styles.profileButton} ${styles.profileButtonSignedOut}`}
+            aria-label="Sign in"
+            onClick={() => setLoginOpen(true)}
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 -960 960 960"
+              fill="currentColor" // inherits .profileButtonSignedOut's black -- see .signInIcon's comment
+              className={styles.signInIcon}
+            >
+              <path d="M480-120v-80h280v-560H480v-80h280q33 0 56.5 23.5T840-760v560q0 33-23.5 56.5T760-120H480Zm-80-160-55-58 102-102H120v-80h327L345-622l55-58 200 200-200 200Z" />
+            </svg>
+          </button>
         )}
       </div>
 
@@ -133,6 +146,8 @@ const MobileAppNavbar: React.FC<MobileAppNavbarProps> = ({ session, status, user
           <ProfileCard session={session} userAvatar={userAvatar} />
         </BottomSheet>
       )}
+
+      <MobileLoginSheet isOpen={loginOpen} onBack={() => setLoginOpen(false)} />
     </div>
   );
 };

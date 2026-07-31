@@ -10,6 +10,9 @@ interface BottomSheetProps {
   onClose: () => void;
   title: string;
   children: React.ReactNode;
+  // For content (e.g. ViewMeeting) that already renders its own visible header/title --
+  // title is still required for the dialog's accessible name, just not shown a second time.
+  hideTitleVisually?: boolean;
 }
 
 // Dragging down past this offset (or fast enough downward, regardless of distance) dismisses
@@ -18,7 +21,13 @@ interface BottomSheetProps {
 const DISMISS_OFFSET_PX = 100;
 const DISMISS_VELOCITY = 500;
 
-const BottomSheet: React.FC<BottomSheetProps> = ({ isOpen, onClose, title, children }) => {
+const BottomSheet: React.FC<BottomSheetProps> = ({
+  isOpen,
+  onClose,
+  title,
+  children,
+  hideTitleVisually = false,
+}) => {
   const sheetRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -76,12 +85,16 @@ const BottomSheet: React.FC<BottomSheetProps> = ({ isOpen, onClose, title, child
             exit={{ y: "100%" }}
             transition={{ type: "tween", duration: 0.25, ease: "easeOut" }}
             drag="y"
-            dragConstraints={{ top: 0, bottom: 0 }}
+            // bottom intentionally unbounded (not 0) -- a {top:0, bottom:0} constraint locks
+            // y in place entirely, which also clamps the exit animation's own y:"100%" target
+            // since drag constraints apply to programmatic animation of the same value, not
+            // just user dragging (same bug class WeekStrip's swipe hit, see its own comment).
+            dragConstraints={{ top: 0, bottom: Infinity }}
             dragElastic={{ top: 0, bottom: 0.5 }}
             onDragEnd={handleDragEnd}
           >
             <div className={styles.grabber} />
-            <h2 className={styles.title}>{title}</h2>
+            <h2 className={hideTitleVisually ? styles.titleVisuallyHidden : styles.title}>{title}</h2>
             <div className={styles.content}>{children}</div>
           </motion.div>
         </React.Fragment>

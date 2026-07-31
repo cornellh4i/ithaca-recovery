@@ -50,7 +50,13 @@ const TagList: React.FC<TagListProps> = ({ tags, color, gap = 3, containerStyle,
 
       let node = container.parentElement;
       let clipAncestor: HTMLElement | null = null;
-      while (node) {
+      // Stop before document.body/documentElement -- BottomSheet (mobile ViewMeeting's
+      // wrapper) toggles document.body.style.overflow = 'hidden' as a scroll-lock while open,
+      // which would otherwise get picked up here as a false "clipping ancestor" and cap tags
+      // to whatever tiny sliver of body height happens to sit below this row, even though
+      // there's plenty of horizontal room and ViewMeeting is meant to get an unlimited budget
+      // (see this effect's own comment above).
+      while (node && node !== document.body && node !== document.documentElement) {
         const cs = getComputedStyle(node);
         if (cs.overflow === 'hidden' || cs.overflowY === 'hidden' || cs.overflow === 'clip' || cs.overflowY === 'clip') {
           clipAncestor = node;

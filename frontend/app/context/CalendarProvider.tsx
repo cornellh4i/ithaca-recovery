@@ -13,15 +13,27 @@ import { getSwipeDirection, isSameWeek, SwipeDirection } from "../../util/weekSt
 // selectedDate/filters, so the Provider is the single bridge for all of it.
 //
 // transitionDirection/transitionCrossesWeek/changeSelectedDate: the shared animated-date-
-// change path for mobile. Every trigger that should animate (WeekStrip tap/swipe, DayColumn
-// swipe, mini-calendar pick) calls changeSelectedDate instead of setSelectedDate directly --
-// it derives direction/crossesWeek from the *previous* selectedDate before updating, so
-// WeekStrip and MobileCalendarView (which both just react to selectedDate + these two fields
-// changing, regardless of which trigger caused it) render the same transition no matter the
-// source. Desktop code keeps using plain setSelectedDate, which never touches these fields.
+// change path for both desktop and mobile -- every date change, from any trigger (desktop
+// nav arrows/mini-calendar/day click, WeekStrip tap/swipe, DayColumn swipe, mobile mini-
+// calendar pick), goes through changeSelectedDate rather than a raw setter. It derives
+// direction/crossesWeek from the *previous* selectedDate before updating, so WeekStrip and
+// MobileCalendarView (which just react to selectedDate + these fields changing, regardless of
+// which trigger caused it) render the same transition no matter the source -- desktop simply
+// never reads transitionDirection/transitionCrossesWeek/transitionAlreadyAnimatedByCaller, so
+// routing its changes through here too is a no-op for it, not a behavior change. There's
+// deliberately no raw setSelectedDate on this context: a desktop call site bypassing
+// changeSelectedDate would leave these three fields stale for whatever mobile view mounts
+// next after a desktop<->mobile resize (MobileCalendarView unmounts/remounts across that
+// boundary, but the context itself does not).
+//
+// transitionAlreadyAnimatedByCaller: set when the caller's own gesture already delivered the
+// motion (only MobileCalendarView's drag -- the pan itself slides the content into place), so
+// consumers that play their own enter transition on every selectedDate change (MobileCalendarView's
+// per-panel slide-in) know to skip it for that one commit rather than layering a redundant
+// second slide right after the drag's. Plain state (not a ref) specifically so it's safe to
+// read during render.
 interface CalendarContextValue {
   selectedDate: Date;
-  setSelectedDate: React.Dispatch<React.SetStateAction<Date>>;
   selectedView: string;
   setSelectedView: React.Dispatch<React.SetStateAction<string>>;
   dayFilters: MeetingFilters;
@@ -32,7 +44,8 @@ interface CalendarContextValue {
   setNavHidden: React.Dispatch<React.SetStateAction<boolean>>;
   transitionDirection: SwipeDirection;
   transitionCrossesWeek: boolean;
-  changeSelectedDate: (newDate: Date) => void;
+  transitionAlreadyAnimatedByCaller: boolean;
+  changeSelectedDate: (newDate: Date, opts?: { alreadyAnimatedByCaller?: boolean }) => void;
 }
 
 const CalendarContext = createContext<CalendarContextValue | null>(null);
@@ -55,6 +68,7 @@ export const CalendarProvider: React.FC<CalendarProviderProps> = ({ children, in
   const [navHidden, setNavHidden] = useState(false);
   const [transitionDirection, setTransitionDirection] = useState<SwipeDirection>("forward");
   const [transitionCrossesWeek, setTransitionCrossesWeek] = useState(false);
+  const [transitionAlreadyAnimatedByCaller, setTransitionAlreadyAnimatedByCaller] = useState(false);
 
   // Ref mirror of selectedDate so changeSelectedDate's identity stays stable (it's handed to
   // framer-motion drag handlers in WeekStrip/MobileCalendarView, which don't need to
@@ -64,17 +78,17 @@ export const CalendarProvider: React.FC<CalendarProviderProps> = ({ children, in
     selectedDateRef.current = selectedDate;
   }, [selectedDate]);
 
-  const changeSelectedDate = useCallback((newDate: Date) => {
+  const changeSelectedDate = useCallback((newDate: Date, opts?: { alreadyAnimatedByCaller?: boolean }) => {
     const from = selectedDateRef.current;
     setTransitionDirection(getSwipeDirection(from, newDate));
     setTransitionCrossesWeek(!isSameWeek(from, newDate));
+    setTransitionAlreadyAnimatedByCaller(!!opts?.alreadyAnimatedByCaller);
     setSelectedDate(newDate);
   }, []);
 
   const value = useMemo(
     () => ({
       selectedDate,
-      setSelectedDate,
       selectedView,
       setSelectedView,
       dayFilters,
@@ -85,6 +99,7 @@ export const CalendarProvider: React.FC<CalendarProviderProps> = ({ children, in
       setNavHidden,
       transitionDirection,
       transitionCrossesWeek,
+      transitionAlreadyAnimatedByCaller,
       changeSelectedDate,
     }),
     [
@@ -95,6 +110,7 @@ export const CalendarProvider: React.FC<CalendarProviderProps> = ({ children, in
       navHidden,
       transitionDirection,
       transitionCrossesWeek,
+      transitionAlreadyAnimatedByCaller,
       changeSelectedDate,
     ]
   );

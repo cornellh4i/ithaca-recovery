@@ -1,0 +1,11 @@
+@import '../../Variables.module.scss';
+
+.fullScreen {
+    position: fixed;
+    inset: 0;
+    z-index: $z-index-modal;
+    background-color: #fff;
+    overflow-y: auto;
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+}
