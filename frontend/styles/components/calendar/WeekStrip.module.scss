@@ -39,12 +39,10 @@
     color: $black-color;
 }
 
-// Selected, not today -- toPastelColor($brand-pink-color) from util/color.ts, computed once
-// and hardcoded here (Sass can't call that TS function directly; re-run
-// toPastelColor('#CC3366') if $brand-pink-color ever changes -- same manual-sync convention
-// as MiniCalendar.module.scss's matching rule).
+// Selected, not today -- $brand-pink-secondary instead of MiniCalendar's toPastelColor($brand-
+// pink-color) pastel fill for better contrast against this circle's white text.
 .selectedNotToday {
-    background-color: rgb(240 194 209);
+    background-color: $brand-pink-secondary;
     color: #fff;
 }
 
