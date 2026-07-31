@@ -151,7 +151,13 @@ const DayColumn: React.FC<DayColumnProps> = ({
                     boxType="Meeting Block"
                     title={meeting.title}
                     primaryColor={meeting.primaryColor || roomColor}
-                    time={`${locationLabel ? `${locationLabel} · ` : ''}${formatCompactTimeRange(meeting.displayStartTime ?? meeting.startTime, meeting.displayEndTime ?? meeting.endTime)}`}
+                    // Mobile (hideTags) keeps place and time as separate props so the time
+                    // range can wrap onto its own line as a whole unit on narrow rows (see
+                    // BoxText's `location` prop) -- desktop keeps the single pre-joined
+                    // string it's always used, unaffected by that wrap behavior.
+                    {...(hideTags
+                        ? { location: locationLabel, time: formatCompactTimeRange(meeting.displayStartTime ?? meeting.startTime, meeting.displayEndTime ?? meeting.endTime) }
+                        : { time: `${locationLabel ? `${locationLabel} · ` : ''}${formatCompactTimeRange(meeting.displayStartTime ?? meeting.startTime, meeting.displayEndTime ?? meeting.endTime)}` })}
                     tags={meeting.tags}
                     meetingId={meeting.id}
                     zoomTag={

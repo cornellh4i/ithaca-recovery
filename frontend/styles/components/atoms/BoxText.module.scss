@@ -76,6 +76,28 @@
     flex-shrink: 0;
   }
 
+  // Mobile-only variant (see BoxText.tsx's `location` prop): place and time range are
+  // separate flex items instead of one pre-joined string, so the time range wraps onto
+  // its own line as a whole unit when the row's too narrow to fit both -- never mid-string.
+  .timeRowWithPlace {
+    display: flex;
+    flex-wrap: wrap;
+    column-gap: 4px;
+    white-space: normal;
+  }
+
+  .place {
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  .timeRange {
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
   // Stretch to fill the parent's height instead of the fixed Meeting Block height —
   // used by WeeklyView, where the wrapping div's height already encodes the meeting's
   // duration. Must come after &.meeting so it wins the height tie-break. TagList's

@@ -8,6 +8,12 @@ interface BoxProps {
   title: string;
   primaryColor: string;
   time?: string; // For Meeting Block
+  // Mobile's half-height DayColumn rows pass this separately from `time` (rather than
+  // pre-concatenated into one string) so the two can wrap independently -- place always
+  // renders first, and only the time range itself drops to its own line when the row's
+  // too narrow to fit both (see .timeRowWithPlace). Desktop call sites omit this and keep
+  // passing a single pre-formatted `time` string, unaffected by this layout.
+  location?: string;
   tags?: string[]; // For badges like "Hybrid", "AA"
   meetingId: string;
   syncError?: boolean;
@@ -50,6 +56,7 @@ const BoxText: React.FC<BoxProps> = ({
   title,
   primaryColor,
   time,
+  location,
   tags,
   meetingId,
   syncError = false,
@@ -138,7 +145,16 @@ const BoxText: React.FC<BoxProps> = ({
         {title}
       </h3>
 
-      {boxType === 'Meeting Block' && <p className={styles.time}>{time}</p>}
+      {boxType === 'Meeting Block' && (
+        location !== undefined ? (
+          <p className={`${styles.time} ${styles.timeRowWithPlace}`}>
+            {location && <span className={styles.place}>{location} ·</span>}
+            <span className={styles.timeRange}>{time}</span>
+          </p>
+        ) : (
+          <p className={styles.time}>{time}</p>
+        )
+      )}
       {!hideTags && tags && tags.length > 0 && (
         <TagList
           tags={tags}
