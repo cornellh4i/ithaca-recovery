@@ -7,6 +7,11 @@
   height: auto;
   margin: 0 auto; // so the height is responsive to the atoms in it
   border-radius: 0;
+
+  // Needed so the mobile breakpoint's padding below is included in that 100% width instead of
+  // adding to it -- without this the full-screen mobile form (MobileFullScreenSheet) overflows
+  // the viewport by exactly 2x that padding.
+  box-sizing: border-box;
 }
 
 .newMeetingSidebar .dummyComponent {
