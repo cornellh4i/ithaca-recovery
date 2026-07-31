@@ -54,6 +54,10 @@ export const layoutOverlappingMeetings = <T extends OverlapMeeting>(
     meetings: T[],
     maxVisibleOverlap: number = MAX_VISIBLE_OVERLAP,
 ): T[] => {
+    if (!Number.isInteger(maxVisibleOverlap) || maxVisibleOverlap < 1) {
+        throw new RangeError('maxVisibleOverlap must be a positive integer');
+    }
+
     // Title as a tiebreaker keeps column/overflow assignment consistent across renders
     // and across days — meetings sharing a start time would otherwise fall back to
     // whatever order the database happened to return them in, which isn't guaranteed

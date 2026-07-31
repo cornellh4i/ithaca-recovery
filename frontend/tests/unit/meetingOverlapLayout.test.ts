@@ -71,3 +71,23 @@ describe("layoutOverlappingMeetings — explicit maxVisibleOverlap (mobile DayCo
     expect(overflow[0].overflowCount).toBe(1);
   });
 });
+
+describe("layoutOverlappingMeetings — invalid maxVisibleOverlap", () => {
+  const meetings = [meeting("1", "A", "09:00", "10:00")];
+
+  it("rejects 0", () => {
+    expect(() => layoutOverlappingMeetings(meetings, 0)).toThrow(RangeError);
+  });
+
+  it("rejects negative values", () => {
+    expect(() => layoutOverlappingMeetings(meetings, -1)).toThrow(RangeError);
+  });
+
+  it("rejects fractional values", () => {
+    expect(() => layoutOverlappingMeetings(meetings, 1.5)).toThrow(RangeError);
+  });
+
+  it("rejects NaN", () => {
+    expect(() => layoutOverlappingMeetings(meetings, NaN)).toThrow(RangeError);
+  });
+});
