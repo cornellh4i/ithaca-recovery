@@ -112,6 +112,12 @@
   // overflow-x-only auto-quirk) just chains leftover wheel scroll into it once the inner
   // view maxes out, dragging CalendarNavbar along with it.
   overflow: hidden;
+
+  // MobileCalendarView (WeekStrip/CalendarHeader/DayColumn) is meant to run edge-to-edge,
+  // not sit inset inside the desktop 10px padding.
+  @media (width <= $breakpoint-phone) {
+    padding: 0;
+  }
 }
 
 .newMeetingHeader {

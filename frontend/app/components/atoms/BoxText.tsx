@@ -8,6 +8,12 @@ interface BoxProps {
   title: string;
   primaryColor: string;
   time?: string; // For Meeting Block
+  // Mobile's half-height DayColumn rows pass this separately from `time` (rather than
+  // pre-concatenated into one string) so the two can wrap independently -- place always
+  // renders first, and only the time range itself drops to its own line when the row's
+  // too narrow to fit both (see .timeRowWithPlace). Desktop call sites omit this and keep
+  // passing a single pre-formatted `time` string, unaffected by this layout.
+  location?: string;
   tags?: string[]; // For badges like "Hybrid", "AA"
   meetingId: string;
   syncError?: boolean;
@@ -28,8 +34,21 @@ interface BoxProps {
   compact?: boolean;
   // Extra badge alongside tags, e.g. flagging a Zoom-room mismatch.
   zoomTag?: string;
+  // Mobile's half-height DayColumn rows have no room for a full tag row -- drops it
+  // entirely and prefixes the title with a small mode icon instead (see MODE_ICON_SRC),
+  // so the one piece of tag info that mattered most for a glance (how to attend) survives.
+  hideTags?: boolean;
   onClick: (meetingId: string, e: React.MouseEvent<HTMLDivElement, MouseEvent>) => void;
   [key: string]: unknown;
+};
+
+// Meeting-mode tags are mutually exclusive (see util/meetingFilters.ts's modeTagNames) and
+// carried in `tags` using their display-label spelling ("In Person", not "InPerson" --
+// see util/tagOrder.ts's TAG_ORDER), same as every other tag here.
+const MODE_ICON_SRC: Record<string, string> = {
+  'In Person': '/svg/location-icon.svg',
+  Remote: '/svg/video-call-icon.svg',
+  Hybrid: '/svg/co-present-icon.svg',
 };
 
 const BoxText: React.FC<BoxProps> = ({
@@ -37,6 +56,7 @@ const BoxText: React.FC<BoxProps> = ({
   title,
   primaryColor,
   time,
+  location,
   tags,
   meetingId,
   syncError = false,
@@ -44,6 +64,7 @@ const BoxText: React.FC<BoxProps> = ({
   fillHeight = false,
   compact = false,
   zoomTag,
+  hideTags = false,
   selected = false,
   onClick
 }) => {
@@ -52,6 +73,9 @@ const BoxText: React.FC<BoxProps> = ({
     boxType === 'Meeting Block'
       ? toPastelColor(primaryColor)
       : primaryColor;
+
+  const modeTag = tags?.find(tag => MODE_ICON_SRC[tag]);
+  const modeIconSrc = modeTag ? MODE_ICON_SRC[modeTag] : undefined;
 
   // Measures the zoomTag badge's actual rendered width so the title reserves exactly
   // that much space (plus its own right offset).
@@ -113,11 +137,25 @@ const BoxText: React.FC<BoxProps> = ({
           ...(hasConflict ? { paddingLeft: 16 } : undefined),
         }}
       >
+        {hideTags && modeIconSrc && (
+          <span role="img" aria-label={modeTag} title={modeTag} className={styles.modeIcon}>
+            <img src={modeIconSrc} alt="" />
+          </span>
+        )}
         {title}
       </h3>
 
-      {boxType === 'Meeting Block' && <p className={styles.time}>{time}</p>}
-      {tags && tags.length > 0 && (
+      {boxType === 'Meeting Block' && (
+        location !== undefined ? (
+          <p className={`${styles.time} ${styles.timeRowWithPlace}`}>
+            {location && <span className={styles.place}>{location} ·</span>}
+            <span className={styles.timeRange}>{time}</span>
+          </p>
+        ) : (
+          <p className={styles.time}>{time}</p>
+        )
+      )}
+      {!hideTags && tags && tags.length > 0 && (
         <TagList
           tags={tags}
           color={primaryColor}

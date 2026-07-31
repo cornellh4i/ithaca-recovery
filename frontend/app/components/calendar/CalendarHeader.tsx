@@ -1,7 +1,9 @@
 import React from 'react';
+import { motion } from 'framer-motion';
 import styles from "../../../styles/components/calendar/CalendarNavbar.module.scss";
 import { formatMeetingDateLine, monthNameForETDateString, formatMeetingWeekLine } from "../../../util/timeFormat";
 import { formatETDateString } from "../../../util/timeUtils";
+import type { SwipeDirection } from "../../../util/weekStripTransition";
 
 type CalendarHeaderProps = {
   selectedDate: Date;
@@ -14,11 +16,19 @@ type CalendarHeaderProps = {
   // The interactive Day/Week/Today/arrow controls -- CalendarNavbar owns their state and
   // handlers, but they must render as a flex sibling of the <h2> inside .navbarContainer for
   // the container-query-driven scaling below to work, so CalendarHeader takes them as children
-  // instead of rendering just the <h2> in isolation.
-  children: React.ReactNode;
+  // instead of rendering just the <h2> in isolation. Optional: the mobile day view renders
+  // CalendarHeader directly (bypassing CalendarNavbar entirely -- WeekStrip/the mobile navbar's
+  // Today button/bottom sheets replace that role there), so it has no controls to pass.
+  children?: React.ReactNode;
+  // Mobile only: when set, the date-range heading slides between values (keyed by
+  // transitionKey, e.g. the ET date string) instead of updating in place -- driven by the
+  // same selectedDate change that also swaps MobileCalendarView's DayColumn, so the two
+  // appear to move simultaneously. The "View only" pill below is deliberately never part of
+  // this animation (stays fixed while the heading swaps), matching the mobile swipe spec.
+  animatedHeading?: { transitionKey: string; direction: SwipeDirection };
 };
 
-const CalendarHeader: React.FC<CalendarHeaderProps> = ({ selectedDate, selectedView, isAdmin, children }) => {
+const CalendarHeader: React.FC<CalendarHeaderProps> = ({ selectedDate, selectedView, isAdmin, children, animatedHeading }) => {
   const getDateRange = (date: Date): React.ReactNode => {
     if (selectedView === 'Day') {
       return formatMeetingDateLine(date, true);
@@ -34,10 +44,30 @@ const CalendarHeader: React.FC<CalendarHeaderProps> = ({ selectedDate, selectedV
     return `${monthNameForETDateString(etDateStr)} ${year}`;
   };
 
+  // No AnimatePresence -- a plain key change here unmounts the old <h2> and mounts a new one
+  // in the same commit (no dual-mount exit period to manage), and the freshly-mounted one
+  // plays its own initial->animate enter transition. Trades away an animated *exit* for the
+  // old value (it just disappears) in exchange for not depending on AnimatePresence's
+  // unmount-after-exit-completes machinery, which proved unreliable for this repeatedly-
+  // changing-key use case.
+  const heading = animatedHeading ? (
+    <motion.h2
+      key={animatedHeading.transitionKey}
+      className={styles.navbarHeading}
+      initial={{ x: animatedHeading.direction === 'forward' ? 40 : -40, opacity: 0 }}
+      animate={{ x: 0, opacity: 1 }}
+      transition={{ duration: 0.25, ease: 'easeOut' }}
+    >
+      {getDateRange(selectedDate)}
+    </motion.h2>
+  ) : (
+    <h2 className={styles.navbarHeading}>{getDateRange(selectedDate)}</h2>
+  );
+
   return (
     <>
       <div className={styles.navbarContainer}>
-        <h2 className={styles.navbarHeading}>{getDateRange(selectedDate)}</h2>
+        {heading}
         {children}
       </div>
       {isAdmin === false && (

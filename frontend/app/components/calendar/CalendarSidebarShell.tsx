@@ -15,12 +15,17 @@ interface CalendarSidebarShellProps {
   filters: MeetingFilters;
   setFilters: React.Dispatch<React.SetStateAction<MeetingFilters>>;
   selectedDate: Date;
-  setSelectedDate: React.Dispatch<React.SetStateAction<Date>>;
+  setSelectedDate: (date: Date) => void;
   selectedView: string;
   triggerCalendarRefresh: () => void;
   selectedMeeting: IMeeting | null;
   showEditMeeting: boolean;
   onCloseEdit: () => void;
+  // Lifted to HomePage so mobile's full-screen New Meeting form (a separate render path,
+  // this shell isn't mounted at all on phone) shares the same source of truth instead of a
+  // second, independent boolean.
+  isNewMeetingOpen: boolean;
+  setIsNewMeetingOpen: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 // Matches the staggered fade durations set on .sidebarLayerOutgoing/.sidebarLayerEntered in
@@ -60,9 +65,10 @@ const CalendarSidebarShell: React.FC<CalendarSidebarShellProps> = ({
   selectedMeeting,
   showEditMeeting,
   onCloseEdit,
+  isNewMeetingOpen,
+  setIsNewMeetingOpen,
 }) => {
   const { isCompact, collapseSidebar, expandSidebar } = useSidebar();
-  const [isNewMeetingOpen, setIsNewMeetingOpen] = useState(false);
   useBreakpoint(collapseSidebar, expandSidebar);
 
   // Drives the full <-> compact staggered cross-fade. renderedMode is the "live" (interactive)

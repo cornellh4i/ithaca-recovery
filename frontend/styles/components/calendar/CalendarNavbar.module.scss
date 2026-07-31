@@ -24,6 +24,14 @@
     padding: 0;
     box-sizing: border-box;
   }
+
+  // Mobile's CalendarHeader runs edge-to-edge (see MobileCalendarView.module.scss / page
+  // .module.scss's phone-width padding: 0), unlike desktop CalendarNavbar which sits inside
+  // .primaryCalendar's 10px inset -- without its own padding here the heading/pill would sit
+  // flush against the screen edges.
+  @media (width <= $breakpoint-phone) {
+    padding: 12px 14px 6px;
+  }
 }
 
 .navbarHeading {
@@ -137,6 +145,14 @@
   color: $brand-pink-color;
   font-size: 14px;
   font-weight: 600;
+
+  // Smaller to match the tighter mobile heading, and shifted right by .navbarContainer's own
+  // phone-only 14px horizontal padding above -- this pill is a sibling of .navbarContainer,
+  // not a descendant (see CalendarHeader.tsx), so it doesn't inherit that padding on its own.
+  @media (width <= $breakpoint-phone) {
+    margin-left: 14px;
+    font-size: 12px;
+  }
 }
 
 .viewOnlyIcon {

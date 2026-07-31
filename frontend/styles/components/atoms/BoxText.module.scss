@@ -9,6 +9,16 @@
   text-align: left;
   color: #000;
 
+  .modeIcon {
+    margin-right: 3px;
+    vertical-align: -1px;
+
+    img {
+      width: 11px;
+      height: 11px;
+    }
+  }
+
   &.meeting {
     // Width for a 15 minute Meeting
     min-width: 16px;
@@ -63,6 +73,28 @@
     overflow-x: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
+    flex-shrink: 0;
+  }
+
+  // Mobile-only variant (see BoxText.tsx's `location` prop): place and time range are
+  // separate flex items instead of one pre-joined string, so the time range wraps onto
+  // its own line as a whole unit when the row's too narrow to fit both -- never mid-string.
+  .timeRowWithPlace {
+    display: flex;
+    flex-wrap: wrap;
+    column-gap: 4px;
+    white-space: normal;
+  }
+
+  .place {
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  .timeRange {
+    white-space: nowrap;
     flex-shrink: 0;
   }
 

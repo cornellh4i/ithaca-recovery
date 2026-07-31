@@ -6,11 +6,17 @@ import CalendarSidebarShell from "../components/calendar/CalendarSidebarShell";
 import ViewMeetingDetails from "../components/meeting-form/ViewMeeting";
 import DailyView from "../components/calendar/DailyView";
 import WeeklyView from "../components/calendar/WeeklyView";
+import MobileCalendarView from "../components/calendar/MobileCalendarView";
+import MobileFullScreenSheet from "../components/atoms/MobileFullScreenSheet";
+import MobileFab from "../components/calendar/MobileFab";
+import NewMeetingSidebar from "../components/meeting-form/NewMeeting";
+import EditMeetingSidebar from "../components/meeting-form/EditMeeting";
 
 import { convertUTCToET } from "../../util/timeUtils";
 import { IMeeting } from "../../util/models";
-import { createDefaultFilters } from "../../util/meetingFilters";
 import { useConflictMids } from "../../hooks/useConflictMids";
+import { useIsPhone } from "../../hooks/useIsPhone";
+import { useCalendarContext } from "../context/CalendarProvider";
 
 export default function HomePage() {
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
@@ -57,12 +63,24 @@ export default function HomePage() {
     checkAuthStatus();
   }, []);
 
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const {
+    selectedDate,
+    changeSelectedDate,
+    selectedView,
+    setSelectedView,
+    dayFilters,
+    setDayFilters,
+    weekFilters,
+    setWeekFilters,
+  } = useCalendarContext();
   const [selectedMeeting, setSelectedMeeting] = useState<IMeeting | null>(null);
   const [selectedMeetingID, setSelectedMeetingID] = useState<string | null>(null);
-  const [selectedView, setSelectedView] = useState<string>("Day");
   const [, setSelectedNewMeeting] = useState<boolean | null>(false);
   const [showEditMeeting, setShowEditMeeting] = useState(false);
+  // Lifted here (rather than owned by CalendarSidebarShell, which isn't mounted at all on
+  // phone) so mobile's full-screen New Meeting form and desktop's embedded sidebar form
+  // share one source of truth.
+  const [isNewMeetingOpen, setIsNewMeetingOpen] = useState(false);
   const [lastClickedDate, setLastClickedDate] = useState<Date | null>(null);
   // The clicked meeting box, so the View Meeting popup can anchor itself beside it.
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
@@ -197,11 +215,6 @@ export default function HomePage() {
     }
   };
 
-  // Both views default to every room visible -- Week previously defaulted rooms off
-  // (opt-in), but a signed-out user has no sidebar/filter UI to ever check a box, so
-  // Week view rendered permanently empty for them.
-  const [dayFilters, setDayFilters] = useState(() => createDefaultFilters(true));
-  const [weekFilters, setWeekFilters] = useState(() => createDefaultFilters(true));
   const filters = selectedView === "Day" ? dayFilters : weekFilters;
   const setFilters = selectedView === "Day" ? setDayFilters : setWeekFilters;
   const convertESTStringToDate = (estDateString: string): Date => {
@@ -229,21 +242,59 @@ export default function HomePage() {
   // anchoring instead of being useful, so both are locked while it's showing.
   const isViewMeetingOpen = !!(selectedMeeting && !showEditMeeting);
 
+  const isPhone = useIsPhone();
+
+  // Same null-during-resolution guard as AppNavbar: isPhone starts null until the client's
+  // first layout effect measures the viewport, and both branches below treat a falsy isPhone
+  // as "desktop" -- without this, every load would flash the desktop sidebar/grid first.
+  if (isPhone === null) {
+    return null;
+  }
+
   return (
     <div className={styles.container}>
-      <CalendarSidebarShell
-        isLoggedIn={isLoggedIn}
-        isAdmin={isAdmin}
-        filters={filters}
-        setFilters={setFilters}
-        selectedDate={selectedDate}
-        setSelectedDate={setSelectedDate}
-        selectedView={selectedView}
-        triggerCalendarRefresh={triggerCalendarRefresh}
-        selectedMeeting={selectedMeeting}
-        showEditMeeting={showEditMeeting}
-        onCloseEdit={handleCloseEdit}
-      />
+      {/* No sidebar on mobile -- filters/mini-calendar move into MobileAppNavbar's bottom
+          sheets instead (see CalendarProvider/MobileAppNavbar); New/Edit Meeting instead get
+          the full-screen sheets rendered below. */}
+      {!isPhone && (
+        <CalendarSidebarShell
+          isLoggedIn={isLoggedIn}
+          isAdmin={isAdmin}
+          filters={filters}
+          setFilters={setFilters}
+          selectedDate={selectedDate}
+          setSelectedDate={changeSelectedDate}
+          selectedView={selectedView}
+          triggerCalendarRefresh={triggerCalendarRefresh}
+          selectedMeeting={selectedMeeting}
+          showEditMeeting={showEditMeeting}
+          onCloseEdit={handleCloseEdit}
+          isNewMeetingOpen={isNewMeetingOpen}
+          setIsNewMeetingOpen={setIsNewMeetingOpen}
+        />
+      )}
+      {isPhone && isAdmin && (
+        <React.Fragment>
+          <MobileFullScreenSheet isOpen={isNewMeetingOpen}>
+            <NewMeetingSidebar
+              setIsNewMeetingOpen={setIsNewMeetingOpen}
+              triggerCalendarRefresh={triggerCalendarRefresh}
+              selectedDate={selectedDate}
+              selectedView={selectedView}
+            />
+          </MobileFullScreenSheet>
+          <MobileFullScreenSheet isOpen={showEditMeeting && !!selectedMeeting}>
+            {selectedMeeting && (
+              <EditMeetingSidebar
+                meeting={selectedMeeting}
+                onClose={handleCloseEdit}
+                onUpdateSuccess={triggerCalendarRefresh}
+              />
+            )}
+          </MobileFullScreenSheet>
+          <MobileFab onClick={() => setIsNewMeetingOpen(true)} />
+        </React.Fragment>
+      )}
       {selectedMeeting && !showEditMeeting && (
         <ViewMeetingDetails
           key={selectedMeeting.mid}
@@ -288,6 +339,7 @@ export default function HomePage() {
           conflictCount={conflictCounts.get(selectedMeeting.mid) ?? 0}
           currentOccurrenceDate={lastClickedDate || undefined} // Pass the date when the meeting was clicked
           anchorEl={anchorEl}
+          isPhone={isPhone}
           isAdmin={isAdmin}
           onBack={handleBack}
           onEdit={handleOpenEdit}
@@ -296,17 +348,10 @@ export default function HomePage() {
         />
       )}
       <div className={styles.primaryCalendar}>
-        <CalendarNavbar
-          selectedDate={selectedDate}
-          onDateChange={setSelectedDate}
-          onViewChange={setSelectedView}
-          isAdmin={isAdmin}
-        />
-        {selectedView === "Day" ? (
-          <DailyView
-            filters={filters}
+        {isPhone ? (
+          <MobileCalendarView
+            filters={dayFilters}
             selectedDate={selectedDate}
-            setSelectedDate={setSelectedDate}
             selectedMeetingID={selectedMeetingID}
             setSelectedMeetingID={setSelectedMeetingID}
             setSelectedNewMeeting={setSelectedNewMeeting}
@@ -314,20 +359,44 @@ export default function HomePage() {
             refreshTrigger={refreshTrigger}
             scrollLocked={isViewMeetingOpen}
             conflictMids={conflictMids}
+            isAdmin={isAdmin}
           />
         ) : (
-          <WeeklyView
-            filters={filters}
-            selectedDate={selectedDate}
-            setSelectedDate={setSelectedDate}
-            selectedMeetingID={selectedMeetingID}
-            setSelectedMeetingID={setSelectedMeetingID}
-            setSelectedNewMeeting={setSelectedNewMeeting}
-            setAnchorEl={setAnchorEl}
-            refreshTrigger={refreshTrigger}
-            scrollLocked={isViewMeetingOpen}
-            conflictMids={conflictMids}
-          />
+          <React.Fragment>
+            <CalendarNavbar
+              selectedDate={selectedDate}
+              onDateChange={changeSelectedDate}
+              onViewChange={setSelectedView}
+              isAdmin={isAdmin}
+            />
+            {selectedView === "Day" ? (
+              <DailyView
+                filters={filters}
+                selectedDate={selectedDate}
+                setSelectedDate={changeSelectedDate}
+                selectedMeetingID={selectedMeetingID}
+                setSelectedMeetingID={setSelectedMeetingID}
+                setSelectedNewMeeting={setSelectedNewMeeting}
+                setAnchorEl={setAnchorEl}
+                refreshTrigger={refreshTrigger}
+                scrollLocked={isViewMeetingOpen}
+                conflictMids={conflictMids}
+              />
+            ) : (
+              <WeeklyView
+                filters={filters}
+                selectedDate={selectedDate}
+                setSelectedDate={changeSelectedDate}
+                selectedMeetingID={selectedMeetingID}
+                setSelectedMeetingID={setSelectedMeetingID}
+                setSelectedNewMeeting={setSelectedNewMeeting}
+                setAnchorEl={setAnchorEl}
+                refreshTrigger={refreshTrigger}
+                scrollLocked={isViewMeetingOpen}
+                conflictMids={conflictMids}
+              />
+            )}
+          </React.Fragment>
         )}
       </div>
     </div>

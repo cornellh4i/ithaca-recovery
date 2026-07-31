@@ -1,0 +1,105 @@
+@import '../../Variables.module.scss';
+
+.container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+
+    // Header + day grid read as one grey surface (WeekStrip stays its own opaque white --
+    // see .strip in WeekStrip.module.scss -- so the boundary between the two reads as a
+    // deliberate color seam instead of an ambiguous, unbordered gap).
+    background-color: $grey-lightest-color;
+
+    // WeekStrip and CalendarHeader are plain flex siblings above this, not part of
+    // .scrollArea's own scroll container -- so they never scroll with it, no CSS
+    // position: sticky needed for that to hold.
+}
+
+.scrollArea {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+
+    // overscroll-behavior-x doesn't inherit -- this is the actual scroll container an
+    // unclaimed horizontal gesture (one the carousel drag handlers didn't catch) would
+    // otherwise chain up from, same reasoning as MainLayout.module.scss's .content.
+    overscroll-behavior-x: none;
+
+    &::-webkit-scrollbar {
+        display: none;
+    }
+
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+.dayColumnWrapper {
+    width: 100%;
+    position: relative;
+    height: 1440px; // 24 hours * 60px -- matches DayColumn's own grid at MOBILE_HOUR_HEIGHT
+    overflow: hidden; // clips the carousel track to this column's own width; the track itself
+                       // is what drags, this wrapper never moves.
+}
+
+.carouselTrack {
+    display: flex;
+    height: 100%;
+}
+
+// Each panel bundles its own .timeColumn alongside its day content, so both slide together as
+// one unit during a swipe (see MobileCalendarView.tsx's renderDayPanel) instead of the time
+// labels staying fixed while only the meetings underneath move.
+.dayPanel {
+    flex: 0 0 auto;
+    height: 100%;
+    display: flex;
+}
+
+.timeColumn {
+    min-width: 50px;
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid $grey-border-color;
+    background-color: $grey-lightest-color;
+    height: 1440px; // 24 hours * 60px -- matches DayColumn's own grid at MOBILE_HOUR_HEIGHT
+}
+
+.timeSlot {
+    height: 60px; // matches MobileCalendarView.tsx's MOBILE_HOUR_HEIGHT
+    display: flex;
+    align-items: flex-start;
+    justify-content: flex-end;
+    padding-right: 8px;
+    font-size: 12px;
+    color: $medium-grey-color;
+}
+
+// The remainder of a .dayPanel after its .timeColumn -- position: relative so
+// .currentTimeIndicator (absolutely positioned) anchors here, not to the whole panel (the
+// indicator line should span only the meeting grid, not the time labels).
+.dayContent {
+    flex: 1;
+    min-width: 0;
+    position: relative;
+    overflow: hidden;
+}
+
+.currentTimeIndicator {
+    position: absolute;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background-color: $brand-pink-color;
+    z-index: 12;
+
+    &::before {
+        content: '';
+        position: absolute;
+        left: -5px;
+        top: -4px;
+        width: 10px;
+        height: 10px;
+        background-color: $brand-pink-color;
+        border-radius: 50%;
+    }
+}

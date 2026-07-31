@@ -1,6 +1,8 @@
 // Shared calendar/mode-tag and room-key filtering logic used by both DailyView and
 // WeeklyView, so the two views can't drift apart on what a filter key or tag means.
 
+import { formatETDateString } from "./timeUtils";
+
 export type MeetingFilters = Record<string, boolean>;
 
 // Keys mirror MeetingsFilter's Location + Zoom Rooms groups.
@@ -50,10 +52,45 @@ export const passesTagFilters = (tags: string[], filters: Record<string, boolean
 };
 
 /**
- * Returns true if the given room name's filter is enabled. 
+ * Returns true if the given room name's filter is enabled.
  * Unrecognized room names are treated as not passing.
  */
 export const passesRoomFilter = (roomName: string, filters: Record<string, boolean>): boolean => {
     const key = normalizeFilterKey(roomName);
     return key in filters && filters[key] !== false;
+};
+
+interface DateRoomTagMeeting {
+    date: string;
+    tags: string[];
+    room: string;
+    zoomRoom?: string | null;
+}
+
+/**
+ * Filters a flat meeting list down to the ones visible on `date`, given the current room/tag
+ * filters -- the exact date+room+tag matching WeeklyView.getMeetingsForDay uses per-day,
+ * extracted here so the mobile day view (which needs the same single-day filtering) can't
+ * silently drift from it. A Hybrid meeting occupies both its physical room and its Zoom room,
+ * so it stays visible if either resource's filter is enabled; Remote has neither -- it's gated
+ * on the virtual "Remote" room key instead (see util/rooms.ts's defaultRooms).
+ */
+export const filterMeetingsForDate = <T extends DateRoomTagMeeting>(
+    meetings: T[],
+    date: Date,
+    filters: MeetingFilters,
+): T[] => {
+    const formattedDate = formatETDateString(date);
+
+    return meetings.filter(meeting => {
+        const matchesDate = meeting.date === formattedDate;
+
+        const isRemote = meeting.tags.includes('Remote');
+        const isRoomIncluded = isRemote
+            ? passesRoomFilter('Remote', filters)
+            : passesRoomFilter(meeting.room, filters) ||
+                (!!meeting.zoomRoom && passesRoomFilter(meeting.zoomRoom, filters));
+
+        return matchesDate && isRoomIncluded && passesTagFilters(meeting.tags, filters);
+    });
 };

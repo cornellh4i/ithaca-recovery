@@ -1,101 +1,16 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useLayoutEffect, useRef, useState } from "react";
 import styles from '../../../styles/components/calendar/WeeklyView.module.scss';
-import WeeklyViewColumn from "./WeeklyViewColumn";
-import { passesTagFilters, passesRoomFilter, MeetingFilters } from "../../../util/meetingFilters";
+import DayColumn from "./DayColumn";
+import { filterMeetingsForDate, MeetingFilters } from "../../../util/meetingFilters";
 import { ROOM_COLORS, ZOOM_ROOM_COLOR, REMOTE_COLOR } from "../../../util/filterColors";
-import { formatETDateString, convertETToUTC } from "../../../util/timeUtils";
-import { layoutOverlappingMeetings, OverlapMeeting } from "../../../util/meetingOverlapLayout";
-import { createCache } from "../../../util/simpleCache";
-import { IMeeting } from "../../../util/models";
+import { formatETDateString } from "../../../util/timeUtils";
+import { layoutOverlappingMeetings } from "../../../util/meetingOverlapLayout";
+import { getFirstDayOfWeek, getDaysOfWeek } from "../../../util/weekDates";
+import { useWeekMeetings, WeekMeeting } from "../../../hooks/useWeekMeetings";
 
-interface Meeting extends OverlapMeeting {
-    syncError?: boolean;
-}
+export { invalidateWeekCache } from "../../../hooks/useWeekMeetings";
 
-const weekMeetingCache = createCache<Meeting[]>();
-
-// Extracts ET wall-clock time as "HH:MM" (24hr), which is what WeeklyViewColumn expects.
-const etTimeFmt = new Intl.DateTimeFormat('en-GB', {
-    timeZone: 'America/New_York',
-    hour: '2-digit', minute: '2-digit', hour12: false,
-});
-
-const fetchMeetingsByWeek = async (startDate: Date, endDate: Date): Promise<Meeting[]> => {
-    const formattedStart = formatETDateString(startDate);
-    const formattedEnd = formatETDateString(endDate);
-    const cacheKey = `${formattedStart}-${formattedEnd}`;
-
-    return weekMeetingCache.getOrFetch(cacheKey, async () => {
-        console.log("[WeeklyView] Fetching meetings for week:", cacheKey);
-
-        try {
-            const response = await fetch(`/api/retrieve/meeting/week?startDate=${formattedStart}&endDate=${formattedEnd}`);
-            const data = await response.json();
-            console.log("[WeeklyView] Raw API response for", cacheKey, ":", data);
-
-            // startTime/endTime clip to this day (for layout); displayStartTime/displayEndTime
-            // keep the true times, so an overnight meeting's cards both label as "11PM-1AM".
-            const meetings: Meeting[] = data.map((meeting: IMeeting & { date: string }) => {
-                const trueStart = new Date(meeting.startDateTime);
-                const trueEnd = new Date(meeting.endDateTime);
-                const startsToday = formatETDateString(trueStart) === meeting.date;
-                const endsToday = formatETDateString(trueEnd) === meeting.date;
-
-                return {
-                    id: meeting.mid,
-                    title: meeting.title,
-                    startTime: startsToday ? etTimeFmt.format(trueStart) : "00:00",
-                    endTime: endsToday ? etTimeFmt.format(trueEnd) : "24:00",
-                    displayStartTime: etTimeFmt.format(trueStart),
-                    displayEndTime: etTimeFmt.format(trueEnd),
-                    date: meeting.date,
-                    tags: [...meeting.calType, meeting.modeType],
-                    room: meeting.room,
-                    zoomRoom: meeting.zoomRoom,
-                    syncError: meeting.googleSyncStatus === 'error' || meeting.zoomSyncStatus === 'error',
-                };
-            });
-
-            return meetings;
-        } catch (error) {
-            // error objects don't serialize over CDP -- log the message directly so it's
-            // actually visible in the piped-through e2e console output.
-            console.error("[WeeklyView] Error fetching meetings for", cacheKey, ":", error instanceof Error ? error.message : String(error));
-            return [];
-        }
-    });
-};
-
-// Function to invalidate the cache for a specific week
-export const invalidateWeekCache = (startDate: Date, endDate: Date) => {
-    const formattedStart = formatETDateString(startDate);
-    const formattedEnd = formatETDateString(endDate);
-    weekMeetingCache.invalidate(`${formattedStart}-${formattedEnd}`);
-};
-
-// Get the first day (Sunday) of the ET week containing the provided date. Computed from ET
-// calendar-date integers, not Date.prototype.getDay()/getDate() -- those interpret in the
-// runtime's local timezone, which is correct on a machine set to America/New_York but silently
-// picks the wrong week in CI, where the runtime defaults to UTC: near ET's midnight boundary,
-// a UTC-local getDay() disagrees with the real ET calendar day by one. Returned as noon ET
-// (not midnight) so re-deriving an ET date string from it later can't roll back a day.
-const getFirstDayOfWeek = (date: Date): Date => {
-    const etDateStr = formatETDateString(date);
-    const [year, month, day] = etDateStr.split('-').map(Number);
-    const dow = new Date(Date.UTC(year, month - 1, day)).getUTCDay();
-    const sundayEtDateStr = new Date(Date.UTC(year, month - 1, day - dow)).toISOString().slice(0, 10);
-    return new Date(convertETToUTC(`${sundayEtDateStr}T12:00:00`));
-};
-
-// Generate an array of dates for the entire week, same ET-safe construction as above.
-const getDaysOfWeek = (startDate: Date): Date[] => {
-    const etDateStr = formatETDateString(startDate);
-    const [year, month, day] = etDateStr.split('-').map(Number);
-    return Array.from({ length: 7 }, (_, i) => {
-        const dayEtDateStr = new Date(Date.UTC(year, month - 1, day + i)).toISOString().slice(0, 10);
-        return new Date(convertETToUTC(`${dayEtDateStr}T12:00:00`));
-    });
-};
+type Meeting = WeekMeeting;
 
 // Format date to display in column header - just return the day number
 const formatDateNumber = (date: Date): string => {
@@ -140,20 +55,9 @@ const WeeklyView: React.FC<WeeklyViewProps> = ({
 }) => {
     const [currentTimePosition, setCurrentTimePosition] = useState(0);
     const [weekStartDate, setWeekStartDate] = useState<Date>(() => getFirstDayOfWeek(selectedDate));
-    const [allMeetings, setAllMeetings] = useState<Meeting[]>([]);
     const [daysOfWeek, setDaysOfWeek] = useState<Date[]>(() => getDaysOfWeek(weekStartDate));
     const viewContainerRef = useRef<HTMLDivElement>(null);
-    // Guards against out-of-order responses: rapid date/filter changes can fire overlapping
-    // fetches, and without this a slower-but-stale response can overwrite a newer one.
-    const fetchRequestIdRef = useRef(0);
-
-    // Ref instead of a `weekStartDate` closure/dependency so fetchWeekMeetings's identity
-    // stays stable across week changes — needed so the refreshTrigger effect below doesn't
-    // fire an extra forced fetch every time the week changes (see that effect's comment).
-    const weekStartDateRef = useRef(weekStartDate);
-    useEffect(() => {
-        weekStartDateRef.current = weekStartDate;
-    }, [weekStartDate]);
+    const allMeetings = useWeekMeetings(weekStartDate, refreshTrigger);
 
     // Format time slots for hour markers
     const formatTime = (hour: number): string => {
@@ -186,24 +90,6 @@ const WeeklyView: React.FC<WeeklyViewProps> = ({
         }
     }, []);
 
-    // Function to fetch week meetings with optional cache invalidation
-    const fetchWeekMeetings = useCallback(async (forceFetch = false) => {
-        const startDate = weekStartDateRef.current;
-        const endDate = new Date(startDate);
-        endDate.setDate(startDate.getDate() + 6);
-
-        // Clear the entire cache so stale data on other weeks is also dropped.
-        if (forceFetch) {
-            weekMeetingCache.clear();
-        }
-
-        const requestId = ++fetchRequestIdRef.current;
-        const meetings = await fetchMeetingsByWeek(startDate, endDate);
-        if (requestId === fetchRequestIdRef.current) {
-            setAllMeetings(meetings);
-        }
-    }, []);
-
     // Only replace weekStartDate's identity when the ET week actually changes — otherwise
     // picking a different day in the same week would re-trigger the fetch+scroll effect below.
     // Derived during render (not an effect): purely a function of selectedDate, so this is
@@ -218,49 +104,32 @@ const WeeklyView: React.FC<WeeklyViewProps> = ({
         }
     }
 
-    // Fetch meetings for the entire week
-    useEffect(() => {
-        fetchWeekMeetings();
+    // Gates .viewContainer's visibility until the very first scroll-to-current-time
+    // completes -- without this there's a beat of the wrong scroll position (12 AM) visible
+    // before JS jumps it to "now". One-way: only ever flips true once, on this view's first
+    // mount -- later week changes reset scroll position same as always but don't re-hide
+    // already-visible content.
+    const [initialScrollDone, setInitialScrollDone] = useState(false);
+
+    // Resets the current-time indicator/scroll position whenever the visible week changes.
+    // Meeting fetching itself is owned by useWeekMeetings above -- kept as a separate effect
+    // since it's an independent concern (indicator/scroll vs. data), not because the trigger
+    // differs. useLayoutEffect (not useEffect) so the scroll jump happens before paint.
+    useLayoutEffect(() => {
         // Sets the current-time indicator immediately rather than leaving it blank for up
         // to 60s until the interval below first fires.
         // eslint-disable-next-line react-hooks/set-state-in-effect
         updateTimePosition();
         scrollToCurrentTime();
+        setInitialScrollDone(true);
 
         const intervalId = setInterval(updateTimePosition, 60000);
         return () => clearInterval(intervalId);
-    }, [weekStartDate, fetchWeekMeetings, updateTimePosition, scrollToCurrentTime]);
-
-    // Watch for refresh trigger changes
-    useEffect(() => {
-        if (refreshTrigger > 0) {
-            console.log("Refreshing weekly view due to trigger change:", refreshTrigger);
-            fetchWeekMeetings(true); // Force fetch (invalidate cache)
-        }
-    }, [refreshTrigger, fetchWeekMeetings]);
+    }, [weekStartDate, updateTimePosition, scrollToCurrentTime]);
 
     // Get meetings for a specific day, filtered by room if applicable
     const getMeetingsForDay = (date: Date) => {
-        const formattedDate = formatETDateString(date);
-
-        // Filter meetings by date, room/zoom-room, and calType/mode tags
-        const filteredMeetings = allMeetings.filter(meeting => {
-            const matchesDate = meeting.date === formattedDate;
-
-            // A Hybrid meeting occupies both its physical room and its Zoom room, so it
-            // should stay visible if either resource's filter is enabled. Remote has
-            // neither -- it's gated on the virtual "Remote" room key instead (see
-            // util/rooms.ts's defaultRooms), or it would never pass either check below.
-            const isRemote = meeting.tags.includes('Remote');
-            const isRoomIncluded = isRemote
-                ? passesRoomFilter('Remote', filters)
-                : passesRoomFilter(meeting.room, filters) ||
-                    (!!meeting.zoomRoom && passesRoomFilter(meeting.zoomRoom, filters));
-
-            return matchesDate && isRoomIncluded && passesTagFilters(meeting.tags, filters);
-        });
-
-        return layoutOverlappingMeetings(filteredMeetings);
+        return layoutOverlappingMeetings(filterMeetingsForDate(allMeetings, date, filters));
     };
 
     // Get room color for a meeting (physical rooms have distinct colors; Zoom rooms are all
@@ -279,7 +148,10 @@ const WeeklyView: React.FC<WeeklyViewProps> = ({
             <div
                 className={styles.viewContainer}
                 ref={viewContainerRef}
-                style={scrollLocked ? { overflow: 'hidden' } : undefined}
+                style={{
+                    ...(scrollLocked ? { overflow: 'hidden' } : undefined),
+                    visibility: initialScrollDone ? 'visible' : 'hidden',
+                }}
             >
                 {/* Time column */}
                 <div className={styles.timeColumn}>
@@ -323,7 +195,7 @@ const WeeklyView: React.FC<WeeklyViewProps> = ({
                             >
                                 {customHeader}
 
-                                <WeeklyViewColumn
+                                <DayColumn
                                     roomColor={ZOOM_ROOM_COLOR} // Unused fallback: every meeting sets primaryColor via getRoomColor
                                     meetings={dayMeetings.map(meeting => ({
                                         ...meeting,
