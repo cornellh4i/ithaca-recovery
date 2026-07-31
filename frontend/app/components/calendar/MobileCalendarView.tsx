@@ -21,9 +21,9 @@ interface Meeting extends OverlapMeeting {
 const MOBILE_MAX_VISIBLE_OVERLAP = 3;
 
 // Half of DayColumn's 120px/hour desktop default -- deliberately trades detail for fitting
-// more of the day on screen at once (see .timeColumn/.timeSlot/.dayColumnWrapper below,
-// which must stay in sync with this), and DayColumn's tag row is dropped entirely to make
-// the shorter rows workable (see BoxText's hideTags).
+// more of the day on screen at once (see .timeColumn/.timeSlot/.dayPanel below, which must
+// stay in sync with this), and DayColumn's tag row is dropped entirely to make the shorter
+// rows workable (see BoxText's hideTags).
 const MOBILE_HOUR_HEIGHT = 60;
 
 const formatTime = (hour: number): string => {
@@ -169,9 +169,11 @@ const MobileCalendarView: React.FC<MobileCalendarViewProps> = ({
   };
 
   // dayColumnWrapper is a pure clipping viewport that never itself moves -- .carouselTrack
-  // (measured in wrapperRef) is the thing that drags, so there's no gap that can open next to
-  // the fixed .timeColumn strip (both used to be siblings dragging apart from each other; see
-  // this file's git history for the bug that caused).
+  // (measured in wrapperRef) is the thing that drags. Each .dayPanel bundles its own
+  // .timeColumn alongside its DayColumn, so the time labels and the day's content always move
+  // together as one unit during a swipe -- there's no separate fixed time strip for a gap to
+  // open against, and each day reads as its own distinct panel rather than blending into the
+  // one next to it.
   const wrapperRef = useRef<HTMLDivElement>(null);
   const [panelWidth, setPanelWidth] = useState(0);
   useLayoutEffect(() => {
@@ -195,14 +197,11 @@ const MobileCalendarView: React.FC<MobileCalendarViewProps> = ({
     controls.set({ x: -panelWidth });
   }, [panelWidth, selectedEtDateStr, controls]);
 
-  // .carouselTrack's own drag="x" only recognizes a gesture that starts on itself -- but it
-  // sits to the right of .timeColumn (the ~50px time-label strip), which has no drag handler
-  // at all. A swipe starting there (common when swiping left-to-right, since that gesture
-  // naturally starts further left) was silently dropped instead of registering. Starting the
-  // drag manually from a pointerdown anywhere in the row (dragListener={false} below stops
-  // .carouselTrack from also auto-starting one from its own pointerdown) widens the
-  // recognized area to the full row while .timeColumn itself still never visually moves --
-  // only .carouselTrack does.
+  // .carouselTrack's own drag="x" only recognizes a gesture that starts on itself. Starting
+  // the drag manually from a pointerdown anywhere in .scrollArea (dragListener={false} below
+  // stops .carouselTrack from also auto-starting one from its own pointerdown) reliably
+  // captures a swipe starting anywhere in the row, regardless of which descendant (a
+  // .timeColumn label, a meeting card, empty grid space) it began on.
   const dragControls = useDragControls();
   const handleRowPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
     dragControls.start(event);
@@ -228,6 +227,39 @@ const MobileCalendarView: React.FC<MobileCalendarViewProps> = ({
     controls.set({ x: -panelWidth });
   };
 
+  // Each panel bundles its own time-label column with its DayColumn so both slide as one unit
+  // during a swipe (see the wrapperRef comment above) -- shared by all three panels below.
+  const renderDayPanel = (meetings: Meeting[], date: Date) => (
+    <div className={styles.dayPanel} style={{ width: panelWidth }}>
+      <div className={styles.timeColumn}>
+        {timeSlots.map((time, index) => (
+          <div key={index} className={styles.timeSlot}>
+            {time}
+          </div>
+        ))}
+      </div>
+      <div className={styles.dayContent}>
+        <DayColumn
+          roomColor={ZOOM_ROOM_COLOR} // Unused fallback: every meeting sets primaryColor via getRoomColor
+          meetings={meetings}
+          selectedMeetingID={selectedMeetingID}
+          setSelectedMeetingID={setSelectedMeetingID}
+          setSelectedNewMeeting={setSelectedNewMeeting}
+          setAnchorEl={setAnchorEl}
+          conflictMids={conflictMids}
+          hourHeight={MOBILE_HOUR_HEIGHT}
+          hideTags
+        />
+        {isDateToday(date) && (
+          <div
+            className={styles.currentTimeIndicator}
+            style={{ top: `${(new Date().getHours() * 60 + new Date().getMinutes()) * (MOBILE_HOUR_HEIGHT / 60)}px` }}
+          />
+        )}
+      </div>
+    </div>
+  );
+
   return (
     <div className={styles.container}>
       <WeekStrip />
@@ -249,14 +281,6 @@ const MobileCalendarView: React.FC<MobileCalendarViewProps> = ({
           touchAction: "pan-y",
         }}
       >
-        <div className={styles.timeColumn}>
-          {timeSlots.map((time, index) => (
-            <div key={index} className={styles.timeSlot}>
-              {time}
-            </div>
-          ))}
-        </div>
-
         <div className={styles.dayColumnWrapper} ref={wrapperRef}>
           <motion.div
             className={styles.carouselTrack}
@@ -269,63 +293,9 @@ const MobileCalendarView: React.FC<MobileCalendarViewProps> = ({
             onDragEnd={handleTrackDragEnd}
             style={{ touchAction: "pan-y", width: panelWidth * 3 }}
           >
-            <div className={styles.dayPanel} style={{ width: panelWidth }}>
-              <DayColumn
-                roomColor={ZOOM_ROOM_COLOR} // Unused fallback: every meeting sets primaryColor via getRoomColor
-                meetings={prevMeetings}
-                selectedMeetingID={selectedMeetingID}
-                setSelectedMeetingID={setSelectedMeetingID}
-                setSelectedNewMeeting={setSelectedNewMeeting}
-                setAnchorEl={setAnchorEl}
-                conflictMids={conflictMids}
-                hourHeight={MOBILE_HOUR_HEIGHT}
-                hideTags
-              />
-              {isDateToday(prevDate) && (
-                <div
-                  className={styles.currentTimeIndicator}
-                  style={{ top: `${(new Date().getHours() * 60 + new Date().getMinutes()) * (MOBILE_HOUR_HEIGHT / 60)}px` }}
-                />
-              )}
-            </div>
-            <div className={styles.dayPanel} style={{ width: panelWidth }}>
-              <DayColumn
-                roomColor={ZOOM_ROOM_COLOR} // Unused fallback: every meeting sets primaryColor via getRoomColor
-                meetings={currentMeetings}
-                selectedMeetingID={selectedMeetingID}
-                setSelectedMeetingID={setSelectedMeetingID}
-                setSelectedNewMeeting={setSelectedNewMeeting}
-                setAnchorEl={setAnchorEl}
-                conflictMids={conflictMids}
-                hourHeight={MOBILE_HOUR_HEIGHT}
-                hideTags
-              />
-              {isDateToday(selectedDate) && (
-                <div
-                  className={styles.currentTimeIndicator}
-                  style={{ top: `${(new Date().getHours() * 60 + new Date().getMinutes()) * (MOBILE_HOUR_HEIGHT / 60)}px` }}
-                />
-              )}
-            </div>
-            <div className={styles.dayPanel} style={{ width: panelWidth }}>
-              <DayColumn
-                roomColor={ZOOM_ROOM_COLOR} // Unused fallback: every meeting sets primaryColor via getRoomColor
-                meetings={nextMeetings}
-                selectedMeetingID={selectedMeetingID}
-                setSelectedMeetingID={setSelectedMeetingID}
-                setSelectedNewMeeting={setSelectedNewMeeting}
-                setAnchorEl={setAnchorEl}
-                conflictMids={conflictMids}
-                hourHeight={MOBILE_HOUR_HEIGHT}
-                hideTags
-              />
-              {isDateToday(nextDate) && (
-                <div
-                  className={styles.currentTimeIndicator}
-                  style={{ top: `${(new Date().getHours() * 60 + new Date().getMinutes()) * (MOBILE_HOUR_HEIGHT / 60)}px` }}
-                />
-              )}
-            </div>
+            {renderDayPanel(prevMeetings, prevDate)}
+            {renderDayPanel(currentMeetings, selectedDate)}
+            {renderDayPanel(nextMeetings, nextDate)}
           </motion.div>
         </div>
       </div>
