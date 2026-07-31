@@ -52,6 +52,16 @@
         --rdp-nav-height: 28px;
         --rdp-nav_button-width: 24px;
         --rdp-nav_button-height: 24px;
+
+        // Library default reserves a 2px transparent border on every day button (never given
+        // a real color anywhere in this file, so it's purely invisible spacing here). The
+        // hover circle below is an absolutely-positioned ::before on that button, so its
+        // width: 100% resolves against the button's padding box -- which excludes this
+        // border -- making the hover circle render ~4px smaller than the selected-day circle
+        // below (whose ::before lives on the plain, borderless .rdp-day cell instead).
+        // Confirmed via getComputedStyle(button, '::before').width in the live app: 32.57px
+        // vs. the selected circle's 36.57px until this was zeroed out.
+        --rdp-day_button-border: none;
         /* stylelint-enable custom-property-pattern */
         --rdp-accent-color: #{$brand-pink-color};
         --rdp-accent-background-color: #f5f5f5;
@@ -97,6 +107,17 @@
         }
     }
 
+    :global(.rdp-day) {
+        // Browser default UA stylesheet gives td a 1px padding, which the library's own CSS
+        // never resets. That 1px-per-side padding shrinks the cell's content box (the
+        // containing block .rdp-day_button's width: 100% resolves against) below the cell's
+        // own border-box size -- so the hover circle (sized off the button) rendered ~2px
+        // smaller than the selected-day circle (sized off this td). Confirmed via
+        // getBoundingClientRect in the live app: button was 34.57px against a 36.57px cell
+        // until this was added.
+        padding: 0;
+    }
+
     :global(.rdp-day_button) {
         cursor: pointer;
 
@@ -123,7 +144,11 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            width: 100%;
+            // Fixed at the nominal day-cell size rather than 100% of this button's own box --
+            // table-layout: fixed on .rdp-month_grid stretches columns to fill the sidebar
+            // width, so 100% would grow past the intended 32px circle (36.57px in the 280px
+            // sidebar case).
+            width: var(--rdp-day-width);
             aspect-ratio: 1;
             border-radius: 50%;
             background-color: color.adjust($brand-pink-color, $lightness: 35%);
@@ -150,18 +175,16 @@
         left: 50%;
         transform: translate(-50%, -50%);
         z-index: -1;
-        width: 100%;
+        // Matches the hover circle's fixed sizing above -- see that comment for why 100%
+        // (of this cell's own, table-stretched box) isn't used here.
+        width: var(--rdp-day-width);
         aspect-ratio: 1;
     }
 
 }
 
-// toPastelColor($brand-pink-color) from util/color.ts, computed once and hardcoded here --
-// Sass can't call that TS function directly (same reason breakpoints/room colors are kept in
-// sync manually elsewhere in this codebase). Re-run toPastelColor('#CC3366') if
-// $brand-pink-color ever changes.
 .selectedDay:not(.today)::before {
-    background-color: rgb(240 194 209);
+    background-color: $brand-pink-secondary;
 }
 
 // The hover rule above actually compiles to .container .rdp-day_button:hover:not(:disabled)::before
@@ -179,8 +202,26 @@
     opacity: 0.6;
 }
 
-// Today styling
+// Today styling -- bold pink text alone reads too close to a plain black-and-bold day at this
+// font-size, so today (when not also selected) gets an outline ring to match the visual weight
+// of the selected-day fill without competing with it for the same solid-circle treatment.
 .today:not(.selectedDay) {
     color: $brand-pink-color;
     font-weight: bold;
+    position: relative;
+    z-index: 1;
+
+    &::before {
+        content: "";
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: var(--rdp-day-width);
+        aspect-ratio: 1;
+        border-radius: 50%;
+        border: 2px solid $brand-pink-color;
+        box-sizing: border-box;
+        z-index: -1;
+    }
 }
