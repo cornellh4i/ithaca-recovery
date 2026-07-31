@@ -30,7 +30,7 @@
   // .primaryCalendar's 10px inset -- without its own padding here the heading/pill would sit
   // flush against the screen edges.
   @media (width <= $breakpoint-phone) {
-    padding: 12px 14px;
+    padding: 12px 14px 6px;
   }
 }
 
