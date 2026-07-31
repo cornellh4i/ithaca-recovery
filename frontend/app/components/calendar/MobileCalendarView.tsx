@@ -1,5 +1,5 @@
 import React, { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { motion, type PanInfo } from "framer-motion";
+import { motion, useDragControls, type PanInfo } from "framer-motion";
 import WeekStrip from "./WeekStrip";
 import CalendarHeader from "./CalendarHeader";
 import DayColumn from "./DayColumn";
@@ -153,6 +153,19 @@ const MobileCalendarView: React.FC<MobileCalendarViewProps> = ({
     changeSelectedDate(addDaysToDate(selectedDate, info.offset.x < 0 ? 1 : -1));
   };
 
+  // dayColumnWrapper's own drag="x" only recognizes a gesture that starts on itself -- but it
+  // sits to the right of .timeColumn (the ~50px time-label strip), which has no drag handler
+  // at all. A swipe starting there (common when swiping left-to-right, since that gesture
+  // naturally starts further left) was silently dropped instead of registering. Starting the
+  // drag manually from a pointerdown anywhere in the row (dragListener={false} below stops
+  // dayColumnWrapper from also auto-starting one from its own pointerdown) widens the
+  // recognized area to the full row while .timeColumn itself still never visually moves --
+  // only dayColumnWrapper does.
+  const dragControls = useDragControls();
+  const handleRowPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    dragControls.start(event);
+  };
+
   return (
     <div className={styles.container}>
       <WeekStrip />
@@ -167,9 +180,11 @@ const MobileCalendarView: React.FC<MobileCalendarViewProps> = ({
         className={styles.scrollArea}
         ref={scrollAreaRef}
         onScroll={handleScroll}
+        onPointerDown={handleRowPointerDown}
         style={{
           ...(scrollLocked ? { overflow: "hidden" } : undefined),
           visibility: initialScrollDone ? "visible" : "hidden",
+          touchAction: "pan-y",
         }}
       >
         <div className={styles.timeColumn}>
@@ -180,8 +195,12 @@ const MobileCalendarView: React.FC<MobileCalendarViewProps> = ({
           ))}
         </div>
 
-        {/* drag="x" scoped to just this wrapper (not the whole scrollArea) so vertical
-            touch-scroll on the time labels / day column keeps working normally --
+        {/* Only this wrapper visually transforms on drag (not .timeColumn, not the whole
+            scrollArea) -- the gesture itself is started from .scrollArea's onPointerDown
+            above (see handleRowPointerDown) so it can begin over .timeColumn too, but
+            dragListener={false} here means it never starts a second, independent one from its
+            own pointerdown. touchAction: pan-y (both here and on .scrollArea) keeps vertical
+            touch-scroll on the time labels / day column working normally alongside it.
             dragSnapToOrigin returns this wrapper to x:0 immediately on release regardless of
             outcome; the actual slide is the inner date-keyed swap below. No AnimatePresence --
             a plain key change unmounts the old day and mounts the new one in the same commit
@@ -190,6 +209,8 @@ const MobileCalendarView: React.FC<MobileCalendarViewProps> = ({
         <motion.div
           className={styles.dayColumnWrapper}
           drag="x"
+          dragControls={dragControls}
+          dragListener={false}
           dragConstraints={{ left: -DRAG_PREVIEW_MAX_PX, right: DRAG_PREVIEW_MAX_PX }}
           dragElastic={0.3}
           dragSnapToOrigin
