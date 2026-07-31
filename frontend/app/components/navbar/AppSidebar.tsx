@@ -7,7 +7,6 @@ import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { AnimatePresence, motion } from "framer-motion";
 import Logo from "../atoms/Logo";
-import Tooltip from "../atoms/Tooltip";
 import styles from "../../../styles/components/navbar/AppSidebar.module.scss";
 
 interface AppSidebarProps {
@@ -65,19 +64,21 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ isOpen, onClose }) => {
                   Admin
                 </Link>
               ) : session ? (
-                <Tooltip content="Requires admin access">
+                <div className={styles.lockedGroup}>
                   <button className={`${styles.row} ${styles.locked}`} disabled>
                     <span>Admin</span>
                     <img src="/svg/lock-icon.svg" alt="" className={styles.lockIcon} />
                   </button>
-                </Tooltip>
+                  <p className={styles.lockedHint}>Requires admin access</p>
+                </div>
               ) : (
-                <Tooltip content="Sign in to access Admin">
+                <div className={styles.lockedGroup}>
                   <Link href="/login" className={`${styles.row} ${styles.locked}`} onClick={onClose}>
                     <span>Admin</span>
                     <img src="/svg/lock-icon.svg" alt="" className={styles.lockIcon} />
                   </Link>
-                </Tooltip>
+                  <p className={styles.lockedHint}>Sign in to access Admin</p>
+                </div>
               )}
             </nav>
           </motion.div>
