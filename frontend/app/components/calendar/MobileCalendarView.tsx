@@ -19,6 +19,12 @@ interface Meeting extends OverlapMeeting {
 // indicator, vs. desktop WeeklyView's default of 2 (see util/meetingOverlapLayout.ts).
 const MOBILE_MAX_VISIBLE_OVERLAP = 4;
 
+// Half of DayColumn's 120px/hour desktop default -- deliberately trades detail for fitting
+// more of the day on screen at once (see .timeColumn/.timeSlot/.dayColumnWrapper below,
+// which must stay in sync with this), and DayColumn's tag row is dropped entirely to make
+// the shorter rows workable (see BoxText's hideTags).
+const MOBILE_HOUR_HEIGHT = 60;
+
 const formatTime = (hour: number): string => {
   const period = hour >= 12 ? "PM" : "AM";
   const formattedHour = hour % 12 || 12;
@@ -126,11 +132,13 @@ const MobileCalendarView: React.FC<MobileCalendarViewProps> = ({
             setSelectedNewMeeting={setSelectedNewMeeting}
             setAnchorEl={setAnchorEl}
             conflictMids={conflictMids}
+            hourHeight={MOBILE_HOUR_HEIGHT}
+            hideTags
           />
           {isToday && (
             <div
               className={styles.currentTimeIndicator}
-              style={{ top: `${(new Date().getHours() * 60 + new Date().getMinutes()) * 2}px` }}
+              style={{ top: `${(new Date().getHours() * 60 + new Date().getMinutes()) * (MOBILE_HOUR_HEIGHT / 60)}px` }}
             />
           )}
         </div>

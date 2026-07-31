@@ -37,6 +37,20 @@
 
         @media (width <= $breakpoint-phone) {
             padding-top: 48px; // matches MobileAppNavbar.module.scss's fixed 48px height
+            // Synced to MobileAppNavbar's own `transform 0.25s ease` hide transition -- this
+            // is what makes WeekStrip/CalendarHeader (normal-flow children below) visually
+            // ride up to fill the navbar's vacated space in lockstep with it disappearing,
+            // rather than a separate translateY on each row that could drift out of sync.
+            transition: padding-top 0.25s ease;
+        }
+
+        // Set by MainContent in ClientLayout.tsx while MobileAppNavbar is hidden (scrolled
+        // down). Collapsing this padding to 0 is the entire "Row 1/2/3 -> Row 1/2" collapse:
+        // nothing below has to know navHidden exists.
+        &.navHidden {
+            @media (width <= $breakpoint-phone) {
+                padding-top: 0;
+            }
         }
     }
 }

@@ -9,6 +9,13 @@
   text-align: left;
   color: #000;
 
+  .modeIcon {
+    width: 11px;
+    height: 11px;
+    margin-right: 3px;
+    vertical-align: -1px;
+  }
+
   &.meeting {
     // Width for a 15 minute Meeting
     min-width: 16px;

@@ -28,8 +28,21 @@ interface BoxProps {
   compact?: boolean;
   // Extra badge alongside tags, e.g. flagging a Zoom-room mismatch.
   zoomTag?: string;
+  // Mobile's half-height DayColumn rows have no room for a full tag row -- drops it
+  // entirely and prefixes the title with a small mode icon instead (see MODE_ICON_SRC),
+  // so the one piece of tag info that mattered most for a glance (how to attend) survives.
+  hideTags?: boolean;
   onClick: (meetingId: string, e: React.MouseEvent<HTMLDivElement, MouseEvent>) => void;
   [key: string]: unknown;
+};
+
+// Meeting-mode tags are mutually exclusive (see util/meetingFilters.ts's modeTagNames) and
+// carried in `tags` using their display-label spelling ("In Person", not "InPerson" --
+// see util/tagOrder.ts's TAG_ORDER), same as every other tag here.
+const MODE_ICON_SRC: Record<string, string> = {
+  'In Person': '/svg/location-icon.svg',
+  Remote: '/svg/video-call-icon.svg',
+  Hybrid: '/svg/co-present-icon.svg',
 };
 
 const BoxText: React.FC<BoxProps> = ({
@@ -44,6 +57,7 @@ const BoxText: React.FC<BoxProps> = ({
   fillHeight = false,
   compact = false,
   zoomTag,
+  hideTags = false,
   selected = false,
   onClick
 }) => {
@@ -52,6 +66,8 @@ const BoxText: React.FC<BoxProps> = ({
     boxType === 'Meeting Block'
       ? toPastelColor(primaryColor)
       : primaryColor;
+
+  const modeIconSrc = tags?.map(tag => MODE_ICON_SRC[tag]).find(Boolean);
 
   // Measures the zoomTag badge's actual rendered width so the title reserves exactly
   // that much space (plus its own right offset).
@@ -113,11 +129,14 @@ const BoxText: React.FC<BoxProps> = ({
           ...(hasConflict ? { paddingLeft: 16 } : undefined),
         }}
       >
+        {hideTags && modeIconSrc && (
+          <img src={modeIconSrc} alt="" className={styles.modeIcon} />
+        )}
         {title}
       </h3>
 
       {boxType === 'Meeting Block' && <p className={styles.time}>{time}</p>}
-      {tags && tags.length > 0 && (
+      {!hideTags && tags && tags.length > 0 && (
         <TagList
           tags={tags}
           color={primaryColor}

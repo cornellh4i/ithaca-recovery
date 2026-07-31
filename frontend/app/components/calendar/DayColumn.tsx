@@ -37,17 +37,22 @@ interface DayColumnProps {
     setAnchorEl: (el: HTMLElement) => void;
     // Admin-only (see hooks/useConflictMids) -- mids with an unresolved conflict.
     conflictMids?: Set<string>;
+    // Desktop's default: 120px/hour, matching .timeSlot's 120px row height in both
+    // DailyView and WeeklyView. Mobile passes 60 (half height, to fit more of the day on
+    // screen -- see MobileCalendarView, whose own .timeColumn/.timeSlot heights must be
+    // kept in sync with whatever's passed here).
+    hourHeight?: number;
+    // Drops each card's tag row and shows a mode icon prefixed to the title instead --
+    // half-height rows have no room for a full tag row (see BoxText's hideTags).
+    hideTags?: boolean;
 }
 
-// 1 hour is 120px in height (120/60 px per minute), matching .timeSlot's 120px row height
-const timeToPixels = (time: string) => {
-    const [hours, minutes] = time.split(':').map(Number);
-    return hours * 120 + minutes * (120 / 60);
-};
+const DEFAULT_HOUR_HEIGHT = 120;
 
 // Visual breathing room between two back-to-back meetings that would otherwise share
 // a hard edge (one ending exactly when the next starts) -- split evenly off each card's
-// top/bottom so the gap is centered on the boundary between them.
+// top/bottom so the gap is centered on the boundary between them. Scales with hourHeight so
+// mobile's half-height rows get proportionally tighter breathing room too.
 const VERTICAL_GAP = 6;
 
 const DayColumn: React.FC<DayColumnProps> = ({
@@ -58,7 +63,14 @@ const DayColumn: React.FC<DayColumnProps> = ({
     setSelectedNewMeeting,
     setAnchorEl,
     conflictMids,
+    hourHeight = DEFAULT_HOUR_HEIGHT,
+    hideTags = false,
 }) => {
+    const timeToPixels = (time: string) => {
+        const [hours, minutes] = time.split(':').map(Number);
+        return hours * hourHeight + minutes * (hourHeight / 60);
+    };
+    const verticalGap = VERTICAL_GAP * (hourHeight / DEFAULT_HOUR_HEIGHT);
     const [overlapModalMeetings, setOverlapModalMeetings] = useState<Meeting[] | null>(null);
     // The "+N" pill that opened the modal -- kept as a fallback popup anchor, since the
     // modal's own row is unmounted the instant it closes and getBoundingClientRect() on a
@@ -97,9 +109,9 @@ const DayColumn: React.FC<DayColumnProps> = ({
         // literal "Remote" label (matches the virtual room DailyView buckets them into,
         // see util/rooms.ts's defaultRooms), otherwise the location line would be blank.
         const locationLabel = meeting.room || meeting.zoomRoom || (meeting.tags?.includes('Remote') ? 'Remote' : '');
-        const topOffset = timeToPixels(meeting.startTime) + VERTICAL_GAP / 2;
+        const topOffset = timeToPixels(meeting.startTime) + verticalGap / 2;
         const height = Math.max(
-            timeToPixels(meeting.endTime) - timeToPixels(meeting.startTime) - VERTICAL_GAP,
+            timeToPixels(meeting.endTime) - timeToPixels(meeting.startTime) - verticalGap,
             1,
         );
 
@@ -150,6 +162,7 @@ const DayColumn: React.FC<DayColumnProps> = ({
                     syncError={meeting.syncError}
                     hasConflict={conflictMids?.has(meeting.id)}
                     fillHeight
+                    hideTags={hideTags}
                     selected={isSelected}
                     onClick={(meetingId, e) => {
                         handleBoxClick(meetingId, e.currentTarget);
@@ -179,13 +192,13 @@ const DayColumn: React.FC<DayColumnProps> = ({
 
     return (
         <div className={styles.columnWrapper}>
-            <div className={styles.columnBody}>
+            <div className={styles.columnBody} style={{ height: `${hourHeight * 24}px` }}>
                 {/* Render hour markers */}
                 {Array.from({ length: 24 }).map((_, hourIndex) => (
                     <div
                         key={hourIndex}
                         className={styles.hourMarker}
-                        style={{ top: `${hourIndex * 120}px` }}
+                        style={{ top: `${hourIndex * hourHeight}px`, height: `${hourHeight}px` }}
                     />
                 ))}
 
@@ -195,9 +208,9 @@ const DayColumn: React.FC<DayColumnProps> = ({
                     whole cluster. Same VERTICAL_GAP treatment as renderMeetingCard so it lines up
                     exactly as if it were a real meeting card for that time range. */}
                 {Array.from(clusterRanges.entries()).map(([key, range]) => {
-                    const topOffset = timeToPixels(range.start) + VERTICAL_GAP / 2;
+                    const topOffset = timeToPixels(range.start) + verticalGap / 2;
                     const height = Math.max(
-                        timeToPixels(range.end) - timeToPixels(range.start) - VERTICAL_GAP,
+                        timeToPixels(range.end) - timeToPixels(range.start) - verticalGap,
                         1,
                     );
                     return (
@@ -214,7 +227,7 @@ const DayColumn: React.FC<DayColumnProps> = ({
                         // Matches renderMeetingCard's topOffset (line 94) so the pill lines up
                         // with the top of the meeting cards it sits beside, instead of sitting
                         // VERTICAL_GAP/2 higher than they do.
-                        const topOffset = timeToPixels(meeting.startTime) + VERTICAL_GAP / 2;
+                        const topOffset = timeToPixels(meeting.startTime) + verticalGap / 2;
                         return (
                             <div
                                 key={index}

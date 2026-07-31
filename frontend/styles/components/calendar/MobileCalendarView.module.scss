@@ -33,11 +33,11 @@
     left: 0;
     z-index: 20;
     background-color: #fff;
-    height: 2880px; // 24 hours * 120px, matches DayColumn's own grid
+    height: 1440px; // 24 hours * 60px -- matches DayColumn's own grid at MOBILE_HOUR_HEIGHT
 }
 
 .timeSlot {
-    height: 120px;
+    height: 60px; // matches MobileCalendarView.tsx's MOBILE_HOUR_HEIGHT
     display: flex;
     align-items: flex-start;
     justify-content: flex-end;
@@ -50,7 +50,7 @@
     flex: 1;
     min-width: 0;
     position: relative;
-    height: 2880px;
+    height: 1440px;
 }
 
 .currentTimeIndicator {
