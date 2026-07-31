@@ -20,6 +20,11 @@
     min-height: 0;
     overflow-y: auto;
 
+    // overscroll-behavior-x doesn't inherit -- this is the actual scroll container an
+    // unclaimed horizontal gesture (one the carousel drag handlers didn't catch) would
+    // otherwise chain up from, same reasoning as MainLayout.module.scss's .content.
+    overscroll-behavior-x: none;
+
     &::-webkit-scrollbar {
         display: none;
     }

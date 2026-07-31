@@ -7,16 +7,20 @@
 // view's own scroll container) is exhausted, continued wheel input chains up into it,
 // scrolling the actual document and clipping .navigation's top edge -- even though
 // .mainlayout itself is correctly capped to exactly 100vh.
+// overscroll-behavior-x isn't inherited, and per spec it must be set on the root element
+// (html) to control viewport edge-swipe navigation, not on body -- browsers that propagate it
+// from body are deviating from spec. Nothing on the page claims a horizontal touch-drag by
+// default (only WeekStrip's and MobileCalendarView's own drag="x" wrappers do, and only where
+// their pointerdown handlers are actually attached) -- anywhere else, an unclaimed horizontal
+// swipe falls through to the browser's own edge-swipe-to-navigate gesture, which visually
+// slides the whole page sideways as a back/forward-navigation preview. Disabling that here is
+// what stops the page itself from appearing to "swipe" independent of our own drag logic.
+:global(html) {
+    overscroll-behavior-x: none;
+}
+
 :global(body) {
     margin: 0;
-
-    // Nothing on the page claims a horizontal touch-drag by default (only WeekStrip's and
-    // MobileCalendarView's own drag="x" wrappers do, and only where their pointerdown
-    // handlers are actually attached) -- anywhere else, an unclaimed horizontal swipe falls
-    // through to the browser's own edge-swipe-to-navigate gesture, which visually slides the
-    // whole page sideways as a back/forward-navigation preview. Disabling that here is what
-    // stops the page itself from appearing to "swipe" independent of our own drag logic.
-    overscroll-behavior-x: none;
 }
 
 .mainlayout {
@@ -42,6 +46,10 @@
         flex: 1 1 auto;
         min-height: 0; // lets this shrink to the space left under the navbar, so overflow-y actually scrolls instead of growing past the viewport
         overflow-y: auto;
+
+        // overscroll-behavior-x doesn't inherit from html -- this is the actual scroll
+        // container an unclaimed horizontal gesture would otherwise chain up from.
+        overscroll-behavior-x: none;
 
         @media (width <= $breakpoint-phone) {
             padding-top: 48px; // matches MobileAppNavbar.module.scss's fixed 48px height

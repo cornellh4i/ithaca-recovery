@@ -1,4 +1,4 @@
-import React, { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { motion, useAnimationControls, useDragControls, type PanInfo } from "framer-motion";
 import WeekStrip from "./WeekStrip";
 import CalendarHeader from "./CalendarHeader";
@@ -209,6 +209,30 @@ const MobileCalendarView: React.FC<MobileCalendarViewProps> = ({
     dragControls.start(event);
   };
 
+  // Same problem WeekStrip guards against (see its isDraggingRef comment): a completed drag
+  // still fires a native click on whatever element the pointer started on -- here, a meeting
+  // card, which would open its popup on top of the day change. Set at drag start (recognition
+  // happens well before any click could fire), cleared once a click has actually been
+  // suppressed.
+  const isDraggingRef = useRef(false);
+  const handleTrackDragStart = () => {
+    isDraggingRef.current = true;
+  };
+
+  // Mirror of selectedDate so the awaited continuation in handleTrackDragEnd reads the
+  // current date rather than the one captured when the handler was created -- otherwise a
+  // second swipe completing before the first tween resolves would compute from a stale date.
+  const selectedDateRef = useRef(selectedDate);
+  useEffect(() => {
+    selectedDateRef.current = selectedDate;
+  }, [selectedDate]);
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
   const handleTrackDragEnd = async (_event: PointerEvent | MouseEvent | TouchEvent, info: PanInfo) => {
     const pastThreshold =
       Math.abs(info.offset.x) > SWIPE_OFFSET_THRESHOLD || Math.abs(info.velocity.x) > SWIPE_VELOCITY_THRESHOLD;
@@ -225,7 +249,8 @@ const MobileCalendarView: React.FC<MobileCalendarViewProps> = ({
     // recenter below is visually seamless (the standard infinite-carousel swap-while-at-the-
     // edge trick).
     await controls.start({ x: forward ? -2 * panelWidth : 0 }, { type: "tween", duration: 0.25, ease: "easeOut" });
-    changeSelectedDate(addDaysToDate(selectedDate, forward ? 1 : -1));
+    if (!mountedRef.current) return;
+    changeSelectedDate(addDaysToDate(selectedDateRef.current, forward ? 1 : -1));
     controls.set({ x: -panelWidth });
   };
 
@@ -292,7 +317,14 @@ const MobileCalendarView: React.FC<MobileCalendarViewProps> = ({
             dragConstraints={{ left: -2 * panelWidth, right: 0 }}
             dragElastic={0.2}
             animate={controls}
+            onDragStart={handleTrackDragStart}
             onDragEnd={handleTrackDragEnd}
+            onClickCapture={(e) => {
+              if (isDraggingRef.current) {
+                e.stopPropagation();
+                isDraggingRef.current = false;
+              }
+            }}
             style={{ touchAction: "pan-y", width: panelWidth * 3 }}
           >
             {renderDayPanel(prevMeetings, prevDate)}

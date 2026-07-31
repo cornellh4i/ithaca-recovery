@@ -52,6 +52,13 @@ const WeekStrip: React.FC = () => {
       const direction = info.offset.x < 0 ? 7 : -7;
       changeSelectedDate(addDaysToDate(selectedDate, direction));
     }
+    // Fallback release: the click-capture handler above clears this flag when it actually
+    // suppresses a click, but a drag released outside .strip produces no such click and would
+    // otherwise leave the flag set and swallow the user's next real tap. Deferred to the next
+    // macrotask so the synthetic click still sees the flag set.
+    setTimeout(() => {
+      isDraggingRef.current = false;
+    }, 0);
   };
 
   const stripContent = (

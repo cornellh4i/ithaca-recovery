@@ -59,6 +59,12 @@ test.describe("mobile swipe transitions", () => {
     // Move forward one day first so there's somewhere to swipe back from.
     await dragHorizontally(page, 320, 60, 500);
     const todayEtDateStr = formatETDateString(new Date());
+    const tomorrowEtDateStr = addETDays(new Date(), 1);
+    // Waits for the forward swipe to actually commit (its tween resolves before the date
+    // changes) so the swipe back below starts from a settled state, not an overlapping one.
+    await expect(page.getByRole("button", { pressed: true })).toContainText(
+      tomorrowEtDateStr.split("-")[2].replace(/^0/, "")
+    );
 
     // Swipe right back to today.
     await dragHorizontally(page, 60, 320, 500);
