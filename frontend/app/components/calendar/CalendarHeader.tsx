@@ -14,8 +14,10 @@ type CalendarHeaderProps = {
   // The interactive Day/Week/Today/arrow controls -- CalendarNavbar owns their state and
   // handlers, but they must render as a flex sibling of the <h2> inside .navbarContainer for
   // the container-query-driven scaling below to work, so CalendarHeader takes them as children
-  // instead of rendering just the <h2> in isolation.
-  children: React.ReactNode;
+  // instead of rendering just the <h2> in isolation. Optional: the mobile day view renders
+  // CalendarHeader directly (bypassing CalendarNavbar entirely -- WeekStrip/the mobile navbar's
+  // Today button/bottom sheets replace that role there), so it has no controls to pass.
+  children?: React.ReactNode;
 };
 
 const CalendarHeader: React.FC<CalendarHeaderProps> = ({ selectedDate, selectedView, isAdmin, children }) => {

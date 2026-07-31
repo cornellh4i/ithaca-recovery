@@ -6,10 +6,12 @@ import CalendarSidebarShell from "../components/calendar/CalendarSidebarShell";
 import ViewMeetingDetails from "../components/meeting-form/ViewMeeting";
 import DailyView from "../components/calendar/DailyView";
 import WeeklyView from "../components/calendar/WeeklyView";
+import MobileCalendarView from "../components/calendar/MobileCalendarView";
 
 import { convertUTCToET } from "../../util/timeUtils";
 import { IMeeting } from "../../util/models";
 import { useConflictMids } from "../../hooks/useConflictMids";
+import { useIsPhone } from "../../hooks/useIsPhone";
 import { useCalendarContext } from "../context/CalendarProvider";
 
 export default function HomePage() {
@@ -232,21 +234,28 @@ export default function HomePage() {
   // anchoring instead of being useful, so both are locked while it's showing.
   const isViewMeetingOpen = !!(selectedMeeting && !showEditMeeting);
 
+  const isPhone = useIsPhone();
+
   return (
     <div className={styles.container}>
-      <CalendarSidebarShell
-        isLoggedIn={isLoggedIn}
-        isAdmin={isAdmin}
-        filters={filters}
-        setFilters={setFilters}
-        selectedDate={selectedDate}
-        setSelectedDate={setSelectedDate}
-        selectedView={selectedView}
-        triggerCalendarRefresh={triggerCalendarRefresh}
-        selectedMeeting={selectedMeeting}
-        showEditMeeting={showEditMeeting}
-        onCloseEdit={handleCloseEdit}
-      />
+      {/* No sidebar on mobile -- filters/mini-calendar move into MobileAppNavbar's bottom
+          sheets instead (see CalendarProvider/MobileAppNavbar). New/Edit Meeting's mobile
+          full-screen equivalent lands in a later branch. */}
+      {!isPhone && (
+        <CalendarSidebarShell
+          isLoggedIn={isLoggedIn}
+          isAdmin={isAdmin}
+          filters={filters}
+          setFilters={setFilters}
+          selectedDate={selectedDate}
+          setSelectedDate={setSelectedDate}
+          selectedView={selectedView}
+          triggerCalendarRefresh={triggerCalendarRefresh}
+          selectedMeeting={selectedMeeting}
+          showEditMeeting={showEditMeeting}
+          onCloseEdit={handleCloseEdit}
+        />
+      )}
       {selectedMeeting && !showEditMeeting && (
         <ViewMeetingDetails
           key={selectedMeeting.mid}
@@ -299,15 +308,9 @@ export default function HomePage() {
         />
       )}
       <div className={styles.primaryCalendar}>
-        <CalendarNavbar
-          selectedDate={selectedDate}
-          onDateChange={setSelectedDate}
-          onViewChange={setSelectedView}
-          isAdmin={isAdmin}
-        />
-        {selectedView === "Day" ? (
-          <DailyView
-            filters={filters}
+        {isPhone ? (
+          <MobileCalendarView
+            filters={dayFilters}
             selectedDate={selectedDate}
             setSelectedDate={setSelectedDate}
             selectedMeetingID={selectedMeetingID}
@@ -317,20 +320,44 @@ export default function HomePage() {
             refreshTrigger={refreshTrigger}
             scrollLocked={isViewMeetingOpen}
             conflictMids={conflictMids}
+            isAdmin={isAdmin}
           />
         ) : (
-          <WeeklyView
-            filters={filters}
-            selectedDate={selectedDate}
-            setSelectedDate={setSelectedDate}
-            selectedMeetingID={selectedMeetingID}
-            setSelectedMeetingID={setSelectedMeetingID}
-            setSelectedNewMeeting={setSelectedNewMeeting}
-            setAnchorEl={setAnchorEl}
-            refreshTrigger={refreshTrigger}
-            scrollLocked={isViewMeetingOpen}
-            conflictMids={conflictMids}
-          />
+          <React.Fragment>
+            <CalendarNavbar
+              selectedDate={selectedDate}
+              onDateChange={setSelectedDate}
+              onViewChange={setSelectedView}
+              isAdmin={isAdmin}
+            />
+            {selectedView === "Day" ? (
+              <DailyView
+                filters={filters}
+                selectedDate={selectedDate}
+                setSelectedDate={setSelectedDate}
+                selectedMeetingID={selectedMeetingID}
+                setSelectedMeetingID={setSelectedMeetingID}
+                setSelectedNewMeeting={setSelectedNewMeeting}
+                setAnchorEl={setAnchorEl}
+                refreshTrigger={refreshTrigger}
+                scrollLocked={isViewMeetingOpen}
+                conflictMids={conflictMids}
+              />
+            ) : (
+              <WeeklyView
+                filters={filters}
+                selectedDate={selectedDate}
+                setSelectedDate={setSelectedDate}
+                selectedMeetingID={selectedMeetingID}
+                setSelectedMeetingID={setSelectedMeetingID}
+                setSelectedNewMeeting={setSelectedNewMeeting}
+                setAnchorEl={setAnchorEl}
+                refreshTrigger={refreshTrigger}
+                scrollLocked={isViewMeetingOpen}
+                conflictMids={conflictMids}
+              />
+            )}
+          </React.Fragment>
         )}
       </div>
     </div>

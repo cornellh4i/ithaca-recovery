@@ -35,7 +35,7 @@ test.describe("zoom integration", () => {
     });
     await page.goto("/");
     // The zoomTag mismatch badge (util/rooms.ts isZoomRoomMismatched) is rendered by
-    // WeeklyViewColumn only — DailyView's BoxText usage doesn't pass a zoomTag at all.
+    // DayColumn only — DailyView's BoxText usage doesn't pass a zoomTag at all.
     await selectView(page, "Week");
     await toggleFilter(page, "Serenity Room");
     await expect(page.getByTitle("Zoom room: Unity Room")).toBeVisible();

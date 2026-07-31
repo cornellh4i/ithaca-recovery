@@ -4,7 +4,7 @@ import { convertETToUTC, formatETDateString } from "../../util/timeUtils";
 import { selectView } from "./support/formHelpers";
 
 // Manual script §5 (Calendar Display). §5.9 (2+ overlapping meetings sharing space
-// with a "+N more" indicator) is WeeklyViewColumn-specific behavior — DailyView lays
+// with a "+N more" indicator) is DayColumn-specific behavior — DailyView lays
 // meetings out by absolute time position with no overlap-avoidance, so that case
 // belongs to 12-weekly-view.spec.ts, which owns the "+N" mechanism.
 

@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import BoxText from '../atoms/BoxText';
 import OverlapMeetingsModal from './OverlapMeetingsModal';
-import styles from '../../../styles/components/calendar/WeeklyViewColumn.module.scss';
+import styles from '../../../styles/components/calendar/DayColumn.module.scss';
 import { isZoomRoomMismatched } from '../../../util/rooms';
 import { formatCompactTimeRange } from '../../../util/timeFormat';
 
@@ -28,7 +28,7 @@ interface Meeting {
 // Drops the " - Zoom" suffix for a more compact badge label
 const formatZoomRoomLabel = (zoomRoom: string) => zoomRoom.replace(/ - Zoom$/, '');
 
-interface WeeklyViewColumnProps {
+interface DayColumnProps {
     roomColor: string;
     meetings: Meeting[];
     selectedMeetingID: string | null;
@@ -50,7 +50,7 @@ const timeToPixels = (time: string) => {
 // top/bottom so the gap is centered on the boundary between them.
 const VERTICAL_GAP = 6;
 
-const WeeklyViewColumn: React.FC<WeeklyViewColumnProps> = ({
+const DayColumn: React.FC<DayColumnProps> = ({
     roomColor,
     meetings,
     selectedMeetingID,
@@ -129,7 +129,7 @@ const WeeklyViewColumn: React.FC<WeeklyViewColumnProps> = ({
                     height: `${height}px`,
                     width: isSelected ? '100%' : width,
                     left: isSelected ? '0%' : left,
-                    // Above the "+N" overflow pill's z-index (12, WeeklyViewColumn.module.scss)
+                    // Above the "+N" overflow pill's z-index (12, DayColumn.module.scss)
                     // too, so a selected meeting is unambiguously the topmost thing in the column.
                     zIndex: isSelected ? 13 : undefined,
                 }}
@@ -190,7 +190,7 @@ const WeeklyViewColumn: React.FC<WeeklyViewColumnProps> = ({
                 ))}
 
                 {/* Cluster containers -- rendered beneath the meeting cards and "+N" pill (see
-                    z-index in WeeklyViewColumn.module.scss), spanning each cluster's full time
+                    z-index in DayColumn.module.scss), spanning each cluster's full time
                     range so it reads as one connected group, like a single meeting spanning the
                     whole cluster. Same VERTICAL_GAP treatment as renderMeetingCard so it lines up
                     exactly as if it were a real meeting card for that time range. */}
@@ -264,4 +264,4 @@ const WeeklyViewColumn: React.FC<WeeklyViewColumnProps> = ({
     );
 };
 
-export default WeeklyViewColumn;
+export default DayColumn;

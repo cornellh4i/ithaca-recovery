@@ -25,7 +25,7 @@
 // Stands in for meetings beyond the 2 stacked lanes a room's row shows -- a small pill
 // rather than a third, even-thinner lane, which would be too short to show anything
 // readable. Anchored to the cluster's start time (left) since DailyView's time axis runs
-// horizontally -- the rotated equivalent of WeeklyViewColumn's `right: 4px, top: <cluster start>`.
+// horizontally -- the rotated equivalent of DayColumn's `right: 4px, top: <cluster start>`.
 .overflowIndicator {
   position: absolute;
   top: 2px;
