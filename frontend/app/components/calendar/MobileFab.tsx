@@ -6,7 +6,7 @@ interface MobileFabProps {
   onClick: () => void;
 }
 
-// Pinned bottom-left, rendered as a page-level sibling outside MobileCalendarView's swipe
+// Pinned bottom-right, rendered as a page-level sibling outside MobileCalendarView's swipe
 // region (see MobileCalendarView.tsx's DayColumn drag wrapper) so the drag gesture never
 // swallows a tap intended for this button.
 const MobileFab: React.FC<MobileFabProps> = ({ onClick }) => {

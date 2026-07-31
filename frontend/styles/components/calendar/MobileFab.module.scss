@@ -2,7 +2,7 @@
 
 .fabWrapper {
     position: fixed;
-    left: 16px;
+    right: 16px;
     bottom: calc(16px + env(safe-area-inset-bottom));
     z-index: $z-index-sticky;
 }
