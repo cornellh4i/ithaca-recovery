@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState, useRef } from "react";
+import React, { useCallback, useEffect, useLayoutEffect, useState, useRef } from "react";
 import styles from '../../../styles/components/calendar/DailyView.module.scss';
 import BoxText from '../atoms/BoxText';
 import DailyViewRow from "./DailyViewRow";
@@ -191,11 +191,11 @@ const DailyView: React.FC<DailyViewProps> = ({
 
   // Ref instead of a `selectedDate` closure/dependency so fetchData's identity stays
   // stable across date changes — needed so the refreshTrigger effect below doesn't fire
-  // an extra forced fetch every time the date changes (see that effect's comment).
+  // an extra forced fetch every time the date changes (see that effect's comment). Synced
+  // inside the useLayoutEffect below (not a separate useEffect) -- layout effects always
+  // run before passive effects regardless of declaration order, so a separate useEffect
+  // here would sync the ref *after* that layout effect's fetchData() already read it.
   const selectedDateRef = useRef(selectedDate);
-  useEffect(() => {
-    selectedDateRef.current = selectedDate;
-  }, [selectedDate]);
 
   const updateTimePosition = useCallback(() => {
     const now = new Date();
@@ -229,9 +229,19 @@ const DailyView: React.FC<DailyViewProps> = ({
     }
   }, [updateTimePosition]);
 
-  useEffect(() => {
+  // Gates .viewContainer's visibility until the very first scroll-to-current-time
+  // completes -- without this there's a beat of the wrong scroll position visible before JS
+  // jumps it to "now". One-way: only ever flips true once, on this view's first mount --
+  // later date changes reset scroll position same as always but don't re-hide already-
+  // visible content.
+  const [initialScrollDone, setInitialScrollDone] = useState(false);
+
+  // useLayoutEffect (not useEffect) so the scroll jump happens before paint.
+  useLayoutEffect(() => {
+    selectedDateRef.current = selectedDate;
     fetchData();
     scrollToCurrentTime();
+    setInitialScrollDone(true);
 
     const intervalId = setInterval(updateTimePosition, 60000);
 
@@ -274,7 +284,10 @@ const DailyView: React.FC<DailyViewProps> = ({
       <div
         ref={scrollContainerRef}
         className={styles.viewContainer}
-        style={scrollLocked ? { overflow: 'hidden' } : undefined}
+        style={{
+          ...(scrollLocked ? { overflow: 'hidden' } : undefined),
+          visibility: initialScrollDone ? 'visible' : 'hidden',
+        }}
       >
         <div className={styles.roomContainer}>
           <div className={styles.roomCorner} />
