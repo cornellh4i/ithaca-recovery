@@ -7,12 +7,27 @@ import styles from "../styles/MainLayout.module.scss";
 import type { Session } from "next-auth";
 import { SessionProvider } from "next-auth/react";
 import { SidebarProvider } from "./context/SidebarContext";
-import { CalendarProvider } from "./context/CalendarProvider";
+import { CalendarProvider, useCalendarContext } from "./context/CalendarProvider";
 
 const inter = Inter({ subsets: ["latin"] });
 
 interface ClientLayoutProps {
     session: Session | null;
+}
+
+// Slides .content's top padding shut in sync with MobileAppNavbar sliding away, so
+// WeekStrip/CalendarHeader (normal-flow children further down the tree) ride up to fill
+// exactly the gap the navbar vacates instead of leaving it empty. Has to be its own
+// component, not inlined into ClientLayout below -- useCalendarContext() needs a
+// CalendarProvider ancestor already mounted, which doesn't exist yet during ClientLayout's
+// own render (the Provider below is still just JSX at that point).
+function MainContent({ children }: PropsWithChildren) {
+    const { navHidden } = useCalendarContext();
+    return (
+        <div className={`${styles.content} ${navHidden ? styles.navHidden : ""}`}>
+            {children}
+        </div>
+    );
 }
 
 export default function ClientLayout({
@@ -30,9 +45,7 @@ export default function ClientLayout({
                                 <div className={styles.navigation}>
                                     <AppNavbar />
                                 </div>
-                                <div className={styles.content}>
-                                    {children}
-                                </div>
+                                <MainContent>{children}</MainContent>
                             </div>
                         </CalendarProvider>
                     </SidebarProvider>
