@@ -102,18 +102,18 @@
     }
 }
 
-// Signed-out state: lock icon (black, via currentColor -- light grey read too low-contrast
+// Signed-out state: sign-in icon (black, via currentColor -- light grey read too low-contrast
 // against the pastel-pink tint) on a pastel-pink tint -- rgb(240 194 209) is
 // toPastelColor($brand-pink-color) from util/color.ts, computed once and hardcoded here
 // (same manual-sync convention as WeekStrip.module.scss/MiniCalendar.module.scss's matching
 // rule -- re-run toPastelColor('#CC3366') if $brand-pink-color ever changes).
 .profileButtonSignedOut {
-    background-color: rgb(240 194 209);
+    background-color: $brand-pink-color;
     border-color: transparent;
-    color: $black-color;
+    color: $white-color;
 }
 
-.lockIcon {
+.signInIcon {
     width: 16px;
     height: 16px;
 }

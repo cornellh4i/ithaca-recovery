@@ -1,11 +1,13 @@
 $black-color: #1E1E1E;
 $medium-grey-color: #848484;
 $light-grey-color: #CECECE;
-$brand-pink-color: #C36;
+$white-color: #FFF;
+
 
 // Higher-contrast pink for small text/UI on top of $brand-pink-color's own pastel tint (e.g.
 // WeekStrip's selected-day fill) -- $brand-pink-color's default pastel reads too washed out
 // there.
+$brand-pink-color: #C36;
 $brand-pink-secondary: #B85578;
 
 // Field-box border and card-fill tones, matching the Ithaca Recovery Design System's
