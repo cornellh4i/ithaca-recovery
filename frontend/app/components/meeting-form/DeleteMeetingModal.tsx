@@ -28,12 +28,7 @@ const DeleteMeetingModal: React.FC<DeleteMeetingModalProps> = ({
       <div className={styles.modalContent}>
         <div className={styles.header}>
           <span className={styles.iconCircle}>
-            {/* Same path as /svg/delete-icon.svg, inlined so the fill can be
-                recolored — an <img>-loaded SVG's internal fill can't be
-                overridden via CSS. */}
-            <svg className={styles.icon} viewBox="0 -960 960 960" width="20" height="20">
-              <path d="M280-120q-33 0-56.5-23.5T200-200v-520h-40v-80h200v-40h240v40h200v80h-40v520q0 33-23.5 56.5T680-120H280Zm400-600H280v520h400v-520ZM360-280h80v-360h-80v360Zm160 0h80v-360h-80v360ZM280-720v520-520Z" />
-            </svg>
+            <img src="/svg/trash-icon.svg" alt="" width="20" height="20" />
           </span>
           <h2 className={styles.title}>Delete this meeting?</h2>
         </div>
@@ -46,9 +41,12 @@ const DeleteMeetingModal: React.FC<DeleteMeetingModalProps> = ({
 
         {onSuspendInstead && (
           <div className={styles.suspendNudge}>
-            Not sure? <strong>Suspend</strong> instead — the meeting is paused and hidden from the
-            calendar, but can be viewed from the admin dashboard and reactivated. <strong>Delete</strong> is
-            permanent.
+            <img src="/svg/warning-circle-icon.svg" alt="" width="16" height="16" className={styles.nudgeIcon} />
+            <span>
+              Not sure? <strong>Suspend</strong> instead — the meeting is paused and hidden from the
+              calendar, but can be viewed from the admin dashboard and reactivated. <strong>Delete</strong> is
+              permanent.
+            </span>
           </div>
         )}
 

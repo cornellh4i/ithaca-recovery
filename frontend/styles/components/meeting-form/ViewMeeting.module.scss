@@ -137,7 +137,8 @@
       }
     }
 
-    // Conflict banner -- warning-icon + amber text, rendered above the time section.
+    // Conflict/suspended banners -- warning-icon (img) or PauseIcon (inline svg) + amber text,
+    // rendered above the time section.
     .warningRow {
       margin: 0 0 14px;
       display: flex;
@@ -146,7 +147,7 @@
       font-weight: 400;
       color: $warning-text-color;
 
-      img {
+      img, svg {
         width: 20px;
         height: 20px;
         flex-shrink: 0;

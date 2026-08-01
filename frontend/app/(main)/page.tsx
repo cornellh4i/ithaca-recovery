@@ -85,14 +85,6 @@ export default function HomePage() {
   // The clicked meeting box, so the View Meeting popup can anchor itself beside it.
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
 
-  // Ref instead of a `selectedDate` closure/dependency so navigating the calendar while a
-  // meeting is open doesn't re-trigger this fetch — we only want selectedDate's value *at
-  // the moment a meeting is selected*, not to refetch whenever the date changes afterward.
-  const selectedDateRef = useRef(selectedDate);
-  useEffect(() => {
-    selectedDateRef.current = selectedDate;
-  }, [selectedDate]);
-
   const fetchMeetingDetails = useCallback(async (meetingId: string) => {
     try {
       const response = await fetch(`/api/retrieve/meeting/${meetingId}`, { method: 'GET' });
@@ -101,8 +93,12 @@ export default function HomePage() {
         // Batched: keeps the old panel on screen until the new meeting is ready.
         setShowEditMeeting(false);
         setSelectedMeeting(data);
-        // Store the date that was clicked when the meeting was selected
-        setLastClickedDate(new Date(selectedDateRef.current));
+        // lastClickedDate is set directly by the calendar box's own click handler (see
+        // setLastClickedDate threaded into DailyView/WeeklyView/MobileCalendarView) --
+        // it already knows which specific occurrence's column/row was clicked, which the
+        // globally-selected calendar date does not (e.g. Week view can have a different
+        // selectedDate than the day column actually clicked). Left unset here for the
+        // deep-link (?mid=) path, which has no click to attribute a date to.
       } else {
         console.error("Failed to fetch meeting details");
       }
@@ -215,37 +211,46 @@ export default function HomePage() {
     }
   };
 
-  const handleSuspend = async (mid: string, resumesAt: string | null) => {
+  const handleSuspend = async (mid: string, resumesAt: string | null, from: string) => {
     try {
       const response = await fetch('/api/update/meeting/suspend', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mid, to: resumesAt }),
+        body: JSON.stringify({ mid, to: resumesAt, from }),
       });
-      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+      if (!response.ok) {
+        // Previously a generic "could not suspend" regardless of cause -- e.g. the 409 a race
+        // against another unresolved suspension returns (see suspend/route.ts) would show no
+        // useful detail at all.
+        const body = await response.json().catch(() => null);
+        throw new Error(body?.error || `HTTP error! status: ${response.status}`);
+      }
 
       handleBack();
       triggerCalendarRefresh();
     } catch (error) {
       console.error('There was an error suspending the meeting:', error);
-      alert("Error: could not suspend the meeting");
+      alert(`Error: could not suspend the meeting${error instanceof Error ? ` (${error.message})` : ""}`);
     }
   };
 
-  const handleResume = async (mid: string) => {
+  const handleResume = async (mid: string, on?: string | null) => {
     try {
       const response = await fetch('/api/update/meeting/resume', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mid }),
+        body: JSON.stringify(on ? { mid, on } : { mid }),
       });
-      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+      if (!response.ok) {
+        const body = await response.json().catch(() => null);
+        throw new Error(body?.error || `HTTP error! status: ${response.status}`);
+      }
 
       handleBack();
       triggerCalendarRefresh();
     } catch (error) {
       console.error('There was an error resuming the meeting:', error);
-      alert("Error: could not resume the meeting");
+      alert(`Error: could not resume the meeting${error instanceof Error ? ` (${error.message})` : ""}`);
     }
   };
 
@@ -370,8 +375,9 @@ export default function HomePage() {
           googleSyncStatus={selectedMeeting.googleSyncStatus}
           zoomSyncStatus={selectedMeeting.zoomSyncStatus}
           zoomSyncError={selectedMeeting.zoomSyncError}
-          status={selectedMeeting.status}
           resumesAt={selectedMeeting.resumesAt}
+          suspendedSince={selectedMeeting.suspendedSince}
+          suspensionActive={selectedMeeting.suspensionActive}
           conflictCount={conflictCounts.get(selectedMeeting.mid) ?? 0}
           currentOccurrenceDate={lastClickedDate || undefined} // Pass the date when the meeting was clicked
           anchorEl={anchorEl}
@@ -392,8 +398,10 @@ export default function HomePage() {
             selectedDate={selectedDate}
             selectedMeetingID={selectedMeetingID}
             setSelectedMeetingID={setSelectedMeetingID}
+            selectedOccurrenceDate={lastClickedDate}
             setSelectedNewMeeting={setSelectedNewMeeting}
             setAnchorEl={setAnchorEl}
+            setLastClickedDate={setLastClickedDate}
             refreshTrigger={refreshTrigger}
             scrollLocked={isViewMeetingOpen}
             conflictMids={conflictMids}
@@ -414,8 +422,10 @@ export default function HomePage() {
                 setSelectedDate={changeSelectedDate}
                 selectedMeetingID={selectedMeetingID}
                 setSelectedMeetingID={setSelectedMeetingID}
+                selectedOccurrenceDate={lastClickedDate}
                 setSelectedNewMeeting={setSelectedNewMeeting}
                 setAnchorEl={setAnchorEl}
+                setLastClickedDate={setLastClickedDate}
                 refreshTrigger={refreshTrigger}
                 scrollLocked={isViewMeetingOpen}
                 conflictMids={conflictMids}
@@ -427,8 +437,10 @@ export default function HomePage() {
                 setSelectedDate={changeSelectedDate}
                 selectedMeetingID={selectedMeetingID}
                 setSelectedMeetingID={setSelectedMeetingID}
+                selectedOccurrenceDate={lastClickedDate}
                 setSelectedNewMeeting={setSelectedNewMeeting}
                 setAnchorEl={setAnchorEl}
+                setLastClickedDate={setLastClickedDate}
                 refreshTrigger={refreshTrigger}
                 scrollLocked={isViewMeetingOpen}
                 conflictMids={conflictMids}

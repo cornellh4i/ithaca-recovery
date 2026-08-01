@@ -20,7 +20,7 @@ test.describe("meeting suspension", () => {
     await expect(page.getByText("Suspend this meeting?")).toBeVisible();
 
     const suspendResponse = page.waitForResponse((r) => r.url().includes("/api/update/meeting/suspend"));
-    await page.getByRole("button", { name: "Suspend meeting", exact: true }).click();
+    await page.getByRole("button", { name: "Suspend", exact: true }).click();
     await suspendResponse;
 
     // Hidden from the live Day view.
@@ -39,10 +39,17 @@ test.describe("meeting suspension", () => {
     await page.goto("/admin");
     const suspendedPanel = page.getByTestId("diagnostics-suspended-panel");
     await expect(suspendedPanel.getByText("Suspend Me")).toBeVisible();
-    await expect(suspendedPanel.getByText("Suspended indefinitely")).toBeVisible();
+    await expect(suspendedPanel.getByText(/Suspended from .*, indefinitely/)).toBeVisible();
+
+    // Opens ResumeMeetingModal (Immediately vs. On a date) rather than resuming on the spot --
+    // the row's own "Resume" button stays mounted underneath, so the modal's confirm button is
+    // disambiguated via its own testid, not by the kebab-closes trick other flows in this file use.
+    await suspendedPanel.getByRole("button", { name: "Resume" }).click();
+    const resumeModal = page.getByTestId("resume-meeting-modal");
+    await expect(resumeModal.getByText("Resume this meeting?")).toBeVisible();
 
     const resumeResponse = page.waitForResponse((r) => r.url().includes("/api/update/meeting/resume"));
-    await suspendedPanel.getByRole("button", { name: "Resume" }).click();
+    await resumeModal.getByRole("button", { name: "Resume", exact: true }).click();
     await resumeResponse;
     await expect(suspendedPanel.getByText("Suspend Me")).toHaveCount(0);
 
@@ -68,12 +75,57 @@ test.describe("meeting suspension", () => {
     const suspendResponse = page.waitForResponse((r) => r.url().includes("/api/update/meeting/suspend"));
     await page.getByRole("button", { name: "Suspend", exact: true }).click();
     await expect(page.getByText("Suspend this meeting?")).toBeVisible();
-    await page.getByRole("button", { name: "Suspend meeting", exact: true }).click();
+    await page.getByRole("button", { name: "Suspend", exact: true }).click();
     await suspendResponse;
 
     const prisma = getTestPrismaClient();
     const meeting = await prisma.meeting.findFirst({ where: { title: "Delete Or Suspend Me" } });
     expect(meeting?.status).toBe("Suspended");
     expect(meeting?.deletedAt).toBeNull();
+  });
+
+  test("14.3 the kebab's 'Cancel scheduled suspension' opens ResumeMeetingModal instead of resuming immediately", async ({ adminPage }) => {
+    const { page } = adminPage;
+    const meeting = await seedMeeting({ title: "Future Suspend Me" });
+    const prisma = getTestPrismaClient();
+    // A suspension scheduled to start next week doesn't hide the meeting from today's view --
+    // reachable through the normal calendar flow, unlike an already-active suspension.
+    await prisma.meeting.update({ where: { mid: meeting.mid }, data: { status: "Suspended" } });
+    await prisma.suspensionPeriod.create({
+      data: { mid: meeting.mid, from: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000), to: null },
+    });
+
+    await page.goto("/");
+    await openMeetingOptions(page, "Future Suspend Me");
+    await page.getByRole("button", { name: "Cancel scheduled suspension", exact: true }).click();
+
+    const resumeModal = page.getByTestId("resume-meeting-modal");
+    await expect(resumeModal.getByText("Resume this meeting?")).toBeVisible();
+
+    const resumeResponse = page.waitForResponse((r) => r.url().includes("/api/update/meeting/resume"));
+    await resumeModal.getByRole("button", { name: "Resume", exact: true }).click();
+    await resumeResponse;
+
+    const resumed = await prisma.meeting.findFirst({ where: { mid: meeting.mid } });
+    expect(resumed?.status).toBe("Active");
+    const suspensions = await prisma.suspensionPeriod.findMany({ where: { mid: meeting.mid } });
+    expect(suspensions.every((s) => s.to !== null)).toBe(true);
+  });
+
+  test("14.4 the Delete modal's 'Suspend instead' nudge is hidden once a suspension already exists", async ({ adminPage }) => {
+    const { page } = adminPage;
+    const meeting = await seedMeeting({ title: "Already Pending Suspend Me" });
+    const prisma = getTestPrismaClient();
+    await prisma.meeting.update({ where: { mid: meeting.mid }, data: { status: "Suspended" } });
+    await prisma.suspensionPeriod.create({
+      data: { mid: meeting.mid, from: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000), to: null },
+    });
+
+    await page.goto("/");
+    await openMeetingOptions(page, "Already Pending Suspend Me");
+    await page.getByRole("button", { name: "Delete", exact: true }).click();
+    await expect(page.getByText(/permanently removed/)).toBeVisible();
+    // No "Suspend instead" nudge -- suspending again would just 409 against the pending one.
+    await expect(page.getByText(/Not sure\?/)).toHaveCount(0);
   });
 });

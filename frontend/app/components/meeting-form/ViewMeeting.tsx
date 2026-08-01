@@ -4,11 +4,15 @@ import styles from '../../../styles/components/meeting-form/ViewMeeting.module.s
 import DeleteRecurringModal from './DeleteRecurringModal';
 import DeleteMeetingModal from './DeleteMeetingModal';
 import SuspendMeetingModal from './SuspendMeetingModal';
+import ResumeMeetingModal from './ResumeMeetingModal';
 import TagList from '../atoms/TagList';
 import BottomSheet from '../atoms/BottomSheet';
 
 import { IRecurrencePattern } from '../../../util/models';
 import { formatCompactTimeRange, formatMeetingDateLine } from "../../../util/timeFormat";
+import { formatETDateString } from "../../../util/timeUtils";
+import { retryMeetingSync } from "../../../util/syncMeeting";
+import { formatSuspensionStatusText } from "../../../util/suspensionText";
 import { ROOM_COLORS, ZOOM_ROOM_COLOR } from "../../../util/filterColors";
 import { formatDayColumn } from "../../../util/recurrenceDisplay";
 import { isZoomRoomMismatched } from "../../../util/rooms";
@@ -25,11 +29,13 @@ const etTimeFmt = new Intl.DateTimeFormat('en-GB', {
 
 const stripZoomSuffix = (name: string): string => name.replace(/ - Zoom$/, '');
 
-// "the date the action takes effect" for Delete/Suspend modals -- both act immediately (today),
-// even when a recurring resume is separately scheduled for later.
-const formatEffectiveDate = (): string =>
+// "the date the action takes effect" for Delete/Suspend modals -- the specific occurrence date
+// clicked (displayStartDate below), not literally today: a recurring meeting clicked on a
+// Thursday should read "starting Thursday", even though the suspend/delete call itself always
+// fires immediately.
+const formatEffectiveDate = (date: Date): string =>
   new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', weekday: 'long', month: 'long', day: 'numeric' })
-    .format(new Date());
+    .format(date);
 
 // Fixed popup width; kept in sync with .meetingDetails's width in ViewMeeting.module.scss.
 const POPUP_WIDTH = 380;
@@ -61,11 +67,16 @@ type ViewMeetingDetailsProps = {
   googleSyncStatus?: string | null;
   zoomSyncStatus?: string | null;
   zoomSyncError?: string | null;
-  status?: string | null;
-  // The open suspension's scheduled resume date, if any (null = indefinite, or not currently
-  // suspended) -- drives the kebab menu's Suspend/Reactivate label and the Diagnostics-style
-  // "resumes on X" display.
+  // The most recent unresolved suspension's scheduled resume date, if any -- includes one
+  // scheduled to start later, not just one already active. Null = indefinite, or no suspension
+  // at all. Drives the kebab menu's Suspend/Reactivate/Cancel label and the "resumes on X" text.
   resumesAt?: Date | null;
+  // That suspension's own start date. Null whenever resumesAt would also be null-for-that-reason
+  // (no suspension at all).
+  suspendedSince?: Date | null;
+  // Whether the suspension described above has actually started (hiding the meeting from the
+  // calendar right now) vs. is merely scheduled -- only meaningful when suspendedSince is set.
+  suspensionActive?: boolean;
   // How many other meetings this one currently conflicts with (room/zoomRoom/zoomHost) --
   // 0 or undefined renders nothing. Mirrors the calendar box's ⛔ conflict badge (BoxText.tsx),
   // which only signals *that* a conflict exists, not what it means.
@@ -83,8 +94,10 @@ type ViewMeetingDetailsProps = {
   onBack: () => void;
   onEdit: () => void;
   onDelete: (mid: string, deleteOption?: 'this' | 'thisAndFollowing' | 'all') => void;
-  onSuspend?: (mid: string, resumesAt: string | null) => void;
-  onResume?: (mid: string) => void;
+  onSuspend?: (mid: string, resumesAt: string | null, from: string) => void;
+  // `on` omitted (or null) resumes immediately; an ISO date string schedules the resume instead
+  // (see ResumeMeetingModal / the resume route's `on` branch).
+  onResume?: (mid: string, on?: string | null) => void;
   onSyncSuccess?: () => void;
 };
 
@@ -110,8 +123,9 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
   googleSyncStatus: initialGoogleSyncStatus,
   zoomSyncStatus: initialZoomSyncStatus,
   zoomSyncError: initialZoomSyncError,
-  status,
   resumesAt,
+  suspendedSince,
+  suspensionActive,
   conflictCount = 0,
   anchorEl,
   isPhone = false,
@@ -126,7 +140,15 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showSuspendModal, setShowSuspendModal] = useState(false);
-  const isSuspended = status === 'Suspended';
+  const [showResumeModal, setShowResumeModal] = useState(false);
+  // Not just `status === 'Suspended'` -- that flips true the instant a *future* suspension is
+  // scheduled too (suspend/route.ts sets it synchronously regardless of `from`), which would
+  // otherwise mislabel the kebab as "Reactivate" for a meeting that's still showing normally on
+  // the calendar. hasSuspension covers both cases (something to manage at all); isSuspended is
+  // specifically "hidden from the calendar right now."
+  const hasSuspension = !!suspendedSince;
+  const isSuspended = hasSuspension && !!suspensionActive;
+  const hasPendingSuspension = hasSuspension && !isSuspended;
   const [googleSyncStatus, setGoogleSyncStatus] = useState(initialGoogleSyncStatus ?? null);
   const [zoomSyncStatus, setZoomSyncStatus] = useState(initialZoomSyncStatus ?? null);
   const [zoomSyncError, setZoomSyncError] = useState(initialZoomSyncError ?? null);
@@ -216,6 +238,10 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
       const target = event.target as Node;
       if (popupRef.current?.contains(target)) return;
       if (anchorEl?.contains(target)) return;
+      // DatePicker's own calendar popup (e.g. SuspendMeetingModal's "Until" field) is portaled
+      // to document.body, so it's a DOM sibling of this popup, not a descendant -- without this
+      // check, clicking a day on it reads as an outside click and closes the whole thing.
+      if ((target as Element).closest?.('[data-datepicker-popup]')) return;
       onBack();
     };
 
@@ -252,12 +278,7 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
   const handleRetrySync = async () => {
     setSyncing(true);
     try {
-      const res = await fetch('/api/update/meeting/sync', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mid }),
-      });
-      const data = await res.json();
+      const data = await retryMeetingSync(mid);
       setGoogleSyncStatus(data.googleSyncStatus ?? 'error');
       setZoomSyncStatus(data.zoomSyncStatus ?? null);
       setZoomSyncError(data.zoomSyncError ?? null);
@@ -317,6 +338,16 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
     displayEndDate = new Date(displayStartDate.getTime() + duration);
   }
 
+  // Suspend's effective start date is the clicked occurrence's date, clamped to never be
+  // earlier than today -- it can't retroactively un-happen a past occurrence, so clicking one
+  // just starts the suspension today, but clicking a genuinely future occurrence schedules it
+  // to actually start then (see suspend/route.ts's matching clamp). When the clicked occurrence
+  // is in the past, SuspendMeetingModal shows a note clarifying it starts today instead.
+  const todayETStr = formatETDateString(new Date());
+  const clickedETStr = formatETDateString(displayStartDate);
+  const isClickedOccurrencePast = clickedETStr < todayETStr;
+  const suspendEffectiveDate = clickedETStr > todayETStr ? displayStartDate : new Date();
+
   const handleDelete = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
     e.stopPropagation();
@@ -346,13 +377,21 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
   };
 
   const handleConfirmSuspend = (resumesAtISO: string | null) => {
-    onSuspend?.(mid, resumesAtISO);
+    onSuspend?.(mid, resumesAtISO, suspendEffectiveDate.toISOString());
     setShowSuspendModal(false);
   };
 
-  const handleResume = () => {
+  const handleResumeClick = () => {
     setKebabOpen(false);
-    onResume?.(mid);
+    setShowSuspendModal(false);
+    setShowDeleteModal(false);
+    setShowDeleteConfirm(false);
+    setShowResumeModal(true);
+  };
+
+  const handleConfirmResume = (on: string | null) => {
+    onResume?.(mid, on);
+    setShowResumeModal(false);
   };
 
   // Reuses the Export XLSX's "Day" column formatting (util/recurrenceDisplay.ts) so a
@@ -418,7 +457,9 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
               <div className={styles.optionsMenu}>
                 <button onClick={() => { setKebabOpen(false); onEdit(); }}>Edit</button>
                 {isSuspended ? (
-                  <button className={styles.suspendOption} onClick={handleResume}>Reactivate</button>
+                  <button className={styles.suspendOption} onClick={handleResumeClick}>Reactivate</button>
+                ) : hasPendingSuspension ? (
+                  <button className={styles.suspendOption} onClick={handleResumeClick}>Cancel scheduled suspension</button>
                 ) : (
                   <button className={styles.suspendOption} onClick={handleSuspendClick}>Suspend</button>
                 )}
@@ -455,13 +496,10 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
             </p>
           )}
 
-          {isSuspended && (
+          {hasSuspension && (
             <p className={styles.warningRow}>
-              <span>⏸</span>
-              <span>
-                Suspended — hidden from the calendar
-                {resumesAt ? `, resumes ${formatMeetingDateLine(new Date(resumesAt))}` : ' until reactivated'}.
-              </span>
+              <img src="/svg/pause-icon.svg" alt="" />
+              <span>{formatSuspensionStatusText(suspendedSince, resumesAt, suspensionActive)}</span>
             </p>
           )}
 
@@ -586,25 +624,42 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
     <React.Fragment>
       <DeleteRecurringModal
         isOpen={showDeleteModal}
+        title={title}
+        effectiveDateText={formatEffectiveDate(displayStartDate)}
         onClose={() => setShowDeleteModal(false)}
         onDelete={handleModalDelete}
-        onSuspendInstead={onSuspend ? handleSuspendClick : undefined}
+        // Omitted whenever a suspension already exists (active or merely scheduled) -- offering
+        // "Suspend instead" there would open a modal that can only 409 (the suspend route
+        // already blocks creating a second unresolved suspension for the same meeting).
+        onSuspendInstead={onSuspend && !hasSuspension ? handleSuspendClick : undefined}
       />
       <DeleteMeetingModal
         isOpen={showDeleteConfirm}
         title={title}
         timeRangeText={timeRangeText}
-        effectiveDateText={formatEffectiveDate()}
+        effectiveDateText={formatEffectiveDate(displayStartDate)}
         onCancel={() => setShowDeleteConfirm(false)}
         onConfirm={handleConfirmDelete}
-        onSuspendInstead={onSuspend ? handleSuspendClick : undefined}
+        // Omitted whenever a suspension already exists (active or merely scheduled) -- offering
+        // "Suspend instead" there would open a modal that can only 409 (the suspend route
+        // already blocks creating a second unresolved suspension for the same meeting).
+        onSuspendInstead={onSuspend && !hasSuspension ? handleSuspendClick : undefined}
       />
       <SuspendMeetingModal
         isOpen={showSuspendModal}
         title={title}
-        effectiveDateText={formatEffectiveDate()}
+        effectiveDateText={formatEffectiveDate(suspendEffectiveDate)}
+        effectiveDate={suspendEffectiveDate}
+        pastOccurrenceDateText={isClickedOccurrencePast ? formatEffectiveDate(displayStartDate) : undefined}
         onCancel={() => setShowSuspendModal(false)}
         onConfirm={handleConfirmSuspend}
+      />
+      <ResumeMeetingModal
+        isOpen={showResumeModal}
+        title={title}
+        suspendedSince={suspendedSince}
+        onCancel={() => setShowResumeModal(false)}
+        onConfirm={handleConfirmResume}
       />
     </React.Fragment>
   );

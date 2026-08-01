@@ -72,7 +72,7 @@ test.describe("meeting deletion", () => {
 
     page.on("dialog", (dialog) => dialog.accept());
     const deleteResponse = page.waitForResponse((r) => r.url().includes("/api/delete/meeting"));
-    await page.getByRole("button", { name: "OK" }).click();
+    await page.getByRole("button", { name: "Delete", exact: true }).click();
     await deleteResponse;
 
     const prisma = getTestPrismaClient();
@@ -92,7 +92,7 @@ test.describe("meeting deletion", () => {
 
     page.on("dialog", (dialog) => dialog.accept());
     const deleteResponse = page.waitForResponse((r) => r.url().includes("/api/delete/meeting"));
-    await page.getByRole("button", { name: "OK" }).click();
+    await page.getByRole("button", { name: "Delete", exact: true }).click();
     await deleteResponse;
 
     const prisma = getTestPrismaClient();
