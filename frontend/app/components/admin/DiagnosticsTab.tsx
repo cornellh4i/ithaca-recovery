@@ -320,7 +320,7 @@ const DiagnosticsTab: React.FC<DiagnosticsTabProps> = ({ email, role }) => {
               <div className={styles.syncIssueRow}>
                 <div>
                   <span className={styles.meetingTitle}>{meeting.title}</span>{" "}
-                  <span className={styles.meetingTags}>({meeting.group})</span>
+                  <span className={styles.meetingTags}>({meeting.calType.join(", ")})</span>
                   <div className={styles.meetingMeta}>
                     {meeting.room} · {meeting.modeType} · {meeting.calType.join(", ")}
                   </div>
