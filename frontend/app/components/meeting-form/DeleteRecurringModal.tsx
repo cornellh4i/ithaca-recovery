@@ -6,12 +6,15 @@ interface DeleteRecurringModalProps {
   isOpen: boolean;
   onClose: () => void;
   onDelete: (option: 'this' | 'thisAndFollowing' | 'all') => void;
+  // Omitted entirely (not shown disabled) when the caller has no suspend action wired up.
+  onSuspendInstead?: () => void;
 }
 
 const DeleteRecurringModal: React.FC<DeleteRecurringModalProps> = ({
   isOpen,
   onClose,
   onDelete,
+  onSuspendInstead,
 }) => {
   const [selectedOption, setSelectedOption] = useState<'this' | 'thisAndFollowing' | 'all'>('this');
 
@@ -69,8 +72,17 @@ const DeleteRecurringModal: React.FC<DeleteRecurringModalProps> = ({
           </div>
         </div>
 
+        {onSuspendInstead && (
+          <div className={styles.suspendNudge}>
+            Not sure? <strong>Suspend</strong> instead — the meeting is paused and hidden from the
+            calendar, but can be viewed from the admin dashboard and reactivated. <strong>Delete</strong> is
+            permanent.
+          </div>
+        )}
+
         <div className={styles.buttonContainer}>
           <TextButton label="Cancel" onClick={onClose} />
+          {onSuspendInstead && <TextButton label="Suspend" onClick={onSuspendInstead} />}
           <TextButton label="OK" onClick={handleDelete} />
         </div>
       </div>

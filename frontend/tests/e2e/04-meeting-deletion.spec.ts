@@ -27,12 +27,14 @@ test.describe("meeting deletion", () => {
     const stillThere = await prisma.meeting.findFirst({ where: { title: "One-Off To Delete" } });
     expect(stillThere?.deletedAt).toBeNull();
 
-    // Confirming via "Delete meeting" actually deletes it.
+    // Confirming via the modal's "Delete" button actually deletes it -- the kebab's own
+    // "Delete" item is already closed/unmounted by the time the modal's button renders, so
+    // this stays unambiguous despite sharing the same label.
     page.on("dialog", (dialog) => dialog.accept());
     await openMeetingOptions(page, "One-Off To Delete");
     await page.getByRole("button", { name: "Delete", exact: true }).click();
     const deleteResponse = page.waitForResponse((r) => r.url().includes("/api/delete/meeting"));
-    await page.getByRole("button", { name: "Delete meeting", exact: true }).click();
+    await page.getByRole("button", { name: "Delete", exact: true }).click();
     await deleteResponse;
 
     await expect(page.getByText("One-Off To Delete")).toHaveCount(0);

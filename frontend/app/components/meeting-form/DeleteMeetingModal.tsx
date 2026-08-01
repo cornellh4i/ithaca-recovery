@@ -5,16 +5,21 @@ interface DeleteMeetingModalProps {
   isOpen: boolean;
   title: string;
   timeRangeText: string;
+  effectiveDateText: string;
   onCancel: () => void;
   onConfirm: () => void;
+  // Omitted entirely (not shown disabled) when the caller has no suspend action wired up.
+  onSuspendInstead?: () => void;
 }
 
 const DeleteMeetingModal: React.FC<DeleteMeetingModalProps> = ({
   isOpen,
   title,
   timeRangeText,
+  effectiveDateText,
   onCancel,
   onConfirm,
+  onSuspendInstead,
 }) => {
   if (!isOpen) return null;
 
@@ -35,12 +40,24 @@ const DeleteMeetingModal: React.FC<DeleteMeetingModalProps> = ({
 
         <p className={styles.message}>
           <strong>{title}</strong> ({timeRangeText}) will be permanently removed from the
-          calendar. This can&apos;t be undone.
+          calendar starting <strong className={styles.effectiveDate}>{effectiveDateText}</strong>.
+          This can&apos;t be undone.
         </p>
+
+        {onSuspendInstead && (
+          <div className={styles.suspendNudge}>
+            Not sure? <strong>Suspend</strong> instead — the meeting is paused and hidden from the
+            calendar, but can be viewed from the admin dashboard and reactivated. <strong>Delete</strong> is
+            permanent.
+          </div>
+        )}
 
         <div className={styles.buttonContainer}>
           <button className={styles.cancelButton} onClick={onCancel}>Cancel</button>
-          <button className={styles.deleteButton} onClick={onConfirm}>Delete meeting</button>
+          {onSuspendInstead && (
+            <button className={styles.suspendButton} onClick={onSuspendInstead}>Suspend</button>
+          )}
+          <button className={styles.deleteButton} onClick={onConfirm}>Delete</button>
         </div>
       </div>
     </div>

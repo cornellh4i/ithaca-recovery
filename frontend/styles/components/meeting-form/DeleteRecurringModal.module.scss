@@ -57,6 +57,20 @@
   cursor: pointer;
 }
 
+.suspendNudge {
+  margin-top: 8px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  background-color: $warning-bg-color;
+  color: #444;
+  font-size: 13px;
+  line-height: 1.4;
+
+  strong {
+    color: $warning-text-color;
+  }
+}
+
 .buttonContainer {
   display: flex;
   justify-content: flex-end;

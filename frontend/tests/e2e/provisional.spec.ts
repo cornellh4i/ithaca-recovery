@@ -1,5 +1,4 @@
 import { test, expect } from "./support/fixtures";
-import { seedSuspendedMeeting } from "../factories/meeting";
 
 // Provisional tests: lock in the *current* stub/absent behavior of features that
 // aren't fully implemented yet, so whoever ships the real feature finds these
@@ -11,6 +10,10 @@ test.describe("provisional — unimplemented features", () => {
   // [PROVISIONAL:conflict-detection] was removed here — the feature landed (see
   // test/e2e/11-admin-panel.spec.ts's 11.4, which now asserts the real behavior instead of
   // the old stub).
+
+  // [PROVISIONAL:suspend-workflow] was removed here — the feature landed (see
+  // test/e2e/14-meeting-suspension.spec.ts, which asserts the real suspend/resume UI loop
+  // instead of the old "only reachable via direct DB write" stub).
 
   test("[PROVISIONAL:xlsx-import] Import always returns the same hardcoded mock results", async ({ superAdminPage }) => {
     const { page } = superAdminPage;
@@ -30,30 +33,5 @@ test.describe("provisional — unimplemented features", () => {
     await expect(page.getByText("Results: 7 rows processed")).toBeVisible();
     await expect(page.getByText("Serenity Fellowship")).toBeVisible();
     await expect(page.getByText("⚠ Created with conflict (1)")).toBeVisible();
-  });
-
-  test("[PROVISIONAL:suspend-workflow] a Suspended meeting is only reachable via direct DB write, never through the UI", async ({ superAdminPage }) => {
-    const { page } = superAdminPage;
-    // The backend half of this ticket has landed: app/api/update/meeting/{suspend,resume}/
-    // route.ts are real routes, Diagnostics derives its suspended panel/count from real
-    // SuspensionPeriod date ranges (app/api/admin/diagnostics/route.ts), and
-    // util/meetingOccurrences.ts's getMeetingsForDate now genuinely hides a currently-suspended
-    // meeting from the live calendar. What's still missing, and what this test now documents,
-    // is the UI half: no component anywhere calls those routes — seedSuspendedMeeting()
-    // (tests/factories/meeting.ts) is a direct Prisma write standing in for a UI action
-    // (ViewMeeting's kebab menu, per the ticket) that doesn't exist yet.
-    await seedSuspendedMeeting({ title: "Suspended Stub Meeting" });
-    await page.goto("/admin");
-
-    await expect(
-      page.getByTestId("diagnostics-suspended-panel").getByText("Suspended Stub Meeting"),
-    ).toBeVisible();
-
-    // Real behavior now, not a stub: a currently-suspended meeting is hidden from the live
-    // Day view.
-    const dayResponse = page.waitForResponse((r) => r.url().includes("/api/retrieve/meeting/day"));
-    await page.goto("/");
-    await dayResponse;
-    await expect(page.getByText("Suspended Stub Meeting")).not.toBeVisible();
   });
 });

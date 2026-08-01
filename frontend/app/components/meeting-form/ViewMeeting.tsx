@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import styles from '../../../styles/components/meeting-form/ViewMeeting.module.scss';
 import DeleteRecurringModal from './DeleteRecurringModal';
 import DeleteMeetingModal from './DeleteMeetingModal';
+import SuspendMeetingModal from './SuspendMeetingModal';
 import TagList from '../atoms/TagList';
 import BottomSheet from '../atoms/BottomSheet';
 
@@ -23,6 +24,12 @@ const etTimeFmt = new Intl.DateTimeFormat('en-GB', {
 });
 
 const stripZoomSuffix = (name: string): string => name.replace(/ - Zoom$/, '');
+
+// "the date the action takes effect" for Delete/Suspend modals -- both act immediately (today),
+// even when a recurring resume is separately scheduled for later.
+const formatEffectiveDate = (): string =>
+  new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', weekday: 'long', month: 'long', day: 'numeric' })
+    .format(new Date());
 
 // Fixed popup width; kept in sync with .meetingDetails's width in ViewMeeting.module.scss.
 const POPUP_WIDTH = 380;
@@ -54,6 +61,11 @@ type ViewMeetingDetailsProps = {
   googleSyncStatus?: string | null;
   zoomSyncStatus?: string | null;
   zoomSyncError?: string | null;
+  status?: string | null;
+  // The open suspension's scheduled resume date, if any (null = indefinite, or not currently
+  // suspended) -- drives the kebab menu's Suspend/Reactivate label and the Diagnostics-style
+  // "resumes on X" display.
+  resumesAt?: Date | null;
   // How many other meetings this one currently conflicts with (room/zoomRoom/zoomHost) --
   // 0 or undefined renders nothing. Mirrors the calendar box's ⛔ conflict badge (BoxText.tsx),
   // which only signals *that* a conflict exists, not what it means.
@@ -71,6 +83,8 @@ type ViewMeetingDetailsProps = {
   onBack: () => void;
   onEdit: () => void;
   onDelete: (mid: string, deleteOption?: 'this' | 'thisAndFollowing' | 'all') => void;
+  onSuspend?: (mid: string, resumesAt: string | null) => void;
+  onResume?: (mid: string) => void;
   onSyncSuccess?: () => void;
 };
 
@@ -96,6 +110,8 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
   googleSyncStatus: initialGoogleSyncStatus,
   zoomSyncStatus: initialZoomSyncStatus,
   zoomSyncError: initialZoomSyncError,
+  status,
+  resumesAt,
   conflictCount = 0,
   anchorEl,
   isPhone = false,
@@ -103,10 +119,14 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
   onBack,
   onEdit,
   onDelete,
+  onSuspend,
+  onResume,
   onSyncSuccess,
 }) => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showSuspendModal, setShowSuspendModal] = useState(false);
+  const isSuspended = status === 'Suspended';
   const [googleSyncStatus, setGoogleSyncStatus] = useState(initialGoogleSyncStatus ?? null);
   const [zoomSyncStatus, setZoomSyncStatus] = useState(initialZoomSyncStatus ?? null);
   const [zoomSyncError, setZoomSyncError] = useState(initialZoomSyncError ?? null);
@@ -318,6 +338,23 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
     setShowDeleteConfirm(false);
   };
 
+  const handleSuspendClick = () => {
+    setKebabOpen(false);
+    setShowDeleteModal(false);
+    setShowDeleteConfirm(false);
+    setShowSuspendModal(true);
+  };
+
+  const handleConfirmSuspend = (resumesAtISO: string | null) => {
+    onSuspend?.(mid, resumesAtISO);
+    setShowSuspendModal(false);
+  };
+
+  const handleResume = () => {
+    setKebabOpen(false);
+    onResume?.(mid);
+  };
+
   // Reuses the Export XLSX's "Day" column formatting (util/recurrenceDisplay.ts) so a
   // pattern like "M-W, F" or "2nd Tu" reads the same here and in the export.
   const getRecurrenceText = () => {
@@ -380,6 +417,11 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
             {kebabOpen && (
               <div className={styles.optionsMenu}>
                 <button onClick={() => { setKebabOpen(false); onEdit(); }}>Edit</button>
+                {isSuspended ? (
+                  <button className={styles.suspendOption} onClick={handleResume}>Reactivate</button>
+                ) : (
+                  <button className={styles.suspendOption} onClick={handleSuspendClick}>Suspend</button>
+                )}
                 <button className={styles.deleteOption} onClick={handleDelete}>Delete</button>
               </div>
             )}
@@ -409,6 +451,16 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
               <span>
                 Conflicts with {conflictCount} other meeting{conflictCount === 1 ? '' : 's'} —
                 view the Admin Diagnostics page for more info.
+              </span>
+            </p>
+          )}
+
+          {isSuspended && (
+            <p className={styles.warningRow}>
+              <span>⏸</span>
+              <span>
+                Suspended — hidden from the calendar
+                {resumesAt ? `, resumes ${formatMeetingDateLine(new Date(resumesAt))}` : ' until reactivated'}.
               </span>
             </p>
           )}
@@ -536,13 +588,23 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
         isOpen={showDeleteModal}
         onClose={() => setShowDeleteModal(false)}
         onDelete={handleModalDelete}
+        onSuspendInstead={onSuspend ? handleSuspendClick : undefined}
       />
       <DeleteMeetingModal
         isOpen={showDeleteConfirm}
         title={title}
         timeRangeText={timeRangeText}
+        effectiveDateText={formatEffectiveDate()}
         onCancel={() => setShowDeleteConfirm(false)}
         onConfirm={handleConfirmDelete}
+        onSuspendInstead={onSuspend ? handleSuspendClick : undefined}
+      />
+      <SuspendMeetingModal
+        isOpen={showSuspendModal}
+        title={title}
+        effectiveDateText={formatEffectiveDate()}
+        onCancel={() => setShowSuspendModal(false)}
+        onConfirm={handleConfirmSuspend}
       />
     </React.Fragment>
   );

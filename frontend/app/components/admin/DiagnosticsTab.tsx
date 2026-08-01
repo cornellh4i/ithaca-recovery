@@ -50,6 +50,7 @@ interface DiagnosticsData {
     modeType: string;
     calType: string[];
     updatedAt: string | null;
+    resumesAt: string | null;
   }[];
 }
 
@@ -68,6 +69,8 @@ const DiagnosticsTab: React.FC<DiagnosticsTabProps> = ({ email, role }) => {
   // Which sync-issue row's "Retry sync" is in flight, so only that row shows "Retrying…"
   // instead of every row disabling at once.
   const [retryingMid, setRetryingMid] = useState<string | null>(null);
+  // Which suspended-meeting row's "Resume" is in flight, same pattern as retryingMid above.
+  const [resumingMid, setResumingMid] = useState<string | null>(null);
 
   const loadDiagnostics = async () => {
     const requestId = ++latestRequestId.current;
@@ -107,6 +110,25 @@ const DiagnosticsTab: React.FC<DiagnosticsTabProps> = ({ email, role }) => {
       // Only clear if this is still the row that started this retry -- a second row's
       // retry starting before this one resolves must not un-disable/mislabel it early.
       setRetryingMid((current) => (current === mid ? null : current));
+    }
+  };
+
+  // Same endpoint ViewMeeting.tsx's kebab-menu "Reactivate" calls -- reused here so a suspended
+  // meeting can be resumed straight from the Diagnostics panel too.
+  const resumeMeeting = async (mid: string) => {
+    setResumingMid(mid);
+    try {
+      const response = await fetch("/api/update/meeting/resume", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mid }),
+      });
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+      await loadDiagnostics();
+    } catch (err) {
+      console.error("Error resuming meeting:", err);
+    } finally {
+      setResumingMid((current) => (current === mid ? null : current));
     }
   };
 
@@ -273,19 +295,35 @@ const DiagnosticsTab: React.FC<DiagnosticsTabProps> = ({ email, role }) => {
       <div className={styles.card} data-testid="diagnostics-suspended-panel">
         <div className={styles.panelHeader}>⏸ Suspended ({data.meetingCounts.suspended})</div>
         <div className={styles.panelSubhead}>
-          Meetings currently marked suspended. They&apos;re hidden from Google Calendar but remain in the system.
+          Meetings currently suspended. They&apos;re hidden from the live calendar and Google Calendar,
+          but remain in the system and can be reactivated here or from the meeting itself.
         </div>
         {data.suspendedMeetings.length === 0 ? (
           <div className={styles.emptyState}>No suspended meetings.</div>
         ) : (
           data.suspendedMeetings.map((meeting) => (
             <div key={meeting.mid} className={styles.meetingRow}>
-              <div>
-                <span className={styles.meetingTitle}>{meeting.title}</span>{" "}
-                <span className={styles.meetingTags}>({meeting.group})</span>
-              </div>
-              <div className={styles.meetingMeta}>
-                {meeting.room} · {meeting.modeType} · {meeting.calType.join(", ")}
+              <div className={styles.syncIssueRow}>
+                <div>
+                  <span className={styles.meetingTitle}>{meeting.title}</span>{" "}
+                  <span className={styles.meetingTags}>({meeting.group})</span>
+                  <div className={styles.meetingMeta}>
+                    {meeting.room} · {meeting.modeType} · {meeting.calType.join(", ")}
+                  </div>
+                  <div className={styles.issueLine}>
+                    {meeting.resumesAt
+                      ? `Resumes ${new Date(meeting.resumesAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}`
+                      : "Suspended indefinitely"}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className={styles.retryButton}
+                  onClick={() => resumeMeeting(meeting.mid)}
+                  disabled={resumingMid === meeting.mid}
+                >
+                  {resumingMid === meeting.mid ? "Resuming…" : "Resume"}
+                </button>
               </div>
             </div>
           ))

@@ -28,6 +28,10 @@ interface IMeeting {
   modeType: string;
   room: string;
   status?: string;
+  // The open suspension's scheduled resume date, populated only by retrieve/meeting/[id] for
+  // authenticated callers -- null means indefinite (or not currently suspended). Never a source
+  // of truth by itself; the backend always derives from SuspensionPeriod.
+  resumesAt?: Date | null;
   isRecurring: boolean;
   recurrencePattern?: IRecurrencePattern | null;
   googleCalendarEventId?: string | null;

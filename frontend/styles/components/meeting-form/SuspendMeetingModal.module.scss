@@ -38,12 +38,12 @@
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background-color: #FEE4E2;
+  background-color: $warning-bg-color;
   flex-shrink: 0;
 }
 
 .icon path {
-  fill: #D92D20;
+  fill: $warning-text-color;
 }
 
 .title {
@@ -53,27 +53,42 @@
 }
 
 .message {
-  margin: 0 0 24px;
+  margin: 0 0 16px;
   font-size: 15px;
   line-height: 1.5;
   color: #444;
 }
 
 .effectiveDate {
-  color: #D92D20;
+  color: $warning-text-color;
 }
 
-.suspendNudge {
-  margin: 0 0 16px;
-  padding: 10px 12px;
-  border-radius: 6px;
-  background-color: $warning-bg-color;
-  color: #444;
-  font-size: 13px;
-  line-height: 1.4;
+.resumeOptions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 24px;
+  font-size: 14px;
+}
 
-  strong {
-    color: $warning-text-color;
+.radioRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.dateInput {
+  margin-left: 4px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  border: 1.5px solid $light-grey-color;
+  font-size: 14px;
+  font-family: inherit;
+
+  &:disabled {
+    background-color: #F5F5F5;
+    color: $medium-grey-color;
   }
 }
 
@@ -81,21 +96,6 @@
   display: flex;
   justify-content: flex-end;
   gap: 8px;
-}
-
-.suspendButton {
-  padding: 8px 16px;
-  border-radius: 6px;
-  border: none;
-  background-color: $warning-text-color;
-  color: white;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-
-  &:hover {
-    background-color: #96620A;
-  }
 }
 
 .cancelButton {
@@ -113,17 +113,22 @@
   }
 }
 
-.deleteButton {
+.suspendButton {
   padding: 8px 16px;
   border-radius: 6px;
   border: none;
-  background-color: #D92D20;
+  background-color: $warning-text-color;
   color: white;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
 
   &:hover {
-    background-color: #B42318;
+    background-color: #96620A;
+  }
+
+  &:disabled {
+    background-color: $light-grey-color;
+    cursor: not-allowed;
   }
 }

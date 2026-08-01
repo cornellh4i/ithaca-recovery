@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { getAuth } from "../../../../../services/auth";
 import { prisma } from "../../../../../lib/prisma";
 import { toPublicMeeting } from "../../../../../util/publicMeeting";
+import { getOpenSuspension } from "../../../../../util/suspension";
 const getMeeting = async(request: NextRequest) => {
   try {
     // Intentionally public (see routeGuards.test.ts PUBLIC_ROUTES) -- backs the
@@ -18,6 +19,7 @@ const getMeeting = async(request: NextRequest) => {
       },
       include: {
         recurrencePattern: true,
+        suspensions: true,
       },
     });
 
@@ -30,8 +32,11 @@ const getMeeting = async(request: NextRequest) => {
       });
     }
 
+    // resumesAt: the open suspension's scheduled resume date, if any (null = indefinite, or not
+    // currently suspended) -- lets the UI show "Suspend"/"Reactivate" and a resume date without
+    // exposing the full suspension history to the client.
     const body = session?.user?.role
-      ? meeting
+      ? { ...meeting, resumesAt: getOpenSuspension(meeting)?.to ?? null }
       : toPublicMeeting({ ...meeting, recurrencePattern: meeting.recurrencePattern ?? null });
 
     return new Response(JSON.stringify(body), {

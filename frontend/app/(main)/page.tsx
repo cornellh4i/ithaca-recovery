@@ -215,6 +215,40 @@ export default function HomePage() {
     }
   };
 
+  const handleSuspend = async (mid: string, resumesAt: string | null) => {
+    try {
+      const response = await fetch('/api/update/meeting/suspend', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mid, to: resumesAt }),
+      });
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+
+      handleBack();
+      triggerCalendarRefresh();
+    } catch (error) {
+      console.error('There was an error suspending the meeting:', error);
+      alert("Error: could not suspend the meeting");
+    }
+  };
+
+  const handleResume = async (mid: string) => {
+    try {
+      const response = await fetch('/api/update/meeting/resume', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mid }),
+      });
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+
+      handleBack();
+      triggerCalendarRefresh();
+    } catch (error) {
+      console.error('There was an error resuming the meeting:', error);
+      alert("Error: could not resume the meeting");
+    }
+  };
+
   const filters = selectedView === "Day" ? dayFilters : weekFilters;
   const setFilters = selectedView === "Day" ? setDayFilters : setWeekFilters;
   const convertESTStringToDate = (estDateString: string): Date => {
@@ -336,6 +370,8 @@ export default function HomePage() {
           googleSyncStatus={selectedMeeting.googleSyncStatus}
           zoomSyncStatus={selectedMeeting.zoomSyncStatus}
           zoomSyncError={selectedMeeting.zoomSyncError}
+          status={selectedMeeting.status}
+          resumesAt={selectedMeeting.resumesAt}
           conflictCount={conflictCounts.get(selectedMeeting.mid) ?? 0}
           currentOccurrenceDate={lastClickedDate || undefined} // Pass the date when the meeting was clicked
           anchorEl={anchorEl}
@@ -344,6 +380,8 @@ export default function HomePage() {
           onBack={handleBack}
           onEdit={handleOpenEdit}
           onDelete={handleDelete}
+          onSuspend={handleSuspend}
+          onResume={handleResume}
           onSyncSuccess={triggerCalendarRefresh}
         />
       )}
