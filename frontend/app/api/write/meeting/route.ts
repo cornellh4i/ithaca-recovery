@@ -4,6 +4,7 @@ import { NextResponse, after } from "next/server";
 import { requireRole } from "../../../../services/auth";
 import { createCalendarEvent, calendarIdsForMeeting } from "../../../../services/googleCalendar";
 import { createZoomMeeting, getZoomMeetingInvitation, resolveZoomHost, zoomRoomCalendarId } from "../../../../services/zoom";
+import { findResourceConflicts } from "../../../../util/resourceOverlap";
 import { convertETToUTC } from "../../../../util/timeUtils";
 import { meetingSchema } from "../../../../util/meetingValidation";
 import { prisma } from "../../../../lib/prisma";
@@ -27,6 +28,10 @@ async function syncNewMeeting(
   isRecurring: boolean,
   accessToken: string | undefined,
   resolvedHost: string | null,
+  // The specific reason resolvedHost is null (pool exhausted vs. a manually-picked host that
+  // conflicts) -- computed synchronously in createMeeting, before this ever runs. Without this,
+  // both reasons collapsed to the same generic "pool exhausted" message below.
+  hostSyncError: string | null,
 ): Promise<void> {
   if (meetingData.status === 'Suspended') return;
 
@@ -43,7 +48,7 @@ async function syncNewMeeting(
   if (zoomEnabled && !zid && !zoomLink) {
     if (!zoomHost) {
       zoomSynced = false;
-      zoomSyncError = "No Zoom host available for this meeting's schedule (pool exhausted).";
+      zoomSyncError = hostSyncError ?? "No Zoom host available for this meeting's schedule (pool exhausted).";
     } else {
       const created = await createZoomMeeting({ ...meetingData, isRecurring }, zoomHost);
       if (created) {
@@ -138,13 +143,26 @@ const createMeeting = async (request: Request) => {
     let resolvedHost: string | null = null;
     let zoomSyncError: string | null = null;
     if (zoomEnabled && !meetingData.zid && !meetingData.zoomLink) {
-      // A manually-selected host (see the Meeting Form's Zoom Host dropdown) is used as-is,
-      // no server-side conflict re-check -- the form's own "Check host availability" already
-      // surfaced any conflict, and manual selection is explicitly for admin overrides.
-      resolvedHost = meetingData.zoomHost
-        || (await resolveZoomHost({ ...meetingData, isRecurring }, { excludeMid: meetingData.mid }));
-      if (!resolvedHost) {
-        zoomSyncError = "No Zoom host available for this meeting's schedule (pool exhausted).";
+      if (meetingData.zoomHost) {
+        // A manually-selected host (see the Meeting Form's Zoom Host dropdown) still gets
+        // checked server-side -- the form's own "Check host availability" is easy to skip, and
+        // availability can shift between checking and submitting. A real conflict is treated
+        // the same as pool exhaustion below: nothing gets written to the external Zoom API, and
+        // the calendar publish is deferred (see zoomBlocking in syncNewMeeting) until an admin
+        // picks a different host or the conflict clears.
+        const conflicts = await findResourceConflicts(
+          "zoomHost", meetingData.zoomHost, { ...meetingData, isRecurring }, { excludeMid: meetingData.mid, includeSuspended: true },
+        );
+        if (conflicts.length === 0) {
+          resolvedHost = meetingData.zoomHost;
+        } else {
+          zoomSyncError = "This time conflicts with another meeting using the same Zoom host.";
+        }
+      } else {
+        resolvedHost = await resolveZoomHost({ ...meetingData, isRecurring }, { excludeMid: meetingData.mid });
+        if (!resolvedHost) {
+          zoomSyncError = "No Zoom host available for this meeting's schedule (pool exhausted).";
+        }
       }
     }
 
@@ -198,7 +216,7 @@ const createMeeting = async (request: Request) => {
     }
 
     // GCal/Zoom sync runs after the response is sent — see syncNewMeeting above.
-    after(syncNewMeeting(newMeeting.mid, meetingData, isRecurring, auth.accessToken, resolvedHost));
+    after(syncNewMeeting(newMeeting.mid, meetingData, isRecurring, auth.accessToken, resolvedHost, zoomSyncError));
 
     return new Response(JSON.stringify(responseMeeting), {
       status: 201,

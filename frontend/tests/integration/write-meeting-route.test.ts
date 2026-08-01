@@ -205,6 +205,52 @@ test("an exhausted Zoom host pool fails soft: the meeting is still created", asy
   expect(mockedCreateCalendarEvent).not.toHaveBeenCalled();
 });
 
+test("a manually-selected host that conflicts with another meeting is rejected without touching the external Zoom API or publishing to Google Calendar", async () => {
+  const prisma = getTestPrismaClient();
+  // Explicit, distinct time slot -- buildMeetingPayload's default is shared by other tests in
+  // this file/suite, so reusing it here could make this new real conflict check (previously a
+  // manually-picked host was trusted unconditionally, so this path never ran) order-dependent
+  // on unrelated leftover data.
+  const start = new Date("2026-11-01T18:00:00Z");
+  const end = new Date("2026-11-01T19:00:00Z");
+  const conflictHost = "conflict-host@icr.test";
+
+  const busyMid = `m-${randomUUID()}`;
+  await prisma.meeting.create({
+    data: {
+      mid: busyMid, title: "Busy Meeting", modeType: "Hybrid", description: "", creator: "Creator", group: "Group",
+      startDateTime: start, endDateTime: end, email: "busy@test.icr", zoomRoom: "Serenity Room - Zoom",
+      calType: ["AA"], status: "Active", room: "Serenity Room", isRecurring: false,
+      zid: "zid-busy", zoomHost: conflictHost,
+    },
+  });
+
+  const payload = buildMeetingPayload({
+    modeType: "Hybrid", room: "Fellowship Room", zoomRoom: "Fellowship Room - Zoom",
+    zoomHost: conflictHost, startDateTime: start, endDateTime: end,
+  });
+  const request = new Request("http://localhost/api/write/meeting", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+
+  const response = await POST(request);
+  expect(response.status).toBe(201);
+  const created = await response.json();
+
+  // Detected synchronously (same as the pool-exhaustion case above), and with the correct,
+  // specific reason -- not the generic "pool exhausted" message.
+  expect(created.zoomHost).toBeNull();
+  expect(created.zoomSyncError).toMatch(/conflicts with another meeting/i);
+
+  const afterSync = await waitForGoogleSyncStatus(created.mid);
+  expect(afterSync?.googleSyncStatus).toBe("pending");
+  expect(afterSync?.zoomSyncError).toMatch(/conflicts with another meeting/i);
+  expect(mockedResolveZoomHost).not.toHaveBeenCalled();
+  expect(mockedCreateZoomMeeting).not.toHaveBeenCalled();
+  expect(mockedCreateCalendarEvent).not.toHaveBeenCalled();
+});
+
 test("a Remote meeting (no zoomRoom) still gets a Zoom meeting created, and its main calendar event carries the real zoomLink", async () => {
   mockedResolveZoomHost.mockResolvedValue("host@icr.test");
   mockedCreateZoomMeeting.mockResolvedValue({ zid: "remote-zid", zoomLink: "http://zoom.test/remote", zoomPasscode: null });
