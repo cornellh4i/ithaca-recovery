@@ -34,6 +34,7 @@ jest.mock("../../services/zoom", () => ({
 }));
 
 import { getTestPrismaClient, disconnectTestPrismaClient } from "../factories/db";
+import { seedSuspensionPeriod } from "../factories/meeting";
 import { PUT } from "../../app/api/update/meeting/route";
 import { updateZoomMeeting, createZoomMeeting, deleteZoomMeeting, resolveZoomHost } from "../../services/zoom";
 import { reconcileMeetingCalendars, createCalendarEvent } from "../../services/googleCalendar";
@@ -44,6 +45,16 @@ const mockedDeleteZoomMeeting = deleteZoomMeeting as jest.Mock;
 const mockedResolveZoomHost = resolveZoomHost as jest.Mock;
 const mockedReconcileMeetingCalendars = reconcileMeetingCalendars as jest.Mock;
 const mockedCreateCalendarEvent = createCalendarEvent as jest.Mock;
+
+async function waitFor<T>(fn: () => Promise<T | null | undefined>, timeoutMs = 2000): Promise<T | null> {
+  const start = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    const result = await fn();
+    if (result != null) return result;
+    await new Promise((resolve) => setTimeout(resolve, 25));
+  }
+  return null;
+}
 
 function buildMeetingPayload(overrides: Partial<IMeeting> = {}): IMeeting {
   return {
@@ -247,6 +258,12 @@ test("an explicit host reassignment tears down the old Zoom meeting and creates 
 
   const prisma = getTestPrismaClient();
   const mid = `m-${randomUUID()}`;
+  // Explicit, distinct time slot -- buildMeetingPayload's default is shared by other tests in
+  // this file, some of which persist a meeting on "new-host@icr.test" and never clean it up;
+  // reusing the default here would make this test's new (real, since findResourceConflicts is
+  // no longer bypassed for a manual host) conflict check order-dependent on those leftovers.
+  const start = new Date("2026-10-01T15:00:00Z");
+  const end = new Date("2026-10-01T16:00:00Z");
   const { recurrencePattern: _rp, ...existingMeetingData } = buildMeetingPayload({
     mid,
     modeType: "Hybrid",
@@ -254,6 +271,8 @@ test("an explicit host reassignment tears down the old Zoom meeting and creates 
     zid: "zid-original",
     zoomHost: "old-host@icr.test",
     zoomCalendarEventId: "old-zoom-cal-event-id",
+    startDateTime: start,
+    endDateTime: end,
   });
   await prisma.meeting.create({ data: existingMeetingData });
 
@@ -264,6 +283,8 @@ test("an explicit host reassignment tears down the old Zoom meeting and creates 
     zoomRoom: "Serenity Room - Zoom",
     zid: "zid-original",
     zoomHost: "new-host@icr.test",
+    startDateTime: start,
+    endDateTime: end,
   });
   const request = new Request("http://localhost/api/update/meeting", {
     method: "PUT",
@@ -282,4 +303,92 @@ test("an explicit host reassignment tears down the old Zoom meeting and creates 
   expect(afterSync?.zid).toBe("zid-reassigned");
   expect(afterSync?.zoomHost).toBe("new-host@icr.test");
   expect(afterSync?.zoomSyncStatus).toBe("synced");
+});
+
+test("an explicit host reassignment to an already-busy host is rejected without creating a new Zoom meeting", async () => {
+  mockedDeleteZoomMeeting.mockResolvedValue(true);
+
+  const prisma = getTestPrismaClient();
+  // Explicit, distinct time slot -- see the comment on the reassignment test above for why.
+  const start = new Date("2026-10-02T15:00:00Z");
+  const end = new Date("2026-10-02T16:00:00Z");
+  const busyHost = "busy-reassign-host@icr.test";
+
+  const busyMid = `m-${randomUUID()}`;
+  const { recurrencePattern: _rpBusy, ...busyMeetingData } = buildMeetingPayload({
+    mid: busyMid, modeType: "Hybrid", room: "Fellowship Room", zoomRoom: "Fellowship Room - Zoom",
+    zid: "zid-busy", zoomHost: busyHost, startDateTime: start, endDateTime: end,
+  });
+  await prisma.meeting.create({ data: busyMeetingData });
+
+  const mid = `m-${randomUUID()}`;
+  const { recurrencePattern: _rp, ...existingMeetingData } = buildMeetingPayload({
+    mid, modeType: "Hybrid", room: "Serenity Room", zoomRoom: "Serenity Room - Zoom",
+    zid: "zid-original", zoomHost: "old-host-2@icr.test", startDateTime: start, endDateTime: end,
+  });
+  await prisma.meeting.create({ data: existingMeetingData });
+
+  const payload = buildMeetingPayload({
+    mid, modeType: "Hybrid", room: "Serenity Room", zoomRoom: "Serenity Room - Zoom",
+    zid: "zid-original", zoomHost: busyHost, startDateTime: start, endDateTime: end,
+  });
+  const request = new Request("http://localhost/api/update/meeting", {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+
+  const response = await PUT(request);
+  expect(response.status).toBe(200);
+
+  const afterSync = await waitFor(async () => {
+    const row = await prisma.meeting.findUnique({ where: { mid } });
+    return row?.zid === null && row?.zoomSyncStatus === "error" ? row : null;
+  });
+
+  expect(mockedCreateZoomMeeting).not.toHaveBeenCalled();
+
+  expect(afterSync?.zid).toBeNull();
+  expect(afterSync?.zoomHost).toBeNull();
+  expect(afterSync?.zoomSyncStatus).toBe("error");
+  // Specific reason, not the generic "pool exhausted" message the two code paths used to share.
+  expect(afterSync?.zoomSyncError).toMatch(/conflicts with another meeting/i);
+});
+
+test("editing a meeting whose scheduled resume date has already passed promotes the pre-created resume series first", async () => {
+  mockedReconcileMeetingCalendars.mockResolvedValue({ updatedEventIds: { AA: "still-stale-id" }, allSynced: true });
+
+  const prisma = getTestPrismaClient();
+  const mid = `m-${randomUUID()}`;
+  const { recurrencePattern: _rp, ...existingMeetingData } = buildMeetingPayload({
+    mid,
+    googleCalendarEventIds: { AA: "stale-pre-suspend-event-id" },
+  });
+  await prisma.meeting.create({ data: existingMeetingData });
+  const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  await seedSuspensionPeriod(mid, {
+    from: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+    to: yesterday,
+    resumeEventIds: { AA: "resume-event-id" },
+    promoted: false,
+  });
+
+  const payload = buildMeetingPayload({ mid, title: "Edited Title" });
+  const request = new Request("http://localhost/api/update/meeting", {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+
+  const response = await PUT(request);
+  expect(response.status).toBe(200);
+
+  // reconcileMeetingCalendars must have been called against the promoted pointer
+  // (resume-event-id), not the stale pre-suspend one still sitting in the DB row.
+  expect(mockedReconcileMeetingCalendars).toHaveBeenCalledWith(
+    "fake-token",
+    expect.anything(),
+    { AA: "resume-event-id" },
+  );
+
+  const suspension = await prisma.suspensionPeriod.findFirst({ where: { mid } });
+  expect(suspension?.promoted).toBe(true);
 });

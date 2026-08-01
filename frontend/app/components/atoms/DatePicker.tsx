@@ -249,6 +249,12 @@ const DatePicker = ({ label, value: propValue = '', onChange, underlineOnFocus =
             className={styles['calendar-popup']}
             style={{ top: popupPosition.top, left: popupPosition.left }}
             onMouseDown={(e) => e.preventDefault()} // Prevent input blur when clicking calendar
+            // Portaled to document.body, so it's a DOM sibling of wherever DatePicker itself
+            // is mounted, not a descendant -- a parent (e.g. ViewMeeting.tsx) with its own
+            // "click outside closes me" listener has no other way to recognize a click here as
+            // still "inside". CSS Modules hashes styles['calendar-popup'] per-file, so that
+            // class name isn't a reliable cross-component hook; this data attribute is.
+            data-datepicker-popup="true"
           >
             <MiniCalendar
               selectedDate={stringToDate(internalValue)}

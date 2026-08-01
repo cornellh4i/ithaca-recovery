@@ -9,6 +9,10 @@ import {
 const utcDate = (y: number, m: number, d: number, h = 0, min = 0) =>
   new Date(Date.UTC(y, m - 1, d, h, min));
 
+// computeConflicts derives "suspended" from suspensions[], not the status field -- this fixture
+// stands in for "suspended indefinitely, started well in the past."
+const suspendedIndefinitely = [{ from: utcDate(2020, 1, 1), to: null }];
+
 const weeklyMondayPattern = {
   type: "weekly",
   startDate: utcDate(2026, 7, 6), // a Monday
@@ -174,7 +178,7 @@ describe("computeConflicts", () => {
       ...baseMeeting,
       mid: "m2",
       title: "Meeting Two",
-      status: "Suspended",
+      suspensions: suspendedIndefinitely,
       startDateTime: utcDate(2026, 7, 6, 19, 30),
       endDateTime: utcDate(2026, 7, 6, 20, 30),
     };
@@ -219,7 +223,7 @@ describe("computeConflicts", () => {
   it("flags a zoomHost conflict even when one of the two meetings is suspended", () => {
     // Unlike room/zoomRoom, a suspended meeting's Zoom host is still genuinely reserved
     // (its Zoom sync is skipped, not torn down) -- see resolveZoomHost's includeSuspended: true.
-    const withHost: ConflictCandidateMeeting = { ...baseMeeting, zoomHost: "host1@icr.test", status: "Suspended" };
+    const withHost: ConflictCandidateMeeting = { ...baseMeeting, zoomHost: "host1@icr.test", suspensions: suspendedIndefinitely };
     const meetingTwo: ConflictCandidateMeeting = {
       ...baseMeeting,
       mid: "m2",
@@ -235,12 +239,12 @@ describe("computeConflicts", () => {
   });
 
   it("does not flag two suspended meetings sharing a room (room conflicts still exclude suspended)", () => {
-    const meetingOne: ConflictCandidateMeeting = { ...baseMeeting, status: "Suspended" };
+    const meetingOne: ConflictCandidateMeeting = { ...baseMeeting, suspensions: suspendedIndefinitely };
     const meetingTwo: ConflictCandidateMeeting = {
       ...baseMeeting,
       mid: "m2",
       title: "Meeting Two",
-      status: "Suspended",
+      suspensions: suspendedIndefinitely,
       startDateTime: utcDate(2026, 7, 6, 19, 30),
       endDateTime: utcDate(2026, 7, 6, 20, 30),
     };

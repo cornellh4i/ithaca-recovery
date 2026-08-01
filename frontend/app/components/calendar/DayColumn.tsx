@@ -4,6 +4,7 @@ import OverlapMeetingsModal from './OverlapMeetingsModal';
 import styles from '../../../styles/components/calendar/DayColumn.module.scss';
 import { isZoomRoomMismatched } from '../../../util/rooms';
 import { formatCompactTimeRange } from '../../../util/timeFormat';
+import { formatETDateString } from '../../../util/timeUtils';
 
 interface Meeting {
     id: string;
@@ -33,8 +34,17 @@ interface DayColumnProps {
     meetings: Meeting[];
     selectedMeetingID: string | null;
     setSelectedMeetingID: (meetingId: string) => void;
+    // The date of the currently-selected occurrence -- when set, only this column's own boxes
+    // whose date matches get to render as "selected", so a recurring meeting appearing on
+    // several days this week doesn't all highlight/pop-out together for one click.
+    selectedOccurrenceDate?: Date | null;
     setSelectedNewMeeting: (newMeetingExists: boolean) => void;
     setAnchorEl: (el: HTMLElement) => void;
+    // The calendar date this column represents -- recorded on every box click so a recurring
+    // meeting's "effective date" reflects the specific occurrence clicked, not whichever date
+    // the calendar happens to be globally centered on (see setLastClickedDate).
+    columnDate: Date;
+    setLastClickedDate?: (date: Date) => void;
     // Admin-only (see hooks/useConflictMids) -- mids with an unresolved conflict.
     conflictMids?: Set<string>;
     // Desktop's default: 120px/hour, matching .timeSlot's 120px row height in both
@@ -60,8 +70,11 @@ const DayColumn: React.FC<DayColumnProps> = ({
     meetings,
     selectedMeetingID,
     setSelectedMeetingID,
+    selectedOccurrenceDate,
     setSelectedNewMeeting,
     setAnchorEl,
+    columnDate,
+    setLastClickedDate,
     conflictMids,
     hourHeight = DEFAULT_HOUR_HEIGHT,
     hideTags = false,
@@ -91,6 +104,7 @@ const DayColumn: React.FC<DayColumnProps> = ({
         setSelectedMeetingID(meetingId);
         setSelectedNewMeeting(false);
         setAnchorEl(el);
+        setLastClickedDate?.(columnDate);
     };
 
     useEffect(() => {
@@ -99,6 +113,10 @@ const DayColumn: React.FC<DayColumnProps> = ({
             pendingModalAnchorRef.current = false;
         }
     }, [selectedMeetingID, setAnchorEl]);
+
+    // Undefined selectedOccurrenceDate (no click has happened yet, e.g. a deep link) falls back
+    // to matching on id alone, same as before this column-scoping existed.
+    const isOccurrenceDateMatch = !selectedOccurrenceDate || formatETDateString(columnDate) === formatETDateString(selectedOccurrenceDate);
 
     // Renders a single meeting's card. `forceSelected` is used to promote a folded
     // "+N" meeting (picked via the overflow modal) onto the stack even though it has
@@ -129,7 +147,7 @@ const DayColumn: React.FC<DayColumnProps> = ({
         // it fully into view (and above its siblings) instead of leaving it in its
         // narrow shared column -- reverts on its own once deselected, since this is
         // just a render-time override, not stored state.
-        const isSelected = forceSelected || meeting.id === selectedMeetingID;
+        const isSelected = forceSelected || (meeting.id === selectedMeetingID && isOccurrenceDateMatch);
 
         return (
             <div
@@ -183,7 +201,7 @@ const DayColumn: React.FC<DayColumnProps> = ({
     // of the two normally-rendered stacked cards, it has no slot of its own -- find it
     // in the folded cluster so it can be promoted onto the stack (see renderMeetingCard).
     const renderedIds = new Set(meetings.filter(m => !m.isOverflowIndicator).map(m => m.id));
-    const promotedMeeting = selectedMeetingID && !renderedIds.has(selectedMeetingID)
+    const promotedMeeting = selectedMeetingID && isOccurrenceDateMatch && !renderedIds.has(selectedMeetingID)
         ? meetings.flatMap(m => m.overflowMeetings ?? []).find(m => m.id === selectedMeetingID)
         : undefined;
 

@@ -29,8 +29,13 @@ interface WeeklyViewProps {
     setSelectedDate: (date: Date) => void;
     selectedMeetingID: string | null;
     setSelectedMeetingID: (meetingId: string) => void;
+    // The date of the specific occurrence currently selected (not just its mid) -- lets each
+    // DayColumn scope its own "is this box selected" check to the exact day clicked, so a
+    // recurring meeting doesn't highlight every occurrence across the whole week at once.
+    selectedOccurrenceDate?: Date | null;
     setSelectedNewMeeting: (newMeetingExists: boolean) => void;
     setAnchorEl: (el: HTMLElement) => void;
+    setLastClickedDate?: (date: Date) => void;
     refreshTrigger?: number;
     // Disables scrolling this view while the ViewMeeting popup is open -- it's anchored to
     // the clicked box's on-screen position, so scrolling underneath it while open just
@@ -47,8 +52,10 @@ const WeeklyView: React.FC<WeeklyViewProps> = ({
     setSelectedDate,
     selectedMeetingID,
     setSelectedMeetingID,
+    selectedOccurrenceDate,
     setSelectedNewMeeting,
     setAnchorEl,
+    setLastClickedDate,
     refreshTrigger = 0,
     scrollLocked = false,
     conflictMids,
@@ -207,8 +214,11 @@ const WeeklyView: React.FC<WeeklyViewProps> = ({
                                     }))}
                                     selectedMeetingID={selectedMeetingID}
                                     setSelectedMeetingID={setSelectedMeetingID}
+                                    selectedOccurrenceDate={selectedOccurrenceDate}
                                     setSelectedNewMeeting={setSelectedNewMeeting}
                                     setAnchorEl={setAnchorEl}
+                                    columnDate={day}
+                                    setLastClickedDate={setLastClickedDate}
                                     conflictMids={conflictMids}
                                 />
 

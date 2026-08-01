@@ -15,6 +15,20 @@ const etTimeFmt = new Intl.DateTimeFormat('en-GB', {
 const isDateExcluded = (excludedDates: Date[], dateStr: string): boolean =>
     excludedDates.some(excl => etFmt.format(new Date(excl)) === dateStr);
 
+// Returns true if the given ET date string falls inside one of a meeting's suspension windows.
+// `dateStr` must be the date actually being evaluated (the calendar date being rendered, or
+// today's ET date for "is this meeting suspended right now" contexts) -- never implicitly "now",
+// so a past-date calendar view correctly reflects what was true on that date, not live status.
+export const isDateSuspended = (
+    suspensions: { from: Date; to: Date | null }[],
+    dateStr: string,
+): boolean =>
+    suspensions.some(s => {
+        const fromStr = etFmt.format(new Date(s.from));
+        const toStr = s.to ? etFmt.format(new Date(s.to)) : null;
+        return dateStr >= fromStr && (toStr === null || dateStr < toStr);
+    });
+
 // Returns true if the given ET date string is past the series end date.
 // Compares ET date strings to avoid UTC-midnight vs ET-midnight mismatches.
 const isAfterSeriesEnd = (endDate: Date | null, dateStr: string): boolean => {
@@ -103,7 +117,7 @@ export const matchesRecurrencePattern = (
 
 // Adds one calendar day to an ET date string ("YYYY-MM-DD"), via UTC-anchored date-component
 // arithmetic (not a real elapsed-time addition), so this can't be thrown off by DST.
-const addOneETDay = (etDateStr: string): string => {
+export const addOneETDay = (etDateStr: string): string => {
     const [year, month, day] = etDateStr.split('-').map(Number);
     const next = new Date(Date.UTC(year, month - 1, day + 1));
     return `${next.getUTCFullYear()}-${String(next.getUTCMonth() + 1).padStart(2, '0')}-${String(next.getUTCDate()).padStart(2, '0')}`;
@@ -134,6 +148,26 @@ export const adjustOccurrenceToDate = (
     return { start, end };
 };
 
+// Walks forward day-by-day from `fromEtDateStr` (inclusive) and returns the first ET date
+// string on/after it that the recurrence pattern actually produces an occurrence on. Bounded to
+// ~370 days so a pattern that (mis)matches nothing near `fromEtDateStr` can't loop forever.
+export const firstOccurrenceOnOrAfter = (
+    recurrence: { type: string; startDate: Date; endDate: Date | null; interval: number; daysOfWeek: string[]; weekOfMonth: number | null; dayOfMonth: number | null; excludedDates: Date[] },
+    fromEtDateStr: string,
+): string | null => {
+    const [year, month, day] = fromEtDateStr.split('-').map(Number);
+    let cursor = Date.UTC(year, month - 1, day);
+    const msPerDay = 24 * 60 * 60 * 1000;
+    for (let i = 0; i < 370; i++) {
+        const localDate = new Date(cursor);
+        const etDateStr = `${localDate.getUTCFullYear()}-${String(localDate.getUTCMonth() + 1).padStart(2, '0')}-${String(localDate.getUTCDate()).padStart(2, '0')}`;
+        if (isAfterSeriesEnd(recurrence.endDate, etDateStr)) return null;
+        if (matchesRecurrencePattern(recurrence, etDateStr, localDate)) return etDateStr;
+        cursor += msPerDay;
+    }
+    return null;
+};
+
 /**
  * Returns every meeting occurrence (one-time + recurring, expanded) that falls on the given
  * ET calendar date, with recurring occurrences' start/end times adjusted onto that date.
@@ -152,13 +186,16 @@ export const getMeetingsForDate = async (etDateStr: string): Promise<PublicMeeti
             AND: [notDeleted, { startDateTime: { lte: endOfDay }, endDateTime: { gte: startOfDay } }]
         },
         include: {
-            recurrencePattern: true
+            recurrencePattern: true,
+            suspensions: true
         }
     });
 
-    const regularMeetings = directlyScheduledMeetings.filter(meeting => !meeting.isRecurring);
+    const regularMeetings = directlyScheduledMeetings.filter(meeting =>
+        !meeting.isRecurring && !isDateSuspended(meeting.suspensions, etDateStr));
     const originalDayRecurringMeetings = directlyScheduledMeetings.filter(meeting => {
         if (!meeting.isRecurring) return false;
+        if (isDateSuspended(meeting.suspensions, etDateStr)) return false;
         const recurrence = meeting.recurrencePattern;
         if (isAfterSeriesEnd(recurrence?.endDate ?? null, etDateStr)) return false;
         if (recurrence?.excludedDates?.length && isDateExcluded(recurrence.excludedDates, etDateStr)) return false;
@@ -178,10 +215,11 @@ export const getMeetingsForDate = async (etDateStr: string): Promise<PublicMeeti
                 { NOT: { AND: [{ startDateTime: { lte: endOfDay } }, { endDateTime: { gte: startOfDay } }] } }
             ]
         },
-        include: { recurrencePattern: true }
+        include: { recurrencePattern: true, suspensions: true }
     });
 
     const patternDayMeetings = otherRecurringMeetings.filter(meeting => {
+        if (isDateSuspended(meeting.suspensions, etDateStr)) return false;
         const recurrence = meeting.recurrencePattern;
         if (!recurrence) return false;
         return matchesRecurrencePattern(recurrence, etDateStr, localDate);
