@@ -18,6 +18,14 @@ describe("BoxText", () => {
     expect(screen.getByText("AA")).toBeInTheDocument();
   });
 
+  it("prefixes the mode tag pill itself with the mode icon by default", () => {
+    render(<BoxText {...baseProps} tags={["In Person", "AA"]} />);
+
+    const tag = screen.getByText("In Person");
+    expect(tag.querySelector("img")).toHaveAttribute("src", "/svg/location-icon.svg");
+    expect(screen.getByText("AA").querySelector("img")).not.toBeInTheDocument();
+  });
+
   it("hides tags and prefixes the title with the mode icon when hideTags is set", () => {
     render(<BoxText {...baseProps} tags={["In Person", "AA"]} hideTags />);
 

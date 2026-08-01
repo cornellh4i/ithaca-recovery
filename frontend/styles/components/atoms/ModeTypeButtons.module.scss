@@ -58,3 +58,16 @@
 .button.compact {
   font-size: 12px;
 }
+
+.icon {
+  width: 14px;
+  height: 14px;
+  margin-right: 4px;
+  vertical-align: -2px;
+}
+
+// Selected state's icon comes pre-colored dark grey (see public/svg/*-icon.svg's fill) --
+// invert to white so it stays visible against the solid pink selected background.
+.button.selected .icon {
+  filter: brightness(0) invert(1);
+}

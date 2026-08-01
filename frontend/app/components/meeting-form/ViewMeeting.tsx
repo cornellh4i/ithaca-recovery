@@ -13,6 +13,7 @@ import { formatDayColumn } from "../../../util/recurrenceDisplay";
 import { isZoomRoomMismatched } from "../../../util/rooms";
 import { linkify } from "../../../util/linkify";
 import { zoomHostLabel } from "../../../util/zoomHosts";
+import { MODE_ICON_SRC } from "../../../util/modeIcons";
 import { useZoomHostPool } from "../../../hooks/useZoomHostPool";
 
 // Extracts ET wall-clock time as "HH:MM" (24hr), which is what formatCompactTimeRange expects.
@@ -362,6 +363,9 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
           className={styles.settingLabel}
           style={{ backgroundColor: primaryColor, borderColor: primaryColor }}
         >
+          {MODE_ICON_SRC[modeType] && (
+            <img src={MODE_ICON_SRC[modeType]} alt="" className={styles.settingLabelIcon} />
+          )}
           {modeType}
         </span>
         {isAdmin && (

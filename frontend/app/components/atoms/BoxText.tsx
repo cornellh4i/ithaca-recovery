@@ -1,6 +1,7 @@
 import React, { useLayoutEffect, useRef, useState } from "react";
 import styles from '../../../styles/components/atoms/BoxText.module.scss';
 import { toPastelColor } from '../../../util/color';
+import { MODE_ICON_SRC } from '../../../util/modeIcons';
 import TagList from './TagList';
 
 interface BoxProps {
@@ -40,15 +41,6 @@ interface BoxProps {
   hideTags?: boolean;
   onClick: (meetingId: string, e: React.MouseEvent<HTMLDivElement, MouseEvent>) => void;
   [key: string]: unknown;
-};
-
-// Meeting-mode tags are mutually exclusive (see util/meetingFilters.ts's modeTagNames) and
-// carried in `tags` using their display-label spelling ("In Person", not "InPerson" --
-// see util/tagOrder.ts's TAG_ORDER), same as every other tag here.
-const MODE_ICON_SRC: Record<string, string> = {
-  'In Person': '/svg/location-icon.svg',
-  Remote: '/svg/video-call-icon.svg',
-  Hybrid: '/svg/co-present-icon.svg',
 };
 
 const BoxText: React.FC<BoxProps> = ({
