@@ -9,7 +9,7 @@ import {
 } from '../../../../../services/googleCalendar';
 import { formatETDateString } from '../../../../../util/timeUtils';
 import { addOneETDay, adjustOccurrenceToDate, firstOccurrenceOnOrAfter } from '../../../../../util/meetingOccurrences';
-import { reconcilePendingResume } from '../../../../../util/suspension';
+import { getOpenSuspension, reconcilePendingResume } from '../../../../../util/suspension';
 import { IMeeting } from '../../../../../util/models';
 import { prisma } from '../../../../../lib/prisma';
 
@@ -81,11 +81,25 @@ async function syncSuspend(
       }
     }
   } else {
-    // One-time meeting: nothing recurring to truncate, just remove the single event -- resuming
-    // recreates it at its original startDateTime.
+    // One-time meeting: nothing recurring to truncate, just remove the single event.
     for (const [cat, calId] of Object.entries(calendarIds)) {
       const eventId = reconciledEventIds[cat];
       if (eventId) await deleteCalendarEvent(accessToken, eventId, calId);
+    }
+
+    // If a resume date was given and the meeting's original occurrence hasn't happened yet,
+    // pre-create it at that same original time so reconcilePendingResume can auto-restore it
+    // once `to` arrives -- otherwise a scheduled (not manually-triggered) resume would leave a
+    // one-time meeting permanently missing from Google Calendar. An early manual resume (via
+    // the resume route) still recreates it fresh regardless of this.
+    if (to && meeting.startDateTime > new Date()) {
+      const resumeMeeting = toCalendarMeeting(meeting, meeting.startDateTime, meeting.endDateTime);
+      const resumeEventIds: Record<string, string> = {};
+      for (const [cat, calId] of Object.entries(calendarIds)) {
+        const id = await createCalendarEvent(accessToken, resumeMeeting, calId);
+        if (id) resumeEventIds[cat] = id;
+      }
+      await prisma.suspensionPeriod.update({ where: { id: suspensionId }, data: { resumeEventIds } });
     }
   }
 }
@@ -110,11 +124,26 @@ const suspendMeeting = async (request: Request) => {
 
     const reconciledEventIds = await reconcilePendingResume(meeting);
 
-    const toDate = to ? new Date(to) : null;
-    await prisma.meeting.update({ where: { mid }, data: { status: 'Suspended' } });
-    const suspension = await prisma.suspensionPeriod.create({
-      data: { mid, from: new Date(), to: toDate },
-    });
+    if (getOpenSuspension(meeting)) {
+      return NextResponse.json({ error: "Meeting is already suspended" }, { status: 400 });
+    }
+
+    const from = new Date();
+    let toDate: Date | null = null;
+    if (to != null) {
+      toDate = new Date(to);
+      if (Number.isNaN(toDate.getTime())) {
+        return NextResponse.json({ error: "to must be a valid date" }, { status: 400 });
+      }
+      if (formatETDateString(toDate) <= formatETDateString(from)) {
+        return NextResponse.json({ error: "to must be after today" }, { status: 400 });
+      }
+    }
+
+    const [, suspension] = await prisma.$transaction([
+      prisma.meeting.update({ where: { mid }, data: { status: 'Suspended' } }),
+      prisma.suspensionPeriod.create({ data: { mid, from, to: toDate } }),
+    ]);
 
     after(syncSuspend(meeting, suspension.id, auth.accessToken, toDate, reconciledEventIds));
 

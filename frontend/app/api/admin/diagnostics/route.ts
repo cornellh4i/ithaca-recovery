@@ -105,25 +105,21 @@ export const GET = async () => {
       .sort((a, b) => (b.updatedAt?.getTime() ?? 0) - (a.updatedAt?.getTime() ?? 0))
       .slice(0, 50);
 
-    // `status: "Suspended"` is a conservative DB-level pre-filter (a currently-suspended meeting
-    // always has this flag set), narrowed further in-memory by the derived, date-based check so a
-    // meeting whose scheduled resume date already passed correctly drops off this list even if
-    // nothing has explicitly resumed it yet.
-    const suspendedMeetingsRaw = await prisma.meeting.findMany({
-      where: { ...notDeleted, status: "Suspended" },
-      select: {
-        mid: true, title: true, group: true, room: true, modeType: true, calType: true,
-        updatedAt: true, suspensions: true,
-      },
-      orderBy: { updatedAt: "desc" },
-      take: 50,
-    });
-    const suspendedMeetings = suspendedMeetingsRaw
+    // Derived from `meetings` (already fetched above with every field needed here) rather than a
+    // separate `status: "Suspended"` query -- that flag can drift from the date-based truth (e.g.
+    // a client-supplied `status` written by the update route), and a status pre-filter combined
+    // with `take` before the date filter could silently undercount/omit currently-suspended rows.
+    const suspendedMeetings = meetings
       .filter((m) => isDateSuspended(m.suspensions, todayStr))
+      .sort((a, b) => (b.updatedAt?.getTime() ?? 0) - (a.updatedAt?.getTime() ?? 0))
       .slice(0, 20)
-      .map(({ suspensions, ...m }) => {
-        const open = suspensions.find((s) => isDateSuspended([s], todayStr));
-        return { ...m, resumesAt: open?.to ?? null };
+      .map((m) => {
+        const open = m.suspensions.find((s) => isDateSuspended([s], todayStr));
+        return {
+          mid: m.mid, title: m.title, group: m.group, room: m.room,
+          modeType: m.modeType, calType: m.calType, updatedAt: m.updatedAt,
+          resumesAt: open?.to ?? null,
+        };
       });
 
     return NextResponse.json({

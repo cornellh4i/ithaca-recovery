@@ -85,8 +85,15 @@ const resumeMeeting = async (request: Request) => {
       return NextResponse.json({ error: "Meeting is not currently suspended" }, { status: 400 });
     }
 
-    await prisma.meeting.update({ where: { mid }, data: { status: 'Active' } });
-    await prisma.suspensionPeriod.update({ where: { id: openSuspension.id }, data: { to: new Date() } });
+    await prisma.$transaction([
+      prisma.meeting.update({ where: { mid }, data: { status: 'Active' } }),
+      prisma.suspensionPeriod.update({
+        where: { id: openSuspension.id },
+        // resumeEventIds are deleted by syncResume below, so clear them here too -- otherwise
+        // reconcilePendingResume sees an unpromoted, now-due row and republishes dead IDs.
+        data: { to: new Date(), resumeEventIds: null, promoted: true },
+      }),
+    ]);
 
     after(syncResume(meeting, openSuspension, auth.accessToken));
 

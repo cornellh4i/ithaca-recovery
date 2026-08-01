@@ -25,9 +25,11 @@ export const reconcilePendingResume = async (meeting: MeetingWithSuspensions): P
   const eventIds = (meeting.googleCalendarEventIds ?? {}) as Record<string, string>;
   const todayStr = formatETDateString(new Date());
 
-  const pending = meeting.suspensions.find(
-    (s) => !s.promoted && s.resumeEventIds && s.to && formatETDateString(new Date(s.to)) <= todayStr,
-  );
+  // Sorted by `from` descending -- if more than one period is somehow due and unpromoted at
+  // once, the most recent one's event IDs are the ones actually live on Google Calendar.
+  const pending = meeting.suspensions
+    .filter((s) => !s.promoted && s.resumeEventIds && s.to && formatETDateString(new Date(s.to)) <= todayStr)
+    .sort((a, b) => b.from.getTime() - a.from.getTime())[0];
   if (!pending) return eventIds;
 
   const resumeEventIds = pending.resumeEventIds as Record<string, string>;
