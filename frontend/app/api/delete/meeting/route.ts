@@ -9,6 +9,7 @@ import {
   calendarIdsForMeeting,
 } from '../../../../services/googleCalendar';
 import { deleteZoomMeeting, zoomRoomCalendarId } from '../../../../services/zoom';
+import { reconcilePendingResume } from '../../../../util/suspension';
 import { prisma } from '../../../../lib/prisma';
 
 // Returns "YYYY-MM-DD" in Eastern Time for the given UTC timestamp.
@@ -74,7 +75,7 @@ const deleteMeeting = async (request: Request) => {
 
     const meeting = await prisma.meeting.findUnique({
       where: { mid },
-      include: { recurrencePattern: true }
+      include: { recurrencePattern: true, suspensions: true }
     });
 
     if (!meeting) {
@@ -83,6 +84,10 @@ const deleteMeeting = async (request: Request) => {
         headers: { 'Content-Type': 'application/json' },
       });
     }
+
+    // Lazy self-heal, same as update/meeting/route.ts -- promote a due-but-unpromoted scheduled
+    // resume series before deleting whatever's currently in googleCalendarEventIds.
+    meeting.googleCalendarEventIds = await reconcilePendingResume(meeting);
 
     const isRecurring = !!meeting.recurrencePattern || meeting.isRecurring;
 

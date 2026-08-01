@@ -1,5 +1,5 @@
 import { test, expect } from "./support/fixtures";
-import { seedMeeting } from "../factories/meeting";
+import { seedSuspendedMeeting } from "../factories/meeting";
 
 // Provisional tests: lock in the *current* stub/absent behavior of features that
 // aren't fully implemented yet, so whoever ships the real feature finds these
@@ -34,28 +34,26 @@ test.describe("provisional — unimplemented features", () => {
 
   test("[PROVISIONAL:suspend-workflow] a Suspended meeting is only reachable via direct DB write, never through the UI", async ({ superAdminPage }) => {
     const { page } = superAdminPage;
-    // No component anywhere calls PUT /api/update/meeting with status: 'Suspended'
-    // — seedMeeting({ status: 'Suspended' }) (test/factories/meeting.ts) is a
-    // direct Prisma write standing in for a UI action that doesn't exist. This
-    // test both documents the gap and confirms Diagnostics' read side (which does
-    // exist) still surfaces a meeting suspended that way.
-    await seedMeeting({ title: "Suspended Stub Meeting", status: "Suspended" });
+    // The backend half of this ticket has landed: app/api/update/meeting/{suspend,resume}/
+    // route.ts are real routes, Diagnostics derives its suspended panel/count from real
+    // SuspensionPeriod date ranges (app/api/admin/diagnostics/route.ts), and
+    // util/meetingOccurrences.ts's getMeetingsForDate now genuinely hides a currently-suspended
+    // meeting from the live calendar. What's still missing, and what this test now documents,
+    // is the UI half: no component anywhere calls those routes — seedSuspendedMeeting()
+    // (tests/factories/meeting.ts) is a direct Prisma write standing in for a UI action
+    // (ViewMeeting's kebab menu, per the ticket) that doesn't exist yet.
+    await seedSuspendedMeeting({ title: "Suspended Stub Meeting" });
     await page.goto("/admin");
 
     await expect(
       page.getByTestId("diagnostics-suspended-panel").getByText("Suspended Stub Meeting"),
     ).toBeVisible();
 
-    // No suspend/unsuspend control exists on the meeting detail panel. And
-    // suspension isn't a visibility toggle within the app itself — status is never
-    // filtered on in util/meetingOccurrences.ts's getMeetingsForDate(), so the
-    // meeting still renders on the live calendar identically to an Active one; the
-    // Diagnostics subhead's "hidden from Google Calendar" is specifically about the
-    // one-way external sync (write/meeting/route.ts skips both GCal/Zoom sync when
-    // status === 'Suspended'), not about the calendar view.
+    // Real behavior now, not a stub: a currently-suspended meeting is hidden from the live
+    // Day view.
     const dayResponse = page.waitForResponse((r) => r.url().includes("/api/retrieve/meeting/day"));
     await page.goto("/");
     await dayResponse;
-    await expect(page.getByText("Suspended Stub Meeting")).toBeVisible();
+    await expect(page.getByText("Suspended Stub Meeting")).not.toBeVisible();
   });
 });

@@ -44,6 +44,7 @@ model Meeting {
   status                 String               @default("Active")
   isRecurring            Boolean              @default(false)
   recurrencePattern      RecurrencePattern?   @relation("MeetingToRecurrencePattern")
+  suspensions            SuspensionPeriod[]   @relation("MeetingToSuspensionPeriod")
   googleCalendarEventId  String?
   googleCalendarEventIds Json?
   googleSyncStatus       String?
@@ -78,6 +79,27 @@ model RecurrencePattern {
   excludedDates      DateTime[] @default([])
 }
 
+
+// One row per suspend→resume cycle for a meeting (never mutated once superseded by a new
+// suspension) — real date-range history, not a flag, so past-date calendar views can correctly
+// answer "was this meeting suspended on that specific date."
+model SuspensionPeriod {
+  id             String    @id @default(auto()) @map("_id") @db.ObjectId
+  mid            String
+  meeting        Meeting   @relation("MeetingToSuspensionPeriod", fields: [mid], references: [mid])
+  from           DateTime
+  to             DateTime?
+  // GCal event IDs (keyed by calendarId) pre-created for the post-resume series when `to` was set
+  // at suspend time. Held here until reconciled into Meeting.googleCalendarEventIds once `to`
+  // actually arrives — never promoted early, so the live-series pointer never references a series
+  // that hasn't started yet.
+  resumeEventIds Json?
+  // Whether resumeEventIds has already been copied into Meeting.googleCalendarEventIds by the
+  // reconciliation step. Tracked explicitly rather than inferred by comparing JSON blobs.
+  promoted       Boolean   @default(false)
+
+  @@index([mid])
+}
 
 model User {
   id   String @id @default(auto()) @map("_id") @db.ObjectId

@@ -6,6 +6,7 @@ import { createCalendarEvent, updateCalendarEvent, deleteCalendarEvent, reconcil
 import { createZoomMeeting, updateZoomMeeting, deleteZoomMeeting, getZoomMeetingInvitation, resolveZoomHost, zoomRoomCalendarId } from "../../../../services/zoom";
 import { findResourceConflicts } from "../../../../util/resourceOverlap";
 import { meetingSchema } from "../../../../util/meetingValidation";
+import { reconcilePendingResume } from "../../../../util/suspension";
 import { prisma } from "../../../../lib/prisma";
 
 // Runs after the response is sent (see after() call below) — failure updates googleSyncStatus
@@ -189,13 +190,18 @@ const updateMeeting = async (request: Request): Promise<Response> => {
       where: {
         mid: newMeeting.mid,
       },
-      include: { recurrencePattern: true },
+      include: { recurrencePattern: true, suspensions: true },
     });
 
     if (!existingMeeting) {
       console.error('Meeting not found:', newMeeting.mid);
       return NextResponse.json({ error: `Meeting with ID ${newMeeting.mid} not found` }, { status: 404 });
     }
+
+    // Lazy self-heal: promote a scheduled resume's pre-created GCal series into
+    // googleCalendarEventIds if its date has arrived but nothing's promoted it yet, before this
+    // edit reads/writes that field below.
+    existingMeeting.googleCalendarEventIds = await reconcilePendingResume(existingMeeting);
 
     const { mid, recurrencePattern, ...meetingFields } = newMeeting;
 

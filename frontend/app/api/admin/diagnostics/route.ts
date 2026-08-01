@@ -4,6 +4,8 @@ import { requireRole } from "../../../../services/auth";
 import { calendarIdForCategory, checkCalendarReachable } from "../../../../services/googleCalendar";
 import { checkZoomReachable, zoomRoomCalendarId, checkZoomHostPool } from "../../../../services/zoom";
 import { computeConflicts } from "../../../../util/resourceOverlap";
+import { isDateSuspended } from "../../../../util/meetingOccurrences";
+import { formatETDateString } from "../../../../util/timeUtils";
 import { prisma } from "../../../../lib/prisma";
 
 const notDeleted = { OR: [{ deletedAt: null }, { deletedAt: { isSet: false } }] };
@@ -52,10 +54,11 @@ export const GET = async () => {
         mid: true, title: true, group: true, status: true, calType: true, isRecurring: true,
         googleSyncStatus: true, zoomRoom: true, zoomHost: true, zoomSyncStatus: true, zoomSyncError: true,
         room: true, modeType: true, startDateTime: true, endDateTime: true,
-        recurrencePattern: true, updatedAt: true,
+        recurrencePattern: true, updatedAt: true, suspensions: true,
       },
     });
 
+    const todayStr = formatETDateString(new Date());
     const byCategory: Record<string, number> = {};
     categories.forEach((cat) => { byCategory[cat] = 0; });
     let active = 0;
@@ -65,7 +68,7 @@ export const GET = async () => {
     let zoomSyncErrors = 0;
     let pendingZoomSync = 0;
     for (const m of meetings) {
-      if (m.status === "Suspended") suspended++; else active++;
+      if (isDateSuspended(m.suspensions, todayStr)) suspended++; else active++;
       if (m.isRecurring) recurring++;
       for (const cat of m.calType) {
         if (cat in byCategory) byCategory[cat]++;
@@ -102,12 +105,22 @@ export const GET = async () => {
       .sort((a, b) => (b.updatedAt?.getTime() ?? 0) - (a.updatedAt?.getTime() ?? 0))
       .slice(0, 50);
 
-    const suspendedMeetings = await prisma.meeting.findMany({
-      where: { ...notDeleted, status: "Suspended" },
-      select: { mid: true, title: true, group: true, room: true, modeType: true, calType: true, updatedAt: true },
-      orderBy: { updatedAt: "desc" },
-      take: 20,
-    });
+    // Derived from `meetings` (already fetched above with every field needed here) rather than a
+    // separate `status: "Suspended"` query -- that flag can drift from the date-based truth (e.g.
+    // a client-supplied `status` written by the update route), and a status pre-filter combined
+    // with `take` before the date filter could silently undercount/omit currently-suspended rows.
+    const suspendedMeetings = meetings
+      .filter((m) => isDateSuspended(m.suspensions, todayStr))
+      .sort((a, b) => (b.updatedAt?.getTime() ?? 0) - (a.updatedAt?.getTime() ?? 0))
+      .slice(0, 20)
+      .map((m) => {
+        const open = m.suspensions.find((s) => isDateSuspended([s], todayStr));
+        return {
+          mid: m.mid, title: m.title, group: m.group, room: m.room,
+          modeType: m.modeType, calType: m.calType, updatedAt: m.updatedAt,
+          resumesAt: open?.to ?? null,
+        };
+      });
 
     return NextResponse.json({
       database: { ok: true, latencyMs: databaseLatencyMs },
