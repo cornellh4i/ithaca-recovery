@@ -85,15 +85,26 @@ const resumeMeeting = async (request: Request) => {
       return NextResponse.json({ error: "Meeting is not currently suspended" }, { status: 400 });
     }
 
-    await prisma.$transaction([
-      prisma.meeting.update({ where: { mid }, data: { status: 'Active' } }),
-      prisma.suspensionPeriod.update({
-        where: { id: openSuspension.id },
+    // Gated on `promoted: false` -- the only writers that ever set it true are this close and
+    // reconcilePendingResume's own promotion, so it doubles as a single-winner check: if two
+    // resume requests race on the same open suspension, only the first `updateMany` actually
+    // matches a row (count 1); the loser sees count 0 and must not also schedule a duplicate
+    // syncResume, which would otherwise create a second calendar event for the same meeting.
+    const won = await prisma.$transaction(async (tx) => {
+      const closed = await tx.suspensionPeriod.updateMany({
+        where: { id: openSuspension.id, promoted: false },
         // resumeEventIds are deleted by syncResume below, so clear them here too -- otherwise
         // reconcilePendingResume sees an unpromoted, now-due row and republishes dead IDs.
         data: { to: new Date(), resumeEventIds: null, promoted: true },
-      }),
-    ]);
+      });
+      if (closed.count === 0) return false;
+      await tx.meeting.update({ where: { mid }, data: { status: 'Active' } });
+      return true;
+    });
+
+    if (!won) {
+      return NextResponse.json({ error: "Meeting was already resumed" }, { status: 409 });
+    }
 
     after(syncResume(meeting, openSuspension, auth.accessToken));
 
