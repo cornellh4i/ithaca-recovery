@@ -24,6 +24,10 @@ async function syncUpdatedMeeting(
   existingMeeting: Meeting,
   accessToken: string | undefined,
   resolvedHost: string | null,
+  // The specific reason resolvedHost is null (pool exhausted vs. a manually-picked host that
+  // conflicts) -- computed synchronously in updateMeeting, before this ever runs. Without this,
+  // both reasons collapsed to the same generic "pool exhausted" message below.
+  hostSyncError: string | null,
 ): Promise<void> {
   if (newMeeting.status === 'Suspended') return;
 
@@ -94,7 +98,7 @@ async function syncUpdatedMeeting(
       const host = resolvedHost;
       if (!host) {
         zoomSynced = false;
-        zoomSyncError = "No Zoom host available for this meeting's schedule (pool exhausted).";
+        zoomSyncError = hostSyncError ?? "No Zoom host available for this meeting's schedule (pool exhausted).";
       } else {
         const created = await createZoomMeeting(newMeeting, host);
         if (created) {
@@ -231,11 +235,24 @@ const updateMeeting = async (request: Request): Promise<Response> => {
     let resolvedHost: string | null = null;
     let hostSyncError: string | null = null;
     if (needsNewHost) {
-      // A manually-selected host is used as-is, no server-side conflict re-check -- see the
-      // matching comment in write/meeting/route.ts.
-      resolvedHost = newMeeting.zoomHost || (await resolveZoomHost(newMeeting, { excludeMid: mid }));
-      if (!resolvedHost) {
-        hostSyncError = "No Zoom host available for this meeting's schedule (pool exhausted).";
+      if (newMeeting.zoomHost) {
+        // A manually-selected host still gets checked server-side -- see the matching comment
+        // in write/meeting/route.ts. A real conflict is treated the same as pool exhaustion
+        // below: nothing gets written to the external Zoom API, and the calendar publish is
+        // deferred until an admin picks a different host or the conflict clears.
+        const conflicts = await findResourceConflicts(
+          "zoomHost", newMeeting.zoomHost, newMeeting, { excludeMid: mid, includeSuspended: true },
+        );
+        if (conflicts.length === 0) {
+          resolvedHost = newMeeting.zoomHost;
+        } else {
+          hostSyncError = "This time conflicts with another meeting using the same Zoom host.";
+        }
+      } else {
+        resolvedHost = await resolveZoomHost(newMeeting, { excludeMid: mid });
+        if (!resolvedHost) {
+          hostSyncError = "No Zoom host available for this meeting's schedule (pool exhausted).";
+        }
       }
     }
 
@@ -286,7 +303,7 @@ const updateMeeting = async (request: Request): Promise<Response> => {
     
 
     // GCal/Zoom sync runs after the response is sent — see syncUpdatedMeeting above.
-    after(syncUpdatedMeeting(mid, newMeeting, existingMeeting, auth.accessToken, resolvedHost));
+    after(syncUpdatedMeeting(mid, newMeeting, existingMeeting, auth.accessToken, resolvedHost, hostSyncError));
 
     return NextResponse.json(updatedMeeting);
   } catch (error) {

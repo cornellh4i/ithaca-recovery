@@ -4,6 +4,9 @@ import React, { useEffect, useRef, useState } from "react";
 import type { Role } from "@prisma/client";
 import StatCounter from "../atoms/StatCounter";
 import ConflictList, { ConflictListRow } from "./ConflictList";
+import ResumeMeetingModal from "../meeting-form/ResumeMeetingModal";
+import { formatSuspensionStatusText } from "../../../util/suspensionText";
+import { retryMeetingSync } from "../../../util/syncMeeting";
 import styles from "../../../styles/components/admin/DiagnosticsTab.module.scss";
 
 interface DiagnosticsTabProps {
@@ -24,6 +27,7 @@ interface DiagnosticsData {
     total: number;
     active: number;
     suspended: number;
+    suspendedOrPending: number;
     byCategory: Record<string, number>;
     recurring: number;
     oneTime: number;
@@ -50,6 +54,9 @@ interface DiagnosticsData {
     modeType: string;
     calType: string[];
     updatedAt: string | null;
+    resumesAt: string | null;
+    suspendedSince: string | null;
+    suspensionActive: boolean;
   }[];
 }
 
@@ -68,6 +75,11 @@ const DiagnosticsTab: React.FC<DiagnosticsTabProps> = ({ email, role }) => {
   // Which sync-issue row's "Retry sync" is in flight, so only that row shows "Retrying…"
   // instead of every row disabling at once.
   const [retryingMid, setRetryingMid] = useState<string | null>(null);
+  // Which suspended-meeting row's "Resume" is in flight, same pattern as retryingMid above.
+  const [resumingMid, setResumingMid] = useState<string | null>(null);
+  // The suspended row currently showing its ResumeMeetingModal (Immediately vs. On a date),
+  // if any -- { mid, title } rather than just the id since the modal needs the title too.
+  const [resumeModalMeeting, setResumeModalMeeting] = useState<{ mid: string; title: string; suspendedSince: string | null; suspensionActive: boolean } | null>(null);
 
   const loadDiagnostics = async () => {
     const requestId = ++latestRequestId.current;
@@ -94,12 +106,7 @@ const DiagnosticsTab: React.FC<DiagnosticsTabProps> = ({ email, role }) => {
   const retrySync = async (mid: string) => {
     setRetryingMid(mid);
     try {
-      const response = await fetch("/api/update/meeting/sync", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mid }),
-      });
-      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+      await retryMeetingSync(mid);
       await loadDiagnostics();
     } catch (err) {
       console.error("Error retrying sync:", err);
@@ -107,6 +114,33 @@ const DiagnosticsTab: React.FC<DiagnosticsTabProps> = ({ email, role }) => {
       // Only clear if this is still the row that started this retry -- a second row's
       // retry starting before this one resolves must not un-disable/mislabel it early.
       setRetryingMid((current) => (current === mid ? null : current));
+    }
+  };
+
+  // Same endpoint ViewMeeting.tsx's kebab-menu "Reactivate" calls -- reused here so a suspended
+  // meeting can be resumed straight from the Diagnostics panel too. `on` is omitted for an
+  // immediate resume, or an ISO date string to schedule the resume instead (see
+  // ResumeMeetingModal / the resume route's `on` branch).
+  const resumeMeeting = async (mid: string, on: string | null) => {
+    setResumingMid(mid);
+    try {
+      const response = await fetch("/api/update/meeting/resume", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(on ? { mid, on } : { mid }),
+      });
+      if (!response.ok) {
+        // Previously silent on failure (console.error only) -- a rejected date (e.g. "on" before
+        // the suspension's own start) would just close the modal with no visible feedback at all.
+        const body = await response.json().catch(() => null);
+        throw new Error(body?.error || `HTTP error! status: ${response.status}`);
+      }
+      await loadDiagnostics();
+    } catch (err) {
+      console.error("Error resuming meeting:", err);
+      alert(`Error: could not resume the meeting${err instanceof Error ? ` (${err.message})` : ""}`);
+    } finally {
+      setResumingMid((current) => (current === mid ? null : current));
     }
   };
 
@@ -271,26 +305,54 @@ const DiagnosticsTab: React.FC<DiagnosticsTabProps> = ({ email, role }) => {
       </div>
 
       <div className={styles.card} data-testid="diagnostics-suspended-panel">
-        <div className={styles.panelHeader}>⏸ Suspended ({data.meetingCounts.suspended})</div>
+        <div className={styles.panelHeader}>⏸ Suspended ({data.meetingCounts.suspendedOrPending})</div>
         <div className={styles.panelSubhead}>
-          Meetings currently marked suspended. They&apos;re hidden from Google Calendar but remain in the system.
+          Meetings currently suspended, or with a suspension scheduled for a future date. Active
+          ones are hidden from the live calendar and Google Calendar; scheduled ones still show
+          normally until their start date arrives. All remain in the system and can be reactivated
+          (or have a scheduled suspension cancelled) here or from the meeting itself.
         </div>
         {data.suspendedMeetings.length === 0 ? (
           <div className={styles.emptyState}>No suspended meetings.</div>
         ) : (
           data.suspendedMeetings.map((meeting) => (
             <div key={meeting.mid} className={styles.meetingRow}>
-              <div>
-                <span className={styles.meetingTitle}>{meeting.title}</span>{" "}
-                <span className={styles.meetingTags}>({meeting.group})</span>
-              </div>
-              <div className={styles.meetingMeta}>
-                {meeting.room} · {meeting.modeType} · {meeting.calType.join(", ")}
+              <div className={styles.syncIssueRow}>
+                <div>
+                  <span className={styles.meetingTitle}>{meeting.title}</span>{" "}
+                  <span className={styles.meetingTags}>({meeting.calType.join(", ")})</span>
+                  <div className={styles.meetingMeta}>
+                    {meeting.room} · {meeting.modeType} · {meeting.calType.join(", ")}
+                  </div>
+                  <div className={styles.issueLine}>
+                    {formatSuspensionStatusText(meeting.suspendedSince, meeting.resumesAt, meeting.suspensionActive)}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className={styles.retryButton}
+                  onClick={() => setResumeModalMeeting({ mid: meeting.mid, title: meeting.title, suspendedSince: meeting.suspendedSince, suspensionActive: meeting.suspensionActive })}
+                  disabled={resumingMid === meeting.mid}
+                >
+                  {resumingMid === meeting.mid ? "Resuming…" : meeting.suspensionActive ? "Resume" : "Cancel"}
+                </button>
               </div>
             </div>
           ))
         )}
       </div>
+
+      <ResumeMeetingModal
+        isOpen={resumeModalMeeting !== null}
+        title={resumeModalMeeting?.title ?? ""}
+        suspendedSince={resumeModalMeeting?.suspendedSince}
+        isActive={resumeModalMeeting?.suspensionActive ?? true}
+        onCancel={() => setResumeModalMeeting(null)}
+        onConfirm={(on) => {
+          if (resumeModalMeeting) resumeMeeting(resumeModalMeeting.mid, on);
+          setResumeModalMeeting(null);
+        }}
+      />
     </div>
   );
 };

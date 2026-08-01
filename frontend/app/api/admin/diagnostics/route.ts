@@ -5,6 +5,7 @@ import { calendarIdForCategory, checkCalendarReachable } from "../../../../servi
 import { checkZoomReachable, zoomRoomCalendarId, checkZoomHostPool } from "../../../../services/zoom";
 import { computeConflicts } from "../../../../util/resourceOverlap";
 import { isDateSuspended } from "../../../../util/meetingOccurrences";
+import { getUnresolvedSuspension } from "../../../../util/suspension";
 import { formatETDateString } from "../../../../util/timeUtils";
 import { prisma } from "../../../../lib/prisma";
 
@@ -109,18 +110,25 @@ export const GET = async () => {
     // separate `status: "Suspended"` query -- that flag can drift from the date-based truth (e.g.
     // a client-supplied `status` written by the update route), and a status pre-filter combined
     // with `take` before the date filter could silently undercount/omit currently-suspended rows.
-    const suspendedMeetings = meetings
-      .filter((m) => isDateSuspended(m.suspensions, todayStr))
-      .sort((a, b) => (b.updatedAt?.getTime() ?? 0) - (a.updatedAt?.getTime() ?? 0))
-      .slice(0, 20)
+    // Uses getUnresolvedSuspension (not isDateSuspended-today) so a suspension scheduled to start
+    // on a future date shows up here too, not just ones already hiding the meeting.
+    const suspendedOrPending = meetings
       .map((m) => {
-        const open = m.suspensions.find((s) => isDateSuspended([s], todayStr));
-        return {
-          mid: m.mid, title: m.title, group: m.group, room: m.room,
-          modeType: m.modeType, calType: m.calType, updatedAt: m.updatedAt,
-          resumesAt: open?.to ?? null,
-        };
-      });
+        const suspension = getUnresolvedSuspension(m, todayStr);
+        return suspension ? { meeting: m, suspension } : null;
+      })
+      .filter((x): x is { meeting: typeof meetings[number]; suspension: NonNullable<ReturnType<typeof getUnresolvedSuspension>> } => x !== null);
+
+    const suspendedMeetings = suspendedOrPending
+      .sort((a, b) => (b.meeting.updatedAt?.getTime() ?? 0) - (a.meeting.updatedAt?.getTime() ?? 0))
+      .slice(0, 20)
+      .map(({ meeting: m, suspension }) => ({
+        mid: m.mid, title: m.title, group: m.group, room: m.room,
+        modeType: m.modeType, calType: m.calType, updatedAt: m.updatedAt,
+        resumesAt: suspension.to,
+        suspendedSince: suspension.from,
+        suspensionActive: formatETDateString(suspension.from) <= todayStr,
+      }));
 
     return NextResponse.json({
       database: { ok: true, latencyMs: databaseLatencyMs },
@@ -131,6 +139,11 @@ export const GET = async () => {
         total: meetings.length,
         active,
         suspended,
+        // Total backing the suspended panel below, which (unlike `suspended` above) also
+        // includes meetings with a suspension scheduled for a future date -- that count is
+        // "currently hidden from the calendar today" specifically, this one is "has anything
+        // to show/manage in the panel."
+        suspendedOrPending: suspendedOrPending.length,
         byCategory,
         recurring,
         oneTime: meetings.length - recurring,

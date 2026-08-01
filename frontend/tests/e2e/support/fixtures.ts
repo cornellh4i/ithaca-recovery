@@ -52,6 +52,7 @@ export const test = base.extend<Fixtures>({
   cleanTestData: [
     async ({}, use) => {
       const prisma = getTestPrismaClient();
+      await prisma.suspensionPeriod.deleteMany({});
       await prisma.recurrencePattern.deleteMany({});
       await prisma.meeting.deleteMany({});
       await prisma.admin.deleteMany({});
