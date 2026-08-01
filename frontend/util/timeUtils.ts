@@ -102,11 +102,15 @@ export const formatETDateString = (date: Date): string => etDateFmt.format(date)
  * Parses a DatePicker field's MM/DD/YYYY value into a Date, or null for an empty/unset value.
  * Shared by SuspendMeetingModal and ResumeMeetingModal, whose "Until"/"On" date fields both
  * need this exact parsing before comparing against an ET calendar day or converting to ISO.
+ * Goes through convertETToUTC (same as getETDayBounds above) rather than `new Date(y, m, d)`,
+ * which builds the date in the *browser's* local timezone -- for a user whose clock isn't on a
+ * US zone (or is simply set to UTC), that can silently resolve to the previous ET calendar day.
  */
 export const parseMMDDYYYY = (value: string): Date | null => {
   if (!value) return null;
   const [month, day, year] = value.split('/').map(Number);
-  return new Date(year, month - 1, day);
+  const etDateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+  return new Date(convertETToUTC(`${etDateStr}T00:00:00`));
 };
 
 /**
