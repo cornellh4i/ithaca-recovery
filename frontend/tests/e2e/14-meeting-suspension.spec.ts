@@ -100,10 +100,12 @@ test.describe("meeting suspension", () => {
     await page.getByRole("button", { name: "Cancel scheduled suspension", exact: true }).click();
 
     const resumeModal = page.getByTestId("resume-meeting-modal");
-    await expect(resumeModal.getByText("Resume this meeting?")).toBeVisible();
+    // Not yet active (the suspension's `from` is next week) -- the modal reads as cancelling a
+    // scheduled suspension, not resuming an active one.
+    await expect(resumeModal.getByText("Cancel scheduled suspension?")).toBeVisible();
 
     const resumeResponse = page.waitForResponse((r) => r.url().includes("/api/update/meeting/resume"));
-    await resumeModal.getByRole("button", { name: "Resume", exact: true }).click();
+    await resumeModal.getByRole("button", { name: "Cancel suspension", exact: true }).click();
     await resumeResponse;
 
     const resumed = await prisma.meeting.findFirst({ where: { mid: meeting.mid } });

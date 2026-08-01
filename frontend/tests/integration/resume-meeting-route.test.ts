@@ -176,7 +176,9 @@ test("rescheduling a resume tears down the previously-pending series before crea
   const response = await POST(request);
   expect(response.status).toBe(200);
 
-  await waitFor(async () => (mockedDelete.mock.calls.length > 0 ? true : null));
+  // syncRescheduleResume tears down the old pending series before creating the new one -- wait
+  // for both calls, not just the first, since the two can otherwise be observed mid-sequence.
+  await waitFor(async () => (mockedDelete.mock.calls.length > 0 && mockedCreate.mock.calls.length > 0 ? true : null));
   expect(mockedDelete).toHaveBeenCalledWith("fake-token", "old-pending-event-id", "fake-calendar-id");
   expect(mockedCreate).toHaveBeenCalled();
 });

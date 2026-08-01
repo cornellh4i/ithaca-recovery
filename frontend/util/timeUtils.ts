@@ -99,6 +99,17 @@ const etDateFmt = new Intl.DateTimeFormat('en-CA', {
 export const formatETDateString = (date: Date): string => etDateFmt.format(date);
 
 /**
+ * Parses a DatePicker field's MM/DD/YYYY value into a Date, or null for an empty/unset value.
+ * Shared by SuspendMeetingModal and ResumeMeetingModal, whose "Until"/"On" date fields both
+ * need this exact parsing before comparing against an ET calendar day or converting to ISO.
+ */
+export const parseMMDDYYYY = (value: string): Date | null => {
+  if (!value) return null;
+  const [month, day, year] = value.split('/').map(Number);
+  return new Date(year, month - 1, day);
+};
+
+/**
  * Normalises a "startDate" request param (either a plain "YYYY-MM-DD" or a full
  * date/ISO string) into a "YYYY-MM-DD" ET calendar date string.
  */

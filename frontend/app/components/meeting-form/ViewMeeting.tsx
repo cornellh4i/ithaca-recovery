@@ -658,6 +658,7 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
         isOpen={showResumeModal}
         title={title}
         suspendedSince={suspendedSince}
+        isActive={isSuspended}
         onCancel={() => setShowResumeModal(false)}
         onConfirm={handleConfirmResume}
       />

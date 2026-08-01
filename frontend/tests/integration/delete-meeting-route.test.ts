@@ -86,6 +86,10 @@ test("deleting a meeting with no pending resume series only tears down the live 
   expect(response.status).toBe(200);
 
   await waitFor(async () => (mockedDelete.mock.calls.length > 0 ? true : null));
+  // A short settle window after the first call -- asserting toHaveBeenCalledTimes(1)
+  // immediately upon seeing the first call would pass even if a second, unwanted call was
+  // about to land right after (syncDeleteAll's deletes are sequential, not concurrent).
+  await new Promise((resolve) => setTimeout(resolve, 50));
   expect(mockedDelete).toHaveBeenCalledTimes(1);
   expect(mockedDelete).toHaveBeenCalledWith("fake-token", "live-event-id", "fake-calendar-id");
 });
@@ -108,5 +112,8 @@ test("a promoted (already-live) suspension row isn't torn down a second time", a
   expect(response.status).toBe(200);
 
   await waitFor(async () => (mockedDelete.mock.calls.length > 0 ? true : null));
+  // Same settle window as above -- confirms the promoted row really isn't torn down a second
+  // time, not just that it hadn't happened yet by the time the first call was observed.
+  await new Promise((resolve) => setTimeout(resolve, 50));
   expect(mockedDelete).toHaveBeenCalledTimes(1);
 });

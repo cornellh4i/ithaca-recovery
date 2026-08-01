@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import styles from '../../../styles/components/meeting-form/SuspendMeetingModal.module.scss';
 import DatePicker from '../atoms/DatePicker';
-import { formatETDateString } from '../../../util/timeUtils';
+import { formatETDateString, parseMMDDYYYY } from '../../../util/timeUtils';
 
 interface SuspendMeetingModalProps {
   isOpen: boolean;
@@ -36,20 +36,13 @@ const SuspendMeetingModal: React.FC<SuspendMeetingModalProps> = ({
   if (!isOpen) return null;
 
   const minStr = formatETDateString(new Date(effectiveDate));
-  const pickedStr = (() => {
-    if (!resumeDate) return null;
-    const [month, day, year] = resumeDate.split('/').map(Number);
-    return formatETDateString(new Date(year, month - 1, day));
-  })();
+  const pickedDate = parseMMDDYYYY(resumeDate);
+  const pickedStr = pickedDate ? formatETDateString(pickedDate) : null;
   const isUntilDateValid = pickedStr != null && pickedStr > minStr;
 
   const handleConfirm = () => {
-    if (resumeOption === 'until' && resumeDate) {
-      const [month, day, year] = resumeDate.split('/').map(Number);
-      onConfirm(new Date(year, month - 1, day).toISOString());
-    } else {
-      onConfirm(null);
-    }
+    const picked = resumeOption === 'until' ? parseMMDDYYYY(resumeDate) : null;
+    onConfirm(picked ? picked.toISOString() : null);
   };
 
   return (
@@ -84,20 +77,22 @@ const SuspendMeetingModal: React.FC<SuspendMeetingModalProps> = ({
             />
             Indefinitely
           </label>
-          <label className={styles.radioRow}>
-            <input
-              type="radio"
-              name="resumeOption"
-              checked={resumeOption === 'until'}
-              onChange={() => setResumeOption('until')}
-            />
-            <span className={styles.untilLabel}>Until</span>
+          <div className={styles.radioRow}>
+            <label className={styles.radioLabel}>
+              <input
+                type="radio"
+                name="resumeOption"
+                checked={resumeOption === 'until'}
+                onChange={() => setResumeOption('until')}
+              />
+              <span className={styles.untilLabel}>Until</span>
+            </label>
             {resumeOption === 'until' && (
               <span className={styles.untilDatePicker}>
                 <DatePicker label="" value={resumeDate} onChange={setResumeDate} underlineOnFocus={false} compact />
               </span>
             )}
-          </label>
+          </div>
           {resumeOption === 'until' && resumeDate && !isUntilDateValid && (
             <p className={styles.dateError}>Must be after {effectiveDateText}.</p>
           )}

@@ -46,6 +46,16 @@ const mockedResolveZoomHost = resolveZoomHost as jest.Mock;
 const mockedReconcileMeetingCalendars = reconcileMeetingCalendars as jest.Mock;
 const mockedCreateCalendarEvent = createCalendarEvent as jest.Mock;
 
+async function waitFor<T>(fn: () => Promise<T | null | undefined>, timeoutMs = 2000): Promise<T | null> {
+  const start = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    const result = await fn();
+    if (result != null) return result;
+    await new Promise((resolve) => setTimeout(resolve, 25));
+  }
+  return null;
+}
+
 function buildMeetingPayload(overrides: Partial<IMeeting> = {}): IMeeting {
   return {
     mid: `m-${randomUUID()}`,
@@ -330,11 +340,13 @@ test("an explicit host reassignment to an already-busy host is rejected without 
   const response = await PUT(request);
   expect(response.status).toBe(200);
 
-  await new Promise((resolve) => setTimeout(resolve, 100));
+  const afterSync = await waitFor(async () => {
+    const row = await prisma.meeting.findUnique({ where: { mid } });
+    return row?.zid === null && row?.zoomSyncStatus === "error" ? row : null;
+  });
 
   expect(mockedCreateZoomMeeting).not.toHaveBeenCalled();
 
-  const afterSync = await prisma.meeting.findUnique({ where: { mid } });
   expect(afterSync?.zid).toBeNull();
   expect(afterSync?.zoomHost).toBeNull();
   expect(afterSync?.zoomSyncStatus).toBe("error");

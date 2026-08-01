@@ -43,9 +43,26 @@ const DeleteRecurringModal: React.FC<DeleteRecurringModalProps> = ({
         </div>
 
         <p className={styles.message}>
-          <strong>{title}</strong> will be permanently removed from the calendar starting{' '}
-          <strong className={styles.effectiveDate}>{effectiveDateText}</strong>. This action can&apos;t
-          be undone.
+          {selectedOption === 'this' ? (
+            <>
+              Only the occurrence of <strong>{title}</strong> on{' '}
+              <strong className={styles.effectiveDate}>{effectiveDateText}</strong> will be
+              permanently removed from the calendar.
+            </>
+          ) : selectedOption === 'thisAndFollowing' ? (
+            <>
+              <strong>{title}</strong> will be permanently removed from the calendar starting{' '}
+              <strong className={styles.effectiveDate}>{effectiveDateText}</strong>, including
+              every occurrence after it.
+            </>
+          ) : (
+            <>
+              <strong>{title}</strong> will be permanently removed from the calendar entirely —
+              every occurrence, including ones before{' '}
+              <strong className={styles.effectiveDate}>{effectiveDateText}</strong>.
+            </>
+          )}{' '}
+          This action can&apos;t be undone.
         </p>
 
         <div className={styles.optionsContainer}>

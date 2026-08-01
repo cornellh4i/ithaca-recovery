@@ -1,13 +1,11 @@
-import { Meeting, Prisma, RecurrencePattern, Role } from '@prisma/client';
+import { Prisma, Role } from '@prisma/client';
 import { NextResponse, after } from 'next/server';
 import { requireRole } from '../../../../../services/auth';
 import { trimCalendarEventSeries, deleteCalendarEvent, calendarIdsForMeeting } from '../../../../../services/googleCalendar';
-import { formatETDateString } from '../../../../../util/timeUtils';
+import { formatETDateString, getETDayBounds } from '../../../../../util/timeUtils';
 import { addOneETDay } from '../../../../../util/meetingOccurrences';
-import { getUnresolvedSuspension, reconcilePendingResume, createPendingResumeSeries } from '../../../../../util/suspension';
+import { getUnresolvedSuspension, reconcilePendingResume, createPendingResumeSeries, MeetingWithPattern } from '../../../../../util/suspension';
 import { prisma } from '../../../../../lib/prisma';
-
-type MeetingWithPattern = Meeting & { recurrencePattern: RecurrencePattern | null };
 
 // MongoDB doesn't support SQL-style isolation levels (no Prisma isolationLevel option), and
 // Prisma never auto-retries a P2034 write conflict -- that's on the caller. Both racing
@@ -47,9 +45,14 @@ async function syncSuspend(
     const tomorrowStr = addOneETDay(formatETDateString(new Date()));
     const fromStr = formatETDateString(from);
     const truncateFromStr = fromStr > tomorrowStr ? fromStr : tomorrowStr;
+    // ET-anchored, not the bare date string -- trimCalendarEventSeries re-parses its
+    // occurrenceISODate with `new Date(...)` and reformats to an ET calendar day. A date-only
+    // string like "2026-08-05" parses as UTC midnight, which is still the *previous* ET day
+    // (UTC-4/-5), silently trimming one day too early.
+    const [truncateFromInstant] = getETDayBounds(truncateFromStr);
     for (const [cat, calId] of Object.entries(calendarIds)) {
       const eventId = reconciledEventIds[cat];
-      if (eventId) await trimCalendarEventSeries(accessToken, eventId, truncateFromStr, calId);
+      if (eventId) await trimCalendarEventSeries(accessToken, eventId, truncateFromInstant.toISOString(), calId);
     }
   } else {
     // One-time meeting: nothing recurring to truncate, just remove the single event.

@@ -1,4 +1,4 @@
-import { Meeting, RecurrencePattern, Role, SuspensionPeriod } from '@prisma/client';
+import { Role } from '@prisma/client';
 import { after } from 'next/server';
 import { requireRole } from '../../../../services/auth';
 import { getETDayBounds } from '../../../../util/timeUtils';
@@ -9,13 +9,8 @@ import {
   calendarIdsForMeeting,
 } from '../../../../services/googleCalendar';
 import { deleteZoomMeeting, zoomRoomCalendarId } from '../../../../services/zoom';
-import { reconcilePendingResume, tearDownPendingResumeSeries } from '../../../../util/suspension';
+import { reconcilePendingResume, tearDownPendingResumeSeries, MeetingWithSuspensions } from '../../../../util/suspension';
 import { prisma } from '../../../../lib/prisma';
-
-type MeetingWithSuspensions = Meeting & {
-  recurrencePattern: RecurrencePattern | null;
-  suspensions: SuspensionPeriod[];
-};
 
 // Returns "YYYY-MM-DD" in Eastern Time for the given UTC timestamp.
 const toETDateStr = (date: Date): string =>
@@ -157,6 +152,15 @@ const deleteMeeting = async (request: Request) => {
         where: { mid },
         data: { endDate: newEndDate },
       });
+      // A pending resume series pre-created for a scheduled suspension (see
+      // createPendingResumeSeries) only makes sense if the recurring series still reaches that
+      // far -- trimming the series to end before the suspension's scheduled resume date would
+      // otherwise leave that series' events dangling on Google Calendar, describing occurrences
+      // the series no longer generates.
+      const hasStaleResumeSeries = meeting.suspensions.some(
+        (s) => !s.promoted && s.resumeEventIds && s.to && s.to.getTime() > newEndDate.getTime(),
+      );
+      if (hasStaleResumeSeries) after(tearDownPendingResumeSeries(meeting, accessToken));
       // Google Calendar: trim RRULE UNTIL on each calendar
       after(syncTrimSeries(accessToken, calendarIds, eventIds, occurrenceDate));
     } else {

@@ -88,9 +88,10 @@ test("a stale zoomSyncStatus on an In Person meeting doesn't surface as a sync i
 test("a meeting with a suspension scheduled for a future date shows up in the suspended panel, marked not yet active", async () => {
   const prisma = getTestPrismaClient();
 
-  // Suspended today for the "currently suspended" split (active/suspended counts), but the
-  // suspension itself doesn't start until next week -- the old isDateSuspended(today)-only
-  // filter wouldn't have picked this up for the panel at all.
+  // The stored `status` field is "Suspended" (mirroring what the suspend route would set), but
+  // the diagnostics route's active/suspended counts are driven by isDateSuspended against
+  // today's date, not this field -- since the suspension's `from` is next week, this meeting is
+  // counted as active today, not suspended.
   const mid = `m-${randomUUID()}`;
   await prisma.meeting.create({
     data: buildMeetingData({ mid, status: "Suspended" }),

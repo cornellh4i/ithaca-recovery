@@ -8,8 +8,11 @@ export function formatSuspensionStatusText(
   resumesAt: string | Date | null | undefined,
   suspensionActive: boolean | undefined,
 ): string {
+  // Explicit America/New_York -- these dates are ET-day boundaries (see suspend/resume routes),
+  // and formatting with the runtime's default timezone instead (UTC on the server, whatever the
+  // browser is set to on the client) can shift the displayed date by a day.
   const formatDate = (value: string | Date) =>
-    new Date(value).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+    new Date(value).toLocaleDateString("en-US", { timeZone: "America/New_York", month: "long", day: "numeric", year: "numeric" });
 
   const verb = suspensionActive ? "Suspended" : "Suspends";
   const since = suspendedSince ? ` from ${formatDate(suspendedSince)}` : "";

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import styles from '../../../styles/components/meeting-form/ResumeMeetingModal.module.scss';
 import DatePicker from '../atoms/DatePicker';
-import { formatETDateString } from '../../../util/timeUtils';
+import { formatETDateString, parseMMDDYYYY } from '../../../util/timeUtils';
 
 interface ResumeMeetingModalProps {
   isOpen: boolean;
@@ -11,6 +11,13 @@ interface ResumeMeetingModalProps {
   // reject it. Optional since not every caller has it handy; when absent, only the server-side
   // check applies.
   suspendedSince?: string | Date | null;
+  // Whether the suspension being acted on has actually started (hiding the meeting today) vs.
+  // is merely scheduled for a future date. Same distinction as ViewMeeting's isSuspended vs.
+  // hasPendingSuspension -- a pending suspension hasn't hidden anything yet, so "Resume this
+  // meeting?" / "Resume" would misleadingly imply reactivating something that's still showing
+  // normally on the calendar. Defaults to true (the original, always-active-suspension copy)
+  // so existing callers that haven't been updated yet keep their current behavior.
+  isActive?: boolean;
   onCancel: () => void;
   // null = resume immediately (today); an ISO date string = schedule the resume for that date
   // instead, without reactivating the meeting yet.
@@ -21,6 +28,7 @@ const ResumeMeetingModal: React.FC<ResumeMeetingModalProps> = ({
   isOpen,
   title,
   suspendedSince,
+  isActive = true,
   onCancel,
   onConfirm,
 }) => {
@@ -34,20 +42,13 @@ const ResumeMeetingModal: React.FC<ResumeMeetingModalProps> = ({
   const sinceStr = suspendedSince ? formatETDateString(new Date(suspendedSince)) : null;
   const minStr = sinceStr && sinceStr > todayStr ? sinceStr : todayStr;
 
-  const pickedStr = (() => {
-    if (!resumeDate) return null;
-    const [month, day, year] = resumeDate.split('/').map(Number);
-    return formatETDateString(new Date(year, month - 1, day));
-  })();
+  const pickedDate = parseMMDDYYYY(resumeDate);
+  const pickedStr = pickedDate ? formatETDateString(pickedDate) : null;
   const isOnDateValid = pickedStr != null && pickedStr > minStr;
 
   const handleConfirm = () => {
-    if (resumeOption === 'on' && resumeDate) {
-      const [month, day, year] = resumeDate.split('/').map(Number);
-      onConfirm(new Date(year, month - 1, day).toISOString());
-    } else {
-      onConfirm(null);
-    }
+    const picked = resumeOption === 'on' ? parseMMDDYYYY(resumeDate) : null;
+    onConfirm(picked ? picked.toISOString() : null);
   };
 
   return (
@@ -57,12 +58,21 @@ const ResumeMeetingModal: React.FC<ResumeMeetingModalProps> = ({
           <span className={styles.iconCircle}>
             <img src="/svg/resume-icon.svg" alt="" width="20" height="20" />
           </span>
-          <h2 className={styles.title}>Resume this meeting?</h2>
+          <h2 className={styles.title}>{isActive ? 'Resume this meeting?' : 'Cancel scheduled suspension?'}</h2>
         </div>
 
         <p className={styles.message}>
-          <strong>{title}</strong> can be reactivated right away, or kept suspended until a date
-          you choose.
+          {isActive ? (
+            <>
+              <strong>{title}</strong> can be reactivated right away, or kept suspended until a
+              date you choose.
+            </>
+          ) : (
+            <>
+              <strong>{title}</strong>&apos;s scheduled suspension can be cancelled now, keeping
+              it on the calendar as normal, or pushed to end on a different date.
+            </>
+          )}
         </p>
 
         <div className={styles.resumeOptions}>
@@ -73,22 +83,24 @@ const ResumeMeetingModal: React.FC<ResumeMeetingModalProps> = ({
               checked={resumeOption === 'immediately'}
               onChange={() => setResumeOption('immediately')}
             />
-            Immediately (today)
+            {isActive ? 'Immediately (today)' : 'Cancel now'}
           </label>
-          <label className={styles.radioRow}>
-            <input
-              type="radio"
-              name="resumeTiming"
-              checked={resumeOption === 'on'}
-              onChange={() => setResumeOption('on')}
-            />
-            <span className={styles.onLabel}>On</span>
+          <div className={styles.radioRow}>
+            <label className={styles.radioLabel}>
+              <input
+                type="radio"
+                name="resumeTiming"
+                checked={resumeOption === 'on'}
+                onChange={() => setResumeOption('on')}
+              />
+              <span className={styles.onLabel}>{isActive ? 'On' : 'End on'}</span>
+            </label>
             {resumeOption === 'on' && (
               <span className={styles.onDatePicker}>
                 <DatePicker label="" value={resumeDate} onChange={setResumeDate} underlineOnFocus={false} compact />
               </span>
             )}
-          </label>
+          </div>
           {resumeOption === 'on' && resumeDate && !isOnDateValid && (
             <p className={styles.dateError}>
               Must be after {sinceStr && sinceStr > todayStr ? "the suspension's start date" : "today"}.
@@ -103,7 +115,7 @@ const ResumeMeetingModal: React.FC<ResumeMeetingModalProps> = ({
             onClick={handleConfirm}
             disabled={resumeOption === 'on' && !isOnDateValid}
           >
-            Resume
+            {isActive ? 'Resume' : 'Cancel suspension'}
           </button>
         </div>
       </div>

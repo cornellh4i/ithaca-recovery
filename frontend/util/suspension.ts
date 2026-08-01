@@ -6,8 +6,8 @@ import { calendarIdsForMeeting, createCalendarEvent, deleteCalendarEvent } from 
 import { IMeeting } from "./models";
 import { prisma } from "../lib/prisma";
 
-type MeetingWithPattern = Meeting & { recurrencePattern: RecurrencePattern | null };
-type MeetingWithSuspensions = Meeting & {
+export type MeetingWithPattern = Meeting & { recurrencePattern: RecurrencePattern | null };
+export type MeetingWithSuspensions = Meeting & {
   recurrencePattern: RecurrencePattern | null;
   suspensions: SuspensionPeriod[];
 };
@@ -147,13 +147,17 @@ export async function tearDownPendingResumeSeries(
   accessToken: string | undefined,
 ): Promise<void> {
   if (!accessToken) return;
-  const calendarIds = calendarIdsForMeeting(meeting.calType ?? []);
   for (const suspension of meeting.suspensions) {
     if (suspension.promoted || !suspension.resumeEventIds) continue;
     const eventIds = suspension.resumeEventIds as Record<string, string>;
-    for (const [cat, calId] of Object.entries(calendarIds)) {
-      const eventId = eventIds[cat];
-      if (eventId) await deleteCalendarEvent(accessToken, eventId, calId);
+    // Resolved from the stored eventIds' own categories, not meeting.calType -- the meeting
+    // may have been edited (categories added/removed) since this pending series was created,
+    // and a category since dropped from calType would otherwise never be visited here, leaving
+    // its event permanently orphaned on Google Calendar.
+    const calendarIds = calendarIdsForMeeting(Object.keys(eventIds));
+    for (const [cat, eventId] of Object.entries(eventIds)) {
+      const calId = calendarIds[cat];
+      if (calId) await deleteCalendarEvent(accessToken, eventId, calId);
     }
   }
 }

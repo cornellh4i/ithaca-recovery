@@ -80,6 +80,16 @@
   cursor: pointer;
 }
 
+// Wraps just the radio input + its text, not the DatePicker -- an implicit <label> around a
+// nested interactive control (DatePicker's own text input) is invalid HTML and confuses click
+// handling, so the "On" row's DatePicker lives outside this label, as radioRow's sibling.
+.radioLabel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
 .onLabel {
   // Vertically centers "On" against the DatePicker's own 42px-tall field (see
   // .date-picker-wrapper in DatePicker.module.scss) -- .radioRow's align-items: center

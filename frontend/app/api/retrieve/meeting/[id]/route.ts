@@ -42,9 +42,13 @@ const getMeeting = async(request: NextRequest) => {
     const todayStr = formatETDateString(new Date());
     const relevantSuspension = getUnresolvedSuspension(meeting, todayStr);
     const suspensionActive = relevantSuspension ? formatETDateString(relevantSuspension.from) <= todayStr : false;
+    // suspensions itself is never sent to the client -- resumesAt/suspendedSince/suspensionActive
+    // above already derive everything the UI needs from it, and the full history (including
+    // internal fields like resumeEventIds) isn't meant to be public API surface.
+    const { suspensions: _suspensions, ...meetingWithoutSuspensions } = meeting;
     const body = session?.user?.role
       ? {
-          ...meeting,
+          ...meetingWithoutSuspensions,
           resumesAt: relevantSuspension?.to ?? null,
           suspendedSince: relevantSuspension?.from ?? null,
           suspensionActive,

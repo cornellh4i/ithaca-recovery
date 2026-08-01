@@ -1,6 +1,6 @@
 import { getTestPrismaClient, disconnectTestPrismaClient } from "../factories/db";
 import { seedMeeting, seedRecurringMeeting, seedSuspensionPeriod } from "../factories/meeting";
-import { formatETDateString, convertETToUTC } from "../../util/timeUtils";
+import { formatETDateString, convertETToUTC, getETDayBounds } from "../../util/timeUtils";
 
 jest.mock("next/server", () => ({
   ...jest.requireActual("next/server"),
@@ -143,8 +143,11 @@ test("a future 'from' (a future occurrence was clicked) schedules the suspension
   expect(suspension?.from.toISOString()).toBe(from);
 
   await waitFor(async () => (mockedTrim.mock.calls.length > 0 ? true : null));
-  // Truncation boundary is the future `from` date itself, not tomorrow.
-  expect(mockedTrim).toHaveBeenCalledWith("fake-token", "existing-event-id", formatETDateString(new Date(from)), "fake-calendar-id");
+  // Truncation boundary is the future `from` date itself, not tomorrow -- ET-anchored (the
+  // UTC instant for that ET day's start), not a bare date string, per suspend/route.ts's
+  // truncateFromInstant.
+  const [expectedInstant] = getETDayBounds(formatETDateString(new Date(from)));
+  expect(mockedTrim).toHaveBeenCalledWith("fake-token", "existing-event-id", expectedInstant.toISOString(), "fake-calendar-id");
 });
 
 test("a past 'from' (a past occurrence was clicked) clamps to today instead of retroactively suspending", async () => {
@@ -165,8 +168,10 @@ test("a past 'from' (a past occurrence was clicked) clamps to today instead of r
 
   await waitFor(async () => (mockedTrim.mock.calls.length > 0 ? true : null));
   // Truncation boundary stays tomorrow -- can't retroactively remove today's occurrence.
+  // ET-anchored, same as above.
   const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000);
-  expect(mockedTrim).toHaveBeenCalledWith("fake-token", "existing-event-id", formatETDateString(tomorrow), "fake-calendar-id");
+  const [expectedInstant] = getETDayBounds(formatETDateString(tomorrow));
+  expect(mockedTrim).toHaveBeenCalledWith("fake-token", "existing-event-id", expectedInstant.toISOString(), "fake-calendar-id");
 });
 
 test("'to' must be after the (possibly future) suspension start date, not just after today", async () => {

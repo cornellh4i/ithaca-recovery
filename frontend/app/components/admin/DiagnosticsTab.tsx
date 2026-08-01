@@ -6,6 +6,7 @@ import StatCounter from "../atoms/StatCounter";
 import ConflictList, { ConflictListRow } from "./ConflictList";
 import ResumeMeetingModal from "../meeting-form/ResumeMeetingModal";
 import { formatSuspensionStatusText } from "../../../util/suspensionText";
+import { retryMeetingSync } from "../../../util/syncMeeting";
 import styles from "../../../styles/components/admin/DiagnosticsTab.module.scss";
 
 interface DiagnosticsTabProps {
@@ -78,7 +79,7 @@ const DiagnosticsTab: React.FC<DiagnosticsTabProps> = ({ email, role }) => {
   const [resumingMid, setResumingMid] = useState<string | null>(null);
   // The suspended row currently showing its ResumeMeetingModal (Immediately vs. On a date),
   // if any -- { mid, title } rather than just the id since the modal needs the title too.
-  const [resumeModalMeeting, setResumeModalMeeting] = useState<{ mid: string; title: string; suspendedSince: string | null } | null>(null);
+  const [resumeModalMeeting, setResumeModalMeeting] = useState<{ mid: string; title: string; suspendedSince: string | null; suspensionActive: boolean } | null>(null);
 
   const loadDiagnostics = async () => {
     const requestId = ++latestRequestId.current;
@@ -105,12 +106,7 @@ const DiagnosticsTab: React.FC<DiagnosticsTabProps> = ({ email, role }) => {
   const retrySync = async (mid: string) => {
     setRetryingMid(mid);
     try {
-      const response = await fetch("/api/update/meeting/sync", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mid }),
-      });
-      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+      await retryMeetingSync(mid);
       await loadDiagnostics();
     } catch (err) {
       console.error("Error retrying sync:", err);
@@ -335,7 +331,7 @@ const DiagnosticsTab: React.FC<DiagnosticsTabProps> = ({ email, role }) => {
                 <button
                   type="button"
                   className={styles.retryButton}
-                  onClick={() => setResumeModalMeeting({ mid: meeting.mid, title: meeting.title, suspendedSince: meeting.suspendedSince })}
+                  onClick={() => setResumeModalMeeting({ mid: meeting.mid, title: meeting.title, suspendedSince: meeting.suspendedSince, suspensionActive: meeting.suspensionActive })}
                   disabled={resumingMid === meeting.mid}
                 >
                   {resumingMid === meeting.mid ? "Resuming…" : meeting.suspensionActive ? "Resume" : "Cancel"}
@@ -350,6 +346,7 @@ const DiagnosticsTab: React.FC<DiagnosticsTabProps> = ({ email, role }) => {
         isOpen={resumeModalMeeting !== null}
         title={resumeModalMeeting?.title ?? ""}
         suspendedSince={resumeModalMeeting?.suspendedSince}
+        isActive={resumeModalMeeting?.suspensionActive ?? true}
         onCancel={() => setResumeModalMeeting(null)}
         onConfirm={(on) => {
           if (resumeModalMeeting) resumeMeeting(resumeModalMeeting.mid, on);

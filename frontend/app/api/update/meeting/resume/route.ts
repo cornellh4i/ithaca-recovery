@@ -1,4 +1,4 @@
-import { Meeting, RecurrencePattern, Role, SuspensionPeriod } from '@prisma/client';
+import { Role, SuspensionPeriod } from '@prisma/client';
 import { NextResponse, after } from 'next/server';
 import { requireRole } from '../../../../../services/auth';
 import { deleteCalendarEvent, createCalendarEvent, calendarIdsForMeeting } from '../../../../../services/googleCalendar';
@@ -9,11 +9,10 @@ import {
   toCalendarMeeting,
   createPendingResumeSeries,
   tearDownPendingResumeSeries,
+  MeetingWithPattern,
+  MeetingWithSuspensions,
 } from '../../../../../util/suspension';
 import { prisma } from '../../../../../lib/prisma';
-
-type MeetingWithPattern = Meeting & { recurrencePattern: RecurrencePattern | null };
-type MeetingWithSuspensions = MeetingWithPattern & { suspensions: SuspensionPeriod[] };
 
 // Resuming always creates a fresh series/event starting today (or recreates the original
 // one-time event) and writes the result directly to Meeting.googleCalendarEventIds -- an early
@@ -108,7 +107,17 @@ const resumeMeeting = async (request: Request) => {
         return NextResponse.json({ error: "on must be after the suspension's start date" }, { status: 400 });
       }
 
-      await prisma.suspensionPeriod.update({ where: { id: openSuspension.id }, data: { to: onDate } });
+      // Same single-winner guard as the immediate-resume path below: only an unpromoted row can
+      // still be rescheduled, so a request racing reconcilePendingResume's own promotion (or a
+      // second concurrent reschedule) that loses the race must not also kick off syncReschedule
+      // Resume for a suspension that's no longer open.
+      const rescheduled = await prisma.suspensionPeriod.updateMany({
+        where: { id: openSuspension.id, promoted: false },
+        data: { to: onDate },
+      });
+      if (rescheduled.count === 0) {
+        return NextResponse.json({ error: "Meeting was already resumed" }, { status: 409 });
+      }
       after(syncRescheduleResume(meeting, openSuspension.id, auth.accessToken, onDate));
 
       return NextResponse.json({ message: "Resume scheduled" });
