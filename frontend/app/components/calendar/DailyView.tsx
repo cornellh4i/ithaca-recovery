@@ -158,8 +158,10 @@ interface DailyViewProps {
   setSelectedDate: (date: Date) => void;
   selectedMeetingID: string | null;
   setSelectedMeetingID: (meetingId: string) => void;
+  selectedOccurrenceDate?: Date | null;
   setSelectedNewMeeting: (newMeetingExists: boolean) => void;
   setAnchorEl: (el: HTMLElement) => void;
+  setLastClickedDate?: (date: Date) => void;
   refreshTrigger?: number;
   // Disables scrolling this view while the ViewMeeting popup is open -- it's anchored to
   // the clicked box's on-screen position, so scrolling underneath it while open just
@@ -176,8 +178,10 @@ const DailyView: React.FC<DailyViewProps> = ({
   selectedDate,
   selectedMeetingID,
   setSelectedMeetingID,
+  selectedOccurrenceDate,
   setSelectedNewMeeting,
   setAnchorEl,
+  setLastClickedDate,
   refreshTrigger = 0,
   scrollLocked = false,
   conflictMids,
@@ -322,8 +326,11 @@ const DailyView: React.FC<DailyViewProps> = ({
                     meetings={room.meetings}
                     selectedMeetingID={selectedMeetingID}
                     setSelectedMeetingID={setSelectedMeetingID}
+                    selectedOccurrenceDate={selectedOccurrenceDate}
                     setSelectedNewMeeting={setSelectedNewMeeting}
                     setAnchorEl={setAnchorEl}
+                    columnDate={selectedDate}
+                    setLastClickedDate={setLastClickedDate}
                     conflictMids={conflictMids}
                   />
                 </div>

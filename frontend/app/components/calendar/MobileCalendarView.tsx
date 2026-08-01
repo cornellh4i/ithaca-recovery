@@ -49,8 +49,10 @@ interface MobileCalendarViewProps {
   selectedDate: Date;
   selectedMeetingID: string | null;
   setSelectedMeetingID: (meetingId: string) => void;
+  selectedOccurrenceDate?: Date | null;
   setSelectedNewMeeting: (newMeetingExists: boolean) => void;
   setAnchorEl: (el: HTMLElement) => void;
+  setLastClickedDate?: (date: Date) => void;
   refreshTrigger?: number;
   scrollLocked?: boolean;
   conflictMids?: Set<string>;
@@ -71,8 +73,10 @@ const MobileCalendarView: React.FC<MobileCalendarViewProps> = ({
   selectedDate,
   selectedMeetingID,
   setSelectedMeetingID,
+  selectedOccurrenceDate,
   setSelectedNewMeeting,
   setAnchorEl,
+  setLastClickedDate,
   refreshTrigger = 0,
   scrollLocked = false,
   conflictMids,
@@ -294,8 +298,11 @@ const MobileCalendarView: React.FC<MobileCalendarViewProps> = ({
             meetings={meetings}
             selectedMeetingID={selectedMeetingID}
             setSelectedMeetingID={setSelectedMeetingID}
+            selectedOccurrenceDate={selectedOccurrenceDate}
             setSelectedNewMeeting={setSelectedNewMeeting}
             setAnchorEl={setAnchorEl}
+            columnDate={date}
+            setLastClickedDate={setLastClickedDate}
             conflictMids={conflictMids}
             hourHeight={MOBILE_HOUR_HEIGHT}
             hideTags
