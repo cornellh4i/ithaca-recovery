@@ -3,31 +3,17 @@ import { NextResponse, after } from 'next/server';
 import { requireRole } from '../../../../../services/auth';
 import { deleteCalendarEvent, createCalendarEvent, calendarIdsForMeeting } from '../../../../../services/googleCalendar';
 import { formatETDateString } from '../../../../../util/timeUtils';
-import { getOpenSuspension, reconcilePendingResume } from '../../../../../util/suspension';
-import { IMeeting } from '../../../../../util/models';
+import {
+  getUnresolvedSuspension,
+  reconcilePendingResume,
+  toCalendarMeeting,
+  createPendingResumeSeries,
+  tearDownPendingResumeSeries,
+} from '../../../../../util/suspension';
 import { prisma } from '../../../../../lib/prisma';
 
 type MeetingWithPattern = Meeting & { recurrencePattern: RecurrencePattern | null };
-
-function toCalendarMeeting(meeting: MeetingWithPattern): IMeeting {
-  return {
-    mid: meeting.mid,
-    title: meeting.title,
-    description: meeting.description,
-    creator: meeting.creator,
-    group: meeting.group,
-    startDateTime: meeting.startDateTime,
-    endDateTime: meeting.endDateTime,
-    email: meeting.email,
-    zoomRoom: meeting.zoomRoom,
-    zoomLink: meeting.zoomLink,
-    calType: meeting.calType,
-    modeType: meeting.modeType,
-    room: meeting.room,
-    isRecurring: meeting.isRecurring,
-    recurrencePattern: meeting.recurrencePattern,
-  };
-}
+type MeetingWithSuspensions = MeetingWithPattern & { suspensions: SuspensionPeriod[] };
 
 // Resuming always creates a fresh series/event starting today (or recreates the original
 // one-time event) and writes the result directly to Meeting.googleCalendarEventIds -- an early
@@ -49,7 +35,7 @@ async function syncResume(
     }
   }
 
-  const meetingForSync = toCalendarMeeting(meeting);
+  const meetingForSync = toCalendarMeeting(meeting, meeting.startDateTime, meeting.endDateTime);
   const eventIds: Record<string, string> = {};
   for (const [cat, calId] of Object.entries(calendarIds)) {
     const id = await createCalendarEvent(accessToken, meetingForSync, calId);
@@ -59,12 +45,31 @@ async function syncResume(
   await prisma.meeting.update({ where: { mid: meeting.mid }, data: { googleCalendarEventIds: eventIds } });
 }
 
+// "Resume on X" doesn't reactivate anything now -- it just moves the open suspension's scheduled
+// resume date, same mechanism as suspend's own "Until X" option (reconcilePendingResume auto-
+// promotes it once X arrives). Any previously-scheduled pending series is torn down first so
+// picking a new date never leaves the old one orphaned on Google Calendar.
+async function syncRescheduleResume(
+  meeting: MeetingWithSuspensions,
+  suspensionId: string,
+  accessToken: string | undefined,
+  onDate: Date,
+): Promise<void> {
+  if (!accessToken) return;
+  await tearDownPendingResumeSeries(meeting, accessToken);
+  const resumeEventIds = await createPendingResumeSeries(meeting, accessToken, onDate);
+  await prisma.suspensionPeriod.update({
+    where: { id: suspensionId },
+    data: { resumeEventIds: Object.keys(resumeEventIds).length > 0 ? resumeEventIds : null, promoted: false },
+  });
+}
+
 const resumeMeeting = async (request: Request) => {
   try {
     const auth = await requireRole(Role.ADMIN);
     if (auth instanceof Response) return auth;
 
-    const { mid } = await request.json();
+    const { mid, on } = await request.json();
     if (!mid) {
       return NextResponse.json({ error: "mid is required" }, { status: 400 });
     }
@@ -80,9 +85,33 @@ const resumeMeeting = async (request: Request) => {
     await reconcilePendingResume(meeting);
 
     const todayStr = formatETDateString(new Date());
-    const openSuspension = getOpenSuspension(meeting, todayStr);
+    // Includes a suspension scheduled to start later, not just one already active today -- an
+    // admin needs to be able to cancel a not-yet-started suspension the same way they'd resume
+    // an active one, rather than being stuck with no valid action until it actually kicks in.
+    const openSuspension = getUnresolvedSuspension(meeting, todayStr);
     if (!openSuspension) {
-      return NextResponse.json({ error: "Meeting is not currently suspended" }, { status: 400 });
+      return NextResponse.json({ error: "Meeting has no suspension to resume" }, { status: 400 });
+    }
+
+    if (on != null) {
+      const onDate = new Date(on);
+      if (Number.isNaN(onDate.getTime())) {
+        return NextResponse.json({ error: "on must be a valid date" }, { status: 400 });
+      }
+      // Must be after whichever is later: today, or the suspension's own start date. A pending
+      // suspension can have `from` in the future -- validating against today alone would let
+      // `on` land before `from`, producing an inverted (to < from) range that isDateSuspended
+      // can never match, silently turning the suspension into a permanent no-op.
+      const fromStr = formatETDateString(openSuspension.from);
+      const minStr = fromStr > todayStr ? fromStr : todayStr;
+      if (formatETDateString(onDate) <= minStr) {
+        return NextResponse.json({ error: "on must be after the suspension's start date" }, { status: 400 });
+      }
+
+      await prisma.suspensionPeriod.update({ where: { id: openSuspension.id }, data: { to: onDate } });
+      after(syncRescheduleResume(meeting, openSuspension.id, auth.accessToken, onDate));
+
+      return NextResponse.json({ message: "Resume scheduled" });
     }
 
     // Gated on `promoted: false` -- the only writers that ever set it true are this close and

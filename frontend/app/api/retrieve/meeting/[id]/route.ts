@@ -2,7 +2,8 @@ import { NextRequest } from "next/server";
 import { getAuth } from "../../../../../services/auth";
 import { prisma } from "../../../../../lib/prisma";
 import { toPublicMeeting } from "../../../../../util/publicMeeting";
-import { getOpenSuspension } from "../../../../../util/suspension";
+import { getUnresolvedSuspension } from "../../../../../util/suspension";
+import { formatETDateString } from "../../../../../util/timeUtils";
 const getMeeting = async(request: NextRequest) => {
   try {
     // Intentionally public (see routeGuards.test.ts PUBLIC_ROUTES) -- backs the
@@ -32,11 +33,22 @@ const getMeeting = async(request: NextRequest) => {
       });
     }
 
-    // resumesAt: the open suspension's scheduled resume date, if any (null = indefinite, or not
-    // currently suspended) -- lets the UI show "Suspend"/"Reactivate" and a resume date without
-    // exposing the full suspension history to the client.
+    // resumesAt/suspendedSince: the most recent unresolved suspension's scheduled resume date
+    // and its own start date, if any (null = no suspension at all) -- includes one scheduled to
+    // start later, not just one already hiding the meeting today, so the UI can show it's
+    // pending. suspensionActive distinguishes "hidden from the calendar right now" from
+    // "scheduled, but from hasn't arrived yet" -- lets the UI show "Suspend"/"Reactivate"/"Cancel
+    // scheduled suspension" correctly without exposing the full suspension history to the client.
+    const todayStr = formatETDateString(new Date());
+    const relevantSuspension = getUnresolvedSuspension(meeting, todayStr);
+    const suspensionActive = relevantSuspension ? formatETDateString(relevantSuspension.from) <= todayStr : false;
     const body = session?.user?.role
-      ? { ...meeting, resumesAt: getOpenSuspension(meeting)?.to ?? null }
+      ? {
+          ...meeting,
+          resumesAt: relevantSuspension?.to ?? null,
+          suspendedSince: relevantSuspension?.from ?? null,
+          suspensionActive,
+        }
       : toPublicMeeting({ ...meeting, recurrencePattern: meeting.recurrencePattern ?? null });
 
     return new Response(JSON.stringify(body), {

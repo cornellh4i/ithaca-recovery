@@ -1,4 +1,4 @@
-import { Meeting, Role } from '@prisma/client';
+import { Meeting, RecurrencePattern, Role, SuspensionPeriod } from '@prisma/client';
 import { after } from 'next/server';
 import { requireRole } from '../../../../services/auth';
 import { getETDayBounds } from '../../../../util/timeUtils';
@@ -9,8 +9,13 @@ import {
   calendarIdsForMeeting,
 } from '../../../../services/googleCalendar';
 import { deleteZoomMeeting, zoomRoomCalendarId } from '../../../../services/zoom';
-import { reconcilePendingResume } from '../../../../util/suspension';
+import { reconcilePendingResume, tearDownPendingResumeSeries } from '../../../../util/suspension';
 import { prisma } from '../../../../lib/prisma';
+
+type MeetingWithSuspensions = Meeting & {
+  recurrencePattern: RecurrencePattern | null;
+  suspensions: SuspensionPeriod[];
+};
 
 // Returns "YYYY-MM-DD" in Eastern Time for the given UTC timestamp.
 const toETDateStr = (date: Date): string =>
@@ -50,7 +55,7 @@ async function syncDeleteAll(
   accessToken: string | undefined,
   calendarIds: Record<string, string>,
   eventIds: Record<string, string>,
-  meeting: Meeting,
+  meeting: MeetingWithSuspensions,
 ): Promise<void> {
   if (accessToken) {
     for (const [cat, calId] of Object.entries(calendarIds)) {
@@ -58,6 +63,10 @@ async function syncDeleteAll(
       if (eventId) await deleteCalendarEvent(accessToken, eventId, calId);
     }
   }
+  // Any future resume series pre-created by a suspend/reschedule that never got promoted into
+  // the live pointer above would otherwise be left dangling on Google Calendar once the meeting
+  // itself is gone.
+  await tearDownPendingResumeSeries(meeting, accessToken);
   if (meeting.zid) await deleteZoomMeeting(meeting.zid);
   if (accessToken && meeting.zoomCalendarEventId && meeting.zoomRoom) {
     const calId = zoomRoomCalendarId[meeting.zoomRoom];

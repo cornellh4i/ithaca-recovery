@@ -1,5 +1,5 @@
 import { getTestPrismaClient, disconnectTestPrismaClient } from "../factories/db";
-import { seedMeeting, seedRecurringMeeting } from "../factories/meeting";
+import { seedMeeting, seedRecurringMeeting, seedSuspensionPeriod } from "../factories/meeting";
 import { formatETDateString, convertETToUTC } from "../../util/timeUtils";
 
 jest.mock("next/server", () => ({
@@ -125,4 +125,92 @@ test("a request for a nonexistent meeting returns 404", async () => {
   });
   const response = await POST(request);
   expect(response.status).toBe(404);
+});
+
+test("a future 'from' (a future occurrence was clicked) schedules the suspension to start then, not immediately", async () => {
+  const { meeting } = await seedRecurringMeeting({ googleCalendarEventIds: { AA: "existing-event-id" } });
+  const from = new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString();
+
+  const request = new Request("http://localhost/api/update/meeting/suspend", {
+    method: "POST",
+    body: JSON.stringify({ mid: meeting.mid, from }),
+  });
+  const response = await POST(request);
+  expect(response.status).toBe(200);
+
+  const prisma = getTestPrismaClient();
+  const suspension = await prisma.suspensionPeriod.findFirst({ where: { mid: meeting.mid } });
+  expect(suspension?.from.toISOString()).toBe(from);
+
+  await waitFor(async () => (mockedTrim.mock.calls.length > 0 ? true : null));
+  // Truncation boundary is the future `from` date itself, not tomorrow.
+  expect(mockedTrim).toHaveBeenCalledWith("fake-token", "existing-event-id", formatETDateString(new Date(from)), "fake-calendar-id");
+});
+
+test("a past 'from' (a past occurrence was clicked) clamps to today instead of retroactively suspending", async () => {
+  const { meeting } = await seedRecurringMeeting({ googleCalendarEventIds: { AA: "existing-event-id" } });
+  const from = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString();
+
+  const request = new Request("http://localhost/api/update/meeting/suspend", {
+    method: "POST",
+    body: JSON.stringify({ mid: meeting.mid, from }),
+  });
+  const response = await POST(request);
+  expect(response.status).toBe(200);
+
+  const prisma = getTestPrismaClient();
+  const suspension = await prisma.suspensionPeriod.findFirst({ where: { mid: meeting.mid } });
+  // Clamped to today (ET), not the past date sent.
+  expect(formatETDateString(suspension!.from)).toBe(formatETDateString(new Date()));
+
+  await waitFor(async () => (mockedTrim.mock.calls.length > 0 ? true : null));
+  // Truncation boundary stays tomorrow -- can't retroactively remove today's occurrence.
+  const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000);
+  expect(mockedTrim).toHaveBeenCalledWith("fake-token", "existing-event-id", formatETDateString(tomorrow), "fake-calendar-id");
+});
+
+test("'to' must be after the (possibly future) suspension start date, not just after today", async () => {
+  const { meeting } = await seedRecurringMeeting();
+  const from = new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString();
+  // 5 days out -- after today, but before the future `from` above.
+  const to = new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString();
+
+  const request = new Request("http://localhost/api/update/meeting/suspend", {
+    method: "POST",
+    body: JSON.stringify({ mid: meeting.mid, from, to }),
+  });
+  const response = await POST(request);
+  expect(response.status).toBe(400);
+});
+
+test("suspending a meeting that already has an unresolved suspension returns 409", async () => {
+  const { meeting } = await seedRecurringMeeting();
+  await seedSuspensionPeriod(meeting.mid); // indefinite, open
+
+  const request = new Request("http://localhost/api/update/meeting/suspend", {
+    method: "POST",
+    body: JSON.stringify({ mid: meeting.mid }),
+  });
+  const response = await POST(request);
+  expect(response.status).toBe(409);
+  const body = await response.json();
+  expect(body.error).toMatch(/only one is allowed at a time/i);
+
+  // Only the original suspension exists -- the conflicting request didn't create a second row.
+  const prisma = getTestPrismaClient();
+  const suspensions = await prisma.suspensionPeriod.findMany({ where: { mid: meeting.mid } });
+  expect(suspensions).toHaveLength(1);
+});
+
+test("suspending a meeting with an unresolved suspension scheduled for the future also returns 409", async () => {
+  const { meeting } = await seedRecurringMeeting();
+  const future = new Date(Date.now() + 5 * 24 * 60 * 60 * 1000);
+  await seedSuspensionPeriod(meeting.mid, { from: future, to: null });
+
+  const request = new Request("http://localhost/api/update/meeting/suspend", {
+    method: "POST",
+    body: JSON.stringify({ mid: meeting.mid }),
+  });
+  const response = await POST(request);
+  expect(response.status).toBe(409);
 });

@@ -84,3 +84,25 @@ test("a stale zoomSyncStatus on an In Person meeting doesn't surface as a sync i
 
   expect(body.syncIssues.find((s: { mid: string }) => s.mid === mid)).toBeUndefined();
 });
+
+test("a meeting with a suspension scheduled for a future date shows up in the suspended panel, marked not yet active", async () => {
+  const prisma = getTestPrismaClient();
+
+  // Suspended today for the "currently suspended" split (active/suspended counts), but the
+  // suspension itself doesn't start until next week -- the old isDateSuspended(today)-only
+  // filter wouldn't have picked this up for the panel at all.
+  const mid = `m-${randomUUID()}`;
+  await prisma.meeting.create({
+    data: buildMeetingData({ mid, status: "Suspended" }),
+  });
+  const future = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+  await prisma.suspensionPeriod.create({ data: { mid, from: future, to: null } });
+
+  const response = await GET();
+  const body = await response.json();
+
+  const row = body.suspendedMeetings.find((m: { mid: string }) => m.mid === mid);
+  expect(row).toBeDefined();
+  expect(row.suspensionActive).toBe(false);
+  expect(new Date(row.suspendedSince).toISOString()).toBe(future.toISOString());
+});
