@@ -34,6 +34,7 @@ jest.mock("../../services/zoom", () => ({
 }));
 
 import { getTestPrismaClient, disconnectTestPrismaClient } from "../factories/db";
+import { seedSuspensionPeriod } from "../factories/meeting";
 import { PUT } from "../../app/api/update/meeting/route";
 import { updateZoomMeeting, createZoomMeeting, deleteZoomMeeting, resolveZoomHost } from "../../services/zoom";
 import { reconcileMeetingCalendars, createCalendarEvent } from "../../services/googleCalendar";
@@ -282,4 +283,43 @@ test("an explicit host reassignment tears down the old Zoom meeting and creates 
   expect(afterSync?.zid).toBe("zid-reassigned");
   expect(afterSync?.zoomHost).toBe("new-host@icr.test");
   expect(afterSync?.zoomSyncStatus).toBe("synced");
+});
+
+test("editing a meeting whose scheduled resume date has already passed promotes the pre-created resume series first", async () => {
+  mockedReconcileMeetingCalendars.mockResolvedValue({ updatedEventIds: { AA: "still-stale-id" }, allSynced: true });
+
+  const prisma = getTestPrismaClient();
+  const mid = `m-${randomUUID()}`;
+  const { recurrencePattern: _rp, ...existingMeetingData } = buildMeetingPayload({
+    mid,
+    googleCalendarEventIds: { AA: "stale-pre-suspend-event-id" },
+  });
+  await prisma.meeting.create({ data: existingMeetingData });
+  const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  await seedSuspensionPeriod(mid, {
+    from: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+    to: yesterday,
+    resumeEventIds: { AA: "resume-event-id" },
+    promoted: false,
+  });
+
+  const payload = buildMeetingPayload({ mid, title: "Edited Title" });
+  const request = new Request("http://localhost/api/update/meeting", {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+
+  const response = await PUT(request);
+  expect(response.status).toBe(200);
+
+  // reconcileMeetingCalendars must have been called against the promoted pointer
+  // (resume-event-id), not the stale pre-suspend one still sitting in the DB row.
+  expect(mockedReconcileMeetingCalendars).toHaveBeenCalledWith(
+    "fake-token",
+    expect.anything(),
+    { AA: "resume-event-id" },
+  );
+
+  const suspension = await prisma.suspensionPeriod.findFirst({ where: { mid } });
+  expect(suspension?.promoted).toBe(true);
 });

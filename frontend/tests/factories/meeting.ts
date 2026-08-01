@@ -1,5 +1,5 @@
 import { randomUUID } from "crypto";
-import { Meeting, RecurrencePattern } from "@prisma/client";
+import { Meeting, RecurrencePattern, SuspensionPeriod } from "@prisma/client";
 import { getTestPrismaClient } from "./db";
 import { convertETToUTC, formatETDateString } from "../../util/timeUtils";
 
@@ -49,9 +49,25 @@ export async function seedRecurringMeeting(
   return { meeting, recurrencePattern };
 }
 
+export async function seedSuspensionPeriod(
+  mid: string,
+  overrides: Partial<SuspensionPeriod> = {},
+): Promise<SuspensionPeriod> {
+  const prisma = getTestPrismaClient();
+  return prisma.suspensionPeriod.create({
+    data: {
+      mid,
+      from: new Date(Date.now() - 24 * 60 * 60 * 1000), // yesterday, so "today" is covered
+      to: null,
+      ...overrides,
+    },
+  });
+}
+
 export async function seedSuspendedMeeting(overrides: Partial<Meeting> = {}): Promise<Meeting> {
-  // No UI path sets this today (confirmed gap) — only reachable via direct seed.
-  return seedMeeting({ status: "Suspended", ...overrides });
+  const meeting = await seedMeeting({ status: "Suspended", ...overrides });
+  await seedSuspensionPeriod(meeting.mid);
+  return meeting;
 }
 
 // Plain-data counterpart to seedMeeting, for route tests that build the data

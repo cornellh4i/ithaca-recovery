@@ -1,7 +1,9 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "../lib/prisma";
 import { formatETDateString } from "./timeUtils";
-import { matchesRecurrencePattern, adjustOccurrenceToDate } from "./meetingOccurrences";
+import { matchesRecurrencePattern, adjustOccurrenceToDate, isDateSuspended } from "./meetingOccurrences";
+
+type SuspensionWindow = { from: Date; to: Date | null };
 
 const notDeleted = { OR: [{ deletedAt: null }, { deletedAt: { isSet: false } }] };
 
@@ -51,6 +53,7 @@ export type ConflictCandidateMeeting = OccurrenceInput & {
   zoomHost?: string | null;
   status?: string | null;
   calType?: string[];
+  suspensions?: SuspensionWindow[];
 };
 
 // Every occurrence of `meeting` that falls within [rangeStart, rangeEnd), sorted by start time.
@@ -177,11 +180,11 @@ export async function findResourceConflicts(
       notDeleted,
       fieldWhere(field, value),
       ...(opts.excludeMid ? [{ mid: { not: opts.excludeMid } }] : []),
-      ...(opts.includeSuspended ? [] : [{ status: { not: "Suspended" } }]),
     ],
   };
 
-  const meetings = await prisma.meeting.findMany({
+  const todayStr = formatETDateString(new Date());
+  const meetingsRaw = await prisma.meeting.findMany({
     where,
     select: {
       mid: true,
@@ -190,8 +193,12 @@ export async function findResourceConflicts(
       endDateTime: true,
       isRecurring: true,
       recurrencePattern: true,
+      suspensions: true,
     },
   });
+  const meetings = opts.includeSuspended
+    ? meetingsRaw
+    : meetingsRaw.filter((m) => !isDateSuspended(m.suspensions, todayStr));
 
   const conflicts: { mid: string; title: string }[] = [];
   for (const meeting of meetings) {
@@ -288,7 +295,8 @@ export function computeConflicts(
   horizonYears: number = OVERLAP_HORIZON_YEARS,
 ): ConflictRow[] {
   const [rangeStart, rangeEnd] = horizonRange(horizonYears);
-  const activeMeetings = meetings.filter((m) => m.status !== "Suspended");
+  const todayStr = formatETDateString(new Date());
+  const activeMeetings = meetings.filter((m) => !isDateSuspended(m.suspensions ?? [], todayStr));
   const conflicts: ConflictRow[] = [];
 
   const fieldMeetings: Record<"room" | "zoomRoom" | "zoomHost", ConflictCandidateMeeting[]> = {
