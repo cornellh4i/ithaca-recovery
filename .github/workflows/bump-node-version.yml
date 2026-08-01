@@ -37,8 +37,8 @@ jobs:
         if: steps.latest.outputs.version != steps.current.outputs.version
         uses: peter-evans/create-pull-request@v8
         with:
-          commit-message: "Bump Node.js to ${{ steps.latest.outputs.version }}"
-          title: "Bump Node.js to ${{ steps.latest.outputs.version }} (latest Active LTS)"
+          commit-message: "chore(deps): bump Node.js to ${{ steps.latest.outputs.version }}"
+          title: "chore(deps): bump Node.js to ${{ steps.latest.outputs.version }} (latest Active LTS)"
           # Vercel's Functions runtime only supports specific majors (20.x/22.x/24.x as of
           # this writing) -- confirm support before merging, since a new LTS can outpace it.
           body: |
