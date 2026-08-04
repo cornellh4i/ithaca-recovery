@@ -76,9 +76,11 @@ async function syncNewMeeting(
     const requestedCalTypes = meetingData.calType ?? [];
     const calendarIds = calendarIdsForMeeting(requestedCalTypes);
     const eventIds: Record<string, string> = {};
+    let googleSyncError: string | null = null;
     for (const [cat, calId] of Object.entries(calendarIds)) {
-      const id = await createCalendarEvent(accessToken, meetingForSync, calId);
+      const { id, error } = await createCalendarEvent(accessToken, meetingForSync, calId);
       if (id) eventIds[cat] = id;
+      else googleSyncError = googleSyncError ?? error;
     }
     // Checked against requestedCalTypes, not calendarIds -- a category missing from calendarIds
     // (its GOOGLE_CALENDAR_* env var isn't configured) must still count against `synced`, same
@@ -90,6 +92,7 @@ async function syncNewMeeting(
       data: {
         googleCalendarEventIds: eventIds,
         googleSyncStatus: synced ? 'synced' : 'error',
+        googleSyncError: synced ? null : googleSyncError,
       },
     });
   }
@@ -103,11 +106,11 @@ async function syncNewMeeting(
     if (accessToken && zoomLink && meetingData.zoomRoom) {
       const calId = zoomRoomCalendarId[meetingData.zoomRoom];
       if (calId) {
-        const eventId = await createCalendarEvent(accessToken, { ...meetingForSync, zoomLink }, calId, zoomLink);
+        const { id: eventId, error } = await createCalendarEvent(accessToken, { ...meetingForSync, zoomLink }, calId, zoomLink);
         if (eventId) zoomCalendarEventId = eventId;
         else {
           zoomSynced = false;
-          zoomSyncError = zoomSyncError ?? "Zoom meeting created but its calendar event failed to sync.";
+          zoomSyncError = zoomSyncError ?? error ?? "Zoom meeting created but its calendar event failed to sync.";
         }
       }
     }

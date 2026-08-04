@@ -4,6 +4,11 @@ import { IMeeting } from "./models";
 // kiosk). Deliberately an allowlist, not a blacklist -- a new sensitive column added to the
 // Meeting model (e.g. another contact/credential field) is excluded by default here instead
 // of leaking until someone remembers to blacklist it.
+//
+// googleSyncStatus/zoomSyncStatus are deliberately NOT included -- ViewMeeting's status band
+// (sync-error/conflict messaging) is admin-only (BUG-022), and that gate has to hold at the
+// API layer too, not just in the UI -- otherwise the raw status still sits in the public JSON
+// response, inspectable via the network tab even though nothing renders it.
 export type PublicMeeting = Pick<
   IMeeting,
   | "mid"
@@ -16,8 +21,6 @@ export type PublicMeeting = Pick<
   | "zoomRoom"
   | "isRecurring"
   | "recurrencePattern"
-  | "googleSyncStatus"
-  | "zoomSyncStatus"
 >;
 
 export const toPublicMeeting = (meeting: PublicMeeting): PublicMeeting => ({
@@ -31,6 +34,4 @@ export const toPublicMeeting = (meeting: PublicMeeting): PublicMeeting => ({
   zoomRoom: meeting.zoomRoom,
   isRecurring: meeting.isRecurring,
   recurrencePattern: meeting.recurrencePattern,
-  googleSyncStatus: meeting.googleSyncStatus,
-  zoomSyncStatus: meeting.zoomSyncStatus,
 });

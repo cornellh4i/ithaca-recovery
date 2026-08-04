@@ -373,6 +373,7 @@ export default function HomePage() {
           isRecurring={selectedMeeting.isRecurring ?? false}
           recurrencePattern={selectedMeeting.recurrencePattern || undefined}
           googleSyncStatus={selectedMeeting.googleSyncStatus}
+          googleSyncError={selectedMeeting.googleSyncError}
           zoomSyncStatus={selectedMeeting.zoomSyncStatus}
           zoomSyncError={selectedMeeting.zoomSyncError}
           resumesAt={selectedMeeting.resumesAt}

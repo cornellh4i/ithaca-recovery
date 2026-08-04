@@ -122,14 +122,17 @@ async function syncUpdatedMeeting(
       if (calId) {
         const meetingWithZoomLink = { ...newMeeting, zoomLink };
         if (zoomCalendarEventId) {
-          const ok = await updateCalendarEvent(accessToken, zoomCalendarEventId, meetingWithZoomLink, calId, zoomLink);
-          if (!ok) zoomSynced = false;
+          const { ok, error } = await updateCalendarEvent(accessToken, zoomCalendarEventId, meetingWithZoomLink, calId, zoomLink);
+          if (!ok) {
+            zoomSynced = false;
+            zoomSyncError = zoomSyncError ?? error ?? "Zoom meeting's calendar event failed to update.";
+          }
         } else {
-          const eventId = await createCalendarEvent(accessToken, meetingWithZoomLink, calId, zoomLink);
+          const { id: eventId, error } = await createCalendarEvent(accessToken, meetingWithZoomLink, calId, zoomLink);
           if (eventId) zoomCalendarEventId = eventId;
           else {
             zoomSynced = false;
-            zoomSyncError = zoomSyncError ?? "Zoom meeting created but its calendar event failed to sync.";
+            zoomSyncError = zoomSyncError ?? error ?? "Zoom meeting created but its calendar event failed to sync.";
           }
         }
       }
@@ -147,7 +150,7 @@ async function syncUpdatedMeeting(
     await prisma.meeting.update({ where: { mid }, data: { googleSyncStatus: 'pending' } });
   } else if (accessToken) {
     const existingEventIds = (existingMeeting.googleCalendarEventIds ?? {}) as Record<string, string>;
-    const { updatedEventIds, allSynced } = await reconcileMeetingCalendars(
+    const { updatedEventIds, allSynced, googleSyncError } = await reconcileMeetingCalendars(
       accessToken,
       meetingForCalendar,
       existingEventIds,
@@ -158,6 +161,7 @@ async function syncUpdatedMeeting(
       data: {
         googleCalendarEventIds: updatedEventIds,
         googleSyncStatus: allSynced ? 'synced' : 'error',
+        googleSyncError: allSynced ? null : googleSyncError,
       },
     });
   }

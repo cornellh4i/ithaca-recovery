@@ -45,6 +45,7 @@ interface IMeeting {
   googleCalendarEventId?: string | null;
   googleCalendarEventIds?: Record<string, string> | null;
   googleSyncStatus?: string | null;
+  googleSyncError?: string | null;
   zoomCalendarEventId?: string | null;
   zoomSyncStatus?: string | null;
   zoomHost?: string | null;

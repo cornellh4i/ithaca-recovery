@@ -17,7 +17,7 @@ jest.mock("../../services/auth", () => ({
 jest.mock("../../services/googleCalendar", () => ({
   calendarIdsForMeeting: jest.fn().mockReturnValue({ AA: "fake-calendar-id" }),
   trimCalendarEventSeries: jest.fn().mockResolvedValue(true),
-  createCalendarEvent: jest.fn().mockResolvedValue("resume-event-id"),
+  createCalendarEvent: jest.fn().mockResolvedValue({ id: "resume-event-id", error: null }),
   deleteCalendarEvent: jest.fn().mockResolvedValue(true),
 }));
 

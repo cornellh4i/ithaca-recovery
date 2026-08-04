@@ -12,8 +12,8 @@
 .meetingDetails {
   font-family: "Source Sans Pro", sans-serif;
   text-align: left;
-  color: #333;
-  background: #fff;
+  color: $black-color;
+  background: $white-color;
   border: 1px solid $grey-border-color;
   border-radius: 8px;
   box-shadow: 0 4px 12px rgb(0 0 0 / 15%);
@@ -23,9 +23,11 @@
 
   .header {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 8px;
     position: relative;
+    padding-bottom: 14px;
+    border-bottom: 1px solid $grey-border-color;
 
     .backButton {
       background: none;
@@ -34,48 +36,56 @@
       display: flex;
       align-items: center;
       padding: 0;
+      margin-top: 2px;
 
       img {
-        width: 20px;
-        height: 20px;
+        width: 18px;
+        height: 18px;
       }
     }
 
     h1 {
       font-size: 20px;
       font-weight: 600;
+      line-height: 1.25;
       flex: 1;
       margin: 0;
+      overflow-wrap: break-word;
     }
 
     .settingLabel {
       // Styled like a meeting card's tag pill (BoxText.module.scss's .tag).
-      color: #000;
+      display: inline-flex;
+      align-items: center;
+      color: $black-color;
       border: 1.5px solid;
-      padding: 4px 8px;
+      padding: 4px 10px;
       border-radius: 4px;
-      font-size: 16px;
-      font-weight: 600;
+      font-size: 11px;
+      font-weight: 700;
+      white-space: nowrap;
+      margin-top: 2px;
     }
 
     .settingLabelIcon {
-      width: 14px;
-      height: 14px;
+      width: 11px;
+      height: 11px;
       margin-right: 4px;
-      vertical-align: -2px;
+      vertical-align: -1px;
     }
 
     .moreOptions {
       position: relative;
       display: flex;
       align-items: center;
+      margin-top: 2px;
 
       button {
         background: none;
         border: none;
-        font-size: 18px;
+        font-size: 16px;
         cursor: pointer;
-        color: #333;
+        color: $black-color;
       }
 
       .optionsMenu {
@@ -97,7 +107,7 @@
           text-align: left;
           border: none;
           background: none;
-          color: #333;
+          color: $black-color;
           white-space: nowrap;
 
           &:hover {
@@ -116,86 +126,94 @@
     }
   }
 
+  // A flex column with a single gap is deliberate: every top-level group below (status band,
+  // schedule, Zoom block, contact metadata, description, the closing divider) gets identical
+  // spacing from its neighbor regardless of which optional ones actually render -- letting each
+  // group carry its own margin (as a previous version did) meant the rhythm only looked even
+  // when a specific combination of sections happened to be present.
   .details {
-    padding-top: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding-top: 14px;
     font-size: 15px;
     line-height: 1.5;
 
-    .row {
-      margin: 0 0 14px;
+    // Status band -- sync-failure / conflict / suspension blocks, each independently
+    // conditional. Problems live here, above the schedule, instead of buried mid-list.
+    .statusBand {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .syncFailureBlock {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding: 10px 12px;
+      border-radius: $radius-md;
+      background: $danger-bg-color;
+      transition: background-color 0.2s, border-color 0.2s;
+    }
+
+    .syncFailureHeader {
       display: flex;
       align-items: flex-start;
-      gap: 10px;
-      font-weight: 400;
-      color: #555;
-
-      img {
-        width: 20px;
-        height: 20px;
-        flex-shrink: 0;
-        margin-top: 1px;
-      }
-    }
-
-    // Conflict/suspended banners -- warning-icon (img) or PauseIcon (inline svg) + amber text,
-    // rendered above the time section.
-    .warningRow {
-      margin: 0 0 14px;
-      display: flex;
-      align-items: flex-start;
-      gap: 10px;
-      font-weight: 400;
-      color: $warning-text-color;
-
-      img, svg {
-        width: 20px;
-        height: 20px;
-        flex-shrink: 0;
-        margin-top: 1px;
-      }
-    }
-
-    // Sync-error banner -- sync-error-icon + red text, rendered above the conflict banner.
-    .dangerRow {
-      margin: 0 0 14px;
-      display: flex;
-      align-items: flex-start;
-      gap: 10px;
-      font-weight: 400;
-      color: $danger-color;
-
-      img {
-        width: 20px;
-        height: 20px;
-        flex-shrink: 0;
-        margin-top: 1px;
-      }
-    }
-
-    .recurringInfo {
-      display: block;
-      font-style: italic;
-      color: #777;
-      font-size: 13px;
-      margin-top: 2px;
-    }
-
-    .syncSuccess {
-      color: $success-text-color;
-      font-size: 13px;
-      margin: -6px 0 12px 30px;
-    }
-
-    .syncError {
+      gap: 8px;
       color: $danger-color;
       font-size: 13px;
-      margin: -6px 0 12px 30px;
+      font-weight: 600;
+      line-height: 1.4;
+
+      img {
+        width: 16px;
+        height: 16px;
+        flex-shrink: 0;
+        margin-top: 1px;
+      }
+
+      span {
+        flex: 1;
+      }
+    }
+
+    .syncDetailsToggle {
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 0;
+      display: flex;
+      flex-shrink: 0;
+
+      img {
+        width: 16px;
+        height: 16px;
+        margin: 0;
+      }
+    }
+
+    .syncDetailsList {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      margin-left: 22px;
+      font-size: 12.5px;
+      font-weight: 400;
+      color: $danger-color;
+      line-height: 1.4;
     }
 
     .retryButton {
-      font-size: 12px;
-      padding: 3px 10px;
-      margin: -6px 0 14px 30px;
+      align-self: flex-start;
+      margin-left: 22px;
+      border: 1px solid $danger-color;
+      background: $white-color;
+      color: $danger-color;
+      border-radius: $radius-lg;
+      padding: 4px 10px;
+      font-size: 13px;
+      font-weight: 600;
       cursor: pointer;
 
       &:disabled {
@@ -204,39 +222,186 @@
       }
     }
 
-    .zoomSection {
+    .conflictBlock, .suspensionBlock {
       display: flex;
       align-items: flex-start;
-      gap: 10px;
-      margin-bottom: 6px;
+      gap: 8px;
+      padding: 10px 12px;
+      border-radius: $radius-md;
+      background: $warning-bg-color;
+      color: $warning-text-color;
+      font-size: 13px;
+      font-weight: 600;
+      line-height: 1.4;
 
       img {
-        width: 20px;
-        height: 20px;
+        width: 16px;
+        height: 16px;
         flex-shrink: 0;
         margin-top: 1px;
       }
+    }
 
-      .zoomInfo {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        gap: 2px;
-        min-width: 0;
+    .diagnosticsLink {
+      color: inherit;
+      text-decoration: underline;
+
+      &:hover {
+        opacity: 0.8;
       }
+    }
 
-      .invitationToggle {
-        background: none;
-        border: none;
-        cursor: pointer;
-        padding: 2px;
+    // Schedule group -- the loudest line in the card (bold date/time), demoting recurrence
+    // and room to secondary metadata beneath it. No closing rule of its own: the Zoom block
+    // (when present) already reads as a break via its own tinted background, and when it's
+    // absent (In Person -- no Zoom block, no Zoom host) the next row (email) is light enough
+    // to just sit under location without one.
+    .scheduleGroup {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+
+      p {
+        margin: 0;
+      }
+    }
+
+    .scheduleTime {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 16px;
+      font-weight: 600;
+      color: $black-color;
+
+      img {
+        width: 18px;
+        height: 18px;
         flex-shrink: 0;
-
-        img {
-          width: 16px;
-          height: 16px;
-        }
       }
+    }
+
+    .recurrenceLine {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding-left: 26px;
+      font-size: 13px;
+      font-weight: 400;
+      color: $text-secondary-color;
+
+      img {
+        width: 14px;
+        height: 14px;
+        flex-shrink: 0;
+      }
+    }
+
+    .roomLine {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 14px;
+      font-weight: 400;
+      color: $text-secondary-color;
+
+      img {
+        width: 18px;
+        height: 18px;
+        flex-shrink: 0;
+      }
+    }
+
+    // Zoom block -- one tinted card instead of four stacked rows. No margin of its own --
+    // it's a direct flex child of .details, so the container's gap already spaces it.
+    .zoomBlock {
+      padding: 12px 14px;
+      background: $grey-lightest-color;
+      border-radius: $radius-md;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .zoomTopRow {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    a.zoomLink {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: $link-color;
+      font-size: 15px;
+      font-weight: 600;
+      text-decoration: none;
+      min-width: 0;
+
+      img {
+        width: 18px;
+        height: 18px;
+        flex-shrink: 0;
+      }
+
+      &:hover {
+        text-decoration: underline;
+      }
+    }
+
+    .zoomSyncedBadge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      flex-shrink: 0;
+      color: $success-text-color;
+      font-size: 11px;
+      font-weight: 600;
+      white-space: nowrap;
+
+      img {
+        width: 12px;
+        height: 12px;
+      }
+    }
+
+    .zoomMetaRow {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      font-size: 13px;
+      font-weight: 400;
+      color: $text-secondary-color;
+
+      span {
+        overflow-wrap: break-word;
+      }
+    }
+
+    .invitationToggle {
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 0;
+      flex-shrink: 0;
+      color: $link-color;
+      font-size: 13px;
+      white-space: nowrap;
+
+      &:hover {
+        text-decoration: underline;
+      }
+    }
+
+    // Its own border (not $grey-lightest-color, which is the block's own background) so the
+    // expanded separator actually reads as a divider instead of disappearing into the tint.
+    .zoomInvitationDivider {
+      border: none;
+      border-top: 1px solid $grey-border-color;
+      margin: 2px 0;
     }
 
     .invitationText {
@@ -244,8 +409,8 @@
       overflow-wrap: break-word;
       font-family: "Source Sans Pro", sans-serif;
       font-size: 13px;
-      color: #555;
-      margin: 0 0 14px 30px;
+      color: $text-secondary-color;
+      margin: 0;
 
       a {
         color: $link-color;
@@ -258,13 +423,34 @@
       }
     }
 
-    a.zoomLink {
-      color: $link-color;
-      text-decoration: none;
-      word-break: break-all;
+    // Contact metadata -- demoted, admin-only. The closing rule (withDivider) is applied only
+    // when a description follows -- otherwise this is the last thing before the footer's own
+    // divider, and a second rule right above it would just double up (same issue as the
+    // schedule group's old rule, see above).
+    .contactGroup {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
 
-      &:hover {
-        text-decoration: underline;
+      &.withDivider {
+        padding-bottom: 14px;
+        border-bottom: 1px solid $grey-lightest-color;
+      }
+    }
+
+    .contactRow {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 0;
+      font-size: 13.5px;
+      font-weight: 400;
+      color: $text-secondary-color;
+
+      img {
+        width: 16px;
+        height: 16px;
+        flex-shrink: 0;
       }
     }
 
@@ -272,11 +458,10 @@
       display: flex;
       align-items: flex-start;
       gap: 10px;
-      margin-bottom: 14px;
 
       img {
-        width: 20px;
-        height: 20px;
+        width: 18px;
+        height: 18px;
         flex-shrink: 0;
         margin-top: 1px;
       }
@@ -287,11 +472,14 @@
 
         p {
           margin: 0;
-          color: #555;
+          color: $medium-grey-color;
+          font-size: 13px;
+          font-style: italic;
           white-space: pre-line;
 
           a {
             color: $link-color;
+            font-style: normal;
             text-decoration: none;
             word-break: break-all;
 
@@ -316,6 +504,7 @@
           border: none;
           color: $link-color;
           font-size: 13px;
+          font-style: normal;
           cursor: pointer;
           padding: 0;
         }
@@ -323,9 +512,11 @@
     }
   }
 
+  // Closes the card before the footer tag list. No margin of its own -- it's a direct flex
+  // child of .details (see above), so the container's gap already spaces both sides of it.
   .divider {
     border: none;
-    border-top: 2px solid #d6d5d5;
-    margin: 4px 0 16px;
+    border-top: 1px solid $grey-border-color;
+    margin: 0;
   }
 }

@@ -48,6 +48,7 @@ model Meeting {
   googleCalendarEventId  String?
   googleCalendarEventIds Json?
   googleSyncStatus       String?
+  googleSyncError        String?
   zoomCalendarEventId    String?
   zoomSyncStatus         String?
   zoomHost               String?

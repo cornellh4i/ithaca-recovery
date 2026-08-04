@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useLayoutEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import Link from 'next/link';
 import styles from '../../../styles/components/meeting-form/ViewMeeting.module.scss';
 import DeleteRecurringModal from './DeleteRecurringModal';
 import DeleteMeetingModal from './DeleteMeetingModal';
@@ -14,7 +15,7 @@ import { formatETDateString } from "../../../util/timeUtils";
 import { retryMeetingSync } from "../../../util/syncMeeting";
 import { formatSuspensionStatusText } from "../../../util/suspensionText";
 import { ROOM_COLORS, ZOOM_ROOM_COLOR } from "../../../util/filterColors";
-import { formatDayColumn } from "../../../util/recurrenceDisplay";
+import { formatRecurrencePattern } from "../../../util/recurrenceDisplay";
 import { isZoomRoomMismatched } from "../../../util/rooms";
 import { linkify } from "../../../util/linkify";
 import { zoomHostLabel } from "../../../util/zoomHosts";
@@ -65,6 +66,7 @@ type ViewMeetingDetailsProps = {
   recurrencePattern?: IRecurrencePattern
   currentOccurrenceDate?: Date; // Handles the specific occurrence date
   googleSyncStatus?: string | null;
+  googleSyncError?: string | null;
   zoomSyncStatus?: string | null;
   zoomSyncError?: string | null;
   // The most recent unresolved suspension's scheduled resume date, if any -- includes one
@@ -121,6 +123,7 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
   recurrencePattern,
   currentOccurrenceDate,
   googleSyncStatus: initialGoogleSyncStatus,
+  googleSyncError: initialGoogleSyncError,
   zoomSyncStatus: initialZoomSyncStatus,
   zoomSyncError: initialZoomSyncError,
   resumesAt,
@@ -150,11 +153,13 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
   const isSuspended = hasSuspension && !!suspensionActive;
   const hasPendingSuspension = hasSuspension && !isSuspended;
   const [googleSyncStatus, setGoogleSyncStatus] = useState(initialGoogleSyncStatus ?? null);
+  const [googleSyncError, setGoogleSyncError] = useState(initialGoogleSyncError ?? null);
   const [zoomSyncStatus, setZoomSyncStatus] = useState(initialZoomSyncStatus ?? null);
   const [zoomSyncError, setZoomSyncError] = useState(initialZoomSyncError ?? null);
   const [syncing, setSyncing] = useState(false);
   const [kebabOpen, setKebabOpen] = useState(false);
   const [showInvitation, setShowInvitation] = useState(false);
+  const [syncDetailsOpen, setSyncDetailsOpen] = useState(false);
   const [descExpanded, setDescExpanded] = useState(false);
   const [isDescTruncated, setIsDescTruncated] = useState(false);
   const zoomHostPool = useZoomHostPool();
@@ -280,6 +285,7 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
     try {
       const data = await retryMeetingSync(mid);
       setGoogleSyncStatus(data.googleSyncStatus ?? 'error');
+      setGoogleSyncError(data.googleSyncError ?? null);
       setZoomSyncStatus(data.zoomSyncStatus ?? null);
       setZoomSyncError(data.zoomSyncError ?? null);
       // Only report success once every *applicable* channel is synced -- zoomSyncStatus is
@@ -394,29 +400,17 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
     setShowResumeModal(false);
   };
 
-  // Reuses the Export XLSX's "Day" column formatting (util/recurrenceDisplay.ts) so a
-  // pattern like "M-W, F" or "2nd Tu" reads the same here and in the export.
+  // Reuses the Export XLSX's "Day"/frequency formatting (util/recurrenceDisplay.ts) so a
+  // pattern like "Weekly · Mon, Wed" reads the same here and in the export.
   const getRecurrenceText = () => {
     if (!recurrencePattern) return "Repeats regularly";
 
-    const day = formatDayColumn({
+    return formatRecurrencePattern({
       type: recurrencePattern.type,
       weekOfMonth: recurrencePattern.weekOfMonth ?? null,
       dayOfMonth: recurrencePattern.dayOfMonth ?? null,
       daysOfWeek: recurrencePattern.daysOfWeek ?? [],
     });
-
-    if (recurrencePattern.type === "monthly") {
-      return day ? `Monthly · ${day}` : "Monthly";
-    }
-
-    const { interval } = recurrencePattern;
-    let intervalText = "Weekly";
-    if (interval === 2) intervalText = "Biweekly";
-    else if (interval === 3) intervalText = "Triweekly";
-    else if (interval > 1) intervalText = `Every ${interval} weeks`;
-
-    return day ? `${intervalText} · ${day}` : intervalText;
   };
 
   const timeRangeText = formatCompactTimeRange(
@@ -427,6 +421,10 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
   const primaryColor = ROOM_COLORS[room] ?? ZOOM_ROOM_COLOR;
   const primaryLocation = room || (zoomRoom ? stripZoomSuffix(zoomRoom) : '');
   const showZoomMismatchRow = !!(room && zoomRoom && isZoomRoomMismatched(room, zoomRoom));
+  const hasSyncFailure = googleSyncStatus === 'error' || zoomSyncStatus === 'error';
+  // Status band (sync-failure/conflict/suspension) is admin-only -- it references admin-only
+  // actions (Retry sync) and pages (Admin Diagnostics) that a public viewer can't use anyway.
+  const showStatusBand = isAdmin && (hasSyncFailure || conflictCount > 0 || hasSuspension);
 
   const content = (
     <div className={styles.meetingDetails}>
@@ -470,152 +468,166 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
         )}
       </div>
 
-      <hr className={styles.divider} />
-
       <div className={styles.details}>
-        {(googleSyncStatus === 'error' || zoomSyncStatus === 'error') && (
-            <p className={styles.dangerRow}>
-              <img src="/svg/sync-error-icon.svg" alt="" />
-              <span>
-                {googleSyncStatus === 'error' && zoomSyncStatus === 'error'
-                  ? `Failed to sync to Google Calendar and Zoom${isAdmin ? ' — use Retry sync below.' : '.'}`
-                  : googleSyncStatus === 'error'
-                  ? `Failed to sync to Google Calendar — this meeting may not appear there.${isAdmin ? ' Use Retry sync below.' : ''}`
-                  : `Failed to sync to Zoom${zoomSyncError ? `: ${zoomSyncError}` : ''}${isAdmin ? ' — use Retry sync below.' : '.'}`}
-              </span>
-            </p>
-          )}
+        {showStatusBand && (
+          <div className={styles.statusBand}>
+            {hasSyncFailure && (
+              <div className={styles.syncFailureBlock}>
+                <div className={styles.syncFailureHeader}>
+                  <img src="/svg/sync-error-icon.svg" alt="" />
+                  <span>Failed to sync</span>
+                  <button
+                    className={styles.syncDetailsToggle}
+                    aria-label={syncDetailsOpen ? "Hide sync error details" : "Show sync error details"}
+                    onClick={() => setSyncDetailsOpen((v) => !v)}
+                  >
+                    <img src="/svg/warning-circle-icon.svg" alt="" />
+                  </button>
+                </div>
+                {syncDetailsOpen && (
+                  <div className={styles.syncDetailsList}>
+                    {googleSyncStatus === 'error' && (
+                      <div>Google Calendar: &quot;{googleSyncError ?? 'Sync failed.'}&quot;</div>
+                    )}
+                    {zoomSyncStatus === 'error' && (
+                      <div>Zoom: &quot;{zoomSyncError ?? 'Sync failed.'}&quot;</div>
+                    )}
+                  </div>
+                )}
+                <button
+                  onClick={handleRetrySync}
+                  disabled={syncing}
+                  className={styles.retryButton}
+                >
+                  {syncing ? 'Retrying…' : 'Retry sync'}
+                </button>
+              </div>
+            )}
 
-          {conflictCount > 0 && (
-            <p className={styles.warningRow}>
-              <img src="/svg/warning-icon.svg" alt="" />
-              <span>
-                Conflicts with {conflictCount} other meeting{conflictCount === 1 ? '' : 's'} —
-                view the Admin Diagnostics page for more info.
-              </span>
-            </p>
-          )}
+            {conflictCount > 0 && (
+              <div className={styles.conflictBlock}>
+                <img src="/svg/warning-icon.svg" alt="" />
+                <span>
+                  Conflicts with {conflictCount} other meeting{conflictCount === 1 ? '' : 's'} —{' '}
+                  <Link href="/admin" className={styles.diagnosticsLink}>view the Admin Diagnostics page</Link> for more info.
+                </span>
+              </div>
+            )}
 
-          {hasSuspension && (
-            <p className={styles.warningRow}>
-              <img src="/svg/pause-icon.svg" alt="" />
-              <span>{formatSuspensionStatusText(suspendedSince, resumesAt, suspensionActive)}</span>
-            </p>
-          )}
+            {hasSuspension && (
+              <div className={styles.suspensionBlock}>
+                <img src="/svg/pause-icon.svg" alt="" />
+                <span>{formatSuspensionStatusText(suspendedSince, resumesAt, suspensionActive)}</span>
+              </div>
+            )}
+          </div>
+        )}
 
-          <p className={styles.row}>
+        <div className={styles.scheduleGroup}>
+          <p className={styles.scheduleTime}>
             <img src="/svg/clock-icon.svg" alt="" />
-            <span>
-              {formatMeetingDateLine(displayStartDate)} ⋅ {timeRangeText}
-              {isRecurring && <span className={styles.recurringInfo}>{getRecurrenceText()}</span>}
-            </span>
+            <span>{formatMeetingDateLine(displayStartDate)} · {timeRangeText}</span>
           </p>
 
+          {isRecurring && (
+            <p className={styles.recurrenceLine}>
+              <img src="/svg/repeat-icon.svg" alt="" />
+              <span>{getRecurrenceText()}</span>
+            </p>
+          )}
+
           {primaryLocation && (
-            <p className={styles.row}>
+            <p className={styles.roomLine}>
               <img src="/svg/location-icon.svg" alt="" />
               <span>{primaryLocation}</span>
             </p>
           )}
 
-          {googleSyncStatus === 'synced' && (
-            <p className={styles.syncSuccess}>Synced to Google Calendar ✓</p>
-          )}
-          {googleSyncStatus === 'error' && (
-            <p className={styles.syncError}>Google Calendar sync failed ⚠</p>
-          )}
-
           {showZoomMismatchRow && (
-            <p className={styles.row}>
+            <p className={styles.roomLine}>
               <img src="/svg/video-call-icon.svg" alt="" />
               <span>{stripZoomSuffix(zoomRoom as string)}</span>
             </p>
           )}
+        </div>
 
-          {zoomLink && zid && (
-            <div className={styles.zoomSection}>
-              <img src="/svg/zoom-icon.svg" alt="" />
-              <div className={styles.zoomInfo}>
-                <a href={zoomLink} target="_blank" rel="noopener noreferrer" className={styles.zoomLink}>
-                  Join Zoom Meeting
-                </a>
-                <span>ID: {zid}</span>
-                {zoomPasscode && <span>Passcode: {zoomPasscode}</span>}
-              </div>
+        {zoomLink && zid && (
+          <div className={styles.zoomBlock}>
+            <div className={styles.zoomTopRow}>
+              <a href={zoomLink} target="_blank" rel="noopener noreferrer" className={styles.zoomLink}>
+                <img src="/svg/zoom-icon.svg" alt="" />
+                Join Zoom Meeting
+              </a>
+              {zoomSyncStatus === 'synced' && (
+                <span className={styles.zoomSyncedBadge}>
+                  <img src="/svg/check-icon.svg" alt="" />
+                  Synced
+                </span>
+              )}
+            </div>
+            <div className={styles.zoomMetaRow}>
+              <span>ID {zid}{zoomPasscode ? ` · Passcode ${zoomPasscode}` : ''}</span>
               {zoomInvitation && (
                 <button
                   className={styles.invitationToggle}
-                  title={showInvitation ? "Hide conference details" : "View conference details"}
                   onClick={() => setShowInvitation((v) => !v)}
                 >
-                  <img
-                    src={showInvitation ? "/svg/arrow-up-icon.svg" : "/svg/arrow-down-icon.svg"}
-                    alt=""
-                  />
+                  {showInvitation ? 'Hide details' : 'Show details'}
                 </button>
               )}
             </div>
-          )}
-          {zoomInvitation && showInvitation && (
-            <pre className={styles.invitationText}>{linkify(zoomInvitation)}</pre>
-          )}
+            {zoomInvitation && showInvitation && (
+              <>
+                <hr className={styles.zoomInvitationDivider} />
+                <pre className={styles.invitationText}>{linkify(zoomInvitation)}</pre>
+              </>
+            )}
+          </div>
+        )}
 
-          {zoomSyncStatus === 'synced' && (
-            <p className={styles.syncSuccess}>Synced to Zoom ✓</p>
-          )}
-          {zoomSyncStatus === 'error' && (
-            <p className={styles.syncError}>Zoom sync failed ⚠{zoomSyncError ? `: ${zoomSyncError}` : ''}</p>
-          )}
-          {isAdmin && (googleSyncStatus === 'error' || zoomSyncStatus === 'error') && (
-            <button
-              onClick={handleRetrySync}
-              disabled={syncing}
-              className={styles.retryButton}
-            >
-              {syncing ? 'Retrying…' : 'Retry sync'}
-            </button>
-          )}
+        {isAdmin && (email || zoomHost) && (
+          <div className={`${styles.contactGroup} ${description ? styles.withDivider : ''}`}>
+            {email && (
+              <p className={styles.contactRow}>
+                <img src="/svg/mail-icon.svg" alt="" />
+                <span>{email}</span>
+              </p>
+            )}
+            {zoomHost && (
+              <p className={styles.contactRow}>
+                <img src="/svg/person-icon.svg" alt="" />
+                <span>Host: {zoomHostLabel(zoomHost, zoomHostPool.indexOf(zoomHost))} — {zoomHost}</span>
+              </p>
+            )}
+          </div>
+        )}
 
-          {isAdmin && (
-            <p className={styles.row}>
-              <img src="/svg/mail-icon.svg" alt="" />
-              <span>{email}</span>
-            </p>
-          )}
-
-          {isAdmin && zoomHost && (
-            <p className={styles.row}>
-              <img src="/svg/person-icon.svg" alt="" />
-              <span>Zoom host: {zoomHostLabel(zoomHost, zoomHostPool.indexOf(zoomHost))} — {zoomHost}</span>
-            </p>
-          )}
-
-          {description && (
-            <div className={styles.descriptionRow}>
-              <img src="/svg/description-icon.svg" alt="" />
-              <div className={styles.descriptionContent}>
-                <p ref={setDescNode} className={descExpanded ? undefined : styles.descriptionClamped}>
-                  {linkify(description)}
-                </p>
-                {isDescTruncated && (
-                  <button className={styles.showMoreToggle} onClick={() => setDescExpanded((v) => !v)}>
-                    {descExpanded ? 'Show less' : 'Show more'}
-                  </button>
-                )}
-              </div>
+        {description && (
+          <div className={styles.descriptionRow}>
+            <img src="/svg/description-icon.svg" alt="" />
+            <div className={styles.descriptionContent}>
+              <p ref={setDescNode} className={descExpanded ? undefined : styles.descriptionClamped}>
+                {linkify(description)}
+              </p>
+              {isDescTruncated && (
+                <button className={styles.showMoreToggle} onClick={() => setDescExpanded((v) => !v)}>
+                  {descExpanded ? 'Show less' : 'Show more'}
+                </button>
+              )}
             </div>
-          )}
+          </div>
+        )}
 
-          <hr className={styles.divider} />
+        <hr className={styles.divider} />
 
-          {calType && calType.length > 0 && (
-            <TagList
-              tags={calType}
-              color={primaryColor}
-              gap={4}
-              tagStyle={{ padding: '2px 12px', fontSize: '12px', color: '#000' }}
-            />
-          )}
+        {calType && calType.length > 0 && (
+          <TagList
+            tags={calType}
+            color={primaryColor}
+            gap={4}
+            tagStyle={{ padding: '2px 12px', fontSize: '12px', color: '#000' }}
+          />
+        )}
       </div>
     </div>
   );

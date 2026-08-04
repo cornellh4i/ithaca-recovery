@@ -59,7 +59,7 @@ test("1.5f unauthenticated visitor viewing a meeting sees no email, Zoom host, o
 
   await expect(page.getByRole("heading", { level: 1, name: "Guest View Meeting" })).toBeVisible();
   await expect(page.getByText("hidden@test.icr")).toHaveCount(0);
-  await expect(page.getByText("Zoom host:")).toHaveCount(0);
+  await expect(page.getByText("Host:")).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Meeting options" })).toHaveCount(0);
 });
 
@@ -74,7 +74,7 @@ test("1.5g a signed-in non-admin user viewing a meeting sees no email, Zoom host
 
   await expect(page.getByRole("heading", { level: 1, name: "Non-Admin View Meeting" })).toBeVisible();
   await expect(page.getByText("hidden2@test.icr")).toHaveCount(0);
-  await expect(page.getByText("Zoom host:")).toHaveCount(0);
+  await expect(page.getByText("Host:")).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Meeting options" })).toHaveCount(0);
 });
 
@@ -88,7 +88,7 @@ test("1.5h an Admin viewing a meeting sees the email row, Zoom host row, and Edi
 
   await expect(page.getByRole("heading", { level: 1, name: "Admin View Meeting" })).toBeVisible();
   await expect(page.getByText("visible@test.icr")).toBeVisible();
-  await expect(page.getByText("Zoom host:")).toBeVisible();
+  await expect(page.getByText("Host:")).toBeVisible();
   await expect(page.getByRole("button", { name: "Meeting options" })).toBeVisible();
 });
 
@@ -119,17 +119,20 @@ test("1.5k guests and non-admins viewing a meeting with a sync error cannot see 
   page,
   context,
 }) => {
+  // BUG-022: the whole status band (not just the Retry button) is admin-only -- it
+  // references admin-only actions/pages (Retry sync, Admin Diagnostics) a guest/non-admin
+  // can't use anyway, so neither the "Failed to sync" summary nor its details should render.
   await seedMeeting({ title: "Guest Sync Error Meeting", googleSyncStatus: "error" });
   await page.goto("/");
   await page.getByText("Guest Sync Error Meeting", { exact: true }).click();
-  await expect(page.getByText("Failed to sync to Google Calendar")).toBeVisible();
+  await expect(page.getByText("Failed to sync")).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Retry sync" })).toHaveCount(0);
 
   await seedMeeting({ title: "Non-Admin Sync Error Meeting", googleSyncStatus: "error" });
   await loginAs(context, "not-an-admin@test.icr");
   await page.goto("/");
   await page.getByText("Non-Admin Sync Error Meeting", { exact: true }).click();
-  await expect(page.getByText("Failed to sync to Google Calendar")).toBeVisible();
+  await expect(page.getByText("Failed to sync")).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Retry sync" })).toHaveCount(0);
 });
 

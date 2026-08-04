@@ -119,7 +119,7 @@ export async function createPendingResumeSeries(
     const { start, end } = adjustOccurrenceToDate(meeting, resumeDateStr);
     const resumeMeeting = toCalendarMeeting(meeting, start, end);
     for (const [cat, calId] of Object.entries(calendarIds)) {
-      const id = await createCalendarEvent(accessToken, resumeMeeting, calId);
+      const { id } = await createCalendarEvent(accessToken, resumeMeeting, calId);
       if (id) resumeEventIds[cat] = id;
     }
   } else if (meeting.startDateTime > new Date()) {
@@ -127,7 +127,7 @@ export async function createPendingResumeSeries(
     // -- otherwise there's nothing meaningful to resume it into.
     const resumeMeeting = toCalendarMeeting(meeting, meeting.startDateTime, meeting.endDateTime);
     for (const [cat, calId] of Object.entries(calendarIds)) {
-      const id = await createCalendarEvent(accessToken, resumeMeeting, calId);
+      const { id } = await createCalendarEvent(accessToken, resumeMeeting, calId);
       if (id) resumeEventIds[cat] = id;
     }
   }

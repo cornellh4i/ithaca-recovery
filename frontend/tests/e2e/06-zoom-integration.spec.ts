@@ -83,7 +83,7 @@ test.describe("zoom integration", () => {
     // Hybrid meetings legitimately render twice (physical room column + Zoom room
     // column) — .first() picks either, they're the same underlying meeting.
     await page.getByText("Synced Zoom Meeting", { exact: true }).first().click();
-    await expect(page.getByText("Synced to Zoom ✓")).toBeVisible();
+    await expect(page.getByText("Synced", { exact: true })).toBeVisible();
     await expect(page.getByRole("link", { name: "Join Zoom Meeting" })).toHaveAttribute(
       "href",
       "https://zoom.us/j/1234567890",
@@ -106,14 +106,14 @@ test.describe("zoom integration", () => {
     });
     await page.goto("/");
     await page.getByText("Zoom Retry Meeting", { exact: true }).first().click();
-    await expect(page.getByText("Zoom sync failed ⚠")).toBeVisible();
+    await expect(page.getByText("Failed to sync")).toBeVisible();
 
     const retryResponse = page.waitForResponse((r) => r.url().includes("/api/update/meeting/sync"));
     await page.getByRole("button", { name: "Retry sync" }).click();
     await retryResponse;
     // Credentials are still unset in the test env, so the retry deterministically
     // fails again — the point here is that the retry control fires the request.
-    await expect(page.getByText("Zoom sync failed ⚠")).toBeVisible();
+    await expect(page.getByText("Failed to sync")).toBeVisible();
   });
 
   test("6.15 Remote mode shows only the Zoom Host field, hiding Room and Zoom Room", async ({ adminPage }) => {

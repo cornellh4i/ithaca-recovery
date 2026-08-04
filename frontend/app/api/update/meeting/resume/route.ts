@@ -37,7 +37,7 @@ async function syncResume(
   const meetingForSync = toCalendarMeeting(meeting, meeting.startDateTime, meeting.endDateTime);
   const eventIds: Record<string, string> = {};
   for (const [cat, calId] of Object.entries(calendarIds)) {
-    const id = await createCalendarEvent(accessToken, meetingForSync, calId);
+    const { id } = await createCalendarEvent(accessToken, meetingForSync, calId);
     if (id) eventIds[cat] = id;
   }
 

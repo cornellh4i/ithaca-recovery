@@ -91,7 +91,7 @@ beforeEach(() => {
 test("the response resolves before Google Calendar sync completes, which runs in the background", async () => {
   const SYNC_DELAY_MS = 300;
   mockedCreateCalendarEvent.mockImplementation(
-    () => new Promise((resolve) => setTimeout(() => resolve("fake-event-id"), SYNC_DELAY_MS)),
+    () => new Promise((resolve) => setTimeout(() => resolve({ id: "fake-event-id", error: null }), SYNC_DELAY_MS)),
   );
 
   const payload = buildMeetingPayload();
@@ -122,7 +122,7 @@ test("a resolved Zoom host is persisted synchronously, before the deferred sync 
   mockedResolveZoomHost.mockResolvedValue("host@icr.test");
   const SYNC_DELAY_MS = 300;
   mockedCreateCalendarEvent.mockImplementation(
-    () => new Promise((resolve) => setTimeout(() => resolve("fake-event-id"), SYNC_DELAY_MS)),
+    () => new Promise((resolve) => setTimeout(() => resolve({ id: "fake-event-id", error: null }), SYNC_DELAY_MS)),
   );
 
   const payload = buildMeetingPayload({ modeType: "Hybrid", zoomRoom: "Serenity Room - Zoom" });
@@ -254,7 +254,7 @@ test("a manually-selected host that conflicts with another meeting is rejected w
 test("a Remote meeting (no zoomRoom) still gets a Zoom meeting created, and its main calendar event carries the real zoomLink", async () => {
   mockedResolveZoomHost.mockResolvedValue("host@icr.test");
   mockedCreateZoomMeeting.mockResolvedValue({ zid: "remote-zid", zoomLink: "http://zoom.test/remote", zoomPasscode: null });
-  mockedCreateCalendarEvent.mockResolvedValue("fake-event-id");
+  mockedCreateCalendarEvent.mockResolvedValue({ id: "fake-event-id", error: null });
 
   const payload = buildMeetingPayload({ modeType: "Remote", room: "", zoomRoom: "" });
   const request = new Request("http://localhost/api/write/meeting", {
@@ -284,7 +284,7 @@ test("a category with no configured calendar fails the meeting's sync, even if i
   // The top-level calendarIdsForMeeting mock always resolves only { AA: "fake-calendar-id" }
   // regardless of calType -- passing "Other" here simulates a real category whose
   // GOOGLE_CALENDAR_* env var isn't set, i.e. calendarIds never contains an "Other" entry.
-  mockedCreateCalendarEvent.mockResolvedValue("fake-event-id");
+  mockedCreateCalendarEvent.mockResolvedValue({ id: "fake-event-id", error: null });
 
   const payload = buildMeetingPayload({ calType: ["AA", "Other"] });
   const request = new Request("http://localhost/api/write/meeting", {
