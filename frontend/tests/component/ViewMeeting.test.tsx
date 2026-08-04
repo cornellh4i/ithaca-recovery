@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import ViewMeetingDetails from "../../app/components/meeting-form/ViewMeeting";
 
 beforeEach(() => {
@@ -39,34 +39,36 @@ const makeAnchorEl = (): HTMLElement => {
 };
 
 describe("ViewMeeting", () => {
-  it("desktop: renders nothing without an anchorEl", () => {
+  it("desktop: renders nothing without an anchorEl", async () => {
     render(<ViewMeetingDetails {...baseProps} anchorEl={null} isPhone={false} />);
-    expect(screen.queryByText("Serenity Group")).not.toBeInTheDocument();
+    // useZoomHostPool's fetch effect still resolves post-render; wait for it to settle
+    // (inside act) rather than asserting synchronously and leaving it unflushed.
+    await waitFor(() => expect(screen.queryByText("Serenity Group")).not.toBeInTheDocument());
   });
 
-  it("desktop: renders the meeting title once an anchorEl is present, outside any dialog role", () => {
+  it("desktop: renders the meeting title once an anchorEl is present, outside any dialog role", async () => {
     render(<ViewMeetingDetails {...baseProps} anchorEl={makeAnchorEl()} isPhone={false} />);
-    expect(screen.getByText("Serenity Group")).toBeInTheDocument();
+    expect(await screen.findByText("Serenity Group")).toBeInTheDocument();
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
-  it("mobile: renders inside a bottom sheet even with no anchorEl", () => {
+  it("mobile: renders inside a bottom sheet even with no anchorEl", async () => {
     render(<ViewMeetingDetails {...baseProps} anchorEl={null} isPhone />);
-    const dialog = screen.getByRole("dialog", { name: "Serenity Group" });
+    const dialog = await screen.findByRole("dialog", { name: "Serenity Group" });
     expect(dialog).toBeInTheDocument();
     // ViewMeeting's own <h1> title, distinct from BottomSheet's visually-hidden duplicate
     // (kept in the DOM for the dialog's accessible name -- see hideTitleVisually).
     expect(within(dialog).getByRole("heading", { level: 1, name: "Serenity Group" })).toBeInTheDocument();
   });
 
-  it("mobile: shows the same Edit/Delete kebab menu for an admin", () => {
+  it("mobile: shows the same Edit/Delete kebab menu for an admin", async () => {
     render(<ViewMeetingDetails {...baseProps} anchorEl={null} isPhone isAdmin />);
-    expect(screen.getByRole("button", { name: "Meeting options" })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Meeting options" })).toBeInTheDocument();
   });
 
-  it("prefixes the mode label with its mode icon", () => {
+  it("prefixes the mode label with its mode icon", async () => {
     render(<ViewMeetingDetails {...baseProps} anchorEl={makeAnchorEl()} isPhone={false} />);
-    const label = screen.getByText("In Person");
+    const label = await screen.findByText("In Person");
     expect(label.querySelector("img")).toHaveAttribute("src", "/svg/location-icon.svg");
   });
 });
