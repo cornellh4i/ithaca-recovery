@@ -170,9 +170,9 @@ const MobileCalendarView: React.FC<MobileCalendarViewProps> = ({
     // Rubber-band overscroll (elastic bounce past the top/bottom edge) reports scrollTop
     // outside [0, maxScroll] and snaps back next frame, producing a delta spike in the
     // opposite direction of the actual scroll -- ignore nav show/hide while overscrolled.
-    const maxScroll = el.scrollHeight - el.clientHeight;
+    const maxScroll = Math.max(0, el.scrollHeight - el.clientHeight);
     if (el.scrollTop < 0 || el.scrollTop > maxScroll) {
-      lastScrollTopRef.current = el.scrollTop;
+      lastScrollTopRef.current = Math.min(Math.max(el.scrollTop, 0), maxScroll);
       return;
     }
 
