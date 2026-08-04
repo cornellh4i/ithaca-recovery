@@ -68,6 +68,7 @@
   width: 4px;
   background-color: $brand-pink-color;
   z-index: 10;
+  
   // Purely a "now" marker, not interactive -- without this it sits on top of whatever
   // meeting box its x-position happens to cross and swallows the click instead.
   pointer-events: none;
