@@ -67,19 +67,12 @@
   height: 100%;
   width: 4px;
   background-color: $brand-pink-color;
-  z-index: 10; 
+  z-index: 10;
+  
+  // Purely a "now" marker, not interactive -- without this it sits on top of whatever
+  // meeting box its x-position happens to cross and swallows the click instead.
+  pointer-events: none;
 }
-
-// .currentTimeLine::before {
-//   content: "";
-//   position: absolute;
-//   top: -6px; 
-//   left: -4px; 
-//   width: 12px; 
-//   height: 12px; 
-//   border-radius: 50%;
-//   background-color: #cc3366; 
-// }
 
 .scrollContainer {
   display: grid;

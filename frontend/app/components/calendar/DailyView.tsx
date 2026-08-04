@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useLayoutEffect, useState, useRef } from
 import styles from '../../../styles/components/calendar/DailyView.module.scss';
 import BoxText from '../atoms/BoxText';
 import DailyViewRow from "./DailyViewRow";
-import { formatETDateString, getETDayBounds } from "../../../util/timeUtils";
+import { formatETDateString, getCurrentETMinutesSinceMidnight, getETDayBounds } from "../../../util/timeUtils";
 import { IMeeting } from "../../../util/models";
 import { passesTagFilters, passesRoomFilter, MeetingFilters } from "../../../util/meetingFilters";
 import { createCache } from "../../../util/simpleCache";
@@ -201,18 +201,19 @@ const DailyView: React.FC<DailyViewProps> = ({
   // here would sync the ref *after* that layout effect's fetchData() already read it.
   const selectedDateRef = useRef(selectedDate);
 
+  // ET wall-clock, not the browser's local timezone -- meeting boxes are positioned via
+  // timeToPixels() against their ET-clipped startTime (see DailyViewRow.tsx), so a viewer
+  // whose local zone isn't ET (any CI runner, or any real user outside America/New_York)
+  // would otherwise draw this line at the wrong x-position relative to the boxes it's
+  // supposed to line up with.
   const updateTimePosition = useCallback(() => {
-    const now = new Date();
-    const currentHour = now.getHours();
-    const currentMinutes = now.getMinutes();
-    const position = (currentHour * 60 + currentMinutes) * (155 / 60);
+    const position = getCurrentETMinutesSinceMidnight() * (155 / 60);
     setCurrentTimePosition(position);
   }, []);
 
   const scrollToCurrentTime = useCallback(() => {
     if (scrollContainerRef.current) {
-      const now = new Date();
-      const currentHour = now.getHours();
+      const currentHour = Math.floor(getCurrentETMinutesSinceMidnight() / 60);
       const scrollOffset = (currentHour * 155) - 300;
       const scrollPosition = Math.max(0, scrollOffset);
       scrollContainerRef.current.scrollLeft = scrollPosition;
