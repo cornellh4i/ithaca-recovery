@@ -84,7 +84,7 @@ test.describe("meeting creation", () => {
     expect(created?.calType.sort()).toEqual(["AA", "Other"]);
   });
 
-  test("2.5 double-booking a room/time already taken is allowed with no warning", async ({ adminPage }) => {
+  test("2.5 double-booking a room/time already taken is blocked by a conflict modal, which can be overridden", async ({ adminPage }) => {
     const { page } = adminPage;
     const existing = await seedMeeting({ title: "Already Booked", room: "Seeds of Hope Room" });
 
@@ -98,15 +98,49 @@ test.describe("meeting creation", () => {
     await toggleCalType(page, "AA");
     await page.getByPlaceholder("Email").fill("conflict@test.icr");
 
-    const dialogPromise = page.waitForEvent("dialog");
     await page.getByRole("button", { name: "Create Meeting" }).click();
+
+    // Blocked by the room conflict -- the override modal appears instead of the normal
+    // success alert, naming the meeting it collides with. Scoped to the dialog and exact-
+    // matched -- the seeded meeting's own calendar box (still visible behind the overlay) and
+    // the modal's own message text both otherwise also match "Already Booked" un-scoped.
+    const modal = page.getByRole("dialog");
+    await expect(modal.getByText("Scheduling conflict")).toBeVisible();
+    await expect(modal.getByText(existing.title, { exact: true })).toBeVisible();
+
+    const dialogPromise = page.waitForEvent("dialog");
+    await page.getByRole("button", { name: "Save anyway" }).click();
     const dialog = await dialogPromise;
-    // No conflict-specific wording — just the normal success alert.
     expect(dialog.message()).toContain("Meeting created successfully");
     await dialog.accept();
 
     const prisma = getTestPrismaClient();
     const room = await prisma.meeting.findMany({ where: { room: "Seeds of Hope Room" } });
     expect(room.map((m) => m.title)).toEqual(expect.arrayContaining([existing.title, "Conflicting Meeting"]));
+  });
+
+  test("2.6 canceling out of the conflict modal leaves the meeting unsaved", async ({ adminPage }) => {
+    const { page } = adminPage;
+    await seedMeeting({ title: "Already Booked", room: "Seeds of Hope Room" });
+
+    await page.goto("/");
+    await page.getByText("New Meeting").click();
+    await page.getByPlaceholder("Meeting title").fill("Unsaved Conflicting Meeting");
+    await page.getByRole("button", { name: "In Person" }).click();
+    await fillDatePicker(page, todayMMDDYYYY());
+    await fillTimeRange(page, "18:00", "19:00");
+    await selectFromDropdown(page, "Select Room", "Seeds of Hope Room");
+    await toggleCalType(page, "AA");
+    await page.getByPlaceholder("Email").fill("conflict2@test.icr");
+
+    await page.getByRole("button", { name: "Create Meeting" }).click();
+    await expect(page.getByText("Scheduling conflict")).toBeVisible();
+
+    await page.getByRole("button", { name: "Go back" }).click();
+    await expect(page.getByText("Scheduling conflict")).not.toBeVisible();
+
+    const prisma = getTestPrismaClient();
+    const created = await prisma.meeting.findFirst({ where: { title: "Unsaved Conflicting Meeting" } });
+    expect(created).toBeNull();
   });
 });
