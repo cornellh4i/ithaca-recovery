@@ -220,8 +220,13 @@ const DayLandscapeView: React.FC<DayLandscapeViewProps> = ({
   const [initialScrollDone, setInitialScrollDone] = useState(false);
   const scrolledForDateRef = useRef<string | null>(null);
   useLayoutEffect(() => {
-    if (scrollAreaSize.width === 0) return;
     const dateKey = formatETDateString(selectedDate);
+    if (scrollAreaSize.width === 0) {
+      // No measurement yet -- still reveal the grid so a missing ResizeObserver or a
+      // never-resized hidden ancestor can't leave .scrollArea permanently invisible.
+      setInitialScrollDone(true);
+      return;
+    }
     if (scrolledForDateRef.current === dateKey) return;
     scrolledForDateRef.current = dateKey;
 
@@ -301,8 +306,14 @@ const DayLandscapeView: React.FC<DayLandscapeViewProps> = ({
   // swipe starting anywhere in the row, regardless of which descendant (a room label, a meeting
   // card, empty grid space) it began on -- same reasoning as DayPortraitView's own
   // handleRowPointerDown.
+  // A settle animation plus the date commit takes ~250ms. Ignore a new drag gesture until that
+  // completes -- otherwise two overlapping handlers race on selectedDateRef and on the strip's
+  // own `y`, and a fast double-swipe can advance the calendar by only one day or leave the
+  // strip on the wrong panel.
+  const isCommittingRef = useRef(false);
   const dragControls = useDragControls();
   const handleAreaPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (isCommittingRef.current) return;
     dragControls.start(event);
   };
 
@@ -327,6 +338,7 @@ const DayLandscapeView: React.FC<DayLandscapeViewProps> = ({
       Math.abs(info.offset.y) > SWIPE_OFFSET_THRESHOLD || Math.abs(info.velocity.y) > SWIPE_VELOCITY_THRESHOLD;
 
     if (!pastThreshold) {
+      isDraggingRef.current = false;
       controls.start({ y: -panelHeight }, SETTLE_TRANSITION);
       return;
     }
@@ -334,6 +346,7 @@ const DayLandscapeView: React.FC<DayLandscapeViewProps> = ({
     // Drag up (negative offset) reveals the panel below = the next day; drag down reveals the
     // panel above = the previous day.
     const forward = info.offset.y < 0;
+    isCommittingRef.current = true;
     // Parks the strip fully on the neighbor's panel first -- since that panel's content *is*
     // what the newly recomputed "current" panel becomes once changeSelectedDate commits, the
     // recenter below is visually seamless (the standard infinite-carousel swap-while-at-the-
@@ -342,6 +355,8 @@ const DayLandscapeView: React.FC<DayLandscapeViewProps> = ({
     if (!mountedRef.current) return;
     changeSelectedDate(addDaysToDate(selectedDateRef.current, forward ? 1 : -1), { alreadyAnimatedByCaller: true });
     controls.set({ y: -panelHeight });
+    isDraggingRef.current = false;
+    isCommittingRef.current = false;
   };
 
   // Shared by all 3 panels below. The inner motion.div plays a directional fade (same
@@ -377,7 +392,7 @@ const DayLandscapeView: React.FC<DayLandscapeViewProps> = ({
             <div key={room.name} className={styles.roomRow} style={{ height: rowHeight, width: totalGridWidth }}>
               <div className={styles.roomLabel} style={{ width: ROOM_COL_WIDTH }}>
                 <span className={styles.roomDot} style={{ backgroundColor: room.primaryColor }} />
-                {roomDisplayName(room.name)}
+                <span className={styles.roomLabelText}>{roomDisplayName(room.name)}</span>
               </div>
               <div className={styles.roomContent} style={{ width: gridContentWidth }}>
                 <div className={styles.hourGrid} aria-hidden="true">

@@ -46,7 +46,8 @@ const etYearFmt = new Intl.DateTimeFormat('en-US', {
 
 /**
  * ET calendar date as "Friday, July 24" ("Thu, Aug 13" when `compact` is set), with the year
- * appended ("Fri, July 24, 2027") only when it differs from the current ET year. When
+ * appended ("Friday, July 24, 2027" / "Thu, Aug 13, 2027") only when it differs from the
+ * current ET year. When
  * `isHeader` is true, also appends a brand-pink " · Today" when `date` falls on the current ET
  * calendar day -- reserved for the calendar header, since surfacing "Today" on e.g. a meeting
  * popup's date is redundant.

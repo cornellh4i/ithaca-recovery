@@ -116,9 +116,6 @@
   font-size: 11px;
   font-weight: 600;
   color: $navy-color;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
   background-color: $white-color;
   border-right: 1px solid $grey-border-color;
 }
@@ -128,6 +125,17 @@
   height: 7px;
   border-radius: 50%;
   flex: 0 0 auto;
+}
+
+// .roomLabel is a flex container, so its text was previously a bare (anonymous) flex item --
+// text-overflow doesn't apply to those, so an over-long name (one not in ROOM_DISPLAY_NAMES,
+// see roomDisplayName's own comment) clipped off mid-character instead of showing an ellipsis.
+// Owning the truncation on a real element here fixes that.
+.roomLabelText {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 // Where DailyViewRow actually renders -- position: relative so its own absolutely-positioned
@@ -141,7 +149,7 @@
 // Per-hour vertical rules behind the meeting cards -- DailyViewRow itself renders no visual
 // grid (its 24 placeholder divs are unstyled; desktop DayView supplies its own .gridCell
 // siblings for that, see DayView.tsx), so this view supplies the equivalent for its own
-// 7:00-21:00 range. aria-hidden + pointer-events: none -- purely decorative, must not steal
+// 0:00-24:00 range. aria-hidden + pointer-events: none -- purely decorative, must not steal
 // clicks from the meeting cards/row click-through above it.
 .hourGrid {
   position: absolute;
