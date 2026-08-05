@@ -17,6 +17,7 @@ import { convertUTCToET } from "../../util/timeUtils";
 import { IMeeting } from "../../util/models";
 import { useConflictMids } from "../../hooks/useConflictMids";
 import { useViewport } from "../../hooks/useViewport";
+import { PHONE_BREAKPOINT } from "../../util/breakpoints";
 import { useCalendarContext } from "../context/CalendarProvider";
 
 export default function HomePage() {
@@ -396,12 +397,15 @@ export default function HomePage() {
         />
       )}
       <div className={styles.primaryCalendar}>
-        {isPhone && viewport?.isTransitioning ? (
+        {viewport?.isTransitioning &&
+        (isPhone || Math.min(window.innerWidth, window.innerHeight) <= PHONE_BREAKPOINT) ? (
           // A phone rotating (or resizing across the phone/tablet breakpoint) reports its new
           // physical dimensions well before useViewport's own debounced re-render catches up --
           // without this, DayPortraitView/DayLandscapeSwitcher would render in the *old*
           // orientation's shape, squeezed into the *new* dimensions, for that whole window.
-          // Blank instead until the real swap is ready.
+          // Blank instead until the real swap is ready. Checked against the raw window
+          // dimensions too (not just the debounced isPhone), since a desktop/tablet viewport
+          // transitioning INTO phone size reports isPhone=false for the whole debounce window.
           <div className={styles.orientationTransitionBuffer} />
         ) : isLandscapePhone ? (
           <DayLandscapeSwitcher
