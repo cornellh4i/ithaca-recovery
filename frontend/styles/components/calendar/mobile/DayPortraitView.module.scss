@@ -4,11 +4,7 @@
     display: flex;
     flex-direction: column;
     height: 100%;
-
-    // Header + day grid read as one grey surface (WeekStrip stays its own opaque white --
-    // see .strip in WeekStrip.module.scss -- so the boundary between the two reads as a
-    // deliberate color seam instead of an ambiguous, unbordered gap).
-    background-color: $grey-lightest-color;
+    background-color: $white-color;
 
     // WeekStrip and CalendarHeader are plain flex siblings above this, not part of
     // .scrollArea's own scroll container -- so they never scroll with it, no CSS
@@ -60,7 +56,7 @@
     display: flex;
     flex-direction: column;
     border-right: 1px solid $grey-border-color;
-    background-color: $grey-lightest-color;
+    background-color: $white-color;
     height: 1440px; // 24 hours * 60px -- matches DayColumn's own grid at MOBILE_HOUR_HEIGHT
 }
 

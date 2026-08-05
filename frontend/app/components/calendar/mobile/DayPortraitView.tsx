@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { motion, useAnimationControls, useDragControls, type PanInfo } from "framer-motion";
 import WeekStrip from "./WeekStrip";
-import CalendarHeader from "../CalendarHeader";
+import CalendarHeader from "../shared/CalendarHeader";
 import DayColumn from "../shared/DayColumn";
 import { filterMeetingsForDate, MeetingFilters } from "../../../../util/meetingFilters";
 import { ROOM_COLORS, ZOOM_ROOM_COLOR, REMOTE_COLOR } from "../../../../util/filterColors";
@@ -9,6 +9,7 @@ import { formatETDateString } from "../../../../util/timeUtils";
 import { layoutOverlappingMeetings, OverlapMeeting } from "../../../../util/meetingOverlapLayout";
 import { getFirstDayOfWeek, addDaysToDate } from "../../../../util/weekDates";
 import { useWeekMeetings } from "../../../../hooks/useWeekMeetings";
+import { useScrollNavHide } from "../../../../hooks/useScrollNavHide";
 import { useCalendarContext } from "../../../context/CalendarProvider";
 import styles from "../../../../styles/components/calendar/mobile/DayPortraitView.module.scss";
 
@@ -33,10 +34,6 @@ const formatTime = (hour: number): string => {
 };
 
 const timeSlots = Array.from({ length: 24 }, (_, i) => formatTime(i));
-
-// A small downward/upward scroll delta before toggling nav visibility, so tiny scroll
-// jitter (e.g. rubber-banding at the top) doesn't flicker the navbar in and out.
-const SCROLL_HIDE_THRESHOLD_PX = 4;
 
 // Distance/velocity a horizontal drag on the carousel track needs to clear before it counts
 // as a real "swipe to the next/previous day" gesture -- matches WeekStrip's own thresholds so
@@ -82,8 +79,9 @@ const DayPortraitView: React.FC<DayPortraitViewProps> = ({
   conflictMids,
   isAdmin,
 }) => {
-  const { setNavHidden, changeSelectedDate, transitionDirection, transitionAlreadyAnimatedByCaller } =
+  const { changeSelectedDate, transitionDirection, transitionAlreadyAnimatedByCaller } =
     useCalendarContext();
+  const { handleScroll, syncScrollAnchor } = useScrollNavHide();
 
   // A prev/current/next-day carousel needs whichever week(s) contain selectedDate - 1 and
   // selectedDate + 1 -- these two always cover all 3 target dates, since selectedDate is
@@ -96,9 +94,12 @@ const DayPortraitView: React.FC<DayPortraitViewProps> = ({
   const nextWeekMeetings = useWeekMeetings(getFirstDayOfWeek(nextDate), refreshTrigger);
 
   const allMeetings = useMemo(() => {
+    // Keyed on id+date, not id alone -- a recurring meeting occurring more than once in the
+    // fetched range shares its id across every occurrence (each with its own .date), and an
+    // id-only key would silently collapse them down to just one, dropping the rest.
     const merged = new Map<string, Meeting>();
-    for (const meeting of prevWeekMeetings) merged.set(meeting.id, meeting);
-    for (const meeting of nextWeekMeetings) merged.set(meeting.id, meeting);
+    for (const meeting of prevWeekMeetings) merged.set(`${meeting.id}-${meeting.date}`, meeting);
+    for (const meeting of nextWeekMeetings) merged.set(`${meeting.id}-${meeting.date}`, meeting);
     return Array.from(merged.values());
   }, [prevWeekMeetings, nextWeekMeetings]);
 
@@ -135,7 +136,6 @@ const DayPortraitView: React.FC<DayPortraitViewProps> = ({
   const selectedEtDateStr = formatETDateString(selectedDate);
 
   const scrollAreaRef = useRef<HTMLDivElement>(null);
-  const lastScrollTopRef = useRef(0);
   // Gates .scrollArea's visibility until the very first scroll-to-current-time completes --
   // same flash DayView/WeekView's own scrollToCurrentTime has always had (a beat of the
   // wrong scroll position at 12 AM before JS jumps it to "now"), which useLayoutEffect alone
@@ -153,8 +153,8 @@ const DayPortraitView: React.FC<DayPortraitViewProps> = ({
     el.scrollTop = scrollPosition;
     // Keeps handleScroll's own delta calculation from seeing this programmatic jump as a
     // user scroll-down and hiding the mobile navbar the instant this view mounts.
-    lastScrollTopRef.current = scrollPosition;
-  }, []);
+    syncScrollAnchor(scrollPosition);
+  }, [syncScrollAnchor]);
 
   useLayoutEffect(() => {
     if (initialScrollDone === false){
@@ -162,28 +162,6 @@ const DayPortraitView: React.FC<DayPortraitViewProps> = ({
       setInitialScrollDone(true);
     }
   }, [selectedEtDateStr, scrollToCurrentTime]);
-
-  const handleScroll = () => {
-    const el = scrollAreaRef.current;
-    if (!el) return;
-
-    // Rubber-band overscroll (elastic bounce past the top/bottom edge) reports scrollTop
-    // outside [0, maxScroll] and snaps back next frame, producing a delta spike in the
-    // opposite direction of the actual scroll -- ignore nav show/hide while overscrolled.
-    const maxScroll = Math.max(0, el.scrollHeight - el.clientHeight);
-    if (el.scrollTop < 0 || el.scrollTop > maxScroll) {
-      lastScrollTopRef.current = Math.min(Math.max(el.scrollTop, 0), maxScroll);
-      return;
-    }
-
-    const delta = el.scrollTop - lastScrollTopRef.current;
-    if (delta > SCROLL_HIDE_THRESHOLD_PX) {
-      setNavHidden(true);
-    } else if (delta < -SCROLL_HIDE_THRESHOLD_PX) {
-      setNavHidden(false);
-    }
-    lastScrollTopRef.current = el.scrollTop;
-  };
 
   // dayColumnWrapper is a pure clipping viewport that never itself moves -- .carouselTrack
   // (measured in wrapperRef) is the thing that drags. Each .dayPanel bundles its own
