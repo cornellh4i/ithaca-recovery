@@ -1,7 +1,7 @@
 import type { ILeaseSettings } from "./models";
 
 // Ground-truth defaults: room rates/names match the current room list used by
-// NewMeeting.tsx/EditMeeting.tsx and DailyView.tsx's defaultRooms; rental-agent/email
+// NewMeeting.tsx/EditMeeting.tsx and DayView.tsx's defaultRooms; rental-agent/email
 // wording ported from the pre-B.1 PandaDocButton.tsx — used until a Super Admin saves
 // real settings.
 export function defaultLeaseSettings(): ILeaseSettings {

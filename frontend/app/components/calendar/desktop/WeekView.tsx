@@ -1,14 +1,14 @@
 import React, { useCallback, useLayoutEffect, useRef, useState } from "react";
-import styles from '../../../styles/components/calendar/WeeklyView.module.scss';
-import DayColumn from "./DayColumn";
-import { filterMeetingsForDate, MeetingFilters } from "../../../util/meetingFilters";
-import { ROOM_COLORS, ZOOM_ROOM_COLOR, REMOTE_COLOR } from "../../../util/filterColors";
-import { formatETDateString } from "../../../util/timeUtils";
-import { layoutOverlappingMeetings } from "../../../util/meetingOverlapLayout";
-import { getFirstDayOfWeek, getDaysOfWeek } from "../../../util/weekDates";
-import { useWeekMeetings, WeekMeeting } from "../../../hooks/useWeekMeetings";
+import styles from '../../../../styles/components/calendar/desktop/WeekView.module.scss';
+import DayColumn from "../shared/DayColumn";
+import { filterMeetingsForDate, MeetingFilters } from "../../../../util/meetingFilters";
+import { ROOM_COLORS, ZOOM_ROOM_COLOR, REMOTE_COLOR } from "../../../../util/filterColors";
+import { formatETDateString } from "../../../../util/timeUtils";
+import { layoutOverlappingMeetings } from "../../../../util/meetingOverlapLayout";
+import { getFirstDayOfWeek, getDaysOfWeek } from "../../../../util/weekDates";
+import { useWeekMeetings, WeekMeeting } from "../../../../hooks/useWeekMeetings";
 
-export { invalidateWeekCache } from "../../../hooks/useWeekMeetings";
+export { invalidateWeekCache } from "../../../../hooks/useWeekMeetings";
 
 type Meeting = WeekMeeting;
 
@@ -23,7 +23,7 @@ const formatDayName = (date: Date): string => {
 };
 
 
-interface WeeklyViewProps {
+interface WeekViewProps {
     filters: MeetingFilters;
     selectedDate: Date;
     setSelectedDate: (date: Date) => void;
@@ -46,7 +46,7 @@ interface WeeklyViewProps {
     conflictMids?: Set<string>;
 }
 
-const WeeklyView: React.FC<WeeklyViewProps> = ({
+const WeekView: React.FC<WeekViewProps> = ({
     filters,
     selectedDate,
     setSelectedDate,
@@ -238,4 +238,4 @@ const WeeklyView: React.FC<WeeklyViewProps> = ({
     );
 };
 
-export default WeeklyView;
+export default WeekView;

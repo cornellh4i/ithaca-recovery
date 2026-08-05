@@ -12,7 +12,7 @@ const retrieveWeekMeetings = async (request: NextRequest) => {
 
         // Expand recurrence per day of the week, tagging each occurrence with the ET date it
         // was expanded onto. An overnight meeting overlaps two days, so it's tagged onto both —
-        // the client clips/labels each day's card (see WeeklyView.tsx), not this route.
+        // the client clips/labels each day's card (see WeekView.tsx), not this route.
         //
         // Sequential, not Promise.all: firing all 7 days' queries concurrently intermittently
         // returned incomplete results under load (observed via CI-only e2e flakiness -- correct

@@ -37,7 +37,7 @@ const CalendarNavbar: React.FC<CalendarNavbarProps> = ({ selectedDate, onDateCha
     // Shifts the ET calendar date `selectedDate` represents by a day count (Day/Week) or month
     // count (Month), then hands back an ET-noon Date for the result -- noon (not midnight) so
     // re-deriving the ET date string from it later can't roll back a day, matching
-    // WeeklyView.tsx's getFirstDayOfWeek/getDaysOfWeek convention.
+    // WeekView.tsx's getFirstDayOfWeek/getDaysOfWeek convention.
     const shiftSelectedDate = (direction: 1 | -1) => {
       const etDateStr = formatETDateString(selectedDate);
       let newEtDateStr: string;

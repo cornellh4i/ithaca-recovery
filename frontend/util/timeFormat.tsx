@@ -1,4 +1,4 @@
-// Shared compact time-range formatting used by both DailyView and WeeklyView meeting cards.
+// Shared compact time-range formatting used by both DayView and WeekView meeting cards.
 
 import type { ReactNode } from "react";
 import { formatETDateString, getWeekDatesET } from "./timeUtils";

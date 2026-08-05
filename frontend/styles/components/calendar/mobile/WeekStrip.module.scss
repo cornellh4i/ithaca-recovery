@@ -6,7 +6,7 @@
     overflow: hidden;
     touch-action: pan-y;
 
-    // Inside MobileCalendarView's column flex layout, a flex item with non-visible overflow
+    // Inside DayPortraitView's column flex layout, a flex item with non-visible overflow
     // loses its content-based automatic minimum size (CSS Flexbox section 4.5) -- without
     // this, the day-number circles get shrunk/clipped below their own 68px content height
     // whenever the scrollArea sibling's huge (1440px) content competes for space.

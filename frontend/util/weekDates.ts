@@ -1,4 +1,4 @@
-// ET-safe week-boundary math, extracted out of WeeklyView.tsx so WeekStrip (and anything
+// ET-safe week-boundary math, extracted out of WeekView.tsx so WeekStrip (and anything
 // else that needs "what week is this date in") shares the same logic instead of a second,
 // possibly-drifting reimplementation of this DST-sensitive date math.
 

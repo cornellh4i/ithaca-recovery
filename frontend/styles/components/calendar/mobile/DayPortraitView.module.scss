@@ -47,7 +47,7 @@
 }
 
 // Each panel bundles its own .timeColumn alongside its day content, so both slide together as
-// one unit during a swipe (see MobileCalendarView.tsx's renderDayPanel) instead of the time
+// one unit during a swipe (see DayPortraitView.tsx's renderDayPanel) instead of the time
 // labels staying fixed while only the meetings underneath move.
 .dayPanel {
     flex: 0 0 auto;
@@ -65,7 +65,7 @@
 }
 
 .timeSlot {
-    height: 60px; // matches MobileCalendarView.tsx's MOBILE_HOUR_HEIGHT
+    height: 60px; // matches DayPortraitView.tsx's MOBILE_HOUR_HEIGHT
     display: flex;
     align-items: flex-start;
     justify-content: flex-end;

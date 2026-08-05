@@ -8,8 +8,8 @@ export interface WeekMeeting extends OverlapMeeting {
     syncError?: boolean;
 }
 
-// Module-level, shared cache -- extracted out of WeeklyView.tsx so the mobile day view
-// (MobileCalendarView.tsx) hits the exact same cache for the same week's data instead of a
+// Module-level, shared cache -- extracted out of WeekView.tsx so the mobile day view
+// (DayPortraitView.tsx) hits the exact same cache for the same week's data instead of a
 // second, independent cache. Two caches for the same data would mean duplicate network calls
 // (and possible staleness drift) whenever a user resizes across the phone breakpoint.
 const weekMeetingCache = createCache<WeekMeeting[]>();
@@ -83,7 +83,7 @@ export function useWeekMeetings(weekStartDate: Date, refreshTrigger: number = 0)
     const weekStartDateRef = useRef(weekStartDate);
     // Stable ET-day string standing in for `weekStartDate` in dependency arrays below --
     // `useEffect` compares deps with `Object.is`, so a caller that recomputes `weekStartDate`
-    // inline every render (e.g. MobileCalendarView) would otherwise re-run these effects on
+    // inline every render (e.g. DayPortraitView) would otherwise re-run these effects on
     // every unrelated re-render even though the actual week hasn't changed.
     const weekStartKey = formatETDateString(weekStartDate);
     useEffect(() => {

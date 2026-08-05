@@ -52,7 +52,7 @@ const OverlapMeetingsModal: React.FC<OverlapMeetingsModalProps> = ({
     }, null);
 
     // Portaled to document.body -- both Day and Week view render this from deep inside
-    // absolutely-positioned, z-indexed ancestors (e.g. DailyView's .gridMeetingRow), each
+    // absolutely-positioned, z-indexed ancestors (e.g. DayView's .gridMeetingRow), each
     // of which forms its own stacking context. Left in place, this modal's z-index would
     // only be compared *within* that ancestor's context, so a sibling with a higher
     // z-index at the parent level (e.g. the sticky room-label column) would still paint

@@ -1,10 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
-import BoxText from '../atoms/BoxText';
-import OverlapMeetingsModal from './OverlapMeetingsModal';
-import styles from '../../../styles/components/calendar/DayColumn.module.scss';
-import { isZoomRoomMismatched } from '../../../util/rooms';
-import { formatCompactTimeRange } from '../../../util/timeFormat';
-import { formatETDateString } from '../../../util/timeUtils';
+import BoxText from '../../atoms/BoxText';
+import OverlapMeetingsModal from '../OverlapMeetingsModal';
+import styles from '../../../../styles/components/calendar/shared/DayColumn.module.scss';
+import { isZoomRoomMismatched } from '../../../../util/rooms';
+import { formatCompactTimeRange } from '../../../../util/timeFormat';
+import { formatETDateString } from '../../../../util/timeUtils';
 
 interface Meeting {
     id: string;
@@ -48,8 +48,8 @@ interface DayColumnProps {
     // Admin-only (see hooks/useConflictMids) -- mids with an unresolved conflict.
     conflictMids?: Set<string>;
     // Desktop's default: 120px/hour, matching .timeSlot's 120px row height in both
-    // DailyView and WeeklyView. Mobile passes 60 (half height, to fit more of the day on
-    // screen -- see MobileCalendarView, whose own .timeColumn/.timeSlot heights must be
+    // DayView and WeekView. Mobile passes 60 (half height, to fit more of the day on
+    // screen -- see DayPortraitView, whose own .timeColumn/.timeSlot heights must be
     // kept in sync with whatever's passed here).
     hourHeight?: number;
     // Drops each card's tag row and shows a mode icon prefixed to the title instead --
@@ -124,7 +124,7 @@ const DayColumn: React.FC<DayColumnProps> = ({
     // of the two already-shown stacked meetings.
     const renderMeetingCard = (meeting: Meeting, key: React.Key, forceSelected = false) => {
         // Remote meetings have neither a physical room nor a Zoom room -- fall back to a
-        // literal "Remote" label (matches the virtual room DailyView buckets them into,
+        // literal "Remote" label (matches the virtual room DayView buckets them into,
         // see util/rooms.ts's defaultRooms), otherwise the location line would be blank.
         const locationLabel = meeting.room || meeting.zoomRoom || (meeting.tags?.includes('Remote') ? 'Remote' : '');
         const topOffset = timeToPixels(meeting.startTime) + verticalGap / 2;

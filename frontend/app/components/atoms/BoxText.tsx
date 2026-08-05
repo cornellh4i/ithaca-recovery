@@ -25,12 +25,12 @@ interface BoxProps {
   // Highlights the box (drop shadow) while its View Meeting popup is open.
   selected?: boolean;
   // Stretch to fill the parent's height instead of the fixed Meeting Block height —
-  // used by WeeklyView, where the wrapping div's height already encodes the meeting's
-  // duration (DailyView instead encodes duration as width, on a fixed-height row).
+  // used by WeekView, where the wrapping div's height already encodes the meeting's
+  // duration (DayView instead encodes duration as width, on a fixed-height row).
   fillHeight?: boolean;
   // Tightens padding/font-size/tag sizing so title + time + tags all still fit when
   // fillHeight has shrunk the box well below its normal Meeting Block height — used by
-  // DailyView for a meeting sharing its room's row with an overlapping neighbor, where
+  // DayView for a meeting sharing its room's row with an overlapping neighbor, where
   // the box is roughly half-height. Without this, tags get clipped off the bottom.
   //
   // Deprecated: use `tier="compact"` instead. Kept as a working alias (see `tier` below)
@@ -172,9 +172,9 @@ const BoxText: React.FC<BoxProps> = ({
         <TagList
           tags={tags}
           color={primaryColor}
-          // WeeklyView's tall fillHeight boxes pin tags right under the time line rather
+          // WeekView's tall fillHeight boxes pin tags right under the time line rather
           // than at the bottom (see BoxText.module.scss's .fillHeight comment) -- but not
-          // when compact, where it's back to DailyView's half-height stacked case.
+          // when compact, where it's back to DayView's half-height stacked case.
           containerStyle={fillHeight && !isCompact ? { marginTop: 4 } : undefined}
           tagStyle={isCompact ? { padding: '1px 6px', lineHeight: 1 } : undefined}
         />

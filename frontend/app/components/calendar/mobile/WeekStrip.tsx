@@ -2,10 +2,10 @@
 
 import React, { useRef } from "react";
 import { motion, type PanInfo } from "framer-motion";
-import { getFirstDayOfWeek, getDaysOfWeek, addDaysToDate } from "../../../util/weekDates";
-import { formatETDateString } from "../../../util/timeUtils";
-import { useCalendarContext } from "../../context/CalendarProvider";
-import styles from "../../../styles/components/calendar/WeekStrip.module.scss";
+import { getFirstDayOfWeek, getDaysOfWeek, addDaysToDate } from "../../../../util/weekDates";
+import { formatETDateString } from "../../../../util/timeUtils";
+import { useCalendarContext } from "../../../context/CalendarProvider";
+import styles from "../../../../styles/components/calendar/mobile/WeekStrip.module.scss";
 
 // 1-letter weekday abbreviation, ET-explicit like the rest of this calendar's date handling
 // (a local-timezone toLocaleDateString call could disagree with the real ET calendar day near

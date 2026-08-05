@@ -1,13 +1,13 @@
 import React, { useCallback, useEffect, useLayoutEffect, useState, useRef } from "react";
-import styles from '../../../styles/components/calendar/DailyView.module.scss';
-import BoxText from '../atoms/BoxText';
+import styles from '../../../../styles/components/calendar/desktop/DayView.module.scss';
+import BoxText from '../../atoms/BoxText';
 import DailyViewRow from "./DailyViewRow";
-import { formatETDateString, getCurrentETMinutesSinceMidnight, getETDayBounds } from "../../../util/timeUtils";
-import { IMeeting } from "../../../util/models";
-import { passesTagFilters, passesRoomFilter, MeetingFilters } from "../../../util/meetingFilters";
-import { createCache } from "../../../util/simpleCache";
-import { defaultRooms } from "../../../util/rooms";
-import { layoutOverlappingMeetings, OverlapMeeting } from "../../../util/meetingOverlapLayout";
+import { formatETDateString, getCurrentETMinutesSinceMidnight, getETDayBounds } from "../../../../util/timeUtils";
+import { IMeeting } from "../../../../util/models";
+import { passesTagFilters, passesRoomFilter, MeetingFilters } from "../../../../util/meetingFilters";
+import { createCache } from "../../../../util/simpleCache";
+import { defaultRooms } from "../../../../util/rooms";
+import { layoutOverlappingMeetings, OverlapMeeting } from "../../../../util/meetingOverlapLayout";
 
 interface Meeting extends OverlapMeeting {
   syncError?: boolean;
@@ -22,7 +22,7 @@ type Room = {
 const dayMeetingCache = createCache<Room[]>();
 
 // Extracts ET wall-clock time as "HH:MM" (24hr) -- the format layoutOverlappingMeetings'
-// clustering math (and WeeklyView's equivalent startTime/endTime) expects.
+// clustering math (and WeekView's equivalent startTime/endTime) expects.
 const etTimeFmt = new Intl.DateTimeFormat('en-GB', {
   timeZone: 'America/New_York',
   hour: '2-digit', minute: '2-digit', hour12: false,
@@ -35,7 +35,7 @@ export const fetchMeetingsByDay = async (date: Date): Promise<Room[]> => {
     try {
       const response = await fetch(`/api/retrieve/meeting/day?startDate=${formattedDate}`);
       const data: IMeeting[] = await response.json();
-      console.log("[DailyView] Raw API response for", formattedDate, ":", data);
+      console.log("[DayView] Raw API response for", formattedDate, ":", data);
 
       // ET day boundaries, not local-timezone midnight — the backend selected meetings
       // using ET day bounds, so clipping must line up with the same boundaries.
@@ -133,7 +133,7 @@ export const fetchMeetingsByDay = async (date: Date): Promise<Room[]> => {
     } catch (error) {
       // error objects don't serialize over CDP -- log the message directly so it's
       // actually visible in the piped-through e2e console output.
-      console.error("[DailyView] Error fetching meetings for", formattedDate, ":", error instanceof Error ? error.message : String(error));
+      console.error("[DayView] Error fetching meetings for", formattedDate, ":", error instanceof Error ? error.message : String(error));
       return [];
     }
   });
@@ -152,7 +152,7 @@ const formatTime = (hour: number): string => {
 
 const timeSlots = Array.from({ length: 24 }, (_, i) => formatTime(i));
 
-interface DailyViewProps {
+interface DayViewProps {
   filters: MeetingFilters;
   selectedDate: Date;
   setSelectedDate: (date: Date) => void;
@@ -173,7 +173,7 @@ interface DailyViewProps {
   conflictMids?: Set<string>;
 }
 
-const DailyView: React.FC<DailyViewProps> = ({
+const DayView: React.FC<DayViewProps> = ({
   filters,
   selectedDate,
   selectedMeetingID,
@@ -353,4 +353,4 @@ const DailyView: React.FC<DailyViewProps> = ({
   );
 };
 
-export default DailyView;
+export default DayView;

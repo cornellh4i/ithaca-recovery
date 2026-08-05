@@ -32,7 +32,7 @@ const TagList: React.FC<TagListProps> = ({ tags, color, gap = 3, containerStyle,
   const containerStyleKey = JSON.stringify(containerStyle ?? {});
 
   // Tags wrap onto as many rows as the surrounding box actually has room for -- e.g. a tall
-  // WeeklyView card can fit 2+ rows, while a short stacked DailyView card fits barely one --
+  // WeekView card can fit 2+ rows, while a short stacked DayView card fits barely one --
   // and only the remainder collapses into a single "+N" pill. Figuring out how many rows
   // fit takes two measurements: (1) how much vertical space is actually available, found by
   // walking up to the nearest ancestor that clips overflow (a fixed-height Meeting Block

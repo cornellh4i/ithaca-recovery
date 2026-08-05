@@ -4,9 +4,9 @@ import styles from "./page.module.scss";
 import CalendarNavbar from "../components/calendar/CalendarNavbar";
 import CalendarSidebarShell from "../components/calendar/CalendarSidebarShell";
 import ViewMeetingDetails from "../components/meeting-form/ViewMeeting";
-import DailyView from "../components/calendar/DailyView";
-import WeeklyView from "../components/calendar/WeeklyView";
-import MobileCalendarView from "../components/calendar/MobileCalendarView";
+import DayView from "../components/calendar/desktop/DayView";
+import WeekView from "../components/calendar/desktop/WeekView";
+import DayPortraitView from "../components/calendar/mobile/DayPortraitView";
 import MobileFullScreenSheet from "../components/atoms/MobileFullScreenSheet";
 import MobileFab from "../components/calendar/MobileFab";
 import NewMeetingSidebar from "../components/meeting-form/NewMeeting";
@@ -94,7 +94,7 @@ export default function HomePage() {
         setShowEditMeeting(false);
         setSelectedMeeting(data);
         // lastClickedDate is set directly by the calendar box's own click handler (see
-        // setLastClickedDate threaded into DailyView/WeeklyView/MobileCalendarView) --
+        // setLastClickedDate threaded into DayView/WeekView/DayPortraitView) --
         // it already knows which specific occurrence's column/row was clicked, which the
         // globally-selected calendar date does not (e.g. Week view can have a different
         // selectedDate than the day column actually clicked). Left unset here for the
@@ -394,7 +394,7 @@ export default function HomePage() {
       )}
       <div className={styles.primaryCalendar}>
         {isPhone ? (
-          <MobileCalendarView
+          <DayPortraitView
             filters={dayFilters}
             selectedDate={selectedDate}
             selectedMeetingID={selectedMeetingID}
@@ -417,7 +417,7 @@ export default function HomePage() {
               isAdmin={isAdmin}
             />
             {selectedView === "Day" ? (
-              <DailyView
+              <DayView
                 filters={filters}
                 selectedDate={selectedDate}
                 setSelectedDate={changeSelectedDate}
@@ -432,7 +432,7 @@ export default function HomePage() {
                 conflictMids={conflictMids}
               />
             ) : (
-              <WeeklyView
+              <WeekView
                 filters={filters}
                 selectedDate={selectedDate}
                 setSelectedDate={changeSelectedDate}

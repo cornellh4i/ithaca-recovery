@@ -1,6 +1,6 @@
 import React from "react";
 import { render, screen, waitFor } from "@testing-library/react";
-import MobileCalendarView from "../../app/components/calendar/MobileCalendarView";
+import DayPortraitView from "../../app/components/calendar/mobile/DayPortraitView";
 import { CalendarProvider } from "../../app/context/CalendarProvider";
 import { createDefaultFilters } from "../../util/meetingFilters";
 
@@ -20,7 +20,7 @@ afterEach(() => {
 const renderView = (selectedDate: Date) =>
   render(
     <CalendarProvider>
-      <MobileCalendarView
+      <DayPortraitView
         filters={createDefaultFilters(true)}
         selectedDate={selectedDate}
         setSelectedDate={jest.fn()}
@@ -33,7 +33,7 @@ const renderView = (selectedDate: Date) =>
     </CalendarProvider>
   );
 
-describe("MobileCalendarView", () => {
+describe("DayPortraitView", () => {
   // Each test uses a distinct week -- useWeekMeetings' fetch cache is module-level and
   // shared across tests in this file, so reusing a date would let a later test's assertion
   // silently pass off an earlier test's cached (never-refetched) result.

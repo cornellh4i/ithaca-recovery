@@ -1,6 +1,6 @@
 // Shared physical-room / Zoom-room options and their default pairing, used by the
-// meeting forms (NewMeeting, EditMeeting), WeeklyView's room/zoom-room mismatch tag,
-// and DailyView/the signage page (via `defaultRooms` below).
+// meeting forms (NewMeeting, EditMeeting), WeekView's room/zoom-room mismatch tag,
+// and DayView/the signage page (via `defaultRooms` below).
 
 import { ROOM_COLORS, ZOOM_ROOM_COLOR, REMOTE_COLOR } from "./filterColors";
 
@@ -36,13 +36,13 @@ export const isZoomRoomMismatched = (room: string, zoomRoom?: string | null): bo
   !!zoomRoom && zoomRoom !== roomToZoomRoom[room];
 
 // Combines the room lists above with their filter colors (util/filterColors.ts) into the
-// {name, primaryColor} shape DailyView renders rooms with, so that shape doesn't need its
+// {name, primaryColor} shape DayView renders rooms with, so that shape doesn't need its
 // own separately-maintained room list.
 //
 // The trailing "Remote" entry is not a selectable room (it's absent from
 // physicalRoomOptions/zoomRoomOptions on purpose, so it never appears in the Meeting
 // Form's room dropdowns) -- it's a virtual bucket so a Remote meeting, which has neither
-// a physical room nor a Zoom room, still has a column to render in on DailyView instead
+// a physical room nor a Zoom room, still has a column to render in on DayView instead
 // of silently having nowhere to go. Placed last so the real rooms keep their existing
 // left-to-right order.
 export const defaultRooms: { name: string; primaryColor: string }[] = [

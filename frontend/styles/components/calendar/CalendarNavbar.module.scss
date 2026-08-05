@@ -25,7 +25,7 @@
     box-sizing: border-box;
   }
 
-  // Mobile's CalendarHeader runs edge-to-edge (see MobileCalendarView.module.scss / page
+  // Mobile's CalendarHeader runs edge-to-edge (see DayPortraitView.module.scss / page
   // .module.scss's phone-width padding: 0), unlike desktop CalendarNavbar which sits inside
   // .primaryCalendar's 10px inset -- without its own padding here the heading/pill would sit
   // flush against the screen edges.

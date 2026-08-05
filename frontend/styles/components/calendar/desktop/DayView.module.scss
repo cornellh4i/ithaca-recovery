@@ -53,7 +53,7 @@
 }
 
 // Blank top-left corner where the sticky room column and sticky hour header row meet --
-// stays put on both axes, matching WeeklyView's .timeHeader corner.
+// stays put on both axes, matching WeekView's .timeHeader corner.
 .roomCorner {
   position: sticky;
   top: 0;
@@ -87,7 +87,7 @@
   margin-left: 30px;
 }
 
-// The single scroll container for both axes (mirrors WeeklyView's .viewContainer) --
+// The single scroll container for both axes (mirrors WeekView's .viewContainer) --
 // .roomContainer's sticky-left and .headerRow's sticky-top both resolve against this
 // element, which is why neither .scrollContainer nor .roomContainer can carry their own
 // overflow: doing so would make one of them the "nearest scrolling ancestor" instead,

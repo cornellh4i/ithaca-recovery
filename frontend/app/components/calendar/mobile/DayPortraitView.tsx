@@ -1,23 +1,23 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { motion, useAnimationControls, useDragControls, type PanInfo } from "framer-motion";
 import WeekStrip from "./WeekStrip";
-import CalendarHeader from "./CalendarHeader";
-import DayColumn from "./DayColumn";
-import { filterMeetingsForDate, MeetingFilters } from "../../../util/meetingFilters";
-import { ROOM_COLORS, ZOOM_ROOM_COLOR, REMOTE_COLOR } from "../../../util/filterColors";
-import { formatETDateString } from "../../../util/timeUtils";
-import { layoutOverlappingMeetings, OverlapMeeting } from "../../../util/meetingOverlapLayout";
-import { getFirstDayOfWeek, addDaysToDate } from "../../../util/weekDates";
-import { useWeekMeetings } from "../../../hooks/useWeekMeetings";
-import { useCalendarContext } from "../../context/CalendarProvider";
-import styles from "../../../styles/components/calendar/MobileCalendarView.module.scss";
+import CalendarHeader from "../CalendarHeader";
+import DayColumn from "../shared/DayColumn";
+import { filterMeetingsForDate, MeetingFilters } from "../../../../util/meetingFilters";
+import { ROOM_COLORS, ZOOM_ROOM_COLOR, REMOTE_COLOR } from "../../../../util/filterColors";
+import { formatETDateString } from "../../../../util/timeUtils";
+import { layoutOverlappingMeetings, OverlapMeeting } from "../../../../util/meetingOverlapLayout";
+import { getFirstDayOfWeek, addDaysToDate } from "../../../../util/weekDates";
+import { useWeekMeetings } from "../../../../hooks/useWeekMeetings";
+import { useCalendarContext } from "../../../context/CalendarProvider";
+import styles from "../../../../styles/components/calendar/mobile/DayPortraitView.module.scss";
 
 interface Meeting extends OverlapMeeting {
   syncError?: boolean;
 }
 
 // Mobile shows up to 3 overlapping meetings side by side before folding into a "+N"
-// indicator, vs. desktop WeeklyView's default of 2 (see util/meetingOverlapLayout.ts).
+// indicator, vs. desktop WeekView's default of 2 (see util/meetingOverlapLayout.ts).
 const MOBILE_MAX_VISIBLE_OVERLAP = 3;
 
 // Half of DayColumn's 120px/hour desktop default -- deliberately trades detail for fitting
@@ -44,7 +44,7 @@ const SCROLL_HIDE_THRESHOLD_PX = 4;
 const SWIPE_OFFSET_THRESHOLD = 60;
 const SWIPE_VELOCITY_THRESHOLD = 400;
 
-interface MobileCalendarViewProps {
+interface DayPortraitViewProps {
   filters: MeetingFilters;
   selectedDate: Date;
   selectedMeetingID: string | null;
@@ -68,7 +68,7 @@ const isDateToday = (date: Date): boolean => formatETDateString(date) === format
 // MobileAppNavbar). CalendarHeader's heading has its own independent tween (fires when the
 // date change commits, same as WeekStrip taps/mini-calendar picks) -- it is not unified into
 // the carousel drag below.
-const MobileCalendarView: React.FC<MobileCalendarViewProps> = ({
+const DayPortraitView: React.FC<DayPortraitViewProps> = ({
   filters,
   selectedDate,
   selectedMeetingID,
@@ -137,7 +137,7 @@ const MobileCalendarView: React.FC<MobileCalendarViewProps> = ({
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const lastScrollTopRef = useRef(0);
   // Gates .scrollArea's visibility until the very first scroll-to-current-time completes --
-  // same flash DailyView/WeeklyView's own scrollToCurrentTime has always had (a beat of the
+  // same flash DayView/WeekView's own scrollToCurrentTime has always had (a beat of the
   // wrong scroll position at 12 AM before JS jumps it to "now"), which useLayoutEffect alone
   // doesn't fully rule out (e.g. a slow first paint). One-way: only ever flips true once, on
   // the very first date this view renders -- later date changes (day swipe/tap/mini-calendar
@@ -378,4 +378,4 @@ const MobileCalendarView: React.FC<MobileCalendarViewProps> = ({
   );
 };
 
-export default MobileCalendarView;
+export default DayPortraitView;

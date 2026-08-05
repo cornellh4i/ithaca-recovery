@@ -1,4 +1,4 @@
-// Generic "check cache, else fetch" helper, extracted from DailyView/WeeklyView's
+// Generic "check cache, else fetch" helper, extracted from DayView/WeekView's
 // duplicated Map + check/fetch/store boilerplate. Only the caching mechanics are shared —
 // each view still owns its own fetch/transform (their data shapes differ too much to merge).
 

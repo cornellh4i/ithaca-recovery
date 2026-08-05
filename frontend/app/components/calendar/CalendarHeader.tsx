@@ -22,7 +22,7 @@ type CalendarHeaderProps = {
   children?: React.ReactNode;
   // Mobile only: when set, the date-range heading slides between values (keyed by
   // transitionKey, e.g. the ET date string) instead of updating in place -- driven by the
-  // same selectedDate change that also swaps MobileCalendarView's DayColumn, so the two
+  // same selectedDate change that also swaps DayPortraitView's DayColumn, so the two
   // appear to move simultaneously. The "View only" pill below is deliberately never part of
   // this animation (stays fixed while the heading swaps), matching the mobile swipe spec.
   animatedHeading?: { transitionKey: string; direction: SwipeDirection };

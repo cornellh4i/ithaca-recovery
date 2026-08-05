@@ -6,8 +6,8 @@ import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from 
 import { useSearchParams } from "next/navigation";
 import Logo from "../../components/atoms/Logo";
 import CalendarNavbar from "../../components/calendar/CalendarNavbar";
-import DailyView from "../../components/calendar/DailyView";
-import WeeklyView from "../../components/calendar/WeeklyView";
+import DayView from "../../components/calendar/desktop/DayView";
+import WeekView from "../../components/calendar/desktop/WeekView";
 import { parseSignageFilters, parseSignageView } from "../../../util/signageFilters";
 import { formatETDateString } from "../../../util/timeUtils";
 import navbarStyles from "../../../styles/components/navbar/AppNavbar.module.scss";
@@ -111,7 +111,7 @@ function SignageContent() {
           onDateChange={setSelectedDate}
           onViewChange={(v) => setView(v === "Week" ? "Week" : "Day")}
         />
-        {view === "Day" ? <DailyView {...viewProps} /> : <WeeklyView {...viewProps} />}
+        {view === "Day" ? <DayView {...viewProps} /> : <WeekView {...viewProps} />}
       </div>
     </div>
   );

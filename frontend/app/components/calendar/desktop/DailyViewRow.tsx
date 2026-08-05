@@ -1,9 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
-import BoxText from '../atoms/BoxText';
-import OverlapMeetingsModal from './OverlapMeetingsModal';
-import styles from '../../../styles/components/calendar/DailyViewRow.module.scss';
-import { formatCompactTimeRange } from '../../../util/timeFormat';
-import { formatETDateString } from '../../../util/timeUtils';
+import BoxText from '../../atoms/BoxText';
+import OverlapMeetingsModal from '../OverlapMeetingsModal';
+import styles from '../../../../styles/components/calendar/desktop/DailyViewRow.module.scss';
+import { formatCompactTimeRange } from '../../../../util/timeFormat';
+import { formatETDateString } from '../../../../util/timeUtils';
 
 // Meeting Interface
 interface Meeting {
@@ -125,7 +125,7 @@ const DailyViewRow: React.FC<DailyViewRowProps> = ({
 
     // A single meeting fills the room's row exactly; overlapping meetings split it into
     // top/bottom lanes instead (time already reads along the horizontal axis here, so
-    // overlap splits vertically -- the rotated equivalent of WeeklyView's side-by-side
+    // overlap splits vertically -- the rotated equivalent of WeekView's side-by-side
     // columns, where time reads vertically and overlap splits horizontally).
     const isStacked = !!meeting.totalOverlapping && meeting.totalOverlapping > 1;
     const laneTop = isStacked ? (meeting.positionIndex ?? 0) * (LANE_HEIGHT + LANE_GAP) : undefined;
