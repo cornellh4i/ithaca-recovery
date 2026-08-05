@@ -345,3 +345,87 @@ export function computeConflicts(
 
   return conflicts;
 }
+
+// Single-candidate version of computeConflicts, scoped to one resource field/value -- used by
+// write/meeting and update/meeting to block a save that collides on room or zoomRoom, showing
+// what it collides with (unlike findResourceConflicts above, which only returns bare
+// {mid,title}[] and is used by the zoomHost check-and-defer path, a different, non-blocking
+// flow). Deliberately excludes "zoomHost" from `field` -- that check's semantics (includeSuspended
+// defaults true there, since a suspended meeting's Zoom host reservation is still live) differ
+// from room/zoomRoom's (a suspended meeting doesn't block a room, matching computeConflicts'
+// own activeMeetings filtering), so the two shouldn't be reachable through the same call shape.
+export async function findResourceConflictRows(
+  field: "room" | "zoomRoom",
+  value: string,
+  candidate: ConflictCandidateMeeting,
+  opts: FindConflictsOptions = {},
+): Promise<ConflictRow[]> {
+  if (!value) return [];
+
+  const [rangeStart, rangeEnd] = horizonRange(OVERLAP_HORIZON_YEARS);
+  const candidateOccurrences = expandOccurrences(candidate, rangeStart, rangeEnd);
+  if (candidateOccurrences.length === 0) return [];
+
+  const where: Prisma.MeetingWhereInput = {
+    AND: [
+      notDeleted,
+      fieldWhere(field, value),
+      ...(opts.excludeMid ? [{ mid: { not: opts.excludeMid } }] : []),
+    ],
+  };
+
+  const meetings = await prisma.meeting.findMany({
+    where,
+    select: {
+      mid: true,
+      title: true,
+      calType: true,
+      startDateTime: true,
+      endDateTime: true,
+      isRecurring: true,
+      recurrencePattern: true,
+      suspensions: true,
+    },
+  });
+
+  const rows: ConflictRow[] = [];
+  for (const meeting of meetings) {
+    // room/zoomRoom placeholders below are never read by toMeetingSummary/toRecurrenceSummary
+    // (mid/title/calType/isRecurring/recurrencePattern only) -- they exist purely to satisfy
+    // ConflictCandidateMeeting's required `room` field.
+    const existingCandidate: ConflictCandidateMeeting = {
+      mid: meeting.mid,
+      title: meeting.title,
+      room: field === "room" ? value : "",
+      zoomRoom: field === "zoomRoom" ? value : null,
+      calType: meeting.calType,
+      startDateTime: meeting.startDateTime,
+      endDateTime: meeting.endDateTime,
+      isRecurring: meeting.isRecurring,
+      recurrencePattern: meeting.recurrencePattern,
+    };
+    let occurrences = expandOccurrences(existingCandidate, rangeStart, rangeEnd);
+    // Filtered per-occurrence, not per-meeting -- a meeting suspended today but resumed before
+    // a later candidate occurrence still genuinely occupies the room then, and a meeting with a
+    // future suspension window shouldn't block a booking that falls inside it. Matches
+    // computeConflicts' own room/zoomRoom semantics (a suspended meeting doesn't block a room),
+    // just evaluated against each occurrence's own date instead of today's.
+    if (!opts.includeSuspended) {
+      occurrences = occurrences.filter((occ) => !isDateSuspended(meeting.suspensions, formatETDateString(occ.start)));
+    }
+    const pair = findOverlappingOccurrencePair(candidateOccurrences, occurrences);
+    if (pair) {
+      rows.push({
+        field,
+        value,
+        overlap: {
+          start: pair.a.start > pair.b.start ? pair.a.start : pair.b.start,
+          end: pair.a.end < pair.b.end ? pair.a.end : pair.b.end,
+        },
+        meetings: [toMeetingSummary(candidate, pair.a), toMeetingSummary(existingCandidate, pair.b)],
+      });
+    }
+  }
+
+  return rows;
+}

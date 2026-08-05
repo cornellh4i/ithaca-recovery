@@ -52,6 +52,9 @@ interface IMeeting {
   zoomSyncError?: string | null;
   deletedAt?: Date | null;
   updatedAt?: Date | null;
+  // Set true to resubmit a payload that already saw (and was shown) a room/zoomRoom conflict --
+  // never persisted, write/update strip it before the Prisma write.
+  confirmOverride?: boolean;
 }
 
 interface IRecurrencePattern {

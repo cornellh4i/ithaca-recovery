@@ -43,6 +43,10 @@ export const meetingSchema = z.object({
   room: z.string(),
   status: z.string().optional(),
   isRecurring: z.boolean(),
+  // Set true to resubmit a payload that already saw (and was shown) a room/zoomRoom conflict --
+  // must be declared here or zod strips it from safeParse's output (see
+  // zoomHostAvailabilityCheckSchema's comment above for the same behavior).
+  confirmOverride: z.boolean().optional(),
   recurrencePattern: recurrencePatternSchema.nullable().optional(),
   googleCalendarEventId: z.string().nullable().optional(),
   googleCalendarEventIds: z.record(z.string(), z.string()).nullable().optional(),
