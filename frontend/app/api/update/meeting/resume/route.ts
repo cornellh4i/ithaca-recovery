@@ -24,7 +24,8 @@ async function syncResume(
   accessToken: string | undefined,
 ): Promise<void> {
   if (!accessToken) return;
-  const calendarIds = calendarIdsForMeeting(meeting.calType ?? []);
+  const requestedCats = meeting.calType ?? [];
+  const calendarIds = calendarIdsForMeeting(requestedCats);
 
   if (openSuspension.resumeEventIds) {
     const pending = openSuspension.resumeEventIds as Record<string, string>;
@@ -36,8 +37,13 @@ async function syncResume(
 
   const meetingForSync = toCalendarMeeting(meeting, meeting.startDateTime, meeting.endDateTime);
   const eventIds: Record<string, string> = {};
-  const requestedCats = Object.keys(calendarIds);
-  let googleSyncError: string | null = null;
+  // requestedCats, not Object.keys(calendarIds) -- a category missing from calendarIds (its
+  // GOOGLE_CALENDAR_* env var isn't configured) must still count against `synced` below, same
+  // as one whose event failed to create.
+  const unconfiguredCat = requestedCats.find((cat) => !calendarIds[cat]);
+  let googleSyncError: string | null = unconfiguredCat
+    ? `Calendar for "${unconfiguredCat}" is not configured.`
+    : null;
   for (const [cat, calId] of Object.entries(calendarIds)) {
     const { id, error } = await createCalendarEvent(accessToken, meetingForSync, calId);
     if (id) eventIds[cat] = id;
@@ -68,16 +74,37 @@ async function syncRescheduleResume(
   if (!accessToken) return;
   await tearDownPendingResumeSeries(meeting, accessToken);
   const { resumeEventIds, error } = await createPendingResumeSeries(meeting, accessToken, onDate);
-  await prisma.suspensionPeriod.update({
-    where: { id: suspensionId },
-    data: { resumeEventIds: Object.keys(resumeEventIds).length > 0 ? resumeEventIds : null, promoted: false },
+
+  // Guarded on promoted: false, the same single-winner pattern the request handlers below use
+  // -- an immediate resume racing this async task can promote (and close) this suspension
+  // before these pending events finish creating. An unconditional update here would silently
+  // reopen it: reattaching resumeEventIds and un-promoting a suspension the meeting has
+  // already moved past.
+  const updated = await prisma.suspensionPeriod.updateMany({
+    where: { id: suspensionId, promoted: false },
+    data: { resumeEventIds: Object.keys(resumeEventIds).length > 0 ? resumeEventIds : null },
   });
+
+  if (updated.count === 0) {
+    // Lost the race -- these freshly-created events have nothing left pointing at them, so
+    // they'd otherwise dangle on Google Calendar forever.
+    const calendarIds = calendarIdsForMeeting(meeting.calType ?? []);
+    for (const [cat, eventId] of Object.entries(resumeEventIds)) {
+      const calId = calendarIds[cat];
+      if (calId) await deleteCalendarEvent(accessToken, eventId, calId);
+    }
+    return;
+  }
+
   // Surfaces on the meeting's existing sync-status fields -- there's nowhere else an admin
-  // would look to learn the *pending* resume series failed to fully pre-create before its date.
-  if (error) {
+  // would look to learn the *pending* resume series did (or didn't) fully pre-create before its
+  // date. Only touched when there was actual work to report -- an unconfigured calType or a
+  // quiet no-op (no upcoming occurrence) shouldn't overwrite an unrelated live sync error with
+  // a blanket 'synced'.
+  if (Object.keys(resumeEventIds).length > 0 || error) {
     await prisma.meeting.update({
       where: { mid: meeting.mid },
-      data: { googleSyncStatus: 'error', googleSyncError: error },
+      data: { googleSyncStatus: error ? 'error' : 'synced', googleSyncError: error },
     });
   }
 }
