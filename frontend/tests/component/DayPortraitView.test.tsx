@@ -23,7 +23,6 @@ const renderView = (selectedDate: Date) =>
       <DayPortraitView
         filters={createDefaultFilters(true)}
         selectedDate={selectedDate}
-        setSelectedDate={jest.fn()}
         selectedMeetingID={null}
         setSelectedMeetingID={jest.fn()}
         setSelectedNewMeeting={jest.fn()}
