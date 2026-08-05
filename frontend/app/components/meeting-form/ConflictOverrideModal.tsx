@@ -10,11 +10,11 @@ interface ConflictOverrideModalProps {
   isConfirming?: boolean;
 }
 
-// Shown when a create/edit save collides on room or zoomRoom -- write/meeting and update/meeting
-// both reject the save with a 409 + these rows (see findResourceConflictRows) unless the payload
-// is resubmitted with confirmOverride: true. excludeMid already keeps the meeting being saved out
-// of its own conflict rows, so every meeting listed here is a genuine other meeting -- no
-// filtering needed before rendering.
+// Shown when a create/edit save collides on room, zoomRoom, or an explicitly-picked zoomHost --
+// write/meeting and update/meeting all reject the save with a 409 + these rows (see
+// findResourceConflictRows) unless the payload is resubmitted with confirmOverride: true.
+// excludeMid already keeps the meeting being saved out of its own conflict rows, so every
+// meeting listed here is a genuine other meeting -- no filtering needed before rendering.
 const ConflictOverrideModal: React.FC<ConflictOverrideModalProps> = ({
   isOpen,
   conflicts,
@@ -57,8 +57,8 @@ const ConflictOverrideModal: React.FC<ConflictOverrideModalProps> = ({
         </div>
 
         <p className={styles.message}>
-          This meeting&apos;s room or Zoom room is already booked at this time. You can save anyway,
-          or go back and change the room, Zoom room, or schedule.
+          This meeting&apos;s room, Zoom room, or Zoom host is already booked at this time. You can save
+          anyway, or go back and change the room, Zoom room, Zoom host, or schedule.
         </p>
 
         <div className={styles.conflictList}>

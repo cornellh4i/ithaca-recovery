@@ -347,15 +347,17 @@ export function computeConflicts(
 }
 
 // Single-candidate version of computeConflicts, scoped to one resource field/value -- used by
-// write/meeting and update/meeting to block a save that collides on room or zoomRoom, showing
-// what it collides with (unlike findResourceConflicts above, which only returns bare
-// {mid,title}[] and is used by the zoomHost check-and-defer path, a different, non-blocking
-// flow). Deliberately excludes "zoomHost" from `field` -- that check's semantics (includeSuspended
-// defaults true there, since a suspended meeting's Zoom host reservation is still live) differ
-// from room/zoomRoom's (a suspended meeting doesn't block a room, matching computeConflicts'
-// own activeMeetings filtering), so the two shouldn't be reachable through the same call shape.
+// write/meeting and update/meeting to block a save that collides on room, zoomRoom, or a
+// manually-picked zoomHost, showing what it collides with (unlike findResourceConflicts above,
+// which only returns bare {mid,title}[] and is used by the pool-auto-assignment check-and-defer
+// path, a different, non-blocking flow -- pool exhaustion has no "other value to pick instead"
+// the way a room/zoomHost conflict does, so it stays fail-soft). room/zoomRoom and zoomHost
+// differ in one respect the caller must get right: a suspended meeting doesn't block a room
+// (matching computeConflicts' own activeMeetings filtering), but its Zoom host reservation is
+// still live (sync is skipped while suspended, not torn down) -- callers must pass
+// `includeSuspended: true` for a `zoomHost` check, `false`/omitted for `room`/`zoomRoom`.
 export async function findResourceConflictRows(
-  field: "room" | "zoomRoom",
+  field: ResourceField,
   value: string,
   candidate: ConflictCandidateMeeting,
   opts: FindConflictsOptions = {},
@@ -390,14 +392,15 @@ export async function findResourceConflictRows(
 
   const rows: ConflictRow[] = [];
   for (const meeting of meetings) {
-    // room/zoomRoom placeholders below are never read by toMeetingSummary/toRecurrenceSummary
-    // (mid/title/calType/isRecurring/recurrencePattern only) -- they exist purely to satisfy
-    // ConflictCandidateMeeting's required `room` field.
+    // room/zoomRoom/zoomHost placeholders below are never read by toMeetingSummary/
+    // toRecurrenceSummary (mid/title/calType/isRecurring/recurrencePattern only) -- they exist
+    // purely to satisfy ConflictCandidateMeeting's required `room` field.
     const existingCandidate: ConflictCandidateMeeting = {
       mid: meeting.mid,
       title: meeting.title,
       room: field === "room" ? value : "",
       zoomRoom: field === "zoomRoom" ? value : null,
+      zoomHost: field === "zoomHost" ? value : null,
       calType: meeting.calType,
       startDateTime: meeting.startDateTime,
       endDateTime: meeting.endDateTime,
