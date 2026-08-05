@@ -63,9 +63,17 @@ async function syncSuspend(
   }
 
   if (to) {
-    const resumeEventIds = await createPendingResumeSeries(meeting, accessToken, to);
+    const { resumeEventIds, error } = await createPendingResumeSeries(meeting, accessToken, to);
     if (Object.keys(resumeEventIds).length > 0) {
       await prisma.suspensionPeriod.update({ where: { id: suspensionId }, data: { resumeEventIds } });
+    }
+    // Only touched when there was actual work to report -- see the matching comment in
+    // resume/route.ts's syncRescheduleResume for why an empty no-op result stays silent.
+    if (Object.keys(resumeEventIds).length > 0 || error) {
+      await prisma.meeting.update({
+        where: { mid: meeting.mid },
+        data: { googleSyncStatus: error ? 'error' : 'synced', googleSyncError: error },
+      });
     }
   }
 }

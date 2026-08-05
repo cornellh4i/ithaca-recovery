@@ -105,34 +105,47 @@ export async function createPendingResumeSeries(
   meeting: MeetingWithPattern,
   accessToken: string | undefined,
   resumeDate: Date,
-): Promise<Record<string, string>> {
-  if (!accessToken) return {};
-  const calendarIds = calendarIdsForMeeting(meeting.calType ?? []);
+): Promise<{ resumeEventIds: Record<string, string>; error: string | null }> {
+  if (!accessToken) return { resumeEventIds: {}, error: null };
+  const requestedCats = meeting.calType ?? [];
+  const calendarIds = calendarIdsForMeeting(requestedCats);
   const resumeEventIds: Record<string, string> = {};
+  let error: string | null = null;
+  // calendarIds silently drops any category whose GOOGLE_CALENDAR_* env var isn't configured --
+  // only recorded once we know there's an occurrence worth syncing into (the early returns
+  // below for "no upcoming occurrence" stay genuine no-ops, not a misconfiguration report).
+  const recordUnconfiguredCat = () => {
+    const unconfiguredCat = requestedCats.find((cat) => !calendarIds[cat]);
+    if (unconfiguredCat) error = error ?? `Calendar for "${unconfiguredCat}" is not configured.`;
+  };
 
   if (meeting.isRecurring && meeting.recurrencePattern) {
     const resumeDateStr = firstOccurrenceOnOrAfter(
       { ...meeting.recurrencePattern, daysOfWeek: meeting.recurrencePattern.daysOfWeek ?? [] },
       formatETDateString(resumeDate),
     );
-    if (!resumeDateStr) return {};
+    if (!resumeDateStr) return { resumeEventIds: {}, error: null };
+    recordUnconfiguredCat();
     const { start, end } = adjustOccurrenceToDate(meeting, resumeDateStr);
     const resumeMeeting = toCalendarMeeting(meeting, start, end);
     for (const [cat, calId] of Object.entries(calendarIds)) {
-      const id = await createCalendarEvent(accessToken, resumeMeeting, calId);
+      const { id, error: createError } = await createCalendarEvent(accessToken, resumeMeeting, calId);
       if (id) resumeEventIds[cat] = id;
+      else error = error ?? createError;
     }
   } else if (meeting.startDateTime > new Date()) {
     // One-time meeting: only worth pre-creating if the original occurrence hasn't happened yet
     // -- otherwise there's nothing meaningful to resume it into.
+    recordUnconfiguredCat();
     const resumeMeeting = toCalendarMeeting(meeting, meeting.startDateTime, meeting.endDateTime);
     for (const [cat, calId] of Object.entries(calendarIds)) {
-      const id = await createCalendarEvent(accessToken, resumeMeeting, calId);
+      const { id, error: createError } = await createCalendarEvent(accessToken, resumeMeeting, calId);
       if (id) resumeEventIds[cat] = id;
+      else error = error ?? createError;
     }
   }
 
-  return resumeEventIds;
+  return { resumeEventIds, error };
 }
 
 // Deletes every not-yet-promoted pre-created resume series still hanging off this meeting's

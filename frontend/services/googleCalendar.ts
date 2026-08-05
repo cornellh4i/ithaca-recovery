@@ -18,6 +18,13 @@ export function calendarIdsForMeeting(calType: string[]): Record<string, string>
     return result;
 }
 
+// Google's client library errors generally carry the API's own reason text in .message
+// (e.g. "Insufficient Permission", "Not Found") -- surfaced verbatim in ViewMeeting's
+// sync-failure details rather than a generic "something went wrong".
+function errorMessage(error: unknown): string {
+    return error instanceof Error ? error.message : String(error);
+}
+
 function getCalendarClient(accessToken: string) {
     const auth = new google.auth.OAuth2();
     auth.setCredentials({ access_token: accessToken });
@@ -126,17 +133,17 @@ export async function createCalendarEvent(
     meeting: IMeeting,
     calendarId: string,
     locationOverride?: string,
-): Promise<string | null> {
+): Promise<{ id: string | null; error: string | null }> {
     try {
         const calendar = getCalendarClient(accessToken);
         const res = await calendar.events.insert({
             calendarId,
             requestBody: buildEventBody(meeting, locationOverride),
         });
-        return res.data.id ?? null;
+        return { id: res.data.id ?? null, error: null };
     } catch (error) {
         console.error("Google Calendar createEvent error:", error);
-        return null;
+        return { id: null, error: errorMessage(error) };
     }
 }
 
@@ -146,7 +153,7 @@ export async function updateCalendarEvent(
     meeting: IMeeting,
     calendarId: string,
     locationOverride?: string,
-): Promise<boolean> {
+): Promise<{ ok: boolean; error: string | null }> {
     try {
         const calendar = getCalendarClient(accessToken);
         await calendar.events.update({
@@ -154,10 +161,10 @@ export async function updateCalendarEvent(
             eventId: googleCalendarEventId,
             requestBody: buildEventBody(meeting, locationOverride),
         });
-        return true;
+        return { ok: true, error: null };
     } catch (error) {
         console.error("Google Calendar updateEvent error:", error);
-        return false;
+        return { ok: false, error: errorMessage(error) };
     }
 }
 
@@ -169,7 +176,7 @@ export async function reconcileMeetingCalendars(
     accessToken: string,
     meeting: IMeeting,
     existingEventIds: Record<string, string>,
-): Promise<{ updatedEventIds: Record<string, string>; allSynced: boolean }> {
+): Promise<{ updatedEventIds: Record<string, string>; allSynced: boolean; googleSyncError: string | null }> {
     const calendarIds = calendarIdsForMeeting(meeting.calType ?? []);
     const updatedEventIds: Record<string, string> = { ...existingEventIds };
     // Any calType category missing from calendarIds means its GOOGLE_CALENDAR_* env var isn't
@@ -177,7 +184,13 @@ export async function reconcileMeetingCalendars(
     // meeting whose categories are all unconfigured would skip both loops below entirely (no
     // existing events to remove, no calendarIds to create) and allSynced would stay vacuously
     // true, reporting full success despite zero calendar work actually happening.
-    let allSynced = (meeting.calType ?? []).every((cat) => calendarIds[cat]);
+    const unconfiguredCat = (meeting.calType ?? []).find((cat) => !calendarIds[cat]);
+    let allSynced = !unconfiguredCat;
+    // First failure wins -- callers surface this verbatim in a single-line details block, so
+    // one representative error is more useful than concatenating every failure in the batch.
+    let googleSyncError: string | null = null;
+    const recordError = (message: string) => { googleSyncError = googleSyncError ?? message; };
+    if (unconfiguredCat) recordError(`Calendar for "${unconfiguredCat}" is not configured.`);
 
     // Remove events from calendars whose category is no longer part of this meeting's calType
     for (const cat of Object.keys(existingEventIds)) {
@@ -191,27 +204,37 @@ export async function reconcileMeetingCalendars(
             // would create a duplicate event once the calendar is reconfigured, since
             // reconcileMeetingCalendars would then see no existing event to update.
             allSynced = false;
+            recordError(`Calendar for "${cat}" is not configured.`);
             continue;
         }
 
         const ok = await deleteCalendarEvent(accessToken, eventId, calId);
         if (ok) delete updatedEventIds[cat];
-        else allSynced = false;
+        else {
+            allSynced = false;
+            recordError("Failed to remove an outdated calendar event.");
+        }
     }
 
     for (const [cat, calId] of Object.entries(calendarIds)) {
         const existingId = existingEventIds[cat];
         if (existingId) {
-            const ok = await updateCalendarEvent(accessToken, existingId, meeting, calId);
-            if (!ok) allSynced = false;
+            const { ok, error } = await updateCalendarEvent(accessToken, existingId, meeting, calId);
+            if (!ok) {
+                allSynced = false;
+                recordError(error ?? "Failed to update the calendar event.");
+            }
         } else {
-            const newId = await createCalendarEvent(accessToken, meeting, calId);
+            const { id: newId, error } = await createCalendarEvent(accessToken, meeting, calId);
             if (newId) updatedEventIds[cat] = newId;
-            else allSynced = false;
+            else {
+                allSynced = false;
+                recordError(error ?? "Failed to create the calendar event.");
+            }
         }
     }
 
-    return { updatedEventIds, allSynced };
+    return { updatedEventIds, allSynced, googleSyncError };
 }
 
 export async function deleteCalendarEvent(

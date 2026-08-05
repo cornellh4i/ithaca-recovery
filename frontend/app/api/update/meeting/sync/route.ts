@@ -4,7 +4,6 @@ import { requireRole } from "../../../../../services/auth";
 import { IMeeting } from "../../../../../util/models";
 import { createCalendarEvent, updateCalendarEvent, reconcileMeetingCalendars } from "../../../../../services/googleCalendar";
 import { createZoomMeeting, updateZoomMeeting, getZoomMeetingInvitation, resolveZoomHost, zoomRoomCalendarId } from "../../../../../services/zoom";
-import { findResourceConflicts } from "../../../../../util/resourceOverlap";
 import { prisma } from "../../../../../lib/prisma";
 
 const syncMeeting = async (request: Request): Promise<Response> => {
@@ -27,7 +26,10 @@ const syncMeeting = async (request: Request): Promise<Response> => {
         }
 
         if (meeting.status === 'Suspended') {
-            return NextResponse.json({ googleSyncStatus: meeting.googleSyncStatus ?? null });
+            return NextResponse.json({
+                googleSyncStatus: meeting.googleSyncStatus ?? null,
+                googleSyncError: meeting.googleSyncError ?? null,
+            });
         }
 
         const existingEventIds = (meeting.googleCalendarEventIds ?? {}) as Record<string, string>;
@@ -56,22 +58,16 @@ const syncMeeting = async (request: Request): Promise<Response> => {
             let zoomSynced = true;
             zoomSyncError = null;
 
-            let skipCalendarTimeSync = false;
             if (zid) {
-                // Re-check the assigned host is still free for this meeting's current schedule
-                // before pushing the retry to Zoom — a previous failure could have been
-                // transient, but the schedule may also have shifted into a real host conflict.
-                const timeConflicts = zoomHost
-                    ? await findResourceConflicts("zoomHost", zoomHost, meetingForCalendar, { excludeMid: mid, includeSuspended: true })
-                    : [];
-                if (timeConflicts.length > 0) {
-                    zoomSynced = false;
-                    zoomSyncError = "This time now conflicts with another meeting using the same Zoom host.";
-                    skipCalendarTimeSync = true;
-                } else {
-                    const ok = await updateZoomMeeting(zid, meetingForCalendar);
-                    if (!ok) zoomSynced = false;
-                }
+                // Retry re-asserts an already-working Zoom meeting's existing claim -- nothing
+                // about this meeting's own details changed, so a conflict introduced later by a
+                // *different* meeting must not be able to downgrade it (first-come-first-served:
+                // the already-synced meeting keeps its spot; editing this meeting's own details
+                // is the "re-enter the queue" case, handled separately by update/meeting/route.ts).
+                // The conflict itself still surfaces independently via /api/admin/conflict-mids
+                // (Diagnostics), regardless of what happens here.
+                const ok = await updateZoomMeeting(zid, meetingForCalendar);
+                if (!ok) zoomSynced = false;
             } else {
                 const host = await resolveZoomHost(meetingForCalendar, { excludeMid: mid });
                 if (!host) {
@@ -94,19 +90,22 @@ const syncMeeting = async (request: Request): Promise<Response> => {
             // Only Hybrid meetings have a zoomRoom -- Remote's dedicated per-room Zoom-Room
             // calendar publish naturally no-ops here; its link is carried by the main
             // calType-calendar reconcile below instead.
-            if (auth.accessToken && zoomLink && meeting.zoomRoom && !skipCalendarTimeSync) {
+            if (auth.accessToken && zoomLink && meeting.zoomRoom) {
                 const calId = zoomRoomCalendarId[meeting.zoomRoom];
                 if (calId) {
                     const meetingWithZoomLink = { ...meetingForCalendar, zoomLink };
                     if (zoomCalendarEventId) {
-                        const ok = await updateCalendarEvent(auth.accessToken, zoomCalendarEventId, meetingWithZoomLink, calId, zoomLink);
-                        if (!ok) zoomSynced = false;
+                        const { ok, error } = await updateCalendarEvent(auth.accessToken, zoomCalendarEventId, meetingWithZoomLink, calId, zoomLink);
+                        if (!ok) {
+                            zoomSynced = false;
+                            zoomSyncError = zoomSyncError ?? error ?? "Zoom meeting's calendar event failed to update.";
+                        }
                     } else {
-                        const eventId = await createCalendarEvent(auth.accessToken, meetingWithZoomLink, calId, zoomLink);
+                        const { id: eventId, error } = await createCalendarEvent(auth.accessToken, meetingWithZoomLink, calId, zoomLink);
                         if (eventId) zoomCalendarEventId = eventId;
                         else {
                             zoomSynced = false;
-                            zoomSyncError = zoomSyncError ?? "Zoom meeting created but its calendar event failed to sync.";
+                            zoomSyncError = zoomSyncError ?? error ?? "Zoom meeting created but its calendar event failed to sync.";
                         }
                     }
                 }
@@ -123,29 +122,33 @@ const syncMeeting = async (request: Request): Promise<Response> => {
             });
         }
 
-        // True when this meeting needs Zoom but doesn't have a working Zoom meeting after the
-        // retry above -- the calendar reconcile below is deferred, not run with a missing link.
-        const zoomBlocking = zoomEnabled && !zid;
+        // True when this meeting needs Zoom but doesn't currently have a healthy Zoom sync --
+        // gated on the *resulting* zoomSyncStatus, not on !zid (BUG-023: an ID can persist from
+        // a prior success while the current retry just failed) -- the calendar reconcile below
+        // is deferred, not run with a stale/missing link.
+        const zoomBlocking = zoomEnabled && zoomSyncStatus !== 'synced';
         let googleSyncStatus: string;
+        let googleSyncError: string | null = null;
 
         if (zoomBlocking) {
             googleSyncStatus = 'pending';
-            await prisma.meeting.update({ where: { mid }, data: { googleSyncStatus } });
+            await prisma.meeting.update({ where: { mid }, data: { googleSyncStatus, googleSyncError: null } });
         } else {
-            const { updatedEventIds, allSynced } = await reconcileMeetingCalendars(
+            const result = await reconcileMeetingCalendars(
                 auth.accessToken,
                 { ...meetingForCalendar, zoomLink },
                 existingEventIds,
             );
 
-            googleSyncStatus = allSynced ? 'synced' : 'error';
+            googleSyncStatus = result.allSynced ? 'synced' : 'error';
+            googleSyncError = result.allSynced ? null : result.googleSyncError;
             await prisma.meeting.update({
                 where: { mid },
-                data: { googleCalendarEventIds: updatedEventIds, googleSyncStatus },
+                data: { googleCalendarEventIds: result.updatedEventIds, googleSyncStatus, googleSyncError },
             });
         }
 
-        return NextResponse.json({ googleSyncStatus, zoomSyncStatus, zoomSyncError });
+        return NextResponse.json({ googleSyncStatus, googleSyncError, zoomSyncStatus, zoomSyncError });
     } catch (error) {
         console.error("Sync retry error:", error);
         return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });

@@ -1,5 +1,6 @@
 export interface MeetingSyncResult {
   googleSyncStatus: string | null;
+  googleSyncError: string | null;
   zoomSyncStatus: string | null;
   zoomSyncError: string | null;
 }

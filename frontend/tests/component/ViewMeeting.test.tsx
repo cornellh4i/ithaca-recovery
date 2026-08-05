@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { render, screen, waitFor, within, fireEvent } from "@testing-library/react";
 import ViewMeetingDetails from "../../app/components/meeting-form/ViewMeeting";
 
 beforeEach(() => {
@@ -70,5 +70,52 @@ describe("ViewMeeting", () => {
     render(<ViewMeetingDetails {...baseProps} anchorEl={makeAnchorEl()} isPhone={false} />);
     const label = await screen.findByText("In Person");
     expect(label.querySelector("img")).toHaveAttribute("src", "/svg/location-icon.svg");
+  });
+
+  // BUG-022: the status band (sync-failure/conflict) must be admin-only -- a public/
+  // unauthenticated viewer should never see it, only the Retry button used to be gated.
+  describe("status band admin gating", () => {
+    const withProblems = {
+      ...baseProps,
+      googleSyncStatus: "error",
+      googleSyncError: "Insufficient permissions.",
+      zoomSyncStatus: "error",
+      zoomSyncError: "Meeting ID no longer exists.",
+      conflictCount: 2,
+    };
+
+    it("shows the sync-failure and conflict blocks for an admin", async () => {
+      render(<ViewMeetingDetails {...withProblems} isAdmin anchorEl={makeAnchorEl()} isPhone={false} />);
+      expect(await screen.findByText("Failed to sync")).toBeInTheDocument();
+      expect(screen.getByText(/Conflicts with 2 other meetings/)).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Retry sync" })).toBeInTheDocument();
+    });
+
+    it("hides the entire status band for a non-admin/public viewer", async () => {
+      render(<ViewMeetingDetails {...withProblems} isAdmin={false} anchorEl={makeAnchorEl()} isPhone={false} />);
+      await screen.findByText("Serenity Group");
+      expect(screen.queryByText("Failed to sync")).not.toBeInTheDocument();
+      expect(screen.queryByText(/Conflicts with/)).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Retry sync" })).not.toBeInTheDocument();
+    });
+
+    it("hides the status band while the auth check is still pending (isAdmin === null)", async () => {
+      render(<ViewMeetingDetails {...withProblems} isAdmin={null} anchorEl={makeAnchorEl()} isPhone={false} />);
+      await screen.findByText("Serenity Group");
+      expect(screen.queryByText("Failed to sync")).not.toBeInTheDocument();
+      expect(screen.queryByText(/Conflicts with/)).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Retry sync" })).not.toBeInTheDocument();
+    });
+
+    it("toggles the per-channel error details on the info button", async () => {
+      render(<ViewMeetingDetails {...withProblems} isAdmin anchorEl={makeAnchorEl()} isPhone={false} />);
+      const toggle = await screen.findByRole("button", { name: "Show sync error details" });
+      expect(screen.queryByText(/Insufficient permissions/)).not.toBeInTheDocument();
+
+      fireEvent.click(toggle);
+      expect(await screen.findByText(/Insufficient permissions/)).toBeInTheDocument();
+      expect(screen.getByText(/Meeting ID no longer exists/)).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Hide sync error details" })).toBeInTheDocument();
+    });
   });
 });

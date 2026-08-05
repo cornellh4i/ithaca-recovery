@@ -24,11 +24,12 @@ jest.mock("../../services/zoom", () => ({
 import { getTestPrismaClient, disconnectTestPrismaClient } from "../factories/db";
 import { buildMeetingData as buildBaseMeetingData } from "../factories/meeting";
 import { POST } from "../../app/api/update/meeting/sync/route";
-import { resolveZoomHost, createZoomMeeting } from "../../services/zoom";
+import { resolveZoomHost, createZoomMeeting, updateZoomMeeting } from "../../services/zoom";
 import { reconcileMeetingCalendars } from "../../services/googleCalendar";
 
 const mockedResolveZoomHost = resolveZoomHost as jest.Mock;
 const mockedCreateZoomMeeting = createZoomMeeting as jest.Mock;
+const mockedUpdateZoomMeeting = updateZoomMeeting as jest.Mock;
 const mockedReconcileMeetingCalendars = reconcileMeetingCalendars as jest.Mock;
 
 function buildMeetingData(overrides: Partial<Meeting> = {}) {
@@ -50,6 +51,7 @@ afterAll(async () => {
 beforeEach(() => {
   mockedResolveZoomHost.mockReset();
   mockedCreateZoomMeeting.mockReset();
+  mockedUpdateZoomMeeting.mockReset();
   mockedReconcileMeetingCalendars.mockReset();
 });
 
@@ -108,4 +110,67 @@ test("a retry that still can't get a host stays pending and does not attempt the
 
   const afterRetry = await prisma.meeting.findUnique({ where: { mid: meetingData.mid } });
   expect(afterRetry?.googleSyncStatus).toBe("pending");
+});
+
+// BUG-023: zoomBlocking must key off the *resulting* zoomSyncStatus, not off "does a zid
+// already exist" -- an already-synced meeting's zid persists across retries regardless of
+// whether this retry itself succeeds, so !zid alone can't tell the two cases apart.
+describe("retrying an already-synced meeting (existing zid)", () => {
+  function buildSyncedMeetingData(overrides: Partial<Meeting> = {}) {
+    return buildMeetingData({
+      title: "Already Synced Meeting",
+      modeType: "Remote",
+      room: "",
+      zid: "existing-zid",
+      zoomLink: "http://zoom.test/existing",
+      zoomHost: "host@icr.test",
+      googleSyncStatus: "synced",
+      zoomSyncStatus: "synced",
+      zoomSyncError: null,
+      ...overrides,
+    });
+  }
+
+  test("a real Zoom API success keeps the meeting synced and still runs the calendar reconcile (first-come-first-served: no conflict pre-check downgrades an unchanged, already-working meeting)", async () => {
+    mockedUpdateZoomMeeting.mockResolvedValue(true);
+    mockedReconcileMeetingCalendars.mockResolvedValue({ updatedEventIds: {}, allSynced: true, googleSyncError: null });
+
+    const prisma = getTestPrismaClient();
+    const meetingData = buildSyncedMeetingData();
+    await prisma.meeting.create({ data: meetingData });
+
+    const request = new Request("http://localhost/api/update/meeting/sync", {
+      method: "POST",
+      body: JSON.stringify({ mid: meetingData.mid }),
+    });
+
+    const response = await POST(request);
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body.zoomSyncStatus).toBe("synced");
+    expect(body.googleSyncStatus).toBe("synced");
+
+    expect(mockedUpdateZoomMeeting).toHaveBeenCalledWith("existing-zid", expect.anything());
+    expect(mockedReconcileMeetingCalendars).toHaveBeenCalled();
+  });
+
+  test("a real Zoom API failure marks zoomSyncStatus error and defers the calendar reconcile", async () => {
+    mockedUpdateZoomMeeting.mockResolvedValue(false);
+
+    const prisma = getTestPrismaClient();
+    const meetingData = buildSyncedMeetingData();
+    await prisma.meeting.create({ data: meetingData });
+
+    const request = new Request("http://localhost/api/update/meeting/sync", {
+      method: "POST",
+      body: JSON.stringify({ mid: meetingData.mid }),
+    });
+
+    const response = await POST(request);
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body.zoomSyncStatus).toBe("error");
+    expect(body.googleSyncStatus).toBe("pending");
+    expect(mockedReconcileMeetingCalendars).not.toHaveBeenCalled();
+  });
 });

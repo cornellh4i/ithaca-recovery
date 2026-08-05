@@ -76,9 +76,17 @@ async function syncNewMeeting(
     const requestedCalTypes = meetingData.calType ?? [];
     const calendarIds = calendarIdsForMeeting(requestedCalTypes);
     const eventIds: Record<string, string> = {};
+    // A category missing from calendarIds never gets visited by the loop below, so without
+    // this its GOOGLE_CALENDAR_* misconfiguration would count against `synced` (see the
+    // comment below) but leave googleSyncError null -- an "error" status with no error text.
+    const unconfiguredCat = requestedCalTypes.find((cat) => !calendarIds[cat]);
+    let googleSyncError: string | null = unconfiguredCat
+      ? `Calendar for "${unconfiguredCat}" is not configured.`
+      : null;
     for (const [cat, calId] of Object.entries(calendarIds)) {
-      const id = await createCalendarEvent(accessToken, meetingForSync, calId);
+      const { id, error } = await createCalendarEvent(accessToken, meetingForSync, calId);
       if (id) eventIds[cat] = id;
+      else googleSyncError = googleSyncError ?? error;
     }
     // Checked against requestedCalTypes, not calendarIds -- a category missing from calendarIds
     // (its GOOGLE_CALENDAR_* env var isn't configured) must still count against `synced`, same
@@ -90,6 +98,7 @@ async function syncNewMeeting(
       data: {
         googleCalendarEventIds: eventIds,
         googleSyncStatus: synced ? 'synced' : 'error',
+        googleSyncError: synced ? null : googleSyncError,
       },
     });
   }
@@ -103,11 +112,11 @@ async function syncNewMeeting(
     if (accessToken && zoomLink && meetingData.zoomRoom) {
       const calId = zoomRoomCalendarId[meetingData.zoomRoom];
       if (calId) {
-        const eventId = await createCalendarEvent(accessToken, { ...meetingForSync, zoomLink }, calId, zoomLink);
+        const { id: eventId, error } = await createCalendarEvent(accessToken, { ...meetingForSync, zoomLink }, calId, zoomLink);
         if (eventId) zoomCalendarEventId = eventId;
         else {
           zoomSynced = false;
-          zoomSyncError = zoomSyncError ?? "Zoom meeting created but its calendar event failed to sync.";
+          zoomSyncError = zoomSyncError ?? error ?? "Zoom meeting created but its calendar event failed to sync.";
         }
       }
     }

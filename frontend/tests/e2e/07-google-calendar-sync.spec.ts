@@ -74,16 +74,20 @@ test.describe("google calendar sync", () => {
     await seedMeeting({ title: "GCal Retry Meeting", googleSyncStatus: "error" });
     await page.goto("/");
     await page.getByText("GCal Retry Meeting", { exact: true }).click();
-    await expect(page.getByText("Google Calendar sync failed ⚠")).toBeVisible();
+    await expect(page.locator("span", { hasText: /^Failed to sync$/ })).toBeVisible();
     await expect(page.getByRole("button", { name: "Retry sync" })).toBeVisible();
   });
 
-  test("7.10 a successfully-synced meeting shows the success state", async ({ adminPage }) => {
+  // A synced meeting has no dedicated "success" indicator by design (ViewMeeting's status
+  // band only ever renders for a problem -- sync failure, conflict, or suspension); the
+  // observable success state is simply the absence of the failure band and its Retry button.
+  test("7.10 a successfully-synced meeting shows no failure state", async ({ adminPage }) => {
     const { page } = adminPage;
     await seedMeeting({ title: "GCal Synced Meeting", googleSyncStatus: "synced" });
     await page.goto("/");
     await page.getByText("GCal Synced Meeting", { exact: true }).click();
-    await expect(page.getByText("Synced to Google Calendar ✓")).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1, name: "GCal Synced Meeting" })).toBeVisible();
+    await expect(page.getByText("Failed to sync")).toHaveCount(0);
     await expect(page.getByRole("button", { name: "Retry sync" })).toHaveCount(0);
   });
 });

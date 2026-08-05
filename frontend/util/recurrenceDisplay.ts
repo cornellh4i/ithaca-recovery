@@ -12,13 +12,13 @@ const DAY_ORDER = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Frid
 const WEEK_OF_MONTH_ORDINALS = ["1st", "2nd", "3rd", "4th"];
 
 const DAY_ABBREVIATIONS: Record<string, string> = {
-  Sunday: "Su",
-  Monday: "M",
-  Tuesday: "Tu",
-  Wednesday: "W",
-  Thursday: "Th",
-  Friday: "F",
-  Saturday: "Sa",
+  Sunday: "Sun",
+  Monday: "Mon",
+  Tuesday: "Tue",
+  Wednesday: "Wed",
+  Thursday: "Thu",
+  Friday: "Fri",
+  Saturday: "Sat",
 };
 
 // Collapses a set of weekday names into abbreviated ranges in week order, e.g.
@@ -73,4 +73,18 @@ export function formatFrequencyColumn(pattern: RecurrencePatternLike | null): st
   if (pattern.type === "monthly") return "Monthly";
   if (pattern.type === "weekly") return "Weekly";
   return "";
+}
+
+// ViewMeeting's recurrence line: "Weekly · Mon, Wed". A pattern that occurs every day of the
+// week collapses to just "Daily" -- formatDayColumn already returns that string for
+// daysOfWeek.length === 7, so the frequency word would otherwise be a redundant "Weekly · Daily".
+export function formatRecurrencePattern(pattern: RecurrencePatternLike | null): string {
+  if (!pattern) return "";
+  const day = formatDayColumn(pattern);
+  if (pattern.type !== "monthly" && (pattern.daysOfWeek ?? []).length === 7) return day;
+  const frequency = formatFrequencyColumn(pattern);
+  // e.g. a bare monthly pattern (no weekOfMonth/dayOfMonth) has formatDayColumn fall back to
+  // "Monthly" too -- avoid the redundant "Monthly · Monthly".
+  if (frequency === day) return day;
+  return day ? `${frequency} · ${day}` : frequency;
 }

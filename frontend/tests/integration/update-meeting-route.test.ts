@@ -253,7 +253,7 @@ test("an exhausted Zoom host pool on update fails soft, synchronously, without t
 test("an explicit host reassignment tears down the old Zoom meeting and creates a new one under the new host", async () => {
   mockedDeleteZoomMeeting.mockResolvedValue(true);
   mockedCreateZoomMeeting.mockResolvedValue({ zid: "zid-reassigned", zoomLink: "http://zoom.test/reassigned", zoomPasscode: null });
-  mockedCreateCalendarEvent.mockResolvedValue("fake-zoom-cal-event-id");
+  mockedCreateCalendarEvent.mockResolvedValue({ id: "fake-zoom-cal-event-id", error: null });
   mockedReconcileMeetingCalendars.mockResolvedValue({ updatedEventIds: {}, allSynced: true });
 
   const prisma = getTestPrismaClient();
