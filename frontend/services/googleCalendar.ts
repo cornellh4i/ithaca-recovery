@@ -184,11 +184,13 @@ export async function reconcileMeetingCalendars(
     // meeting whose categories are all unconfigured would skip both loops below entirely (no
     // existing events to remove, no calendarIds to create) and allSynced would stay vacuously
     // true, reporting full success despite zero calendar work actually happening.
-    let allSynced = (meeting.calType ?? []).every((cat) => calendarIds[cat]);
+    const unconfiguredCat = (meeting.calType ?? []).find((cat) => !calendarIds[cat]);
+    let allSynced = !unconfiguredCat;
     // First failure wins -- callers surface this verbatim in a single-line details block, so
     // one representative error is more useful than concatenating every failure in the batch.
     let googleSyncError: string | null = null;
     const recordError = (message: string) => { googleSyncError = googleSyncError ?? message; };
+    if (unconfiguredCat) recordError(`Calendar for "${unconfiguredCat}" is not configured.`);
 
     // Remove events from calendars whose category is no longer part of this meeting's calType
     for (const cat of Object.keys(existingEventIds)) {

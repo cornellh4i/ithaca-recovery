@@ -63,7 +63,7 @@ async function syncSuspend(
   }
 
   if (to) {
-    const resumeEventIds = await createPendingResumeSeries(meeting, accessToken, to);
+    const { resumeEventIds } = await createPendingResumeSeries(meeting, accessToken, to);
     if (Object.keys(resumeEventIds).length > 0) {
       await prisma.suspensionPeriod.update({ where: { id: suspensionId }, data: { resumeEventIds } });
     }

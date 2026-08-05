@@ -99,6 +99,14 @@ describe("ViewMeeting", () => {
       expect(screen.queryByRole("button", { name: "Retry sync" })).not.toBeInTheDocument();
     });
 
+    it("hides the status band while the auth check is still pending (isAdmin === null)", async () => {
+      render(<ViewMeetingDetails {...withProblems} isAdmin={null} anchorEl={makeAnchorEl()} isPhone={false} />);
+      await screen.findByText("Serenity Group");
+      expect(screen.queryByText("Failed to sync")).not.toBeInTheDocument();
+      expect(screen.queryByText(/Conflicts with/)).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Retry sync" })).not.toBeInTheDocument();
+    });
+
     it("toggles the per-channel error details on the info button", async () => {
       render(<ViewMeetingDetails {...withProblems} isAdmin anchorEl={makeAnchorEl()} isPhone={false} />);
       const toggle = await screen.findByRole("button", { name: "Show sync error details" });

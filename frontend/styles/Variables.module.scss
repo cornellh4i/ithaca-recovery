@@ -20,6 +20,7 @@ $grey-lightest-color: #F1F1F1;
 $success-bg-color: #D4F4D2;
 $success-text-color: #4CAF50;
 $danger-color: #F00;
+
 // = color-mix(in srgb, $danger-color 8%, white), precomputed -- this file is plain SCSS vars,
 // not CSS custom properties, so color-mix() can't reference $danger-color at runtime here.
 $danger-bg-color: #FFEBEB;
@@ -36,8 +37,8 @@ $text-secondary-color: #666;
 // Corner radii -- named by scale (sm/md/lg), not by component, so any part of the UI can reuse
 // the same token instead of hardcoding a one-off border-radius value.
 $radius-sm: 4px;
-$radius-md: 10px;
-$radius-lg: 8px;
+$radius-md: 8px;
+$radius-lg: 10px;
 
 // Room/Zoom-room/Remote color coding used by the calendar views and their filter chips.
 // Mirrors util/filterColors.ts's ROOM_COLORS/ZOOM_ROOM_COLOR/REMOTE_COLOR -- Sass vars aren't

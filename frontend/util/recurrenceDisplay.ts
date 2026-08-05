@@ -83,5 +83,8 @@ export function formatRecurrencePattern(pattern: RecurrencePatternLike | null): 
   const day = formatDayColumn(pattern);
   if (pattern.type !== "monthly" && (pattern.daysOfWeek ?? []).length === 7) return day;
   const frequency = formatFrequencyColumn(pattern);
+  // e.g. a bare monthly pattern (no weekOfMonth/dayOfMonth) has formatDayColumn fall back to
+  // "Monthly" too -- avoid the redundant "Monthly · Monthly".
+  if (frequency === day) return day;
   return day ? `${frequency} · ${day}` : frequency;
 }

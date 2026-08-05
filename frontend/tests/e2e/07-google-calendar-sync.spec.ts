@@ -74,7 +74,7 @@ test.describe("google calendar sync", () => {
     await seedMeeting({ title: "GCal Retry Meeting", googleSyncStatus: "error" });
     await page.goto("/");
     await page.getByText("GCal Retry Meeting", { exact: true }).click();
-    await expect(page.getByText("Failed to sync")).toBeVisible();
+    await expect(page.locator("span", { hasText: /^Failed to sync$/ })).toBeVisible();
     await expect(page.getByRole("button", { name: "Retry sync" })).toBeVisible();
   });
 

@@ -36,12 +36,23 @@ async function syncResume(
 
   const meetingForSync = toCalendarMeeting(meeting, meeting.startDateTime, meeting.endDateTime);
   const eventIds: Record<string, string> = {};
+  const requestedCats = Object.keys(calendarIds);
+  let googleSyncError: string | null = null;
   for (const [cat, calId] of Object.entries(calendarIds)) {
-    const { id } = await createCalendarEvent(accessToken, meetingForSync, calId);
+    const { id, error } = await createCalendarEvent(accessToken, meetingForSync, calId);
     if (id) eventIds[cat] = id;
+    else googleSyncError = googleSyncError ?? error;
   }
 
-  await prisma.meeting.update({ where: { mid: meeting.mid }, data: { googleCalendarEventIds: eventIds } });
+  const synced = requestedCats.length > 0 && requestedCats.every((cat) => eventIds[cat]);
+  await prisma.meeting.update({
+    where: { mid: meeting.mid },
+    data: {
+      googleCalendarEventIds: eventIds,
+      googleSyncStatus: synced ? 'synced' : 'error',
+      googleSyncError: synced ? null : googleSyncError,
+    },
+  });
 }
 
 // "Resume on X" doesn't reactivate anything now -- it just moves the open suspension's scheduled
@@ -56,11 +67,19 @@ async function syncRescheduleResume(
 ): Promise<void> {
   if (!accessToken) return;
   await tearDownPendingResumeSeries(meeting, accessToken);
-  const resumeEventIds = await createPendingResumeSeries(meeting, accessToken, onDate);
+  const { resumeEventIds, error } = await createPendingResumeSeries(meeting, accessToken, onDate);
   await prisma.suspensionPeriod.update({
     where: { id: suspensionId },
     data: { resumeEventIds: Object.keys(resumeEventIds).length > 0 ? resumeEventIds : null, promoted: false },
   });
+  // Surfaces on the meeting's existing sync-status fields -- there's nowhere else an admin
+  // would look to learn the *pending* resume series failed to fully pre-create before its date.
+  if (error) {
+    await prisma.meeting.update({
+      where: { mid: meeting.mid },
+      data: { googleSyncStatus: 'error', googleSyncError: error },
+    });
+  }
 }
 
 const resumeMeeting = async (request: Request) => {

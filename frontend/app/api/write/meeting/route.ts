@@ -76,7 +76,13 @@ async function syncNewMeeting(
     const requestedCalTypes = meetingData.calType ?? [];
     const calendarIds = calendarIdsForMeeting(requestedCalTypes);
     const eventIds: Record<string, string> = {};
-    let googleSyncError: string | null = null;
+    // A category missing from calendarIds never gets visited by the loop below, so without
+    // this its GOOGLE_CALENDAR_* misconfiguration would count against `synced` (see the
+    // comment below) but leave googleSyncError null -- an "error" status with no error text.
+    const unconfiguredCat = requestedCalTypes.find((cat) => !calendarIds[cat]);
+    let googleSyncError: string | null = unconfiguredCat
+      ? `Calendar for "${unconfiguredCat}" is not configured.`
+      : null;
     for (const [cat, calId] of Object.entries(calendarIds)) {
       const { id, error } = await createCalendarEvent(accessToken, meetingForSync, calId);
       if (id) eventIds[cat] = id;

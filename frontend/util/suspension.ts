@@ -105,34 +105,37 @@ export async function createPendingResumeSeries(
   meeting: MeetingWithPattern,
   accessToken: string | undefined,
   resumeDate: Date,
-): Promise<Record<string, string>> {
-  if (!accessToken) return {};
+): Promise<{ resumeEventIds: Record<string, string>; error: string | null }> {
+  if (!accessToken) return { resumeEventIds: {}, error: null };
   const calendarIds = calendarIdsForMeeting(meeting.calType ?? []);
   const resumeEventIds: Record<string, string> = {};
+  let error: string | null = null;
 
   if (meeting.isRecurring && meeting.recurrencePattern) {
     const resumeDateStr = firstOccurrenceOnOrAfter(
       { ...meeting.recurrencePattern, daysOfWeek: meeting.recurrencePattern.daysOfWeek ?? [] },
       formatETDateString(resumeDate),
     );
-    if (!resumeDateStr) return {};
+    if (!resumeDateStr) return { resumeEventIds: {}, error: null };
     const { start, end } = adjustOccurrenceToDate(meeting, resumeDateStr);
     const resumeMeeting = toCalendarMeeting(meeting, start, end);
     for (const [cat, calId] of Object.entries(calendarIds)) {
-      const { id } = await createCalendarEvent(accessToken, resumeMeeting, calId);
+      const { id, error: createError } = await createCalendarEvent(accessToken, resumeMeeting, calId);
       if (id) resumeEventIds[cat] = id;
+      else error = error ?? createError;
     }
   } else if (meeting.startDateTime > new Date()) {
     // One-time meeting: only worth pre-creating if the original occurrence hasn't happened yet
     // -- otherwise there's nothing meaningful to resume it into.
     const resumeMeeting = toCalendarMeeting(meeting, meeting.startDateTime, meeting.endDateTime);
     for (const [cat, calId] of Object.entries(calendarIds)) {
-      const { id } = await createCalendarEvent(accessToken, resumeMeeting, calId);
+      const { id, error: createError } = await createCalendarEvent(accessToken, resumeMeeting, calId);
       if (id) resumeEventIds[cat] = id;
+      else error = error ?? createError;
     }
   }
 
-  return resumeEventIds;
+  return { resumeEventIds, error };
 }
 
 // Deletes every not-yet-promoted pre-created resume series still hanging off this meeting's

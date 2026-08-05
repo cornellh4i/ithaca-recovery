@@ -152,9 +152,8 @@
       flex-direction: column;
       gap: 8px;
       padding: 10px 12px;
-      border-radius: $radius-md;
+      border-radius: $radius-lg;
       background: $danger-bg-color;
-      transition: background-color 0.2s, border-color 0.2s;
     }
 
     .syncFailureHeader {
@@ -210,7 +209,7 @@
       border: 1px solid $danger-color;
       background: $white-color;
       color: $danger-color;
-      border-radius: $radius-lg;
+      border-radius: $radius-md;
       padding: 4px 10px;
       font-size: 13px;
       font-weight: 600;
@@ -227,7 +226,7 @@
       align-items: flex-start;
       gap: 8px;
       padding: 10px 12px;
-      border-radius: $radius-md;
+      border-radius: $radius-lg;
       background: $warning-bg-color;
       color: $warning-text-color;
       font-size: 13px;
@@ -317,7 +316,7 @@
     .zoomBlock {
       padding: 12px 14px;
       background: $grey-lightest-color;
-      border-radius: $radius-md;
+      border-radius: $radius-lg;
       display: flex;
       flex-direction: column;
       gap: 6px;

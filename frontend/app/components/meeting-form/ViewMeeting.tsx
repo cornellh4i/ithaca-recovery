@@ -296,7 +296,10 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
       const zoomOk = data.zoomSyncStatus == null || data.zoomSyncStatus === 'synced';
       if (calendarOk && zoomOk) onSyncSuccess?.();
     } catch {
+      // Stale from a prior fetch/retry -- this failure is the request itself, not a specific
+      // provider error, so clear it and let the details list fall back to "Sync failed.".
       setGoogleSyncStatus('error');
+      setGoogleSyncError(null);
     } finally {
       setSyncing(false);
     }
@@ -405,12 +408,15 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
   const getRecurrenceText = () => {
     if (!recurrencePattern) return "Repeats regularly";
 
-    return formatRecurrencePattern({
+    // formatRecurrencePattern only knows "weekly"/"monthly" -- other pattern types (e.g.
+    // "daily") fall through to an empty string, so fall back rather than showing blank text.
+    const formatted = formatRecurrencePattern({
       type: recurrencePattern.type,
       weekOfMonth: recurrencePattern.weekOfMonth ?? null,
       dayOfMonth: recurrencePattern.dayOfMonth ?? null,
       daysOfWeek: recurrencePattern.daysOfWeek ?? [],
     });
+    return formatted || "Repeats regularly";
   };
 
   const timeRangeText = formatCompactTimeRange(
@@ -478,6 +484,7 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
                   <span>Failed to sync</span>
                   <button
                     className={styles.syncDetailsToggle}
+                    aria-expanded={syncDetailsOpen}
                     aria-label={syncDetailsOpen ? "Hide sync error details" : "Show sync error details"}
                     onClick={() => setSyncDetailsOpen((v) => !v)}
                   >

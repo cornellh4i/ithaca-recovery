@@ -123,7 +123,7 @@ test.describe("meeting editing", () => {
     await page.goto("/");
 
     await openMeeting(page, "Sync Error Meeting");
-    await expect(page.getByText("Failed to sync")).toBeVisible();
+    await expect(page.locator("span", { hasText: /^Failed to sync$/ })).toBeVisible();
     await expect(page.getByRole("button", { name: "Retry sync" })).toBeVisible();
 
     await page.getByRole("heading", { name: "Synced Meeting", exact: true, level: 3 }).click();
