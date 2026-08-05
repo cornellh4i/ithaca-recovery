@@ -163,9 +163,9 @@ const DailyViewRow: React.FC<DailyViewRowProps> = ({
           // otherwise, so BoxText's height: 100% (fillHeight's CSS) had nothing concrete to
           // resolve against and fell back to its own content height, leaving a gap below
           // every card instead of filling the row.
-          top: uniformHeight ? 0 : (isSelected ? 0 : laneTop),
+          top: uniformHeight ? (isStacked ? laneTop : 0) : (isSelected ? 0 : laneTop),
           height: uniformHeight
-            ? `${rowHeight}px`
+            ? `${isStacked ? LANE_HEIGHT : rowHeight}px`
             : (isSelected ? undefined : (isStacked ? `${LANE_HEIGHT}px` : undefined)),
           // Above the "+N" overflow pill's z-index (12, DailyViewRow.module.scss) too,
           // so a selected meeting is unambiguously the topmost thing in the row.
