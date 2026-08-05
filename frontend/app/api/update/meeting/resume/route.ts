@@ -50,7 +50,10 @@ async function syncResume(
     else googleSyncError = googleSyncError ?? error;
   }
 
-  const synced = requestedCats.length > 0 && requestedCats.every((cat) => eventIds[cat]);
+  // No `.length > 0` guard -- a meeting that requests no calType categories at all has nothing
+  // to sync, and .every() on an empty array is vacuously true, so it's correctly reported as
+  // synced rather than as an unexplained error with no googleSyncError text.
+  const synced = requestedCats.every((cat) => eventIds[cat]);
   await prisma.meeting.update({
     where: { mid: meeting.mid },
     data: {
