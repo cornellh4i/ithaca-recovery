@@ -18,12 +18,17 @@ const fetchMeetingsByRange = async (startDate: Date, endDate: Date): Promise<Wee
 
         try {
             const response = await fetch(`/api/retrieve/meeting/range?startDate=${formattedStart}&endDate=${formattedEnd}`);
+            // A failed response's body is { error: ... }, not a meeting array -- mapping it
+            // would throw and land in the catch below. Rejecting explicitly here (rather than
+            // resolving to []) lets simpleCache evict the entry instead of caching an empty
+            // range as if it were a real, successful result for the rest of the session.
+            if (!response.ok) throw new Error(`Range request failed with status ${response.status}`);
             const data = await response.json();
             console.log("[useRangeMeetings] Raw API response for", cacheKey, ":", data);
             return mapRawMeetingsToWeekMeetings(data);
         } catch (error) {
             console.error("[useRangeMeetings] Error fetching meetings for", cacheKey, ":", error instanceof Error ? error.message : String(error));
-            return [];
+            throw error instanceof Error ? error : new Error(String(error));
         }
     });
 };
@@ -65,9 +70,16 @@ export function useRangeMeetings(startDate: Date, days: number, refreshTrigger: 
         }
 
         const requestId = ++fetchRequestIdRef.current;
-        const meetings = await fetchMeetingsByRange(start, endDate);
-        if (requestId === fetchRequestIdRef.current) {
-            setAllMeetings(meetings);
+        // fetchMeetingsByRange now rejects on a failed request (so simpleCache evicts the
+        // entry instead of caching an empty range) -- caught here, not left to propagate into
+        // the effects below, which call this fire-and-forget with no .catch of their own.
+        try {
+            const meetings = await fetchMeetingsByRange(start, endDate);
+            if (requestId === fetchRequestIdRef.current) {
+                setAllMeetings(meetings);
+            }
+        } catch (error) {
+            console.error("[useRangeMeetings] fetchRangeMeetings failed:", error instanceof Error ? error.message : String(error));
         }
     }, []);
 
