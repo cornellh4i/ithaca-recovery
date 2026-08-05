@@ -164,9 +164,12 @@ const createMeeting = async (request: Request) => {
       );
     }
 
-    // Blocks the save outright on a room/zoomRoom collision -- distinct from the zoomHost check
-    // below, which defers the calendar publish and stores the error on the meeting instead of
-    // rejecting the request. confirmOverride only bypasses this block, not zoomHost's handling.
+    // Blocks the save outright on a room/zoomRoom collision, or a manually-picked zoomHost
+    // (Zoom Host dropdown set to a specific host, not "Automatic") colliding with another
+    // meeting's -- distinct from the pool-auto-assignment path below, which defers the calendar
+    // publish and stores the error on the meeting instead of rejecting the request (there's no
+    // "other host to pick instead" for a plain pool-exhaustion the way there is for a room or an
+    // explicit host choice). confirmOverride only bypasses this block, not the pool's handling.
     if (!confirmOverride) {
       const candidate = {
         ...meetingData,
@@ -180,9 +183,14 @@ const createMeeting = async (request: Request) => {
       if (meetingData.zoomRoom) {
         conflictRows.push(...await findResourceConflictRows("zoomRoom", meetingData.zoomRoom, candidate, { excludeMid: meetingData.mid }));
       }
+      if (meetingData.zoomHost) {
+        conflictRows.push(...await findResourceConflictRows(
+          "zoomHost", meetingData.zoomHost, candidate, { excludeMid: meetingData.mid, includeSuspended: true },
+        ));
+      }
       if (conflictRows.length > 0) {
         return NextResponse.json(
-          { error: "This meeting conflicts with an existing meeting's room or Zoom room.", conflicts: conflictRows },
+          { error: "This meeting conflicts with an existing meeting's room, Zoom room, or Zoom host.", conflicts: conflictRows },
           { status: 409 },
         );
       }
@@ -195,12 +203,13 @@ const createMeeting = async (request: Request) => {
     let zoomSyncError: string | null = null;
     if (zoomEnabled && !meetingData.zid && !meetingData.zoomLink) {
       if (meetingData.zoomHost) {
-        // A manually-selected host (see the Meeting Form's Zoom Host dropdown) still gets
-        // checked server-side -- the form's own "Check host availability" is easy to skip, and
-        // availability can shift between checking and submitting. A real conflict is treated
-        // the same as pool exhaustion below: nothing gets written to the external Zoom API, and
-        // the calendar publish is deferred (see zoomBlocking in syncNewMeeting) until an admin
-        // picks a different host or the conflict clears.
+        // A conflicting manually-selected host is already blocked with a 409 above unless
+        // confirmOverride was set -- reaching here with a real conflict only happens after that
+        // override, or if availability shifted between the form's own "Check host availability"
+        // and submission. Either way, nothing gets written to the external Zoom API (Zoom itself
+        // has no concept of "double-book this host anyway" the way a room label does), and the
+        // calendar publish is deferred (see zoomBlocking in syncNewMeeting) until an admin picks
+        // a different host or the conflict clears.
         const conflicts = await findResourceConflicts(
           "zoomHost", meetingData.zoomHost, { ...meetingData, isRecurring }, { excludeMid: meetingData.mid, includeSuspended: true },
         );
