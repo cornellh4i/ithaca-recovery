@@ -24,8 +24,20 @@ const retrieveRangeMeetings = async (request: NextRequest) => {
     try {
         const startParam = request.nextUrl.searchParams.get("startDate") ?? new Date().toISOString();
         const endParam = request.nextUrl.searchParams.get("endDate") ?? startParam;
-        const startEtDateStr = toETDateString(startParam);
-        const endEtDateStr = toETDateString(endParam);
+
+        // toETDateString throws (Intl.DateTimeFormat rejects an unparseable Date) for input
+        // that's neither "YYYY-MM-DD"-shaped nor a valid date string at all (e.g. "not-a-date")
+        // -- caught here so that's a 400 (bad request), not a 500 from the outer catch below.
+        let startEtDateStr: string, endEtDateStr: string;
+        try {
+            startEtDateStr = toETDateString(startParam);
+            endEtDateStr = toETDateString(endParam);
+        } catch {
+            return new Response(JSON.stringify({ error: "startDate/endDate must be valid dates" }), {
+                status: 400,
+                headers: { 'Content-Type': 'application/json' },
+            });
+        }
 
         if (!isValidCalendarDateString(startEtDateStr) || !isValidCalendarDateString(endEtDateStr)) {
             return new Response(JSON.stringify({ error: "startDate/endDate must be valid calendar dates" }), {
