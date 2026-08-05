@@ -1,6 +1,6 @@
 import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
-import MobileFab from "../../app/components/calendar/MobileFab";
+import MobileFab from "../../app/components/calendar/mobile/MobileFab";
 
 describe("MobileFab", () => {
   it("renders a New meeting button and calls onClick when tapped", () => {

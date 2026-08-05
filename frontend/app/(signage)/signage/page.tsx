@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic";
 import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Logo from "../../components/atoms/Logo";
-import CalendarNavbar from "../../components/calendar/CalendarNavbar";
+import CalendarNavbar from "../../components/calendar/desktop/CalendarNavbar";
 import DayView from "../../components/calendar/desktop/DayView";
 import WeekView from "../../components/calendar/desktop/WeekView";
 import { parseSignageFilters, parseSignageView } from "../../../util/signageFilters";

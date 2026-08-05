@@ -1,10 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
-import IconButton from '../atoms/IconButton';
-import MiniCalendar from '../atoms/MiniCalendar';
-import FilterGroup from '../shared/FilterGroup';
-import { LOCATION_ITEMS, ZOOM_ITEMS, CALENDAR_ITEMS, MODE_ITEMS } from './MeetingsFilter';
-import { MeetingFilters } from '../../../util/meetingFilters';
-import styles from '../../../styles/components/calendar/CompactCalendarSidebar.module.scss';
+import IconButton from '../../atoms/IconButton';
+import MiniCalendar from '../../atoms/MiniCalendar';
+import FilterGroup from '../../shared/FilterGroup';
+import { LOCATION_ITEMS, ZOOM_ITEMS, CALENDAR_ITEMS, MODE_ITEMS } from '../shared/MeetingsFilter';
+import { MeetingFilters } from '../../../../util/meetingFilters';
+import styles from '../../../../styles/components/calendar/desktop/CompactCalendarSidebar.module.scss';
 
 type FlyoutKey = 'calendar' | 'location' | 'video' | 'group';
 

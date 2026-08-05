@@ -1,6 +1,6 @@
 import React from "react";
-import IconButton from "../atoms/IconButton";
-import styles from "../../../styles/components/calendar/MobileFab.module.scss";
+import IconButton from "../../atoms/IconButton";
+import styles from "../../../../styles/components/calendar/mobile/MobileFab.module.scss";
 
 interface MobileFabProps {
   onClick: () => void;

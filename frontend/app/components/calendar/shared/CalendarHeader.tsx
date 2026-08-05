@@ -1,9 +1,9 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import styles from "../../../styles/components/calendar/CalendarNavbar.module.scss";
-import { formatMeetingDateLine, monthNameForETDateString, formatMeetingWeekLine } from "../../../util/timeFormat";
-import { formatETDateString } from "../../../util/timeUtils";
-import type { SwipeDirection } from "../../../util/weekStripTransition";
+import styles from "../../../../styles/components/calendar/desktop/CalendarNavbar.module.scss";
+import { formatMeetingDateLine, monthNameForETDateString, formatMeetingWeekLine } from "../../../../util/timeFormat";
+import { formatETDateString } from "../../../../util/timeUtils";
+import type { SwipeDirection } from "../../../../util/weekStripTransition";
 
 type CalendarHeaderProps = {
   selectedDate: Date;

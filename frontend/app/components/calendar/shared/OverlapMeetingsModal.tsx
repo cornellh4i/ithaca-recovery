@@ -1,9 +1,9 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
-import styles from '../../../styles/components/calendar/OverlapMeetingsModal.module.scss';
-import { formatCompactTimeRange } from '../../../util/timeFormat';
-import { toPastelColor } from '../../../util/color';
-import TagList from '../atoms/TagList';
+import styles from '../../../../styles/components/calendar/shared/OverlapMeetingsModal.module.scss';
+import { formatCompactTimeRange } from '../../../../util/timeFormat';
+import { toPastelColor } from '../../../../util/color';
+import TagList from '../../atoms/TagList';
 
 interface OverlapMeeting {
     id: string;

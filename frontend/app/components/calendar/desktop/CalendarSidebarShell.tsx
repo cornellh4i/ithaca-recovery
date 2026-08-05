@@ -1,13 +1,13 @@
 import React, { useEffect, useRef, useState } from "react";
-import styles from "../../(main)/page.module.scss";
-import EditMeetingSidebar from "../meeting-form/EditMeeting";
+import styles from "../../../(main)/page.module.scss";
+import EditMeetingSidebar from "../../meeting-form/EditMeeting";
 import CalendarSidebar from "./CalendarSidebar";
 import CompactCalendarSidebar from "./CompactCalendarSidebar";
-import IconButton from "../atoms/IconButton";
-import { useSidebar } from "../../context/SidebarContext";
-import { useBreakpoint } from "../../../hooks/useBreakpoint";
-import { IMeeting } from "../../../util/models";
-import { MeetingFilters } from "../../../util/meetingFilters";
+import IconButton from "../../atoms/IconButton";
+import { useSidebar } from "../../../context/SidebarContext";
+import { useBreakpoint } from "../../../../hooks/useBreakpoint";
+import { IMeeting } from "../../../../util/models";
+import { MeetingFilters } from "../../../../util/meetingFilters";
 
 interface CalendarSidebarShellProps {
   isLoggedIn: boolean | null;

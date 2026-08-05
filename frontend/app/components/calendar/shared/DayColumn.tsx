@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import BoxText from '../../atoms/BoxText';
-import OverlapMeetingsModal from '../OverlapMeetingsModal';
+import OverlapMeetingsModal from './OverlapMeetingsModal';
 import styles from '../../../../styles/components/calendar/shared/DayColumn.module.scss';
 import { isZoomRoomMismatched } from '../../../../util/rooms';
 import { formatCompactTimeRange } from '../../../../util/timeFormat';
