@@ -186,6 +186,82 @@ test("a same-room time edit that now conflicts with another meeting on the same 
   expect(afterSync?.zoomSyncError).toMatch(/conflicts with another meeting/i);
 });
 
+test("editing a meeting into a room that's already booked is rejected with 409 + conflicts, and never reaches the Prisma update", async () => {
+  const prisma = getTestPrismaClient();
+  const start = new Date("2026-09-02T18:00:00Z");
+  const end = new Date("2026-09-02T19:00:00Z");
+
+  const busyMid = `m-${randomUUID()}`;
+  const { recurrencePattern: _rp1, ...busyMeetingData } = buildMeetingPayload({
+    mid: busyMid, room: "Fellowship Room", startDateTime: start, endDateTime: end,
+  });
+  await prisma.meeting.create({ data: busyMeetingData });
+
+  const editedMid = `m-${randomUUID()}`;
+  const { recurrencePattern: _rp2, ...editedMeetingData } = buildMeetingPayload({
+    mid: editedMid, room: "Serenity Room", startDateTime: start, endDateTime: end,
+  });
+  const original = await prisma.meeting.create({ data: editedMeetingData });
+
+  const payload = buildMeetingPayload({
+    mid: editedMid, room: "Fellowship Room", startDateTime: start, endDateTime: end,
+  });
+  const request = new Request("http://localhost/api/update/meeting", {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+
+  const response = await PUT(request);
+  expect(response.status).toBe(409);
+  const body = await response.json();
+  expect(body.conflicts).toHaveLength(1);
+  expect(body.conflicts[0]).toMatchObject({ field: "room", value: "Fellowship Room" });
+  expect(body.conflicts[0].meetings.map((m: { mid: string }) => m.mid)).toContain(busyMid);
+
+  // The room edit never landed -- still the pre-update value.
+  const unchanged = await prisma.meeting.findUnique({ where: { mid: editedMid } });
+  expect(unchanged?.room).toBe(original.room);
+});
+
+test("confirmOverride: true bypasses the room conflict check and saves the edit anyway", async () => {
+  mockedReconcileMeetingCalendars.mockResolvedValue({ updatedEventIds: {}, allSynced: true });
+
+  const prisma = getTestPrismaClient();
+  const start = new Date("2026-09-03T18:00:00Z");
+  const end = new Date("2026-09-03T19:00:00Z");
+
+  const busyMid = `m-${randomUUID()}`;
+  const { recurrencePattern: _rp1, ...busyMeetingData } = buildMeetingPayload({
+    mid: busyMid, room: "Fellowship Room", startDateTime: start, endDateTime: end,
+  });
+  await prisma.meeting.create({ data: busyMeetingData });
+
+  const editedMid = `m-${randomUUID()}`;
+  const { recurrencePattern: _rp2, ...editedMeetingData } = buildMeetingPayload({
+    mid: editedMid, room: "Serenity Room", startDateTime: start, endDateTime: end,
+  });
+  await prisma.meeting.create({ data: editedMeetingData });
+
+  const payload = {
+    ...buildMeetingPayload({ mid: editedMid, room: "Fellowship Room", startDateTime: start, endDateTime: end }),
+    confirmOverride: true,
+  };
+  const request = new Request("http://localhost/api/update/meeting", {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+
+  const response = await PUT(request);
+  expect(response.status).toBe(200);
+
+  // Let the deferred sync job (which the mock above resolves) finish before the test exits,
+  // so it can't leak an in-flight reconcileMeetingCalendars call into a later test.
+  await new Promise((resolve) => setTimeout(resolve, 400));
+
+  const updated = await prisma.meeting.findUnique({ where: { mid: editedMid } });
+  expect(updated?.room).toBe("Fellowship Room");
+});
+
 test("a newly resolved Zoom host is persisted synchronously when a meeting first gets a Zoom room", async () => {
   mockedResolveZoomHost.mockResolvedValue("new-host@icr.test");
   const SYNC_DELAY_MS = 300;

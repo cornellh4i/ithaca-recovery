@@ -280,6 +280,70 @@ test("a Remote meeting (no zoomRoom) still gets a Zoom meeting created, and its 
   );
 });
 
+test("a room conflict is rejected with 409 + conflicts, and never reaches the Prisma create", async () => {
+  const prisma = getTestPrismaClient();
+  const start = new Date("2026-11-02T18:00:00Z");
+  const end = new Date("2026-11-02T19:00:00Z");
+
+  const busyMid = `m-${randomUUID()}`;
+  await prisma.meeting.create({
+    data: {
+      mid: busyMid, title: "Room Conflict Meeting", modeType: "In Person", description: "", creator: "Creator", group: "Group",
+      startDateTime: start, endDateTime: end, email: "busy@test.icr",
+      calType: ["AA"], status: "Active", room: "Fellowship Room", isRecurring: false,
+    },
+  });
+
+  const payload = buildMeetingPayload({ room: "Fellowship Room", startDateTime: start, endDateTime: end });
+  const request = new Request("http://localhost/api/write/meeting", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+
+  const response = await POST(request);
+  expect(response.status).toBe(409);
+  const body = await response.json();
+  expect(body.conflicts).toHaveLength(1);
+  expect(body.conflicts[0]).toMatchObject({ field: "room", value: "Fellowship Room" });
+  expect(body.conflicts[0].meetings.map((m: { mid: string }) => m.mid)).toContain(busyMid);
+
+  const created = await prisma.meeting.findUnique({ where: { mid: payload.mid } });
+  expect(created).toBeNull();
+});
+
+test("confirmOverride: true bypasses the room conflict check and creates the meeting anyway", async () => {
+  mockedCreateCalendarEvent.mockResolvedValue({ id: "fake-event-id", error: null });
+
+  const prisma = getTestPrismaClient();
+  const start = new Date("2026-11-03T18:00:00Z");
+  const end = new Date("2026-11-03T19:00:00Z");
+
+  const busyMid = `m-${randomUUID()}`;
+  await prisma.meeting.create({
+    data: {
+      mid: busyMid, title: "Room Conflict Meeting", modeType: "In Person", description: "", creator: "Creator", group: "Group",
+      startDateTime: start, endDateTime: end, email: "busy@test.icr",
+      calType: ["AA"], status: "Active", room: "Fellowship Room", isRecurring: false,
+    },
+  });
+
+  const payload = { ...buildMeetingPayload({ room: "Fellowship Room", startDateTime: start, endDateTime: end }), confirmOverride: true };
+  const request = new Request("http://localhost/api/write/meeting", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+
+  const response = await POST(request);
+  expect(response.status).toBe(201);
+
+  const created = await prisma.meeting.findUnique({ where: { mid: payload.mid } });
+  expect(created).not.toBeNull();
+
+  // Let the deferred sync job (which the mock above resolves) finish before the test exits,
+  // so it can't leak an in-flight createCalendarEvent call into a later test.
+  await waitForGoogleSyncStatus(payload.mid);
+});
+
 test("a recurring meeting creates its Meeting and RecurrencePattern together (one transaction, not two sequential writes)", async () => {
   mockedCreateCalendarEvent.mockResolvedValue({ id: "fake-event-id", error: null });
 

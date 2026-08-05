@@ -9,12 +9,15 @@ import Dropdown from '../atoms/Dropdown';
 import LabeledCheckbox from '../atoms/CheckBox';
 import RecurringMeetingForm from './RecurringMeeting';
 import ZoomHostField from './ZoomHostField';
+import ConflictOverrideModal from './ConflictOverrideModal';
 import CloseIcon from '@mui/icons-material/Close';
 import IconButton from '@mui/material/IconButton';
 
 import { v4 as uuidv4 } from 'uuid';
 import { physicalRoomOptions, zoomRoomOptions } from "../../../util/rooms";
 import { useMeetingForm, CAL_TYPE_OPTIONS, CAL_TYPE_COLOR, DESCRIPTION_MAX_LENGTH } from '../../../hooks/useMeetingForm';
+import { IMeeting } from '../../../util/models';
+import { ConflictListRow } from '../admin/ConflictList';
 
 import styles from '../../../styles/components/meeting-form/MeetingForm.module.scss';
 
@@ -53,10 +56,48 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({
     } = useMeetingForm(undefined, { selectedDate, selectedView });
 
     const [isSubmitting, setIsSubmitting] = useState(false);
+    // Holds the payload + conflict rows across the confirm round-trip -- a 409 doesn't clear
+    // the form, it just pauses submission until the modal's Cancel or "Save anyway".
+    const [conflictState, setConflictState] = useState<{ payload: IMeeting; conflicts: ConflictListRow[] } | null>(null);
 
     const handleCloseNewMeeting = () => {
       resetForm();
       setIsNewMeetingOpen(false);
+    };
+
+    const submitMeeting = async (payload: IMeeting, confirmOverride: boolean) => {
+      setIsSubmitting(true);
+      try {
+        const response = await fetch('/api/write/meeting', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...payload, confirmOverride }),
+        });
+
+        if (response.status === 409) {
+          const body = await response.json();
+          if (body.conflicts) {
+            setConflictState({ payload, conflicts: body.conflicts });
+            return;
+          }
+        }
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const meetingResponse = await response.json();
+        console.log(meetingResponse);
+
+        setConflictState(null);
+        triggerCalendarRefresh();
+        alert("Meeting created successfully! Please check the Meeting collection on MongoDB.");
+        handleCloseNewMeeting();
+      } catch (error) {
+        console.error('There was an error fetching the data:', error);
+      } finally {
+        setIsSubmitting(false);
+      }
     };
 
     const createMeeting = async () => {
@@ -74,29 +115,7 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({
       const newMeeting = buildMeetingPayload(uuidv4(), 'Active');
       if (!newMeeting) return;
 
-      setIsSubmitting(true);
-      try {
-        const response = await fetch('/api/write/meeting', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(newMeeting),
-        });
-
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const meetingResponse = await response.json();
-        console.log(meetingResponse);
-
-        triggerCalendarRefresh();
-        alert("Meeting created successfully! Please check the Meeting collection on MongoDB.");
-        handleCloseNewMeeting();
-      } catch (error) {
-        console.error('There was an error fetching the data:', error);
-      } finally {
-        setIsSubmitting(false);
-      }
+      await submitMeeting(newMeeting, false);
     };
 
     return (
@@ -214,6 +233,19 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({
           handleMeetingSubmit={createMeeting}
           buttonText={isSubmitting ? "Creating…" : "Create Meeting"}
           isSubmitting={isSubmitting}
+        />
+        <ConflictOverrideModal
+          isOpen={!!conflictState}
+          conflicts={conflictState?.conflicts ?? []}
+          onCancel={() => setConflictState(null)}
+          onConfirm={() => {
+            // confirmOverride: true always skips the server-side check, so this can never
+            // hit the 409 branch again -- safe to close the modal immediately rather than
+            // keep it open through a resubmit that can't reject.
+            const payload = conflictState?.payload;
+            setConflictState(null);
+            if (payload) submitMeeting(payload, true);
+          }}
         />
       </div>
     );

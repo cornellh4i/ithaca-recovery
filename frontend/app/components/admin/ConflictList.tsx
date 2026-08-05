@@ -43,7 +43,7 @@ interface ConflictListProps {
   onMeetingUpdated?: () => void;
 }
 
-const fieldLabel = (field: "room" | "zoomRoom" | "zoomHost"): string => {
+export const fieldLabel = (field: "room" | "zoomRoom" | "zoomHost"): string => {
   if (field === "room") return "Room";
   if (field === "zoomRoom") return "Zoom Room";
   return "Zoom Host";
@@ -66,7 +66,7 @@ const compactTimeRange = (start: Date, end: Date): string =>
 
 // "Overlap: Tue 7-8PM · next occurs Jul 14, 2026" for a recurring pair, or
 // "Overlap: Fri 6-7PM (single occurrence) · Sep 12, 2026" when both are one-time.
-const formatOverlapSummary = (overlap: ConflictListRow["overlap"], meetings: ConflictListRow["meetings"]): string => {
+export const formatOverlapSummary = (overlap: ConflictListRow["overlap"], meetings: ConflictListRow["meetings"]): string => {
   const start = new Date(overlap.start);
   const end = new Date(overlap.end);
   const bothOneTime = meetings.every((m) => !m.isRecurring);
@@ -81,7 +81,7 @@ const formatOverlapSummary = (overlap: ConflictListRow["overlap"], meetings: Con
 // ViewMeeting.tsx's getRecurrenceText, reusing the same Day-column formatter as the XLSX/lease
 // exports. The time shown is this meeting's own occurrence, not the overlap window above, since
 // the two can differ (e.g. 6-8PM vs. 7-9PM overlapping 7-8PM).
-const formatMeetingSchedule = (meeting: ConflictMeetingSummary): string => {
+export const formatMeetingSchedule = (meeting: ConflictMeetingSummary): string => {
   const { recurrencePattern, occurrence } = meeting;
   const time = compactTimeRange(new Date(occurrence.start), new Date(occurrence.end));
   if (!recurrencePattern) return `One-time meeting · ${time}`;

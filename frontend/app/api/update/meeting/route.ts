@@ -4,7 +4,7 @@ import { requireRole } from "../../../../services/auth";
 import { IMeeting } from "../../../../util/models";
 import { createCalendarEvent, updateCalendarEvent, deleteCalendarEvent, reconcileMeetingCalendars } from "../../../../services/googleCalendar";
 import { createZoomMeeting, updateZoomMeeting, deleteZoomMeeting, getZoomMeetingInvitation, resolveZoomHost, zoomRoomCalendarId } from "../../../../services/zoom";
-import { findResourceConflicts } from "../../../../util/resourceOverlap";
+import { findResourceConflicts, findResourceConflictRows, ConflictRow } from "../../../../util/resourceOverlap";
 import { meetingSchema } from "../../../../util/meetingValidation";
 import { reconcilePendingResume } from "../../../../util/suspension";
 import { prisma } from "../../../../lib/prisma";
@@ -211,7 +211,26 @@ const updateMeeting = async (request: Request): Promise<Response> => {
     // edit reads/writes that field below.
     existingMeeting.googleCalendarEventIds = await reconcilePendingResume(existingMeeting);
 
-    const { mid, recurrencePattern, ...meetingFields } = newMeeting;
+    const { mid, recurrencePattern, confirmOverride, ...meetingFields } = newMeeting;
+
+    // Blocks the save outright on a room/zoomRoom collision -- distinct from the zoomHost check
+    // below, which defers the calendar publish and stores the error on the meeting instead of
+    // rejecting the request. confirmOverride only bypasses this block, not zoomHost's handling.
+    if (!confirmOverride) {
+      const conflictRows: ConflictRow[] = [];
+      if (newMeeting.room) {
+        conflictRows.push(...await findResourceConflictRows("room", newMeeting.room, newMeeting, { excludeMid: mid }));
+      }
+      if (newMeeting.zoomRoom) {
+        conflictRows.push(...await findResourceConflictRows("zoomRoom", newMeeting.zoomRoom, newMeeting, { excludeMid: mid }));
+      }
+      if (conflictRows.length > 0) {
+        return NextResponse.json(
+          { error: "This meeting conflicts with an existing meeting's room or Zoom room.", conflicts: conflictRows },
+          { status: 409 },
+        );
+      }
+    }
 
     // A new Zoom host is only needed when this meeting has no Zoom meeting to keep using —
     // either it never had one, or its room changed (a Zoom meeting can't move rooms, so the

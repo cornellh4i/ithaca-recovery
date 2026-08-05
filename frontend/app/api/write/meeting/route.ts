@@ -4,7 +4,7 @@ import { NextResponse, after } from "next/server";
 import { requireRole } from "../../../../services/auth";
 import { createCalendarEvent, calendarIdsForMeeting } from "../../../../services/googleCalendar";
 import { createZoomMeeting, getZoomMeetingInvitation, resolveZoomHost, zoomRoomCalendarId } from "../../../../services/zoom";
-import { findResourceConflicts } from "../../../../util/resourceOverlap";
+import { findResourceConflicts, findResourceConflictRows, ConflictRow } from "../../../../util/resourceOverlap";
 import { convertETToUTC } from "../../../../util/timeUtils";
 import { meetingSchema } from "../../../../util/meetingValidation";
 import { prisma } from "../../../../lib/prisma";
@@ -143,8 +143,28 @@ const createMeeting = async (request: Request) => {
     }
     const meetingData = parsed.data as IMeeting;
 
-    const { recurrencePattern, ...meetingDetails } = meetingData;
+    const { recurrencePattern, confirmOverride, ...meetingDetails } = meetingData;
     const isRecurring = !!recurrencePattern;
+
+    // Blocks the save outright on a room/zoomRoom collision -- distinct from the zoomHost check
+    // below, which defers the calendar publish and stores the error on the meeting instead of
+    // rejecting the request. confirmOverride only bypasses this block, not zoomHost's handling.
+    if (!confirmOverride) {
+      const candidate = { ...meetingData, isRecurring };
+      const conflictRows: ConflictRow[] = [];
+      if (meetingData.room) {
+        conflictRows.push(...await findResourceConflictRows("room", meetingData.room, candidate, { excludeMid: meetingData.mid }));
+      }
+      if (meetingData.zoomRoom) {
+        conflictRows.push(...await findResourceConflictRows("zoomRoom", meetingData.zoomRoom, candidate, { excludeMid: meetingData.mid }));
+      }
+      if (conflictRows.length > 0) {
+        return NextResponse.json(
+          { error: "This meeting conflicts with an existing meeting's room or Zoom room.", conflicts: conflictRows },
+          { status: 409 },
+        );
+      }
+    }
 
     const zoomEnabled = (meetingData.modeType === 'Hybrid' || meetingData.modeType === 'Remote')
       && meetingData.status !== 'Suspended';

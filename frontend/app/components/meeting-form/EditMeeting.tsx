@@ -9,12 +9,14 @@ import Dropdown from '../atoms/Dropdown';
 import LabeledCheckbox from '../atoms/CheckBox';
 import RecurringMeetingForm from './RecurringMeeting';
 import ZoomHostField from './ZoomHostField';
+import ConflictOverrideModal from './ConflictOverrideModal';
 import CloseIcon from '@mui/icons-material/Close';
 import IconButton from '@mui/material/IconButton';
 
 import { IMeeting } from '../../../util/models'
 import { physicalRoomOptions, zoomRoomOptions } from "../../../util/rooms";
 import { useMeetingForm, CAL_TYPE_OPTIONS, CAL_TYPE_COLOR, DESCRIPTION_MAX_LENGTH } from '../../../hooks/useMeetingForm';
+import { ConflictListRow } from '../admin/ConflictList';
 
 import styles from '../../../styles/components/meeting-form/MeetingForm.module.scss';
 
@@ -49,9 +51,46 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
     } = useMeetingForm(meeting);
 
     const [isSubmitting, setIsSubmitting] = useState(false);
+    // Holds the payload + conflict rows across the confirm round-trip -- a 409 doesn't discard
+    // the edit, it just pauses submission until the modal's Cancel or "Save anyway".
+    const [conflictState, setConflictState] = useState<{ payload: IMeeting; conflicts: ConflictListRow[] } | null>(null);
     // Narrow Main Calendar sidebar gets ~80%-scaled field fonts; the "wide" embed (e.g.
     // Diagnostics Conflicts panel) has room to spare and keeps full size.
     const compact = layout === "sidebar";
+
+    const submitMeeting = async (payload: IMeeting, confirmOverride: boolean) => {
+      setIsSubmitting(true);
+      try {
+        const response = await fetch('/api/update/meeting', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...payload, confirmOverride }),
+        });
+
+        if (response.status === 409) {
+          const body = await response.json();
+          if (body.conflicts) {
+            setConflictState({ payload, conflicts: body.conflicts });
+            return;
+          }
+        }
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const meetingResponse = await response.json();
+        console.log(meetingResponse);
+        setConflictState(null);
+        alert("Meeting updated successfully! Please check the Meeting collection on MongoDB.");
+        onUpdateSuccess();
+        onClose();
+      } catch (error) {
+        console.error('There was an error fetching the data:', error);
+      } finally {
+        setIsSubmitting(false);
+      }
+    };
 
     const updateMeeting = async () => {
       // Guards against duplicate/racing updates from rapid/double clicks — the
@@ -68,28 +107,7 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
       const updatedMeeting = buildMeetingPayload(meeting.mid, meeting.status ?? 'Active');
       if (!updatedMeeting) return;
 
-      setIsSubmitting(true);
-      try {
-        const response = await fetch('/api/update/meeting', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(updatedMeeting),
-        });
-
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const meetingResponse = await response.json();
-        console.log(meetingResponse);
-        alert("Meeting updated successfully! Please check the Meeting collection on MongoDB.");
-        onUpdateSuccess();
-        onClose();
-      } catch (error) {
-        console.error('There was an error fetching the data:', error);
-      } finally {
-        setIsSubmitting(false);
-      }
+      await submitMeeting(updatedMeeting, false);
     };
 
     return (
@@ -212,6 +230,19 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
           buttonText={isSubmitting ? "Updating…" : "Update Meeting"}
           isSubmitting={isSubmitting}
           layout={layout}
+        />
+        <ConflictOverrideModal
+          isOpen={!!conflictState}
+          conflicts={conflictState?.conflicts ?? []}
+          onCancel={() => setConflictState(null)}
+          onConfirm={() => {
+            // confirmOverride: true always skips the server-side check, so this can never
+            // hit the 409 branch again -- safe to close the modal immediately rather than
+            // keep it open through a resubmit that can't reject.
+            const payload = conflictState?.payload;
+            setConflictState(null);
+            if (payload) submitMeeting(payload, true);
+          }}
         />
       </div>
     );
