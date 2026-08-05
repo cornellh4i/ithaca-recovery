@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen, within } from "@testing-library/react";
+import { render, within } from "@testing-library/react";
 import DayLandscapeView, { roomDisplayName } from "../../app/components/calendar/mobile/DayLandscapeView";
 import { CalendarProvider } from "../../app/context/CalendarProvider";
 import { createDefaultFilters } from "../../util/meetingFilters";
