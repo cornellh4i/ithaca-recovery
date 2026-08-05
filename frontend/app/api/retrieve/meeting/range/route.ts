@@ -52,6 +52,16 @@ const retrieveRangeMeetings = async (request: NextRequest) => {
             cursor = addDaysToETDateString(cursor, 1);
         }
 
+        // A range wider than MAX_RANGE_DAYS falls out of the loop above with `cursor` still
+        // short of endEtDateStr -- reject it explicitly rather than silently returning 200
+        // with only the first MAX_RANGE_DAYS days' worth of data.
+        if (cursor <= endEtDateStr) {
+            return new Response(JSON.stringify({ error: `Range must not exceed ${MAX_RANGE_DAYS} days` }), {
+                status: 400,
+                headers: { 'Content-Type': 'application/json' },
+            });
+        }
+
         // Sequential, not Promise.all -- same reasoning as week/route.ts's own loop (concurrent
         // per-day queries intermittently returned incomplete results under load).
         const meetingsByDay = [];
