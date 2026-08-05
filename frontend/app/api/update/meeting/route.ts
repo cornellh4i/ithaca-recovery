@@ -260,6 +260,10 @@ const updateMeeting = async (request: Request): Promise<Response> => {
       }
     }
 
+    // Verified atomic: this single call's nested recurrencePattern upsert/delete is a nested
+    // write, and Prisma's MongoDB connector wraps nested writes in an internal transaction
+    // automatically -- unlike write/meeting/route.ts's create path (two separate top-level
+    // calls), there's no unwrapped-multi-write gap here to fix.
     const updatedMeeting = await prisma.meeting.update({
       where: {
         mid: mid,

@@ -1,5 +1,5 @@
 import { IMeeting } from '../../../../util/models';
-import { Role } from "@prisma/client";
+import { Meeting, Role } from "@prisma/client";
 import { NextResponse, after } from "next/server";
 import { requireRole } from "../../../../services/auth";
 import { createCalendarEvent, calendarIdsForMeeting } from "../../../../services/googleCalendar";
@@ -175,16 +175,15 @@ const createMeeting = async (request: Request) => {
       }
     }
 
-    const newMeeting = await prisma.meeting.create({
-      data: {
-        ...meetingDetails,
-        isRecurring,
-        zoomHost: resolvedHost,
-        ...(zoomSyncError ? { zoomSyncStatus: 'error', zoomSyncError } : {}),
-      }
-    });
+    const meetingCreateData = {
+      ...meetingDetails,
+      isRecurring,
+      zoomHost: resolvedHost,
+      ...(zoomSyncError ? { zoomSyncStatus: 'error', zoomSyncError } : {}),
+    };
 
-    let responseMeeting: object = newMeeting;
+    let newMeeting: Meeting;
+    let responseMeeting: object;
 
     if (recurrencePattern) {
       let calculatedEndDate = recurrencePattern.endDate;
@@ -201,27 +200,33 @@ const createMeeting = async (request: Request) => {
         );
       }
 
-      await prisma.recurrencePattern.create({
-        data: {
-          mid: newMeeting.mid,
-          type: recurrencePattern.type,
-          startDate: recurrencePattern.startDate,
-          endDate: calculatedEndDate,
-          numberOfOccurrences: recurrencePattern.numberOfOccurrences,
-          daysOfWeek: recurrencePattern.daysOfWeek || [],
-          firstDayOfWeek: recurrencePattern.firstDayOfWeek || "Sunday",
-          interval: recurrencePattern.interval || 1,
-          weekOfMonth: recurrencePattern.weekOfMonth ?? null,
-          dayOfMonth: recurrencePattern.dayOfMonth ?? null,
-        }
-      });
+      // meetingDetails.mid is client-generated (see NewMeeting.tsx's uuidv4()) and known before
+      // either write, so both creates can run as one atomic transaction instead of a create-then-
+      // create sequence an interrupted request could leave half-done (a Meeting with
+      // isRecurring: true and no RecurrencePattern row).
+      const [createdMeeting, createdPattern] = await prisma.$transaction([
+        prisma.meeting.create({ data: meetingCreateData }),
+        prisma.recurrencePattern.create({
+          data: {
+            mid: meetingDetails.mid,
+            type: recurrencePattern.type,
+            startDate: recurrencePattern.startDate,
+            endDate: calculatedEndDate,
+            numberOfOccurrences: recurrencePattern.numberOfOccurrences,
+            daysOfWeek: recurrencePattern.daysOfWeek || [],
+            firstDayOfWeek: recurrencePattern.firstDayOfWeek || "Sunday",
+            interval: recurrencePattern.interval || 1,
+            weekOfMonth: recurrencePattern.weekOfMonth ?? null,
+            dayOfMonth: recurrencePattern.dayOfMonth ?? null,
+          },
+        }),
+      ]);
 
-      const meetingWithRecurrence = await prisma.meeting.findUnique({
-        where: { id: newMeeting.id },
-        include: { recurrencePattern: true }
-      });
-
-      responseMeeting = meetingWithRecurrence ?? newMeeting;
+      newMeeting = createdMeeting;
+      responseMeeting = { ...createdMeeting, recurrencePattern: createdPattern };
+    } else {
+      newMeeting = await prisma.meeting.create({ data: meetingCreateData });
+      responseMeeting = newMeeting;
     }
 
     // GCal/Zoom sync runs after the response is sent — see syncNewMeeting above.
