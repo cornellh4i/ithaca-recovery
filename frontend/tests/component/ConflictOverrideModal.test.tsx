@@ -1,7 +1,7 @@
 import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
 import ConflictOverrideModal from "../../app/components/meeting-form/ConflictOverrideModal";
-import { ConflictListRow } from "../../app/components/admin/ConflictList";
+import { ConflictListRow } from "../../util/conflictDisplay";
 
 const conflicts: ConflictListRow[] = [
   {

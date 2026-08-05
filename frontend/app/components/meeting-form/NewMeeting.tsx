@@ -17,7 +17,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { physicalRoomOptions, zoomRoomOptions } from "../../../util/rooms";
 import { useMeetingForm, CAL_TYPE_OPTIONS, CAL_TYPE_COLOR, DESCRIPTION_MAX_LENGTH } from '../../../hooks/useMeetingForm';
 import { IMeeting } from '../../../util/models';
-import { ConflictListRow } from '../admin/ConflictList';
+import { ConflictListRow } from '../../../util/conflictDisplay';
 
 import styles from '../../../styles/components/meeting-form/MeetingForm.module.scss';
 

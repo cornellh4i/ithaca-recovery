@@ -374,8 +374,7 @@ export async function findResourceConflictRows(
     ],
   };
 
-  const todayStr = formatETDateString(new Date());
-  const meetingsRaw = await prisma.meeting.findMany({
+  const meetings = await prisma.meeting.findMany({
     where,
     select: {
       mid: true,
@@ -388,11 +387,6 @@ export async function findResourceConflictRows(
       suspensions: true,
     },
   });
-  // Matches computeConflicts' own room/zoomRoom semantics, not the zoomHost check's
-  // includeSuspended: true -- a suspended meeting doesn't block a room/Zoom-room booking.
-  const meetings = opts.includeSuspended
-    ? meetingsRaw
-    : meetingsRaw.filter((m) => !isDateSuspended(m.suspensions, todayStr));
 
   const rows: ConflictRow[] = [];
   for (const meeting of meetings) {
@@ -410,7 +404,15 @@ export async function findResourceConflictRows(
       isRecurring: meeting.isRecurring,
       recurrencePattern: meeting.recurrencePattern,
     };
-    const occurrences = expandOccurrences(existingCandidate, rangeStart, rangeEnd);
+    let occurrences = expandOccurrences(existingCandidate, rangeStart, rangeEnd);
+    // Filtered per-occurrence, not per-meeting -- a meeting suspended today but resumed before
+    // a later candidate occurrence still genuinely occupies the room then, and a meeting with a
+    // future suspension window shouldn't block a booking that falls inside it. Matches
+    // computeConflicts' own room/zoomRoom semantics (a suspended meeting doesn't block a room),
+    // just evaluated against each occurrence's own date instead of today's.
+    if (!opts.includeSuspended) {
+      occurrences = occurrences.filter((occ) => !isDateSuspended(meeting.suspensions, formatETDateString(occ.start)));
+    }
     const pair = findOverlappingOccurrencePair(candidateOccurrences, occurrences);
     if (pair) {
       rows.push({

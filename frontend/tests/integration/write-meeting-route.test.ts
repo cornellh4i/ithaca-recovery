@@ -1,5 +1,6 @@
 import { randomUUID } from "crypto";
 import { getTestPrismaClient, disconnectTestPrismaClient } from "../factories/db";
+import { seedSuspensionPeriod } from "../factories/meeting";
 import type { IMeeting } from "../../util/models";
 
 // Next's after() throws when called outside a real request scope, which route handlers
@@ -339,15 +340,92 @@ test("confirmOverride: true bypasses the room conflict check and creates the mee
   const created = await prisma.meeting.findUnique({ where: { mid: payload.mid } });
   expect(created).not.toBeNull();
 
-  // Let the deferred sync job (which the mock above resolves) finish before the test exits,
-  // so it can't leak an in-flight createCalendarEvent call into a later test.
+  // Waits for (and asserts) the deferred sync job's terminal status, rather than a fixed delay
+  // that could pass without proving the background work actually completed.
+  const afterSync = await waitForGoogleSyncStatus(payload.mid);
+  expect(afterSync?.googleSyncStatus).toBe("synced");
+});
+
+// The daysOfWeek below covers all 7 days so the pattern produces an occurrence every day --
+// avoids day-of-week alignment fragility for these date-math-sensitive suspension cases.
+const ALL_DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+const daysFromNow = (n: number, time: string) => {
+  const d = new Date();
+  d.setUTCDate(d.getUTCDate() + n);
+  return new Date(`${d.toISOString().slice(0, 10)}T${time}Z`);
+};
+
+test("a recurring meeting that's suspended today but resumes before the candidate's occurrence still conflicts", async () => {
+  const prisma = getTestPrismaClient();
+  const busyMid = `m-${randomUUID()}`;
+  await prisma.meeting.create({
+    data: {
+      mid: busyMid, title: "Suspended-Then-Resumed Meeting", modeType: "In Person", description: "", creator: "Creator", group: "Group",
+      startDateTime: daysFromNow(0, "18:00:00"), endDateTime: daysFromNow(0, "19:00:00"), email: "busy@test.icr",
+      calType: ["AA"], status: "Active", room: "Fellowship Room", isRecurring: true,
+    },
+  });
+  await prisma.recurrencePattern.create({
+    data: { mid: busyMid, type: "weekly", startDate: daysFromNow(0, "18:00:00"), daysOfWeek: ALL_DAYS, firstDayOfWeek: "Sunday", interval: 1 },
+  });
+  // Suspended from yesterday, resumes in 5 days -- well before the candidate's occurrence 10
+  // days out, so that specific future occurrence is not actually suspended.
+  await seedSuspensionPeriod(busyMid, { from: daysFromNow(-1, "00:00:00"), to: daysFromNow(5, "00:00:00") });
+
+  const payload = buildMeetingPayload({ room: "Fellowship Room", startDateTime: daysFromNow(10, "18:00:00"), endDateTime: daysFromNow(10, "19:00:00") });
+  const request = new Request("http://localhost/api/write/meeting", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+
+  const response = await POST(request);
+  expect(response.status).toBe(409);
+  const body = await response.json();
+  expect(body.conflicts[0].meetings.map((m: { mid: string }) => m.mid)).toContain(busyMid);
+});
+
+test("a recurring meeting with a future suspension window doesn't conflict with a booking inside it", async () => {
+  mockedCreateCalendarEvent.mockResolvedValue({ id: "fake-event-id", error: null });
+
+  const prisma = getTestPrismaClient();
+  const busyMid = `m-${randomUUID()}`;
+  await prisma.meeting.create({
+    data: {
+      mid: busyMid, title: "Soon-To-Be-Suspended Meeting", modeType: "In Person", description: "", creator: "Creator", group: "Group",
+      startDateTime: daysFromNow(0, "18:00:00"), endDateTime: daysFromNow(0, "19:00:00"), email: "busy@test.icr",
+      calType: ["AA"], status: "Active", room: "Fellowship Room 2", isRecurring: true,
+    },
+  });
+  await prisma.recurrencePattern.create({
+    data: { mid: busyMid, type: "weekly", startDate: daysFromNow(0, "18:00:00"), daysOfWeek: ALL_DAYS, firstDayOfWeek: "Sunday", interval: 1 },
+  });
+  // Not suspended today, but will be starting in 5 days, indefinitely -- covers the candidate's
+  // occurrence 10 days out.
+  await seedSuspensionPeriod(busyMid, { from: daysFromNow(5, "00:00:00"), to: null });
+
+  const payload = buildMeetingPayload({ room: "Fellowship Room 2", startDateTime: daysFromNow(10, "18:00:00"), endDateTime: daysFromNow(10, "19:00:00") });
+  const request = new Request("http://localhost/api/write/meeting", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+
+  const response = await POST(request);
+  expect(response.status).toBe(201);
+
+  // Let the deferred sync job (which the mock above resolves) finish before the test exits, so
+  // it can't leak an in-flight createCalendarEvent call into a later test.
   await waitForGoogleSyncStatus(payload.mid);
 });
 
 test("a recurring meeting creates its Meeting and RecurrencePattern together (one transaction, not two sequential writes)", async () => {
   mockedCreateCalendarEvent.mockResolvedValue({ id: "fake-event-id", error: null });
 
+  // Distinct room -- buildMeetingPayload's default ("Serenity Room") is shared by other tests
+  // in this suite, and the room/zoomRoom conflict check added alongside this transaction fix
+  // would otherwise make this order-dependent on unrelated leftover data (same reasoning as the
+  // manually-selected-host test above).
   const payload = buildMeetingPayload({
+    room: "Fellowship Room 3",
     isRecurring: true,
     recurrencePattern: {
       type: "weekly",

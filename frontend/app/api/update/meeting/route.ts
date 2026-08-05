@@ -7,6 +7,7 @@ import { createZoomMeeting, updateZoomMeeting, deleteZoomMeeting, getZoomMeeting
 import { findResourceConflicts, findResourceConflictRows, ConflictRow } from "../../../../util/resourceOverlap";
 import { meetingSchema } from "../../../../util/meetingValidation";
 import { reconcilePendingResume } from "../../../../util/suspension";
+import { calculateEndDateFromOccurrences } from "../../../../util/meetingOccurrences";
 import { prisma } from "../../../../lib/prisma";
 
 // Runs after the response is sent (see after() call below) — failure updates googleSyncStatus
@@ -217,12 +218,34 @@ const updateMeeting = async (request: Request): Promise<Response> => {
     // below, which defers the calendar publish and stores the error on the meeting instead of
     // rejecting the request. confirmOverride only bypasses this block, not zoomHost's handling.
     if (!confirmOverride) {
+      // A count-bounded series (numberOfOccurrences set, no explicit endDate) has a real last
+      // occurrence -- checking conflicts against the raw (still-null) endDate would expand it
+      // out to the full OVERLAP_HORIZON_YEARS window instead, risking a false 409 against an
+      // unrelated booking that falls after the series actually ends. Only affects the conflict
+      // candidate below, not what's persisted (unchanged from the existing upsert further down).
+      let calculatedEndDate = recurrencePattern?.endDate ?? null;
+      if (recurrencePattern?.numberOfOccurrences && !recurrencePattern.endDate) {
+        calculatedEndDate = calculateEndDateFromOccurrences(
+          recurrencePattern.startDate,
+          recurrencePattern.daysOfWeek || [],
+          recurrencePattern.numberOfOccurrences,
+          recurrencePattern.interval || 1,
+          recurrencePattern.type,
+          recurrencePattern.weekOfMonth ?? null,
+          recurrencePattern.dayOfMonth ?? null,
+        );
+      }
+      const conflictCandidate = {
+        ...newMeeting,
+        recurrencePattern: recurrencePattern ? { ...recurrencePattern, endDate: calculatedEndDate } : null,
+      };
+
       const conflictRows: ConflictRow[] = [];
       if (newMeeting.room) {
-        conflictRows.push(...await findResourceConflictRows("room", newMeeting.room, newMeeting, { excludeMid: mid }));
+        conflictRows.push(...await findResourceConflictRows("room", newMeeting.room, conflictCandidate, { excludeMid: mid }));
       }
       if (newMeeting.zoomRoom) {
-        conflictRows.push(...await findResourceConflictRows("zoomRoom", newMeeting.zoomRoom, newMeeting, { excludeMid: mid }));
+        conflictRows.push(...await findResourceConflictRows("zoomRoom", newMeeting.zoomRoom, conflictCandidate, { excludeMid: mid }));
       }
       if (conflictRows.length > 0) {
         return NextResponse.json(

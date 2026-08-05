@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import styles from '../../../styles/components/meeting-form/ConflictOverrideModal.module.scss';
-import { fieldLabel, formatOverlapSummary, formatMeetingSchedule, ConflictListRow } from '../admin/ConflictList';
+import { fieldLabel, formatOverlapSummary, formatMeetingSchedule, ConflictListRow } from '../../../util/conflictDisplay';
 
 interface ConflictOverrideModalProps {
   isOpen: boolean;
@@ -22,16 +22,38 @@ const ConflictOverrideModal: React.FC<ConflictOverrideModalProps> = ({
   onConfirm,
   isConfirming = false,
 }) => {
+  // "Go back" (the non-destructive default) gets initial focus, mirroring BottomSheet.tsx's own
+  // focus-on-open/restore-on-close pattern -- without this, focus stays on the form's now-
+  // re-enabled submit button underneath, and Enter/Space could resubmit it while this is up.
+  const cancelButtonRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+    cancelButtonRef.current?.focus();
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onCancel();
+    };
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      previouslyFocused?.focus();
+    };
+  }, [isOpen, onCancel]);
+
   if (!isOpen) return null;
 
   return (
     <div className={styles.modalOverlay}>
-      <div className={styles.modalContent}>
+      <div className={styles.modalContent} role="dialog" aria-modal="true" aria-labelledby="conflict-override-title">
         <div className={styles.header}>
           <span className={styles.iconCircle}>
             <img src="/svg/warning-circle-icon.svg" alt="" width="20" height="20" />
           </span>
-          <h2 className={styles.title}>Scheduling conflict</h2>
+          <h2 id="conflict-override-title" className={styles.title}>Scheduling conflict</h2>
         </div>
 
         <p className={styles.message}>
@@ -57,7 +79,9 @@ const ConflictOverrideModal: React.FC<ConflictOverrideModalProps> = ({
         </div>
 
         <div className={styles.buttonContainer}>
-          <button className={styles.cancelButton} onClick={onCancel} disabled={isConfirming}>Go back</button>
+          <button ref={cancelButtonRef} className={styles.cancelButton} onClick={onCancel} disabled={isConfirming}>
+            Go back
+          </button>
           <button className={styles.overrideButton} onClick={onConfirm} disabled={isConfirming}>
             {isConfirming ? "Saving…" : "Save anyway"}
           </button>

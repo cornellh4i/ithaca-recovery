@@ -254,11 +254,14 @@ test("confirmOverride: true bypasses the room conflict check and saves the edit 
   const response = await PUT(request);
   expect(response.status).toBe(200);
 
-  // Let the deferred sync job (which the mock above resolves) finish before the test exits,
-  // so it can't leak an in-flight reconcileMeetingCalendars call into a later test.
-  await new Promise((resolve) => setTimeout(resolve, 400));
+  // Waits for (and asserts) the deferred sync job's terminal status, rather than a fixed delay
+  // that could pass without proving the background reconcileMeetingCalendars call completed.
+  const updated = await waitFor(async () => {
+    const row = await prisma.meeting.findUnique({ where: { mid: editedMid } });
+    return row?.googleSyncStatus != null ? row : null;
+  });
 
-  const updated = await prisma.meeting.findUnique({ where: { mid: editedMid } });
+  expect(updated?.googleSyncStatus).toBe("synced");
   expect(updated?.room).toBe("Fellowship Room");
 });
 
