@@ -1,4 +1,4 @@
-import { getFirstDayOfWeek, getDaysOfWeek } from "../../util/weekDates";
+import { getFirstDayOfWeek, getDaysOfWeek, daysBetweenET } from "../../util/weekDates";
 import { formatETDateString } from "../../util/timeUtils";
 
 const utcNoon = (y: number, m: number, d: number) => new Date(Date.UTC(y, m - 1, d, 16, 0)); // ~noon ET
@@ -39,5 +39,23 @@ describe("getDaysOfWeek", () => {
       "2026-07-31",
       "2026-08-01",
     ]);
+  });
+});
+
+describe("daysBetweenET", () => {
+  it("returns 0 for the same ET calendar day", () => {
+    expect(daysBetweenET(utcNoon(2026, 7, 26), utcNoon(2026, 7, 26))).toBe(0);
+  });
+
+  it("returns a positive count when b is later than a", () => {
+    expect(daysBetweenET(utcNoon(2026, 7, 26), utcNoon(2026, 8, 1))).toBe(6);
+  });
+
+  it("returns a negative count when b is earlier than a", () => {
+    expect(daysBetweenET(utcNoon(2026, 8, 1), utcNoon(2026, 7, 26))).toBe(-6);
+  });
+
+  it("handles a month boundary correctly", () => {
+    expect(daysBetweenET(utcNoon(2026, 7, 30), utcNoon(2026, 8, 3))).toBe(4);
   });
 });

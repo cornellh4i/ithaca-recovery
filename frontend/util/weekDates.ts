@@ -37,6 +37,17 @@ export const addDaysToDate = (date: Date, days: number): Date => {
     return new Date(convertETToUTC(`${shiftedEtDateStr}T12:00:00`));
 };
 
+// Whole ET calendar days from `a` to `b` (negative if `b` is earlier) -- for a caller
+// (MultiDayLandscapeView) that needs to know how far a date has drifted from some anchor in
+// day-granularity terms, not just which week it's in.
+export const daysBetweenET = (a: Date, b: Date): number => {
+    const [aYear, aMonth, aDay] = formatETDateString(a).split('-').map(Number);
+    const [bYear, bMonth, bDay] = formatETDateString(b).split('-').map(Number);
+    const aUTC = Date.UTC(aYear, aMonth - 1, aDay);
+    const bUTC = Date.UTC(bYear, bMonth - 1, bDay);
+    return Math.round((bUTC - aUTC) / (24 * 60 * 60 * 1000));
+};
+
 // Re-anchors a Date to noon ET on the *same calendar day the runtime's local timezone sees
 // it as* -- for normalizing a Date built by something outside this codebase's own ET-safe
 // helpers (e.g. react-day-picker's onSelect, which hands back a local-midnight-anchored

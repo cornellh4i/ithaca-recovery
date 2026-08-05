@@ -55,6 +55,10 @@ interface DayColumnProps {
     // Drops each card's tag row and shows a mode icon prefixed to the title instead --
     // half-height rows have no room for a full tag row (see BoxText's hideTags).
     hideTags?: boolean;
+    // Passed straight to BoxText -- MultiDayLandscapeView's only caller of this prop, for a
+    // column width narrower than desktop WeekView's but with room for more than DayColumn's
+    // other callers show. Every other caller leaves this unset (BoxText defaults to "full").
+    tier?: 'full' | 'compact' | 'subcompact';
 }
 
 const DEFAULT_HOUR_HEIGHT = 120;
@@ -78,6 +82,7 @@ const DayColumn: React.FC<DayColumnProps> = ({
     conflictMids,
     hourHeight = DEFAULT_HOUR_HEIGHT,
     hideTags = false,
+    tier,
 }) => {
     const timeToPixels = (time: string) => {
         const [hours, minutes] = time.split(':').map(Number);
@@ -187,6 +192,7 @@ const DayColumn: React.FC<DayColumnProps> = ({
                     hasConflict={conflictMids?.has(meeting.id)}
                     fillHeight
                     hideTags={hideTags}
+                    tier={tier}
                     selected={isSelected}
                     onClick={(meetingId, e) => {
                         handleBoxClick(meetingId, e.currentTarget);

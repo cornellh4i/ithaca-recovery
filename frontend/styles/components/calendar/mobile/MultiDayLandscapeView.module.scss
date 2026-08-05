@@ -1,0 +1,70 @@
+@import '../../Variables.module.scss';
+
+.outerContainer {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background-color: $white-color;
+}
+
+// The only scroll container -- vertical only (through the 24-hour day). Horizontal overflow
+// (the 3-page drag strip, 3x the viewport width) is clipped here, not scrolled: paging
+// between days happens via the drag gesture on .strip, never a native horizontal scroll.
+.scrollArea {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden auto;
+  overscroll-behavior-x: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.stripWrapper {
+  width: 100%;
+}
+
+.strip {
+  display: flex;
+}
+
+.dayPanel {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid $grey-border-color;
+}
+
+.dayHeader {
+  height: 22px;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  font-size: 10px;
+  font-weight: 600;
+  color: $navy-color;
+  border-bottom: 1px solid $grey-border-color;
+  background-color: $white-color;
+  box-sizing: border-box;
+  font-variant-numeric: tabular-nums;
+
+  &.today {
+    color: $brand-pink-color;
+  }
+}
+
+.dayName {
+  color: $text-secondary-color;
+
+  .today & {
+    color: $brand-pink-color;
+  }
+}
