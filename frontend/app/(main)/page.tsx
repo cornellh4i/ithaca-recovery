@@ -7,6 +7,7 @@ import ViewMeetingDetails from "../components/meeting-form/ViewMeeting";
 import DayView from "../components/calendar/desktop/DayView";
 import WeekView from "../components/calendar/desktop/WeekView";
 import DayPortraitView from "../components/calendar/mobile/DayPortraitView";
+import DayLandscapeSwitcher from "../components/calendar/mobile/DayLandscapeSwitcher";
 import MobileFullScreenSheet from "../components/atoms/MobileFullScreenSheet";
 import MobileFab from "../components/calendar/MobileFab";
 import NewMeetingSidebar from "../components/meeting-form/NewMeeting";
@@ -15,7 +16,7 @@ import EditMeetingSidebar from "../components/meeting-form/EditMeeting";
 import { convertUTCToET } from "../../util/timeUtils";
 import { IMeeting } from "../../util/models";
 import { useConflictMids } from "../../hooks/useConflictMids";
-import { useIsPhone } from "../../hooks/useIsPhone";
+import { useViewport } from "../../hooks/useViewport";
 import { useCalendarContext } from "../context/CalendarProvider";
 
 export default function HomePage() {
@@ -281,12 +282,14 @@ export default function HomePage() {
   // anchoring instead of being useful, so both are locked while it's showing.
   const isViewMeetingOpen = !!(selectedMeeting && !showEditMeeting);
 
-  const isPhone = useIsPhone();
+  const viewport = useViewport();
+  const isPhone = viewport?.device === "phone";
+  const isLandscapePhone = isPhone && viewport?.orientation === "landscape";
 
-  // Same null-during-resolution guard as AppNavbar: isPhone starts null until the client's
-  // first layout effect measures the viewport, and both branches below treat a falsy isPhone
-  // as "desktop" -- without this, every load would flash the desktop sidebar/grid first.
-  if (isPhone === null) {
+  // Same null-during-resolution guard as AppNavbar: viewport starts null until the client's
+  // first layout effect measures it, and both branches below treat a null viewport as
+  // "desktop" -- without this, every load would flash the desktop sidebar/grid first.
+  if (viewport === null) {
     return null;
   }
 
@@ -393,7 +396,21 @@ export default function HomePage() {
         />
       )}
       <div className={styles.primaryCalendar}>
-        {isPhone ? (
+        {isLandscapePhone ? (
+          <DayLandscapeSwitcher
+            filters={dayFilters}
+            selectedDate={selectedDate}
+            selectedMeetingID={selectedMeetingID}
+            setSelectedMeetingID={setSelectedMeetingID}
+            selectedOccurrenceDate={lastClickedDate}
+            setSelectedNewMeeting={setSelectedNewMeeting}
+            setAnchorEl={setAnchorEl}
+            setLastClickedDate={setLastClickedDate}
+            refreshTrigger={refreshTrigger}
+            scrollLocked={isViewMeetingOpen}
+            conflictMids={conflictMids}
+          />
+        ) : isPhone ? (
           <DayPortraitView
             filters={dayFilters}
             selectedDate={selectedDate}

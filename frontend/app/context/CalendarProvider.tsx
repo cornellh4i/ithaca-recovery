@@ -42,6 +42,12 @@ interface CalendarContextValue {
   setWeekFilters: React.Dispatch<React.SetStateAction<MeetingFilters>>;
   navHidden: boolean;
   setNavHidden: React.Dispatch<React.SetStateAction<boolean>>;
+  // Which of DayLandscapeView/MultiDayLandscapeView a landscape phone shows -- lives here
+  // (not local state in whichever switcher component renders them) specifically so it
+  // survives that switcher unmounting/remounting across an orientation round-trip: rotating
+  // to portrait and back to landscape shouldn't reset the user's choice.
+  landscapeView: "day" | "multiday";
+  setLandscapeView: React.Dispatch<React.SetStateAction<"day" | "multiday">>;
   transitionDirection: SwipeDirection;
   transitionCrossesWeek: boolean;
   transitionAlreadyAnimatedByCaller: boolean;
@@ -66,6 +72,7 @@ export const CalendarProvider: React.FC<CalendarProviderProps> = ({ children, in
   const [dayFilters, setDayFilters] = useState<MeetingFilters>(() => createDefaultFilters(true));
   const [weekFilters, setWeekFilters] = useState<MeetingFilters>(() => createDefaultFilters(true));
   const [navHidden, setNavHidden] = useState(false);
+  const [landscapeView, setLandscapeView] = useState<"day" | "multiday">("day");
   const [transitionDirection, setTransitionDirection] = useState<SwipeDirection>("forward");
   const [transitionCrossesWeek, setTransitionCrossesWeek] = useState(false);
   const [transitionAlreadyAnimatedByCaller, setTransitionAlreadyAnimatedByCaller] = useState(false);
@@ -97,6 +104,8 @@ export const CalendarProvider: React.FC<CalendarProviderProps> = ({ children, in
       setWeekFilters,
       navHidden,
       setNavHidden,
+      landscapeView,
+      setLandscapeView,
       transitionDirection,
       transitionCrossesWeek,
       transitionAlreadyAnimatedByCaller,
@@ -108,6 +117,7 @@ export const CalendarProvider: React.FC<CalendarProviderProps> = ({ children, in
       dayFilters,
       weekFilters,
       navHidden,
+      landscapeView,
       transitionDirection,
       transitionCrossesWeek,
       transitionAlreadyAnimatedByCaller,
