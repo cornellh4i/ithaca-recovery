@@ -15,6 +15,14 @@ export interface Viewport {
   orientation: Orientation;
   width: number;
   height: number;
+  // True from the moment a resize/orientationchange event fires until the debounced
+  // re-measurement below settles. A phone rotating (or resizing across the phone/tablet
+  // breakpoint) reports its new physical dimensions to the browser well before this hook's own
+  // (debounced) re-render catches up -- without this flag, a consumer swapping between
+  // differently-shaped layouts (e.g. page.tsx's portrait/landscape mobile views) would render
+  // the *old* layout, squeezed into the *new* dimensions, for that whole window. A consumer can
+  // check this to render a blank buffer instead until the real swap is ready.
+  isTransitioning: boolean;
 }
 
 // A small delay before recomputing on resize/orientationchange -- both fire repeatedly
@@ -25,7 +33,7 @@ const RESIZE_DEBOUNCE_MS = 150;
 // Device is decided by the *smaller* viewport dimension, not by width -- a phone in
 // landscape (e.g. 844x390) still measures as "phone" (min=390), matching PHONE_BREAKPOINT,
 // rather than falling through to "desktop" the way a plain width check would.
-const measure = (): Viewport => {
+const measure = (): Omit<Viewport, "isTransitioning"> => {
   const width = window.innerWidth;
   const height = window.innerHeight;
   const min = Math.min(width, height);
@@ -45,11 +53,17 @@ export function useViewport(): Viewport | null {
   useIsomorphicLayoutEffect(() => {
     // Synchronous on mount (and on every resize/orientationchange) -- only the *update*
     // firing is debounced, so first paint is never delayed waiting for a timer.
-    setViewport(measure());
+    setViewport({ ...measure(), isTransitioning: false });
 
     const scheduleUpdate = () => {
+      // Flips to transitioning immediately (synchronously, on the very first event of a
+      // resize/rotation) -- only the actual re-measurement below is debounced, so a consumer
+      // rendering a blank buffer on this flag reacts right away, not 150ms late.
+      setViewport((prev) => (prev ? { ...prev, isTransitioning: true } : prev));
       if (debounceRef.current) clearTimeout(debounceRef.current);
-      debounceRef.current = setTimeout(() => setViewport(measure()), RESIZE_DEBOUNCE_MS);
+      debounceRef.current = setTimeout(() => {
+        setViewport({ ...measure(), isTransitioning: false });
+      }, RESIZE_DEBOUNCE_MS);
     };
 
     window.addEventListener("resize", scheduleUpdate);

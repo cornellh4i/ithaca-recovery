@@ -1,15 +1,15 @@
 "use client";
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import styles from "./page.module.scss";
-import CalendarNavbar from "../components/calendar/CalendarNavbar";
-import CalendarSidebarShell from "../components/calendar/CalendarSidebarShell";
+import CalendarNavbar from "../components/calendar/desktop/CalendarNavbar";
+import CalendarSidebarShell from "../components/calendar/desktop/CalendarSidebarShell";
 import ViewMeetingDetails from "../components/meeting-form/ViewMeeting";
 import DayView from "../components/calendar/desktop/DayView";
 import WeekView from "../components/calendar/desktop/WeekView";
 import DayPortraitView from "../components/calendar/mobile/DayPortraitView";
 import DayLandscapeSwitcher from "../components/calendar/mobile/DayLandscapeSwitcher";
 import MobileFullScreenSheet from "../components/atoms/MobileFullScreenSheet";
-import MobileFab from "../components/calendar/MobileFab";
+import MobileFab from "../components/calendar/mobile/MobileFab";
 import NewMeetingSidebar from "../components/meeting-form/NewMeeting";
 import EditMeetingSidebar from "../components/meeting-form/EditMeeting";
 
@@ -396,7 +396,14 @@ export default function HomePage() {
         />
       )}
       <div className={styles.primaryCalendar}>
-        {isLandscapePhone ? (
+        {isPhone && viewport?.isTransitioning ? (
+          // A phone rotating (or resizing across the phone/tablet breakpoint) reports its new
+          // physical dimensions well before useViewport's own debounced re-render catches up --
+          // without this, DayPortraitView/DayLandscapeSwitcher would render in the *old*
+          // orientation's shape, squeezed into the *new* dimensions, for that whole window.
+          // Blank instead until the real swap is ready.
+          <div className={styles.orientationTransitionBuffer} />
+        ) : isLandscapePhone ? (
           <DayLandscapeSwitcher
             filters={dayFilters}
             selectedDate={selectedDate}

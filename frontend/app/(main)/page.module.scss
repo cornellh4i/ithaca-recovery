@@ -113,11 +113,22 @@
   // view maxes out, dragging CalendarNavbar along with it.
   overflow: hidden;
 
-  // DayPortraitView (WeekStrip/CalendarHeader/DayColumn) is meant to run edge-to-edge,
-  // not sit inset inside the desktop 10px padding.
-  @media (width <= $breakpoint-phone) {
+  // DayPortraitView (WeekStrip/CalendarHeader/DayColumn) and the landscape views
+  // (DayLandscapeView/MultiDayLandscapeView) are meant to run edge-to-edge, not sit inset
+  // inside the desktop 10px padding. Width-or-height, not width alone -- see
+  // MainLayout.module.scss's matching comment for why a landscape phone needs the OR.
+  @media (width <= $breakpoint-phone), (height <= $breakpoint-phone) {
     padding: 0;
   }
+}
+
+// Shown in place of DayPortraitView/DayLandscapeSwitcher while useViewport reports
+// isTransitioning -- fills the same flex slot those views' own .outerContainer would, so
+// nothing else in this column reflows around it.
+.orientationTransitionBuffer {
+  flex: 1 1 auto;
+  min-height: 0;
+  background-color: $white-color;
 }
 
 .newMeetingHeader {
