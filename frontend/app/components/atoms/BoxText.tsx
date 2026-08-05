@@ -32,6 +32,9 @@ interface BoxProps {
   // fillHeight has shrunk the box well below its normal Meeting Block height — used by
   // DailyView for a meeting sharing its room's row with an overlapping neighbor, where
   // the box is roughly half-height. Without this, tags get clipped off the bottom.
+  //
+  // Deprecated: use `tier="compact"` instead. Kept as a working alias (see `tier` below)
+  // so existing call sites passing this boolean directly don't need to change.
   compact?: boolean;
   // Extra badge alongside tags, e.g. flagging a Zoom-room mismatch.
   zoomTag?: string;
@@ -39,6 +42,14 @@ interface BoxProps {
   // entirely and prefixes the title with a small mode icon instead (see MODE_ICON_SRC),
   // so the one piece of tag info that mattered most for a glance (how to attend) survives.
   hideTags?: boolean;
+  // Explicit density tier. Defaults to "full" (today's non-compact layout, unchanged).
+  // "compact" is the same half-height treatment the `compact` boolean above already gives
+  // (tags dropped, room/title kept) -- this is just the named form of it. "subcompact" drops
+  // further to title + mode icon only, one line, no room/time/tags at all -- used solely by
+  // DayLandscapeView's subcompact-row grid (12 rooms stacked on a landscape phone), where
+  // there's no vertical room for anything else. `hideTags`'s mode-icon-in-title treatment
+  // applies at this tier automatically, regardless of whether `hideTags` itself was passed.
+  tier?: 'full' | 'compact' | 'subcompact';
   onClick: (meetingId: string, e: React.MouseEvent<HTMLDivElement, MouseEvent>) => void;
   [key: string]: unknown;
 };
@@ -57,14 +68,24 @@ const BoxText: React.FC<BoxProps> = ({
   compact = false,
   zoomTag,
   hideTags = false,
+  tier,
   selected = false,
   onClick
 }) => {
+  const resolvedTier = tier ?? (compact ? 'compact' : 'full');
+  const isCompact = resolvedTier === 'compact';
+  const isSubcompact = resolvedTier === 'subcompact';
+  // Subcompact always gets the hideTags treatment (mode icon in the title, no tag row, no
+  // time/location line below) whether or not hideTags itself was passed -- there's no
+  // "subcompact but show tags" case.
+  const iconInTitle = hideTags || isSubcompact;
 
   const bgColor =
     boxType === 'Meeting Block'
       ? toPastelColor(primaryColor)
       : primaryColor;
+  // Subcompact's row is too short for the standard 6px accent to read proportionally.
+  const borderLeftWidth = isSubcompact ? 3 : 6;
 
   const modeTag = tags?.find(tag => MODE_ICON_SRC[tag]);
   const modeIconSrc = modeTag ? MODE_ICON_SRC[modeTag] : undefined;
@@ -95,8 +116,8 @@ const BoxText: React.FC<BoxProps> = ({
   return (
     <div
       data-testid={boxType === 'Meeting Block' ? `meeting-card-${meetingId}` : undefined}
-      className={`${styles.box} ${boxType === 'Meeting Block' ? styles.meeting : styles.room} ${fillHeight ? styles.fillHeight : ''} ${compact ? styles.compact : ''} ${selected ? styles.selected : ''}`}
-      style={{ backgroundColor: bgColor, borderLeft: `6px solid ${primaryColor}`, position: 'relative' }}
+      className={`${styles.box} ${boxType === 'Meeting Block' ? styles.meeting : styles.room} ${fillHeight ? styles.fillHeight : ''} ${isCompact ? styles.compact : ''} ${isSubcompact ? styles.tierSubcompact : ''} ${selected ? styles.selected : ''}`}
+      style={{ backgroundColor: bgColor, borderLeft: `${borderLeftWidth}px solid ${primaryColor}`, position: 'relative' }}
       onClick={(e) => onClick(meetingId, e)}
     >
       {syncError && (
@@ -129,7 +150,7 @@ const BoxText: React.FC<BoxProps> = ({
           ...(hasConflict ? { paddingLeft: 16 } : undefined),
         }}
       >
-        {hideTags && modeIconSrc && (
+        {iconInTitle && modeIconSrc && (
           <span role="img" aria-label={modeTag} title={modeTag} className={styles.modeIcon}>
             <img src={modeIconSrc} alt="" />
           </span>
@@ -137,7 +158,7 @@ const BoxText: React.FC<BoxProps> = ({
         {title}
       </h3>
 
-      {boxType === 'Meeting Block' && (
+      {boxType === 'Meeting Block' && !isSubcompact && (
         location !== undefined ? (
           <p className={`${styles.time} ${styles.timeRowWithPlace}`}>
             {location && <span className={styles.place}>{location} ·</span>}
@@ -147,15 +168,15 @@ const BoxText: React.FC<BoxProps> = ({
           <p className={styles.time}>{time}</p>
         )
       )}
-      {!hideTags && tags && tags.length > 0 && (
+      {!iconInTitle && tags && tags.length > 0 && (
         <TagList
           tags={tags}
           color={primaryColor}
           // WeeklyView's tall fillHeight boxes pin tags right under the time line rather
           // than at the bottom (see BoxText.module.scss's .fillHeight comment) -- but not
           // when compact, where it's back to DailyView's half-height stacked case.
-          containerStyle={fillHeight && !compact ? { marginTop: 4 } : undefined}
-          tagStyle={compact ? { padding: '1px 6px', lineHeight: 1 } : undefined}
+          containerStyle={fillHeight && !isCompact ? { marginTop: 4 } : undefined}
+          tagStyle={isCompact ? { padding: '1px 6px', lineHeight: 1 } : undefined}
         />
       )}
     </div>

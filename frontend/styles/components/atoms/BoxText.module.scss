@@ -130,6 +130,25 @@
     // end up visually equal.
   }
 
+  // Subcompact tier -- DayLandscapeView's only consumer (see BoxText.tsx's `tier` prop):
+  // rows this dense (7am-9pm across 12 rooms on a landscape phone) have room for a title and
+  // its mode icon, nothing else. The row's own height comes from the caller (fillHeight),
+  // not a fixed value here.
+  &.tierSubcompact {
+    padding: 2px 7px;
+    border-radius: 4px;
+
+    .title {
+      font-size: 11px;
+      line-height: 1;
+    }
+
+    .modeIcon img {
+      width: 10px;
+      height: 10px;
+    }
+  }
+
   // Highlights the box while its View Meeting popup is open.
   &.selected {
     box-shadow: 0 4px 10px rgb(0 0 0 / 25%);
