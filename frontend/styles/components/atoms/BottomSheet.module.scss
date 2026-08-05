@@ -30,6 +30,11 @@
         max-height: none;
         border-radius: 0;
         padding-top: calc(8px + env(safe-area-inset-top));
+
+        // A landscape phone's display cutout/rounded corners sit on the left and right edges,
+        // not just the top -- the base 20px side padding above isn't enough clearance there.
+        padding-left: calc(20px + env(safe-area-inset-left));
+        padding-right: calc(20px + env(safe-area-inset-right));
     }
 }
 
