@@ -135,17 +135,17 @@
   // its mode icon, nothing else. The row's own height comes from the caller (fillHeight),
   // not a fixed value here.
   &.tierSubcompact {
-    padding: 2px 7px;
+    padding: 3px 8px;
     border-radius: 4px;
 
     .title {
-      font-size: 11px;
-      line-height: 1;
+      font-size: 12px;
+      line-height: 1.1;
     }
 
     .modeIcon img {
-      width: 10px;
-      height: 10px;
+      width: 11px;
+      height: 11px;
     }
   }
 

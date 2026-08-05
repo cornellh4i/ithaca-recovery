@@ -1,7 +1,8 @@
-import React from "react";
-import { render, screen, fireEvent } from "@testing-library/react";
+import React, { useEffect } from "react";
+import { render, screen } from "@testing-library/react";
 import DayLandscapeSwitcher from "../../app/components/calendar/mobile/DayLandscapeSwitcher";
-import { CalendarProvider } from "../../app/context/CalendarProvider";
+import { roomDisplayName } from "../../app/components/calendar/mobile/DayLandscapeView";
+import { CalendarProvider, useCalendarContext } from "../../app/context/CalendarProvider";
 import { createDefaultFilters } from "../../util/meetingFilters";
 
 const etDate = (y: number, m: number, d: number) => new Date(Date.UTC(y, m - 1, d, 16, 0));
@@ -15,6 +16,18 @@ const baseProps = {
   setAnchorEl: jest.fn(),
 };
 
+// The Day/Multi-Day choice now lives in CalendarProvider and is driven by MobileAppNavbar's
+// dropdown, not by any UI inside DayLandscapeSwitcher itself -- this test-only component
+// stands in for that dropdown so these tests can force landscapeView without rendering the
+// navbar (same "probe/driver" pattern MobileAppNavbar.test.tsx's SelectedDateProbe uses).
+const LandscapeViewSetter: React.FC<{ view: "day" | "multiday" }> = ({ view }) => {
+  const { setLandscapeView } = useCalendarContext();
+  useEffect(() => {
+    setLandscapeView(view);
+  }, [view, setLandscapeView]);
+  return null;
+};
+
 beforeEach(() => {
   global.fetch = jest.fn().mockResolvedValue({ ok: true, json: async () => [] }) as jest.Mock;
 });
@@ -24,29 +37,29 @@ afterEach(() => {
 });
 
 describe("DayLandscapeSwitcher", () => {
-  it("defaults to DayLandscapeView (rooms as rows) with a Day/Week toggle", async () => {
+  it("defaults to DayLandscapeView (rooms as rows)", async () => {
     render(
       <CalendarProvider>
         <DayLandscapeSwitcher {...baseProps} />
       </CalendarProvider>
     );
 
-    expect(screen.getByRole("tab", { name: "Day" })).toHaveAttribute("aria-selected", "true");
-    expect(screen.getByRole("tab", { name: "Week" })).toHaveAttribute("aria-selected", "false");
-    // DayLandscapeView's room-row structure, not MultiDayLandscapeView's day columns.
-    expect(await screen.findByText("Serenity Room")).toBeInTheDocument();
+    // DayLandscapeView's room-row structure, not MultiDayLandscapeView's day columns. Appears
+    // 3 times now -- one per panel in the vertical drag carousel (prev/current/next day), all
+    // showing the same room list regardless of that day's actual meeting data.
+    const labels = await screen.findAllByText(roomDisplayName("Serenity Room"));
+    expect(labels.length).toBe(3);
   });
 
-  it("switches to MultiDayLandscapeView when Week is tapped", async () => {
-    render(
+  it("renders MultiDayLandscapeView once landscapeView is 'multiday'", () => {
+    const { container } = render(
       <CalendarProvider>
+        <LandscapeViewSetter view="multiday" />
         <DayLandscapeSwitcher {...baseProps} />
       </CalendarProvider>
     );
 
-    fireEvent.click(screen.getByRole("tab", { name: "Week" }));
-
-    expect(screen.getByRole("tab", { name: "Week" })).toHaveAttribute("aria-selected", "true");
-    expect(screen.queryByText("Serenity Room")).not.toBeInTheDocument();
+    expect(screen.queryByText(roomDisplayName("Serenity Room"))).not.toBeInTheDocument();
+    expect(container.querySelectorAll('[class*="dayPanel"]').length).toBeGreaterThan(0);
   });
 });

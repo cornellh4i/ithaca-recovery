@@ -9,17 +9,16 @@
   background-color: $white-color;
 }
 
-// The only scroll container -- vertical only (room axis). The hour axis never scrolls: its
-// width is computed from this element's own measured width (see DayLandscapeView.tsx's
-// useElementWidth), not a fixed constant, so it always compresses to fit instead.
+// Horizontal-only: the room axis (vertical) always fits exactly, never scrolls -- rowHeight
+// (DayLandscapeView.tsx) has no floor, so rows just keep shrinking to fit whatever room count
+// there is. The hour axis (horizontal) scrolls once MIN_HOUR_WIDTH's floor makes 24 hours
+// wider than the measured viewport. .headerCorner and .roomLabel are sticky-left below so they
+// stay in view through that scroll -- same mechanism desktop DayView's own sticky room column
+// uses for the same problem.
 .scrollArea {
   flex: 1 1 auto;
   min-height: 0;
-  overflow: hidden auto;
-
-  // Same reasoning as DayPortraitView.module.scss's .scrollArea -- this is the actual scroll
-  // container an unclaimed horizontal gesture would otherwise chain up from.
-  overscroll-behavior-x: none;
+  overflow: auto hidden; // x, y -- horizontal scroll only, the room axis never scrolls
 
   &::-webkit-scrollbar {
     display: none;
@@ -29,24 +28,66 @@
   scrollbar-width: none;
 }
 
+// The vertical drag carousel's track -- 3 .dayPanels (prev/current/next) stacked top to
+// bottom, translated via framer-motion's y to bring one to center. .scrollArea's own
+// overflow-y: hidden (above) clips the other two out of view; its overflow-x: auto is what
+// still makes the hour axis natively scrollable, unaffected by this vertical stack.
+.verticalStrip {
+  display: flex;
+  flex-direction: column;
+}
+
+.dayPanel {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+}
+
+// Not position: sticky -- unlike the room axis (which never scrolls, see .scrollArea's own
+// comment), the vertical axis here is a day-navigation drag, and the header (with the date
+// line) needs to move together with its own panel's room rows as one unit during that drag,
+// not stay pinned at the viewport top while its panel slides away underneath it.
 .headerRow {
-  position: sticky;
-  top: 0;
-  z-index: 5;
+  z-index: 15;
   display: flex;
   background-color: $white-color;
   border-bottom: 1px solid $grey-border-color;
 }
 
+// Sticky on both axes (top from .headerRow above, left here) so it stays put as the corner
+// where the sticky room column and the scrolling hour header meet -- z-index above
+// .headerRow's own so it isn't painted under the hour labels scrolling beneath it.
 .headerCorner {
+  position: sticky;
+  left: 0;
+  z-index: 21;
   flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  box-sizing: border-box;
+  background-color: $white-color;
+  border-right: 1px solid $grey-border-color;
+}
+
+// No color set here -- formatMeetingDateLine's own return value already carries color (a
+// brand-pink " · Today" suffix when applicable), so this only sets layout/typography.
+.headerCornerLabel {
+  font-size: 11px;
+  font-weight: 600;
+  color: $navy-color;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .hourLabel {
   flex: 0 0 auto;
-  font-size: 9px;
+  display: flex;
+  align-items: center;
+  font-size: 10px;
   color: $text-secondary-color;
-  padding: 4px 0 4px 3px;
+  padding-left: 4px;
   box-sizing: border-box;
   border-left: 1px solid $grey-lightest-color;
   font-variant-numeric: tabular-nums;
@@ -63,34 +104,57 @@
 }
 
 .roomLabel {
+  position: sticky;
+  left: 0;
+  z-index: 20;
   flex: 0 0 auto;
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 0 6px;
+  gap: 5px;
+  padding: 0 8px;
   box-sizing: border-box;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 600;
   color: $navy-color;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  background-color: $white-color;
   border-right: 1px solid $grey-border-color;
 }
 
 .roomDot {
-  width: 6px;
-  height: 6px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
   flex: 0 0 auto;
 }
 
 // Where DailyViewRow actually renders -- position: relative so its own absolutely-positioned
-// meeting cards anchor here, against just the hour grid, not the room label next to it.
+// meeting cards (and .hourGrid, below) anchor here, against just the hour grid, not the room
+// label next to it.
 .roomContent {
-  flex: 1 1 auto;
-  min-width: 0;
+  flex: 0 0 auto;
   position: relative;
+}
+
+// Per-hour vertical rules behind the meeting cards -- DailyViewRow itself renders no visual
+// grid (its 24 placeholder divs are unstyled; desktop DayView supplies its own .gridCell
+// siblings for that, see DayView.tsx), so this view supplies the equivalent for its own
+// 7:00-21:00 range. aria-hidden + pointer-events: none -- purely decorative, must not steal
+// clicks from the meeting cards/row click-through above it.
+.hourGrid {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  pointer-events: none;
+}
+
+.hourGridCell {
+  flex: 0 0 auto;
+  height: 100%;
+  box-sizing: border-box;
+  border-left: 1px solid $grey-lightest-color;
 }
 
 .currentTimeLine {
@@ -98,7 +162,7 @@
   top: 0;
   bottom: 0;
   width: 2px;
-  background-color: $danger-color;
+  background-color: $brand-pink-color;
   z-index: 6;
   pointer-events: none;
 
@@ -109,7 +173,7 @@
     left: -4px;
     width: 10px;
     height: 10px;
-    background-color: $danger-color;
+    background-color: $brand-pink-color;
     border-radius: 50%;
   }
 }
