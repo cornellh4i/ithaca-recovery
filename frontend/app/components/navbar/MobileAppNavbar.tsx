@@ -51,7 +51,7 @@ const MobileAppNavbar: React.FC<MobileAppNavbarProps> = ({ session, status, user
   const { selectedDate, changeSelectedDate, dayFilters, setDayFilters, navHidden, landscapeView, setLandscapeView } =
     useCalendarContext();
   const viewport = useViewport();
-  const isLandscapePhone = viewport?.orientation === "landscape";
+  const isLandscapePhone = viewport?.device === "phone" && viewport.orientation === "landscape";
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [openSheet, setOpenSheet] = useState<OpenSheet>(null);
@@ -112,6 +112,7 @@ const MobileAppNavbar: React.FC<MobileAppNavbarProps> = ({ session, status, user
               isVisible={true}
               elements={["Day", "Multi-Day"]}
               name="Select view"
+              ariaLabel={LANDSCAPE_VIEW_LABELS[landscapeView]}
               onChange={(value) => setLandscapeView(LANDSCAPE_VIEW_BY_LABEL[value as LandscapeViewLabel])}
               renderElement={(element) => (
                 <span className={styles.viewOption}>

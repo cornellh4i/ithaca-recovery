@@ -160,6 +160,16 @@ describe("MobileAppNavbar", () => {
     });
   });
 
+  it("has no Day/Multi-Day dropdown on a landscape tablet/desktop (min dimension above phone breakpoint)", () => {
+    mockUseSession.mockReturnValue({ data: adminSession });
+    mockUsePathname.mockReturnValue("/");
+
+    withWindowSize(1024, 768, () => {
+      renderNavbar();
+      expect(screen.queryByRole("button", { name: "Day" })).not.toBeInTheDocument();
+    });
+  });
+
   it("switches landscapeView to 'multiday' when Multi-Day is selected", () => {
     mockUseSession.mockReturnValue({ data: adminSession });
     mockUsePathname.mockReturnValue("/");

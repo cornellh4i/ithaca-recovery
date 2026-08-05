@@ -78,6 +78,7 @@ const CalendarNavbar: React.FC<CalendarNavbarProps> = ({ selectedDate, onDateCha
               isVisible={true}
               elements={['Day', 'Week']}
               name="Select view"
+              ariaLabel={selectedView}
               onChange={handleViewChange}
               renderElement={(element) => (
                 <span className={styles.viewOption}>
