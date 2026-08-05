@@ -17,6 +17,7 @@ const PUBLIC_ROUTES = new Set([
   "retrieve/meeting/route.ts",
   "retrieve/meeting/day/route.ts",
   "retrieve/meeting/week/route.ts",
+  "retrieve/meeting/range/route.ts",
   "retrieve/meeting/month/route.ts",
   "retrieve/meeting/[id]/route.ts",
 ]);

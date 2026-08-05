@@ -73,7 +73,7 @@
     box-shadow: 0 4px 8px rgb(0 0 0 / 20%);
 
     // Above any page content that establishes its own stacking context with a competing
-    // z-index -- e.g. DailyView/WeeklyView's sticky headers go up to 20/21, which used to
+    // z-index -- e.g. DayView/WeekView's sticky headers go up to 20/21, which used to
     // render on top of this list (CalendarNavbar's view-switcher dropdown, confirmed 2026-07-25).
     z-index: 100;
     list-style: none;

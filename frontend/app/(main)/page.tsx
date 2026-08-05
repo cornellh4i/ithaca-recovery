@@ -1,21 +1,23 @@
 "use client";
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import styles from "./page.module.scss";
-import CalendarNavbar from "../components/calendar/CalendarNavbar";
-import CalendarSidebarShell from "../components/calendar/CalendarSidebarShell";
+import CalendarNavbar from "../components/calendar/desktop/CalendarNavbar";
+import CalendarSidebarShell from "../components/calendar/desktop/CalendarSidebarShell";
 import ViewMeetingDetails from "../components/meeting-form/ViewMeeting";
-import DailyView from "../components/calendar/DailyView";
-import WeeklyView from "../components/calendar/WeeklyView";
-import MobileCalendarView from "../components/calendar/MobileCalendarView";
+import DayView from "../components/calendar/desktop/DayView";
+import WeekView from "../components/calendar/desktop/WeekView";
+import DayPortraitView from "../components/calendar/mobile/DayPortraitView";
+import DayLandscapeSwitcher from "../components/calendar/mobile/DayLandscapeSwitcher";
 import MobileFullScreenSheet from "../components/atoms/MobileFullScreenSheet";
-import MobileFab from "../components/calendar/MobileFab";
+import MobileFab from "../components/calendar/mobile/MobileFab";
 import NewMeetingSidebar from "../components/meeting-form/NewMeeting";
 import EditMeetingSidebar from "../components/meeting-form/EditMeeting";
 
 import { convertUTCToET } from "../../util/timeUtils";
 import { IMeeting } from "../../util/models";
 import { useConflictMids } from "../../hooks/useConflictMids";
-import { useIsPhone } from "../../hooks/useIsPhone";
+import { useViewport } from "../../hooks/useViewport";
+import { PHONE_BREAKPOINT } from "../../util/breakpoints";
 import { useCalendarContext } from "../context/CalendarProvider";
 
 export default function HomePage() {
@@ -94,7 +96,7 @@ export default function HomePage() {
         setShowEditMeeting(false);
         setSelectedMeeting(data);
         // lastClickedDate is set directly by the calendar box's own click handler (see
-        // setLastClickedDate threaded into DailyView/WeeklyView/MobileCalendarView) --
+        // setLastClickedDate threaded into DayView/WeekView/DayPortraitView) --
         // it already knows which specific occurrence's column/row was clicked, which the
         // globally-selected calendar date does not (e.g. Week view can have a different
         // selectedDate than the day column actually clicked). Left unset here for the
@@ -281,12 +283,14 @@ export default function HomePage() {
   // anchoring instead of being useful, so both are locked while it's showing.
   const isViewMeetingOpen = !!(selectedMeeting && !showEditMeeting);
 
-  const isPhone = useIsPhone();
+  const viewport = useViewport();
+  const isPhone = viewport?.device === "phone";
+  const isLandscapePhone = isPhone && viewport?.orientation === "landscape";
 
-  // Same null-during-resolution guard as AppNavbar: isPhone starts null until the client's
-  // first layout effect measures the viewport, and both branches below treat a falsy isPhone
-  // as "desktop" -- without this, every load would flash the desktop sidebar/grid first.
-  if (isPhone === null) {
+  // Same null-during-resolution guard as AppNavbar: viewport starts null until the client's
+  // first layout effect measures it, and both branches below treat a null viewport as
+  // "desktop" -- without this, every load would flash the desktop sidebar/grid first.
+  if (viewport === null) {
     return null;
   }
 
@@ -393,8 +397,32 @@ export default function HomePage() {
         />
       )}
       <div className={styles.primaryCalendar}>
-        {isPhone ? (
-          <MobileCalendarView
+        {viewport?.isTransitioning &&
+        (isPhone || Math.min(window.innerWidth, window.innerHeight) <= PHONE_BREAKPOINT) ? (
+          // A phone rotating (or resizing across the phone/tablet breakpoint) reports its new
+          // physical dimensions well before useViewport's own debounced re-render catches up --
+          // without this, DayPortraitView/DayLandscapeSwitcher would render in the *old*
+          // orientation's shape, squeezed into the *new* dimensions, for that whole window.
+          // Blank instead until the real swap is ready. Checked against the raw window
+          // dimensions too (not just the debounced isPhone), since a desktop/tablet viewport
+          // transitioning INTO phone size reports isPhone=false for the whole debounce window.
+          <div className={styles.orientationTransitionBuffer} />
+        ) : isLandscapePhone ? (
+          <DayLandscapeSwitcher
+            filters={dayFilters}
+            selectedDate={selectedDate}
+            selectedMeetingID={selectedMeetingID}
+            setSelectedMeetingID={setSelectedMeetingID}
+            selectedOccurrenceDate={lastClickedDate}
+            setSelectedNewMeeting={setSelectedNewMeeting}
+            setAnchorEl={setAnchorEl}
+            setLastClickedDate={setLastClickedDate}
+            refreshTrigger={refreshTrigger}
+            scrollLocked={isViewMeetingOpen}
+            conflictMids={conflictMids}
+          />
+        ) : isPhone ? (
+          <DayPortraitView
             filters={dayFilters}
             selectedDate={selectedDate}
             selectedMeetingID={selectedMeetingID}
@@ -417,7 +445,7 @@ export default function HomePage() {
               isAdmin={isAdmin}
             />
             {selectedView === "Day" ? (
-              <DailyView
+              <DayView
                 filters={filters}
                 selectedDate={selectedDate}
                 setSelectedDate={changeSelectedDate}
@@ -432,7 +460,7 @@ export default function HomePage() {
                 conflictMids={conflictMids}
               />
             ) : (
-              <WeeklyView
+              <WeekView
                 filters={filters}
                 selectedDate={selectedDate}
                 setSelectedDate={changeSelectedDate}

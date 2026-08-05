@@ -17,18 +17,18 @@ import { getSwipeDirection, isSameWeek, SwipeDirection } from "../../util/weekSt
 // nav arrows/mini-calendar/day click, WeekStrip tap/swipe, DayColumn swipe, mobile mini-
 // calendar pick), goes through changeSelectedDate rather than a raw setter. It derives
 // direction/crossesWeek from the *previous* selectedDate before updating, so WeekStrip and
-// MobileCalendarView (which just react to selectedDate + these fields changing, regardless of
+// DayPortraitView (which just react to selectedDate + these fields changing, regardless of
 // which trigger caused it) render the same transition no matter the source -- desktop simply
 // never reads transitionDirection/transitionCrossesWeek/transitionAlreadyAnimatedByCaller, so
 // routing its changes through here too is a no-op for it, not a behavior change. There's
 // deliberately no raw setSelectedDate on this context: a desktop call site bypassing
 // changeSelectedDate would leave these three fields stale for whatever mobile view mounts
-// next after a desktop<->mobile resize (MobileCalendarView unmounts/remounts across that
+// next after a desktop<->mobile resize (DayPortraitView unmounts/remounts across that
 // boundary, but the context itself does not).
 //
 // transitionAlreadyAnimatedByCaller: set when the caller's own gesture already delivered the
-// motion (only MobileCalendarView's drag -- the pan itself slides the content into place), so
-// consumers that play their own enter transition on every selectedDate change (MobileCalendarView's
+// motion (only DayPortraitView's drag -- the pan itself slides the content into place), so
+// consumers that play their own enter transition on every selectedDate change (DayPortraitView's
 // per-panel slide-in) know to skip it for that one commit rather than layering a redundant
 // second slide right after the drag's. Plain state (not a ref) specifically so it's safe to
 // read during render.
@@ -42,6 +42,12 @@ interface CalendarContextValue {
   setWeekFilters: React.Dispatch<React.SetStateAction<MeetingFilters>>;
   navHidden: boolean;
   setNavHidden: React.Dispatch<React.SetStateAction<boolean>>;
+  // Which of DayLandscapeView/MultiDayLandscapeView a landscape phone shows -- lives here
+  // (not local state in whichever switcher component renders them) specifically so it
+  // survives that switcher unmounting/remounting across an orientation round-trip: rotating
+  // to portrait and back to landscape shouldn't reset the user's choice.
+  landscapeView: "day" | "multiday";
+  setLandscapeView: React.Dispatch<React.SetStateAction<"day" | "multiday">>;
   transitionDirection: SwipeDirection;
   transitionCrossesWeek: boolean;
   transitionAlreadyAnimatedByCaller: boolean;
@@ -53,7 +59,7 @@ const CalendarContext = createContext<CalendarContextValue | null>(null);
 interface CalendarProviderProps {
   children: React.ReactNode;
   // Test-only override -- real app usage always defaults to today. Lets component tests
-  // render WeekStrip/MobileCalendarView/MobileAppNavbar against a fixed, deterministic date
+  // render WeekStrip/DayPortraitView/MobileAppNavbar against a fixed, deterministic date
   // instead of the real "today" (which would make date-dependent assertions flaky).
   initialDate?: Date;
 }
@@ -66,12 +72,13 @@ export const CalendarProvider: React.FC<CalendarProviderProps> = ({ children, in
   const [dayFilters, setDayFilters] = useState<MeetingFilters>(() => createDefaultFilters(true));
   const [weekFilters, setWeekFilters] = useState<MeetingFilters>(() => createDefaultFilters(true));
   const [navHidden, setNavHidden] = useState(false);
+  const [landscapeView, setLandscapeView] = useState<"day" | "multiday">("day");
   const [transitionDirection, setTransitionDirection] = useState<SwipeDirection>("forward");
   const [transitionCrossesWeek, setTransitionCrossesWeek] = useState(false);
   const [transitionAlreadyAnimatedByCaller, setTransitionAlreadyAnimatedByCaller] = useState(false);
 
   // Ref mirror of selectedDate so changeSelectedDate's identity stays stable (it's handed to
-  // framer-motion drag handlers in WeekStrip/MobileCalendarView, which don't need to
+  // framer-motion drag handlers in WeekStrip/DayPortraitView, which don't need to
   // re-subscribe every time the date itself changes).
   const selectedDateRef = useRef(selectedDate);
   useEffect(() => {
@@ -97,6 +104,8 @@ export const CalendarProvider: React.FC<CalendarProviderProps> = ({ children, in
       setWeekFilters,
       navHidden,
       setNavHidden,
+      landscapeView,
+      setLandscapeView,
       transitionDirection,
       transitionCrossesWeek,
       transitionAlreadyAnimatedByCaller,
@@ -108,6 +117,7 @@ export const CalendarProvider: React.FC<CalendarProviderProps> = ({ children, in
       dayFilters,
       weekFilters,
       navHidden,
+      landscapeView,
       transitionDirection,
       transitionCrossesWeek,
       transitionAlreadyAnimatedByCaller,

@@ -1,0 +1,128 @@
+@import 'https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;600&display=swap';
+@import '../../../Variables.module.scss';
+
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgb(0 0 0 / 50%);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modalContent {
+  background-color: white;
+  border-radius: 8px;
+  width: 420px;
+  max-width: 90%;
+  max-height: 80vh;
+  padding: 24px;
+  font-family: "Source Sans Pro", sans-serif;
+  color: $black-color;
+  box-shadow: 0 4px 12px rgb(0 0 0 / 15%);
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.modalTitle {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.closeButton {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  color: #3A3E49;
+  line-height: 1;
+  padding: 2px;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow-y: auto;
+}
+
+.meetingItem {
+  position: relative;
+  border-left: 4px solid $light-grey-color;
+  border-radius: 4px;
+  padding: 10px 12px;
+  cursor: pointer;
+
+  &:hover {
+    filter: brightness(0.97);
+  }
+}
+
+// Same corner-badge convention as BoxText.module.scss's .syncError/.conflictBadge -- top-right
+// for a sync failure, top-left for a resource conflict, so the same meeting reads identically
+// whether it's shown as a calendar card or a row in this modal.
+.syncError {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  line-height: 1;
+
+  img {
+    width: 14px;
+    height: 14px;
+    display: block;
+  }
+}
+
+.conflictBadge {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  line-height: 1;
+
+  img {
+    width: 14px;
+    height: 14px;
+    display: block;
+  }
+}
+
+.title {
+  margin: 0 0 6px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.location {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #3A3E49;
+  margin-bottom: 4px;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.time {
+  margin: 0 0 6px;
+  font-size: 13px;
+  color: #3A3E49;
+}

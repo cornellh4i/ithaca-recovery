@@ -54,6 +54,50 @@ describe("BottomSheet", () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
+  it("renders full-screen on a landscape phone viewport", () => {
+    const originalWidth = window.innerWidth;
+    const originalHeight = window.innerHeight;
+    Object.defineProperty(window, "innerWidth", { configurable: true, value: 844 });
+    Object.defineProperty(window, "innerHeight", { configurable: true, value: 390 });
+
+    try {
+      render(
+        <BottomSheet isOpen onClose={jest.fn()} title="Filters">
+          <div>Sheet content</div>
+        </BottomSheet>
+      );
+
+      const sheet = document.body.querySelector('[class*="sheet"]');
+      expect(sheet).not.toBeNull();
+      expect(sheet?.className).toMatch(/fullScreen/);
+    } finally {
+      Object.defineProperty(window, "innerWidth", { configurable: true, value: originalWidth });
+      Object.defineProperty(window, "innerHeight", { configurable: true, value: originalHeight });
+    }
+  });
+
+  it("keeps the usual bottom-anchored sheet on a portrait phone viewport", () => {
+    const originalWidth = window.innerWidth;
+    const originalHeight = window.innerHeight;
+    Object.defineProperty(window, "innerWidth", { configurable: true, value: 390 });
+    Object.defineProperty(window, "innerHeight", { configurable: true, value: 844 });
+
+    try {
+      render(
+        <BottomSheet isOpen onClose={jest.fn()} title="Filters">
+          <div>Sheet content</div>
+        </BottomSheet>
+      );
+
+      const sheet = document.body.querySelector('[class*="sheet"]');
+      expect(sheet).not.toBeNull();
+      expect(sheet?.className).not.toMatch(/fullScreen/);
+    } finally {
+      Object.defineProperty(window, "innerWidth", { configurable: true, value: originalWidth });
+      Object.defineProperty(window, "innerHeight", { configurable: true, value: originalHeight });
+    }
+  });
+
   it("locks body scroll while open and restores it on close", () => {
     const previousOverflow = document.body.style.overflow;
     const { rerender } = render(

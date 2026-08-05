@@ -3,6 +3,7 @@
 import React, { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion, type PanInfo } from "motion/react";
+import { useViewport } from "../../../hooks/useViewport";
 import styles from "../../../styles/components/atoms/BottomSheet.module.scss";
 
 interface BottomSheetProps {
@@ -29,6 +30,11 @@ const BottomSheet: React.FC<BottomSheetProps> = ({
   hideTitleVisually = false,
 }) => {
   const sheetRef = useRef<HTMLDivElement>(null);
+  // Landscape phones have too little vertical room left for a partial-height sheet (80vh of
+  // a ~390px-tall viewport is cramped further still by the bottom-anchored inset) -- goes
+  // full-screen there instead. Portrait and desktop keep the usual bottom-anchored sheet.
+  const viewport = useViewport();
+  const isLandscapePhone = viewport?.device === "phone" && viewport.orientation === "landscape";
 
   useEffect(() => {
     if (!isOpen) return;
@@ -74,7 +80,7 @@ const BottomSheet: React.FC<BottomSheetProps> = ({
             onClick={onClose}
           />
           <motion.div
-            className={styles.sheet}
+            className={`${styles.sheet} ${isLandscapePhone ? styles.fullScreen : ""}`}
             role="dialog"
             aria-modal="true"
             aria-label={title}

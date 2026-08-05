@@ -99,7 +99,7 @@
   }
 
   // Stretch to fill the parent's height instead of the fixed Meeting Block height —
-  // used by WeeklyView, where the wrapping div's height already encodes the meeting's
+  // used by WeekView, where the wrapping div's height already encodes the meeting's
   // duration. Must come after &.meeting so it wins the height tie-break. TagList's
   // containerStyle override (BoxText.tsx) handles pinning tags under the time line
   // instead of the bottom for this case.
@@ -108,7 +108,7 @@
   }
 
   // Tightens spacing so title + time + tags all still fit in a fillHeight box shrunk to
-  // roughly half its normal height (DailyView: two meetings sharing one room row) --
+  // roughly half its normal height (DayView: two meetings sharing one room row) --
   // without this, tags get pushed past the box's bottom edge and clipped by overflow: hidden.
   &.compact {
     padding: 3px 5px;
@@ -128,6 +128,25 @@
     // pushes tags flush against the box's own padding-bottom -- the same amount of
     // breathing room the title gets from padding-top at the top, so top and bottom insets
     // end up visually equal.
+  }
+
+  // Subcompact tier -- DayLandscapeView's only consumer (see BoxText.tsx's `tier` prop):
+  // rows this dense (7am-9pm across 12 rooms on a landscape phone) have room for a title and
+  // its mode icon, nothing else. The row's own height comes from the caller (fillHeight),
+  // not a fixed value here.
+  &.tierSubcompact {
+    padding: 3px 8px;
+    border-radius: 4px;
+
+    .title {
+      font-size: 12px;
+      line-height: 1.1;
+    }
+
+    .modeIcon img {
+      width: 11px;
+      height: 11px;
+    }
   }
 
   // Highlights the box while its View Meeting popup is open.

@@ -49,7 +49,7 @@ const MobileFullScreenSheet: React.FC<MobileFullScreenSheetProps> = ({
 
   // touchAction: "pan-y" so a vertical scroll inside (e.g. LoginCard content taller than the
   // viewport) still passes through natively alongside the horizontal drag recognition -- same
-  // reasoning as MobileCalendarView's .scrollArea/.carouselTrack, the other place a horizontal
+  // reasoning as DayPortraitView's .scrollArea/.carouselTrack, the other place a horizontal
   // drag and vertical scroll need to coexist on the same element. Only meaningful when
   // slideFrom is "right" (an "x" drag); the "bottom" case drags "y", the same axis as the
   // scroll it's already layered on, so there's no orthogonal gesture to keep separate.

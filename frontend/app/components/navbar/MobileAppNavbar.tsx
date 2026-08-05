@@ -7,14 +7,30 @@ import MenuIcon from "@mui/icons-material/Menu";
 import FilterListIcon from "@mui/icons-material/FilterList";
 import IconButton from "../atoms/IconButton";
 import BottomSheet from "../atoms/BottomSheet";
+import Dropdown from "../atoms/Dropdown";
 import AppSidebar from "./AppSidebar";
 import ProfileCard from "./ProfileCard";
 import MobileLoginSheet from "./MobileLoginSheet";
 import MiniCalendar from "../atoms/MiniCalendar";
-import MeetingsFilter from "../calendar/MeetingsFilter";
+import MeetingsFilter from "../calendar/shared/MeetingsFilter";
 import { useCalendarContext } from "../../context/CalendarProvider";
+import { useViewport } from "../../../hooks/useViewport";
 import { toNoonETOnLocalCalendarDay } from "../../../util/weekDates";
 import styles from "../../../styles/components/navbar/MobileAppNavbar.module.scss";
+
+const LANDSCAPE_VIEW_LABELS = { day: "Day", multiday: "Multi-Day" } as const;
+type LandscapeViewLabel = (typeof LANDSCAPE_VIEW_LABELS)[keyof typeof LANDSCAPE_VIEW_LABELS];
+const LANDSCAPE_VIEW_BY_LABEL: Record<LandscapeViewLabel, "day" | "multiday"> = {
+  Day: "day",
+  "Multi-Day": "multiday",
+};
+// view_timeline / calendar_view_week (Material Symbols) -- stand in for the text label in the
+// dropdown's own closed button (see .viewOptionText's display:none there in the module.scss),
+// and sit in front of the label in the open list.
+const LANDSCAPE_VIEW_ICONS: Record<LandscapeViewLabel, string> = {
+  Day: "/svg/view-timeline-icon.svg",
+  "Multi-Day": "/svg/calendar-view-week-icon.svg",
+};
 
 type OpenSheet = "calendar" | "filter" | "profile" | null;
 
@@ -32,7 +48,10 @@ interface MobileAppNavbarProps {
 const MobileAppNavbar: React.FC<MobileAppNavbarProps> = ({ session, status, userAvatar }) => {
   const pathname = usePathname();
   const isCalendarRoute = pathname === "/";
-  const { selectedDate, changeSelectedDate, dayFilters, setDayFilters, navHidden } = useCalendarContext();
+  const { selectedDate, changeSelectedDate, dayFilters, setDayFilters, navHidden, landscapeView, setLandscapeView } =
+    useCalendarContext();
+  const viewport = useViewport();
+  const isLandscapePhone = viewport?.device === "phone" && viewport.orientation === "landscape";
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [openSheet, setOpenSheet] = useState<OpenSheet>(null);
@@ -85,6 +104,29 @@ const MobileAppNavbar: React.FC<MobileAppNavbarProps> = ({ session, status, user
       </div>
 
       <div className={styles.right}>
+        {isCalendarRoute && isLandscapePhone && (
+          <div className={styles.landscapeViewDropdown}>
+            <Dropdown
+              label=""
+              value={LANDSCAPE_VIEW_LABELS[landscapeView]}
+              isVisible={true}
+              elements={["Day", "Multi-Day"]}
+              name="Select view"
+              ariaLabel={LANDSCAPE_VIEW_LABELS[landscapeView]}
+              onChange={(value) => setLandscapeView(LANDSCAPE_VIEW_BY_LABEL[value as LandscapeViewLabel])}
+              renderElement={(element) => (
+                <span className={styles.viewOption}>
+                  <img
+                    src={LANDSCAPE_VIEW_ICONS[element as LandscapeViewLabel]}
+                    alt=""
+                    className={styles.viewOptionIcon}
+                  />
+                  <span className={styles.viewOptionText}>{element}</span>
+                </span>
+              )}
+            />
+          </div>
+        )}
         {isCalendarRoute && (
           <button type="button" className={styles.todayButton} onClick={handleToday}>
             Today

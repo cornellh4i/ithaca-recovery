@@ -15,6 +15,12 @@ interface DropdownProps {
   // onChange; this only overrides what's shown. Falls back to plain text when omitted, so
   // existing callers (Room, Zoom Room, view switcher) render exactly as before.
   renderElement?: (element: string) => React.ReactNode;
+  // Explicit accessible name for the closed trigger button, for callers whose renderElement
+  // hides its own text visually (e.g. the icon-only view switchers, which display: none their
+  // label text in the closed state) -- without this, that button has no accessible name at
+  // all, since its icons all have alt="". Other callers rely on the button's own visible text
+  // content instead, same as before this prop existed.
+  ariaLabel?: string;
 }
 
 
@@ -27,6 +33,7 @@ const Dropdown: React.FC<DropdownProps> = ({
   onChange,
   compact = false,
   renderElement,
+  ariaLabel,
 }) => {
   const [selectedElement, setselectedElement] = useState<string | null>(value ?? null);
 
@@ -99,6 +106,7 @@ const Dropdown: React.FC<DropdownProps> = ({
           onClick={() => handleDropdownToggle("element")}
           aria-haspopup="listbox"
           aria-expanded={activeDropdown === "element"}
+          aria-label={ariaLabel}
         >
           <span className={styles.DropdownButtonContent}>
             {!isStringLabel && label && <span className={styles.DropdownIcon}>{label}</span>}

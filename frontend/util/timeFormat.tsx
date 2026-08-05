@@ -1,4 +1,4 @@
-// Shared compact time-range formatting used by both DailyView and WeeklyView meeting cards.
+// Shared compact time-range formatting used by both DayView and WeekView meeting cards.
 
 import type { ReactNode } from "react";
 import { formatETDateString, getWeekDatesET } from "./timeUtils";
@@ -35,19 +35,26 @@ export const formatCompactTimeRange = (startTime: string, endTime: string): stri
 const etDateLineFmt = new Intl.DateTimeFormat('en-US', {
     timeZone: 'America/New_York', weekday: 'long', month: 'long', day: 'numeric',
 });
+// 3-char weekday/month ("Thu, Aug 13") -- DayLandscapeView's header corner is a fixed ~120px
+// column, too narrow for the long form above.
+const etDateLineCompactFmt = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/New_York', weekday: 'short', month: 'short', day: 'numeric',
+});
 const etYearFmt = new Intl.DateTimeFormat('en-US', {
     timeZone: 'America/New_York', year: 'numeric',
 });
 
 /**
- * ET calendar date as "Friday, July 24", with the year appended ("Fri, July 24, 2027") only
- * when it differs from the current ET year. When `isHeader` is true, also appends a
- * brand-pink " · Today" when `date` falls on the current ET calendar day -- reserved for
- * the calendar header, since surfacing "Today" on e.g. a meeting popup's date is redundant.
+ * ET calendar date as "Friday, July 24" ("Thu, Aug 13" when `compact` is set), with the year
+ * appended ("Friday, July 24, 2027" / "Thu, Aug 13, 2027") only when it differs from the
+ * current ET year. When
+ * `isHeader` is true, also appends a brand-pink " · Today" when `date` falls on the current ET
+ * calendar day -- reserved for the calendar header, since surfacing "Today" on e.g. a meeting
+ * popup's date is redundant.
  */
-export const formatMeetingDateLine = (date: Date, isHeader: boolean = false): ReactNode => {
+export const formatMeetingDateLine = (date: Date, isHeader: boolean = false, compact: boolean = false): ReactNode => {
     const now = new Date();
-    const base = etDateLineFmt.format(date);
+    const base = (compact ? etDateLineCompactFmt : etDateLineFmt).format(date);
     const dateYear = etYearFmt.format(date);
     const currentYear = etYearFmt.format(now);
     const label = dateYear === currentYear ? base : `${base}, ${dateYear}`;

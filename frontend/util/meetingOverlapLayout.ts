@@ -1,4 +1,4 @@
-// Pure overlap-layout algorithm for a day's meetings, extracted from WeeklyView so it
+// Pure overlap-layout algorithm for a day's meetings, extracted from WeekView so it
 // can be reasoned about (and tested) independently of fetching/caching and rendering.
 
 export interface OverlapMeeting {

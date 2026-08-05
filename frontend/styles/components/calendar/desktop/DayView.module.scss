@@ -1,0 +1,176 @@
+@import 'https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;600&display=swap';
+@import '../../../Variables.module.scss';
+
+.outerContainer {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  font-family: 'Source Sans Pro', sans-serif;
+
+  // Fills whatever's left under CalendarNavbar in .primaryCalendar (page.module.scss), not
+  // this element's full containing-block height -- `height: 100%` resolved against
+  // .primaryCalendar's *whole* box (which also contains CalendarNavbar above this), pushing
+  // this box's bottom edge past .primaryCalendar's own overflow:hidden clip by exactly
+  // CalendarNavbar's height, unreachable at any scroll position. Requires .primaryCalendar to
+  // actually be a flex column for this to resolve correctly (see its comment).
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.roomContainer {
+  display: grid;
+
+  // Leading 42px row replaces the old padding-top spacer -- it's now a real element
+  // (.roomCorner) so it can be sticky-positioned alongside the room names below it.
+  // The "12" must match util/rooms.ts's defaultRooms.length (6 physical + 5 Zoom + 1
+  // Remote) -- CSS can't derive it from that array, so it's a hand-kept number here and in
+  // .scrollContainer below. Previously hardcoded at 11 and never updated when the Remote
+  // room was added, so its row silently fell back to grid-auto-rows sizing instead of this
+  // 113px track, throwing every row below it out of alignment with .scrollContainer.
+  grid-template-rows: 42px repeat(12, 113px);
+  width: 180px;
+
+  // .viewContainer is a flex row and .scrollContainer (its sibling) is thousands of px
+  // wide, so without this the default flex-shrink: 1 compresses this column down to its
+  // min-content (~175px) to make room -- 5px short of the 180px .scrollContainer's meeting
+  // boxes assume is fully covered, letting a sliver of whatever's scrolled underneath
+  // peek out past this column's real (shrunk) edge.
+  flex-shrink: 0;
+
+  // .viewContainer is a flex row with the default align-items: stretch, which clamps this
+  // column's height down to .viewContainer's own (viewport-sized) height instead of its
+  // true content height (42px + 11*113px = 1285px). The room label rows still render past
+  // that via overflow, but this element's own background-color -- the opaque backdrop that
+  // hides scrolled-under meeting content -- only paints within its own (clamped) box, so
+  // rows below the fold lose their white backing at the row-border seams. flex-start lets
+  // this size to its real content height instead.
+  align-self: flex-start;
+  position: sticky;
+  left: 0;
+  z-index: 20;
+  background-color: #fff;
+}
+
+// Blank top-left corner where the sticky room column and sticky hour header row meet --
+// stays put on both axes, matching WeekView's .timeHeader corner.
+.roomCorner {
+  position: sticky;
+  top: 0;
+  z-index: 21;
+  background-color: #fff;
+}
+
+.currentTimeLine {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  width: 4px;
+  background-color: $brand-pink-color;
+  z-index: 10;
+  
+  // Purely a "now" marker, not interactive -- without this it sits on top of whatever
+  // meeting box its x-position happens to cross and swallows the click instead.
+  pointer-events: none;
+}
+
+.scrollContainer {
+  display: grid;
+
+  // First row must be a literal 42px, not auto -- auto sizes .headerRow off its own
+  // content (padding + line-height + border), which renders 1px short of .roomCorner's
+  // hardcoded 42px and throws every room/hour row below it out of alignment. The "12"
+  // must match .roomContainer's (see its comment above) -- both grids need identical row
+  // tracks so a room's label and its hour cells line up.
+  grid-template-rows: 42px repeat(12, 113px);
+  width: calc(100% - 180px);
+  margin-left: 30px;
+}
+
+// The single scroll container for both axes (mirrors WeekView's .viewContainer) --
+// .roomContainer's sticky-left and .headerRow's sticky-top both resolve against this
+// element, which is why neither .scrollContainer nor .roomContainer can carry their own
+// overflow: doing so would make one of them the "nearest scrolling ancestor" instead,
+// breaking the sticky positioning below.
+.viewContainer {
+  display: flex;
+
+  // .outerContainer is a flex column with only this child, so this fills whatever's left
+  // under CalendarNavbar instead of guessing a fixed offset (which previously left ~36px
+  // of dead space at the bottom, unused and unclipped since .outerContainer's overflow is
+  // hidden, not scrollable).
+  flex: 1 1 auto;
+  min-height: 0;
+  margin-top: 24px;
+  overflow: auto;
+  scroll-snap-type: x mandatory;
+
+  // Hide scrollbar for Chrome, Safari and Opera
+  &::-webkit-scrollbar {
+    display: none;
+  }
+
+  // Hide scrollbar for IE, Edge and Firefox
+  -ms-overflow-style: none; // IE and Edge
+  scrollbar-width: none; // Firefox
+}
+
+.headerRow {
+  display: grid;
+  grid-template-columns: repeat(24, 155px);
+  font-weight: 600;
+  background-color: #fff;
+  border-bottom: 1px solid $grey-border-color;
+  scroll-snap-align: start;
+  position: sticky;
+  top: 0;
+  z-index: 15;
+}
+
+.timeLabel {
+  padding: 10px 20px;
+  border-left: 1px solid $grey-border-color;
+  white-space: nowrap;
+  scroll-snap-align: start;
+}
+
+.gridRow {
+  display: grid;
+  grid-template-columns: repeat(24, 155px);
+  position: relative;
+  
+  .gridMeetingRow {
+    z-index: 1;
+    position: absolute;
+    
+    // Centers the 105px BoxText within the 113px row -- 4px on top, 4px on bottom.
+    margin-top: 4px;
+  }
+
+  .gridCell {
+    position: relative;
+    border-left: 1px solid $grey-border-color;
+    border-bottom: 1px solid $grey-border-color;
+
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      height: 100%;
+      width: 1px;
+      background-color: #eee;
+      opacity: 0.5;
+    }
+  }
+}
+
+.roomColumn {
+  display: flex;
+  align-items: center;
+  padding: 5px 10px;
+  height: 113px;
+  box-sizing: border-box;
+  border-bottom: 1px solid $grey-border-color;
+}

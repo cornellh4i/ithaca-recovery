@@ -27,7 +27,7 @@ type Fixtures = {
 
 export const test = base.extend<Fixtures>({
   // Browser console output otherwise goes nowhere in CI -- the app has real
-  // console.error/console.log calls (e.g. DailyView/WeeklyView's fetch error handling)
+  // console.error/console.log calls (e.g. DayView/WeekView's fetch error handling)
   // that are invisible without this.
   page: async ({ page }, use) => {
     // msg.text() stringifies objects/arrays as useless "[Object]"/"[Array]" -- pull the
