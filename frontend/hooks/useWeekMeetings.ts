@@ -20,6 +20,33 @@ const etTimeFmt = new Intl.DateTimeFormat('en-GB', {
     hour: '2-digit', minute: '2-digit', hour12: false,
 });
 
+// Shared with useRangeMeetings.ts -- both the week and arbitrary-day-range retrieval routes
+// return the same {...meeting, date} shape (a raw IMeeting occurrence tagged with the ET date
+// it was expanded onto), so both hooks transform it identically.
+export const mapRawMeetingsToWeekMeetings = (data: (IMeeting & { date: string })[]): WeekMeeting[] =>
+    // startTime/endTime clip to this day (for layout); displayStartTime/displayEndTime keep the
+    // true times, so an overnight meeting's cards both label as "11PM-1AM".
+    data.map((meeting) => {
+        const trueStart = new Date(meeting.startDateTime);
+        const trueEnd = new Date(meeting.endDateTime);
+        const startsToday = formatETDateString(trueStart) === meeting.date;
+        const endsToday = formatETDateString(trueEnd) === meeting.date;
+
+        return {
+            id: meeting.mid,
+            title: meeting.title,
+            startTime: startsToday ? etTimeFmt.format(trueStart) : "00:00",
+            endTime: endsToday ? etTimeFmt.format(trueEnd) : "24:00",
+            displayStartTime: etTimeFmt.format(trueStart),
+            displayEndTime: etTimeFmt.format(trueEnd),
+            date: meeting.date,
+            tags: [...meeting.calType, meeting.modeType],
+            room: meeting.room,
+            zoomRoom: meeting.zoomRoom,
+            syncError: meeting.googleSyncStatus === 'error' || meeting.zoomSyncStatus === 'error',
+        };
+    });
+
 const fetchMeetingsByWeek = async (startDate: Date, endDate: Date): Promise<WeekMeeting[]> => {
     const formattedStart = formatETDateString(startDate);
     const formattedEnd = formatETDateString(endDate);
@@ -32,31 +59,7 @@ const fetchMeetingsByWeek = async (startDate: Date, endDate: Date): Promise<Week
             const response = await fetch(`/api/retrieve/meeting/week?startDate=${formattedStart}&endDate=${formattedEnd}`);
             const data = await response.json();
             console.log("[useWeekMeetings] Raw API response for", cacheKey, ":", data);
-
-            // startTime/endTime clip to this day (for layout); displayStartTime/displayEndTime
-            // keep the true times, so an overnight meeting's cards both label as "11PM-1AM".
-            const meetings: WeekMeeting[] = data.map((meeting: IMeeting & { date: string }) => {
-                const trueStart = new Date(meeting.startDateTime);
-                const trueEnd = new Date(meeting.endDateTime);
-                const startsToday = formatETDateString(trueStart) === meeting.date;
-                const endsToday = formatETDateString(trueEnd) === meeting.date;
-
-                return {
-                    id: meeting.mid,
-                    title: meeting.title,
-                    startTime: startsToday ? etTimeFmt.format(trueStart) : "00:00",
-                    endTime: endsToday ? etTimeFmt.format(trueEnd) : "24:00",
-                    displayStartTime: etTimeFmt.format(trueStart),
-                    displayEndTime: etTimeFmt.format(trueEnd),
-                    date: meeting.date,
-                    tags: [...meeting.calType, meeting.modeType],
-                    room: meeting.room,
-                    zoomRoom: meeting.zoomRoom,
-                    syncError: meeting.googleSyncStatus === 'error' || meeting.zoomSyncStatus === 'error',
-                };
-            });
-
-            return meetings;
+            return mapRawMeetingsToWeekMeetings(data);
         } catch (error) {
             // error objects don't serialize over CDP -- log the message directly so it's
             // actually visible in the piped-through e2e console output.
