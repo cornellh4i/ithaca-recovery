@@ -63,6 +63,73 @@
     text-align: center;
 }
 
+// The in-house Dropdown atom (app/components/atoms/Dropdown.tsx) brings its own bordered
+// button chrome and defaults to width: 100% -- constrained and re-skinned here to sit
+// alongside .todayButton at the same 32px height, mirroring how CalendarNavbar.module.scss's
+// .viewDropdown does the same for the desktop navbar's Day/Week dropdown.
+.landscapeViewDropdown {
+    // Narrower than before (was 84px, sized for "Multi-Day" as plain text) -- the closed
+    // button now shows only the icon (see button .viewOptionText below), just wide enough for
+    // that icon plus the dropdown arrow.
+    width: 56px;
+    flex-shrink: 0;
+
+    // Dropdown.module.scss's .DropdownContainer carries a 15px margin-bottom meant for
+    // stacked form-field spacing -- not reachable by its own class name here (CSS Modules
+    // hashes it per-file), so this resets it structurally instead: Dropdown's outermost div
+    // (.dropdown) has exactly one child, .DropdownContainer, and label="" here means that
+    // child has no <label> sibling pushing the button down either. Without this, the extra
+    // margin sat below .todayButton's own box, throwing the two out of vertical alignment.
+    > div > div {
+        margin-bottom: 0;
+    }
+
+    button {
+        height: 32px;
+        padding: 0 8px;
+        justify-content: center;
+        gap: 4px;
+        border-radius: 16px;
+        border: 1px solid $grey-border-color;
+        font: inherit;
+        font-size: 13px;
+        font-weight: 600;
+        color: $black-color;
+
+        // Icon-only in the closed button -- the label text stays for the open list below
+        // (see .viewOptionText), where "Day"/"Multi-Day" need to actually read as words.
+        .viewOptionText {
+            display: none;
+        }
+    }
+
+    ul {
+        left: 0;
+
+        // Wider than the (now icon-only, 56px) button -- the open list needs real room for
+        // "Multi-Day" as text plus its icon, not just the button's own width (which was
+        // cutting the longer label off at the edge).
+        width: 150px;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+
+    li {
+        justify-content: flex-start;
+    }
+}
+
+.viewOption {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.viewOptionIcon {
+    width: 20px;
+    height: 20px;
+}
+
 .todayButton {
     height: 32px;
     padding: 0 12px;

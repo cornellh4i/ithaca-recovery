@@ -3,7 +3,6 @@ import DayLandscapeView from "./DayLandscapeView";
 import MultiDayLandscapeView from "./MultiDayLandscapeView";
 import { useCalendarContext } from "../../../context/CalendarProvider";
 import { MeetingFilters } from "../../../../util/meetingFilters";
-import styles from "../../../../styles/components/calendar/mobile/DayLandscapeSwitcher.module.scss";
 
 interface DayLandscapeSwitcherProps {
   filters: MeetingFilters;
@@ -20,36 +19,14 @@ interface DayLandscapeSwitcherProps {
 }
 
 // Landscape phone's entry point: DayLandscapeView is the default (all rooms, one day, per the
-// design handoff's prototype); MultiDayLandscapeView is the alternate. landscapeView itself
-// lives in CalendarProvider, not local state -- see that context's comment for why.
+// design handoff's prototype); MultiDayLandscapeView is the alternate, chosen via the Day/
+// Multi-Day dropdown in MobileAppNavbar (not rendered here -- landscapeView lives in
+// CalendarProvider so the navbar and this switcher can both read/drive the same choice, and
+// it survives this component unmounting/remounting across an orientation round-trip).
 const DayLandscapeSwitcher: React.FC<DayLandscapeSwitcherProps> = (props) => {
-  const { landscapeView, setLandscapeView } = useCalendarContext();
+  const { landscapeView } = useCalendarContext();
 
-  return (
-    <div className={styles.container}>
-      <div className={styles.viewToggle} role="tablist" aria-label="Landscape calendar view">
-        <button
-          type="button"
-          role="tab"
-          aria-selected={landscapeView === "day"}
-          className={`${styles.toggleButton} ${landscapeView === "day" ? styles.active : ""}`}
-          onClick={() => setLandscapeView("day")}
-        >
-          Day
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={landscapeView === "multiday"}
-          className={`${styles.toggleButton} ${landscapeView === "multiday" ? styles.active : ""}`}
-          onClick={() => setLandscapeView("multiday")}
-        >
-          Week
-        </button>
-      </div>
-      {landscapeView === "day" ? <DayLandscapeView {...props} /> : <MultiDayLandscapeView {...props} />}
-    </div>
-  );
+  return landscapeView === "day" ? <DayLandscapeView {...props} /> : <MultiDayLandscapeView {...props} />;
 };
 
 export default DayLandscapeSwitcher;
