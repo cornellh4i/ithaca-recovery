@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import BoxText from '../../atoms/BoxText';
-import OverlapMeetingsModal from '../OverlapMeetingsModal';
+import OverlapMeetingsModal from '../shared/OverlapMeetingsModal';
 import styles from '../../../../styles/components/calendar/desktop/DailyViewRow.module.scss';
 import { formatCompactTimeRange } from '../../../../util/timeFormat';
 import { formatETDateString } from '../../../../util/timeUtils';
@@ -158,8 +158,15 @@ const DailyViewRow: React.FC<DailyViewRowProps> = ({
         style={{
           left: `${startOffset}px`,
           width: `${width}px`,
-          top: isSelected ? 0 : laneTop,
-          height: uniformHeight || isSelected ? undefined : (isStacked ? `${LANE_HEIGHT}px` : undefined),
+          // uniformHeight needs an explicit top+height here, not just BoxText's own
+          // fillHeight -- .meetingWrapper is position: absolute with no top/bottom set
+          // otherwise, so BoxText's height: 100% (fillHeight's CSS) had nothing concrete to
+          // resolve against and fell back to its own content height, leaving a gap below
+          // every card instead of filling the row.
+          top: uniformHeight ? 0 : (isSelected ? 0 : laneTop),
+          height: uniformHeight
+            ? `${rowHeight}px`
+            : (isSelected ? undefined : (isStacked ? `${LANE_HEIGHT}px` : undefined)),
           // Above the "+N" overflow pill's z-index (12, DailyViewRow.module.scss) too,
           // so a selected meeting is unambiguously the topmost thing in the row.
           zIndex: isSelected ? 13 : undefined,
