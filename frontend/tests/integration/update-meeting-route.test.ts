@@ -384,9 +384,7 @@ test("an explicit host reassignment tears down the old Zoom meeting and creates 
   expect(afterSync?.zoomSyncStatus).toBe("synced");
 });
 
-test("an explicit host reassignment to an already-busy host is rejected without creating a new Zoom meeting", async () => {
-  mockedDeleteZoomMeeting.mockResolvedValue(true);
-
+test("an explicit host reassignment to an already-busy host is rejected with 409, and never reaches the Prisma update", async () => {
   const prisma = getTestPrismaClient();
   // Explicit, distinct time slot -- see the comment on the reassignment test above for why.
   const start = new Date("2026-10-02T15:00:00Z");
@@ -417,6 +415,55 @@ test("an explicit host reassignment to an already-busy host is rejected without 
   });
 
   const response = await PUT(request);
+  expect(response.status).toBe(409);
+  const body = await response.json();
+  expect(body.conflicts).toHaveLength(1);
+  expect(body.conflicts[0]).toMatchObject({ field: "zoomHost", value: busyHost });
+  expect(body.conflicts[0].meetings.map((m: { mid: string }) => m.mid)).toContain(busyMid);
+
+  // The reassignment never landed -- still the pre-update host, Zoom meeting untouched.
+  const unchanged = await prisma.meeting.findUnique({ where: { mid } });
+  expect(unchanged?.zoomHost).toBe("old-host-2@icr.test");
+  expect(unchanged?.zid).toBe("zid-original");
+  expect(mockedDeleteZoomMeeting).not.toHaveBeenCalled();
+  expect(mockedCreateZoomMeeting).not.toHaveBeenCalled();
+});
+
+test("confirmOverride: true bypasses the zoomHost reassignment block, tears down the old Zoom meeting, but still defers the new one (Zoom itself can't double-book a host)", async () => {
+  mockedDeleteZoomMeeting.mockResolvedValue(true);
+
+  const prisma = getTestPrismaClient();
+  const start = new Date("2026-10-02T17:00:00Z");
+  const end = new Date("2026-10-02T18:00:00Z");
+  const busyHost = "busy-reassign-host-2@icr.test";
+
+  const busyMid = `m-${randomUUID()}`;
+  const { recurrencePattern: _rpBusy, ...busyMeetingData } = buildMeetingPayload({
+    mid: busyMid, modeType: "Hybrid", room: "Fellowship Room", zoomRoom: "Fellowship Room - Zoom",
+    zid: "zid-busy-2", zoomHost: busyHost, startDateTime: start, endDateTime: end,
+  });
+  await prisma.meeting.create({ data: busyMeetingData });
+
+  const mid = `m-${randomUUID()}`;
+  const { recurrencePattern: _rp, ...existingMeetingData } = buildMeetingPayload({
+    mid, modeType: "Hybrid", room: "Serenity Room", zoomRoom: "Serenity Room - Zoom",
+    zid: "zid-original-2", zoomHost: "old-host-3@icr.test", startDateTime: start, endDateTime: end,
+  });
+  await prisma.meeting.create({ data: existingMeetingData });
+
+  const payload = {
+    ...buildMeetingPayload({
+      mid, modeType: "Hybrid", room: "Serenity Room", zoomRoom: "Serenity Room - Zoom",
+      zid: "zid-original-2", zoomHost: busyHost, startDateTime: start, endDateTime: end,
+    }),
+    confirmOverride: true,
+  };
+  const request = new Request("http://localhost/api/update/meeting", {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+
+  const response = await PUT(request);
   expect(response.status).toBe(200);
 
   const afterSync = await waitFor(async () => {
@@ -429,7 +476,6 @@ test("an explicit host reassignment to an already-busy host is rejected without 
   expect(afterSync?.zid).toBeNull();
   expect(afterSync?.zoomHost).toBeNull();
   expect(afterSync?.zoomSyncStatus).toBe("error");
-  // Specific reason, not the generic "pool exhausted" message the two code paths used to share.
   expect(afterSync?.zoomSyncError).toMatch(/conflicts with another meeting/i);
 });
 

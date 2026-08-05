@@ -214,9 +214,22 @@ const updateMeeting = async (request: Request): Promise<Response> => {
 
     const { mid, recurrencePattern, confirmOverride, ...meetingFields } = newMeeting;
 
-    // Blocks the save outright on a room/zoomRoom collision -- distinct from the zoomHost check
-    // below, which defers the calendar publish and stores the error on the meeting instead of
-    // rejecting the request. confirmOverride only bypasses this block, not zoomHost's handling.
+    // An explicit host reassignment (the Zoom Host dropdown set to a specific pool host,
+    // different from whatever's currently assigned) -- hoisted above the confirmOverride block
+    // below so the blocking conflict check can use it too, not just the resolution step further
+    // down. A blank/"Automatic" selection, or resubmitting the form with the same
+    // already-assigned host untouched, is NOT a reassignment.
+    const explicitHostChange = !!newMeeting.zoomHost && newMeeting.zoomHost !== existingMeeting.zoomHost;
+
+    // Blocks the save outright on a room/zoomRoom collision, or an explicit zoomHost
+    // reassignment that collides with another meeting's -- distinct from the pool-auto-
+    // assignment path below, which defers the calendar publish and stores the error on the
+    // meeting instead of rejecting the request (there's no "other host to pick instead" for a
+    // plain pool-exhaustion the way there is for a room or an explicit host choice).
+    // confirmOverride only bypasses this block, not the pool's handling. Deliberately scoped to
+    // explicitHostChange, not bare newMeeting.zoomHost -- an edit that leaves the Zoom Host
+    // dropdown on the meeting's own already-assigned host must not re-trigger this check just
+    // because the field happens to be populated in the resubmitted form.
     if (!confirmOverride) {
       // A count-bounded series (numberOfOccurrences set, no explicit endDate) has a real last
       // occurrence -- checking conflicts against the raw (still-null) endDate would expand it
@@ -247,9 +260,14 @@ const updateMeeting = async (request: Request): Promise<Response> => {
       if (newMeeting.zoomRoom) {
         conflictRows.push(...await findResourceConflictRows("zoomRoom", newMeeting.zoomRoom, conflictCandidate, { excludeMid: mid }));
       }
+      if (explicitHostChange && newMeeting.zoomHost) {
+        conflictRows.push(...await findResourceConflictRows(
+          "zoomHost", newMeeting.zoomHost, conflictCandidate, { excludeMid: mid, includeSuspended: true },
+        ));
+      }
       if (conflictRows.length > 0) {
         return NextResponse.json(
-          { error: "This meeting conflicts with an existing meeting's room or Zoom room.", conflicts: conflictRows },
+          { error: "This meeting conflicts with an existing meeting's room, Zoom room, or Zoom host.", conflicts: conflictRows },
           { status: 409 },
         );
       }
@@ -265,10 +283,9 @@ const updateMeeting = async (request: Request): Promise<Response> => {
     // claim), but it shrinks the window down to a single DB round trip.
     const zoomEnabled = newMeeting.status !== 'Suspended'
       && (newMeeting.modeType === 'Hybrid' || newMeeting.modeType === 'Remote');
-    // An explicit host reassignment (the Zoom Host dropdown set to a specific pool host,
-    // different from whatever's currently assigned) needs a fresh Zoom meeting too, same as
-    // a room change -- Zoom has no in-place host-transfer for this app's stable-meeting model.
-    const explicitHostChange = !!newMeeting.zoomHost && newMeeting.zoomHost !== existingMeeting.zoomHost;
+    // explicitHostChange (hoisted above, before the confirmOverride block) needs a fresh Zoom
+    // meeting too, same as a room change -- Zoom has no in-place host-transfer for this app's
+    // stable-meeting model.
     // Remote meetings submit zoomRoom as "" (no Zoom Room field at all), while older stored
     // rows may hold null for the same "no room" state -- normalize both sides so an unchanged
     // Remote meeting isn't misdetected as a room change and torn down/recreated for nothing.
@@ -282,10 +299,12 @@ const updateMeeting = async (request: Request): Promise<Response> => {
     let hostSyncError: string | null = null;
     if (needsNewHost) {
       if (newMeeting.zoomHost) {
-        // A manually-selected host still gets checked server-side -- see the matching comment
-        // in write/meeting/route.ts. A real conflict is treated the same as pool exhaustion
-        // below: nothing gets written to the external Zoom API, and the calendar publish is
-        // deferred until an admin picks a different host or the conflict clears.
+        // A conflicting explicitHostChange is already blocked with a 409 above unless
+        // confirmOverride was set. This branch also runs, non-blocking, for needsNewHost cases
+        // that aren't an explicit host change (e.g. a room change resubmitted with the same
+        // already-assigned host) -- either way, a real conflict here is treated the same as pool
+        // exhaustion below: nothing gets written to the external Zoom API, and the calendar
+        // publish is deferred until an admin picks a different host or the conflict clears.
         const conflicts = await findResourceConflicts(
           "zoomHost", newMeeting.zoomHost, newMeeting, { excludeMid: mid, includeSuspended: true },
         );
