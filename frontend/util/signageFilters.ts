@@ -76,7 +76,7 @@ const applyRoomCategory = (
  * split into physical rooms (`rooms` param) and Zoom accounts (`zoom` param).
  *
  * Note: a meeting can belong to multiple calendars (calType is now string[]), but
- * this function only needs to produce a flat per-tag boolean map - DailyView's
+ * this function only needs to produce a flat per-tag boolean map - DayView's
  * filterMeetings already treats a meeting's calendar tags with OR semantics
  * (shown if ANY of its tags are true here), so no special-casing is needed.
  */

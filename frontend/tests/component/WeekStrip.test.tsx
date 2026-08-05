@@ -1,6 +1,6 @@
 import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
-import WeekStrip from "../../app/components/calendar/WeekStrip";
+import WeekStrip from "../../app/components/calendar/mobile/WeekStrip";
 import { CalendarProvider, useCalendarContext } from "../../app/context/CalendarProvider";
 import { formatETDateString } from "../../util/timeUtils";
 

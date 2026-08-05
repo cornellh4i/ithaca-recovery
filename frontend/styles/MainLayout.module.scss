@@ -10,7 +10,7 @@
 // overscroll-behavior-x isn't inherited, and per spec it must be set on the root element
 // (html) to control viewport edge-swipe navigation, not on body -- browsers that propagate it
 // from body are deviating from spec. Nothing on the page claims a horizontal touch-drag by
-// default (only WeekStrip's and MobileCalendarView's own drag="x" wrappers do, and only where
+// default (only WeekStrip's and DayPortraitView's own drag="x" wrappers do, and only where
 // their pointerdown handlers are actually attached) -- anywhere else, an unclaimed horizontal
 // swipe falls through to the browser's own edge-swipe-to-navigate gesture, which visually
 // slides the whole page sideways as a back/forward-navigation preview. Disabling that here is
@@ -36,7 +36,11 @@
         // useIsPhone() branch) is position: fixed so it can slide off-screen on scroll
         // without leaving a gap in the flex flow -- this wrapper reserves no layout height
         // of its own in that case, so .content below gets the matching top padding instead.
-        @media (width <= $breakpoint-phone) {
+        // Width-or-height, not width alone -- a landscape phone (e.g. 844x390) is still
+        // "phone" by min(w,h) everywhere else in the app (see hooks/useViewport.ts), but a
+        // plain max-width query can't express that directly; this OR is the CSS-only
+        // approximation the mobile-landscape design doc calls out for exactly this case.
+        @media (width <= $breakpoint-phone), (height <= $breakpoint-phone) {
             height: 0;
             overflow: visible;
         }
@@ -51,7 +55,11 @@
         // container an unclaimed horizontal gesture would otherwise chain up from.
         overscroll-behavior-x: none;
 
-        @media (width <= $breakpoint-phone) {
+        // Width-or-height, not width alone -- a landscape phone (e.g. 844x390) is still
+        // "phone" by min(w,h) everywhere else in the app (see hooks/useViewport.ts), but a
+        // plain max-width query can't express that directly; this OR is the CSS-only
+        // approximation the mobile-landscape design doc calls out for exactly this case.
+        @media (width <= $breakpoint-phone), (height <= $breakpoint-phone) {
             padding-top: 48px; // matches MobileAppNavbar.module.scss's fixed 48px height
             // Synced to MobileAppNavbar's own `transform 0.25s ease` hide transition -- this
             // is what makes WeekStrip/CalendarHeader (normal-flow children below) visually
@@ -64,7 +72,11 @@
         // down). Collapsing this padding to 0 is the entire "Row 1/2/3 -> Row 1/2" collapse:
         // nothing below has to know navHidden exists.
         &.navHidden {
-            @media (width <= $breakpoint-phone) {
+            // Width-or-height, not width alone -- a landscape phone (e.g. 844x390) is still
+        // "phone" by min(w,h) everywhere else in the app (see hooks/useViewport.ts), but a
+        // plain max-width query can't express that directly; this OR is the CSS-only
+        // approximation the mobile-landscape design doc calls out for exactly this case.
+        @media (width <= $breakpoint-phone), (height <= $breakpoint-phone) {
                 padding-top: 0;
             }
         }

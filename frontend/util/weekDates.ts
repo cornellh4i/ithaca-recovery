@@ -1,4 +1,4 @@
-// ET-safe week-boundary math, extracted out of WeeklyView.tsx so WeekStrip (and anything
+// ET-safe week-boundary math, extracted out of WeekView.tsx so WeekStrip (and anything
 // else that needs "what week is this date in") shares the same logic instead of a second,
 // possibly-drifting reimplementation of this DST-sensitive date math.
 
@@ -35,6 +35,17 @@ export const addDaysToDate = (date: Date, days: number): Date => {
     const [year, month, day] = etDateStr.split('-').map(Number);
     const shiftedEtDateStr = new Date(Date.UTC(year, month - 1, day + days)).toISOString().slice(0, 10);
     return new Date(convertETToUTC(`${shiftedEtDateStr}T12:00:00`));
+};
+
+// Whole ET calendar days from `a` to `b` (negative if `b` is earlier) -- for a caller
+// (MultiDayLandscapeView) that needs to know how far a date has drifted from some anchor in
+// day-granularity terms, not just which week it's in.
+export const daysBetweenET = (a: Date, b: Date): number => {
+    const [aYear, aMonth, aDay] = formatETDateString(a).split('-').map(Number);
+    const [bYear, bMonth, bDay] = formatETDateString(b).split('-').map(Number);
+    const aUTC = Date.UTC(aYear, aMonth - 1, aDay);
+    const bUTC = Date.UTC(bYear, bMonth - 1, bDay);
+    return Math.round((bUTC - aUTC) / (24 * 60 * 60 * 1000));
 };
 
 // Re-anchors a Date to noon ET on the *same calendar day the runtime's local timezone sees

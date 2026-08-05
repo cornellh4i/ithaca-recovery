@@ -3,13 +3,14 @@
 export const dynamic = "force-dynamic";
 
 import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Logo from "../../components/atoms/Logo";
-import CalendarNavbar from "../../components/calendar/CalendarNavbar";
-import DailyView from "../../components/calendar/DailyView";
-import WeeklyView from "../../components/calendar/WeeklyView";
+import CalendarNavbar from "../../components/calendar/desktop/CalendarNavbar";
+import DayView from "../../components/calendar/desktop/DayView";
+import WeekView from "../../components/calendar/desktop/WeekView";
 import { parseSignageFilters, parseSignageView } from "../../../util/signageFilters";
 import { formatETDateString } from "../../../util/timeUtils";
+import { useViewport } from "../../../hooks/useViewport";
 import navbarStyles from "../../../styles/components/navbar/AppNavbar.module.scss";
 
 const REFRESH_INTERVAL_MS = 2 * 60 * 1000;
@@ -24,6 +25,20 @@ export default function SignagePage() {
 }
 
 function SignageContent() {
+  const router = useRouter();
+  const viewport = useViewport();
+
+  // Signage is a lobby/TV board with no purpose on a handset (no nav chrome, large type,
+  // auto-refresh) and a layout that breaks under 480px -- redirect to the main calendar
+  // instead of rendering it. Replace, not push, so Back doesn't bounce into a redirect loop.
+  // Re-checked whenever useViewport recomputes (its own resize/orientationchange listener),
+  // so rotating a phone into landscape while already on signage still redirects.
+  useEffect(() => {
+    if (viewport?.device === "phone") {
+      router.replace("/");
+    }
+  }, [viewport, router]);
+
   const searchParams = useSearchParams();
   const filters = useMemo(
     () => parseSignageFilters(searchParams),
@@ -91,6 +106,13 @@ function SignageContent() {
     refreshTrigger,
   };
 
+  // Renders nothing while viewport is unresolved (avoids a flash of the desktop board before
+  // the first measurement) and once it resolves to phone (the redirect above is already in
+  // flight) -- same null-during-resolution convention as page.tsx's own isPhone guard.
+  if (viewport === null || viewport.device === "phone") {
+    return null;
+  }
+
   return (
     <div style={{ height: "100vh", overflow: view === "Day" ? "hidden" : "auto" }}>
       <div
@@ -111,7 +133,7 @@ function SignageContent() {
           onDateChange={setSelectedDate}
           onViewChange={(v) => setView(v === "Week" ? "Week" : "Day")}
         />
-        {view === "Day" ? <DailyView {...viewProps} /> : <WeeklyView {...viewProps} />}
+        {view === "Day" ? <DayView {...viewProps} /> : <WeekView {...viewProps} />}
       </div>
     </div>
   );

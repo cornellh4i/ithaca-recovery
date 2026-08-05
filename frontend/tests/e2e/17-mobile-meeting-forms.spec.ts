@@ -15,7 +15,7 @@ test.use({ viewport: { width: 390, height: 844 } });
 // 2. useIsPhone() starts false to match the server-rendered HTML, then corrects itself in a
 //    layout effect on an actual phone -- but next dev's on-demand compile can still stretch
 //    that window enough for an early interaction to land against the still-mounted desktop
-//    DailyView instead. WeekStrip only exists once the mobile branch has actually rendered,
+//    DayView instead. WeekStrip only exists once the mobile branch has actually rendered,
 //    so waiting for it is a real signal for this, not a proxy.
 async function gotoAndWaitForMobileReady(page: Page): Promise<void> {
   const authResponse = page.waitForResponse((r) => r.url().includes("/api/auth/status"));
@@ -86,7 +86,7 @@ test.describe("mobile meeting interactions", () => {
     const etDate = formatETDateString(new Date());
     const start = new Date(convertETToUTC(`${etDate}T18:00:00`));
     const end = new Date(convertETToUTC(`${etDate}T19:00:00`));
-    // Mobile shows up to MOBILE_MAX_VISIBLE_OVERLAP (4, see MobileCalendarView.tsx) side by
+    // Mobile shows up to MOBILE_MAX_VISIBLE_OVERLAP (4, see DayPortraitView.tsx) side by
     // side before folding -- 5 is the first count that actually triggers a "+N" pill.
     for (const title of ["Overlap Mobile A", "Overlap Mobile B", "Overlap Mobile C", "Overlap Mobile D", "Overlap Mobile E"]) {
       await seedMeeting({ title, room: "Serenity Room", startDateTime: start, endDateTime: end });

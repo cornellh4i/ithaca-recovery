@@ -39,6 +39,22 @@ const renderNavbar = () =>
     </CalendarProvider>
   );
 
+// jsdom's default window size (1024x768) isn't phone-sized at all, so most tests below never
+// trigger the landscape-only dropdown -- these two set it explicitly, matching
+// BottomSheet.test.tsx's identical pattern for the same reason.
+const withWindowSize = (width: number, height: number, run: () => void) => {
+  const originalWidth = window.innerWidth;
+  const originalHeight = window.innerHeight;
+  Object.defineProperty(window, "innerWidth", { configurable: true, value: width });
+  Object.defineProperty(window, "innerHeight", { configurable: true, value: height });
+  try {
+    run();
+  } finally {
+    Object.defineProperty(window, "innerWidth", { configurable: true, value: originalWidth });
+    Object.defineProperty(window, "innerHeight", { configurable: true, value: originalHeight });
+  }
+};
+
 describe("MobileAppNavbar", () => {
   afterEach(() => {
     jest.clearAllMocks();
@@ -122,5 +138,48 @@ describe("MobileAppNavbar", () => {
 
     expect(screen.getByRole("dialog", { name: "Account" })).toBeInTheDocument();
     expect(screen.getByText("Hi, Admin User")).toBeInTheDocument();
+  });
+
+  it("has no Day/Multi-Day dropdown on a portrait phone", () => {
+    mockUseSession.mockReturnValue({ data: adminSession });
+    mockUsePathname.mockReturnValue("/");
+
+    withWindowSize(390, 844, () => {
+      renderNavbar();
+      expect(screen.queryByRole("button", { name: "Day" })).not.toBeInTheDocument();
+    });
+  });
+
+  it("shows a Day/Multi-Day dropdown, defaulted to Day, on a landscape phone", () => {
+    mockUseSession.mockReturnValue({ data: adminSession });
+    mockUsePathname.mockReturnValue("/");
+
+    withWindowSize(844, 390, () => {
+      renderNavbar();
+      expect(screen.getByRole("button", { name: "Day" })).toBeInTheDocument();
+    });
+  });
+
+  it("has no Day/Multi-Day dropdown on a landscape tablet/desktop (min dimension above phone breakpoint)", () => {
+    mockUseSession.mockReturnValue({ data: adminSession });
+    mockUsePathname.mockReturnValue("/");
+
+    withWindowSize(1024, 768, () => {
+      renderNavbar();
+      expect(screen.queryByRole("button", { name: "Day" })).not.toBeInTheDocument();
+    });
+  });
+
+  it("switches landscapeView to 'multiday' when Multi-Day is selected", () => {
+    mockUseSession.mockReturnValue({ data: adminSession });
+    mockUsePathname.mockReturnValue("/");
+
+    withWindowSize(844, 390, () => {
+      renderNavbar();
+      fireEvent.click(screen.getByRole("button", { name: "Day" }));
+      fireEvent.click(screen.getByRole("option", { name: "Multi-Day" }));
+
+      expect(screen.getByRole("button", { name: "Multi-Day" })).toBeInTheDocument();
+    });
   });
 });

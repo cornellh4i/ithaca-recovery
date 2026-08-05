@@ -1,0 +1,30 @@
+@import '../../../Variables.module.scss';
+
+.rail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding-top: 12px;
+}
+
+// Anchor for each rail icon's flyout -- position: relative (no transform) so it doesn't
+// trap the flyout's z-index in a local stacking context the way .sidebarToggleWrapper's
+// transform does (see page.module.scss's comment on that).
+.flyoutAnchor {
+  position: relative;
+}
+
+.flyout {
+  position: absolute;
+  top: 0;
+  left: 100%;
+  margin-left: 8px;
+  width: 240px;
+  background-color: #fff;
+  border: 1px solid $grey-border-color;
+  border-radius: 6px;
+  box-shadow: 0 4px 8px rgb(0 0 0 / 20%);
+  padding: 0 12px 12px;
+  z-index: $z-index-dropdown;
+}
