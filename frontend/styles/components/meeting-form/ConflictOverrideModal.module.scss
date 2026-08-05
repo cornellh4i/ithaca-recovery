@@ -15,6 +15,7 @@
 
 .modalContent {
   box-sizing: border-box;
+
   // A short viewport or high text zoom can otherwise push the action buttons off-screen with
   // no way to reach them -- the overlay itself has no scroll, so the modal needs its own.
   max-height: calc(100vh - 32px);
