@@ -1,4 +1,4 @@
-@import '../../Variables.module.scss';
+@import '../../../Variables.module.scss';
 
 .navbarContainer {
   display: flex;
@@ -14,6 +14,16 @@
   // is already crowding the Day/Today/arrow controls) or too early.
   container-type: inline-size;
   container-name: calendar-navbar;
+
+  // container-type above has a lesser-known side effect: it forces this element to establish
+  // its own stacking context. That traps the view-dropdown's open list (.viewDropdown ul,
+  // z-index 200) *inside* this context -- no z-index set there can win against a later page
+  // sibling (desktop DayView/WeekView's own sticky headers, z-index up to 20/21) unless this
+  // container's own box is *itself* elevated in the outer stacking order. position + z-index
+  // here does that -- without it, this whole subtree paints behind DayView/WeekView regardless
+  // of internal z-index values, since neither side had an explicit z-index of its own before.
+  position: relative;
+  z-index: 50;
 
   img {
     cursor: pointer;
@@ -95,39 +105,83 @@
 // and override its default look (fixed 42px height, 6px radius, lighter border, native
 // button font) to mirror .box/.box a's exact styling so the two sit consistently side by side.
 .viewDropdown {
-  width: clamp(55px, 12.22cqi, 110px);
+  // Narrower than before (was sized to fit "Day"/"Week" as plain text) -- the closed button
+  // now shows only the icon (see button .viewOptionText below). Wide enough for the icon (22px)
+  // + gap (3px) + arrow (8px) + padding at every point in the clamp range -- the previous,
+  // tighter width clipped the icon itself against .DropdownButtonContent's own overflow:
+  // hidden (the atom's wrapper around it), which read as the arrow "covering" the icon.
+  width: clamp(58px, 11cqi, 80px);
   flex-shrink: 0;
 
   button {
     height: auto;
     padding: clamp(6px, 1.33cqi, 12px) clamp(9px, 2cqi, 18px);
     justify-content: center;
-    gap: 8px;
+
+    // Tight, not the atom's own 8px -- the icon and the dropdown-arrow chevron should read as
+    // one glyph-plus-indicator, not two separately-spaced icons.
+    gap: 3px;
     border-radius: 8px;
     border: 1.5px solid $medium-grey-color;
     font-family: 'Source Sans Pro', sans-serif;
     font-size: clamp(9px, 2cqi, 18px);
     font-weight: 400;
+
+    // Icon-only in the closed button -- the label text stays for the open list below.
+    // flex-shrink: 0 so this never shrinks below the icon's own natural size (and gets clipped
+    // by .DropdownButtonContent's overflow: hidden in turn) when the button's own available
+    // width gets tight -- the arrow (already flex-shrink: 0 in Dropdown.module.scss) is the
+    // only thing here that was already protected from this.
+    .viewOption {
+      flex-shrink: 0;
+    }
+
+    .viewOptionText {
+      display: none;
+    }
   }
 
   // No visible caption label here (label=""), so the list doesn't need the 30px offset
   // .elementList reserves for a real text caption sitting to its left -- align it flush
   // under the button instead, matching .elementListFullWidth's behavior. Rounded to match
-  // the button's own 8px radius (its default is a subtler 6px).
+  // the button's own 8px radius (its default is a subtler 6px). Fixed 150px, not a cqi-based
+  // clamp -- matches MobileAppNavbar's own equivalent list exactly ("Day"/"Week" need the same
+  // real room for icon + text regardless of this row's own container width, and a clamp tied
+  // to .navbarContainer's inline size read as cramped at the container widths this row
+  // actually renders at).
+  // z-index here too (not just Dropdown.module.scss's own .elementList z-index: 100) --
+  // .navbarContainer's container-type: inline-size (above) forces it to establish its own
+  // stacking context (a lesser-known side effect of CSS containment), which can trap the
+  // list's z-index below a later-painted sibling's own stacking context (e.g. desktop DayView's
+  // sticky room header) regardless of how high the atom's own number is. A component-scoped
+  // override here (higher specificity than the atom's bare .elementList) makes sure this list
+  // always wins regardless of that.
   ul {
     left: 0;
-    width: 100%;
+    width: 150px;
     border-radius: 8px;
     overflow: hidden;
+    z-index: 200;
   }
 
-  // Dropdown's default list item is left-aligned (suited to a form field's option list) --
-  // centered here instead, to read as one consistent visual language with the centered
-  // button text above it.
+  // Left-aligned (matching MobileAppNavbar's own equivalent list) and bigger than the atom's
+  // own 15px default -- "Day"/"Week" read as a real menu, not a cramped afterthought.
   li {
-    justify-content: center;
-    font-size: 18px;
+    justify-content: flex-start;
+    font-size: 20px;
+    padding: 16px 14px;
   }
+}
+
+.viewOption {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.viewOptionIcon {
+  width: 22px;
+  height: 22px;
 }
 
 // "View only" footer pill -- shown beneath the main nav row for anyone not signed in as

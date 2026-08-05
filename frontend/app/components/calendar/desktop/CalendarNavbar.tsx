@@ -1,13 +1,21 @@
 import React, { useState } from 'react';
-import Dropdown from '../atoms/Dropdown';
-import CalendarHeader from './CalendarHeader';
-import styles from "../../../styles/components/calendar/CalendarNavbar.module.scss";
+import Dropdown from '../../atoms/Dropdown';
+import CalendarHeader from '../shared/CalendarHeader';
+import styles from "../../../../styles/components/calendar/desktop/CalendarNavbar.module.scss";
 import {
   formatETDateString,
   convertETToUTC,
   addDaysToETDateString,
   addMonthsToETDateString,
-} from "../../../util/timeUtils";
+} from "../../../../util/timeUtils";
+
+// view_timeline / calendar_view_week (Material Symbols) -- same icons and same renderElement
+// pattern MobileAppNavbar's own Day/Multi-Day dropdown uses (icon-only in the closed button
+// via .viewOptionText's display:none, icon+label in the open list).
+const VIEW_ICONS: Record<string, string> = {
+  Day: "/svg/view-timeline-icon.svg",
+  Week: "/svg/calendar-view-week-icon.svg",
+};
 
 type CalendarNavbarProps = {
     selectedDate: Date;
@@ -71,6 +79,12 @@ const CalendarNavbar: React.FC<CalendarNavbarProps> = ({ selectedDate, onDateCha
               elements={['Day', 'Week']}
               name="Select view"
               onChange={handleViewChange}
+              renderElement={(element) => (
+                <span className={styles.viewOption}>
+                  <img src={VIEW_ICONS[element]} alt="" className={styles.viewOptionIcon} />
+                  <span className={styles.viewOptionText}>{element}</span>
+                </span>
+              )}
             />
           </div>
           <div className={styles.box}>
