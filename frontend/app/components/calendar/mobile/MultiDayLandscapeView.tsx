@@ -260,10 +260,14 @@ const MultiDayLandscapeView: React.FC<MultiDayLandscapeViewProps> = ({
     controls.set({ x: -panelWidth });
   };
 
-  const renderDayPanel = (date: Date, index: number) => {
+  const renderDayPanel = (date: Date) => {
     const dayMeetings = meetingsForDate(date);
     return (
-      <div key={index} className={styles.dayPanel} style={{ width: colWidth }}>
+      // Keyed by the panel's own ET date, not its position -- columnDates shifts by `shift`
+      // days on every page commit, so an index-based key would let React reuse a panel's
+      // subtree (and DayColumn's own instance state, e.g. an open overflow popup) across a
+      // date change instead of remounting it for the new day.
+      <div key={formatETDateString(date)} className={styles.dayPanel} style={{ width: colWidth }}>
         <div className={`${styles.dayHeader} ${isDateToday(date) ? styles.today : ""}`}>
           <span className={styles.dayName}>{formatDayName(date)}</span> {formatDateNumber(date)}
         </div>
@@ -340,7 +344,7 @@ const MultiDayLandscapeView: React.FC<MultiDayLandscapeViewProps> = ({
               }}
               style={{ touchAction: "pan-y", width: 3 * panelWidth }}
             >
-              {columnDates.map((date, index) => renderDayPanel(date, index))}
+              {columnDates.map((date) => renderDayPanel(date))}
             </motion.div>
           </div>
         </div>

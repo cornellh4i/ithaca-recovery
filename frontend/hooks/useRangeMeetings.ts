@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { formatETDateString } from "../util/timeUtils";
+import { addDaysToDate } from "../util/weekDates";
 import { createCache } from "../util/simpleCache";
 import { WeekMeeting, mapRawMeetingsToWeekMeetings } from "./useWeekMeetings";
 
@@ -62,8 +63,10 @@ export function useRangeMeetings(startDate: Date, days: number, refreshTrigger: 
 
     const fetchRangeMeetings = useCallback(async (forceFetch = false) => {
         const start = startDateRef.current;
-        const endDate = new Date(start);
-        endDate.setDate(start.getDate() + daysRef.current - 1);
+        // ET-anchored, not runtime-local-timezone arithmetic -- same helper
+        // MultiDayLandscapeView already uses for its own page boundaries, so both ends of the
+        // same range are derived by the same rule.
+        const endDate = addDaysToDate(start, daysRef.current - 1);
 
         if (forceFetch) {
             rangeMeetingCache.clear();
