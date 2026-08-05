@@ -41,19 +41,27 @@ interface DailyViewRowProps {
   setLastClickedDate?: (date: Date) => void;
   // Admin-only (see hooks/useConflictMids) -- mids with an unresolved conflict.
   conflictMids?: Set<string>;
+  // Landscape-mode overrides, all optional -- DayLandscapeView passes every one of these
+  // together to run a much smaller, dynamically-sized subcompact grid; no other caller sets
+  // any of them, so the defaults below reproduce desktop DayView's fixed 155px-hour /
+  // 105px-row scale exactly.
+  hourWidth?: number;
+  rowHeight?: number;
+  // Shifts timeToPixels' origin -- e.g. 7 for a 7:00-21:00 grid instead of the desktop
+  // default's full 0:00-24:00 day.
+  startHour?: number;
+  // Passed straight to BoxText. DayLandscapeView's subcompact rows have no room for the
+  // "pop out to full height on select" treatment below (isSelected reverting fillHeight) --
+  // uniformHeight makes every card, selected or not, always fill its row.
+  tier?: 'full' | 'compact' | 'subcompact';
+  uniformHeight?: boolean;
 }
 
-// 1 hour is 155px in width (155/60 px per minute), matching the 155px-wide hour columns.
-const timeToPixels = (time: string) => {
-  const [hours, minutes] = time.split(':').map(Number);
-  return hours * 155 + minutes * (155 / 60);
-};
-
+const DEFAULT_HOUR_WIDTH = 155;
 // BoxText's fixed Meeting Block height (BoxText.module.scss `.meeting`). When 2 meetings
 // share this room's row at once, each gets half of it, minus a small gap between them.
-const MEETING_SLOT_HEIGHT = 105;
+const DEFAULT_ROW_HEIGHT = 105;
 const LANE_GAP = 5;
-const LANE_HEIGHT = (MEETING_SLOT_HEIGHT - LANE_GAP) / 2;
 
 const DailyViewRow: React.FC<DailyViewRowProps> = ({
   roomColor,
@@ -66,7 +74,19 @@ const DailyViewRow: React.FC<DailyViewRowProps> = ({
   columnDate,
   setLastClickedDate,
   conflictMids,
+  hourWidth = DEFAULT_HOUR_WIDTH,
+  rowHeight = DEFAULT_ROW_HEIGHT,
+  startHour = 0,
+  tier,
+  uniformHeight = false,
 }) => {
+  // 1 hour is `hourWidth`px wide, offset so `startHour` sits at x:0.
+  const timeToPixels = (time: string) => {
+    const [hours, minutes] = time.split(':').map(Number);
+    return (hours - startHour) * hourWidth + minutes * (hourWidth / 60);
+  };
+  const MEETING_SLOT_HEIGHT = rowHeight;
+  const LANE_HEIGHT = (MEETING_SLOT_HEIGHT - LANE_GAP) / 2;
   const [overlapModalMeetings, setOverlapModalMeetings] = useState<Meeting[] | null>(null);
   // The "+N" pill that opened the modal -- kept as a fallback popup anchor, since the
   // modal's own row is unmounted the instant it closes and getBoundingClientRect() on a
@@ -139,7 +159,7 @@ const DailyViewRow: React.FC<DailyViewRowProps> = ({
           left: `${startOffset}px`,
           width: `${width}px`,
           top: isSelected ? 0 : laneTop,
-          height: isSelected ? undefined : (isStacked ? `${LANE_HEIGHT}px` : undefined),
+          height: uniformHeight || isSelected ? undefined : (isStacked ? `${LANE_HEIGHT}px` : undefined),
           // Above the "+N" overflow pill's z-index (12, DailyViewRow.module.scss) too,
           // so a selected meeting is unambiguously the topmost thing in the row.
           zIndex: isSelected ? 13 : undefined,
@@ -156,8 +176,8 @@ const DailyViewRow: React.FC<DailyViewRowProps> = ({
           syncError={meeting.syncError}
           hasConflict={conflictMids?.has(meeting.id)}
           selected={isSelected}
-          fillHeight={isStacked && !isSelected}
-          compact={isStacked && !isSelected}
+          fillHeight={uniformHeight || (isStacked && !isSelected)}
+          tier={tier ?? (isStacked && !isSelected ? 'compact' : undefined)}
           onClick={(meetingId, e) => {
             handleBoxClick(meetingId, e.currentTarget);
             e.stopPropagation();

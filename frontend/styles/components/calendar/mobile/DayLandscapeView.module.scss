@@ -1,0 +1,115 @@
+@import '../../Variables.module.scss';
+
+.outerContainer {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background-color: $white-color;
+}
+
+// The only scroll container -- vertical only (room axis). The hour axis never scrolls: its
+// width is computed from this element's own measured width (see DayLandscapeView.tsx's
+// useElementWidth), not a fixed constant, so it always compresses to fit instead.
+.scrollArea {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden auto;
+
+  // Same reasoning as DayPortraitView.module.scss's .scrollArea -- this is the actual scroll
+  // container an unclaimed horizontal gesture would otherwise chain up from.
+  overscroll-behavior-x: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.headerRow {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  background-color: $white-color;
+  border-bottom: 1px solid $grey-border-color;
+}
+
+.headerCorner {
+  flex: 0 0 auto;
+}
+
+.hourLabel {
+  flex: 0 0 auto;
+  font-size: 9px;
+  color: $text-secondary-color;
+  padding: 4px 0 4px 3px;
+  box-sizing: border-box;
+  border-left: 1px solid $grey-lightest-color;
+  font-variant-numeric: tabular-nums;
+}
+
+.rowsContainer {
+  position: relative;
+}
+
+.roomRow {
+  display: flex;
+  border-bottom: 1px solid $grey-border-color;
+  box-sizing: border-box;
+}
+
+.roomLabel {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 6px;
+  box-sizing: border-box;
+  font-size: 10px;
+  font-weight: 600;
+  color: $navy-color;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  border-right: 1px solid $grey-border-color;
+}
+
+.roomDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+}
+
+// Where DailyViewRow actually renders -- position: relative so its own absolutely-positioned
+// meeting cards anchor here, against just the hour grid, not the room label next to it.
+.roomContent {
+  flex: 1 1 auto;
+  min-width: 0;
+  position: relative;
+}
+
+.currentTimeLine {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background-color: $danger-color;
+  z-index: 6;
+  pointer-events: none;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: -4px;
+    left: -4px;
+    width: 10px;
+    height: 10px;
+    background-color: $danger-color;
+    border-radius: 50%;
+  }
+}
