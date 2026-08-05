@@ -280,6 +280,40 @@ test("a Remote meeting (no zoomRoom) still gets a Zoom meeting created, and its 
   );
 });
 
+test("a recurring meeting creates its Meeting and RecurrencePattern together (one transaction, not two sequential writes)", async () => {
+  mockedCreateCalendarEvent.mockResolvedValue({ id: "fake-event-id", error: null });
+
+  const payload = buildMeetingPayload({
+    isRecurring: true,
+    recurrencePattern: {
+      type: "weekly",
+      startDate: new Date("2026-08-03T00:00:00Z"),
+      firstDayOfWeek: "Sunday",
+      interval: 1,
+      daysOfWeek: ["Monday"],
+    },
+  });
+  const request = new Request("http://localhost/api/write/meeting", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+
+  const response = await POST(request);
+  expect(response.status).toBe(201);
+  const created = await response.json();
+
+  // The route's response is now built from the transaction's own results, not a
+  // post-transaction refetch -- assert the recurrencePattern is already inline.
+  expect(created.recurrencePattern).toMatchObject({ mid: payload.mid, type: "weekly" });
+
+  const prisma = getTestPrismaClient();
+  const meetingRow = await prisma.meeting.findUnique({ where: { mid: payload.mid } });
+  const patternRow = await prisma.recurrencePattern.findUnique({ where: { mid: payload.mid } });
+  expect(meetingRow?.isRecurring).toBe(true);
+  expect(patternRow).not.toBeNull();
+  expect(patternRow?.daysOfWeek).toEqual(["Monday"]);
+});
+
 test("a category with no configured calendar fails the meeting's sync, even if its other category succeeds", async () => {
   // The top-level calendarIdsForMeeting mock always resolves only { AA: "fake-calendar-id" }
   // regardless of calType -- passing "Other" here simulates a real category whose

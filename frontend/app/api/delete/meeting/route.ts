@@ -121,6 +121,9 @@ const deleteMeeting = async (request: Request) => {
     const calendarIds = calendarIdsForMeeting(meeting.calType ?? []);
     const eventIds = (meeting.googleCalendarEventIds ?? {}) as Record<string, string>;
 
+    // Verified atomic: each branch below is exactly one top-level Mongo write (recurrencePattern
+    // update, recurrencePattern update, or meeting update) -- no unwrapped multi-write gap to
+    // fix here, unlike write/meeting/route.ts's create path.
     if (deleteOption === 'this') {
       if (!meeting.recurrencePattern) {
         return new Response(JSON.stringify({ error: "Meeting has no recurrence pattern" }), {
