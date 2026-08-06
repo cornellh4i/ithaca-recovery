@@ -23,6 +23,16 @@ test("lockResourceClaims blocks a second transaction on the same resource until 
     releaseFirst = resolve;
   });
 
+  // Signaled the instant the first transaction actually holds the lock -- awaited below instead
+  // of a fixed sleep, so starting the second transaction never races the first's own acquisition
+  // regardless of how fast/slow the environment is (a fixed delay here previously made this test
+  // flaky on a slower CI runner: the second transaction could start, and win, before the first
+  // had actually acquired anything).
+  let signalFirstAcquired: () => void = () => {};
+  const firstAcquired = new Promise<void>((resolve) => {
+    signalFirstAcquired = resolve;
+  });
+
   let firstAcquiredAt: number | null = null;
   let secondAcquiredAt: number | null = null;
 
@@ -30,13 +40,11 @@ test("lockResourceClaims blocks a second transaction on the same resource until 
   const firstTx = prisma.$transaction(async (tx) => {
     await lockResourceClaims(tx, claims);
     firstAcquiredAt = Date.now();
+    signalFirstAcquired();
     await firstMayFinish;
   });
 
-  // Give the first transaction a moment to actually acquire the lock before starting the second
-  // -- otherwise they could race to acquire it in either order, which isn't what this test is
-  // checking (it's checking that whichever gets there first blocks the other, not lock fairness).
-  await new Promise((resolve) => setTimeout(resolve, 50));
+  await firstAcquired;
 
   const secondTx = prisma.$transaction(async (tx) => {
     await lockResourceClaims(tx, claims);
@@ -67,12 +75,18 @@ test("lockResourceClaims does not block two transactions locking different resou
 
   // Held open for well longer than the race window below -- if the second transaction wrongly
   // waited on this one's (unrelated) lock, it could not possibly resolve before the timeout.
+  let signalFirstAcquired: () => void = () => {};
+  const firstAcquired = new Promise<void>((resolve) => {
+    signalFirstAcquired = resolve;
+  });
+
   const firstTx = prisma.$transaction(async (tx) => {
     await lockResourceClaims(tx, [{ type: "room", value: "Independent Room A" }]);
+    signalFirstAcquired();
     await new Promise((resolve) => setTimeout(resolve, 300));
   });
 
-  await new Promise((resolve) => setTimeout(resolve, 50)); // let firstTx acquire its lock first
+  await firstAcquired; // deterministic, not a fixed sleep -- see the comment in the test above
 
   const secondTx = prisma.$transaction(async (tx) => {
     await lockResourceClaims(tx, [{ type: "room", value: "Independent Room B" }]);
