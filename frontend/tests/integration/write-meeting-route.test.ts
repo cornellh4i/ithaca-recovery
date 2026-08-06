@@ -292,6 +292,11 @@ test("confirmOverride: true bypasses the zoomHost conflict block, creates the me
   // a specific error, not the generic "pool exhausted" one.
   expect(created.zoomHost).toBeNull();
   expect(created.zoomSyncError).toMatch(/conflicts with another meeting/i);
+  // Regression coverage: the losing host pick must still be recorded so the Diagnostics
+  // Conflicts panel can bucket this meeting against conflictHost's holder (see
+  // computeConflicts' attemptedZoomHost fallback in util/resourceOverlap.ts) — previously this
+  // was discarded entirely, leaving a real conflict invisible in that panel.
+  expect(created.attemptedZoomHost).toBe(conflictHost);
 
   const afterSync = await waitForGoogleSyncStatus(created.mid);
   expect(afterSync?.googleSyncStatus).toBe("pending");

@@ -51,6 +51,10 @@ export type ConflictCandidateMeeting = OccurrenceInput & {
   room: string;
   zoomRoom?: string | null;
   zoomHost?: string | null;
+  // The pool host an explicit pick collided with when zoomHost itself is null -- see the
+  // attemptedZoomHost field comment in schema.prisma. Only ever a fallback: real zoomHost
+  // values always take precedence when bucketing conflicts by field below.
+  attemptedZoomHost?: string | null;
   status?: string | null;
   calType?: string[];
   suspensions?: SuspensionWindow[];
@@ -325,7 +329,11 @@ export function computeConflicts(
   (["room", "zoomRoom", "zoomHost"] as const).forEach((field) => {
     const buckets = new Map<string, ConflictCandidateMeeting[]>();
     for (const meeting of fieldMeetings[field]) {
-      const value = meeting[field];
+      // A meeting whose explicit zoomHost pick lost out to another meeting has zoomHost: null
+      // (nothing was actually assigned) but still real-y wants that host -- bucket it under
+      // attemptedZoomHost so it still pairs up against whoever holds it, instead of the
+      // already-known conflict (see its zoomSyncError) silently vanishing from this panel.
+      const value = field === "zoomHost" ? (meeting.zoomHost ?? meeting.attemptedZoomHost) : meeting[field];
       if (!value) continue;
       const bucket = buckets.get(value);
       if (bucket) bucket.push(meeting);

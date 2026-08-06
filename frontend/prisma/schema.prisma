@@ -52,6 +52,11 @@ model Meeting {
   zoomCalendarEventId    String?
   zoomSyncStatus         String?
   zoomHost               String?
+  // The specific pool host an explicit (non-"Automatic") host pick collided with, kept even
+  // though zoomHost itself is null on that failure -- lets computeConflicts (util/
+  // resourceOverlap.ts) still bucket this meeting against whichever meeting holds that host,
+  // instead of the conflict silently vanishing because zoomHost has nothing to bucket on.
+  attemptedZoomHost      String?
   zoomSyncError          String?
   deletedAt              DateTime?
   updatedAt              DateTime?            @updatedAt

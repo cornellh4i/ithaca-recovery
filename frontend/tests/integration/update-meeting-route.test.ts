@@ -483,6 +483,11 @@ test("confirmOverride: true bypasses the zoomHost reassignment block, tears down
   expect(afterSync?.zoomHost).toBeNull();
   expect(afterSync?.zoomSyncStatus).toBe("error");
   expect(afterSync?.zoomSyncError).toMatch(/conflicts with another meeting/i);
+  // Regression coverage: the losing host pick must still be recorded so the Diagnostics
+  // Conflicts panel can bucket this meeting against busyHost's holder (see computeConflicts'
+  // attemptedZoomHost fallback in util/resourceOverlap.ts) — previously this was discarded
+  // entirely, leaving a real conflict invisible in that panel.
+  expect(afterSync?.attemptedZoomHost).toBe(busyHost);
 });
 
 test("editing a meeting whose scheduled resume date has already passed promotes the pre-created resume series first", async () => {

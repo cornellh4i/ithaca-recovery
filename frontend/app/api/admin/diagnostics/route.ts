@@ -53,7 +53,8 @@ export const GET = async () => {
       where: notDeleted,
       select: {
         mid: true, title: true, group: true, status: true, calType: true, isRecurring: true,
-        googleSyncStatus: true, zoomRoom: true, zoomHost: true, zoomSyncStatus: true, zoomSyncError: true,
+        googleSyncStatus: true, zoomRoom: true, zoomHost: true, attemptedZoomHost: true,
+        zoomSyncStatus: true, zoomSyncError: true,
         room: true, modeType: true, startDateTime: true, endDateTime: true,
         recurrencePattern: true, updatedAt: true, suspensions: true,
       },
