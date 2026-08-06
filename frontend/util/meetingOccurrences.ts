@@ -1,4 +1,4 @@
-import { getETDayBounds, convertETToUTC } from "./timeUtils";
+import { getETDayBounds, convertETToUTC, addDaysToETDateString } from "./timeUtils";
 import { prisma } from "../lib/prisma";
 import { PublicMeeting, toPublicMeeting } from "./publicMeeting";
 
@@ -169,21 +169,23 @@ export const firstOccurrenceOnOrAfter = (
 };
 
 /**
- * Returns every meeting occurrence (one-time + recurring, expanded) that falls on the given
- * ET calendar date, with recurring occurrences' start/end times adjusted onto that date.
- * Shared by the day and week retrieval routes so recurrence rules are only implemented once.
+ * Returns every meeting occurrence (one-time + recurring, expanded) that falls within
+ * [startEtDateStr, endEtDateStr] (inclusive), one entry per (meeting, date) pair, tagged with
+ * the ET date it was expanded onto. Both underlying queries run exactly once for the whole
+ * range -- not once per day -- so a multi-day fetch doesn't repeat the same table scan for
+ * every day it covers. Shared by the day, week, and range retrieval routes so recurrence rules
+ * are only implemented once.
  */
-export const getMeetingsForDate = async (etDateStr: string): Promise<PublicMeeting[]> => {
-    const [startOfDay, endOfDay] = getETDayBounds(etDateStr);
-
-    // localDate is used only for day-of-week and recurring-pattern comparisons;
-    // represent the ET calendar date as UTC midnight so getUTCDay() is correct.
-    const [etYear, etMonth, etDay] = etDateStr.split('-').map(Number);
-    const localDate = new Date(Date.UTC(etYear, etMonth - 1, etDay));
+export const getMeetingsForRange = async (
+    startEtDateStr: string,
+    endEtDateStr: string,
+): Promise<(PublicMeeting & { date: string })[]> => {
+    const [startOfRange] = getETDayBounds(startEtDateStr);
+    const [, endOfRange] = getETDayBounds(endEtDateStr);
 
     const directlyScheduledMeetings = await prisma.meeting.findMany({
         where: {
-            AND: [notDeleted, { startDateTime: { lte: endOfDay }, endDateTime: { gte: startOfDay } }]
+            AND: [notDeleted, { startDateTime: { lte: endOfRange }, endDateTime: { gte: startOfRange } }]
         },
         include: {
             recurrencePattern: true,
@@ -191,60 +193,103 @@ export const getMeetingsForDate = async (etDateStr: string): Promise<PublicMeeti
         }
     });
 
-    const regularMeetings = directlyScheduledMeetings.filter(meeting =>
-        !meeting.isRecurring && !isDateSuspended(meeting.suspensions, etDateStr));
-    const originalDayRecurringMeetings = directlyScheduledMeetings.filter(meeting => {
-        if (!meeting.isRecurring) return false;
-        if (isDateSuspended(meeting.suspensions, etDateStr)) return false;
-        const recurrence = meeting.recurrencePattern;
-        if (isAfterSeriesEnd(recurrence?.endDate ?? null, etDateStr)) return false;
-        if (recurrence?.excludedDates?.length && isDateExcluded(recurrence.excludedDates, etDateStr)) return false;
-        return true;
-    });
-
-    // "Other" occurrences of a recurring series — i.e. every occurrence except the one
-    // already covered by directlyScheduledMeetings above. Must exclude by the same overlap
-    // condition as that query (not just "fully contained in today"), or an overnight
-    // occurrence (whose anchor overlaps today without being contained in it) slips through
-    // and gets counted twice: once via originalDayRecurringMeetings, once again here.
-    const otherRecurringMeetings = await prisma.meeting.findMany({
+    // Every recurring meeting whose pattern could produce an occurrence anywhere in the range --
+    // unlike the single-day version this replaces, this can't exclude "the occurrence already
+    // covered by directlyScheduledMeetings" at the query level: that exclusion has to be
+    // per-day (a meeting's own stored row only ever lands on one specific day, not the whole
+    // range), so it's applied inside the loop below instead. Bounded by the recurrence's own
+    // span overlapping the range: a series that starts after endOfRange or ended before
+    // startOfRange can't produce an occurrence anywhere in this window no matter what its
+    // weekly/monthly pattern is, so there's no reason to pull it into app memory just to check.
+    const allRecurringMeetings = await prisma.meeting.findMany({
         where: {
             AND: [
                 notDeleted,
                 { isRecurring: true },
-                { NOT: { AND: [{ startDateTime: { lte: endOfDay } }, { endDateTime: { gte: startOfDay } }] } }
+                {
+                    recurrencePattern: {
+                        is: {
+                            startDate: { lte: endOfRange },
+                            // endDate is optional and, for an unbounded series, often never set
+                            // at all rather than explicitly null -- same Mongo-connector quirk
+                            // as `deletedAt` (see `notDeleted` above): a bare `endDate: null`
+                            // filter does not match a document where the field key is absent.
+                            OR: [
+                                { endDate: null },
+                                { endDate: { isSet: false } },
+                                { endDate: { gte: startOfRange } },
+                            ]
+                        }
+                    }
+                }
             ]
         },
         include: { recurrencePattern: true, suspensions: true }
     });
 
-    const patternDayMeetings = otherRecurringMeetings.filter(meeting => {
-        if (isDateSuspended(meeting.suspensions, etDateStr)) return false;
-        const recurrence = meeting.recurrencePattern;
-        if (!recurrence) return false;
-        return matchesRecurrencePattern(recurrence, etDateStr, localDate);
-    });
+    const results: (PublicMeeting & { date: string })[] = [];
+    let etDateStr = startEtDateStr;
+    while (etDateStr <= endEtDateStr) {
+        const [startOfDay, endOfDay] = getETDayBounds(etDateStr);
 
-    const adjustedPatternMeetings = patternDayMeetings.map(meeting => {
-        const { start, end } = adjustOccurrenceToDate(meeting, etDateStr);
+        // localDate is used only for day-of-week and recurring-pattern comparisons;
+        // represent the ET calendar date as UTC midnight so getUTCDay() is correct.
+        const [etYear, etMonth, etDay] = etDateStr.split('-').map(Number);
+        const localDate = new Date(Date.UTC(etYear, etMonth - 1, etDay));
 
-        return {
-            ...meeting,
-            startDateTime: start,
-            endDateTime: end,
-        };
-    });
+        for (const meeting of directlyScheduledMeetings) {
+            // A meeting overlapping the whole fetched range doesn't necessarily overlap this
+            // specific day within it -- re-check per day against the range-wide result set.
+            if (meeting.startDateTime > endOfDay || meeting.endDateTime < startOfDay) continue;
+            if (isDateSuspended(meeting.suspensions, etDateStr)) continue;
 
-    const allMeetings = [
-        ...regularMeetings,
-        ...originalDayRecurringMeetings,
-        ...adjustedPatternMeetings
-    ];
+            if (meeting.isRecurring) {
+                const recurrence = meeting.recurrencePattern;
+                if (isAfterSeriesEnd(recurrence?.endDate ?? null, etDateStr)) continue;
+                if (recurrence?.excludedDates?.length && isDateExcluded(recurrence.excludedDates, etDateStr)) continue;
+            }
 
-    return allMeetings.map((meeting) => toPublicMeeting({
-        ...meeting,
-        recurrencePattern: meeting.recurrencePattern ?? null,
-    }));
+            results.push({
+                ...toPublicMeeting({ ...meeting, recurrencePattern: meeting.recurrencePattern ?? null }),
+                date: etDateStr,
+            });
+        }
+
+        for (const meeting of allRecurringMeetings) {
+            // Already added above via directlyScheduledMeetings for this specific day -- must
+            // exclude by the same overlap condition as that loop (not just "starts on this
+            // day"), or an overnight occurrence (whose anchor overlaps today without starting
+            // on it) slips through and gets counted twice.
+            if (meeting.startDateTime <= endOfDay && meeting.endDateTime >= startOfDay) continue;
+            if (isDateSuspended(meeting.suspensions, etDateStr)) continue;
+            const recurrence = meeting.recurrencePattern;
+            if (!recurrence) continue;
+            if (!matchesRecurrencePattern(recurrence, etDateStr, localDate)) continue;
+
+            const { start, end } = adjustOccurrenceToDate(meeting, etDateStr);
+            results.push({
+                ...toPublicMeeting({
+                    ...meeting,
+                    recurrencePattern: recurrence,
+                    startDateTime: start,
+                    endDateTime: end,
+                }),
+                date: etDateStr,
+            });
+        }
+
+        etDateStr = addDaysToETDateString(etDateStr, 1);
+    }
+
+    return results;
+};
+
+// Single-day convenience wrapper over getMeetingsForRange, kept for the day route and any
+// other single-date caller -- strips the `date` tag since it's redundant when every result is
+// already known to be on the one requested day.
+export const getMeetingsForDate = async (etDateStr: string): Promise<PublicMeeting[]> => {
+    const results = await getMeetingsForRange(etDateStr, etDateStr);
+    return results.map(({ date: _date, ...meeting }) => meeting);
 };
 
 // Resolves a count-bounded series' (numberOfOccurrences set, no explicit endDate) real last
