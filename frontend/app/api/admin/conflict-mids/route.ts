@@ -36,7 +36,7 @@ export const GET = async () => {
     select: {
       mid: true, title: true, room: true, zoomRoom: true, zoomHost: true, attemptedZoomHost: true,
       status: true, calType: true, startDateTime: true, endDateTime: true, isRecurring: true,
-      recurrencePattern: true,
+      recurrencePattern: true, suspensions: true,
     },
   });
 

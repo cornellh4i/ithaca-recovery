@@ -348,7 +348,9 @@ const updateMeeting = async (request: Request): Promise<Response> => {
               attemptedZoomHost,
               ...(hostSyncError ? { zoomSyncStatus: 'error', zoomSyncError: hostSyncError } : {}),
             }
-          : {}),
+          : !zoomEnabled
+            ? { attemptedZoomHost: null }
+            : {}),
         recurrencePattern: recurrencePattern
           ? {
               upsert: {
