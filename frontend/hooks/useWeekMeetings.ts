@@ -75,10 +75,19 @@ export const invalidateWeekCache = (startDate: Date, endDate: Date) => {
     weekMeetingCache.invalidate(`${formattedStart}-${formattedEnd}`);
 };
 
+export interface UseWeekMeetingsResult {
+    meetings: WeekMeeting[];
+    // True while a fetch for the currently-requested week is in flight -- including a cache hit,
+    // since getOrFetch always returns a promise either way; a cache hit just resolves on the
+    // next microtask, so this flips back to false before paint and never visibly flashes.
+    isLoading: boolean;
+}
+
 // Fetches (and caches) all meetings for the ET week starting `weekStartDate` (a Sunday).
 // Bump `refreshTrigger` to force a cache-busting refetch (e.g. after a create/edit/delete).
-export function useWeekMeetings(weekStartDate: Date, refreshTrigger: number = 0): WeekMeeting[] {
+export function useWeekMeetings(weekStartDate: Date, refreshTrigger: number = 0): UseWeekMeetingsResult {
     const [allMeetings, setAllMeetings] = useState<WeekMeeting[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
 
     // Ref instead of a `weekStartDate` closure/dependency so fetchWeekMeetings's identity
     // stays stable across week changes -- needed so the refreshTrigger effect below doesn't
@@ -110,9 +119,11 @@ export function useWeekMeetings(weekStartDate: Date, refreshTrigger: number = 0)
         }
 
         const requestId = ++fetchRequestIdRef.current;
+        setIsLoading(true);
         const meetings = await fetchMeetingsByWeek(startDate, endDate);
         if (requestId === fetchRequestIdRef.current) {
             setAllMeetings(meetings);
+            setIsLoading(false);
         }
     }, []);
 
@@ -128,5 +139,5 @@ export function useWeekMeetings(weekStartDate: Date, refreshTrigger: number = 0)
         }
     }, [refreshTrigger, fetchWeekMeetings]);
 
-    return allMeetings;
+    return { meetings: allMeetings, isLoading };
 }

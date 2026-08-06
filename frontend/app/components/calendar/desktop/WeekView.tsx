@@ -7,6 +7,7 @@ import { formatETDateString } from "../../../../util/timeUtils";
 import { layoutOverlappingMeetings } from "../../../../util/meetingOverlapLayout";
 import { getFirstDayOfWeek, getDaysOfWeek } from "../../../../util/weekDates";
 import { useWeekMeetings, WeekMeeting } from "../../../../hooks/useWeekMeetings";
+import TopLoadingBar from "../../atoms/TopLoadingBar";
 
 export { invalidateWeekCache } from "../../../../hooks/useWeekMeetings";
 
@@ -64,7 +65,7 @@ const WeekView: React.FC<WeekViewProps> = ({
     const [weekStartDate, setWeekStartDate] = useState<Date>(() => getFirstDayOfWeek(selectedDate));
     const [daysOfWeek, setDaysOfWeek] = useState<Date[]>(() => getDaysOfWeek(weekStartDate));
     const viewContainerRef = useRef<HTMLDivElement>(null);
-    const allMeetings = useWeekMeetings(weekStartDate, refreshTrigger);
+    const { meetings: allMeetings, isLoading } = useWeekMeetings(weekStartDate, refreshTrigger);
 
     // Format time slots for hour markers
     const formatTime = (hour: number): string => {
@@ -152,6 +153,7 @@ const WeekView: React.FC<WeekViewProps> = ({
 
     return (
         <div className={styles.outerContainer}>
+            <TopLoadingBar active={isLoading} />
             <div
                 className={styles.viewContainer}
                 ref={viewContainerRef}

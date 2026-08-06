@@ -5,6 +5,7 @@
     flex-direction: column;
     height: 100%;
     background-color: $white-color;
+    position: relative; // anchors TopLoadingBar's absolute positioning to this view's own bounds
 
     // WeekStrip and CalendarHeader are plain flex siblings above this, not part of
     // .scrollArea's own scroll container -- so they never scroll with it, no CSS
