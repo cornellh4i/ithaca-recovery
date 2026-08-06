@@ -11,6 +11,7 @@ import { getFirstDayOfWeek, addDaysToDate } from "../../../../util/weekDates";
 import { useWeekMeetings } from "../../../../hooks/useWeekMeetings";
 import { useScrollNavHide } from "../../../../hooks/useScrollNavHide";
 import { useCalendarContext } from "../../../context/CalendarProvider";
+import TopLoadingBar from "../../atoms/TopLoadingBar";
 import styles from "../../../../styles/components/calendar/mobile/DayPortraitView.module.scss";
 
 interface Meeting extends OverlapMeeting {
@@ -90,8 +91,9 @@ const DayPortraitView: React.FC<DayPortraitViewProps> = ({
   // still exactly one network request.
   const prevDate = addDaysToDate(selectedDate, -1);
   const nextDate = addDaysToDate(selectedDate, 1);
-  const prevWeekMeetings = useWeekMeetings(getFirstDayOfWeek(prevDate), refreshTrigger);
-  const nextWeekMeetings = useWeekMeetings(getFirstDayOfWeek(nextDate), refreshTrigger);
+  const { meetings: prevWeekMeetings, isLoading: prevLoading } = useWeekMeetings(getFirstDayOfWeek(prevDate), refreshTrigger);
+  const { meetings: nextWeekMeetings, isLoading: nextLoading } = useWeekMeetings(getFirstDayOfWeek(nextDate), refreshTrigger);
+  const isLoading = prevLoading || nextLoading;
 
   const allMeetings = useMemo(() => {
     // Keyed on id+date, not id alone -- a recurring meeting occurring more than once in the
@@ -308,6 +310,7 @@ const DayPortraitView: React.FC<DayPortraitViewProps> = ({
 
   return (
     <div className={styles.container}>
+      <TopLoadingBar active={isLoading} />
       <WeekStrip />
       <CalendarHeader
         selectedDate={selectedDate}

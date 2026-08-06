@@ -69,8 +69,16 @@
     font-weight: 400;
     margin: 0;
     padding: 0;
-    color: #3A3E49;
-    overflow-x: hidden;
+    color: $navy-color;
+
+    // The shorthand, not overflow-x alone -- per the CSS Overflow spec, setting only
+    // overflow-x to a non-visible value forces the browser to also compute overflow-y as
+    // auto (never a bare "visible" left alongside a clipped axis). Combined with
+    // .timeRowWithPlace's flex-wrap: wrap below, that forced auto turned this into a
+    // genuinely vertically-scrollable box whenever wrapped content came out a hair taller
+    // than the row (font-metric rounding) -- showing a real, native (and often grey, easy to
+    // mistake for a rendering glitch) scrollbar with no DOM node of its own to inspect.
+    overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
     flex-shrink: 0;

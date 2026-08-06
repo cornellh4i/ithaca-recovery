@@ -37,9 +37,12 @@ const CalendarNavbar: React.FC<CalendarNavbarProps> = ({ selectedDate, onDateCha
       onDateChange(new Date());
     };
   
+    // Jumps to today's date within whatever view is currently active -- must not touch
+    // selectedView (previously forced this to "Day" without telling the parent via
+    // onViewChange, desyncing CalendarHeader's date-range label and shiftSelectedDate's own
+    // day-vs-week step from whatever view was actually still rendered underneath).
     const handleToday = () => {
-      setSelectedView("Day");
-      onDateChange(new Date()); // Call the external function as well
+      onDateChange(new Date());
     };
 
     // Shifts the ET calendar date `selectedDate` represents by a day count (Day/Week) or month

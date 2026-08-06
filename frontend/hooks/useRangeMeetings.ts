@@ -34,12 +34,21 @@ const fetchMeetingsByRange = async (startDate: Date, endDate: Date): Promise<Wee
     });
 };
 
+export interface UseRangeMeetingsResult {
+    meetings: WeekMeeting[];
+    // True while a fetch for the currently-requested range is in flight -- including a cache
+    // hit, since getOrFetch always returns a promise either way; a cache hit just resolves on
+    // the next microtask, so this flips back to false before paint and never visibly flashes.
+    isLoading: boolean;
+}
+
 // Fetches (and caches) meetings for exactly `days` consecutive ET days starting at
 // `startDate` -- unlike useWeekMeetings, this isn't aligned to a calendar week, so a caller
 // needing an arbitrary N-day window doesn't have to over-fetch whole weeks around it. Bump
 // `refreshTrigger` to force a cache-busting refetch (e.g. after a create/edit/delete).
-export function useRangeMeetings(startDate: Date, days: number, refreshTrigger: number = 0): WeekMeeting[] {
+export function useRangeMeetings(startDate: Date, days: number, refreshTrigger: number = 0): UseRangeMeetingsResult {
     const [allMeetings, setAllMeetings] = useState<WeekMeeting[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
 
     // Ref instead of closing over startDate/days directly -- same reasoning as useWeekMeetings'
     // own weekStartDateRef: keeps fetchRangeMeetings' identity stable across range changes, so
@@ -73,6 +82,7 @@ export function useRangeMeetings(startDate: Date, days: number, refreshTrigger: 
         }
 
         const requestId = ++fetchRequestIdRef.current;
+        setIsLoading(true);
         // fetchMeetingsByRange now rejects on a failed request (so simpleCache evicts the
         // entry instead of caching an empty range) -- caught here, not left to propagate into
         // the effects below, which call this fire-and-forget with no .catch of their own.
@@ -83,6 +93,10 @@ export function useRangeMeetings(startDate: Date, days: number, refreshTrigger: 
             }
         } catch (error) {
             console.error("[useRangeMeetings] fetchRangeMeetings failed:", error instanceof Error ? error.message : String(error));
+        } finally {
+            if (requestId === fetchRequestIdRef.current) {
+                setIsLoading(false);
+            }
         }
     }, []);
 
@@ -96,5 +110,5 @@ export function useRangeMeetings(startDate: Date, days: number, refreshTrigger: 
         }
     }, [refreshTrigger, fetchRangeMeetings]);
 
-    return allMeetings;
+    return { meetings: allMeetings, isLoading };
 }

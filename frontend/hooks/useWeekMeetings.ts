@@ -75,10 +75,19 @@ export const invalidateWeekCache = (startDate: Date, endDate: Date) => {
     weekMeetingCache.invalidate(`${formattedStart}-${formattedEnd}`);
 };
 
+export interface UseWeekMeetingsResult {
+    meetings: WeekMeeting[];
+    // True while a fetch for the currently-requested week is in flight -- including a cache hit,
+    // since getOrFetch always returns a promise either way; a cache hit just resolves on the
+    // next microtask, so this flips back to false before paint and never visibly flashes.
+    isLoading: boolean;
+}
+
 // Fetches (and caches) all meetings for the ET week starting `weekStartDate` (a Sunday).
 // Bump `refreshTrigger` to force a cache-busting refetch (e.g. after a create/edit/delete).
-export function useWeekMeetings(weekStartDate: Date, refreshTrigger: number = 0): WeekMeeting[] {
+export function useWeekMeetings(weekStartDate: Date, refreshTrigger: number = 0): UseWeekMeetingsResult {
     const [allMeetings, setAllMeetings] = useState<WeekMeeting[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
 
     // Ref instead of a `weekStartDate` closure/dependency so fetchWeekMeetings's identity
     // stays stable across week changes -- needed so the refreshTrigger effect below doesn't
@@ -110,9 +119,20 @@ export function useWeekMeetings(weekStartDate: Date, refreshTrigger: number = 0)
         }
 
         const requestId = ++fetchRequestIdRef.current;
-        const meetings = await fetchMeetingsByWeek(startDate, endDate);
-        if (requestId === fetchRequestIdRef.current) {
-            setAllMeetings(meetings);
+        setIsLoading(true);
+        // fetchMeetingsByWeek's own fetcher already catches and resolves to [] on failure, but
+        // isLoading is set/cleared here defensively in a try/finally anyway -- matching
+        // useRangeMeetings' own shape -- so this doesn't silently break if that internal
+        // catch-and-resolve behavior ever changes.
+        try {
+            const meetings = await fetchMeetingsByWeek(startDate, endDate);
+            if (requestId === fetchRequestIdRef.current) {
+                setAllMeetings(meetings);
+            }
+        } finally {
+            if (requestId === fetchRequestIdRef.current) {
+                setIsLoading(false);
+            }
         }
     }, []);
 
@@ -128,5 +148,5 @@ export function useWeekMeetings(weekStartDate: Date, refreshTrigger: number = 0)
         }
     }, [refreshTrigger, fetchWeekMeetings]);
 
-    return allMeetings;
+    return { meetings: allMeetings, isLoading };
 }

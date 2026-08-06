@@ -7,6 +7,7 @@
   flex-direction: column;
   overflow: hidden;
   background-color: $white-color;
+  position: relative; // anchors TopLoadingBar's absolute positioning to this view's own bounds
 }
 
 // The only scroll container -- vertical (native) and horizontal (clipped, not scrolled: the
@@ -56,7 +57,6 @@
   display: flex;
   flex-direction: column;
   padding-left: max(16px, env(safe-area-inset-left));
-  border-right: 1px solid $grey-border-color;
   background-color: $white-color;
 }
 

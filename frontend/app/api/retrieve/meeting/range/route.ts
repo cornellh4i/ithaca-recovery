@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic';
 
-import { getMeetingsForDate } from "../../../../../util/meetingOccurrences";
+import { getMeetingsForRange } from "../../../../../util/meetingOccurrences";
 import { toETDateString, addDaysToETDateString } from "../../../../../util/timeUtils";
 import { NextRequest } from 'next/server';
 
@@ -52,15 +52,11 @@ const retrieveRangeMeetings = async (request: NextRequest) => {
             });
         }
 
-        // Inclusive day list from start to end -- same recurrence-expansion approach as
-        // week/route.ts's own loop, just over an arbitrary range instead of a fixed calendar
-        // week, so a caller needing e.g. a 4-day page doesn't have to over-fetch whole weeks
-        // around it. ET date strings compare lexicographically the same as chronologically
-        // (zero-padded "YYYY-MM-DD"), so plain string comparison is enough to bound the loop.
-        const dates: string[] = [];
+        // Counts inclusive days from start to end without building the list -- ET date strings
+        // compare lexicographically the same as chronologically (zero-padded "YYYY-MM-DD"), so
+        // plain string comparison is enough to bound the loop.
         let cursor = startEtDateStr;
         for (let i = 0; i < MAX_RANGE_DAYS && cursor <= endEtDateStr; i++) {
-            dates.push(cursor);
             cursor = addDaysToETDateString(cursor, 1);
         }
 
@@ -74,15 +70,11 @@ const retrieveRangeMeetings = async (request: NextRequest) => {
             });
         }
 
-        // Sequential, not Promise.all -- same reasoning as week/route.ts's own loop (concurrent
-        // per-day queries intermittently returned incomplete results under load).
-        const meetingsByDay = [];
-        for (const date of dates) {
-            const dayMeetings = await getMeetingsForDate(date);
-            meetingsByDay.push(dayMeetings.map(meeting => ({ ...meeting, date })));
-        }
+        // Single range query instead of one getMeetingsForDate call per day -- previously this
+        // re-ran an unbounded recurring-meetings scan once for every day in the range.
+        const meetings = await getMeetingsForRange(startEtDateStr, endEtDateStr);
 
-        return new Response(JSON.stringify(meetingsByDay.flat()), {
+        return new Response(JSON.stringify(meetings), {
             status: 200,
             headers: {
                 'Content-Type': 'application/json',

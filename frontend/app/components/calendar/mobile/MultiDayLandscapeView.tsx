@@ -10,6 +10,7 @@ import { addDaysToDate, daysBetweenET } from "../../../../util/weekDates";
 import { useRangeMeetings } from "../../../../hooks/useRangeMeetings";
 import { useElementWidth } from "../../../../hooks/useElementWidth";
 import { useScrollNavHide } from "../../../../hooks/useScrollNavHide";
+import TopLoadingBar from "../../atoms/TopLoadingBar";
 
 interface Meeting extends OverlapMeeting {
   syncError?: boolean;
@@ -117,9 +118,12 @@ const MultiDayLandscapeView: React.FC<MultiDayLandscapeViewProps> = ({
   // date happened to land in a different one.
   const prevPageStart = addDaysToDate(pageStart, -days);
   const nextPageStart = addDaysToDate(pageStart, days);
-  const rangeA = useRangeMeetings(prevPageStart, days, refreshTrigger);
-  const rangeB = useRangeMeetings(pageStart, days, refreshTrigger);
-  const rangeC = useRangeMeetings(nextPageStart, days, refreshTrigger);
+  const { meetings: rangeA } = useRangeMeetings(prevPageStart, days, refreshTrigger);
+  // Only the current (center) page's own loading state drives the loading bar -- A/C are
+  // background prefetches for swipe-adjacent pages, and the currently-visible page can be
+  // fully ready even while a neighbor is still in flight.
+  const { meetings: rangeB, isLoading } = useRangeMeetings(pageStart, days, refreshTrigger);
+  const { meetings: rangeC } = useRangeMeetings(nextPageStart, days, refreshTrigger);
 
   const allMeetings = useMemo(() => {
     // Keyed on id+date, not id alone -- a recurring meeting occurring more than once across
@@ -295,6 +299,7 @@ const MultiDayLandscapeView: React.FC<MultiDayLandscapeViewProps> = ({
 
   return (
     <div className={styles.outerContainer}>
+      <TopLoadingBar active={isLoading} />
       <div
         className={styles.scrollArea}
         ref={scrollAreaRef}

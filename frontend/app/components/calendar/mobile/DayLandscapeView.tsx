@@ -11,6 +11,7 @@ import { layoutOverlappingMeetings, OverlapMeeting } from "../../../../util/meet
 import { addDaysToDate } from "../../../../util/weekDates";
 import { useElementSize } from "../../../../hooks/useElementSize";
 import { useCalendarContext } from "../../../context/CalendarProvider";
+import TopLoadingBar from "../../atoms/TopLoadingBar";
 
 interface Meeting extends OverlapMeeting {
   syncError?: boolean;
@@ -151,6 +152,7 @@ const DayLandscapeView: React.FC<DayLandscapeViewProps> = ({
   const [prevMeetings, setPrevMeetings] = useState<Room[]>([]);
   const [currentMeetings, setCurrentMeetings] = useState<Room[]>([]);
   const [nextMeetings, setNextMeetings] = useState<Room[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [currentTimePosition, setCurrentTimePosition] = useState<number | null>(null);
   const [scrollAreaRef, scrollAreaSize] = useElementSize<HTMLDivElement>();
   // ResizeObserver's initial callback can lag the first paint by a frame -- clamp to sensible
@@ -184,15 +186,22 @@ const DayLandscapeView: React.FC<DayLandscapeViewProps> = ({
       invalidateCache(next);
     }
     const requestId = ++fetchRequestIdRef.current;
-    const [prevData, currentData, nextData] = await Promise.all([
-      fetchMeetingsByDay(prev),
-      fetchMeetingsByDay(current),
-      fetchMeetingsByDay(next),
-    ]);
-    if (requestId === fetchRequestIdRef.current) {
-      setPrevMeetings(prevData);
-      setCurrentMeetings(currentData);
-      setNextMeetings(nextData);
+    setIsLoading(true);
+    try {
+      const [prevData, currentData, nextData] = await Promise.all([
+        fetchMeetingsByDay(prev),
+        fetchMeetingsByDay(current),
+        fetchMeetingsByDay(next),
+      ]);
+      if (requestId === fetchRequestIdRef.current) {
+        setPrevMeetings(prevData);
+        setCurrentMeetings(currentData);
+        setNextMeetings(nextData);
+      }
+    } finally {
+      if (requestId === fetchRequestIdRef.current) {
+        setIsLoading(false);
+      }
     }
   }, []);
 
@@ -211,24 +220,21 @@ const DayLandscapeView: React.FC<DayLandscapeViewProps> = ({
   // runs -- same flash desktop DayView's own scrollToCurrentTime has always had (a beat of
   // the wrong scroll position at hour 0 before JS jumps it to "now"), plus a wait for
   // scrollAreaSize.width's first real ResizeObserver measurement (desktop's own hourWidth is a
-  // hardcoded constant, always "ready"; this view's isn't). Scrolls exactly once per date --
-  // not on every later hourWidth recompute (e.g. filters changing room count) -- by tracking
-  // which date it already scrolled for. Resets (intentionally) on every date change, including
-  // ones from this view's own vertical drag -- a fresh day always opens scrolled to "now",
-  // matching desktop DayView's own per-day behavior, rather than carrying over whichever hour
-  // the previous day happened to be scrolled to.
+  // hardcoded constant, always "ready"; this view's isn't). Fires exactly once, on this view's
+  // first successful measurement -- not on every later date change (day-navigation swipe,
+  // "Today", mini-calendar pick), matching WeekView/DayPortraitView's own one-way
+  // initialScrollDone gate, rather than re-centering on "now" every time the day changes.
   const [initialScrollDone, setInitialScrollDone] = useState(false);
-  const scrolledForDateRef = useRef<string | null>(null);
+  const hasScrolledRef = useRef(false);
   useLayoutEffect(() => {
-    const dateKey = formatETDateString(selectedDate);
+    if (hasScrolledRef.current) return;
     if (scrollAreaSize.width === 0) {
       // No measurement yet -- still reveal the grid so a missing ResizeObserver or a
-      // never-resized hidden ancestor can't leave .scrollArea permanently invisible.
+      // never-resized hidden ancestor can't leave .scrollArea permanently invisible. Doesn't
+      // set hasScrolledRef, so the effect retries once a real width arrives.
       setInitialScrollDone(true);
       return;
     }
-    if (scrolledForDateRef.current === dateKey) return;
-    scrolledForDateRef.current = dateKey;
 
     const el = scrollAreaRef.current;
     if (el) {
@@ -236,8 +242,9 @@ const DayLandscapeView: React.FC<DayLandscapeViewProps> = ({
       const scrollOffset = (currentHour - START_HOUR - SCROLL_LEAD_HOURS) * hourWidth;
       el.scrollLeft = Math.max(0, scrollOffset);
     }
+    hasScrolledRef.current = true;
     setInitialScrollDone(true);
-  }, [selectedDate, scrollAreaSize.width, hourWidth, scrollAreaRef]);
+  }, [scrollAreaSize.width, hourWidth, scrollAreaRef]);
 
   // No bounds check needed here -- START_HOUR/END_HOUR span the full 0-24 day, so "now" is
   // always in range (unlike a business-hours-restricted range, where this would need to hide
@@ -439,6 +446,7 @@ const DayLandscapeView: React.FC<DayLandscapeViewProps> = ({
 
   return (
     <div className={styles.outerContainer}>
+      <TopLoadingBar active={isLoading} />
       <div
         className={styles.scrollArea}
         ref={scrollAreaRef}
