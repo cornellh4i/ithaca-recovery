@@ -275,10 +275,13 @@ test("a newly resolved Zoom host is persisted synchronously when a meeting first
 
   const prisma = getTestPrismaClient();
   const mid = `m-${randomUUID()}`;
-  const { recurrencePattern: _rp, ...existingMeetingData } = buildMeetingPayload({ mid, modeType: "Hybrid", zoomRoom: "" });
+  // Distinct room -- buildMeetingPayload's default ("Serenity Room") is shared by other tests
+  // in this suite that also create real rows at its default date, and the room conflict check
+  // would otherwise make this order-dependent on unrelated leftover data.
+  const { recurrencePattern: _rp, ...existingMeetingData } = buildMeetingPayload({ mid, modeType: "Hybrid", room: "Zoom Assign Room", zoomRoom: "" });
   await prisma.meeting.create({ data: existingMeetingData });
 
-  const payload = buildMeetingPayload({ mid, modeType: "Hybrid", zoomRoom: "Serenity Room - Zoom" });
+  const payload = buildMeetingPayload({ mid, modeType: "Hybrid", room: "Zoom Assign Room", zoomRoom: "Zoom Assign Room - Zoom" });
   const request = new Request("http://localhost/api/update/meeting", {
     method: "PUT",
     body: JSON.stringify(payload),
@@ -302,10 +305,13 @@ test("an exhausted Zoom host pool on update fails soft, synchronously, without t
 
   const prisma = getTestPrismaClient();
   const mid = `m-${randomUUID()}`;
-  const { recurrencePattern: _rp, ...existingMeetingData } = buildMeetingPayload({ mid, modeType: "Hybrid", zoomRoom: "" });
+  // Distinct room -- buildMeetingPayload's default ("Serenity Room") is shared by other tests
+  // in this suite that also create real rows at its default date, and the room conflict check
+  // would otherwise make this order-dependent on unrelated leftover data.
+  const { recurrencePattern: _rp, ...existingMeetingData } = buildMeetingPayload({ mid, modeType: "Hybrid", room: "Update Pool Exhaustion Room", zoomRoom: "" });
   await prisma.meeting.create({ data: existingMeetingData });
 
-  const payload = buildMeetingPayload({ mid, modeType: "Hybrid", zoomRoom: "Serenity Room - Zoom" });
+  const payload = buildMeetingPayload({ mid, modeType: "Hybrid", room: "Update Pool Exhaustion Room", zoomRoom: "Update Pool Exhaustion Room - Zoom" });
   const request = new Request("http://localhost/api/update/meeting", {
     method: "PUT",
     body: JSON.stringify(payload),
@@ -484,8 +490,12 @@ test("editing a meeting whose scheduled resume date has already passed promotes 
 
   const prisma = getTestPrismaClient();
   const mid = `m-${randomUUID()}`;
+  // Distinct room -- buildMeetingPayload's default ("Serenity Room") is shared by other tests
+  // in this suite that also create real rows at its default date, and the room conflict check
+  // would otherwise make this order-dependent on unrelated leftover data.
   const { recurrencePattern: _rp, ...existingMeetingData } = buildMeetingPayload({
     mid,
+    room: "Resume Promotion Room",
     googleCalendarEventIds: { AA: "stale-pre-suspend-event-id" },
   });
   await prisma.meeting.create({ data: existingMeetingData });
@@ -497,7 +507,7 @@ test("editing a meeting whose scheduled resume date has already passed promotes 
     promoted: false,
   });
 
-  const payload = buildMeetingPayload({ mid, title: "Edited Title" });
+  const payload = buildMeetingPayload({ mid, room: "Resume Promotion Room", title: "Edited Title" });
   const request = new Request("http://localhost/api/update/meeting", {
     method: "PUT",
     body: JSON.stringify(payload),
