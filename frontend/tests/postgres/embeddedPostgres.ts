@@ -6,6 +6,7 @@ import EmbeddedPostgres from "embedded-postgres";
 
 let pg: EmbeddedPostgres | null = null;
 let databaseDir: string | null = null;
+let started = false;
 
 // Port 5432 risks colliding with a real local Postgres a developer may already have running --
 // ask the OS for an unused one instead of hardcoding an alternate.
@@ -25,38 +26,70 @@ async function findFreePort(): Promise<number> {
 const TEST_USER = "postgres";
 const TEST_PASSWORD = "password";
 
+// findFreePort() closes its probe socket before start() binds the port, leaving a gap where a
+// concurrent process can steal it -- embedded-postgres has no built-in retry for EADDRINUSE, so
+// retry the whole find-port -> initialise -> start sequence with a fresh port on that failure.
+const MAX_START_ATTEMPTS = 5;
+
+function isPortInUseError(err: unknown): boolean {
+  const code = (err as NodeJS.ErrnoException)?.code;
+  return code === "EADDRINUSE" || /EADDRINUSE/.test(String(err));
+}
+
 // Direct parallel to tests/mongo/replicaSet.ts's role for Mongo: runs a real Postgres server
 // (a real `postgres` binary, downloaded once by the `embedded-postgres` package -- not a
 // container, not a SQL reimplementation) as a plain child process, so tests get full SQL
 // fidelity (tstzrange/EXCLUDE constraints included) with no Docker and no network dependency.
 export async function startTestPostgres(dbName: string): Promise<string> {
-  const port = await findFreePort();
-  databaseDir = mkdtempSync(path.join(tmpdir(), "icr-test-pg-"));
+  for (let attempt = 1; attempt <= MAX_START_ATTEMPTS; attempt++) {
+    const port = await findFreePort();
+    const dir = mkdtempSync(path.join(tmpdir(), "icr-test-pg-"));
 
-  pg = new EmbeddedPostgres({
-    databaseDir,
-    port,
-    user: TEST_USER,
-    password: TEST_PASSWORD,
-    persistent: false,
-    onLog: () => {}, // Postgres' own startup/checkpoint chatter isn't useful test-run noise.
-    onError: (err) => console.error("[embedded-postgres]", err),
-  });
+    const candidate = new EmbeddedPostgres({
+      databaseDir: dir,
+      port,
+      user: TEST_USER,
+      password: TEST_PASSWORD,
+      persistent: false,
+      onLog: () => {}, // Postgres' own startup/checkpoint chatter isn't useful test-run noise.
+      onError: (err) => console.error("[embedded-postgres]", err),
+    });
 
-  await pg.initialise();
-  await pg.start();
-  await pg.createDatabase(dbName);
+    try {
+      await candidate.initialise();
+      await candidate.start();
+    } catch (err) {
+      rmSync(dir, { recursive: true, force: true });
+      if (isPortInUseError(err) && attempt < MAX_START_ATTEMPTS) {
+        continue;
+      }
+      throw err;
+    }
 
-  return `postgresql://${TEST_USER}:${TEST_PASSWORD}@localhost:${port}/${dbName}`;
+    pg = candidate;
+    databaseDir = dir;
+    started = true;
+    await pg.createDatabase(dbName);
+
+    return `postgresql://${TEST_USER}:${TEST_PASSWORD}@localhost:${port}/${dbName}`;
+  }
+
+  throw new Error(`Could not start embedded Postgres after ${MAX_START_ATTEMPTS} attempts`);
 }
 
 export async function stopTestPostgres(): Promise<void> {
-  if (pg) {
-    await pg.stop();
+  try {
+    // embedded-postgres retains its closed process reference, so stop() after a failed/incomplete
+    // start() can hang waiting on an "exit" event that already fired -- only stop what actually started.
+    if (pg && started) {
+      await pg.stop();
+    }
+  } finally {
     pg = null;
-  }
-  if (databaseDir) {
-    rmSync(databaseDir, { recursive: true, force: true });
-    databaseDir = null;
+    started = false;
+    if (databaseDir) {
+      rmSync(databaseDir, { recursive: true, force: true });
+      databaseDir = null;
+    }
   }
 }
