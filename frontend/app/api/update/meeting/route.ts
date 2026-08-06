@@ -82,7 +82,7 @@ async function syncUpdatedMeeting(
     // silently double-book a host that's fine for the old time but busy at the new one.
     if (zid) {
       const timeConflicts = zoomHost
-        ? await findResourceConflicts("zoomHost", zoomHost, newMeeting, { excludeMid: mid, includeSuspended: true })
+        ? await findResourceConflicts("zoomHost", zoomHost, newMeeting, prisma, { excludeMid: mid, includeSuspended: true })
         : [];
       if (timeConflicts.length > 0) {
         zoomSynced = false;
@@ -255,14 +255,14 @@ const updateMeeting = async (request: Request): Promise<Response> => {
 
       const conflictRows: ConflictRow[] = [];
       if (newMeeting.room) {
-        conflictRows.push(...await findResourceConflictRows("room", newMeeting.room, conflictCandidate, { excludeMid: mid }));
+        conflictRows.push(...await findResourceConflictRows("room", newMeeting.room, conflictCandidate, prisma, { excludeMid: mid }));
       }
       if (newMeeting.zoomRoom) {
-        conflictRows.push(...await findResourceConflictRows("zoomRoom", newMeeting.zoomRoom, conflictCandidate, { excludeMid: mid }));
+        conflictRows.push(...await findResourceConflictRows("zoomRoom", newMeeting.zoomRoom, conflictCandidate, prisma, { excludeMid: mid }));
       }
       if (explicitHostChange && newMeeting.zoomHost) {
         conflictRows.push(...await findResourceConflictRows(
-          "zoomHost", newMeeting.zoomHost, conflictCandidate, { excludeMid: mid, includeSuspended: true },
+          "zoomHost", newMeeting.zoomHost, conflictCandidate, prisma, { excludeMid: mid, includeSuspended: true },
         ));
       }
       if (conflictRows.length > 0) {
@@ -309,7 +309,7 @@ const updateMeeting = async (request: Request): Promise<Response> => {
         // exhaustion below: nothing gets written to the external Zoom API, and the calendar
         // publish is deferred until an admin picks a different host or the conflict clears.
         const conflicts = await findResourceConflicts(
-          "zoomHost", newMeeting.zoomHost, newMeeting, { excludeMid: mid, includeSuspended: true },
+          "zoomHost", newMeeting.zoomHost, newMeeting, prisma, { excludeMid: mid, includeSuspended: true },
         );
         if (conflicts.length === 0) {
           resolvedHost = newMeeting.zoomHost;

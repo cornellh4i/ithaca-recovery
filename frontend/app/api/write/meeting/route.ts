@@ -178,14 +178,14 @@ const createMeeting = async (request: Request) => {
       };
       const conflictRows: ConflictRow[] = [];
       if (meetingData.room) {
-        conflictRows.push(...await findResourceConflictRows("room", meetingData.room, candidate, { excludeMid: meetingData.mid }));
+        conflictRows.push(...await findResourceConflictRows("room", meetingData.room, candidate, prisma, { excludeMid: meetingData.mid }));
       }
       if (meetingData.zoomRoom) {
-        conflictRows.push(...await findResourceConflictRows("zoomRoom", meetingData.zoomRoom, candidate, { excludeMid: meetingData.mid }));
+        conflictRows.push(...await findResourceConflictRows("zoomRoom", meetingData.zoomRoom, candidate, prisma, { excludeMid: meetingData.mid }));
       }
       if (meetingData.zoomHost) {
         conflictRows.push(...await findResourceConflictRows(
-          "zoomHost", meetingData.zoomHost, candidate, { excludeMid: meetingData.mid, includeSuspended: true },
+          "zoomHost", meetingData.zoomHost, candidate, prisma, { excludeMid: meetingData.mid, includeSuspended: true },
         ));
       }
       if (conflictRows.length > 0) {
@@ -214,7 +214,7 @@ const createMeeting = async (request: Request) => {
         // calendar publish is deferred (see zoomBlocking in syncNewMeeting) until an admin picks
         // a different host or the conflict clears.
         const conflicts = await findResourceConflicts(
-          "zoomHost", meetingData.zoomHost, { ...meetingData, isRecurring }, { excludeMid: meetingData.mid, includeSuspended: true },
+          "zoomHost", meetingData.zoomHost, { ...meetingData, isRecurring }, prisma, { excludeMid: meetingData.mid, includeSuspended: true },
         );
         if (conflicts.length === 0) {
           resolvedHost = meetingData.zoomHost;

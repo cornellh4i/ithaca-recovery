@@ -184,10 +184,17 @@ export type FindConflictsOptions = {
 
 // Finds every existing meeting occupying `field = value` whose occurrences overlap
 // `candidate`'s, within the candidate horizon window above.
+// `client` is required (not defaulted to the global singleton) deliberately -- callers running
+// inside a lockResourceClaims-guarded transaction (see util/resourceLocks.ts) must pass their
+// `tx` so this check runs on the same DB session the advisory lock was acquired on, and every
+// other caller must explicitly pass the global `prisma` so it's visible at the call site (and
+// in review) which check is/isn't protected by the transaction, rather than that being an
+// invisible default a future edit could silently get wrong.
 export async function findResourceConflicts(
   field: ResourceField,
   value: string,
   candidate: OccurrenceInput,
+  client: Prisma.TransactionClient,
   opts: FindConflictsOptions = {},
 ): Promise<{ mid: string; title: string }[]> {
   if (!value) return [];
@@ -205,7 +212,7 @@ export async function findResourceConflicts(
   };
 
   const todayStr = formatETDateString(new Date());
-  const meetingsRaw = await prisma.meeting.findMany({
+  const meetingsRaw = await client.meeting.findMany({
     where,
     select: {
       mid: true,
@@ -381,10 +388,13 @@ export function computeConflicts(
 // (matching computeConflicts' own activeMeetings filtering), but its Zoom host reservation is
 // still live (sync is skipped while suspended, not torn down) -- callers must pass
 // `includeSuspended: true` for a `zoomHost` check, `false`/omitted for `room`/`zoomRoom`.
+// `client` is required (not defaulted to the global singleton) deliberately -- see
+// findResourceConflicts' comment above for why.
 export async function findResourceConflictRows(
   field: ResourceField,
   value: string,
   candidate: ConflictCandidateMeeting,
+  client: Prisma.TransactionClient,
   opts: FindConflictsOptions = {},
 ): Promise<ConflictRow[]> {
   if (!value) return [];
@@ -401,7 +411,7 @@ export async function findResourceConflictRows(
     ],
   };
 
-  const meetings = await prisma.meeting.findMany({
+  const meetings = await client.meeting.findMany({
     where,
     select: {
       mid: true,
