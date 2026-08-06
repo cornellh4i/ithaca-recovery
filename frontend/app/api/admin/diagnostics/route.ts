@@ -9,7 +9,7 @@ import { getUnresolvedSuspension } from "../../../../util/suspension";
 import { formatETDateString } from "../../../../util/timeUtils";
 import { prisma } from "../../../../lib/prisma";
 
-const notDeleted = { OR: [{ deletedAt: null }, { deletedAt: { isSet: false } }] };
+const notDeleted = { deletedAt: null };
 
 // Diagnostics for the Admin page's Diagnostics tab: DB health, GCal reachability per
 // category, Zoom account reachability, per-room Zoom calendar validity, per-host Zoom pool
