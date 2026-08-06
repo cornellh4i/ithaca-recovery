@@ -289,6 +289,19 @@ export type ConflictRow = {
   meetings: [ConflictMeetingSummary, ConflictMeetingSummary];
 };
 
+// Thrown from inside a lockResourceClaims-guarded prisma.$transaction callback to abort the
+// transaction (Prisma rolls back automatically on a thrown error) and carry the conflict rows
+// back out to the route handler, which turns this into the existing 409 response shape. Using
+// an exception rather than a sentinel return value keeps the transaction callback's happy path
+// a plain return of the created/updated meeting, instead of every caller needing to check a
+// discriminated result on every return.
+export class ResourceConflictAbort extends Error {
+  constructor(public readonly conflicts: ConflictRow[]) {
+    super("Resource conflict");
+    this.name = "ResourceConflictAbort";
+  }
+}
+
 const toRecurrenceSummary = (meeting: ConflictCandidateMeeting): ConflictRecurrenceSummary | null => {
   if (!meeting.isRecurring || !meeting.recurrencePattern) return null;
   const pattern = meeting.recurrencePattern;
