@@ -95,7 +95,10 @@ test("the response resolves before Google Calendar sync completes, which runs in
     () => new Promise((resolve) => setTimeout(() => resolve({ id: "fake-event-id", error: null }), SYNC_DELAY_MS)),
   );
 
-  const payload = buildMeetingPayload();
+  // Distinct room -- buildMeetingPayload's default ("Serenity Room") is shared by other tests
+  // in this suite; the room conflict check would otherwise make this order-dependent on
+  // whichever test happens to run first (see the "Distinct room" comment further down).
+  const payload = buildMeetingPayload({ room: "Sync Timing Room" });
   const request = new Request("http://localhost/api/write/meeting", {
     method: "POST",
     body: JSON.stringify(payload),
@@ -126,7 +129,9 @@ test("a resolved Zoom host is persisted synchronously, before the deferred sync 
     () => new Promise((resolve) => setTimeout(() => resolve({ id: "fake-event-id", error: null }), SYNC_DELAY_MS)),
   );
 
-  const payload = buildMeetingPayload({ modeType: "Hybrid", zoomRoom: "Serenity Room - Zoom" });
+  // Distinct room -- buildMeetingPayload's default ("Serenity Room") is shared by other tests
+  // in this suite (see the "Distinct room" comment further down).
+  const payload = buildMeetingPayload({ modeType: "Hybrid", room: "Zoom Host Timing Room", zoomRoom: "Zoom Host Timing Room - Zoom" });
   const request = new Request("http://localhost/api/write/meeting", {
     method: "POST",
     body: JSON.stringify(payload),
@@ -171,7 +176,9 @@ test("a malformed body returns 400 with validation issues instead of a raw 500",
 test("an exhausted Zoom host pool fails soft: the meeting is still created", async () => {
   mockedResolveZoomHost.mockResolvedValue(null);
 
-  const payload = buildMeetingPayload({ modeType: "Hybrid", zoomRoom: "Serenity Room - Zoom" });
+  // Distinct room -- buildMeetingPayload's default ("Serenity Room") is shared by other tests
+  // in this suite (see the "Distinct room" comment further down).
+  const payload = buildMeetingPayload({ modeType: "Hybrid", room: "Pool Exhaustion Room", zoomRoom: "Pool Exhaustion Room - Zoom" });
   const request = new Request("http://localhost/api/write/meeting", {
     method: "POST",
     body: JSON.stringify(payload),
@@ -354,6 +361,45 @@ test("a room conflict is rejected with 409 + conflicts, and never reaches the Pr
   expect(created).toBeNull();
 });
 
+// Regression test for a bug where findResourceConflictRows/findResourceConflicts anchored their
+// overlap window's lower bound to `new Date()` ("now") -- a candidate or existing meeting whose
+// occurrence had already ended relative to the current instant expanded to zero occurrences, so
+// the conflict silently went undetected as soon as the clock passed the meeting's own end time.
+// Yesterday (not "today", which would only reproduce this after whatever time of day the suite
+// happens to run) keeps this deterministic regardless of wall-clock time, while staying well
+// within candidateHorizonRange's own bound so the test doesn't itself go stale years from now.
+test("a room conflict against an already-elapsed (past) time slot is still rejected with 409", async () => {
+  const prisma = getTestPrismaClient();
+  const yesterday = new Date();
+  yesterday.setUTCDate(yesterday.getUTCDate() - 1);
+  const dateStr = yesterday.toISOString().slice(0, 10);
+  const start = new Date(`${dateStr}T18:00:00Z`);
+  const end = new Date(`${dateStr}T19:00:00Z`);
+
+  const busyMid = `m-${randomUUID()}`;
+  await prisma.meeting.create({
+    data: {
+      mid: busyMid, title: "Past Room Conflict Meeting", modeType: "In Person", description: "", creator: "Creator", group: "Group",
+      startDateTime: start, endDateTime: end, email: "busy@test.icr",
+      calType: ["AA"], status: "Active", room: "Fellowship Room", isRecurring: false,
+    },
+  });
+
+  const payload = buildMeetingPayload({ room: "Fellowship Room", startDateTime: start, endDateTime: end });
+  const request = new Request("http://localhost/api/write/meeting", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+
+  const response = await POST(request);
+  expect(response.status).toBe(409);
+  const body = await response.json();
+  expect(body.conflicts[0].meetings.map((m: { mid: string }) => m.mid)).toContain(busyMid);
+
+  const created = await prisma.meeting.findUnique({ where: { mid: payload.mid } });
+  expect(created).toBeNull();
+});
+
 test("confirmOverride: true bypasses the room conflict check and creates the meeting anyway", async () => {
   mockedCreateCalendarEvent.mockResolvedValue({ id: "fake-event-id", error: null });
 
@@ -504,7 +550,9 @@ test("a category with no configured calendar fails the meeting's sync, even if i
   // GOOGLE_CALENDAR_* env var isn't set, i.e. calendarIds never contains an "Other" entry.
   mockedCreateCalendarEvent.mockResolvedValue({ id: "fake-event-id", error: null });
 
-  const payload = buildMeetingPayload({ calType: ["AA", "Other"] });
+  // Distinct room -- buildMeetingPayload's default ("Serenity Room") is shared by other tests
+  // in this suite (see the "Distinct room" comment further down).
+  const payload = buildMeetingPayload({ calType: ["AA", "Other"], room: "Category Sync Room" });
   const request = new Request("http://localhost/api/write/meeting", {
     method: "POST",
     body: JSON.stringify(payload),

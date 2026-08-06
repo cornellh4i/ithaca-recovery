@@ -132,13 +132,30 @@ export function occurrencesOverlap(a: Occurrence[], b: Occurrence[]): boolean {
   return findOverlappingOccurrencePair(a, b) !== null;
 }
 
-// [rangeStart, rangeEnd) shared by every conflict check in this module: from now out to the
-// 2-year horizon. Candidates and existing meetings alike are expected to be present/future —
-// a meeting that already started in the past falling outside this window is intentional, not
-// a bug (there's nothing to conflict with about a booking that's already happened).
+// [rangeStart, rangeEnd) used by computeConflicts (the Diagnostics dashboard scan): from now
+// out to the horizon. Candidates and existing meetings alike are expected to be present/future
+// there — a meeting that already started in the past falling outside this window is
+// intentional, not a bug (there's nothing to conflict with about a booking that's already
+// happened, and nobody needs Diagnostics to keep nagging about it).
 const horizonRange = (horizonYears: number): [Date, Date] => {
   const rangeStart = new Date();
   const rangeEnd = new Date(rangeStart);
+  rangeEnd.setUTCFullYear(rangeEnd.getUTCFullYear() + horizonYears);
+  return [rangeStart, rangeEnd];
+};
+
+// [rangeStart, rangeEnd) used by findResourceConflicts/findResourceConflictRows — the write/
+// update-time checks for one specific candidate's chosen room/zoomRoom/zoomHost. Unlike
+// computeConflicts above, these must still catch a conflict against a same-day slot that has
+// already elapsed by the time the request is checked (e.g. saving a 6-7pm meeting at 8pm) — the
+// two records genuinely overlap in the data regardless of the current wall-clock time.
+// horizonYears into the past is a generous, symmetric bound (matching the future side) rather
+// than a precisely-reasoned one; nothing bounds the loop tighter than that for a recurring
+// meeting anyway (see expandOccurrences' own patternStart-vs-rangeStart clamping).
+const candidateHorizonRange = (horizonYears: number): [Date, Date] => {
+  const rangeStart = new Date();
+  rangeStart.setUTCFullYear(rangeStart.getUTCFullYear() - horizonYears);
+  const rangeEnd = new Date();
   rangeEnd.setUTCFullYear(rangeEnd.getUTCFullYear() + horizonYears);
   return [rangeStart, rangeEnd];
 };
@@ -162,7 +179,7 @@ export type FindConflictsOptions = {
 };
 
 // Finds every existing meeting occupying `field = value` whose occurrences overlap
-// `candidate`'s, within the shared horizon window above.
+// `candidate`'s, within the candidate horizon window above.
 export async function findResourceConflicts(
   field: ResourceField,
   value: string,
@@ -171,7 +188,7 @@ export async function findResourceConflicts(
 ): Promise<{ mid: string; title: string }[]> {
   if (!value) return [];
 
-  const [rangeStart, rangeEnd] = horizonRange(OVERLAP_HORIZON_YEARS);
+  const [rangeStart, rangeEnd] = candidateHorizonRange(OVERLAP_HORIZON_YEARS);
   const candidateOccurrences = expandOccurrences(candidate, rangeStart, rangeEnd);
   if (candidateOccurrences.length === 0) return [];
 
@@ -364,7 +381,7 @@ export async function findResourceConflictRows(
 ): Promise<ConflictRow[]> {
   if (!value) return [];
 
-  const [rangeStart, rangeEnd] = horizonRange(OVERLAP_HORIZON_YEARS);
+  const [rangeStart, rangeEnd] = candidateHorizonRange(OVERLAP_HORIZON_YEARS);
   const candidateOccurrences = expandOccurrences(candidate, rangeStart, rangeEnd);
   if (candidateOccurrences.length === 0) return [];
 
