@@ -120,10 +120,19 @@ export function useWeekMeetings(weekStartDate: Date, refreshTrigger: number = 0)
 
         const requestId = ++fetchRequestIdRef.current;
         setIsLoading(true);
-        const meetings = await fetchMeetingsByWeek(startDate, endDate);
-        if (requestId === fetchRequestIdRef.current) {
-            setAllMeetings(meetings);
-            setIsLoading(false);
+        // fetchMeetingsByWeek's own fetcher already catches and resolves to [] on failure, but
+        // isLoading is set/cleared here defensively in a try/finally anyway -- matching
+        // useRangeMeetings' own shape -- so this doesn't silently break if that internal
+        // catch-and-resolve behavior ever changes.
+        try {
+            const meetings = await fetchMeetingsByWeek(startDate, endDate);
+            if (requestId === fetchRequestIdRef.current) {
+                setAllMeetings(meetings);
+            }
+        } finally {
+            if (requestId === fetchRequestIdRef.current) {
+                setIsLoading(false);
+            }
         }
     }, []);
 

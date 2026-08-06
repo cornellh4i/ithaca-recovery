@@ -228,31 +228,44 @@ export const getMeetingsForRange = async (
     });
 
     const results: (PublicMeeting & { date: string })[] = [];
-    let etDateStr = startEtDateStr;
+    // Starts one ET day before the range: a recurring occurrence whose pattern anchors it on
+    // that lead-in day can still roll past midnight into startEtDateStr (adjustOccurrenceToDate
+    // rolls an overnight end onto the next ET day), and that's the only pass that can produce
+    // it -- allRecurringMeetings is otherwise only pattern-matched against days from
+    // startEtDateStr onward. Nothing anchored ON the lead-in day itself is kept; it's evaluated
+    // only to catch a spillover into the real range.
+    let etDateStr = addDaysToETDateString(startEtDateStr, -1);
     while (etDateStr <= endEtDateStr) {
         const [startOfDay, endOfDay] = getETDayBounds(etDateStr);
+        const isLeadInDay = etDateStr < startEtDateStr;
 
         // localDate is used only for day-of-week and recurring-pattern comparisons;
         // represent the ET calendar date as UTC midnight so getUTCDay() is correct.
         const [etYear, etMonth, etDay] = etDateStr.split('-').map(Number);
         const localDate = new Date(Date.UTC(etYear, etMonth - 1, etDay));
 
-        for (const meeting of directlyScheduledMeetings) {
-            // A meeting overlapping the whole fetched range doesn't necessarily overlap this
-            // specific day within it -- re-check per day against the range-wide result set.
-            if (meeting.startDateTime > endOfDay || meeting.endDateTime < startOfDay) continue;
-            if (isDateSuspended(meeting.suspensions, etDateStr)) continue;
+        // directlyScheduledMeetings is already fetched range-wide (its own query overlaps
+        // [startOfRange, endOfRange], not per day), so a lead-in-day pass adds nothing new here
+        // -- an anchor row spilling into startEtDateStr is already covered on the real
+        // startEtDateStr iteration below via the same per-day overlap check.
+        if (!isLeadInDay) {
+            for (const meeting of directlyScheduledMeetings) {
+                // A meeting overlapping the whole fetched range doesn't necessarily overlap this
+                // specific day within it -- re-check per day against the range-wide result set.
+                if (meeting.startDateTime > endOfDay || meeting.endDateTime < startOfDay) continue;
+                if (isDateSuspended(meeting.suspensions, etDateStr)) continue;
 
-            if (meeting.isRecurring) {
-                const recurrence = meeting.recurrencePattern;
-                if (isAfterSeriesEnd(recurrence?.endDate ?? null, etDateStr)) continue;
-                if (recurrence?.excludedDates?.length && isDateExcluded(recurrence.excludedDates, etDateStr)) continue;
+                if (meeting.isRecurring) {
+                    const recurrence = meeting.recurrencePattern;
+                    if (isAfterSeriesEnd(recurrence?.endDate ?? null, etDateStr)) continue;
+                    if (recurrence?.excludedDates?.length && isDateExcluded(recurrence.excludedDates, etDateStr)) continue;
+                }
+
+                results.push({
+                    ...toPublicMeeting({ ...meeting, recurrencePattern: meeting.recurrencePattern ?? null }),
+                    date: etDateStr,
+                });
             }
-
-            results.push({
-                ...toPublicMeeting({ ...meeting, recurrencePattern: meeting.recurrencePattern ?? null }),
-                date: etDateStr,
-            });
         }
 
         for (const meeting of allRecurringMeetings) {
@@ -267,6 +280,11 @@ export const getMeetingsForRange = async (
             if (!matchesRecurrencePattern(recurrence, etDateStr, localDate)) continue;
 
             const { start, end } = adjustOccurrenceToDate(meeting, etDateStr);
+            // Only relevant on the lead-in day if it actually spills into the requested range --
+            // otherwise this occurrence belongs entirely to the lead-in day, which is outside
+            // what the caller asked for.
+            if (isLeadInDay && end <= startOfRange) continue;
+
             results.push({
                 ...toPublicMeeting({
                     ...meeting,
@@ -274,7 +292,7 @@ export const getMeetingsForRange = async (
                     startDateTime: start,
                     endDateTime: end,
                 }),
-                date: etDateStr,
+                date: isLeadInDay ? startEtDateStr : etDateStr,
             });
         }
 
