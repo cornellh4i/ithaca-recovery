@@ -55,10 +55,17 @@ export async function startTestPostgres(dbName: string): Promise<string> {
       onError: (err) => console.error("[embedded-postgres]", err),
     });
 
+    let candidateStarted = false;
     try {
       await candidate.initialise();
       await candidate.start();
+      candidateStarted = true;
+      await candidate.createDatabase(dbName);
     } catch (err) {
+      if (candidateStarted) {
+        // Same hang risk as stopTestPostgres() -- only stop a candidate that actually started.
+        await candidate.stop().catch((stopErr) => console.error("[embedded-postgres] cleanup stop failed", stopErr));
+      }
       rmSync(dir, { recursive: true, force: true });
       if (isPortInUseError(err) && attempt < MAX_START_ATTEMPTS) {
         continue;
@@ -69,7 +76,6 @@ export async function startTestPostgres(dbName: string): Promise<string> {
     pg = candidate;
     databaseDir = dir;
     started = true;
-    await pg.createDatabase(dbName);
 
     return `postgresql://${TEST_USER}:${TEST_PASSWORD}@localhost:${port}/${dbName}`;
   }
