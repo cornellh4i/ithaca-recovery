@@ -1,5 +1,5 @@
-import { stopTestMongo } from "../mongo/replicaSet";
+import { stopTestPostgres } from "../postgres/embeddedPostgres";
 
 export default async function globalTeardown(): Promise<void> {
-  await stopTestMongo();
+  await stopTestPostgres();
 }

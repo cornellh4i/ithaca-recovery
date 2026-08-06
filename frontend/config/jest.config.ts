@@ -1,7 +1,7 @@
 import type { Config } from "jest";
 
 // Pure-function unit tests only — no DB, no I/O. See jest.integration.config.ts
-// for route-handler tests that need mongodb-memory-server.
+// for route-handler tests that need the embedded Postgres server.
 const config: Config = {
   displayName: "unit",
   testEnvironment: "node",
