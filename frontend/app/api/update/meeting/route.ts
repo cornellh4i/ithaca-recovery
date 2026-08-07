@@ -297,6 +297,9 @@ const updateMeeting = async (request: Request): Promise<Response> => {
 
     let resolvedHost: string | null = null;
     let hostSyncError: string | null = null;
+    // The specific pool host an explicit pick collided with (kept even though resolvedHost
+    // stays null) -- see the attemptedZoomHost field comment in schema.prisma for why.
+    let attemptedZoomHost: string | null = null;
     if (needsNewHost) {
       if (newMeeting.zoomHost) {
         // A conflicting explicitHostChange is already blocked with a 409 above unless
@@ -312,6 +315,7 @@ const updateMeeting = async (request: Request): Promise<Response> => {
           resolvedHost = newMeeting.zoomHost;
         } else {
           hostSyncError = "This time conflicts with another meeting using the same Zoom host.";
+          attemptedZoomHost = newMeeting.zoomHost;
         }
       } else {
         resolvedHost = await resolveZoomHost(newMeeting, { excludeMid: mid });
@@ -341,9 +345,12 @@ const updateMeeting = async (request: Request): Promise<Response> => {
         ...(needsNewHost
           ? {
               zoomHost: resolvedHost,
+              attemptedZoomHost,
               ...(hostSyncError ? { zoomSyncStatus: 'error', zoomSyncError: hostSyncError } : {}),
             }
-          : {}),
+          : !zoomEnabled
+            ? { attemptedZoomHost: null }
+            : {}),
         recurrencePattern: recurrencePattern
           ? {
               upsert: {

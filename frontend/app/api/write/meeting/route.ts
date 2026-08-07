@@ -201,6 +201,9 @@ const createMeeting = async (request: Request) => {
 
     let resolvedHost: string | null = null;
     let zoomSyncError: string | null = null;
+    // The specific pool host an explicit pick collided with (kept even though resolvedHost
+    // stays null) -- see the attemptedZoomHost field comment in schema.prisma for why.
+    let attemptedZoomHost: string | null = null;
     if (zoomEnabled && !meetingData.zid && !meetingData.zoomLink) {
       if (meetingData.zoomHost) {
         // A conflicting manually-selected host is already blocked with a 409 above unless
@@ -217,6 +220,7 @@ const createMeeting = async (request: Request) => {
           resolvedHost = meetingData.zoomHost;
         } else {
           zoomSyncError = "This time conflicts with another meeting using the same Zoom host.";
+          attemptedZoomHost = meetingData.zoomHost;
         }
       } else {
         resolvedHost = await resolveZoomHost({ ...meetingData, isRecurring }, { excludeMid: meetingData.mid });
@@ -233,6 +237,7 @@ const createMeeting = async (request: Request) => {
       googleCalendarEventIds: meetingDetails.googleCalendarEventIds ?? Prisma.DbNull,
       isRecurring,
       zoomHost: resolvedHost,
+      attemptedZoomHost,
       ...(zoomSyncError ? { zoomSyncStatus: 'error', zoomSyncError } : {}),
     };
 

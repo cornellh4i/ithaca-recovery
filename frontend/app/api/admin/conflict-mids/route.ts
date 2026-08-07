@@ -34,8 +34,9 @@ export const GET = async () => {
   const meetings = await prisma.meeting.findMany({
     where: notDeleted,
     select: {
-      mid: true, title: true, room: true, zoomRoom: true, zoomHost: true, status: true,
-      calType: true, startDateTime: true, endDateTime: true, isRecurring: true, recurrencePattern: true,
+      mid: true, title: true, room: true, zoomRoom: true, zoomHost: true, attemptedZoomHost: true,
+      status: true, calType: true, startDateTime: true, endDateTime: true, isRecurring: true,
+      recurrencePattern: true, suspensions: true,
     },
   });
 
