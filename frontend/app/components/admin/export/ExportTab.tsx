@@ -13,9 +13,11 @@ import {
 } from "../../../../util/signageFilters";
 import { ROOM_COLORS, ZOOM_ROOM_COLOR, CATEGORY_COLOR } from "../../../../util/filterColors";
 import type { ILeaseSettings, IRoomRate } from "../../../../util/models";
+import { ALL_MEETING_EXPORT_FIELD_KEYS, type MeetingExportFieldKey } from "../../../../util/meetingExportFields";
 import FilterGroup, { FilterGroupItem } from "../../shared/FilterGroup";
 import Card from "../shared/Card";
 import CardHeader from "../shared/CardHeader";
+import MeetingExportConfigModal from "./MeetingExportConfigModal";
 import { flags } from "../../../../lib/flags";
 import styles from "../../../../styles/components/admin/ExportTab.module.scss";
 
@@ -360,6 +362,10 @@ const ExportTab: React.FC = () => {
   const [downloading, setDownloading] = useState<ExportKind | null>(null);
   const [downloaded, setDownloaded] = useState<ExportKind | null>(null);
   const [exportError, setExportError] = useState<string | null>(null);
+  const [meetingExportFields, setMeetingExportFields] = useState<MeetingExportFieldKey[] | null>(null);
+  const [meetingExportTotal, setMeetingExportTotal] = useState(0);
+  const [meetingSettingsError, setMeetingSettingsError] = useState<string | null>(null);
+  const [meetingConfigOpen, setMeetingConfigOpen] = useState(false);
 
   const loadLeaseSettings = async () => {
     try {
@@ -374,13 +380,27 @@ const ExportTab: React.FC = () => {
     }
   };
 
+  const loadMeetingExportSettings = async () => {
+    try {
+      const response = await fetch("/api/retrieve/meeting-export-settings");
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+      const json: { fields: MeetingExportFieldKey[]; total: number } = await response.json();
+      setMeetingExportFields(json.fields);
+      setMeetingExportTotal(json.total);
+      setMeetingSettingsError(null);
+    } catch (err) {
+      console.error("Error loading meeting export settings:", err);
+      setMeetingSettingsError("Failed to load export field settings.");
+    }
+  };
+
   useEffect(() => {
-    if (!flags.exportCsv) return;
-    
     // Async fetch-then-set; the lint rule can't see the setState calls sit after an
     // await, so this is a false positive for the standard "load on mount" pattern.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    loadLeaseSettings();
+    /* eslint-disable react-hooks/set-state-in-effect */
+    if (flags.exportCsv) loadLeaseSettings();
+    if (flags.exportXlsx) loadMeetingExportSettings();
+    /* eslint-enable react-hooks/set-state-in-effect */
   }, []);
 
   const handleExport = async (kind: ExportKind) => {
@@ -418,6 +438,22 @@ const ExportTab: React.FC = () => {
     setConfigOpen(false);
   };
 
+  const handleSaveMeetingExportFields = async (fields: MeetingExportFieldKey[]) => {
+    const response = await fetch("/api/update/meeting-export-settings", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ fields }),
+    });
+    if (!response.ok) {
+      const json = await response.json().catch(() => ({}));
+      alert(json.error ?? "Failed to save export field settings.");
+      return;
+    }
+    const saved: { fields: MeetingExportFieldKey[] } = await response.json();
+    setMeetingExportFields(saved.fields);
+    setMeetingConfigOpen(false);
+  };
+
   const meetingsFilename = `ithaca-recovery-meetings-${todayISO()}.xlsx`;
   const leaseFilename = leaseSettings
     ? `${new Date(leaseSettings.leaseStartDate).getUTCFullYear()} - ${new Date(leaseSettings.leaseEndDate).getUTCFullYear()} Bulk Send Lease.csv`
@@ -425,18 +461,35 @@ const ExportTab: React.FC = () => {
   const leaseSummary = leaseSettings
     ? `Currently: ${formatDateShort(leaseSettings.leaseStartDate)} – ${formatDateShort(leaseSettings.leaseEndDate)} · ${leaseSettings.rooms.length} room rates configured`
     : "Loading settings…";
+  const meetingExportSummary = meetingExportFields
+    ? `Currently: ${meetingExportTotal} meetings · ${meetingExportFields.length} of ${ALL_MEETING_EXPORT_FIELD_KEYS.length} fields`
+    : "Loading settings…";
 
   return (
     <div className={styles.container}>
       {exportError && <div className={styles.errorBanner}>{exportError}</div>}
       {settingsError && <div className={styles.errorBanner}>{settingsError}</div>}
+      {meetingSettingsError && <div className={styles.errorBanner}>{meetingSettingsError}</div>}
 
       <div className={styles.grid}>
         {flags.exportXlsx && (
           <Card className={styles.exportCard}>
-            <CardHeader icon={<BackupIcon />} title="Export Meetings (XLSX)" />
+            <CardHeader
+              icon={<BackupIcon />}
+              title="Export Meetings (XLSX)"
+              action={{
+                label: "Configure",
+                onClick: () => setMeetingConfigOpen(true),
+                ariaLabel: "Configure export fields",
+                title: "Configure export fields…",
+                disabled: !meetingExportFields,
+              }}
+            />
             <div className={styles.cardDesc}>
               Full backup of every meeting. Include meeting mode, room, contact, and schedule fields.
+            </div>
+            <div className={styles.summaryRow}>
+              <span className={styles.summaryText}>{meetingExportSummary}</span>
             </div>
             <div className={styles.cardFooter}>
               <div className={styles.filename}>{meetingsFilename}</div>
@@ -507,6 +560,14 @@ const ExportTab: React.FC = () => {
           initial={leaseSettings}
           onCancel={() => setConfigOpen(false)}
           onSave={handleSaveSettings}
+        />
+      )}
+
+      {meetingConfigOpen && meetingExportFields && (
+        <MeetingExportConfigModal
+          initialFields={meetingExportFields}
+          onCancel={() => setMeetingConfigOpen(false)}
+          onSave={handleSaveMeetingExportFields}
         />
       )}
     </div>

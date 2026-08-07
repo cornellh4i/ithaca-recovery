@@ -352,6 +352,13 @@
   }
 }
 
+// Spacing between two caption-variant FilterGroups stacked in one .filterGrid column --
+// FilterGroup's own .groupSpaced margin is tied to the bigger "title" heading variant, which
+// we don't want here.
+.stackedGroup {
+  margin-top: 20px;
+}
+
 .viewToggle {
   display: inline-flex;
   gap: 8px;
