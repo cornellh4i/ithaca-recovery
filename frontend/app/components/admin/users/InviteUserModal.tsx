@@ -53,6 +53,7 @@ const InviteUserModal: React.FC<InviteUserModalProps> = ({ isOpen, inviting, onC
       overlayClassName={styles.modalOverlay}
       contentClassName={styles.modalContent}
       labelledBy="invite-user-modal-title"
+      preventClose={inviting}
     >
       <div className={styles.header}>
         <span className={styles.iconCircle}>
@@ -64,6 +65,7 @@ const InviteUserModal: React.FC<InviteUserModalProps> = ({ isOpen, inviting, onC
       <div className={styles.field}>
         <TextField
           input="Email address"
+          aria-label="Email address"
           value={email}
           onChange={(value) => { setEmail(value); setTouched(true); }}
           style={{ fontSize: "15px" }}

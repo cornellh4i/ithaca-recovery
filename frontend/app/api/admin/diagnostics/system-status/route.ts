@@ -14,10 +14,14 @@ const CHECK_TIMEOUT_MS = 8000;
 // shape a real "unreachable" result would have) rather than rejecting, so callers don't need
 // their own try/catch for the timeout case.
 function withTimeout<T>(promise: Promise<T>, fallback: T, ms = CHECK_TIMEOUT_MS): Promise<T> {
-  return Promise.race([
-    promise,
-    new Promise<T>((resolve) => setTimeout(() => resolve(fallback), ms)),
-  ]);
+  let timer: ReturnType<typeof setTimeout>;
+  const timeout = new Promise<T>((resolve) => {
+    timer = setTimeout(() => resolve(fallback), ms);
+  });
+  // Clears the fallback timer once the real check settles first -- otherwise every check that
+  // finishes well under the timeout still leaves its timer running for the full 8s, needlessly
+  // holding the event loop open that much longer past a request that's already done.
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
 }
 
 // Built as an array first, in `ids`' own key order, then assembled into an object in one pass

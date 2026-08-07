@@ -13,6 +13,10 @@ interface ModalProps {
   // tech. Falls back to ariaLabel when the dialog has no such element to point at.
   labelledBy?: string;
   ariaLabel?: string;
+  // Blocks Escape and overlay-click dismissal (e.g. while a submit request from inside the
+  // modal is in flight) -- the caller's own explicit Cancel button, if any, is unaffected;
+  // this only covers the two implicit dismiss paths Modal itself provides.
+  preventClose?: boolean;
 }
 
 const FOCUSABLE_SELECTOR =
@@ -30,6 +34,7 @@ const Modal: React.FC<ModalProps> = ({
   contentClassName,
   labelledBy,
   ariaLabel,
+  preventClose = false,
 }) => {
   const contentRef = useRef<HTMLDivElement>(null);
   const previouslyFocused = useRef<HTMLElement | null>(null);
@@ -39,12 +44,14 @@ const Modal: React.FC<ModalProps> = ({
   // re-run focus restoration/re-capture) on every parent re-render while the modal is still
   // open, yanking focus out and back for no reason.
   const onCloseRef = useRef(onClose);
+  const preventCloseRef = useRef(preventClose);
   // Assigned in an effect, not inline during render -- mutating a ref's value while rendering
   // is unsafe under React's rules (concurrent rendering/StrictMode can render without
   // committing). useLayoutEffect, not useEffect, so the ref is current before the keydown
   // effect below or any paint could observe a stale value.
   useLayoutEffect(() => {
     onCloseRef.current = onClose;
+    preventCloseRef.current = preventClose;
   });
 
   // Capture-and-autofocus / restore-on-unmount, deps on isOpen only -- this must run exactly
@@ -72,7 +79,7 @@ const Modal: React.FC<ModalProps> = ({
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
-        onCloseRef.current();
+        if (!preventCloseRef.current) onCloseRef.current();
         return;
       }
       if (event.key !== "Tab") return;
@@ -101,7 +108,7 @@ const Modal: React.FC<ModalProps> = ({
     <div
       className={overlayClassName}
       onMouseDown={(event) => {
-        if (event.target === event.currentTarget) onClose();
+        if (event.target === event.currentTarget && !preventClose) onClose();
       }}
     >
       <div
