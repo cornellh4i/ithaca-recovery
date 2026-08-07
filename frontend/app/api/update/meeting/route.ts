@@ -249,6 +249,7 @@ const updateMeeting = async (request: Request): Promise<Response> => {
     }
     const candidate = {
       ...newMeeting,
+      isRecurring: !!recurrencePattern,
       recurrencePattern: recurrencePattern ? { ...recurrencePattern, endDate: calculatedEndDate } : null,
     };
 
@@ -395,7 +396,7 @@ const updateMeeting = async (request: Request): Promise<Response> => {
                     update: {
                       type: recurrencePattern.type,
                       startDate: recurrencePattern.startDate,
-                      endDate: recurrencePattern.endDate ?? undefined,
+                      endDate: calculatedEndDate,
                       numberOfOccurrences: recurrencePattern.numberOfOccurrences ?? undefined,
                       daysOfWeek: recurrencePattern.daysOfWeek ?? [],
                       firstDayOfWeek: recurrencePattern.firstDayOfWeek,
@@ -406,7 +407,7 @@ const updateMeeting = async (request: Request): Promise<Response> => {
                     create: {
                       type: recurrencePattern.type,
                       startDate: recurrencePattern.startDate,
-                      endDate: recurrencePattern.endDate ?? undefined,
+                      endDate: calculatedEndDate,
                       numberOfOccurrences: recurrencePattern.numberOfOccurrences ?? undefined,
                       daysOfWeek: recurrencePattern.daysOfWeek ?? [],
                       firstDayOfWeek: recurrencePattern.firstDayOfWeek,

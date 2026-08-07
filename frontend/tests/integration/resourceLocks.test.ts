@@ -92,13 +92,13 @@ test("lockResourceClaims does not block two transactions locking different resou
     await lockResourceClaims(tx, [{ type: "room", value: "Independent Room B" }]);
   }).then(() => {
     secondResolved = true;
+    return "second";
   });
 
-  const raceResult = await Promise.race([
-    secondTx.then(() => "second-resolved"),
-    new Promise((resolve) => setTimeout(() => resolve("timeout"), 150)),
-  ]);
-  expect(raceResult).toBe("second-resolved");
+  // The first transaction deliberately stays open for 300ms. If the second one were blocked
+  // on the first's (unrelated) lock, it could not win this race.
+  const winner = await Promise.race([secondTx, firstTx.then(() => "first")]);
+  expect(winner).toBe("second");
   expect(secondResolved).toBe(true);
 
   await firstTx;
