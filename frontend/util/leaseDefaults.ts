@@ -1,14 +1,17 @@
 import type { ILeaseSettings } from "./models";
+import { cycleStartYear } from "./leaseYearCycles";
 
 // Ground-truth defaults: room rates/names match the current room list used by
 // NewMeeting.tsx/EditMeeting.tsx and DayView.tsx's defaultRooms; rental-agent/email
 // wording ported from the pre-B.1 PandaDocButton.tsx — used until a Super Admin saves
 // real settings.
 export function defaultLeaseSettings(): ILeaseSettings {
-  const currentYear = new Date().getFullYear();
+  // The lease year containing today, not the calendar year -- Jan-Jun would otherwise default
+  // to next Jul's cycle instead of the one that's actually current (see leaseYearCycles.ts).
+  const currentLeaseYear = cycleStartYear(new Date());
   return {
-    leaseStartDate: new Date(Date.UTC(currentYear, 6, 1)),
-    leaseEndDate: new Date(Date.UTC(currentYear + 1, 5, 30)),
+    leaseStartDate: new Date(Date.UTC(currentLeaseYear, 6, 1)),
+    leaseEndDate: new Date(Date.UTC(currentLeaseYear + 1, 5, 30)),
     rooms: [
       { room: "Serenity Room", rate: 15, unit: "hr" },
       { room: "Seeds of Hope Room", rate: 10, unit: "hr" },

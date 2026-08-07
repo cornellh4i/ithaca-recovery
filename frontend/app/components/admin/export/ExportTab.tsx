@@ -11,13 +11,14 @@ import {
   SIGNAGE_ZOOM_SLUGS,
 } from "../../../../util/signageFilters";
 import { ROOM_COLORS, ZOOM_ROOM_COLOR, CATEGORY_COLOR } from "../../../../util/filterColors";
-import type { ILeaseSettings, IRoomRate } from "../../../../util/models";
+import type { ILeaseSettings } from "../../../../util/models";
 import { ALL_MEETING_EXPORT_FIELD_KEYS, type MeetingExportFieldKey } from "../../../../util/meetingExportFields";
+import type { LeaseYearCycle } from "../../../../util/leaseYearCycles";
 import FilterGroup, { FilterGroupItem } from "../../shared/FilterGroup";
 import Card from "../shared/Card";
 import CardHeader from "../shared/CardHeader";
 import MeetingExportConfigModal from "./MeetingExportConfigModal";
-import { flags } from "../../../../lib/flags";
+import LeaseConfigModal from "./LeaseConfigModal";
 import styles from "../../../../styles/components/admin/ExportTab.module.scss";
 
 type ExportKind = "meetings" | "lease";
@@ -57,10 +58,6 @@ function formatDateShort(value: Date | string): string {
     .format(new Date(value));
 }
 
-function toDateInputValue(value: Date | string): string {
-  return new Date(value).toISOString().slice(0, 10);
-}
-
 async function downloadExport(url: string, fallbackFilename: string) {
   const response = await fetch(url);
   if (!response.ok) {
@@ -79,173 +76,6 @@ async function downloadExport(url: string, fallbackFilename: string) {
   document.body.removeChild(link);
   URL.revokeObjectURL(blobUrl);
 }
-
-interface LeaseConfigModalProps {
-  initial: ILeaseSettings;
-  onCancel: () => void;
-  onSave: (next: ILeaseSettings) => Promise<void>;
-}
-
-const LeaseConfigModal: React.FC<LeaseConfigModalProps> = ({ initial, onCancel, onSave }) => {
-  const [draft, setDraft] = useState<ILeaseSettings>(initial);
-  const [saving, setSaving] = useState(false);
-
-  const dateError = new Date(draft.leaseStartDate) >= new Date(draft.leaseEndDate)
-    ? "Lease start date must be before the end date."
-    : null;
-
-  const updateRoom = (index: number, patch: Partial<IRoomRate>) => {
-    setDraft((prev) => ({
-      ...prev,
-      rooms: prev.rooms.map((room, i) => (i === index ? { ...room, ...patch } : room)),
-    }));
-  };
-
-  const handleSave = async () => {
-    if (dateError) return;
-    setSaving(true);
-    try {
-      await onSave(draft);
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  return (
-    <div className={styles.modalOverlay} onClick={onCancel}>
-      <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
-        <h3 className={styles.modalTitle}>Configure PandaDocs lease export</h3>
-        <p className={styles.modalIntro}>
-          These settings control the lease period, rates, rental agent contact, and email wording used when
-          generating the export. Per-meeting details (group name, contact email, schedule) always come from the
-          meeting itself and aren&apos;t set here.
-        </p>
-
-        <div className={styles.sectionLabel}>Lease period</div>
-        <div className={styles.dateRow}>
-          <label className={styles.fieldLabel}>
-            Start
-            <input
-              type="date"
-              className={styles.input}
-              value={toDateInputValue(draft.leaseStartDate)}
-              onChange={(e) => setDraft((prev) => ({ ...prev, leaseStartDate: new Date(`${e.target.value}T00:00:00Z`) }))}
-            />
-          </label>
-          <label className={styles.fieldLabel}>
-            End
-            <input
-              type="date"
-              className={styles.input}
-              value={toDateInputValue(draft.leaseEndDate)}
-              onChange={(e) => setDraft((prev) => ({ ...prev, leaseEndDate: new Date(`${e.target.value}T00:00:00Z`) }))}
-            />
-          </label>
-        </div>
-        {dateError && <p className={styles.dateError}>{dateError}</p>}
-
-        <div className={styles.sectionLabel}>Rooms &amp; rates</div>
-        <div className={styles.ratesTableWrapper}>
-          <table className={styles.ratesTable}>
-            <thead>
-              <tr>
-                <th>Room / Zoom account</th>
-                <th>Rate</th>
-                <th>Unit</th>
-              </tr>
-            </thead>
-            <tbody>
-              {draft.rooms.map((room, i) => (
-                <tr key={room.room}>
-                  <td>{room.room}</td>
-                  <td>
-                    <input
-                      type="number"
-                      min={0}
-                      step="0.01"
-                      className={styles.rateInput}
-                      value={room.rate}
-                      onChange={(e) => updateRoom(i, { rate: Number(e.target.value) })}
-                    />
-                  </td>
-                  <td>
-                    <select
-                      className={styles.input}
-                      value={room.unit}
-                      onChange={(e) => updateRoom(i, { unit: e.target.value as IRoomRate["unit"] })}
-                    >
-                      <option value="hr">/hr</option>
-                      <option value="month">/month</option>
-                    </select>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        <div className={styles.sectionLabel}>Rental agent contact</div>
-        <p className={styles.fieldHint}>Printed on every lease as the ICR contact — update when staff changes.</p>
-        <div className={styles.contactGrid}>
-          <label className={styles.fieldLabel}>
-            First name
-            <input className={styles.input} value={draft.agentFirstName} onChange={(e) => setDraft((p) => ({ ...p, agentFirstName: e.target.value }))} />
-          </label>
-          <label className={styles.fieldLabel}>
-            Last name
-            <input className={styles.input} value={draft.agentLastName} onChange={(e) => setDraft((p) => ({ ...p, agentLastName: e.target.value }))} />
-          </label>
-          <label className={styles.fieldLabel}>
-            Title
-            <input className={styles.input} value={draft.agentTitle} onChange={(e) => setDraft((p) => ({ ...p, agentTitle: e.target.value }))} />
-          </label>
-          <label className={styles.fieldLabel}>
-            Email
-            <input className={styles.input} value={draft.agentEmail} onChange={(e) => setDraft((p) => ({ ...p, agentEmail: e.target.value }))} />
-          </label>
-          <label className={styles.fieldLabel}>
-            Phone
-            <input className={styles.input} value={draft.agentPhone} onChange={(e) => setDraft((p) => ({ ...p, agentPhone: e.target.value }))} />
-          </label>
-          <label className={styles.fieldLabel}>
-            Street address
-            <input className={styles.input} value={draft.agentStreetAddress} onChange={(e) => setDraft((p) => ({ ...p, agentStreetAddress: e.target.value }))} />
-          </label>
-          <label className={styles.fieldLabel}>
-            City
-            <input className={styles.input} value={draft.agentCity} onChange={(e) => setDraft((p) => ({ ...p, agentCity: e.target.value }))} />
-          </label>
-          <label className={styles.fieldLabel}>
-            State
-            <input className={styles.input} value={draft.agentState} onChange={(e) => setDraft((p) => ({ ...p, agentState: e.target.value }))} />
-          </label>
-          <label className={styles.fieldLabel}>
-            ZIP
-            <input className={styles.input} value={draft.agentZip} onChange={(e) => setDraft((p) => ({ ...p, agentZip: e.target.value }))} />
-          </label>
-        </div>
-
-        <div className={styles.sectionLabel}>Email message template</div>
-        <textarea
-          className={styles.textarea}
-          rows={5}
-          value={draft.emailTemplate}
-          onChange={(e) => setDraft((p) => ({ ...p, emailTemplate: e.target.value }))}
-        />
-        <p className={styles.fieldHint}>
-          Sent with every lease. <code className={styles.code}>{"{group}"}</code> is replaced with each group&apos;s name.
-        </p>
-
-        <div className={styles.modalActions}>
-          <button className={styles.cancelButton} onClick={onCancel} disabled={saving}>Cancel</button>
-          <button className={styles.saveButton} onClick={handleSave} disabled={saving || !!dateError}>
-            {saving ? "Saving…" : "Save"}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
 
 const SignageUrlCard: React.FC = () => {
   const [checkedRooms, setCheckedRooms] = useState<Record<string, boolean>>(() =>
@@ -355,6 +185,7 @@ const SignageUrlCard: React.FC = () => {
 
 const ExportTab: React.FC = () => {
   const [leaseSettings, setLeaseSettings] = useState<ILeaseSettings | null>(null);
+  const [leaseCycles, setLeaseCycles] = useState<LeaseYearCycle[]>([]);
   const [settingsError, setSettingsError] = useState<string | null>(null);
   const [configOpen, setConfigOpen] = useState(false);
   const [ratesOpen, setRatesOpen] = useState(false);
@@ -370,8 +201,9 @@ const ExportTab: React.FC = () => {
     try {
       const response = await fetch("/api/retrieve/lease-settings");
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-      const json: ILeaseSettings = await response.json();
-      setLeaseSettings(json);
+      const json: { settings: ILeaseSettings; cycles: LeaseYearCycle[] } = await response.json();
+      setLeaseSettings(json.settings);
+      setLeaseCycles(json.cycles);
       setSettingsError(null);
     } catch (err) {
       console.error("Error loading lease settings:", err);
@@ -397,8 +229,8 @@ const ExportTab: React.FC = () => {
     // Async fetch-then-set; the lint rule can't see the setState calls sit after an
     // await, so this is a false positive for the standard "load on mount" pattern.
     /* eslint-disable react-hooks/set-state-in-effect */
-    if (flags.exportCsv) loadLeaseSettings();
-    if (flags.exportXlsx) loadMeetingExportSettings();
+    loadLeaseSettings();
+    loadMeetingExportSettings();
     /* eslint-enable react-hooks/set-state-in-effect */
   }, []);
 
@@ -476,85 +308,81 @@ const ExportTab: React.FC = () => {
       {meetingSettingsError && <div className={styles.errorBanner}>{meetingSettingsError}</div>}
 
       <div className={styles.grid}>
-        {flags.exportXlsx && (
-          <Card className={styles.exportCard}>
-            <CardHeader
-              icon={<BackupIcon />}
-              title="Export Meetings (XLSX)"
-              action={{
-                label: "Configure",
-                onClick: () => setMeetingConfigOpen(true),
-                ariaLabel: "Configure export fields",
-                title: "Configure export fields…",
-                disabled: !meetingExportFields,
-              }}
-            />
-            <div className={styles.cardDesc}>
-              Spreadsheet export of every meeting. Configure which fields to include.
-            </div>
-            <div className={styles.summaryRow}>
-              <span className={styles.summaryText}>{meetingExportSummary}</span>
-            </div>
-            <div className={styles.cardFooter}>
-              <div className={styles.filename}>{meetingsFilename}</div>
-              <button
-                className={styles.exportButton}
-                onClick={() => handleExport("meetings")}
-                disabled={downloading === "meetings"}
-              >
-                {downloaded === "meetings" ? "Downloaded ✓" : downloading === "meetings" ? "Exporting…" : "Export Meetings"}
-              </button>
-            </div>
-          </Card>
-        )}
+        <Card className={styles.exportCard}>
+          <CardHeader
+            icon={<BackupIcon />}
+            title="Export Meetings (XLSX)"
+            action={{
+              label: "Configure",
+              onClick: () => setMeetingConfigOpen(true),
+              ariaLabel: "Configure export fields",
+              title: "Configure export fields…",
+              disabled: !meetingExportFields,
+            }}
+          />
+          <div className={styles.cardDesc}>
+            Spreadsheet export of every meeting. Configure which fields to include.
+          </div>
+          <div className={styles.summaryRow}>
+            <span className={styles.summaryText}>{meetingExportSummary}</span>
+          </div>
+          <div className={styles.cardFooter}>
+            <div className={styles.filename}>{meetingsFilename}</div>
+            <button
+              className={styles.exportButton}
+              onClick={() => handleExport("meetings")}
+              disabled={downloading === "meetings"}
+            >
+              {downloaded === "meetings" ? "Downloaded ✓" : downloading === "meetings" ? "Exporting…" : "Export Meetings"}
+            </button>
+          </div>
+        </Card>
 
-        {flags.exportCsv && (
-          <Card className={styles.exportCard}>
-            <CardHeader
-              icon={<DescriptionIcon />}
-              title="Export PandaDocs Lease (CSV)"
-              action={{
-                label: "Configure",
-                onClick: () => setConfigOpen(true),
-                ariaLabel: "Configure export",
-                title: "Configure export…",
-                disabled: !leaseSettings,
-              }}
-            />
-            <div className={styles.cardDesc}>
-              Billing fields formatted for the PandaDocs lease-renewal mail merge.
-              Include room rate, billable time, rent charge, and client contact per group.
-            </div>
-            {leaseSettings && (
-              <div className={styles.summaryRow}>
-                <span className={styles.summaryText}>{leaseSummary}</span>
-                <button className={styles.viewRatesButton} onClick={() => setRatesOpen((v) => !v)}>
-                  View rates
-                </button>
-                {ratesOpen && (
-                  <div className={styles.ratesPopover}>
-                    {leaseSettings.rooms.map((room) => (
-                      <div key={room.room} className={styles.ratesPopoverRow}>
-                        <span>{room.room}</span>
-                        <span>${room.rate}/{room.unit}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-            <div className={styles.cardFooter}>
-              <div className={styles.filename}>{leaseFilename}</div>
-              <button
-                className={styles.exportButton}
-                onClick={() => handleExport("lease")}
-                disabled={downloading === "lease" || !leaseSettings}
-              >
-                {downloaded === "lease" ? "Downloaded ✓" : downloading === "lease" ? "Exporting…" : "Export Lease CSV"}
+        <Card className={styles.exportCard}>
+          <CardHeader
+            icon={<DescriptionIcon />}
+            title="Export PandaDocs Lease (CSV)"
+            action={{
+              label: "Configure",
+              onClick: () => setConfigOpen(true),
+              ariaLabel: "Configure export",
+              title: "Configure export…",
+              disabled: !leaseSettings,
+            }}
+          />
+          <div className={styles.cardDesc}>
+            Billing fields formatted for the PandaDocs lease-renewal mail merge.
+            Include room rate, billable time, rent charge, and client contact per group.
+          </div>
+          {leaseSettings && (
+            <div className={styles.summaryRow}>
+              <span className={styles.summaryText}>{leaseSummary}</span>
+              <button className={styles.viewRatesButton} onClick={() => setRatesOpen((v) => !v)}>
+                View rates
               </button>
+              {ratesOpen && (
+                <div className={styles.ratesPopover}>
+                  {leaseSettings.rooms.map((room) => (
+                    <div key={room.room} className={styles.ratesPopoverRow}>
+                      <span>{room.room}</span>
+                      <span>${room.rate}/{room.unit}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-          </Card>
-        )}
+          )}
+          <div className={styles.cardFooter}>
+            <div className={styles.filename}>{leaseFilename}</div>
+            <button
+              className={styles.exportButton}
+              onClick={() => handleExport("lease")}
+              disabled={downloading === "lease" || !leaseSettings}
+            >
+              {downloaded === "lease" ? "Downloaded ✓" : downloading === "lease" ? "Exporting…" : "Export Lease CSV"}
+            </button>
+          </div>
+        </Card>
       </div>
 
       <SignageUrlCard />
@@ -562,6 +390,7 @@ const ExportTab: React.FC = () => {
       {configOpen && leaseSettings && (
         <LeaseConfigModal
           initial={leaseSettings}
+          cycles={leaseCycles}
           onCancel={() => setConfigOpen(false)}
           onSave={handleSaveSettings}
         />
