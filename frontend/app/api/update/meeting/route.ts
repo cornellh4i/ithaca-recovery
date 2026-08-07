@@ -4,7 +4,8 @@ import { requireRole } from "../../../../services/auth";
 import { IMeeting } from "../../../../util/models";
 import { createCalendarEvent, updateCalendarEvent, deleteCalendarEvent, reconcileMeetingCalendars } from "../../../../services/googleCalendar";
 import { createZoomMeeting, updateZoomMeeting, deleteZoomMeeting, getZoomMeetingInvitation, resolveZoomHost, zoomRoomCalendarId } from "../../../../services/zoom";
-import { findResourceConflicts, findResourceConflictRows, ConflictRow } from "../../../../util/resourceOverlap";
+import { findResourceConflicts, findResourceConflictRows, ConflictRow, ResourceConflictAbort } from "../../../../util/resourceOverlap";
+import { lockResourceClaims, ResourceClaim } from "../../../../util/resourceLocks";
 import { meetingSchema } from "../../../../util/meetingValidation";
 import { reconcilePendingResume } from "../../../../util/suspension";
 import { calculateEndDateFromOccurrences } from "../../../../util/meetingOccurrences";
@@ -82,7 +83,7 @@ async function syncUpdatedMeeting(
     // silently double-book a host that's fine for the old time but busy at the new one.
     if (zid) {
       const timeConflicts = zoomHost
-        ? await findResourceConflicts("zoomHost", zoomHost, newMeeting, { excludeMid: mid, includeSuspended: true })
+        ? await findResourceConflicts("zoomHost", zoomHost, newMeeting, prisma, { excludeMid: mid, includeSuspended: true })
         : [];
       if (timeConflicts.length > 0) {
         zoomSynced = false;
@@ -195,6 +196,12 @@ const updateMeeting = async (request: Request): Promise<Response> => {
     }
     const newMeeting = parsed.data as IMeeting;
 
+    // Read before lockResourceClaims acquires anything below -- accepted gap, not covered by
+    // this fix: two concurrent edits to this *same* meeting could each compute
+    // explicitHostChange/needsNewHost from a stale snapshot of each other's not-yet-committed
+    // change. This fix closes the race between DIFFERENT meetings racing for the same room/
+    // zoomRoom/zoomHost value (the actual PR #303 gap); two edits racing on the identical `mid`
+    // is a separate, narrower same-record concurrency question this pass doesn't address.
     const existingMeeting = await prisma.meeting.findUnique({
       where: {
         mid: newMeeting.mid,
@@ -221,71 +228,38 @@ const updateMeeting = async (request: Request): Promise<Response> => {
     // already-assigned host untouched, is NOT a reassignment.
     const explicitHostChange = !!newMeeting.zoomHost && newMeeting.zoomHost !== existingMeeting.zoomHost;
 
-    // Blocks the save outright on a room/zoomRoom collision, or an explicit zoomHost
-    // reassignment that collides with another meeting's -- distinct from the pool-auto-
-    // assignment path below, which defers the calendar publish and stores the error on the
-    // meeting instead of rejecting the request (there's no "other host to pick instead" for a
-    // plain pool-exhaustion the way there is for a room or an explicit host choice).
-    // confirmOverride only bypasses this block, not the pool's handling. Deliberately scoped to
-    // explicitHostChange, not bare newMeeting.zoomHost -- an edit that leaves the Zoom Host
-    // dropdown on the meeting's own already-assigned host must not re-trigger this check just
-    // because the field happens to be populated in the resubmitted form.
-    if (!confirmOverride) {
-      // A count-bounded series (numberOfOccurrences set, no explicit endDate) has a real last
-      // occurrence -- checking conflicts against the raw (still-null) endDate would expand it
-      // out to the full OVERLAP_HORIZON_YEARS window instead, risking a false 409 against an
-      // unrelated booking that falls after the series actually ends. Only affects the conflict
-      // candidate below, not what's persisted (unchanged from the existing upsert further down).
-      let calculatedEndDate = recurrencePattern?.endDate ?? null;
-      if (recurrencePattern?.numberOfOccurrences && !recurrencePattern.endDate) {
-        calculatedEndDate = calculateEndDateFromOccurrences(
-          recurrencePattern.startDate,
-          recurrencePattern.daysOfWeek || [],
-          recurrencePattern.numberOfOccurrences,
-          recurrencePattern.interval || 1,
-          recurrencePattern.type,
-          recurrencePattern.weekOfMonth ?? null,
-          recurrencePattern.dayOfMonth ?? null,
-        );
-      }
-      const conflictCandidate = {
-        ...newMeeting,
-        recurrencePattern: recurrencePattern ? { ...recurrencePattern, endDate: calculatedEndDate } : null,
-      };
-
-      const conflictRows: ConflictRow[] = [];
-      if (newMeeting.room) {
-        conflictRows.push(...await findResourceConflictRows("room", newMeeting.room, conflictCandidate, { excludeMid: mid }));
-      }
-      if (newMeeting.zoomRoom) {
-        conflictRows.push(...await findResourceConflictRows("zoomRoom", newMeeting.zoomRoom, conflictCandidate, { excludeMid: mid }));
-      }
-      if (explicitHostChange && newMeeting.zoomHost) {
-        conflictRows.push(...await findResourceConflictRows(
-          "zoomHost", newMeeting.zoomHost, conflictCandidate, { excludeMid: mid, includeSuspended: true },
-        ));
-      }
-      if (conflictRows.length > 0) {
-        return NextResponse.json(
-          { error: "This meeting conflicts with an existing meeting's room, Zoom room, or Zoom host.", conflicts: conflictRows },
-          { status: 409 },
-        );
-      }
+    // A count-bounded series (numberOfOccurrences set, no explicit endDate) has a real last
+    // occurrence -- checking conflicts against the raw (still-null) endDate would expand it out
+    // to the full OVERLAP_HORIZON_YEARS window instead, risking a false 409/false zoomHost
+    // conflict against an unrelated booking that falls after the series actually ends. Built
+    // once, reused for every conflict/candidate check below (the blocking check, the zoomHost
+    // re-check, and the pool-auto-assign call) -- only affects these checks, not what's
+    // persisted (unchanged from the existing upsert further down).
+    let calculatedEndDate = recurrencePattern?.endDate ?? null;
+    if (recurrencePattern?.numberOfOccurrences && !recurrencePattern.endDate) {
+      calculatedEndDate = calculateEndDateFromOccurrences(
+        recurrencePattern.startDate,
+        recurrencePattern.daysOfWeek || [],
+        recurrencePattern.numberOfOccurrences,
+        recurrencePattern.interval || 1,
+        recurrencePattern.type,
+        recurrencePattern.weekOfMonth ?? null,
+        recurrencePattern.dayOfMonth ?? null,
+      );
     }
+    const candidate = {
+      ...newMeeting,
+      isRecurring: !!recurrencePattern,
+      recurrencePattern: recurrencePattern ? { ...recurrencePattern, endDate: calculatedEndDate } : null,
+    };
 
     // A new Zoom host is only needed when this meeting has no Zoom meeting to keep using —
     // either it never had one, or its room changed (a Zoom meeting can't move rooms, so the
-    // old one gets torn down and a new host resolved). Resolve and persist that host here,
-    // synchronously and immediately, rather than inside the deferred after() job below —
-    // otherwise the gap between "check the host is free" and "commit it to this meeting"
-    // spans several Zoom/Calendar API calls, during which a concurrent request could resolve
-    // and commit the same host. This doesn't fully close the race (that would need an atomic
-    // claim), but it shrinks the window down to a single DB round trip.
+    // old one gets torn down and a new host resolved).
     const zoomEnabled = newMeeting.status !== 'Suspended'
       && (newMeeting.modeType === 'Hybrid' || newMeeting.modeType === 'Remote');
-    // explicitHostChange (hoisted above, before the confirmOverride block) needs a fresh Zoom
-    // meeting too, same as a room change -- Zoom has no in-place host-transfer for this app's
-    // stable-meeting model.
+    // explicitHostChange (hoisted above) needs a fresh Zoom meeting too, same as a room change --
+    // Zoom has no in-place host-transfer for this app's stable-meeting model.
     // Remote meetings submit zoomRoom as "" (no Zoom Room field at all), while older stored
     // rows may hold null for the same "no room" state -- normalize both sides so an unchanged
     // Remote meeting isn't misdetected as a room change and torn down/recreated for nothing.
@@ -295,95 +269,169 @@ const updateMeeting = async (request: Request): Promise<Response> => {
         (existingMeeting.zoomRoom || "") !== (newMeeting.zoomRoom || "") ||
         explicitHostChange);
 
-    let resolvedHost: string | null = null;
-    let hostSyncError: string | null = null;
-    // The specific pool host an explicit pick collided with (kept even though resolvedHost
-    // stays null) -- see the attemptedZoomHost field comment in schema.prisma for why.
-    let attemptedZoomHost: string | null = null;
-    if (needsNewHost) {
-      if (newMeeting.zoomHost) {
-        // A conflicting explicitHostChange is already blocked with a 409 above unless
-        // confirmOverride was set. This branch also runs, non-blocking, for needsNewHost cases
-        // that aren't an explicit host change (e.g. a room change resubmitted with the same
-        // already-assigned host) -- either way, a real conflict here is treated the same as pool
-        // exhaustion below: nothing gets written to the external Zoom API, and the calendar
-        // publish is deferred until an admin picks a different host or the conflict clears.
-        const conflicts = await findResourceConflicts(
-          "zoomHost", newMeeting.zoomHost, newMeeting, { excludeMid: mid, includeSuspended: true },
-        );
-        if (conflicts.length === 0) {
-          resolvedHost = newMeeting.zoomHost;
-        } else {
-          hostSyncError = "This time conflicts with another meeting using the same Zoom host.";
-          attemptedZoomHost = newMeeting.zoomHost;
-        }
-      } else {
-        resolvedHost = await resolveZoomHost(newMeeting, { excludeMid: mid });
-        if (!resolvedHost) {
-          hostSyncError = "No Zoom host available for this meeting's schedule (pool exhausted).";
-        }
+    // Pool-auto-assignment resolved BEFORE the transaction below, not inside it: resolveZoomHost
+    // always queries via the global `prisma` client (it's intentionally NOT lock/tx-guarded --
+    // pool-auto-assignment is a pre-existing, documented accepted gap, see the PR #303 and
+    // "[Designed 2026-08-06]" arch-decision entries, out of scope for this pass). Running it
+    // inside an already-open interactive transaction would hold a second DB connection open for
+    // the duration of up to 5 sequential pool-availability queries on top of the transaction's
+    // own connection -- under concurrent load that's a real connection-pool exhaustion risk.
+    let poolResolvedHost: string | null = null;
+    let poolSyncError: string | null = null;
+    const needsAutoHost = needsNewHost && !newMeeting.zoomHost;
+    if (needsAutoHost) {
+      poolResolvedHost = await resolveZoomHost(candidate, { excludeMid: mid });
+      if (!poolResolvedHost) {
+        poolSyncError = "No Zoom host available for this meeting's schedule (pool exhausted).";
       }
     }
 
-    // Verified atomic: this single call's nested recurrencePattern upsert/delete is a nested
-    // write, and Prisma's MongoDB connector wraps nested writes in an internal transaction
-    // automatically -- unlike write/meeting/route.ts's create path (two separate top-level
-    // calls), there's no unwrapped-multi-write gap here to fix.
-    const updatedMeeting = await prisma.meeting.update({
-      where: {
-        mid: mid,
-      },
-      data: {
-        ...meetingFields,
-        // Postgres' Json columns reject a literal `null` on write (needs the Prisma.DbNull
-        // sentinel for a real SQL NULL) -- Mongo's connector accepted plain `null` here directly.
-        // Left `undefined` when the client didn't send the field at all (the normal case --
-        // this is server-managed, updated below by syncUpdatedMeeting) so this update doesn't
-        // touch/clear the column; only an explicit `null` maps to a real clear.
-        googleCalendarEventIds:
-          meetingFields.googleCalendarEventIds === null ? Prisma.DbNull : meetingFields.googleCalendarEventIds,
-        ...(needsNewHost
-          ? {
-              zoomHost: resolvedHost,
-              attemptedZoomHost,
-              ...(hostSyncError ? { zoomSyncStatus: 'error', zoomSyncError: hostSyncError } : {}),
+    let resolvedHost: string | null = null;
+    let hostSyncError: string | null = null;
+
+    // Everything from the conflict check through the Meeting(+RecurrencePattern) write runs
+    // inside one transaction, guarded by lockResourceClaims -- this closes the check-then-write
+    // race (two concurrent requests could both pass the conflict check before either wrote, and
+    // both succeed), the same fix as write/meeting/route.ts. No explicit transaction timeout
+    // override: everything inside is DB-only (Zoom/GCal calls are all deferred to
+    // syncUpdatedMeeting via after(), outside this transaction entirely, and the pool-auto-
+    // assign case above already ran before this opens), so lock hold time is bounded by a
+    // handful of fast queries, well under Prisma's 5s default.
+    let updatedMeeting: Meeting;
+    try {
+      updatedMeeting = await prisma.$transaction(async (tx) => {
+        const claims: ResourceClaim[] = [];
+        if (newMeeting.room) claims.push({ type: "room", value: newMeeting.room });
+        if (newMeeting.zoomRoom) claims.push({ type: "zoomRoom", value: newMeeting.zoomRoom });
+        if (newMeeting.zoomHost) claims.push({ type: "zoomHost", value: newMeeting.zoomHost });
+        await lockResourceClaims(tx, claims);
+
+        // Blocks the save outright on a room/zoomRoom collision, or an explicit zoomHost
+        // reassignment that collides with another meeting's -- distinct from the pool-auto-
+        // assignment path above, which defers the calendar publish and stores the error on the
+        // meeting instead of rejecting the request (there's no "other host to pick instead" for
+        // a plain pool-exhaustion the way there is for a room or an explicit host choice).
+        // confirmOverride only bypasses this block, not the pool's handling. Deliberately
+        // scoped to explicitHostChange, not bare newMeeting.zoomHost -- an edit that leaves the
+        // Zoom Host dropdown on the meeting's own already-assigned host must not re-trigger this
+        // check just because the field happens to be populated in the resubmitted form.
+        if (!confirmOverride) {
+          const conflictRows: ConflictRow[] = [];
+          if (newMeeting.room) {
+            conflictRows.push(...await findResourceConflictRows("room", newMeeting.room, candidate, tx, { excludeMid: mid }));
+          }
+          if (newMeeting.zoomRoom) {
+            conflictRows.push(...await findResourceConflictRows("zoomRoom", newMeeting.zoomRoom, candidate, tx, { excludeMid: mid }));
+          }
+          if (explicitHostChange && newMeeting.zoomHost) {
+            conflictRows.push(...await findResourceConflictRows(
+              "zoomHost", newMeeting.zoomHost, candidate, tx, { excludeMid: mid, includeSuspended: true },
+            ));
+          }
+          if (conflictRows.length > 0) {
+            throw new ResourceConflictAbort(conflictRows);
+          }
+        }
+
+        // The specific pool host an explicit pick collided with (kept even though resolvedHost
+        // stays null) -- see the attemptedZoomHost field comment in schema.prisma for why.
+        let attemptedZoomHost: string | null = null;
+        if (needsNewHost) {
+          if (newMeeting.zoomHost) {
+            // A conflicting explicitHostChange is already blocked with a 409 above unless
+            // confirmOverride was set. This branch also runs, non-blocking, for needsNewHost
+            // cases that aren't an explicit host change (e.g. a room change resubmitted with the
+            // same already-assigned host) -- either way, a real conflict here is treated the
+            // same as pool exhaustion below: nothing gets written to the external Zoom API, and
+            // the calendar publish is deferred until an admin picks a different host or the
+            // conflict clears.
+            // Only re-query when the blocking check above didn't already prove this exact
+            // field/value/candidate clean -- that's true only when !confirmOverride AND
+            // explicitHostChange (the blocking check's own zoomHost gating condition); a plain
+            // room-change-only needsNewHost case never had this value checked yet, so it still
+            // needs a real query even when !confirmOverride.
+            const alreadyCheckedClean = !confirmOverride && explicitHostChange;
+            const conflicts = alreadyCheckedClean
+              ? []
+              : await findResourceConflicts(
+                  "zoomHost", newMeeting.zoomHost, candidate, tx, { excludeMid: mid, includeSuspended: true },
+                );
+            if (conflicts.length === 0) {
+              resolvedHost = newMeeting.zoomHost;
+            } else {
+              hostSyncError = "This time conflicts with another meeting using the same Zoom host.";
+              attemptedZoomHost = newMeeting.zoomHost;
             }
-          : !zoomEnabled
-            ? { attemptedZoomHost: null }
-            : {}),
-        recurrencePattern: recurrencePattern
-          ? {
-              upsert: {
-                update: {
-                  type: recurrencePattern.type,
-                  startDate: recurrencePattern.startDate,
-                  endDate: recurrencePattern.endDate ?? undefined,
-                  numberOfOccurrences: recurrencePattern.numberOfOccurrences ?? undefined,
-                  daysOfWeek: recurrencePattern.daysOfWeek ?? [],
-                  firstDayOfWeek: recurrencePattern.firstDayOfWeek,
-                  interval: recurrencePattern.interval,
-                  weekOfMonth: recurrencePattern.weekOfMonth ?? null,
-                  dayOfMonth: recurrencePattern.dayOfMonth ?? null,
-                },
-                create: {
-                  type: recurrencePattern.type,
-                  startDate: recurrencePattern.startDate,
-                  endDate: recurrencePattern.endDate ?? undefined,
-                  numberOfOccurrences: recurrencePattern.numberOfOccurrences ?? undefined,
-                  daysOfWeek: recurrencePattern.daysOfWeek ?? [],
-                  firstDayOfWeek: recurrencePattern.firstDayOfWeek,
-                  interval: recurrencePattern.interval,
-                  weekOfMonth: recurrencePattern.weekOfMonth ?? null,
-                  dayOfMonth: recurrencePattern.dayOfMonth ?? null,
-                },
-              },
-            }
-          : existingMeeting.recurrencePattern
-            ? { delete: true }
-            : undefined,
-      },
-    });
-    
+          } else {
+            resolvedHost = poolResolvedHost;
+            hostSyncError = poolSyncError;
+          }
+        }
+
+        return tx.meeting.update({
+          where: {
+            mid: mid,
+          },
+          data: {
+            ...meetingFields,
+            // Postgres' Json columns reject a literal `null` on write (needs the Prisma.DbNull
+            // sentinel for a real SQL NULL) -- Mongo's connector accepted plain `null` here directly.
+            // Left `undefined` when the client didn't send the field at all (the normal case --
+            // this is server-managed, updated below by syncUpdatedMeeting) so this update doesn't
+            // touch/clear the column; only an explicit `null` maps to a real clear.
+            googleCalendarEventIds:
+              meetingFields.googleCalendarEventIds === null ? Prisma.DbNull : meetingFields.googleCalendarEventIds,
+            ...(needsNewHost
+              ? {
+                  zoomHost: resolvedHost,
+                  attemptedZoomHost,
+                  ...(hostSyncError ? { zoomSyncStatus: 'error', zoomSyncError: hostSyncError } : {}),
+                }
+              : !zoomEnabled
+                ? { attemptedZoomHost: null }
+                : {}),
+            recurrencePattern: recurrencePattern
+              ? {
+                  upsert: {
+                    update: {
+                      type: recurrencePattern.type,
+                      startDate: recurrencePattern.startDate,
+                      endDate: calculatedEndDate,
+                      numberOfOccurrences: recurrencePattern.numberOfOccurrences ?? undefined,
+                      daysOfWeek: recurrencePattern.daysOfWeek ?? [],
+                      firstDayOfWeek: recurrencePattern.firstDayOfWeek,
+                      interval: recurrencePattern.interval,
+                      weekOfMonth: recurrencePattern.weekOfMonth ?? null,
+                      dayOfMonth: recurrencePattern.dayOfMonth ?? null,
+                    },
+                    create: {
+                      type: recurrencePattern.type,
+                      startDate: recurrencePattern.startDate,
+                      endDate: calculatedEndDate,
+                      numberOfOccurrences: recurrencePattern.numberOfOccurrences ?? undefined,
+                      daysOfWeek: recurrencePattern.daysOfWeek ?? [],
+                      firstDayOfWeek: recurrencePattern.firstDayOfWeek,
+                      interval: recurrencePattern.interval,
+                      weekOfMonth: recurrencePattern.weekOfMonth ?? null,
+                      dayOfMonth: recurrencePattern.dayOfMonth ?? null,
+                    },
+                  },
+                }
+              : existingMeeting.recurrencePattern
+                ? { delete: true }
+                : undefined,
+          },
+        });
+      });
+    } catch (error) {
+      if (error instanceof ResourceConflictAbort) {
+        return NextResponse.json(
+          { error: "This meeting conflicts with an existing meeting's room, Zoom room, or Zoom host.", conflicts: error.conflicts },
+          { status: 409 },
+        );
+      }
+      throw error;
+    }
 
     // GCal/Zoom sync runs after the response is sent — see syncUpdatedMeeting above.
     after(syncUpdatedMeeting(mid, newMeeting, existingMeeting, auth.accessToken, resolvedHost, hostSyncError));
