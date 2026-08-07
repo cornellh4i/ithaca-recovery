@@ -70,6 +70,7 @@ test.describe("admin panel", () => {
     await page.goto("/admin");
     await page.getByTestId("admin-tab-users").click();
 
+    await page.getByRole("button", { name: "Invite" }).click();
     await page.getByPlaceholder("Email address").fill("invitee@test.icr");
     const writeResponse = page.waitForResponse((r) => r.url().includes("/api/write/admin"));
     await page.getByRole("button", { name: "Send Invite" }).click();
@@ -78,15 +79,17 @@ test.describe("admin panel", () => {
     await expect(page.getByText("invitee@test.icr")).toBeVisible();
   });
 
-  test("11.7 the sole SUPER_ADMIN's role and Remove button are disabled", async ({ page, context }) => {
+  test("11.7 the sole SUPER_ADMIN's role and Remove option are disabled", async ({ page, context }) => {
     const solo = await seedAdmin(Role.SUPER_ADMIN);
     await loginAs(context, solo.email);
     await page.goto("/admin");
     await page.getByTestId("admin-tab-users").click();
 
     const row = page.locator("tr", { hasText: solo.email });
-    await expect(row.locator("select")).toBeDisabled();
-    await expect(row.getByRole("button", { name: "Remove" })).toBeDisabled();
+    await row.getByLabel("User options").click();
+    await expect(row.getByRole("button", { name: "Remove User" })).toBeDisabled();
+
+    await row.getByRole("button", { name: "Edit Role" }).click();
     await expect(page.getByText("Can't change the last Super Admin's role.")).toBeVisible();
   });
 

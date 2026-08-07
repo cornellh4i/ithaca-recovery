@@ -1,27 +1,54 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import type { Role } from "@prisma/client";
+import Groups3Icon from "@mui/icons-material/Groups3";
+import SearchIcon from "@mui/icons-material/Search";
+import ArrowDropUpIcon from "@mui/icons-material/ArrowDropUp";
+import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 import type { IAdmin } from "../../../../util/models";
 import Card from "../shared/Card";
-import TextField from "../../atoms/TextField";
+import StatusPill, { type StatusPillVariant } from "../../atoms/StatusPill";
+import EditRoleModal from "./EditRoleModal";
+import RemoveUserModal from "./RemoveUserModal";
+import InviteUserModal from "./InviteUserModal";
+import { ROLE_LABEL } from "../../../../util/roles";
 import styles from "../../../../styles/components/admin/UsersTab.module.scss";
 
-const roleLabel: Record<Role, string> = {
-  SUPER_ADMIN: "Super Admin",
-  ADMIN: "Admin",
-  USER: "User",
+const rolePillVariant: Record<Role, StatusPillVariant> = {
+  SUPER_ADMIN: "error",
+  ADMIN: "success",
+  USER: "neutral",
 };
+
+// Higher rank sorts first in descending order -- Super Admin > Admin > User, per the ranking
+// spelled out for this column specifically (it isn't alphabetical like Name/Email).
+const roleRank: Record<Role, number> = {
+  SUPER_ADMIN: 3,
+  ADMIN: 2,
+  USER: 1,
+};
+
+type SortColumn = "name" | "email" | "role";
+
+const SORT_COLUMNS: { key: SortColumn; label: string }[] = [
+  { key: "name", label: "Name" },
+  { key: "email", label: "Email" },
+  { key: "role", label: "Role" },
+];
 
 const UsersTab: React.FC = () => {
   const [admins, setAdmins] = useState<IAdmin[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [inviteEmail, setInviteEmail] = useState("");
-  const [inviteRole, setInviteRole] = useState<Role>("ADMIN");
   const [inviting, setInviting] = useState(false);
-  const [updatingEmail, setUpdatingEmail] = useState<string | null>(null);
-  const [updatedEmail, setUpdatedEmail] = useState<string | null>(null);
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [openMenuEmail, setOpenMenuEmail] = useState<string | null>(null);
+  const [editTarget, setEditTarget] = useState<IAdmin | null>(null);
+  const [removeTarget, setRemoveTarget] = useState<IAdmin | null>(null);
+  const [sortColumn, setSortColumn] = useState<SortColumn | null>(null);
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+  const [search, setSearch] = useState("");
 
   const loadAdmins = async () => {
     setLoading(true);
@@ -46,24 +73,63 @@ const UsersTab: React.FC = () => {
     loadAdmins();
   }, []);
 
+  // Closes whichever row's kebab menu is open on an outside click -- delegated to a single
+  // document listener (not a per-row ref) since only one menu is ever open at a time.
+  useEffect(() => {
+    if (!openMenuEmail) return;
+    const handleClickOutside = (event: MouseEvent) => {
+      if (!(event.target as HTMLElement).closest("[data-user-menu]")) {
+        setOpenMenuEmail(null);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [openMenuEmail]);
+
   const superAdminCount = admins.filter((a) => a.role === "SUPER_ADMIN").length;
 
-  const handleInvite = async () => {
-    if (!inviteEmail.trim()) return;
+  const handleSort = (column: SortColumn) => {
+    if (sortColumn === column) {
+      setSortDir((dir) => (dir === "desc" ? "asc" : "desc"));
+    } else {
+      setSortColumn(column);
+      setSortDir("desc");
+    }
+  };
+
+  const filteredAdmins = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    if (!query) return admins;
+    return admins.filter(
+      (a) => a.name.toLowerCase().includes(query) || a.email.toLowerCase().includes(query),
+    );
+  }, [admins, search]);
+
+  const sortedAdmins = useMemo(() => {
+    if (!sortColumn) return filteredAdmins;
+    // Ascending comparator first, then flip for "desc" -- keeps Name/Email's alphabetical
+    // ordering and Role's Super Admin > Admin > User ordering under one shared formula.
+    const compare =
+      sortColumn === "role"
+        ? (a: IAdmin, b: IAdmin) => roleRank[a.role] - roleRank[b.role]
+        : (a: IAdmin, b: IAdmin) => (a[sortColumn] || "").localeCompare(b[sortColumn] || "");
+    return [...filteredAdmins].sort((a, b) => (sortDir === "desc" ? -compare(a, b) : compare(a, b)));
+  }, [filteredAdmins, sortColumn, sortDir]);
+
+  const handleInvite = async (email: string, role: Role) => {
     setInviting(true);
     try {
       const response = await fetch("/api/write/admin", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: inviteEmail.trim(), role: inviteRole }),
+        body: JSON.stringify({ email, role }),
       });
       if (!response.ok) {
         const json = await response.json().catch(() => ({}));
         alert(json.error ?? "Failed to invite admin.");
         return;
       }
-      setInviteEmail("");
-      setInviteRole("ADMIN");
+      setInviteOpen(false);
       await loadAdmins();
     } catch (err) {
       console.error("Error inviting admin:", err);
@@ -75,11 +141,10 @@ const UsersTab: React.FC = () => {
 
   const handleRoleChange = async (email: string, newRole: Role) => {
     const previousRole = admins.find((a) => a.email === email)?.role;
+    setEditTarget(null);
     if (!previousRole || previousRole === newRole) return;
 
     setAdmins((prev) => prev.map((a) => (a.email === email ? { ...a, role: newRole } : a)));
-    setUpdatingEmail(email);
-    setUpdatedEmail(null);
     try {
       const response = await fetch("/api/update/admin", {
         method: "PUT",
@@ -90,21 +155,16 @@ const UsersTab: React.FC = () => {
         const json = await response.json().catch(() => ({}));
         alert(json.error ?? "Failed to update role.");
         setAdmins((prev) => prev.map((a) => (a.email === email ? { ...a, role: previousRole } : a)));
-        return;
       }
-      setUpdatedEmail(email);
-      setTimeout(() => setUpdatedEmail((curr) => (curr === email ? null : curr)), 2000);
     } catch (err) {
       console.error("Error updating role:", err);
       alert("Failed to update role.");
       setAdmins((prev) => prev.map((a) => (a.email === email ? { ...a, role: previousRole } : a)));
-    } finally {
-      setUpdatingEmail(null);
     }
   };
 
   const handleRemove = async (email: string) => {
-    if (!confirm(`Remove ${email} as an admin?`)) return;
+    setRemoveTarget(null);
     try {
       const response = await fetch("/api/delete/admin", {
         method: "DELETE",
@@ -126,54 +186,94 @@ const UsersTab: React.FC = () => {
   return (
     <div className={styles.container}>
       <Card>
-        <div className={styles.sectionLabel}>USERS</div>
+        <div className={styles.headerRow}>
+          <div className={styles.panelHeader}>
+            <span className={styles.panelIconUsers}><Groups3Icon fontSize="small" /></span>
+            Users ({admins.length})
+          </div>
+          <div className={styles.headerActions}>
+            <div className={styles.searchField}>
+              <SearchIcon fontSize="small" className={styles.searchIcon} />
+              <input
+                type="text"
+                placeholder="Search name or email"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className={styles.searchInput}
+              />
+            </div>
+            <button className={styles.inviteButton} onClick={() => setInviteOpen(true)}>Invite</button>
+          </div>
+        </div>
         {loading && <div className={styles.emptyState}>Loading users…</div>}
         {error && <div className={styles.emptyState}>{error}</div>}
         {!loading && !error && (
           <table className={styles.table}>
             <thead>
               <tr>
-                <th>Name</th>
-                <th>Email</th>
-                <th>Role</th>
+                {SORT_COLUMNS.map(({ key, label }) => {
+                  const active = sortColumn === key;
+                  return (
+                    <th key={key}>
+                      <span className={styles.thLabel}>
+                        {label}
+                        <button
+                          className={`${styles.sortButton} ${active ? styles.sortButtonActive : ""}`}
+                          aria-label={`Sort by ${label}`}
+                          onClick={() => handleSort(key)}
+                        >
+                          {active && sortDir === "asc" ? (
+                            <ArrowDropUpIcon fontSize="small" />
+                          ) : (
+                            <ArrowDropDownIcon fontSize="small" />
+                          )}
+                        </button>
+                      </span>
+                    </th>
+                  );
+                })}
                 <th></th>
               </tr>
             </thead>
             <tbody>
-              {admins.map((admin) => {
+              {sortedAdmins.map((admin) => {
                 const isLastSuperAdmin = admin.role === "SUPER_ADMIN" && superAdminCount <= 1;
+                const menuOpen = openMenuEmail === admin.email;
                 return (
                   <tr key={admin.email}>
                     <td>{admin.name || "—"}</td>
                     <td className={styles.emailCell}>{admin.email}</td>
                     <td>
-                      <div className={styles.roleCell}>
-                        <select
-                          className={styles.roleSelect}
-                          value={admin.role}
-                          disabled={isLastSuperAdmin || updatingEmail === admin.email}
-                          onChange={(e) => handleRoleChange(admin.email, e.target.value as Role)}
-                        >
-                          <option value="SUPER_ADMIN">{roleLabel.SUPER_ADMIN}</option>
-                          <option value="ADMIN">{roleLabel.ADMIN}</option>
-                          <option value="USER">{roleLabel.USER}</option>
-                        </select>
-                        {updatedEmail === admin.email && (
-                          <span className={styles.updatedBadge}>Updated ✓</span>
-                        )}
-                      </div>
-                      {isLastSuperAdmin && (
-                        <div className={styles.menuCaption}>Can&apos;t change the last Super Admin&apos;s role.</div>
-                      )}
+                      <StatusPill variant={rolePillVariant[admin.role]}>{ROLE_LABEL[admin.role]}</StatusPill>
                     </td>
                     <td className={styles.actionCell}>
-                      <button
-                        className={isLastSuperAdmin ? styles.removeButtonDisabled : styles.removeButton}
-                        onClick={() => !isLastSuperAdmin && handleRemove(admin.email)}
-                        disabled={isLastSuperAdmin}
-                      >
-                        Remove
-                      </button>
+                      <div className={styles.moreOptions} data-user-menu>
+                        <button
+                          aria-label="User options"
+                          aria-expanded={menuOpen}
+                          onClick={() => setOpenMenuEmail(menuOpen ? null : admin.email)}
+                        >
+                          ⋮
+                        </button>
+                        {menuOpen && (
+                          <div className={styles.optionsMenu}>
+                            <button onClick={() => { setOpenMenuEmail(null); setEditTarget(admin); }}>
+                              Edit Role
+                            </button>
+                            <button
+                              className={styles.dangerOption}
+                              disabled={isLastSuperAdmin}
+                              onClick={() => {
+                                if (isLastSuperAdmin) return;
+                                setOpenMenuEmail(null);
+                                setRemoveTarget(admin);
+                              }}
+                            >
+                              Remove User
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 );
@@ -183,29 +283,29 @@ const UsersTab: React.FC = () => {
         )}
       </Card>
 
-      <Card>
-        <div className={styles.sectionLabel}>INVITE USER</div>
-        <div className={styles.inviteRow}>
-          <TextField input="Email address" value={inviteEmail} onChange={setInviteEmail} />
-          <select
-            className={styles.roleSelect}
-            value={inviteRole}
-            onChange={(e) => setInviteRole(e.target.value as Role)}
-          >
-            <option value="SUPER_ADMIN">{roleLabel.SUPER_ADMIN}</option>
-            <option value="ADMIN">{roleLabel.ADMIN}</option>
-            <option value="USER">{roleLabel.USER}</option>
-          </select>
-          <button className={styles.inviteButton} onClick={handleInvite} disabled={inviting || !inviteEmail.trim()}>
-            Send Invite
-          </button>
-        </div>
-        <div className={styles.inviteHelp}>
-          Users can sign in using there assigned email.
-            Users can view meetings; Admins can also create and edit them;
-            only Super Admins can manage other users and export data.
-        </div>
-      </Card>
+      <EditRoleModal
+        isOpen={!!editTarget}
+        name={editTarget?.name ?? ""}
+        email={editTarget?.email ?? ""}
+        currentRole={editTarget?.role ?? "USER"}
+        isLastSuperAdmin={!!editTarget && editTarget.role === "SUPER_ADMIN" && superAdminCount <= 1}
+        onCancel={() => setEditTarget(null)}
+        onConfirm={(role) => editTarget && handleRoleChange(editTarget.email, role)}
+      />
+
+      <RemoveUserModal
+        isOpen={!!removeTarget}
+        email={removeTarget?.email ?? ""}
+        onCancel={() => setRemoveTarget(null)}
+        onConfirm={() => removeTarget && handleRemove(removeTarget.email)}
+      />
+
+      <InviteUserModal
+        isOpen={inviteOpen}
+        inviting={inviting}
+        onCancel={() => setInviteOpen(false)}
+        onInvite={handleInvite}
+      />
     </div>
   );
 };

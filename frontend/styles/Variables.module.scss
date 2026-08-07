@@ -19,11 +19,15 @@ $grey-lightest-color: #F1F1F1;
 // component, so any part of the UI needing that meaning reuses the same token.
 $success-bg-color: #D4F4D2;
 $success-text-color: #4CAF50;
-$danger-color: #F00;
+
+// Crimson, not pure red (#F00) -- pure red clashed against the brand's #CC3366 pink wherever
+// both appeared together (e.g. a destructive button in a pink-accented card). #C62828 still
+// reads unambiguously as destructive without fighting the palette.
+$danger-color: #C62828;
 
 // = color-mix(in srgb, $danger-color 8%, white), precomputed -- this file is plain SCSS vars,
 // not CSS custom properties, so color-mix() can't reference $danger-color at runtime here.
-$danger-bg-color: #FFEBEB;
+$danger-bg-color: #FAEEEE;
 $link-color: #007BFF;
 $warning-bg-color: #FDF3DC;
 $warning-text-color: #B4790A;

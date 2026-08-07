@@ -8,13 +8,77 @@
   box-sizing: border-box;
 }
 
-.sectionLabel {
+.headerRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+// Matches DiagnosticsTab.module.scss's .panelHeader/.panelIconX pattern exactly, so the
+// Users card's header reads consistently with the Diagnostics panel cards.
+.panelHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   font-size: 16px;
   font-weight: 600;
+  color: $black-color;
+}
+
+.panelIconUsers {
+  display: inline-flex;
   color: $medium-grey-color;
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
-  margin-bottom: 16px;
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.searchField {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border: 1.5px solid $grey-border-color;
+  border-radius: 8px;
+  color: $medium-grey-color;
+
+  &:focus-within {
+    border-color: $medium-grey-color;
+  }
+}
+
+.searchInput {
+  border: none;
+  outline: none;
+  font-family: inherit;
+  font-size: 14px;
+  color: $black-color;
+  width: 200px;
+
+  &::placeholder {
+    color: $medium-grey-color;
+  }
+}
+
+.inviteButton {
+  background: $brand-pink-color;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 18px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+
+  &:hover {
+    background: $brand-pink-secondary;
+  }
 }
 
 .table {
@@ -41,6 +105,48 @@
   tr:last-child td {
     border-bottom: none;
   }
+
+  // Role's own content (a short pill) never needs more than this -- without an explicit width,
+  // table-layout: fixed would otherwise split the remaining space evenly across Name/Email/Role,
+  // leaving a wide empty gap between the pill and the kebab column that follows it.
+  th:nth-child(3),
+  td:nth-child(3) {
+    width: 130px;
+  }
+
+  th:last-child,
+  td:last-child {
+    width: 44px;
+  }
+}
+
+.thLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+// Dimmed until active (or hovered) so an idle column's sort control doesn't compete with the
+// header text -- clicking sets that column active and starts it descending.
+.sortButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: $medium-grey-color;
+  opacity: 0.5;
+
+  &:hover {
+    opacity: 1;
+  }
+}
+
+.sortButtonActive {
+  opacity: 1;
+  color: $black-color;
 }
 
 .emailCell {
@@ -48,100 +154,61 @@
   color: #555;
 }
 
-.roleCell {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.roleSelect {
-  font-family: inherit;
-  font-size: 14px;
-  color: $black-color;
-  background: #fff;
-  border: 1.5px solid #E5E5E5;
-  border-radius: 6px;
-  padding: 6px 10px;
-  cursor: pointer;
-
-  &:disabled {
-    color: $light-grey-color;
-    cursor: not-allowed;
-  }
-}
-
-.updatedBadge {
-  font-size: 13px;
-  font-weight: 600;
-  color: $success-text-color;
-}
-
-.menuCaption {
-  font-size: 12px;
-  color: $medium-grey-color;
-  padding-top: 4px;
-}
-
 .actionCell {
   text-align: right;
 }
 
-.removeButton,
-.removeButtonDisabled {
-  background: none;
-  border: 1.5px solid #E5E5E5;
-  border-radius: 6px;
-  font-family: inherit;
-  font-size: 13px;
-  padding: 6px 12px;
-  cursor: pointer;
-}
+.moreOptions {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
 
-.removeButton {
-  color: $brand-pink-color;
-
-  &:hover {
-    background: #FBE1E7;
-    border-color: $brand-pink-color;
+  button {
+    background: none;
+    border: none;
+    font-size: 16px;
+    cursor: pointer;
+    color: $black-color;
+    padding: 4px 8px;
   }
 }
 
-.removeButtonDisabled {
-  color: $light-grey-color;
-  cursor: not-allowed;
+.optionsMenu {
+  position: absolute;
+  right: 0;
+  top: 28px;
+  background: white;
+  box-shadow: 0 4px 8px rgb(0 0 0 / 10%);
+  border-radius: $radius-sm;
+  overflow: hidden;
+  z-index: $z-index-dropdown;
+
+  button {
+    font-family: "Source Sans Pro", sans-serif;
+    width: 100%;
+    padding: 8px 16px;
+    font-size: 14px;
+    text-align: left;
+    white-space: nowrap;
+    cursor: pointer;
+    color: $black-color;
+
+    &:hover:not(:disabled) {
+      background: $grey-lightest-color;
+    }
+
+    &:disabled {
+      color: $light-grey-color;
+      cursor: not-allowed;
+    }
+  }
+
+  .dangerOption:not(:disabled) {
+    color: $danger-color;
+  }
 }
 
 .emptyState {
   color: $medium-grey-color;
   font-size: 14px;
-}
-
-.inviteRow {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.inviteButton {
-  background: $brand-pink-color;
-  color: #fff;
-  border: none;
-  border-radius: 8px;
-  padding: 10px 20px;
-  font-family: inherit;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  white-space: nowrap;
-
-  &:disabled {
-    background: $light-grey-color;
-    cursor: not-allowed;
-  }
-}
-
-.inviteHelp {
-  margin-top: 12px;
-  font-size: 13px;
-  color: $medium-grey-color;
 }
