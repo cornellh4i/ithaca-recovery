@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import type { Role } from "@prisma/client";
 import type { IAdmin } from "../../../util/models";
+import Card from "./Card";
 import TextField from "../atoms/TextField";
 import styles from "../../../styles/components/admin/UsersTab.module.scss";
 
@@ -124,7 +125,7 @@ const UsersTab: React.FC = () => {
 
   return (
     <div className={styles.container}>
-      <div className={styles.card}>
+      <Card>
         <div className={styles.sectionLabel}>USERS</div>
         {loading && <div className={styles.emptyState}>Loading users…</div>}
         {error && <div className={styles.emptyState}>{error}</div>}
@@ -180,9 +181,9 @@ const UsersTab: React.FC = () => {
             </tbody>
           </table>
         )}
-      </div>
+      </Card>
 
-      <div className={styles.card}>
+      <Card>
         <div className={styles.sectionLabel}>INVITE USER</div>
         <div className={styles.inviteRow}>
           <TextField input="Email address" value={inviteEmail} onChange={setInviteEmail} />
@@ -202,9 +203,9 @@ const UsersTab: React.FC = () => {
         <div className={styles.inviteHelp}>
           Users can sign in using there assigned email.
             Users can view meetings; Admins can also create and edit them;
-            only Super Admins can manage other users, import spreadsheets, and export data.
+            only Super Admins can manage other users and export data.
         </div>
-      </div>
+      </Card>
     </div>
   );
 };

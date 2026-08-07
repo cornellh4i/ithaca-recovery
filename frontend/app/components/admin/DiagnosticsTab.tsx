@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import type { Role } from "@prisma/client";
 import StatCounter from "../atoms/StatCounter";
+import Card from "./Card";
 import ConflictList, { ConflictListRow } from "./ConflictList";
 import ResumeMeetingModal from "../meeting-form/ResumeMeetingModal";
 import { formatSuspensionStatusText } from "../../../util/suspensionText";
@@ -144,8 +145,8 @@ const DiagnosticsTab: React.FC<DiagnosticsTabProps> = ({ email, role }) => {
     }
   };
 
-  if (error) return <div className={styles.card}>{error}</div>;
-  if (!data) return <div className={styles.card}>Loading diagnostics…</div>;
+  if (error) return <Card>{error}</Card>;
+  if (!data) return <Card>Loading diagnostics…</Card>;
 
   const gcalEntries = Object.entries(data.googleCalendar.categories);
   const gcalReachableCount = gcalEntries.filter(([, ok]) => ok).length;
@@ -162,7 +163,7 @@ const DiagnosticsTab: React.FC<DiagnosticsTabProps> = ({ email, role }) => {
 
   return (
     <div className={styles.container}>
-      <div className={styles.card}>
+      <Card>
         <div className={styles.sectionLabel}>SYSTEM STATUS</div>
 
         <div className={styles.statusRow}>
@@ -224,9 +225,9 @@ const DiagnosticsTab: React.FC<DiagnosticsTabProps> = ({ email, role }) => {
             Active · {email} — Role: {roleLabel[role] ?? role}
           </span>
         </div>
-      </div>
+      </Card>
 
-      <div className={styles.card}>
+      <Card>
         <div className={styles.sectionLabel}>MEETING COUNTS</div>
         <div className={styles.countsRow}>
           <StatCounter value={data.meetingCounts.total} label="Total" />
@@ -258,9 +259,9 @@ const DiagnosticsTab: React.FC<DiagnosticsTabProps> = ({ email, role }) => {
             </span>
           </div>
         )}
-      </div>
+      </Card>
 
-      <div className={styles.card} data-testid="diagnostics-sync-issues-panel">
+      <Card data-testid="diagnostics-sync-issues-panel">
         <div className={styles.panelHeader}>⚠ Sync Issues ({data.syncIssues.length})</div>
         <div className={styles.panelSubhead}>
           Meetings that failed to sync to Zoom or Google Calendar, or are waiting on a Zoom host to
@@ -294,17 +295,17 @@ const DiagnosticsTab: React.FC<DiagnosticsTabProps> = ({ email, role }) => {
             </div>
           ))
         )}
-      </div>
+      </Card>
 
-      <div className={styles.card} data-testid="diagnostics-conflicts-panel">
+      <Card data-testid="diagnostics-conflicts-panel">
         <div className={styles.panelHeader}>⚠ Conflicts ({data.conflicts.length})</div>
         <div className={styles.panelSubhead}>
           These meetings share a room, Zoom room, or Zoom host at overlapping times. Review and edit one to resolve.
         </div>
         <ConflictList conflicts={data.conflicts} onMeetingUpdated={loadDiagnostics} />
-      </div>
+      </Card>
 
-      <div className={styles.card} data-testid="diagnostics-suspended-panel">
+      <Card data-testid="diagnostics-suspended-panel">
         <div className={styles.panelHeader}>⏸ Suspended ({data.meetingCounts.suspendedOrPending})</div>
         <div className={styles.panelSubhead}>
           Meetings currently suspended, or with a suspension scheduled for a future date. Active
@@ -340,7 +341,7 @@ const DiagnosticsTab: React.FC<DiagnosticsTabProps> = ({ email, role }) => {
             </div>
           ))
         )}
-      </div>
+      </Card>
 
       <ResumeMeetingModal
         isOpen={resumeModalMeeting !== null}

@@ -89,7 +89,7 @@ Components are grouped by domain/feature rather than by atomic-design tier — w
 
 **`meeting-form/`** — `NewMeeting`, `EditMeeting`, `MeetingForm`, `ViewMeeting`, `RecurringMeeting`, `ZoomHostField`, `DeleteMeetingModal`, `DeleteRecurringModal`
 
-**`admin/`** — `AdminShell`, `DiagnosticsTab`, `UsersTab`, `ImportTab`, `ExportTab`, `CardHeader`, `ConflictList` (imports `meeting-form/EditMeeting` so an admin can jump straight to editing a conflicting meeting — a normal cross-domain dependency, not a reason to relocate either component)
+**`admin/`** — `AdminShell`, `DiagnosticsTab`, `UsersTab`, `ExportTab`, `Card`, `CardHeader`, `ConflictList` (imports `meeting-form/EditMeeting` so an admin can jump straight to editing a conflicting meeting — a normal cross-domain dependency, not a reason to relocate either component)
 
 **`navbar/`** — `AppNavbar`
 

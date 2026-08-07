@@ -5,9 +5,7 @@ import type { Role } from "@prisma/client";
 import LockIcon from "@mui/icons-material/Lock";
 import DiagnosticsTab from "./DiagnosticsTab";
 import UsersTab from "./UsersTab";
-import ImportTab from "./ImportTab";
 import ExportTab from "./ExportTab";
-import { flags } from "../../../lib/flags";
 import styles from "../../../styles/components/admin/AdminShell.module.scss";
 
 interface AdminShellProps {
@@ -15,12 +13,11 @@ interface AdminShellProps {
   email: string;
 }
 
-type TabKey = "diagnostics" | "users" | "import" | "export";
+type TabKey = "diagnostics" | "users" | "export";
 
 const allTabs: { key: TabKey; label: string; superAdminOnly: boolean }[] = [
   { key: "diagnostics", label: "Diagnostics", superAdminOnly: false },
   { key: "users", label: "Users", superAdminOnly: true },
-  ...(flags.importTab ? [{ key: "import" as const, label: "Import", superAdminOnly: true }] : []),
   { key: "export", label: "Export", superAdminOnly: true },
 ];
 
@@ -60,7 +57,6 @@ const AdminShell: React.FC<AdminShellProps> = ({ role, email }) => {
       <div className={styles.tabContent}>
         {effectiveTab === "diagnostics" && <DiagnosticsTab email={email} role={role} />}
         {effectiveTab === "users" && isSuperAdmin && <UsersTab />}
-        {effectiveTab === "import" && isSuperAdmin && <ImportTab />}
         {effectiveTab === "export" && isSuperAdmin && <ExportTab />}
       </div>
     </div>

@@ -14,6 +14,7 @@ import {
 import { ROOM_COLORS, ZOOM_ROOM_COLOR, CATEGORY_COLOR } from "../../../util/filterColors";
 import type { ILeaseSettings, IRoomRate } from "../../../util/models";
 import FilterGroup, { FilterGroupItem } from "../shared/FilterGroup";
+import Card from "./Card";
 import CardHeader from "./CardHeader";
 import { flags } from "../../../lib/flags";
 import styles from "../../../styles/components/admin/ExportTab.module.scss";
@@ -303,7 +304,7 @@ const SignageUrlCard: React.FC = () => {
   const toggleMode = (key: string, value: boolean) => setCheckedModes((prev) => ({ ...prev, [key]: value }));
 
   return (
-    <div className={styles.card}>
+    <Card>
       <CardHeader icon={<TvIcon />} title="Generate Signage URL" />
       <div className={styles.cardDesc}>
         Build a filtered link for digital signage display. Pick which locations, calendars, and
@@ -345,7 +346,7 @@ const SignageUrlCard: React.FC = () => {
           ? "Everything is checked, so this link shows all locations, calendars, and modes — the same as leaving filters off."
           : "Only the checked locations, calendars, and modes will show on this link."}
       </div>
-    </div>
+    </Card>
   );
 };
 
@@ -430,7 +431,7 @@ const ExportTab: React.FC = () => {
 
       <div className={styles.grid}>
         {flags.exportXlsx && (
-          <div className={`${styles.card} ${styles.exportCard}`}>
+          <Card className={styles.exportCard}>
             <CardHeader icon={<BackupIcon />} title="Export Meetings (XLSX)" />
             <div className={styles.cardDesc}>
               Full backup of every meeting. Include meeting mode, room, contact, and schedule fields.
@@ -445,11 +446,11 @@ const ExportTab: React.FC = () => {
                 {downloaded === "meetings" ? "Downloaded ✓" : downloading === "meetings" ? "Exporting…" : "Export Meetings"}
               </button>
             </div>
-          </div>
+          </Card>
         )}
 
         {flags.exportCsv && (
-          <div className={`${styles.card} ${styles.exportCard}`}>
+          <Card className={styles.exportCard}>
             <CardHeader
               icon={<DescriptionIcon />}
               title="Export PandaDocs Lease (CSV)"
@@ -493,7 +494,7 @@ const ExportTab: React.FC = () => {
                 {downloaded === "lease" ? "Downloaded ✓" : downloading === "lease" ? "Exporting…" : "Export Lease CSV"}
               </button>
             </div>
-          </div>
+          </Card>
         )}
       </div>
 

@@ -24,9 +24,8 @@ interface ConflictListProps {
   onMeetingUpdated?: () => void;
 }
 
-// Shared by DiagnosticsTab's Conflicts panel and ImportTab's post-import results — same
-// resource-conflict shape (see util/resourceOverlap.ts's ConflictRow), rendered the same way
-// in both places so a Super Admin importing meetings sees exactly what Diagnostics would flag.
+// Renders the resource-conflict shape from util/resourceOverlap.ts's ConflictRow;
+// used by DiagnosticsTab's Conflicts panel.
 const ConflictList: React.FC<ConflictListProps> = ({ conflicts, emptyLabel = "No conflicts detected.", onMeetingUpdated }) => {
   // Edit expands inline (below the meeting row) instead of navigating to the Main Calendar,
   // reusing the real EditMeetingSidebar/MeetingForm rather than a deep link to /?mid=...&edit=1.

@@ -4,15 +4,13 @@ import { seedAdmin } from "../factories/admin";
 import { loginAs } from "./support/auth";
 import { Role } from "@prisma/client";
 
-// Manual script §11 (Admin Panel — Roles & Tabs). XLSX import (11.8) is still a known-gap
-// stub, covered in more detail by provisional.spec.ts — this file just confirms the panel
-// renders its current stub state until that lands too.
+// Manual script §11 (Admin Panel — Roles & Tabs).
 
 test.describe("admin panel", () => {
-  test("11.2 SUPER_ADMIN sees all four tabs accessible", async ({ superAdminPage }) => {
+  test("11.2 SUPER_ADMIN sees all three tabs accessible", async ({ superAdminPage }) => {
     const { page } = superAdminPage;
     await page.goto("/admin");
-    for (const key of ["diagnostics", "users", "import", "export"]) {
+    for (const key of ["diagnostics", "users", "export"]) {
       await expect(page.getByTestId(`admin-tab-${key}`)).toBeEnabled();
     }
   });
@@ -90,23 +88,6 @@ test.describe("admin panel", () => {
     await expect(row.locator("select")).toBeDisabled();
     await expect(row.getByRole("button", { name: "Remove" })).toBeDisabled();
     await expect(page.getByText("Can't change the last Super Admin's role.")).toBeVisible();
-  });
-
-  test("11.8 Import tab shows hardcoded mock results, not a real parse", async ({ superAdminPage }) => {
-    const { page } = superAdminPage;
-    await page.goto("/admin");
-    await page.getByTestId("admin-tab-import").click();
-
-    await page.getByTestId("import-file-input").setInputFiles({
-      name: "meetings.xlsx",
-      mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      buffer: Buffer.from("not a real spreadsheet"),
-    });
-    await page.getByTestId("import-upload-button").click();
-
-    await expect(page.getByTestId("import-results-table")).toBeVisible();
-    // MOCK_RESULTS in ImportTab.tsx — same regardless of the file's actual content.
-    await expect(page.getByText("Serenity Fellowship")).toBeVisible();
   });
 
   test("11.9 exporting meetings downloads a real file", async ({ superAdminPage }) => {
