@@ -55,6 +55,11 @@
   justify-content: space-between;
   align-items: flex-start;
   padding: 10px 0;
+
+  @media (width <= $breakpoint-phone) {
+    flex-direction: column;
+    gap: 8px;
+  }
 }
 
 // Accordion expand for the inline edit panel, animated via grid-template-rows so it doesn't
@@ -139,5 +144,9 @@
   &[aria-expanded="true"] {
     border-color: $medium-grey-color;
     background: $grey-border-color;
+  }
+
+  @media (width <= $breakpoint-phone) {
+    margin-left: 0;
   }
 }

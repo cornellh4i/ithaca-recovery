@@ -144,42 +144,44 @@ const LeaseConfigModal: React.FC<LeaseConfigModalProps> = ({ initial, onCancel, 
         {dateError && <p className={styles.dateError}>{dateError}</p>}
 
         <div className={styles.sectionLabel}>Rooms &amp; rates</div>
-        <table className={styles.ratesTable}>
-          <thead>
-            <tr>
-              <th>Room / Zoom account</th>
-              <th>Rate</th>
-              <th>Unit</th>
-            </tr>
-          </thead>
-          <tbody>
-            {draft.rooms.map((room, i) => (
-              <tr key={room.room}>
-                <td>{room.room}</td>
-                <td>
-                  <input
-                    type="number"
-                    min={0}
-                    step="0.01"
-                    className={styles.rateInput}
-                    value={room.rate}
-                    onChange={(e) => updateRoom(i, { rate: Number(e.target.value) })}
-                  />
-                </td>
-                <td>
-                  <select
-                    className={styles.input}
-                    value={room.unit}
-                    onChange={(e) => updateRoom(i, { unit: e.target.value as IRoomRate["unit"] })}
-                  >
-                    <option value="hr">/hr</option>
-                    <option value="month">/month</option>
-                  </select>
-                </td>
+        <div className={styles.ratesTableWrapper}>
+          <table className={styles.ratesTable}>
+            <thead>
+              <tr>
+                <th>Room / Zoom account</th>
+                <th>Rate</th>
+                <th>Unit</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {draft.rooms.map((room, i) => (
+                <tr key={room.room}>
+                  <td>{room.room}</td>
+                  <td>
+                    <input
+                      type="number"
+                      min={0}
+                      step="0.01"
+                      className={styles.rateInput}
+                      value={room.rate}
+                      onChange={(e) => updateRoom(i, { rate: Number(e.target.value) })}
+                    />
+                  </td>
+                  <td>
+                    <select
+                      className={styles.input}
+                      value={room.unit}
+                      onChange={(e) => updateRoom(i, { unit: e.target.value as IRoomRate["unit"] })}
+                    >
+                      <option value="hr">/hr</option>
+                      <option value="month">/month</option>
+                    </select>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
 
         <div className={styles.sectionLabel}>Rental agent contact</div>
         <p className={styles.fieldHint}>Printed on every lease as the ICR contact — update when staff changes.</p>

@@ -33,6 +33,14 @@ $status-value-indent: $status-dot-gap + $status-label-width + 12px;
   display: flex;
   align-items: center;
   gap: 12px;
+
+  // A fixed-width label plus a possibly-long value (e.g. Zoom's "App reachable · 5/5 rooms ·
+  // 5/5 hosts") no longer fits side by side once the card itself has shrunk down to phone
+  // width -- wrapping the value onto its own line keeps the dot+label pair intact instead of
+  // letting the row overflow horizontally.
+  @media (width <= $breakpoint-phone) {
+    flex-wrap: wrap;
+  }
 }
 
 .dot {
@@ -61,6 +69,14 @@ $status-value-indent: $status-dot-gap + $status-label-width + 12px;
 .statusValue {
   color: #555;
   font-size: 14px;
+
+  // Forces the wrap onto its own full-width line (paired with .statusRow's flex-wrap above)
+  // rather than just being allowed to wrap -- flex-basis: 100% is what actually breaks the
+  // line here, not flex-wrap alone.
+  @media (width <= $breakpoint-phone) {
+    flex-basis: 100%;
+    padding-left: $status-dot-gap;
+  }
 }
 
 // A line below the title row -- Session's role, or (via .gcalSubRow/.pooledHosts below)
@@ -71,6 +87,15 @@ $status-value-indent: $status-dot-gap + $status-label-width + 12px;
   font-size: 13px;
   margin-top: 2px;
   padding-left: $status-value-indent;
+
+  // $status-value-indent (193px) is sized to line up under a full-width label+value row --
+  // once .statusRow itself has wrapped to phone width, that much indent would push this line's
+  // own content into a sliver a few characters wide. Falls back to the same shallow indent
+  // .statusValue uses when it wraps, so this still reads as "nested under the row above" without
+  // starving it of width.
+  @media (width <= $breakpoint-phone) {
+    padding-left: $status-dot-gap;
+  }
 }
 
 .gcalSubRow {
@@ -81,6 +106,10 @@ $status-value-indent: $status-dot-gap + $status-label-width + 12px;
   font-size: 13px;
   color: $medium-grey-color;
   margin-top: 6px;
+
+  @media (width <= $breakpoint-phone) {
+    padding-left: $status-dot-gap;
+  }
 }
 
 .gcalOk {
@@ -109,6 +138,10 @@ $status-value-indent: $status-dot-gap + $status-label-width + 12px;
   border-radius: 6px;
   padding: 10px 14px;
   margin: 8px 0 0 $status-value-indent;
+
+  @media (width <= $breakpoint-phone) {
+    margin-left: $status-dot-gap;
+  }
 }
 
 .pooledHostsHeader {
@@ -128,6 +161,13 @@ $status-value-indent: $status-dot-gap + $status-label-width + 12px;
   font-size: 13px;
   padding: 2px 0;
   color: #555;
+
+  // A host email (often 30+ characters) plus its status tag no longer fit on one line at phone
+  // width -- wrapping lets the tag drop below the email instead of forcing horizontal overflow.
+  @media (width <= $breakpoint-phone) {
+    flex-wrap: wrap;
+    padding: 4px 0;
+  }
 }
 
 .hostTagLicensed {
@@ -146,6 +186,10 @@ $status-value-indent: $status-dot-gap + $status-label-width + 12px;
   display: flex;
   gap: 40px;
   margin-bottom: 12px;
+
+  @media (width <= $breakpoint-phone) {
+    gap: 20px;
+  }
 }
 
 .countsDivider {
@@ -158,12 +202,24 @@ $status-value-indent: $status-dot-gap + $status-label-width + 12px;
   gap: 12px;
   font-size: 14px;
   padding: 3px 0;
+
+  // A 110px label plus a value like "AA: 44 · Al-Anon: 22 · Other: 1" doesn't reliably fit
+  // beside each other at phone width -- stacking avoids the risk case-by-case rather than
+  // trying to predict which fellowship/schedule breakdowns are short enough to survive.
+  @media (width <= $breakpoint-phone) {
+    flex-direction: column;
+    gap: 2px;
+  }
 }
 
 .countsDetailLabel {
   width: 110px;
   flex-shrink: 0;
   color: $medium-grey-color;
+
+  @media (width <= $breakpoint-phone) {
+    width: auto;
+  }
 }
 
 .countsDetailValue {
@@ -271,6 +327,14 @@ $status-value-indent: $status-dot-gap + $status-label-width + 12px;
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
+
+  // Meeting title/tags/meta plus one or two action buttons no longer reliably fit side by
+  // side at phone width -- stacking (used by both Sync Issues and Suspended, which share this
+  // class) keeps the buttons fully reachable instead of squeezed into whatever width is left.
+  @media (width <= $breakpoint-phone) {
+    flex-direction: column;
+    gap: 10px;
+  }
 }
 
 // Color comes from .dangerText/.warningText, applied alongside this in JSX per issue's

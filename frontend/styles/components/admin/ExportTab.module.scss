@@ -188,6 +188,11 @@
 .dateRow {
   display: flex;
   gap: 16px;
+
+  @media (width <= $breakpoint-phone) {
+    flex-direction: column;
+    gap: 12px;
+  }
 }
 
 .dateError {
@@ -234,9 +239,24 @@
   box-sizing: border-box;
 }
 
+// Three columns (room name, rate, unit) no longer fit within the modal's own width at phone
+// size without either truncating the room name or overflowing -- scrolling this table
+// horizontally keeps every column at a legible width instead.
+.ratesTableWrapper {
+  width: 100%;
+
+  @media (width <= $breakpoint-phone) {
+    overflow-x: auto;
+  }
+}
+
 .ratesTable {
   width: 100%;
   border-collapse: collapse;
+
+  @media (width <= $breakpoint-phone) {
+    min-width: 420px;
+  }
 
   th {
     text-align: left;
@@ -259,6 +279,10 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
+
+  @media (width <= $breakpoint-phone) {
+    grid-template-columns: 1fr;
+  }
 }
 
 .textarea {
@@ -356,10 +380,22 @@
   display: flex;
   gap: 12px;
   margin-bottom: 8px;
+
+  @media (width <= $breakpoint-phone) {
+    flex-direction: column;
+  }
 }
 
 .linkField {
   flex: 1;
+
+  // Without this, a flex item's default min-width: auto refuses to shrink below its content's
+  // intrinsic width -- a long signage URL would push .linkField (and the row) wider than the
+  // card instead of actually using the flex: 1 space it's been given.
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-family: monospace;
   font-size: 13px;
   color: $black-color;

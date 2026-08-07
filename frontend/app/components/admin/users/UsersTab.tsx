@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import type { Role } from "@prisma/client";
 import Groups3Icon from "@mui/icons-material/Groups3";
 import SearchIcon from "@mui/icons-material/Search";
@@ -28,8 +29,8 @@ const ROLE_LEGEND_ORDER: Role[] = ["USER", "ADMIN", "SUPER_ADMIN"];
 
 const roleExplanation: Record<Role, string> = {
   USER: "Can view meetings.",
-  ADMIN: "Everything User can, plus create and edit meetings.",
-  SUPER_ADMIN: "Everything Admin can, plus manage users and export data.",
+  ADMIN: "Can view, create, edit, suspend, and delete meetings.",
+  SUPER_ADMIN: "Full Admin access, plus manage users and export data.",
 };
 
 // Higher rank sorts first in descending order -- Super Admin > Admin > User, per the ranking
@@ -61,6 +62,8 @@ const UsersTab: React.FC = () => {
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [search, setSearch] = useState("");
   const [legendOpen, setLegendOpen] = useState(false);
+  const [legendPosition, setLegendPosition] = useState<{ top: number; left: number; width: number } | null>(null);
+  const infoButtonRef = useRef<HTMLButtonElement>(null);
 
   const loadAdmins = async () => {
     setLoading(true);
@@ -98,16 +101,45 @@ const UsersTab: React.FC = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [openMenuEmail]);
 
-  // Same pattern as the kebab menu's outside-click handling above, keyed off its own attribute.
+  // Same pattern as the kebab menu's outside-click handling above -- the popover itself is
+  // portaled (see below), so it's checked via its own data attribute alongside the anchor's,
+  // not via DOM containment (it's no longer a descendant of the anchor once portaled).
   useEffect(() => {
     if (!legendOpen) return;
     const handleClickOutside = (event: MouseEvent) => {
-      if (!(event.target as HTMLElement).closest("[data-role-legend]")) {
+      const target = event.target as HTMLElement;
+      if (!target.closest("[data-role-legend]") && !target.closest("[data-role-legend-popup]")) {
         setLegendOpen(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [legendOpen]);
+
+  // Portaled to document.body (see the render below) so it renders above the table's own
+  // horizontal-scroll clipping and isn't bounded by wherever the info icon happens to sit
+  // mid-row -- position: fixed + coordinates measured here, same pattern as DatePicker.tsx's
+  // calendar popup. Right-aligned under the icon by default, clamped so it can't push past
+  // either edge of the viewport regardless of how narrow the screen is.
+  useEffect(() => {
+    if (!legendOpen) return;
+
+    const updatePosition = () => {
+      const rect = infoButtonRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      const margin = 16;
+      const width = Math.min(320, window.innerWidth - margin * 2);
+      const left = Math.max(margin, Math.min(rect.right - width, window.innerWidth - width - margin));
+      setLegendPosition({ top: rect.bottom + 6, left, width });
+    };
+
+    updatePosition();
+    window.addEventListener("scroll", updatePosition, true);
+    window.addEventListener("resize", updatePosition);
+    return () => {
+      window.removeEventListener("scroll", updatePosition, true);
+      window.removeEventListener("resize", updatePosition);
+    };
   }, [legendOpen]);
 
   const superAdminCount = admins.filter((a) => a.role === "SUPER_ADMIN").length;
@@ -232,105 +264,113 @@ const UsersTab: React.FC = () => {
         {loading && <div className={styles.emptyState}>Loading users…</div>}
         {error && <div className={styles.emptyState}>{error}</div>}
         {!loading && !error && (
-          <table className={styles.table}>
-            <thead>
-              <tr>
-                {SORT_COLUMNS.map(({ key, label }) => {
-                  const active = sortColumn === key;
-                  return (
-                    <th key={key}>
-                      <span className={styles.thLabel}>
-                        {label}
-                        <button
-                          className={`${styles.sortButton} ${active ? styles.sortButtonActive : ""}`}
-                          aria-label={`Sort by ${label}`}
-                          onClick={() => handleSort(key)}
-                        >
-                          {active && sortDir === "asc" ? (
-                            <ArrowDropUpIcon fontSize="small" />
-                          ) : (
-                            <ArrowDropDownIcon fontSize="small" />
-                          )}
-                        </button>
-                        {key === "role" && (
-                          <div className={styles.legendAnchor} data-role-legend>
-                            <button
-                              className={styles.infoButton}
-                              aria-label="What do roles mean?"
-                              aria-expanded={legendOpen}
-                              onClick={() => setLegendOpen((open) => !open)}
-                            >
-                              <InfoOutlinedIcon fontSize="small" />
-                            </button>
-                            {legendOpen && (
-                              <div className={styles.legendPopover}>
-                                <div className={styles.legendPopoverTitle}>Roles</div>
-                                <div className={styles.legendTable}>
-                                  {ROLE_LEGEND_ORDER.map((role) => (
-                                    <React.Fragment key={role}>
-                                      <div className={styles.legendPillCell}>
-                                        <StatusPill variant={rolePillVariant[role]}>{ROLE_LABEL[role]}</StatusPill>
-                                      </div>
-                                      <div className={styles.legendDescCell}>{roleExplanation[role]}</div>
-                                    </React.Fragment>
-                                  ))}
-                                </div>
-                              </div>
+          <div className={styles.tableWrapper}>
+            <table className={styles.table}>
+              <thead>
+                <tr>
+                  {SORT_COLUMNS.map(({ key, label }) => {
+                    const active = sortColumn === key;
+                    return (
+                      <th key={key}>
+                        <span className={styles.thLabel}>
+                          {label}
+                          <button
+                            className={`${styles.sortButton} ${active ? styles.sortButtonActive : ""}`}
+                            aria-label={`Sort by ${label}`}
+                            onClick={() => handleSort(key)}
+                          >
+                            {active && sortDir === "asc" ? (
+                              <ArrowDropUpIcon fontSize="small" />
+                            ) : (
+                              <ArrowDropDownIcon fontSize="small" />
                             )}
-                          </div>
-                        )}
-                      </span>
-                    </th>
+                          </button>
+                          {key === "role" && (
+                            <div className={styles.legendAnchor} data-role-legend>
+                              <button
+                                ref={infoButtonRef}
+                                className={styles.infoButton}
+                                aria-label="What do roles mean?"
+                                aria-expanded={legendOpen}
+                                onClick={() => setLegendOpen((open) => !open)}
+                              >
+                                <InfoOutlinedIcon fontSize="small" />
+                              </button>
+                              {legendOpen && legendPosition && createPortal(
+                                <div
+                                  className={styles.legendPopover}
+                                  style={{ top: legendPosition.top, left: legendPosition.left, width: legendPosition.width }}
+                                  data-role-legend-popup="true"
+                                >
+                                  <div className={styles.legendPopoverTitle}>Roles</div>
+                                  <div className={styles.legendTable}>
+                                    {ROLE_LEGEND_ORDER.map((role) => (
+                                      <React.Fragment key={role}>
+                                        <div className={styles.legendPillCell}>
+                                          <StatusPill variant={rolePillVariant[role]}>{ROLE_LABEL[role]}</StatusPill>
+                                        </div>
+                                        <div className={styles.legendDescCell}>{roleExplanation[role]}</div>
+                                      </React.Fragment>
+                                    ))}
+                                  </div>
+                                </div>,
+                                document.body,
+                              )}
+                            </div>
+                          )}
+                        </span>
+                      </th>
+                    );
+                  })}
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {sortedAdmins.map((admin) => {
+                  const isLastSuperAdmin = admin.role === "SUPER_ADMIN" && superAdminCount <= 1;
+                  const menuOpen = openMenuEmail === admin.email;
+                  return (
+                    <tr key={admin.email}>
+                      <td>{admin.name || "—"}</td>
+                      <td className={styles.emailCell}>{admin.email}</td>
+                      <td>
+                        <StatusPill variant={rolePillVariant[admin.role]}>{ROLE_LABEL[admin.role]}</StatusPill>
+                      </td>
+                      <td className={styles.actionCell}>
+                        <div className={styles.moreOptions} data-user-menu>
+                          <button
+                            aria-label="User options"
+                            aria-expanded={menuOpen}
+                            onClick={() => setOpenMenuEmail(menuOpen ? null : admin.email)}
+                          >
+                            ⋮
+                          </button>
+                          {menuOpen && (
+                            <div className={styles.optionsMenu}>
+                              <button onClick={() => { setOpenMenuEmail(null); setEditTarget(admin); }}>
+                                Edit Role
+                              </button>
+                              <button
+                                className={styles.dangerOption}
+                                disabled={isLastSuperAdmin}
+                                onClick={() => {
+                                  if (isLastSuperAdmin) return;
+                                  setOpenMenuEmail(null);
+                                  setRemoveTarget(admin);
+                                }}
+                              >
+                                Remove User
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
                   );
                 })}
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {sortedAdmins.map((admin) => {
-                const isLastSuperAdmin = admin.role === "SUPER_ADMIN" && superAdminCount <= 1;
-                const menuOpen = openMenuEmail === admin.email;
-                return (
-                  <tr key={admin.email}>
-                    <td>{admin.name || "—"}</td>
-                    <td className={styles.emailCell}>{admin.email}</td>
-                    <td>
-                      <StatusPill variant={rolePillVariant[admin.role]}>{ROLE_LABEL[admin.role]}</StatusPill>
-                    </td>
-                    <td className={styles.actionCell}>
-                      <div className={styles.moreOptions} data-user-menu>
-                        <button
-                          aria-label="User options"
-                          aria-expanded={menuOpen}
-                          onClick={() => setOpenMenuEmail(menuOpen ? null : admin.email)}
-                        >
-                          ⋮
-                        </button>
-                        {menuOpen && (
-                          <div className={styles.optionsMenu}>
-                            <button onClick={() => { setOpenMenuEmail(null); setEditTarget(admin); }}>
-                              Edit Role
-                            </button>
-                            <button
-                              className={styles.dangerOption}
-                              disabled={isLastSuperAdmin}
-                              onClick={() => {
-                                if (isLastSuperAdmin) return;
-                                setOpenMenuEmail(null);
-                                setRemoveTarget(admin);
-                              }}
-                            >
-                              Remove User
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+              </tbody>
+            </table>
+          </div>
         )}
       </Card>
 
