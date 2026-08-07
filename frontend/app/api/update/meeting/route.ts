@@ -1,4 +1,4 @@
-import { Meeting, Role } from "@prisma/client";
+import { Meeting, Prisma, Role } from "@prisma/client";
 import { NextResponse, after } from "next/server";
 import { requireRole } from "../../../../services/auth";
 import { IMeeting } from "../../../../util/models";
@@ -331,6 +331,13 @@ const updateMeeting = async (request: Request): Promise<Response> => {
       },
       data: {
         ...meetingFields,
+        // Postgres' Json columns reject a literal `null` on write (needs the Prisma.DbNull
+        // sentinel for a real SQL NULL) -- Mongo's connector accepted plain `null` here directly.
+        // Left `undefined` when the client didn't send the field at all (the normal case --
+        // this is server-managed, updated below by syncUpdatedMeeting) so this update doesn't
+        // touch/clear the column; only an explicit `null` maps to a real clear.
+        googleCalendarEventIds:
+          meetingFields.googleCalendarEventIds === null ? Prisma.DbNull : meetingFields.googleCalendarEventIds,
         ...(needsNewHost
           ? {
               zoomHost: resolvedHost,

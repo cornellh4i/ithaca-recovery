@@ -1,5 +1,5 @@
 import { IMeeting } from '../../../../util/models';
-import { Meeting, Role } from "@prisma/client";
+import { Meeting, Prisma, Role } from "@prisma/client";
 import { NextResponse, after } from "next/server";
 import { requireRole } from "../../../../services/auth";
 import { createCalendarEvent, calendarIdsForMeeting } from "../../../../services/googleCalendar";
@@ -228,6 +228,9 @@ const createMeeting = async (request: Request) => {
 
     const meetingCreateData = {
       ...meetingDetails,
+      // Postgres' Json columns reject a literal `null` on write (needs the Prisma.DbNull
+      // sentinel for a real SQL NULL) -- Mongo's connector accepted plain `null` here directly.
+      googleCalendarEventIds: meetingDetails.googleCalendarEventIds ?? Prisma.DbNull,
       isRecurring,
       zoomHost: resolvedHost,
       ...(zoomSyncError ? { zoomSyncStatus: 'error', zoomSyncError } : {}),

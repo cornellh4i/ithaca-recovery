@@ -5,7 +5,7 @@ import { matchesRecurrencePattern, adjustOccurrenceToDate, isDateSuspended } fro
 
 type SuspensionWindow = { from: Date; to: Date | null };
 
-const notDeleted = { OR: [{ deletedAt: null }, { deletedAt: { isSet: false } }] };
+const notDeleted = { deletedAt: null };
 
 // Zoom's type-2 meetings reuse one stable meeting ID forever across every future occurrence,
 // so "does this candidate conflict with an existing recurring series" has no natural end

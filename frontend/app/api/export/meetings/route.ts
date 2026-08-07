@@ -4,7 +4,7 @@ import { requireRole } from "../../../../services/auth";
 import { formatDayColumn, formatFrequencyColumn } from "../../../../util/recurrenceDisplay";
 import { prisma } from "../../../../lib/prisma";
 
-const notDeleted = { OR: [{ deletedAt: null }, { deletedAt: { isSet: false } }] };
+const notDeleted = { deletedAt: null };
 
 const CATEGORY_LABELS: Record<string, string> = {
   "Al-Anon": "AL_ANON",

@@ -1,7 +1,7 @@
 import { test, expect } from "./support/fixtures";
 
 // Validates the whole infra chain end-to-end before relying on it in the real
-// suite: in-memory Mongo replica set, prisma db push, seeded Admin row, minted
+// suite: embedded Postgres server, prisma migrate deploy, seeded Admin row, minted
 // session cookie, and the real Next.js server all working together.
 test("unauthenticated visitor sees the public calendar with a locked admin nav", async ({ page }) => {
   await page.goto("/");

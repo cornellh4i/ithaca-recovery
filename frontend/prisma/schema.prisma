@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "mongodb"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -14,7 +14,7 @@ enum Role {
 }
 
 model Admin {
-  id             String   @id @default(auto()) @map("_id") @db.ObjectId
+  id             String   @id @default(cuid())
   email          String   @unique
   name           String
   role           Role
@@ -24,15 +24,15 @@ model Admin {
 }
 
 model Meeting {
-  id                     String               @id @default(auto()) @map("_id") @db.ObjectId
+  id                     String               @id @default(cuid())
   mid                    String               @unique
   title                  String
   calType                String[]
   description            String
   creator                String
   group                  String
-  startDateTime          DateTime             @db.Date
-  endDateTime            DateTime             @db.Date
+  startDateTime          DateTime             @db.Timestamptz
+  endDateTime            DateTime             @db.Timestamptz
   email                  String
   zoomRoom               String?
   zoomLink               String?
@@ -65,7 +65,7 @@ model Meeting {
 }
 
 model RecurrencePattern {
-  id                 String     @id @default(auto()) @map("_id") @db.ObjectId
+  id                 String     @id @default(cuid())
   mid                String     @unique
   meeting            Meeting    @relation("MeetingToRecurrencePattern", fields: [mid], references: [mid])
   type               String
@@ -85,7 +85,7 @@ model RecurrencePattern {
 // suspension) — real date-range history, not a flag, so past-date calendar views can correctly
 // answer "was this meeting suspended on that specific date."
 model SuspensionPeriod {
-  id             String    @id @default(auto()) @map("_id") @db.ObjectId
+  id             String    @id @default(cuid())
   mid            String
   meeting        Meeting   @relation("MeetingToSuspensionPeriod", fields: [mid], references: [mid])
   from           DateTime
@@ -103,14 +103,14 @@ model SuspensionPeriod {
 }
 
 model User {
-  id   String @id @default(auto()) @map("_id") @db.ObjectId
+  id   String @id @default(cuid())
   name String
   uid  String @unique
 }
 
 // Singleton — one document holds the PandaDocs lease-export config for the whole app.
 model LeaseSettings {
-  id              String   @id @default(auto()) @map("_id") @db.ObjectId
+  id              String   @id @default(cuid())
   leaseStartDate  DateTime @db.Date
   leaseEndDate    DateTime @db.Date
   rooms           Json // { room: string; rate: number; unit: "hr" | "month" }[]

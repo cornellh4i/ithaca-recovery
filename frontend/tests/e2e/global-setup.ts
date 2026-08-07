@@ -1,7 +1,7 @@
 import { execFileSync } from "child_process";
 import { readFileSync } from "fs";
 import path from "path";
-import { startTestMongo } from "../mongo/replicaSet";
+import { startTestPostgres } from "../postgres/embeddedPostgres";
 import { startNextDevServer } from "./support/serverProcess";
 import { TEST_NEXTAUTH_SECRET, TEST_DB_NAME, TEST_BASE_URL } from "./support/testConstants";
 
@@ -31,22 +31,19 @@ function credentialVarOverrides(frontendRoot: string): Record<string, string> {
   return overrides;
 }
 
-// Runs once before the whole Playwright run: starts an in-memory Mongo
-// replica set (Prisma+Mongo requires one), pushes the current schema to it,
-// then spawns `next dev` directly with that DATABASE_URL in its own env and
-// waits for it to respond. No webServer block in playwright.config.ts and no
-// env file handoff — both would race against this function's async work.
+// Runs once before the whole Playwright run: starts a real embedded Postgres server (a real
+// `postgres` binary run as a plain child process, no Docker/network — see
+// tests/postgres/embeddedPostgres.ts), applies the versioned migrations to it, then spawns
+// `next dev` directly with that DATABASE_URL in its own env and waits for it to respond. No
+// webServer block in playwright.config.ts and no env file handoff — both would race against
+// this function's async work.
 export default async function globalSetup(): Promise<void> {
-  const uri = await startTestMongo(TEST_DB_NAME);
+  const uri = await startTestPostgres(TEST_DB_NAME);
 
   const frontendRoot = path.resolve(__dirname, "../..");
-  // The real fix for the CI hang is startTestMongo pre-creating indexes via the native
-  // driver (see replicaSet.ts) — a known, unfixed Prisma+mongodb-memory-server bug
-  // (github.com/prisma/prisma/issues/23703) makes `db push` hang forever batch-creating
-  // indexes once a model crosses ~7 unique+index fields (Meeting has exactly 7). With
-  // indexes pre-created, this call just confirms "already in sync". Calling the installed
-  // binary directly (not `npx`) plus this `timeout` stay as defense in depth regardless.
-  execFileSync(path.join(frontendRoot, "node_modules/.bin/prisma"), ["db", "push", "--skip-generate", "--accept-data-loss"], {
+  // `migrate deploy` applies the real, versioned migrations (prisma/migrations/) instead of
+  // `db push` -- this exercises the same migration path production uses, on a real database.
+  execFileSync(path.join(frontendRoot, "node_modules/.bin/prisma"), ["migrate", "deploy"], {
     cwd: frontendRoot,
     stdio: "inherit",
     env: { ...process.env, DATABASE_URL: uri, CHECKPOINT_DISABLE: "1" },
@@ -91,6 +88,6 @@ export default async function globalSetup(): Promise<void> {
 
   // The rest of the suite (fixtures.ts, factories) also runs in this same
   // Playwright test-runner process and needs DATABASE_URL to talk to the
-  // same Mongo instance the server is using.
+  // same Postgres instance the server is using.
   process.env.DATABASE_URL = uri;
 }
