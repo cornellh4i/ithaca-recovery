@@ -16,7 +16,8 @@ const getMeeting = async(request: NextRequest) => {
 
     const meeting = await prisma.meeting.findFirst({
       where: {
-        AND: [{ mid: String(mid) }, { OR: [{ deletedAt: null }, { deletedAt: { isSet: false } }] }],
+        mid: String(mid),
+        deletedAt: null,
       },
       include: {
         recurrencePattern: true,

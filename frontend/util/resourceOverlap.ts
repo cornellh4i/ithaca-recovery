@@ -5,7 +5,7 @@ import { matchesRecurrencePattern, adjustOccurrenceToDate, isDateSuspended } fro
 
 type SuspensionWindow = { from: Date; to: Date | null };
 
-const notDeleted = { OR: [{ deletedAt: null }, { deletedAt: { isSet: false } }] };
+const notDeleted = { deletedAt: null };
 
 // Zoom's type-2 meetings reuse one stable meeting ID forever across every future occurrence,
 // so "does this candidate conflict with an existing recurring series" has no natural end
@@ -51,6 +51,10 @@ export type ConflictCandidateMeeting = OccurrenceInput & {
   room: string;
   zoomRoom?: string | null;
   zoomHost?: string | null;
+  // The pool host an explicit pick collided with when zoomHost itself is null -- see the
+  // attemptedZoomHost field comment in schema.prisma. Only ever a fallback: real zoomHost
+  // values always take precedence when bucketing conflicts by field below.
+  attemptedZoomHost?: string | null;
   status?: string | null;
   calType?: string[];
   suspensions?: SuspensionWindow[];
@@ -180,10 +184,17 @@ export type FindConflictsOptions = {
 
 // Finds every existing meeting occupying `field = value` whose occurrences overlap
 // `candidate`'s, within the candidate horizon window above.
+// `client` is required (not defaulted to the global singleton) deliberately -- callers running
+// inside a lockResourceClaims-guarded transaction (see util/resourceLocks.ts) must pass their
+// `tx` so this check runs on the same DB session the advisory lock was acquired on, and every
+// other caller must explicitly pass the global `prisma` so it's visible at the call site (and
+// in review) which check is/isn't protected by the transaction, rather than that being an
+// invisible default a future edit could silently get wrong.
 export async function findResourceConflicts(
   field: ResourceField,
   value: string,
   candidate: OccurrenceInput,
+  client: Prisma.TransactionClient,
   opts: FindConflictsOptions = {},
 ): Promise<{ mid: string; title: string }[]> {
   if (!value) return [];
@@ -201,7 +212,7 @@ export async function findResourceConflicts(
   };
 
   const todayStr = formatETDateString(new Date());
-  const meetingsRaw = await prisma.meeting.findMany({
+  const meetingsRaw = await client.meeting.findMany({
     where,
     select: {
       mid: true,
@@ -278,6 +289,19 @@ export type ConflictRow = {
   meetings: [ConflictMeetingSummary, ConflictMeetingSummary];
 };
 
+// Thrown from inside a lockResourceClaims-guarded prisma.$transaction callback to abort the
+// transaction (Prisma rolls back automatically on a thrown error) and carry the conflict rows
+// back out to the route handler, which turns this into the existing 409 response shape. Using
+// an exception rather than a sentinel return value keeps the transaction callback's happy path
+// a plain return of the created/updated meeting, instead of every caller needing to check a
+// discriminated result on every return.
+export class ResourceConflictAbort extends Error {
+  constructor(public readonly conflicts: ConflictRow[]) {
+    super("Resource conflict");
+    this.name = "ResourceConflictAbort";
+  }
+}
+
 const toRecurrenceSummary = (meeting: ConflictCandidateMeeting): ConflictRecurrenceSummary | null => {
   if (!meeting.isRecurring || !meeting.recurrencePattern) return null;
   const pattern = meeting.recurrencePattern;
@@ -325,7 +349,11 @@ export function computeConflicts(
   (["room", "zoomRoom", "zoomHost"] as const).forEach((field) => {
     const buckets = new Map<string, ConflictCandidateMeeting[]>();
     for (const meeting of fieldMeetings[field]) {
-      const value = meeting[field];
+      // A meeting whose explicit zoomHost pick lost out to another meeting has zoomHost: null
+      // (nothing was actually assigned) but still real-y wants that host -- bucket it under
+      // attemptedZoomHost so it still pairs up against whoever holds it, instead of the
+      // already-known conflict (see its zoomSyncError) silently vanishing from this panel.
+      const value = field === "zoomHost" ? (meeting.zoomHost ?? meeting.attemptedZoomHost) : meeting[field];
       if (!value) continue;
       const bucket = buckets.get(value);
       if (bucket) bucket.push(meeting);
@@ -373,10 +401,13 @@ export function computeConflicts(
 // (matching computeConflicts' own activeMeetings filtering), but its Zoom host reservation is
 // still live (sync is skipped while suspended, not torn down) -- callers must pass
 // `includeSuspended: true` for a `zoomHost` check, `false`/omitted for `room`/`zoomRoom`.
+// `client` is required (not defaulted to the global singleton) deliberately -- see
+// findResourceConflicts' comment above for why.
 export async function findResourceConflictRows(
   field: ResourceField,
   value: string,
   candidate: ConflictCandidateMeeting,
+  client: Prisma.TransactionClient,
   opts: FindConflictsOptions = {},
 ): Promise<ConflictRow[]> {
   if (!value) return [];
@@ -393,7 +424,7 @@ export async function findResourceConflictRows(
     ],
   };
 
-  const meetings = await prisma.meeting.findMany({
+  const meetings = await client.meeting.findMany({
     where,
     select: {
       mid: true,

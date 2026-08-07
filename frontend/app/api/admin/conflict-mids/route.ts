@@ -4,7 +4,7 @@ import { requireRole } from "../../../../services/auth";
 import { computeConflicts } from "../../../../util/resourceOverlap";
 import { prisma } from "../../../../lib/prisma";
 
-const notDeleted = { OR: [{ deletedAt: null }, { deletedAt: { isSet: false } }] };
+const notDeleted = { deletedAt: null };
 
 // The Day/Week calendar polls this every 30s (see page.tsx's refresh interval) for every admin
 // viewer, but computeConflicts recomputes the full conflict graph (pairwise overlap over every
@@ -34,8 +34,9 @@ export const GET = async () => {
   const meetings = await prisma.meeting.findMany({
     where: notDeleted,
     select: {
-      mid: true, title: true, room: true, zoomRoom: true, zoomHost: true, status: true,
-      calType: true, startDateTime: true, endDateTime: true, isRecurring: true, recurrencePattern: true,
+      mid: true, title: true, room: true, zoomRoom: true, zoomHost: true, attemptedZoomHost: true,
+      status: true, calType: true, startDateTime: true, endDateTime: true, isRecurring: true,
+      recurrencePattern: true, suspensions: true,
     },
   });
 

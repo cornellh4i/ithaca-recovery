@@ -435,6 +435,52 @@ test("an explicit host reassignment to an already-busy host is rejected with 409
   expect(mockedCreateZoomMeeting).not.toHaveBeenCalled();
 });
 
+test("needsNewHost triggered by a missing zid (not an explicit host change) still re-checks and detects a real zoomHost conflict", async () => {
+  const prisma = getTestPrismaClient();
+  const start = new Date("2026-10-03T15:00:00Z");
+  const end = new Date("2026-10-03T16:00:00Z");
+  const sharedHost = "no-zid-recheck-host@icr.test";
+
+  const busyMid = `m-${randomUUID()}`;
+  const { recurrencePattern: _rpBusy, ...busyMeetingData } = buildMeetingPayload({
+    mid: busyMid, modeType: "Hybrid", room: "Fellowship Room", zoomRoom: "Fellowship Room - Zoom",
+    zid: "zid-busy-3", zoomHost: sharedHost, startDateTime: start, endDateTime: end,
+  });
+  await prisma.meeting.create({ data: busyMeetingData });
+
+  // The meeting being edited already carries `sharedHost` (persisted from a prior write) but
+  // has no live zid -- e.g. the Zoom API call itself previously failed after the host was
+  // resolved and committed. needsNewHost is driven purely by `!existingMeeting.zid` here; the
+  // payload resubmits the *same* zoomHost value unchanged, so explicitHostChange is false and
+  // the blocking check's zoomHost bucket (gated on explicitHostChange) never examines it -- only
+  // the resolution block's own re-check can catch this conflict.
+  const mid = `m-${randomUUID()}`;
+  const { recurrencePattern: _rp, ...existingMeetingData } = buildMeetingPayload({
+    mid, modeType: "Hybrid", room: "Serenity Room", zoomRoom: "Serenity Room - Zoom",
+    zid: null, zoomHost: sharedHost, startDateTime: start, endDateTime: end,
+  });
+  await prisma.meeting.create({ data: existingMeetingData });
+
+  const payload = buildMeetingPayload({
+    mid, modeType: "Hybrid", room: "Serenity Room", zoomRoom: "Serenity Room - Zoom",
+    zid: null, zoomHost: sharedHost, startDateTime: start, endDateTime: end,
+  });
+  const request = new Request("http://localhost/api/update/meeting", {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+
+  const response = await PUT(request);
+  // Not a blocking conflict -- explicitHostChange is false, so this gets the same fail-soft/
+  // defer treatment as pool exhaustion, not a 409.
+  expect(response.status).toBe(200);
+  const updated = await response.json();
+  expect(updated.zoomHost).toBeNull();
+  expect(updated.zoomSyncError).toMatch(/conflicts with another meeting/i);
+  expect(updated.attemptedZoomHost).toBe(sharedHost);
+  expect(mockedResolveZoomHost).not.toHaveBeenCalled();
+});
+
 test("confirmOverride: true bypasses the zoomHost reassignment block, tears down the old Zoom meeting, but still defers the new one (Zoom itself can't double-book a host)", async () => {
   mockedDeleteZoomMeeting.mockResolvedValue(true);
 
@@ -483,6 +529,11 @@ test("confirmOverride: true bypasses the zoomHost reassignment block, tears down
   expect(afterSync?.zoomHost).toBeNull();
   expect(afterSync?.zoomSyncStatus).toBe("error");
   expect(afterSync?.zoomSyncError).toMatch(/conflicts with another meeting/i);
+  // Regression coverage: the losing host pick must still be recorded so the Diagnostics
+  // Conflicts panel can bucket this meeting against busyHost's holder (see computeConflicts'
+  // attemptedZoomHost fallback in util/resourceOverlap.ts) — previously this was discarded
+  // entirely, leaving a real conflict invisible in that panel.
+  expect(afterSync?.attemptedZoomHost).toBe(busyHost);
 });
 
 test("editing a meeting whose scheduled resume date has already passed promotes the pre-created resume series first", async () => {

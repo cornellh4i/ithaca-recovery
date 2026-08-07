@@ -14,28 +14,55 @@ This document answers "why did we build it this way?" for every significant tech
 - Vercel (our host) is built for Next.js — zero-config CI/CD, automatic preview deployments, and serverless function scaling.
 
 **Trade-offs:**
-- All API routes are serverless functions. Each request may spin up a cold instance, which adds latency on the first hit, and there's no persistent in-memory state between requests — anything that needs to survive across requests goes in MongoDB or the NextAuth session JWT.
+- All API routes are serverless functions. Each request may spin up a cold instance, which adds latency on the first hit, and there's no persistent in-memory state between requests — anything that needs to survive across requests goes in the database or the NextAuth session JWT.
 - The `frontend/` directory contains both UI and backend code, which is non-standard and can be confusing.
 
 ---
 
-## Database: MongoDB + Prisma
+## Database: PostgreSQL (Neon) + Prisma
 
-**Decision:** MongoDB as the database, accessed through Prisma ORM.
+**Decision (2026-08-06, superseded from MongoDB):** PostgreSQL, hosted on Neon, accessed through Prisma ORM. Originally MongoDB (rationale below, kept for history) — reversed while debugging a Diagnostics-panel bug caused by conflict detection living entirely in hand-rolled application code with no DB-level enforcement. A real exclusion constraint would make that whole bug class structurally impossible instead of something to keep patching field-by-field; Postgres was chosen specifically to make that available for future write-time integrity work (see the "Write-Time Conflict Race" section below for how that's actually used today).
+
+**Why the switch was mechanically cheap:** Prisma already abstracted the ORM layer — 6 models, relations keyed by `mid`, zero raw MongoDB-driver usage or aggregation pipelines anywhere in application code. The conversion was a schema-provider swap plus fixing a `@db.Date` → `@db.Timestamptz` gotcha on `Meeting.startDateTime`/`endDateTime` (cosmetic under Mongo, a real midnight-truncation bug under Postgres), not a rewrite. Mongo's schemaless relations (`RecurrencePattern`/`SuspensionPeriod` → `Meeting` via `mid`, previously unenforced at the DB level) became real foreign keys as a side effect.
+
+**Data migration:** dev and production data were migrated via a local, one-off export/transform/import script (per this project's no-committed-one-time-scripts convention — see the Testing section's philosophy, same reasoning applies to migration scripts). Production was confirmed pre-launch at migration time (a single admin account, no meeting data) — a full backfill/rollback procedure wasn't needed beyond the script's own guard against running against a non-empty target.
+
+<details>
+<summary>Original MongoDB rationale (superseded, kept for history)</summary>
 
 **Why MongoDB:**
 - Meeting data is loosely structured (optional Zoom fields, optional recurrence, varying room types). A document store handles optional/nullable fields naturally without schema migrations every time a field is added.
 - ICR is a small-scale app — we don't have relational query complexity that would require PostgreSQL.
+
+**Trade-offs (as understood at the time):**
+- Prisma's MongoDB support is more limited than its PostgreSQL support (no raw query support, no full-text search). For this use case (simple CRUD on meetings and admins) that limitation shouldn't matter.
+- The `RecurrencePattern` model uses a 1-to-1 relation with `Meeting` via a shared `mid` field. Prisma handles this cleanly, but direct MongoDB queries (bypassing Prisma) need to be aware of this join.
+
+</details>
 
 **Why Prisma over Mongoose:**
 - Prisma generates TypeScript types from the schema, giving end-to-end type safety from the database model to the API response.
 - Mongoose is also installed as a dependency but is not used — Prisma was chosen and Mongoose was never removed.
 
 **Trade-offs:**
-- Prisma's MongoDB support is more limited than its PostgreSQL support (no raw query support, no full-text search). For this use case (simple CRUD on meetings and admins) that limitation shouldn't matter.
-- The `RecurrencePattern` model uses a 1-to-1 relation with `Meeting` via a shared `mid` field. Prisma handles this cleanly, but direct MongoDB queries (bypassing Prisma) need to be aware of this join.
+- Postgres has a hard connection cap that Mongo Atlas didn't expose the same way — Vercel's serverless functions need the pooled Neon connection string (the `-pooler` hostname), not the direct one.
+- The `RecurrencePattern` model uses a 1-to-1 relation with `Meeting` via a real foreign key on a shared `mid` field (not Postgres's own primary key) — chosen to avoid a broader `id` migration across every relation at once; works cleanly with Prisma either way.
 
 **Client instantiation:** all API routes import a shared singleton (`frontend/lib/prisma.ts`) rather than each constructing its own `new PrismaClient()`. Every route used to do the latter, risking connection-pool exhaustion under concurrent load — the singleton also survives Next.js dev-mode hot reload without spawning a fresh client per reload, via a `globalThis` cache guarded by `NODE_ENV !== "production"`.
+
+---
+
+## Write-Time Conflict Race: Advisory Locks, Not a DB Constraint
+
+**Decision:** `write/meeting` and `update/meeting` wrap their room/zoomRoom/zoomHost conflict check and the actual write in one Prisma transaction, guarded by a Postgres transaction-scoped advisory lock (`pg_advisory_xact_lock`) per requested resource (`frontend/util/resourceLocks.ts`), rather than a database-level `EXCLUDE` constraint.
+
+**Why not `EXCLUDE USING gist`:** the obvious Postgres-native answer — was considered and rejected. The app has an explicit, client-approved "warn, don't block" policy: an admin can save a genuine double-booking anyway via `ConflictOverrideModal`. An `EXCLUDE` constraint enforces a symmetric, *permanent* pairwise invariant — it has no way to express "these two specific rows were pre-approved to overlap, but each should still count against a *future* row." A `WHERE (NOT overridden)` partial-constraint variant was tried on paper and found broken: marking a row `overridden` doesn't just exempt its own write, it exempts that row from every future conflict check too — a meeting double-booked via override becomes permanently invisible to the constraint, even after whatever it originally conflicted with is deleted and a brand-new booking collides with it instead.
+
+**Why advisory locks work:** the check-then-write race (two concurrent requests both pass the check before either writes, both succeed) is closed by making the check and the write atomic relative to any other transaction locking the same resource — but the override decision only ever affects *that* transaction's willingness to proceed past *its own* check. An overridden meeting still lands as a completely ordinary row, so the very next conflict check finds it naturally. No permanent exemption, no invisibility window.
+
+**Deadlock avoidance:** a single request can need up to 3 locks (room + zoomRoom + zoomHost). `lockResourceClaims` sorts them into a fixed order before acquiring, so two concurrent multi-resource requests always lock in the same sequence — without this, acquiring in different orders is a textbook deadlock.
+
+**Deliberately out of scope:** Zoom pool-auto-assignment (`resolveZoomHost`, used when no manual host is picked) stays outside the lock — a pre-existing, separately-documented accepted gap. It's also hoisted to run *before* either transaction opens, not inside it: it always queries via the global Prisma client (never the transaction's `tx`), and calling it from inside an open interactive transaction would hold two DB connections per in-flight request.
 
 ---
 
@@ -58,13 +85,13 @@ This document answers "why did we build it this way?" for every significant tech
 
 ## Google Calendar Sync
 
-**Decision:** MongoDB is the single source of truth for meeting data; Google Calendar is a downstream display layer only. Changes flow app → Google Calendar in one direction. There is no reverse sync pulling edits made directly in Google Calendar back into MongoDB.
+**Decision:** The database (Postgres, originally MongoDB — see the Database section above) is the single source of truth for meeting data; Google Calendar is a downstream display layer only. Changes flow app → Google Calendar in one direction. There is no reverse sync pulling edits made directly in Google Calendar back into the database.
 
 **Why:**
 - A bidirectional sync needs conflict resolution (what happens when the same meeting is edited in both places) that isn't worth the complexity for this app's scale. One-way publishing is simpler to reason about and debug.
 - Each of the three meeting categories (AA, Al-Anon, Other) publishes to its own Google Calendar, configured via `GOOGLE_CALENDAR_AA` / `GOOGLE_CALENDAR_ALANON` / `GOOGLE_CALENDAR_OTHER`. A meeting with more than one category publishes an event to each of that meeting's calendars.
-- Sync is fail-soft: a Google Calendar API failure sets `syncStatus: "error"` on the meeting (surfaced as a ⚠ badge in the UI, with a manual retry endpoint) rather than failing the write to MongoDB.
-- Sync also runs *after* the write/update/delete response is sent, not before it — the route returns as soon as the MongoDB write succeeds, and calendar/Zoom sync happens afterward via Next's native `after()` (`next/server`). This was `@vercel/functions`' `waitUntil()` until the app moved to Next 16, which ships `after()` natively — same behavior, one fewer dependency. `POST /api/update/meeting/sync` (the manual retry route) deliberately stays synchronous, since a user clicking "Retry sync" expects an immediate result rather than a background one.
+- Sync is fail-soft: a Google Calendar API failure sets `syncStatus: "error"` on the meeting (surfaced as a ⚠ badge in the UI, with a manual retry endpoint) rather than failing the database write.
+- Sync also runs *after* the write/update/delete response is sent, not before it — the route returns as soon as the database write succeeds, and calendar/Zoom sync happens afterward via Next's native `after()` (`next/server`). This was `@vercel/functions`' `waitUntil()` until the app moved to Next 16, which ships `after()` natively — same behavior, one fewer dependency. `POST /api/update/meeting/sync` (the manual retry route) deliberately stays synchronous, since a user clicking "Retry sync" expects an immediate result rather than a background one.
 
 ---
 
@@ -73,7 +100,7 @@ This document answers "why did we build it this way?" for every significant tech
 **Decision:** ICR's licensed Zoom users are a shared host pool (`ZOOM_HOSTS`, comma-separated emails), not tied to any particular room. Each of ICR's 5 Zoom-enabled rooms still has its own Google Calendar (separate from the 3 category calendars), used only to publish the join link — room and host are two independent resources. Creating a meeting resolves an available host from the pool first, then calls the Zoom API directly (Server-to-Server OAuth, account-credentials grant) under that host, then publishes the join link to the room's calendar as the event's `location` field.
 
 **Why:**
-- A single Zoom host/user can only host one meeting at a time (multiple licensed hosts under the same account can of course host concurrently — that's the whole reason the pool has more than one entry), so every new Zoom-enabled meeting needs an *available* host, not just any host. `services/zoom.ts`'s `resolveZoomHost` checks the pool in list order against a shared, recurrence-aware overlap utility (`util/resourceOverlap.ts`) — also reused by the Diagnostics Conflicts panel and XLSX import's per-row conflict flagging — and returns the first host with no overlapping meeting. `createZoomMeeting` itself is host-agnostic (takes a resolved host email, not a room). `write`/`update` meeting routes resolve a host and persist it in the same initial DB write, immediately, rather than inside the deferred GCal/Zoom sync job — this shrinks the window between "checked free" and "committed to this meeting" down to a single DB round trip, but it is **not** a full atomic reservation: two truly concurrent requests can still interleave between the conflict check and the write and both claim the same host. XLSX import handles this differently, by claiming hosts in memory as it walks the batch sequentially (see below) rather than relying on separate DB writes per row.
+- A single Zoom host/user can only host one meeting at a time (multiple licensed hosts under the same account can of course host concurrently — that's the whole reason the pool has more than one entry), so every new Zoom-enabled meeting needs an *available* host, not just any host. `services/zoom.ts`'s `resolveZoomHost` checks the pool in list order against a shared, recurrence-aware overlap utility (`util/resourceOverlap.ts`) — also reused by the Diagnostics Conflicts panel and XLSX import's per-row conflict flagging — and returns the first host with no overlapping meeting. `createZoomMeeting` itself is host-agnostic (takes a resolved host email, not a room). `write`/`update` meeting routes resolve a host and persist it in the same initial DB write, immediately, rather than inside the deferred GCal/Zoom sync job. When an admin explicitly picks a host, that selection is locked and rechecked inside the same advisory-lock-guarded transaction as the write (see "Write-Time Conflict Race" above) — a colliding pick is rejected or re-resolved, not silently double-booked. Automatic pool assignment (`resolveZoomHost`) is the one path still outside that transaction, a separately-documented accepted gap (see "Deliberately out of scope" above). XLSX import handles this differently, by claiming hosts in memory as it walks the batch sequentially (see below) rather than relying on separate DB writes per row.
 - Pool exhaustion fails soft: the meeting is still saved, with `zoomSyncStatus: "error"` and a `zoomSyncError` message, retryable the same way any other sync failure already is. An **existing** recurring meeting's host is only re-resolved when its Zoom meeting has to be torn down and recreated — i.e. the meeting never had one yet, or its room changed (a Zoom meeting can't move rooms). A same-room edit to an already-Zoom-enabled meeting keeps its assigned host and only re-checks that it's still free at the (possibly new) time.
 - The physical Zoom Room hardware has no Zoom-native "Room Calendar" resource here — each room's calendar in Zoom's admin console is actually a Google Calendar. There's no Google Workspace add-on that auto-creates a Zoom meeting from a calendar event, so the app calls the Zoom API itself and writes the result into that calendar. Zoom Room hardware detects a joinable meeting from the event's **`location`** field specifically. This calendar-per-room mapping (`zoomRoomCalendarId`) is unrelated to host assignment and stays fixed per room.
 - Recurring meetings get one stable Zoom meeting (`type: 2`) created at the series' first occurrence, reused for every future instance — occurrence-level deletes (`this` / `thisAndFollowing`) leave it untouched; only a whole-series delete or room reassignment touches Zoom.
@@ -122,7 +149,7 @@ Diagnostics (`GET /api/admin/diagnostics`, surfaced on `/admin`) checks room cal
 
 **Trade-offs:**
 - CI only runs Chromium (`projects: [{ name: "chromium" }]` in `config/playwright.config.ts`), and no automated tier touches real Zoom/Google credentials. Cross-browser rendering and live-credential behavior (a real Zoom meeting actually getting created, a real Google Calendar event actually appearing) are covered instead by a trimmed manual checklist (`docs/03-development/testing/manual-test-script-template.md`), not automation.
-- `workers: 1` — the whole E2E run shares one in-memory Mongo replica set serially rather than one per worker. Fine at this suite's size; documented as a future step if parallelism is ever needed.
+- `workers: 1` — the whole E2E run shares one embedded Postgres instance (`embedded-postgres`, a real `postgres` binary run as a plain child process — no Docker, no network) serially rather than one per worker. Fine at this suite's size; documented as a future step if parallelism is ever needed.
 
 ---
 

@@ -1,4 +1,4 @@
-import { Role, SuspensionPeriod } from '@prisma/client';
+import { Prisma, Role, SuspensionPeriod } from '@prisma/client';
 import { NextResponse, after } from 'next/server';
 import { requireRole } from '../../../../../services/auth';
 import { deleteCalendarEvent, createCalendarEvent, calendarIdsForMeeting } from '../../../../../services/googleCalendar';
@@ -85,7 +85,7 @@ async function syncRescheduleResume(
   // already moved past.
   const updated = await prisma.suspensionPeriod.updateMany({
     where: { id: suspensionId, promoted: false },
-    data: { resumeEventIds: Object.keys(resumeEventIds).length > 0 ? resumeEventIds : null },
+    data: { resumeEventIds: Object.keys(resumeEventIds).length > 0 ? resumeEventIds : Prisma.DbNull },
   });
 
   if (updated.count === 0) {
@@ -182,7 +182,7 @@ const resumeMeeting = async (request: Request) => {
         where: { id: openSuspension.id, promoted: false },
         // resumeEventIds are deleted by syncResume below, so clear them here too -- otherwise
         // reconcilePendingResume sees an unpromoted, now-due row and republishes dead IDs.
-        data: { to: new Date(), resumeEventIds: null, promoted: true },
+        data: { to: new Date(), resumeEventIds: Prisma.DbNull, promoted: true },
       });
       if (closed.count === 0) return false;
       await tx.meeting.update({ where: { mid }, data: { status: 'Active' } });

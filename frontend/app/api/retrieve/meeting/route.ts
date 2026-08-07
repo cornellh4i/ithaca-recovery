@@ -1,7 +1,7 @@
 import { prisma } from "../../../../lib/prisma";
 import { toPublicMeeting } from "../../../../util/publicMeeting";
 
-const notDeleted = { OR: [{ deletedAt: null }, { deletedAt: { isSet: false } }] };
+const notDeleted = { deletedAt: null };
 
 const retrieveMeetings = async () => {
   try {

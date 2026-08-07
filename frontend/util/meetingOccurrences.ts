@@ -2,7 +2,7 @@ import { getETDayBounds, convertETToUTC, addDaysToETDateString } from "./timeUti
 import { prisma } from "../lib/prisma";
 import { PublicMeeting, toPublicMeeting } from "./publicMeeting";
 
-const notDeleted = { OR: [{ deletedAt: null }, { deletedAt: { isSet: false } }] };
+const notDeleted = { deletedAt: null };
 
 const daysOfWeekNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 const etFmt = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' });
@@ -210,13 +210,8 @@ export const getMeetingsForRange = async (
                     recurrencePattern: {
                         is: {
                             startDate: { lte: endOfRange },
-                            // endDate is optional and, for an unbounded series, often never set
-                            // at all rather than explicitly null -- same Mongo-connector quirk
-                            // as `deletedAt` (see `notDeleted` above): a bare `endDate: null`
-                            // filter does not match a document where the field key is absent.
                             OR: [
                                 { endDate: null },
-                                { endDate: { isSet: false } },
                                 { endDate: { gte: startOfRange } },
                             ]
                         }

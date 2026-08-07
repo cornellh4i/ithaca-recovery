@@ -1,6 +1,7 @@
 import "server-only";
 import { IMeeting } from "../util/models";
 import { findResourceConflicts, OccurrenceInput, OccupiedClaim } from "../util/resourceOverlap";
+import { prisma } from "../lib/prisma";
 
 const ZOOM_BASE_API = process.env.NEXT_PUBLIC_ZOOM_BASE_API ?? "https://api.zoom.us/v2";
 
@@ -88,7 +89,7 @@ export async function checkZoomHostPoolAvailability(
   opts: { excludeMid?: string } = {},
 ): Promise<{ host: string; available: boolean }[]> {
   return Promise.all(zoomHostPool.map(async (host) => {
-    const conflicts = await findResourceConflicts("zoomHost", host, candidate, {
+    const conflicts = await findResourceConflicts("zoomHost", host, candidate, prisma, {
       excludeMid: opts.excludeMid,
       includeSuspended: true,
     });
@@ -109,7 +110,7 @@ export async function resolveZoomHost(
   opts: { excludeMid?: string; extraOccupied?: OccupiedClaim[] } = {},
 ): Promise<string | null> {
   for (const host of zoomHostPool) {
-    const conflicts = await findResourceConflicts("zoomHost", host, candidate, {
+    const conflicts = await findResourceConflicts("zoomHost", host, candidate, prisma, {
       excludeMid: opts.excludeMid,
       includeSuspended: true,
       extraOccupied: opts.extraOccupied,

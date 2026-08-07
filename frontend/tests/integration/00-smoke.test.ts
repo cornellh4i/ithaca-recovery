@@ -7,7 +7,7 @@ afterAll(async () => {
   await disconnectTestPrismaClient();
 });
 
-test("seed factories write to and read back from the in-memory Mongo replica set", async () => {
+test("seed factories write to and read back from the embedded Postgres server", async () => {
   const admin = await seedAdmin(Role.SUPER_ADMIN);
   const meeting = await seedMeeting({ title: "Integration Smoke Meeting" });
 

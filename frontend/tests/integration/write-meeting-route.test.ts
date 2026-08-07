@@ -292,6 +292,11 @@ test("confirmOverride: true bypasses the zoomHost conflict block, creates the me
   // a specific error, not the generic "pool exhausted" one.
   expect(created.zoomHost).toBeNull();
   expect(created.zoomSyncError).toMatch(/conflicts with another meeting/i);
+  // Regression coverage: the losing host pick must still be recorded so the Diagnostics
+  // Conflicts panel can bucket this meeting against conflictHost's holder (see
+  // computeConflicts' attemptedZoomHost fallback in util/resourceOverlap.ts) — previously this
+  // was discarded entirely, leaving a real conflict invisible in that panel.
+  expect(created.attemptedZoomHost).toBe(conflictHost);
 
   const afterSync = await waitForGoogleSyncStatus(created.mid);
   expect(afterSync?.googleSyncStatus).toBe("pending");
@@ -299,6 +304,57 @@ test("confirmOverride: true bypasses the zoomHost conflict block, creates the me
   expect(mockedResolveZoomHost).not.toHaveBeenCalled();
   expect(mockedCreateZoomMeeting).not.toHaveBeenCalled();
   expect(mockedCreateCalendarEvent).not.toHaveBeenCalled();
+});
+
+test("confirmOverride: true on a count-bounded recurring series checks zoomHost against its real end date, not the full horizon", async () => {
+  const prisma = getTestPrismaClient();
+  const host = "count-bounded-host@icr.test";
+
+  // 5 consecutive days starting Nov 1 2026 (daysOfWeek: ALL_DAYS + no explicit endDate, only
+  // numberOfOccurrences) -- real last occurrence is Nov 5 2026. A naive check against the raw
+  // (still-null) endDate would instead expand this out to the full 2-year OVERLAP_HORIZON_YEARS
+  // window and wrongly catch the Feb 2027 meeting below as a conflict.
+  const busyMid = `m-${randomUUID()}`;
+  await prisma.meeting.create({
+    data: {
+      mid: busyMid, title: "Far-future host holder", modeType: "Hybrid", description: "", creator: "Creator", group: "Group",
+      startDateTime: new Date("2027-02-01T20:00:00Z"), endDateTime: new Date("2027-02-01T21:00:00Z"),
+      email: "busy@test.icr", zoomRoom: "Unity Room - Zoom",
+      calType: ["AA"], status: "Active", room: "Unity Room", isRecurring: false,
+      zid: "zid-far-future", zoomHost: host,
+    },
+  });
+
+  const payload = {
+    ...buildMeetingPayload({
+      modeType: "Hybrid", room: "Fellowship Room", zoomRoom: "Fellowship Room - Zoom", zoomHost: host,
+      startDateTime: new Date("2026-11-01T20:00:00Z"), endDateTime: new Date("2026-11-01T21:00:00Z"),
+      isRecurring: true,
+      recurrencePattern: {
+        type: "weekly",
+        startDate: new Date("2026-11-01T00:00:00Z"),
+        firstDayOfWeek: "Sunday",
+        interval: 1,
+        daysOfWeek: ALL_DAYS,
+        numberOfOccurrences: 5,
+      },
+    }),
+    confirmOverride: true,
+  };
+  const request = new Request("http://localhost/api/write/meeting", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+
+  const response = await POST(request);
+  expect(response.status).toBe(201);
+  const created = await response.json();
+
+  // No real conflict -- the series ends Nov 5 2026, well before the Feb 2027 meeting -- so the
+  // manually-picked host should be committed cleanly, not deferred with a false conflict error.
+  expect(created.zoomHost).toBe(host);
+  expect(created.zoomSyncError).toBeFalsy();
+  expect(created.attemptedZoomHost).toBeNull();
 });
 
 test("a Remote meeting (no zoomRoom) still gets a Zoom meeting created, and its main calendar event carries the real zoomLink", async () => {

@@ -9,7 +9,7 @@ import { getUnresolvedSuspension } from "../../../../util/suspension";
 import { formatETDateString } from "../../../../util/timeUtils";
 import { prisma } from "../../../../lib/prisma";
 
-const notDeleted = { OR: [{ deletedAt: null }, { deletedAt: { isSet: false } }] };
+const notDeleted = { deletedAt: null };
 
 // Diagnostics for the Admin page's Diagnostics tab: DB health, GCal reachability per
 // category, Zoom account reachability, per-room Zoom calendar validity, per-host Zoom pool
@@ -53,7 +53,8 @@ export const GET = async () => {
       where: notDeleted,
       select: {
         mid: true, title: true, group: true, status: true, calType: true, isRecurring: true,
-        googleSyncStatus: true, zoomRoom: true, zoomHost: true, zoomSyncStatus: true, zoomSyncError: true,
+        googleSyncStatus: true, zoomRoom: true, zoomHost: true, attemptedZoomHost: true,
+        zoomSyncStatus: true, zoomSyncError: true,
         room: true, modeType: true, startDateTime: true, endDateTime: true,
         recurrencePattern: true, updatedAt: true, suspensions: true,
       },

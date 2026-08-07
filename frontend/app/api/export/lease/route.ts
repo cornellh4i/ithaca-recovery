@@ -5,7 +5,7 @@ import { formatDayColumn } from "../../../../util/recurrenceDisplay";
 import type { ILeaseSettings, IRoomRate } from "../../../../util/models";
 import { prisma } from "../../../../lib/prisma";
 
-const notDeleted = { OR: [{ deletedAt: null }, { deletedAt: { isSet: false } }] };
+const notDeleted = { deletedAt: null };
 
 function determinePremiseType(room: string, zoomRoom: string | null): string {
   if (room === "Zoom Only" || room === "") return "Zoom Only";
