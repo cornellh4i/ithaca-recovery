@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import type { Role } from "@prisma/client";
 import Groups3Icon from "@mui/icons-material/Groups3";
 import SearchIcon from "@mui/icons-material/Search";
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import ArrowDropUpIcon from "@mui/icons-material/ArrowDropUp";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 import type { IAdmin } from "../../../../util/models";
@@ -19,6 +20,16 @@ const rolePillVariant: Record<Role, StatusPillVariant> = {
   SUPER_ADMIN: "error",
   ADMIN: "success",
   USER: "neutral",
+};
+
+// Ascending (User -> Super Admin), each explanation phrased as "everything the role below can
+// do, plus X" so the hierarchy reads clearly top-to-bottom without repeating the full list.
+const ROLE_LEGEND_ORDER: Role[] = ["USER", "ADMIN", "SUPER_ADMIN"];
+
+const roleExplanation: Record<Role, string> = {
+  USER: "Can view meetings.",
+  ADMIN: "Everything User can, plus create and edit meetings.",
+  SUPER_ADMIN: "Everything Admin can, plus manage users and export data.",
 };
 
 // Higher rank sorts first in descending order -- Super Admin > Admin > User, per the ranking
@@ -49,6 +60,7 @@ const UsersTab: React.FC = () => {
   const [sortColumn, setSortColumn] = useState<SortColumn | null>(null);
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [search, setSearch] = useState("");
+  const [legendOpen, setLegendOpen] = useState(false);
 
   const loadAdmins = async () => {
     setLoading(true);
@@ -85,6 +97,18 @@ const UsersTab: React.FC = () => {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [openMenuEmail]);
+
+  // Same pattern as the kebab menu's outside-click handling above, keyed off its own attribute.
+  useEffect(() => {
+    if (!legendOpen) return;
+    const handleClickOutside = (event: MouseEvent) => {
+      if (!(event.target as HTMLElement).closest("[data-role-legend]")) {
+        setLegendOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [legendOpen]);
 
   const superAdminCount = admins.filter((a) => a.role === "SUPER_ADMIN").length;
 
@@ -228,6 +252,33 @@ const UsersTab: React.FC = () => {
                             <ArrowDropDownIcon fontSize="small" />
                           )}
                         </button>
+                        {key === "role" && (
+                          <div className={styles.legendAnchor} data-role-legend>
+                            <button
+                              className={styles.infoButton}
+                              aria-label="What do roles mean?"
+                              aria-expanded={legendOpen}
+                              onClick={() => setLegendOpen((open) => !open)}
+                            >
+                              <InfoOutlinedIcon fontSize="small" />
+                            </button>
+                            {legendOpen && (
+                              <div className={styles.legendPopover}>
+                                <div className={styles.legendPopoverTitle}>Roles</div>
+                                <div className={styles.legendTable}>
+                                  {ROLE_LEGEND_ORDER.map((role) => (
+                                    <React.Fragment key={role}>
+                                      <div className={styles.legendPillCell}>
+                                        <StatusPill variant={rolePillVariant[role]}>{ROLE_LABEL[role]}</StatusPill>
+                                      </div>
+                                      <div className={styles.legendDescCell}>{roleExplanation[role]}</div>
+                                    </React.Fragment>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </span>
                     </th>
                   );

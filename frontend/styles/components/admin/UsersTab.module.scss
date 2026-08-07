@@ -212,3 +212,69 @@
   color: $medium-grey-color;
   font-size: 14px;
 }
+
+.legendAnchor {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.infoButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: $medium-grey-color;
+
+  &:hover {
+    color: $black-color;
+  }
+}
+
+// White surface (unlike the grey .meetingListBox-style informational boxes elsewhere) -- a
+// popover reads as a transient overlay regardless of fill, so it doesn't need a grey background
+// to signal "not part of the table" the way an inline box would.
+.legendPopover {
+  position: absolute;
+  top: 22px;
+  right: 0;
+  background: #fff;
+  border: 1px solid $grey-border-color;
+  border-radius: $radius-sm;
+  box-shadow: 0 4px 12px rgb(0 0 0 / 15%);
+  padding: 14px 16px;
+  z-index: $z-index-dropdown;
+  width: 320px;
+
+  // Header cells are font-weight: 600/uppercase-adjacent styling -- reset both so the popover's
+  // own content doesn't inherit them.
+  font-weight: 400;
+  text-transform: none;
+}
+
+.legendPopoverTitle {
+  font-size: 13px;
+  font-weight: 600;
+  color: $black-color;
+  margin-bottom: 10px;
+}
+
+.legendTable {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 10px 14px;
+  align-items: center;
+}
+
+.legendPillCell {
+  display: flex;
+}
+
+.legendDescCell {
+  font-size: 13px;
+  color: #555;
+  line-height: 1.4;
+}
