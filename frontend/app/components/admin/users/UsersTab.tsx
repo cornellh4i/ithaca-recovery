@@ -10,6 +10,7 @@ import ArrowDropUpIcon from "@mui/icons-material/ArrowDropUp";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 import type { IAdmin } from "../../../../util/models";
 import Card from "../shared/Card";
+import TopLoadingBar from "../../atoms/TopLoadingBar";
 import StatusPill, { type StatusPillVariant } from "../../atoms/StatusPill";
 import EditRoleModal from "./EditRoleModal";
 import RemoveUserModal from "./RemoveUserModal";
@@ -50,7 +51,10 @@ const SORT_COLUMNS: { key: SortColumn; label: string }[] = [
 ];
 
 const UsersTab: React.FC = () => {
-  const [admins, setAdmins] = useState<IAdmin[]>([]);
+  // null means "not yet loaded" (distinct from "loaded, zero admins") -- lets a refetch after
+  // invite/role-change/remove show just the TopLoadingBar over the existing rows instead of
+  // blanking the whole table back to "Loading users…" every time.
+  const [admins, setAdmins] = useState<IAdmin[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [inviting, setInviting] = useState(false);
@@ -142,7 +146,7 @@ const UsersTab: React.FC = () => {
     };
   }, [legendOpen]);
 
-  const superAdminCount = admins.filter((a) => a.role === "SUPER_ADMIN").length;
+  const superAdminCount = (admins ?? []).filter((a) => a.role === "SUPER_ADMIN").length;
 
   const handleSort = (column: SortColumn) => {
     if (sortColumn === column) {
@@ -154,9 +158,10 @@ const UsersTab: React.FC = () => {
   };
 
   const filteredAdmins = useMemo(() => {
+    const list = admins ?? [];
     const query = search.trim().toLowerCase();
-    if (!query) return admins;
-    return admins.filter(
+    if (!query) return list;
+    return list.filter(
       (a) => a.name.toLowerCase().includes(query) || a.email.toLowerCase().includes(query),
     );
   }, [admins, search]);
@@ -196,11 +201,11 @@ const UsersTab: React.FC = () => {
   };
 
   const handleRoleChange = async (email: string, newRole: Role) => {
-    const previousRole = admins.find((a) => a.email === email)?.role;
+    const previousRole = admins?.find((a) => a.email === email)?.role;
     setEditTarget(null);
     if (!previousRole || previousRole === newRole) return;
 
-    setAdmins((prev) => prev.map((a) => (a.email === email ? { ...a, role: newRole } : a)));
+    setAdmins((prev) => prev?.map((a) => (a.email === email ? { ...a, role: newRole } : a)) ?? prev);
     try {
       const response = await fetch("/api/update/admin", {
         method: "PUT",
@@ -210,12 +215,12 @@ const UsersTab: React.FC = () => {
       if (!response.ok) {
         const json = await response.json().catch(() => ({}));
         alert(json.error ?? "Failed to update role.");
-        setAdmins((prev) => prev.map((a) => (a.email === email ? { ...a, role: previousRole } : a)));
+        setAdmins((prev) => prev?.map((a) => (a.email === email ? { ...a, role: previousRole } : a)) ?? prev);
       }
     } catch (err) {
       console.error("Error updating role:", err);
       alert("Failed to update role.");
-      setAdmins((prev) => prev.map((a) => (a.email === email ? { ...a, role: previousRole } : a)));
+      setAdmins((prev) => prev?.map((a) => (a.email === email ? { ...a, role: previousRole } : a)) ?? prev);
     }
   };
 
@@ -242,10 +247,11 @@ const UsersTab: React.FC = () => {
   return (
     <div className={styles.container}>
       <Card>
+        <TopLoadingBar active={loading} />
         <div className={styles.headerRow}>
           <div className={styles.panelHeader}>
             <span className={styles.panelIconUsers}><Groups3Icon fontSize="small" /></span>
-            Users ({admins.length})
+            Users ({(admins ?? []).length})
           </div>
           <div className={styles.headerActions}>
             <div className={styles.searchField}>
@@ -261,9 +267,9 @@ const UsersTab: React.FC = () => {
             <button className={styles.inviteButton} onClick={() => setInviteOpen(true)}>Invite</button>
           </div>
         </div>
-        {loading && <div className={styles.emptyState}>Loading users…</div>}
+        {admins === null && !error && <div className={styles.emptyState}>Loading users…</div>}
         {error && <div className={styles.emptyState}>{error}</div>}
-        {!loading && !error && (
+        {admins !== null && !error && (
           <div className={styles.tableWrapper}>
             <table className={styles.table}>
               <thead>
