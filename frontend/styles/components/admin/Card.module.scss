@@ -5,4 +5,8 @@
   padding: 20px 24px;
   width: 100%;
   box-sizing: border-box;
+
+  // Anchors a caller's <TopLoadingBar> to this card's own bounds (same pattern as
+  // WeekView.module.scss's .outerContainer) rather than the page's initial containing block.
+  position: relative;
 }
