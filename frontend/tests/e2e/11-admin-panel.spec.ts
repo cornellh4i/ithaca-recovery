@@ -41,7 +41,7 @@ test.describe("admin panel", () => {
     await page.goto("/admin");
 
     const panel = page.getByTestId("diagnostics-conflicts-panel");
-    await expect(panel.getByText("⚠ Conflicts (1)")).toBeVisible();
+    await expect(panel.getByText("Conflicts (1)")).toBeVisible();
     await expect(panel.getByText("Double Book A", { exact: false })).toBeVisible();
     await expect(panel.getByText("Double Book B", { exact: false })).toBeVisible();
   });

@@ -68,6 +68,10 @@ const SystemStatusCard: React.FC<SystemStatusCardProps> = ({ email, role }) => {
   // determine license status (e.g. Zoom unreachable), and counting that alongside a confirmed
   // Licensed host would overstate this line, which reads as a positive claim ("N licensed").
   const hostPoolLicensedCount = hostPoolEntries.filter(([, s]) => s.licensed === true).length;
+  // Explicit filter, not hostPoolEntries.length - hostPoolLicensedCount -- that subtraction
+  // would also sweep in unreachable hosts (ok: false, licensed: null), miscounting them as
+  // confirmed Basic-tier rather than unknown/unreachable.
+  const hostPoolBasicCount = hostPoolEntries.filter(([, s]) => s.ok && s.licensed === false).length;
 
   return (
     <Card>
@@ -92,7 +96,7 @@ const SystemStatusCard: React.FC<SystemStatusCardProps> = ({ email, role }) => {
       <div className={styles.gcalSubRow}>
         {gcalEntries.map(([cat, ok]) => (
           <span key={cat} className={ok ? styles.gcalOk : styles.gcalDown}>
-            {cat}: {ok ? "✓" : "✕ unreachable"}
+            {ok ? cat : `${cat}: unreachable`}
           </span>
         ))}
       </div>
@@ -101,27 +105,31 @@ const SystemStatusCard: React.FC<SystemStatusCardProps> = ({ email, role }) => {
         <span className={`${styles.dot} ${data.zoom.reachable ? styles.dotOk : styles.dotDown}`} />
         <span className={styles.statusLabel}>Zoom</span>
         <span className={styles.statusDetail}>
-          {data.zoom.reachable ? "Account reachable" : "Account unreachable"}
-          {" · "}{roomCalendarOkCount}/{roomCalendarEntries.length} room calendars reachable
-          {" · "}{hostPoolReachableCount}/{hostPoolEntries.length} pooled hosts reachable
-          {" · "}{hostPoolLicensedCount}/{hostPoolEntries.length} licensed
+          {data.zoom.reachable ? "App reachable" : "App unreachable"}
+          {" · "}{roomCalendarOkCount}/{roomCalendarEntries.length} rooms
+          {" · "}{hostPoolReachableCount}/{hostPoolEntries.length} hosts
         </span>
       </div>
       <div className={styles.gcalSubRow}>
         {roomCalendarEntries.map(([room, ok]) => (
           <span key={room} className={ok ? styles.gcalOk : styles.gcalDown}>
-            {room.replace(/ - Zoom$/, "")}: {ok ? "✓" : "✕ unreachable"}
+            {ok ? room.replace(/ - Zoom$/, "") : `${room.replace(/ - Zoom$/, "")}: unreachable`}
           </span>
         ))}
       </div>
-      <div className={styles.gcalSubRow}>
+
+      <div className={styles.pooledHosts}>
+        <div className={styles.pooledHostsHeader}>
+          POOLED HOSTS · {hostPoolReachableCount} reachable · {hostPoolLicensedCount} Licensed, {hostPoolBasicCount} Basic
+        </div>
         {hostPoolEntries.map(([host, s]) => {
-          let detail = s.ok ? "✓" : "✕ unreachable";
-          if (s.ok && s.licensed === false) detail += " (Basic — 40min cap)";
+          const tagClass = !s.ok ? styles.hostTagUnreachable : s.licensed === false ? styles.hostTagBasic : styles.hostTagLicensed;
+          const tagText = !s.ok ? "Unreachable" : s.licensed === false ? "Basic · 40 min cap" : "Licensed";
           return (
-            <span key={host} className={s.ok && s.licensed !== false ? styles.gcalOk : styles.gcalDown}>
-              {host}: {detail}
-            </span>
+            <div key={host} className={styles.pooledHostRow}>
+              <span>{host}</span>
+              <span className={tagClass}>{tagText}</span>
+            </div>
           );
         })}
       </div>

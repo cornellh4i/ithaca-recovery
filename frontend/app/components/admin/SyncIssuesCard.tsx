@@ -70,10 +70,10 @@ const SyncIssuesCard: React.FC = () => {
     }
   };
 
-  if (error) return <Card data-testid="diagnostics-sync-issues-panel">{error}</Card>;
+  if (error) return <Card accent="syncIssues" data-testid="diagnostics-sync-issues-panel">{error}</Card>;
   if (!syncIssues) {
     return (
-      <Card data-testid="diagnostics-sync-issues-panel">
+      <Card accent="syncIssues" data-testid="diagnostics-sync-issues-panel">
         <TopLoadingBar active={loading} />
         Loading sync issues…
       </Card>
@@ -81,9 +81,12 @@ const SyncIssuesCard: React.FC = () => {
   }
 
   return (
-    <Card data-testid="diagnostics-sync-issues-panel">
+    <Card accent="syncIssues" data-testid="diagnostics-sync-issues-panel">
       <TopLoadingBar active={loading} />
-      <div className={styles.panelHeader}>⚠ Sync Issues ({syncIssues.length})</div>
+      <div className={styles.panelHeader}>
+        <span className={`${styles.panelIcon} ${styles.panelIconSyncIssues}`} />
+        Sync Issues ({syncIssues.length})
+      </div>
       <div className={styles.panelSubhead}>
         Meetings that failed to sync to Zoom or Google Calendar, or are waiting on a Zoom host to
         become available. Retry here, or open the meeting to edit it if retrying doesn&apos;t resolve it.

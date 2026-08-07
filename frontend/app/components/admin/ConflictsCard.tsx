@@ -39,10 +39,10 @@ const ConflictsCard: React.FC = () => {
     load();
   }, []);
 
-  if (error) return <Card data-testid="diagnostics-conflicts-panel">{error}</Card>;
+  if (error) return <Card accent="conflicts" data-testid="diagnostics-conflicts-panel">{error}</Card>;
   if (!conflicts) {
     return (
-      <Card data-testid="diagnostics-conflicts-panel">
+      <Card accent="conflicts" data-testid="diagnostics-conflicts-panel">
         <TopLoadingBar active={loading} />
         Loading conflicts…
       </Card>
@@ -50,9 +50,12 @@ const ConflictsCard: React.FC = () => {
   }
 
   return (
-    <Card data-testid="diagnostics-conflicts-panel">
+    <Card accent="conflicts" data-testid="diagnostics-conflicts-panel">
       <TopLoadingBar active={loading} />
-      <div className={styles.panelHeader}>⚠ Conflicts ({conflicts.length})</div>
+      <div className={styles.panelHeader}>
+        <span className={`${styles.panelIcon} ${styles.panelIconConflicts}`} />
+        Conflicts ({conflicts.length})
+      </div>
       <div className={styles.panelSubhead}>
         These meetings share a room, Zoom room, or Zoom host at overlapping times. Review and edit one to resolve.
       </div>

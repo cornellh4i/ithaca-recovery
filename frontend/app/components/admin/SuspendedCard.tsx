@@ -91,10 +91,10 @@ const SuspendedCard: React.FC = () => {
     }
   };
 
-  if (error) return <Card data-testid="diagnostics-suspended-panel">{error}</Card>;
+  if (error) return <Card accent="suspended" data-testid="diagnostics-suspended-panel">{error}</Card>;
   if (!suspendedMeetings) {
     return (
-      <Card data-testid="diagnostics-suspended-panel">
+      <Card accent="suspended" data-testid="diagnostics-suspended-panel">
         <TopLoadingBar active={loading} />
         Loading suspended meetings…
       </Card>
@@ -103,9 +103,12 @@ const SuspendedCard: React.FC = () => {
 
   return (
     <>
-      <Card data-testid="diagnostics-suspended-panel">
+      <Card accent="suspended" data-testid="diagnostics-suspended-panel">
         <TopLoadingBar active={loading} />
-        <div className={styles.panelHeader}>⏸ Suspended ({total})</div>
+        <div className={styles.panelHeader}>
+          <span className={`${styles.panelIcon} ${styles.panelIconSuspended}`} />
+          Suspended ({total})
+        </div>
         <div className={styles.panelSubhead}>
           Meetings currently suspended, or with a suspension scheduled for a future date. Active
           ones are hidden from the live calendar and Google Calendar; scheduled ones still show

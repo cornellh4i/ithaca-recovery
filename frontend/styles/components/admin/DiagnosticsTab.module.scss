@@ -36,7 +36,7 @@
 }
 
 .dotDown {
-  background-color: $brand-pink-color;
+  background-color: $danger-color;
 }
 
 .statusLabel {
@@ -69,6 +69,44 @@
   color: $brand-pink-color;
 }
 
+.pooledHosts {
+  background: $grey-lightest-color;
+  border-radius: 6px;
+  padding: 10px 14px;
+  margin: 4px 0 6px;
+}
+
+.pooledHostsHeader {
+  font-size: 12px;
+  font-weight: 600;
+  color: $medium-grey-color;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  margin-bottom: 6px;
+}
+
+.pooledHostRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+  padding: 2px 0;
+  color: #555;
+}
+
+.hostTagLicensed {
+  color: #555;
+}
+
+.hostTagBasic {
+  color: $warning-text-color;
+}
+
+.hostTagUnreachable {
+  color: $danger-color;
+}
+
 .countsRow {
   display: flex;
   gap: 40px;
@@ -83,10 +121,42 @@
 }
 
 .panelHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   font-size: 16px;
   font-weight: 600;
   color: $black-color;
   margin-bottom: 4px;
+}
+
+// Renders each panel's SVG (public/svg/) as a CSS mask rather than an <img>, so it can be
+// tinted per-panel via background-color -- the source files themselves ship with a single
+// fixed fill baked in (reused elsewhere at that color, e.g. pause-icon.svg's warning-orange
+// in the meeting-suspend UI), so recoloring the shared asset itself isn't an option here.
+.panelIcon {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  mask-repeat: no-repeat;
+  mask-position: center;
+  mask-size: contain;
+}
+
+.panelIconSyncIssues {
+  background-color: $brand-pink-color;
+  mask-image: url('/svg/sync-error-icon.svg');
+}
+
+.panelIconConflicts {
+  background-color: $warning-text-color;
+  mask-image: url('/svg/warning-icon.svg');
+}
+
+.panelIconSuspended {
+  background-color: $navy-color;
+  mask-image: url('/svg/pause-icon.svg');
 }
 
 .panelSubhead {
