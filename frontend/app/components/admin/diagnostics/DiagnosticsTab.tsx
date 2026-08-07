@@ -7,7 +7,7 @@ import MeetingCountsCard from "./MeetingCountsCard";
 import SyncIssuesCard from "./SyncIssuesCard";
 import ConflictsCard from "./ConflictsCard";
 import SuspendedCard from "./SuspendedCard";
-import styles from "../../../styles/components/admin/DiagnosticsTab.module.scss";
+import styles from "../../../../styles/components/admin/DiagnosticsTab.module.scss";
 
 interface DiagnosticsTabProps {
   email: string;

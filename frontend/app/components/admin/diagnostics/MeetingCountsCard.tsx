@@ -1,10 +1,11 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import StatCounter from "../atoms/StatCounter";
-import Card from "./Card";
-import TopLoadingBar from "../atoms/TopLoadingBar";
-import styles from "../../../styles/components/admin/DiagnosticsTab.module.scss";
+import EventAvailableIcon from "@mui/icons-material/EventAvailable";
+import StatCounter from "../../atoms/StatCounter";
+import Card from "../shared/Card";
+import TopLoadingBar from "../../atoms/TopLoadingBar";
+import styles from "../../../../styles/components/admin/DiagnosticsTab.module.scss";
 
 interface MeetingCountsData {
   total: number;
@@ -13,9 +14,6 @@ interface MeetingCountsData {
   byCategory: Record<string, number>;
   recurring: number;
   oneTime: number;
-  gcalSyncErrors: number;
-  zoomSyncErrors: number;
-  pendingZoomSync: number;
 }
 
 const MeetingCountsCard: React.FC = () => {
@@ -44,43 +42,43 @@ const MeetingCountsCard: React.FC = () => {
     load();
   }, []);
 
-  if (error) return <Card>{error}</Card>;
-  if (!data) return <Card><TopLoadingBar active={loading} />Loading meeting counts…</Card>;
+  if (error) return <Card accent="meetingCounts">{error}</Card>;
+  if (!data) {
+    return (
+      <Card accent="meetingCounts">
+        <TopLoadingBar active={loading} />
+        Loading meeting counts…
+      </Card>
+    );
+  }
 
   return (
-    <Card>
+    <Card accent="meetingCounts">
       <TopLoadingBar active={loading} />
-      <div className={styles.sectionLabel}>MEETING COUNTS</div>
+      <div className={styles.panelHeader}>
+        <span className={styles.panelIconMeetingCounts}><EventAvailableIcon fontSize="small" /></span>
+        Meeting Counts
+      </div>
       <div className={styles.countsRow}>
         <StatCounter value={data.total} label="Total" />
         <StatCounter value={data.active} label="Active" />
-        <StatCounter value={data.suspended} label="Suspended" variant="warning" />
+        <StatCounter value={data.suspended} label="Suspended" variant="navy" />
       </div>
-      <div className={styles.countsSecondaryRow}>
-        <span>
+      <div className={styles.countsDivider} />
+      <div className={styles.countsDetailRow}>
+        <span className={styles.countsDetailLabel}>By fellowship</span>
+        <span className={styles.countsDetailValue}>
           {Object.entries(data.byCategory)
             .map(([cat, count]) => `${cat}: ${count}`)
             .join(" · ")}
         </span>
-        <span>
+      </div>
+      <div className={styles.countsDetailRow}>
+        <span className={styles.countsDetailLabel}>By schedule</span>
+        <span className={styles.countsDetailValue}>
           Recurring: {data.recurring} · One-time: {data.oneTime}
         </span>
       </div>
-      {(data.gcalSyncErrors > 0 || data.zoomSyncErrors > 0) && (
-        <div className={styles.countsSecondaryRow}>
-          <span className={styles.gcalDown}>
-            ⚠ Sync errors — Google Calendar: {data.gcalSyncErrors} · Zoom: {data.zoomSyncErrors}
-          </span>
-        </div>
-      )}
-      {data.pendingZoomSync > 0 && (
-        <div className={styles.countsSecondaryRow}>
-          <span className={styles.gcalDown}>
-            ⏳ Waiting on a Zoom host: {data.pendingZoomSync} — calendars
-            won&apos;t publish until a host becomes available (see Sync Issues below to retry)
-          </span>
-        </div>
-      )}
     </Card>
   );
 };

@@ -1,16 +1,16 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
-import Card from "./Card";
-import TopLoadingBar from "../atoms/TopLoadingBar";
-import EditMeetingSidebar from "../meeting-form/EditMeeting";
-import { IMeeting } from "../../../util/models";
-import { retryMeetingSync } from "../../../util/syncMeeting";
-import styles from "../../../styles/components/admin/DiagnosticsTab.module.scss";
+import Card from "../shared/Card";
+import TopLoadingBar from "../../atoms/TopLoadingBar";
+import EditMeetingSidebar from "../../meeting-form/EditMeeting";
+import { IMeeting } from "../../../../util/models";
+import { retryMeetingSync } from "../../../../util/syncMeeting";
+import styles from "../../../../styles/components/admin/DiagnosticsTab.module.scss";
 // Reuses ConflictList's inline-edit-panel styling (accordion expand + card treatment) rather
 // than duplicating it -- same pattern, same visual language, this card just isn't grouped by
 // resource so it doesn't need ConflictList's own grouping/rendering logic.
-import editStyles from "../../../styles/components/admin/ConflictList.module.scss";
+import editStyles from "../../../../styles/components/admin/ConflictList.module.scss";
 
 interface SyncIssueRow {
   mid: string;
@@ -133,13 +133,13 @@ const SyncIssuesCard: React.FC = () => {
         Sync Issues ({syncIssues.length})
       </div>
       <div className={styles.panelSubhead}>
-        Meetings that failed to sync to Zoom or Google Calendar, or are waiting on a Zoom host to
-        become available. Retry here, or open the meeting to edit it if retrying doesn&apos;t resolve it.
+        Failed to sync, or waiting on a Zoom host. Retry here; edit the meeting if that doesn&apos;t resolve it.
       </div>
       {syncIssues.length === 0 ? (
         <div className={styles.emptyState}>No sync issues.</div>
       ) : (
-        syncIssues.map((meeting) => {
+        <div className={styles.meetingListBox}>
+        {syncIssues.map((meeting) => {
           const isExpanded = expandedMid === meeting.mid;
           const meetingDetails = meetingCache[meeting.mid];
           return (
@@ -152,7 +152,12 @@ const SyncIssuesCard: React.FC = () => {
                     {meeting.room} · {meeting.modeType} · {meeting.calType.join(", ")}
                   </div>
                   {meeting.issues.map((issue) => (
-                    <div key={issue} className={styles.issueLine}>{issue}</div>
+                    <div
+                      key={issue}
+                      className={`${styles.issueLine} ${issue.startsWith("Waiting on a Zoom host") ? styles.warningText : styles.dangerText}`}
+                    >
+                      {issue}
+                    </div>
                   ))}
                 </div>
                 <div className={styles.rowActions}>
@@ -209,7 +214,8 @@ const SyncIssuesCard: React.FC = () => {
               </div>
             </div>
           );
-        })
+        })}
+        </div>
       )}
     </Card>
   );

@@ -114,6 +114,9 @@
   margin-top: 2px;
 }
 
+// Solid white background, not transparent -- this button sits inside .conflictBox's grey
+// surface, and a transparent background would blend into it instead of reading as a
+// distinct, clickable control.
 .editButton {
   flex-shrink: 0;
   margin-left: 16px;
@@ -123,7 +126,7 @@
   font-size: 13px;
   font-family: inherit;
   color: $black-color;
-  background: none;
+  background: #fff;
   cursor: pointer;
   white-space: nowrap;
 
@@ -131,8 +134,10 @@
     border-color: $medium-grey-color;
   }
 
+  // Distinct fill (not #fff, not $grey-lightest-color) so the expanded state stays visually
+  // flagged against both the idle button and .conflictBox's own background.
   &[aria-expanded="true"] {
     border-color: $medium-grey-color;
-    background: #F5F5F5;
+    background: $grey-border-color;
   }
 }

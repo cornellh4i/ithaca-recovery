@@ -8,26 +8,24 @@
   box-sizing: border-box;
 }
 
-.sectionLabel {
-  font-size: 16px;
-  font-weight: 600;
-  color: $medium-grey-color;
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
-  margin-bottom: 16px;
-}
-
-// One Database/Google Calendar/Zoom/Session block: a title row (dot + name), an indented
-// subtitle line below it, and (for Google Calendar/Zoom) further indented detail rows --
-// all sharing the same left edge (dot width + gap, $status-indent below) so the block reads
-// as one aligned column instead of the title/detail sitting in separate side-by-side columns.
-$status-indent: 21px;
+// One Database/Google Calendar/Zoom/Session block: a title row (dot + label + value, all
+// side by side) plus an optional indented line below it (category chips, room chips, the
+// POOLED HOSTS box, or Session's role). That indent lines up with where .statusValue starts
+// on the row above ($status-dot-gap + $status-label-width + row gap), not with the label --
+// so wrapped/secondary content reads as "under the value", matching the design mock.
+$status-dot-gap: 21px; // .dot's own width (9px) + .statusRow's gap (12px)
+$status-label-width: 160px;
+$status-value-indent: $status-dot-gap + $status-label-width + 12px;
 
 .statusBlock {
+  padding-bottom: 14px;
   margin-bottom: 14px;
+  border-bottom: 1px solid $grey-lightest-color;
 
   &:last-child {
+    padding-bottom: 0;
     margin-bottom: 0;
+    border-bottom: none;
   }
 }
 
@@ -54,39 +52,63 @@ $status-indent: 21px;
 
 .statusLabel {
   font-weight: 600;
+  width: $status-label-width;
+  flex-shrink: 0;
   color: $black-color;
 }
 
-.statusDetail {
+// The row's own value, inline next to .statusLabel (e.g. "Connected · 46ms").
+.statusValue {
   color: #555;
   font-size: 14px;
+}
+
+// A line below the title row -- Session's role, or (via .gcalSubRow/.pooledHosts below)
+// Google Calendar/Zoom's chips and pooled-hosts box. Indented to $status-value-indent so it
+// lines up under .statusValue above it, not under .statusLabel.
+.statusDetail {
+  color: $medium-grey-color;
+  font-size: 13px;
   margin-top: 2px;
-  padding-left: $status-indent;
+  padding-left: $status-value-indent;
 }
 
 .gcalSubRow {
   display: flex;
   flex-wrap: wrap;
   gap: 8px 16px;
-  padding-left: $status-indent;
+  padding-left: $status-value-indent;
   font-size: 13px;
-  color: #555;
+  color: $medium-grey-color;
   margin-top: 6px;
 }
 
 .gcalOk {
-  color: #555;
+  color: $medium-grey-color;
 }
 
-.gcalDown {
-  color: $brand-pink-color;
+// Split by severity rather than one blanket "down" color: an actual failure (sync error,
+// unreachable) is danger-color; a soft/pending state (waiting on a Zoom host, not broken, just
+// not resolved yet) is warning-color, so the two read as visually distinct at a glance.
+.dangerText {
+  color: $danger-color;
+}
+
+.warningText {
+  color: $warning-text-color;
+}
+
+// Suspended panel's own identity color, for its purely-informational status line (not itself
+// an error or a pending state, so neither .dangerText nor .warningText fits).
+.navyText {
+  color: $navy-color;
 }
 
 .pooledHosts {
   background: $grey-lightest-color;
   border-radius: 6px;
   padding: 10px 14px;
-  margin: 8px 0 0 $status-indent;
+  margin: 8px 0 0 $status-value-indent;
 }
 
 .pooledHostsHeader {
@@ -126,10 +148,25 @@ $status-indent: 21px;
   margin-bottom: 12px;
 }
 
-.countsSecondaryRow {
+.countsDivider {
+  border-top: 1px solid $grey-lightest-color;
+  margin: 12px 0;
+}
+
+.countsDetailRow {
   display: flex;
-  justify-content: space-between;
+  gap: 12px;
   font-size: 14px;
+  padding: 3px 0;
+}
+
+.countsDetailLabel {
+  width: 110px;
+  flex-shrink: 0;
+  color: $medium-grey-color;
+}
+
+.countsDetailValue {
   color: #555;
 }
 
@@ -158,7 +195,7 @@ $status-indent: 21px;
 }
 
 .panelIconSyncIssues {
-  background-color: $brand-pink-color;
+  background-color: $danger-color;
   mask-image: url('/svg/sync-error-icon.svg');
 }
 
@@ -172,6 +209,20 @@ $status-indent: 21px;
   mask-image: url('/svg/pause-icon.svg');
 }
 
+// System Status/Meeting Counts use real MUI icon components (MonitorHeart/EventAvailable)
+// rather than the mask-image treatment above -- an SVG React component already tints via
+// `color` (currentColor), so it doesn't need a background-color mask at all. Sized via the
+// icon's own fontSize prop, not width/height, to match how MUI icons scale internally.
+.panelIconSystemStatus {
+  display: inline-flex;
+  color: $medium-grey-color;
+}
+
+.panelIconMeetingCounts {
+  display: inline-flex;
+  color: $medium-grey-color;
+}
+
 .panelSubhead {
   font-size: 13px;
   color: #555;
@@ -183,8 +234,16 @@ $status-indent: 21px;
   font-size: 14px;
 }
 
+// Groups a panel's meeting rows into one surface, matching ConflictList.module.scss's
+// .conflictBox -- same visual language across Sync Issues, Conflicts, and Suspended.
+.meetingListBox {
+  background: $grey-lightest-color;
+  border-radius: 8px;
+  padding: 4px 16px;
+}
+
 .meetingRow {
-  border-top: 1px solid $grey-lightest-color;
+  border-top: 1px solid $grey-border-color;
   padding: 10px 0;
 
   &:first-of-type {
@@ -214,9 +273,10 @@ $status-indent: 21px;
   gap: 16px;
 }
 
+// Color comes from .dangerText/.warningText, applied alongside this in JSX per issue's
+// severity -- a "waiting on a host" line isn't a failure the same way "sync failed" is.
 .issueLine {
   font-size: 13px;
-  color: $brand-pink-color;
   margin-top: 4px;
 }
 
@@ -226,9 +286,12 @@ $status-indent: 21px;
   gap: 8px;
 }
 
+// Solid white background, not transparent -- these buttons sit inside .meetingListBox's
+// grey surface, and a transparent background would blend into it instead of reading as a
+// distinct, clickable control.
 .retryButton {
   flex-shrink: 0;
-  background: none;
+  background: #fff;
   border: 1px solid $grey-border-color;
   border-radius: 6px;
   padding: 6px 12px;
@@ -238,7 +301,7 @@ $status-indent: 21px;
   cursor: pointer;
 
   &:hover:not(:disabled) {
-    background-color: $grey-lightest-color;
+    border-color: $medium-grey-color;
   }
 
   &:disabled {

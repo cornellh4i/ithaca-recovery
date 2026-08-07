@@ -2,10 +2,10 @@
 
 import React, { useEffect, useState } from "react";
 import type { Role } from "@prisma/client";
-import type { IAdmin } from "../../../util/models";
-import Card from "./Card";
-import TextField from "../atoms/TextField";
-import styles from "../../../styles/components/admin/UsersTab.module.scss";
+import type { IAdmin } from "../../../../util/models";
+import Card from "../shared/Card";
+import TextField from "../../atoms/TextField";
+import styles from "../../../../styles/components/admin/UsersTab.module.scss";
 
 const roleLabel: Record<Role, string> = {
   SUPER_ADMIN: "Super Admin",

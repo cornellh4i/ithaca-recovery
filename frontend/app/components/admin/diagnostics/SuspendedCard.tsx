@@ -1,11 +1,11 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
-import Card from "./Card";
-import TopLoadingBar from "../atoms/TopLoadingBar";
-import ResumeMeetingModal from "../meeting-form/ResumeMeetingModal";
-import { formatSuspensionStatusText } from "../../../util/suspensionText";
-import styles from "../../../styles/components/admin/DiagnosticsTab.module.scss";
+import Card from "../shared/Card";
+import TopLoadingBar from "../../atoms/TopLoadingBar";
+import ResumeMeetingModal from "../../meeting-form/ResumeMeetingModal";
+import { formatSuspensionStatusText } from "../../../../util/suspensionText";
+import styles from "../../../../styles/components/admin/DiagnosticsTab.module.scss";
 
 interface SuspendedRow {
   mid: string;
@@ -110,38 +110,39 @@ const SuspendedCard: React.FC = () => {
           Suspended ({total})
         </div>
         <div className={styles.panelSubhead}>
-          Meetings currently suspended, or with a suspension scheduled for a future date. Active
-          ones are hidden from the live calendar and Google Calendar; scheduled ones still show
-          normally until their start date arrives. All remain in the system and can be reactivated
-          (or have a scheduled suspension cancelled) here or from the meeting itself.
+          Suspended now, or scheduled to be. Active suspensions are hidden from the live Google 
+          calendars; scheduled ones show normally until their start date. Nothing is deleted yet, 
+          you can resume or delete permanently here.
         </div>
         {suspendedMeetings.length === 0 ? (
           <div className={styles.emptyState}>No suspended meetings.</div>
         ) : (
-          suspendedMeetings.map((meeting) => (
-            <div key={meeting.mid} className={styles.meetingRow}>
-              <div className={styles.syncIssueRow}>
-                <div>
-                  <span className={styles.meetingTitle}>{meeting.title}</span>{" "}
-                  <span className={styles.meetingTags}>({meeting.calType.join(", ")})</span>
-                  <div className={styles.meetingMeta}>
-                    {meeting.room} · {meeting.modeType} · {meeting.calType.join(", ")}
+          <div className={styles.meetingListBox}>
+            {suspendedMeetings.map((meeting) => (
+              <div key={meeting.mid} className={styles.meetingRow}>
+                <div className={styles.syncIssueRow}>
+                  <div>
+                    <span className={styles.meetingTitle}>{meeting.title}</span>{" "}
+                    <span className={styles.meetingTags}>({meeting.calType.join(", ")})</span>
+                    <div className={styles.meetingMeta}>
+                      {meeting.room} · {meeting.modeType} · {meeting.calType.join(", ")}
+                    </div>
+                    <div className={`${styles.issueLine} ${styles.navyText}`}>
+                      {formatSuspensionStatusText(meeting.suspendedSince, meeting.resumesAt, meeting.suspensionActive)}
+                    </div>
                   </div>
-                  <div className={styles.issueLine}>
-                    {formatSuspensionStatusText(meeting.suspendedSince, meeting.resumesAt, meeting.suspensionActive)}
-                  </div>
+                  <button
+                    type="button"
+                    className={styles.retryButton}
+                    onClick={() => setResumeModalMeeting({ mid: meeting.mid, title: meeting.title, suspendedSince: meeting.suspendedSince, suspensionActive: meeting.suspensionActive })}
+                    disabled={resumingMid === meeting.mid}
+                  >
+                    {resumingMid === meeting.mid ? "Resuming…" : meeting.suspensionActive ? "Resume" : "Cancel"}
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  className={styles.retryButton}
-                  onClick={() => setResumeModalMeeting({ mid: meeting.mid, title: meeting.title, suspendedSince: meeting.suspendedSince, suspensionActive: meeting.suspensionActive })}
-                  disabled={resumingMid === meeting.mid}
-                >
-                  {resumingMid === meeting.mid ? "Resuming…" : meeting.suspensionActive ? "Resume" : "Cancel"}
-                </button>
               </div>
-            </div>
-          ))
+            ))}
+          </div>
         )}
       </Card>
 

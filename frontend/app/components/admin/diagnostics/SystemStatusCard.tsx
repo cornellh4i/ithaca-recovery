@@ -2,9 +2,10 @@
 
 import React, { useEffect, useState } from "react";
 import type { Role } from "@prisma/client";
-import Card from "./Card";
-import TopLoadingBar from "../atoms/TopLoadingBar";
-import styles from "../../../styles/components/admin/DiagnosticsTab.module.scss";
+import MonitorHeartIcon from "@mui/icons-material/MonitorHeart";
+import Card from "../shared/Card";
+import TopLoadingBar from "../../atoms/TopLoadingBar";
+import styles from "../../../../styles/components/admin/DiagnosticsTab.module.scss";
 
 interface SystemStatusCardProps {
   email: string;
@@ -53,8 +54,15 @@ const SystemStatusCard: React.FC<SystemStatusCardProps> = ({ email, role }) => {
     load();
   }, []);
 
-  if (error) return <Card>{error}</Card>;
-  if (!data) return <Card><TopLoadingBar active={loading} />Loading system status…</Card>;
+  if (error) return <Card accent="systemStatus">{error}</Card>;
+  if (!data) {
+    return (
+      <Card accent="systemStatus">
+        <TopLoadingBar active={loading} />
+        Loading system status…
+      </Card>
+    );
+  }
 
   const gcalEntries = Object.entries(data.googleCalendar.categories);
   const gcalReachableCount = gcalEntries.filter(([, ok]) => ok).length;
@@ -74,17 +82,20 @@ const SystemStatusCard: React.FC<SystemStatusCardProps> = ({ email, role }) => {
   const hostPoolBasicCount = hostPoolEntries.filter(([, s]) => s.ok && s.licensed === false).length;
 
   return (
-    <Card>
+    <Card accent="systemStatus">
       <TopLoadingBar active={loading} />
-      <div className={styles.sectionLabel}>SYSTEM STATUS</div>
+      <div className={styles.panelHeader}>
+        <span className={styles.panelIconSystemStatus}><MonitorHeartIcon fontSize="small" /></span>
+        System Status
+      </div>
 
       <div className={styles.statusBlock}>
         <div className={styles.statusRow}>
           <span className={`${styles.dot} ${data.database.ok ? styles.dotOk : styles.dotDown}`} />
           <span className={styles.statusLabel}>Database</span>
-        </div>
-        <div className={styles.statusDetail}>
-          {data.database.ok ? `Connected · ${data.database.latencyMs}ms` : "Unreachable"}
+          <span className={styles.statusValue}>
+            {data.database.ok ? `Connected · ${data.database.latencyMs}ms` : "Unreachable"}
+          </span>
         </div>
       </div>
 
@@ -92,13 +103,13 @@ const SystemStatusCard: React.FC<SystemStatusCardProps> = ({ email, role }) => {
         <div className={styles.statusRow}>
           <span className={`${styles.dot} ${gcalReachableCount === gcalEntries.length ? styles.dotOk : styles.dotDown}`} />
           <span className={styles.statusLabel}>Google Calendar</span>
-        </div>
-        <div className={styles.statusDetail}>
-          {gcalReachableCount}/{gcalEntries.length} calendars reachable
+          <span className={styles.statusValue}>
+            {gcalReachableCount}/{gcalEntries.length} calendars reachable
+          </span>
         </div>
         <div className={styles.gcalSubRow}>
           {gcalEntries.map(([cat, ok]) => (
-            <span key={cat} className={ok ? styles.gcalOk : styles.gcalDown}>
+            <span key={cat} className={ok ? styles.gcalOk : styles.dangerText}>
               {ok ? cat : `${cat}: unreachable`}
             </span>
           ))}
@@ -109,15 +120,15 @@ const SystemStatusCard: React.FC<SystemStatusCardProps> = ({ email, role }) => {
         <div className={styles.statusRow}>
           <span className={`${styles.dot} ${data.zoom.reachable ? styles.dotOk : styles.dotDown}`} />
           <span className={styles.statusLabel}>Zoom</span>
-        </div>
-        <div className={styles.statusDetail}>
-          {data.zoom.reachable ? "App reachable" : "App unreachable"}
-          {" · "}{roomCalendarOkCount}/{roomCalendarEntries.length} rooms
-          {" · "}{hostPoolReachableCount}/{hostPoolEntries.length} hosts
+          <span className={styles.statusValue}>
+            {data.zoom.reachable ? "App reachable" : "App unreachable"}
+            {" · "}{roomCalendarOkCount}/{roomCalendarEntries.length} rooms
+            {" · "}{hostPoolReachableCount}/{hostPoolEntries.length} hosts
+          </span>
         </div>
         <div className={styles.gcalSubRow}>
           {roomCalendarEntries.map(([room, ok]) => (
-            <span key={room} className={ok ? styles.gcalOk : styles.gcalDown}>
+            <span key={room} className={ok ? styles.gcalOk : styles.dangerText}>
               {ok ? room.replace(/ - Zoom$/, "") : `${room.replace(/ - Zoom$/, "")}: unreachable`}
             </span>
           ))}
@@ -142,7 +153,8 @@ const SystemStatusCard: React.FC<SystemStatusCardProps> = ({ email, role }) => {
       <div className={styles.statusBlock}>
         <div className={styles.statusRow}>
           <span className={styles.dot} style={{ backgroundColor: "#4CAF50" }} />
-          <span className={styles.statusLabel}>{email}</span>
+          <span className={styles.statusLabel}>Session</span>
+          <span className={styles.statusValue}>{email}</span>
         </div>
         <div className={styles.statusDetail}>{roleLabel[role] ?? role}</div>
       </div>

@@ -1,10 +1,10 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
-import Card from "./Card";
-import TopLoadingBar from "../atoms/TopLoadingBar";
+import Card from "../shared/Card";
+import TopLoadingBar from "../../atoms/TopLoadingBar";
 import ConflictList, { ConflictListRow } from "./ConflictList";
-import styles from "../../../styles/components/admin/DiagnosticsTab.module.scss";
+import styles from "../../../../styles/components/admin/DiagnosticsTab.module.scss";
 
 const ConflictsCard: React.FC = () => {
   const [conflicts, setConflicts] = useState<ConflictListRow[] | null>(null);
@@ -57,7 +57,7 @@ const ConflictsCard: React.FC = () => {
         Conflicts ({conflicts.length})
       </div>
       <div className={styles.panelSubhead}>
-        These meetings share a room, Zoom room, or Zoom host at overlapping times. Review and edit one to resolve.
+        Sharing a room, Zoom room, or Zoom host at overlapping times. Edit one to resolve.
       </div>
       <ConflictList conflicts={conflicts} onMeetingUpdated={load} />
     </Card>

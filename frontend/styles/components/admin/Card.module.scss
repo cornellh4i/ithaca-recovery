@@ -16,7 +16,7 @@
 // Left-border accent per Diagnostics panel type (2026-08-05 spec) -- color-codes each panel
 // at a glance instead of relying on header text alone.
 .accentSyncIssues {
-  border-left: 4px solid $brand-pink-color;
+  border-left: 4px solid $danger-color;
 }
 
 .accentConflicts {
@@ -25,4 +25,12 @@
 
 .accentSuspended {
   border-left: 4px solid $navy-color;
+}
+
+.accentSystemStatus {
+  border-left: 4px solid $medium-grey-color;
+}
+
+.accentMeetingCounts {
+  border-left: 4px solid $medium-grey-color;
 }

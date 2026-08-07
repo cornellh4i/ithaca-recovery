@@ -3,9 +3,9 @@
 import React, { useState } from "react";
 import type { Role } from "@prisma/client";
 import LockIcon from "@mui/icons-material/Lock";
-import DiagnosticsTab from "./DiagnosticsTab";
-import UsersTab from "./UsersTab";
-import ExportTab from "./ExportTab";
+import DiagnosticsTab from "./diagnostics/DiagnosticsTab";
+import UsersTab from "./users/UsersTab";
+import ExportTab from "./export/ExportTab";
 import styles from "../../../styles/components/admin/AdminShell.module.scss";
 
 interface AdminShellProps {
