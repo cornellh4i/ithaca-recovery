@@ -71,37 +71,42 @@ async function syncNewMeeting(
   const zoomBlocking = zoomEnabled && !zid && !zoomLink;
   const meetingForSync: IMeeting = { ...meetingData, isRecurring, zoomLink };
 
+  // Accumulated instead of written immediately -- these used to be two separate
+  // prisma.meeting.update calls (this block, then the zoom block below), leaving a real window
+  // where a poller could observe googleSyncStatus turn non-null before the zid/zoomHost write
+  // landed. `undefined` here means "this run never touched this field," same as omitting it
+  // from a Prisma update -- the single combined write below makes every field that *did* change
+  // visible atomically, in one row version.
+  let googleCalendarEventIds: Record<string, string> | undefined;
+  let googleSyncStatus: string | undefined;
+  let googleSyncError: string | null | undefined;
+
   if (zoomBlocking) {
-    await prisma.meeting.update({ where: { mid }, data: { googleSyncStatus: 'pending' } });
+    googleSyncStatus = 'pending';
   } else if (accessToken) {
     const requestedCalTypes = meetingData.calType ?? [];
     const calendarIds = calendarIdsForMeeting(requestedCalTypes);
     const eventIds: Record<string, string> = {};
     // A category missing from calendarIds never gets visited by the loop below, so without
     // this its GOOGLE_CALENDAR_* misconfiguration would count against `synced` (see the
-    // comment below) but leave googleSyncError null -- an "error" status with no error text.
+    // comment below) but leave the error null -- an "error" status with no error text.
     const unconfiguredCat = requestedCalTypes.find((cat) => !calendarIds[cat]);
-    let googleSyncError: string | null = unconfiguredCat
+    let syncError: string | null = unconfiguredCat
       ? `Calendar for "${unconfiguredCat}" is not configured.`
       : null;
     for (const [cat, calId] of Object.entries(calendarIds)) {
       const { id, error } = await createCalendarEvent(accessToken, meetingForSync, calId);
       if (id) eventIds[cat] = id;
-      else googleSyncError = googleSyncError ?? error;
+      else syncError = syncError ?? error;
     }
     // Checked against requestedCalTypes, not calendarIds -- a category missing from calendarIds
     // (its GOOGLE_CALENDAR_* env var isn't configured) must still count against `synced`, same
     // as one whose event failed to create. Comparing against calendarIds alone would silently
     // report success whenever some (or all) requested categories never even attempted to sync.
     const synced = requestedCalTypes.length > 0 && requestedCalTypes.every((cat) => eventIds[cat]);
-    await prisma.meeting.update({
-      where: { mid },
-      data: {
-        googleCalendarEventIds: eventIds,
-        googleSyncStatus: synced ? 'synced' : 'error',
-        googleSyncError: synced ? null : googleSyncError,
-      },
-    });
+    googleCalendarEventIds = eventIds;
+    googleSyncStatus = synced ? 'synced' : 'error';
+    googleSyncError = synced ? null : syncError;
   }
 
   if (zoomEnabled) {
@@ -128,7 +133,13 @@ async function syncNewMeeting(
         zid, zoomLink, zoomPasscode, zoomInvitation, zoomHost, zoomCalendarEventId,
         zoomSyncStatus: zoomSynced ? 'synced' : 'error',
         zoomSyncError: zoomSynced ? null : zoomSyncError,
+        googleCalendarEventIds, googleSyncStatus, googleSyncError,
       },
+    });
+  } else if (googleSyncStatus !== undefined) {
+    await prisma.meeting.update({
+      where: { mid },
+      data: { googleCalendarEventIds, googleSyncStatus, googleSyncError },
     });
   }
 }
