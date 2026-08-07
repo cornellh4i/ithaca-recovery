@@ -229,10 +229,12 @@
   }
 }
 
+// position: fixed, not absolute -- this is portaled to document.body (see UsersTab.tsx), so
+// it's no longer a descendant of the scrollable .tableWrapper (which would otherwise clip it
+// via overflow-x once the table goes wider than the viewport at phone width). top/right come
+// from an inline style computed in JS from the kebab button's actual on-screen position.
 .optionsMenu {
-  position: absolute;
-  right: 0;
-  top: 28px;
+  position: fixed;
   background: white;
   box-shadow: 0 4px 8px rgb(0 0 0 / 10%);
   border-radius: $radius-sm;

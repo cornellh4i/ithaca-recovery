@@ -3,6 +3,7 @@
 import React, { useLayoutEffect, useState } from "react";
 import type { Role } from "@prisma/client";
 import PersonAddAltIcon from "@mui/icons-material/PersonAddAlt";
+import Modal from "../../atoms/Modal";
 import RadioGroup from "../../atoms/RadioGroup";
 import TextField from "../../atoms/TextField";
 import { LABEL_TO_ROLE, ROLE_OPTIONS } from "../../../../util/roles";
@@ -34,8 +35,6 @@ const InviteUserModal: React.FC<InviteUserModalProps> = ({ isOpen, inviting, onC
     }
   }, [isOpen]);
 
-  if (!isOpen) return null;
-
   const trimmedEmail = email.trim();
   const isValid = EMAIL_PATTERN.test(trimmedEmail);
 
@@ -48,46 +47,50 @@ const InviteUserModal: React.FC<InviteUserModalProps> = ({ isOpen, inviting, onC
   };
 
   return (
-    <div className={styles.modalOverlay}>
-      <div className={styles.modalContent}>
-        <div className={styles.header}>
-          <span className={styles.iconCircle}>
-            <PersonAddAltIcon fontSize="small" />
-          </span>
-          <h2 className={styles.title}>Invite user</h2>
-        </div>
-
-        <div className={styles.field}>
-          <TextField
-            input="Email address"
-            value={email}
-            onChange={(value) => { setEmail(value); setTouched(true); }}
-            style={{ fontSize: "15px" }}
-          />
-          {touched && !isValid && <p className={styles.fieldError}>Enter a valid email address.</p>}
-        </div>
-
-        <RadioGroup
-          label="Role"
-          name="invite-role"
-          options={ROLE_OPTIONS}
-          selectedOption={roleOption}
-          onChange={setRoleOption}
-          style={{ paddingLeft: "48px" }}
-        />
-
-        <div className={styles.buttonContainer}>
-          <button className={styles.cancelButton} onClick={onCancel}>Cancel</button>
-          <button
-            className={styles.confirmButtonOutline}
-            onClick={handleInvite}
-            disabled={!isValid || inviting}
-          >
-            Send Invite
-          </button>
-        </div>
+    <Modal
+      isOpen={isOpen}
+      onClose={onCancel}
+      overlayClassName={styles.modalOverlay}
+      contentClassName={styles.modalContent}
+      labelledBy="invite-user-modal-title"
+    >
+      <div className={styles.header}>
+        <span className={styles.iconCircle}>
+          <PersonAddAltIcon fontSize="small" />
+        </span>
+        <h2 id="invite-user-modal-title" className={styles.title}>Invite user</h2>
       </div>
-    </div>
+
+      <div className={styles.field}>
+        <TextField
+          input="Email address"
+          value={email}
+          onChange={(value) => { setEmail(value); setTouched(true); }}
+          style={{ fontSize: "15px" }}
+        />
+        {touched && !isValid && <p className={styles.fieldError}>Enter a valid email address.</p>}
+      </div>
+
+      <RadioGroup
+        label="Role"
+        name="invite-role"
+        options={ROLE_OPTIONS}
+        selectedOption={roleOption}
+        onChange={setRoleOption}
+        style={{ paddingLeft: "48px" }}
+      />
+
+      <div className={styles.buttonContainer}>
+        <button className={styles.cancelButton} onClick={onCancel} disabled={inviting}>Cancel</button>
+        <button
+          className={styles.confirmButtonOutline}
+          onClick={handleInvite}
+          disabled={!isValid || inviting}
+        >
+          Send Invite
+        </button>
+      </div>
+    </Modal>
   );
 };
 

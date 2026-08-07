@@ -50,9 +50,11 @@ export const GET = async () => {
         suspensionActive: formatETDateString(suspension.from) <= todayStr,
       }));
 
-    // total is the uncapped count (matches Meeting Counts' suspendedOrPending) -- suspendedMeetings
-    // itself is sliced to the 20 most recently updated, so the panel's header count can't just use
-    // suspendedMeetings.length once that cap is hit.
+    // total is the uncapped count of suspendedOrPending -- suspendedMeetings itself is sliced to
+    // the 20 most recently updated, so the panel's header count can't just use
+    // suspendedMeetings.length once that cap is hit. Note this is not the same number as Meeting
+    // Counts' "suspended" figure: that one uses isDateSuspended (suspended as of today only),
+    // while suspendedOrPending here also includes suspensions scheduled to start in the future.
     return NextResponse.json({ suspendedMeetings, total: suspendedOrPending.length });
   } catch (error) {
     console.error("Error retrieving suspended meetings: ", error);

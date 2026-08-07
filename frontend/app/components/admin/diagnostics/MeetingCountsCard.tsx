@@ -5,6 +5,7 @@ import EventAvailableIcon from "@mui/icons-material/EventAvailable";
 import StatCounter from "../../atoms/StatCounter";
 import Card from "../shared/Card";
 import TopLoadingBar from "../../atoms/TopLoadingBar";
+import DiagnosticsCardError from "./DiagnosticsCardError";
 import styles from "../../../../styles/components/admin/DiagnosticsTab.module.scss";
 
 interface MeetingCountsData {
@@ -42,7 +43,13 @@ const MeetingCountsCard: React.FC = () => {
     load();
   }, []);
 
-  if (error) return <Card accent="meetingCounts">{error}</Card>;
+  if (error) {
+    return (
+      <Card accent="meetingCounts">
+        <DiagnosticsCardError message={error} onRetry={load} />
+      </Card>
+    );
+  }
   if (!data) {
     return (
       <Card accent="meetingCounts">

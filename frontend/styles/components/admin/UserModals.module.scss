@@ -150,8 +150,13 @@
   font-weight: 600;
   cursor: pointer;
 
-  &:hover {
+  &:hover:not(:disabled) {
     background-color: #F5F5F5;
+  }
+
+  &:disabled {
+    color: $medium-grey-color;
+    cursor: not-allowed;
   }
 }
 

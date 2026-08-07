@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import Card from "../shared/Card";
 import TopLoadingBar from "../../atoms/TopLoadingBar";
+import DiagnosticsCardError from "./DiagnosticsCardError";
 import ConflictList, { ConflictListRow } from "./ConflictList";
 import styles from "../../../../styles/components/admin/DiagnosticsTab.module.scss";
 
@@ -39,7 +40,13 @@ const ConflictsCard: React.FC = () => {
     load();
   }, []);
 
-  if (error) return <Card accent="conflicts" data-testid="diagnostics-conflicts-panel">{error}</Card>;
+  if (error) {
+    return (
+      <Card accent="conflicts" data-testid="diagnostics-conflicts-panel">
+        <DiagnosticsCardError message={error} onRetry={load} />
+      </Card>
+    );
+  }
   if (!conflicts) {
     return (
       <Card accent="conflicts" data-testid="diagnostics-conflicts-panel">

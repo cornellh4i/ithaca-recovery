@@ -5,6 +5,7 @@ import type { Role } from "@prisma/client";
 import MonitorHeartIcon from "@mui/icons-material/MonitorHeart";
 import Card from "../shared/Card";
 import TopLoadingBar from "../../atoms/TopLoadingBar";
+import DiagnosticsCardError from "./DiagnosticsCardError";
 import styles from "../../../../styles/components/admin/DiagnosticsTab.module.scss";
 
 interface SystemStatusCardProps {
@@ -54,7 +55,13 @@ const SystemStatusCard: React.FC<SystemStatusCardProps> = ({ email, role }) => {
     load();
   }, []);
 
-  if (error) return <Card accent="systemStatus">{error}</Card>;
+  if (error) {
+    return (
+      <Card accent="systemStatus">
+        <DiagnosticsCardError message={error} onRetry={load} />
+      </Card>
+    );
+  }
   if (!data) {
     return (
       <Card accent="systemStatus">
@@ -152,7 +159,7 @@ const SystemStatusCard: React.FC<SystemStatusCardProps> = ({ email, role }) => {
 
       <div className={styles.statusBlock}>
         <div className={styles.statusRow}>
-          <span className={styles.dot} style={{ backgroundColor: "#4CAF50" }} />
+          <span className={`${styles.dot} ${styles.dotOk}`} />
           <span className={styles.statusLabel}>Session</span>
           <span className={styles.statusValue}>{email}</span>
         </div>

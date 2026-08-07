@@ -67,10 +67,12 @@ test("counts a Remote meeting's Zoom sync error even though it has no zoomRoom",
   const { syncIssues } = await syncIssuesResponse.json();
 
   const remoteIssue = syncIssues.find((s: { title: string; modeType: string }) => s.title === "Diagnostics Count Meeting" && s.modeType === "Remote");
-  expect(remoteIssue.issues.some((i: string) => i.includes("Zoom sync failed"))).toBe(true);
+  expect(remoteIssue).toBeDefined();
+  expect(remoteIssue.issues.some((i: { text: string }) => i.text.includes("Zoom sync failed"))).toBe(true);
 
   const pendingIssue = syncIssues.find((s: { modeType: string }) => s.modeType === "Hybrid");
-  expect(pendingIssue.issues.some((i: string) => i.includes("Waiting on a Zoom host"))).toBe(true);
+  expect(pendingIssue).toBeDefined();
+  expect(pendingIssue.issues.some((i: { text: string }) => i.text.includes("Waiting on a Zoom host"))).toBe(true);
 });
 
 test("a stale zoomSyncStatus on an In Person meeting doesn't surface as a sync issue", async () => {

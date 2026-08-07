@@ -86,7 +86,7 @@
 // White card treatment so the expanded edit form reads as a distinct surface against
 // .conflictBox's grey background, rather than blending into it.
 .editCard {
-  background: #fff;
+  background: $white-color;
   border: 1.5px solid $grey-border-color;
   border-radius: 8px;
   padding: 16px 20px;
@@ -96,7 +96,7 @@
   padding: 16px 24px;
   font-size: 13px;
   color: $medium-grey-color;
-  background: #fff;
+  background: $white-color;
   border: 1.5px solid $grey-border-color;
   border-radius: 8px;
 }
@@ -131,7 +131,7 @@
   font-size: 13px;
   font-family: inherit;
   color: $black-color;
-  background: #fff;
+  background: $white-color;
   cursor: pointer;
   white-space: nowrap;
 

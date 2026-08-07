@@ -24,28 +24,34 @@ export const GET = async () => {
     // Which specific meetings are behind the zoomSyncErrors/pendingZoomSync counts on the
     // Meeting Counts panel -- the counts alone give no way to find and fix the actual meeting.
     // A meeting can carry both a pending-host wait and (independently) a Zoom error, so this
-    // collects whichever of the two apply per meeting rather than picking one.
-    const syncIssues = meetings
+    // collects whichever of the two apply per meeting rather than picking one. Severity is
+    // returned as structured data (not left for the card to infer from the message text) so a
+    // future wording change here can't silently break which style a row renders with.
+    const allSyncIssues = meetings
       .map((m) => {
         const needsZoom = m.modeType === "Hybrid" || m.modeType === "Remote";
-        const issues: string[] = [];
+        const issues: { text: string; severity: "warning" | "danger" }[] = [];
         if (m.googleSyncStatus === "pending") {
-          issues.push("Waiting on a Zoom host to become available — calendars not yet published.");
+          issues.push({ text: "Waiting on a Zoom host to become available — calendars not yet published.", severity: "warning" });
         } else if (m.googleSyncStatus === "error") {
-          issues.push("Google Calendar sync failed.");
+          issues.push({ text: "Google Calendar sync failed.", severity: "danger" });
         }
         if (needsZoom && m.zoomSyncStatus === "error") {
-          issues.push(m.zoomSyncError ? `Zoom sync failed: ${m.zoomSyncError}` : "Zoom sync failed.");
+          issues.push({ text: m.zoomSyncError ? `Zoom sync failed: ${m.zoomSyncError}` : "Zoom sync failed.", severity: "danger" });
         }
         return issues.length > 0
           ? { mid: m.mid, title: m.title, group: m.group, room: m.room, modeType: m.modeType, calType: m.calType, issues, updatedAt: m.updatedAt }
           : null;
       })
       .filter((m): m is NonNullable<typeof m> => m !== null)
-      .sort((a, b) => (b.updatedAt?.getTime() ?? 0) - (a.updatedAt?.getTime() ?? 0))
-      .slice(0, 50);
+      .sort((a, b) => (b.updatedAt?.getTime() ?? 0) - (a.updatedAt?.getTime() ?? 0));
 
-    return NextResponse.json({ syncIssues });
+    // total is the uncapped count -- syncIssues itself is sliced to the 50 most recently
+    // updated, so the panel's header count can't just use syncIssues.length once that cap is
+    // hit (same pattern as the suspended route).
+    const syncIssues = allSyncIssues.slice(0, 50);
+
+    return NextResponse.json({ syncIssues, total: allSyncIssues.length });
   } catch (error) {
     console.error("Error retrieving sync issues: ", error);
     return NextResponse.json({ error: "Error retrieving sync issues" }, { status: 500 });

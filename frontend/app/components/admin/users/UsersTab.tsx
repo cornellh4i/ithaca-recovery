@@ -68,6 +68,21 @@ const UsersTab: React.FC = () => {
   const [legendOpen, setLegendOpen] = useState(false);
   const [legendPosition, setLegendPosition] = useState<{ top: number; left: number; width: number } | null>(null);
   const infoButtonRef = useRef<HTMLButtonElement>(null);
+  // Emails with a role-change request in flight -- guards against firing a second overlapping
+  // PUT for the same user before the first one resolves (e.g. a fast double-open-modal-and-
+  // confirm), which could otherwise let a slower first response land after and clobber a
+  // faster second one's optimistic state.
+  const [pendingRoleEmails, setPendingRoleEmails] = useState<Set<string>>(new Set());
+  // Portaled to document.body (see the render below), same reasoning as the role-legend
+  // popover above: the kebab menu otherwise sits inside .tableWrapper, which clips it via
+  // overflow-x once the table goes wider than the viewport at phone width. right (not left) is
+  // measured from the button so the menu stays right-aligned to it without needing to know the
+  // menu's own width up front.
+  const [menuPosition, setMenuPosition] = useState<{ top: number; right: number } | null>(null);
+  // Whichever row's kebab button is currently open -- kept so the scroll/resize effect below
+  // can re-measure the same button's position (there's one button per row, not a single fixed
+  // ref like the legend's info button).
+  const openMenuAnchorRef = useRef<HTMLButtonElement | null>(null);
 
   const loadAdmins = async () => {
     setLoading(true);
@@ -93,16 +108,40 @@ const UsersTab: React.FC = () => {
   }, []);
 
   // Closes whichever row's kebab menu is open on an outside click -- delegated to a single
-  // document listener (not a per-row ref) since only one menu is ever open at a time.
+  // document listener (not a per-row ref) since only one menu is ever open at a time. Checks
+  // both the anchor and the portaled menu itself (see below): once portaled, the menu is no
+  // longer a DOM descendant of the anchor, so a click inside it wouldn't match a
+  // [data-user-menu]-only check and would incorrectly count as "outside".
   useEffect(() => {
     if (!openMenuEmail) return;
     const handleClickOutside = (event: MouseEvent) => {
-      if (!(event.target as HTMLElement).closest("[data-user-menu]")) {
+      const target = event.target as HTMLElement;
+      if (!target.closest("[data-user-menu]") && !target.closest("[data-user-menu-popup]")) {
         setOpenMenuEmail(null);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [openMenuEmail]);
+
+  // Re-measures the open menu's position on scroll/resize -- without this, scrolling the page
+  // (or the table's own horizontally-scrolling wrapper) while the menu is open would leave it
+  // visually detached from its anchor button, since toggleMenu only measures once at open time.
+  useEffect(() => {
+    if (!openMenuEmail) return;
+
+    const updatePosition = () => {
+      const rect = openMenuAnchorRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      setMenuPosition({ top: rect.bottom + 4, right: window.innerWidth - rect.right });
+    };
+
+    window.addEventListener("scroll", updatePosition, true);
+    window.addEventListener("resize", updatePosition);
+    return () => {
+      window.removeEventListener("scroll", updatePosition, true);
+      window.removeEventListener("resize", updatePosition);
+    };
   }, [openMenuEmail]);
 
   // Same pattern as the kebab menu's outside-click handling above -- the popover itself is
@@ -147,6 +186,17 @@ const UsersTab: React.FC = () => {
   }, [legendOpen]);
 
   const superAdminCount = (admins ?? []).filter((a) => a.role === "SUPER_ADMIN").length;
+
+  const toggleMenu = (email: string, anchor: HTMLButtonElement) => {
+    if (openMenuEmail === email) {
+      setOpenMenuEmail(null);
+      return;
+    }
+    openMenuAnchorRef.current = anchor;
+    const rect = anchor.getBoundingClientRect();
+    setMenuPosition({ top: rect.bottom + 4, right: window.innerWidth - rect.right });
+    setOpenMenuEmail(email);
+  };
 
   const handleSort = (column: SortColumn) => {
     if (sortColumn === column) {
@@ -203,8 +253,9 @@ const UsersTab: React.FC = () => {
   const handleRoleChange = async (email: string, newRole: Role) => {
     const previousRole = admins?.find((a) => a.email === email)?.role;
     setEditTarget(null);
-    if (!previousRole || previousRole === newRole) return;
+    if (!previousRole || previousRole === newRole || pendingRoleEmails.has(email)) return;
 
+    setPendingRoleEmails((prev) => new Set(prev).add(email));
     setAdmins((prev) => prev?.map((a) => (a.email === email ? { ...a, role: newRole } : a)) ?? prev);
     try {
       const response = await fetch("/api/update/admin", {
@@ -212,15 +263,40 @@ const UsersTab: React.FC = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, role: newRole }),
       });
+      const json = await response.json().catch(() => ({}));
       if (!response.ok) {
-        const json = await response.json().catch(() => ({}));
-        alert(json.error ?? "Failed to update role.");
+        // 409 means the server's Serializable-transaction guard caught a genuine race (e.g.
+        // two admins demoting different Super Admins at once) -- distinct from a plain
+        // validation/business-rule rejection, so it gets its own message pointing at a retry
+        // rather than the generic error text.
+        alert(response.status === 409
+          ? "Someone else changed the admin list at the same time -- please try again."
+          : (json.error ?? "Failed to update role."));
         setAdmins((prev) => prev?.map((a) => (a.email === email ? { ...a, role: previousRole } : a)) ?? prev);
+        return;
       }
+      // Reconcile with the server's own row rather than trusting the optimistic `newRole` --
+      // the server is the source of truth for what actually got persisted (e.g. a concurrent
+      // request from another session that also touched this row). Guarded on json.email since
+      // `.json().catch(() => ({}))` above can silently produce `{}` even when response.ok is
+      // true (e.g. a truncated 200 body) -- trusting an empty object here would wipe the row's
+      // email and orphan it from every future `a.email === email` lookup.
+      const updated = json as Partial<IAdmin>;
+      if (!updated.email) {
+        await loadAdmins();
+        return;
+      }
+      setAdmins((prev) => prev?.map((a) => (a.email === email ? (updated as IAdmin) : a)) ?? prev);
     } catch (err) {
       console.error("Error updating role:", err);
       alert("Failed to update role.");
       setAdmins((prev) => prev?.map((a) => (a.email === email ? { ...a, role: previousRole } : a)) ?? prev);
+    } finally {
+      setPendingRoleEmails((prev) => {
+        const next = new Set(prev);
+        next.delete(email);
+        return next;
+      });
     }
   };
 
@@ -234,7 +310,10 @@ const UsersTab: React.FC = () => {
       });
       if (!response.ok) {
         const json = await response.json().catch(() => ({}));
-        alert(json.error ?? "Failed to remove admin.");
+        // Same Serializable-transaction race as handleRoleChange above.
+        alert(response.status === 409
+          ? "Someone else changed the admin list at the same time -- please try again."
+          : (json.error ?? "Failed to remove admin."));
         return;
       }
       await loadAdmins();
@@ -259,6 +338,7 @@ const UsersTab: React.FC = () => {
               <input
                 type="text"
                 placeholder="Search name or email"
+                aria-label="Search name or email"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className={styles.searchInput}
@@ -335,6 +415,7 @@ const UsersTab: React.FC = () => {
                 {sortedAdmins.map((admin) => {
                   const isLastSuperAdmin = admin.role === "SUPER_ADMIN" && superAdminCount <= 1;
                   const menuOpen = openMenuEmail === admin.email;
+                  const roleChangePending = pendingRoleEmails.has(admin.email);
                   return (
                     <tr key={admin.email}>
                       <td>{admin.name || "—"}</td>
@@ -347,12 +428,17 @@ const UsersTab: React.FC = () => {
                           <button
                             aria-label="User options"
                             aria-expanded={menuOpen}
-                            onClick={() => setOpenMenuEmail(menuOpen ? null : admin.email)}
+                            disabled={roleChangePending}
+                            onClick={(e) => toggleMenu(admin.email, e.currentTarget)}
                           >
                             ⋮
                           </button>
-                          {menuOpen && (
-                            <div className={styles.optionsMenu}>
+                          {menuOpen && menuPosition && createPortal(
+                            <div
+                              className={styles.optionsMenu}
+                              style={{ top: menuPosition.top, right: menuPosition.right }}
+                              data-user-menu-popup="true"
+                            >
                               <button onClick={() => { setOpenMenuEmail(null); setEditTarget(admin); }}>
                                 Edit Role
                               </button>
@@ -367,7 +453,8 @@ const UsersTab: React.FC = () => {
                               >
                                 Remove User
                               </button>
-                            </div>
+                            </div>,
+                            document.body,
                           )}
                         </div>
                       </td>

@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import Card from "../shared/Card";
 import TopLoadingBar from "../../atoms/TopLoadingBar";
+import DiagnosticsCardError from "./DiagnosticsCardError";
 import EditMeetingSidebar from "../../meeting-form/EditMeeting";
 import { IMeeting } from "../../../../util/models";
 import { retryMeetingSync } from "../../../../util/syncMeeting";
@@ -12,6 +13,11 @@ import styles from "../../../../styles/components/admin/DiagnosticsTab.module.sc
 // resource so it doesn't need ConflictList's own grouping/rendering logic.
 import editStyles from "../../../../styles/components/admin/ConflictList.module.scss";
 
+interface SyncIssue {
+  text: string;
+  severity: "warning" | "danger";
+}
+
 interface SyncIssueRow {
   mid: string;
   title: string;
@@ -19,12 +25,13 @@ interface SyncIssueRow {
   room: string;
   modeType: string;
   calType: string[];
-  issues: string[];
+  issues: SyncIssue[];
   updatedAt: string | null;
 }
 
 const SyncIssuesCard: React.FC = () => {
   const [syncIssues, setSyncIssues] = useState<SyncIssueRow[] | null>(null);
+  const [total, setTotal] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   // Which row's "Retry sync" is in flight, so only that row shows "Retrying…" instead of
@@ -48,9 +55,10 @@ const SyncIssuesCard: React.FC = () => {
     try {
       const response = await fetch("/api/admin/diagnostics/sync-issues");
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-      const json: { syncIssues: SyncIssueRow[] } = await response.json();
+      const json: { syncIssues: SyncIssueRow[]; total: number } = await response.json();
       if (requestId === latestRequestId.current) {
         setSyncIssues(json.syncIssues);
+        setTotal(json.total);
         setError(null);
       }
     } catch (err) {
@@ -76,6 +84,7 @@ const SyncIssuesCard: React.FC = () => {
       await load();
     } catch (err) {
       console.error("Error retrying sync:", err);
+      alert(`Error: could not retry the sync${err instanceof Error ? ` (${err.message})` : ""}`);
     } finally {
       // Only clear if this is still the row that started this retry -- a second row's retry
       // starting before this one resolves must not un-disable/mislabel it early.
@@ -115,7 +124,13 @@ const SyncIssuesCard: React.FC = () => {
     fetchMeeting(mid);
   };
 
-  if (error) return <Card accent="syncIssues" data-testid="diagnostics-sync-issues-panel">{error}</Card>;
+  if (error) {
+    return (
+      <Card accent="syncIssues" data-testid="diagnostics-sync-issues-panel">
+        <DiagnosticsCardError message={error} onRetry={load} />
+      </Card>
+    );
+  }
   if (!syncIssues) {
     return (
       <Card accent="syncIssues" data-testid="diagnostics-sync-issues-panel">
@@ -130,7 +145,7 @@ const SyncIssuesCard: React.FC = () => {
       <TopLoadingBar active={loading} />
       <div className={styles.panelHeader}>
         <span className={`${styles.panelIcon} ${styles.panelIconSyncIssues}`} />
-        Sync Issues ({syncIssues.length})
+        Sync Issues ({total})
       </div>
       <div className={styles.panelSubhead}>
         Failed to sync, or waiting on a Zoom host. Retry here; edit the meeting if that doesn&apos;t resolve it.
@@ -153,10 +168,10 @@ const SyncIssuesCard: React.FC = () => {
                   </div>
                   {meeting.issues.map((issue) => (
                     <div
-                      key={issue}
-                      className={`${styles.issueLine} ${issue.startsWith("Waiting on a Zoom host") ? styles.warningText : styles.dangerText}`}
+                      key={issue.text}
+                      className={`${styles.issueLine} ${issue.severity === "warning" ? styles.warningText : styles.dangerText}`}
                     >
-                      {issue}
+                      {issue.text}
                     </div>
                   ))}
                 </div>

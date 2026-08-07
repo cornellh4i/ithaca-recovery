@@ -13,6 +13,7 @@ test.describe("admin panel", () => {
     for (const key of ["diagnostics", "users", "export"]) {
       await expect(page.getByTestId(`admin-tab-${key}`)).toBeEnabled();
     }
+    await expect(page.getByTestId("admin-tab-import")).toHaveCount(0);
   });
 
   test("11.3 Diagnostics tab shows system status and meeting counts matching real data", async ({ superAdminPage }) => {
@@ -87,9 +88,12 @@ test.describe("admin panel", () => {
 
     const row = page.locator("tr", { hasText: solo.email });
     await row.getByLabel("User options").click();
-    await expect(row.getByRole("button", { name: "Remove User" })).toBeDisabled();
+    // The kebab menu itself is portaled to document.body (so it isn't clipped by the table's
+    // horizontal scroll at phone width) -- no longer a DOM descendant of `row`, so these query
+    // from `page`, not `row`.
+    await expect(page.getByRole("button", { name: "Remove User" })).toBeDisabled();
 
-    await row.getByRole("button", { name: "Edit Role" }).click();
+    await page.getByRole("button", { name: "Edit Role" }).click();
     await expect(page.getByText("Can't change the last Super Admin's role.")).toBeVisible();
   });
 

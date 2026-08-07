@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import Card from "../shared/Card";
 import TopLoadingBar from "../../atoms/TopLoadingBar";
+import DiagnosticsCardError from "./DiagnosticsCardError";
 import ResumeMeetingModal from "../../meeting-form/ResumeMeetingModal";
 import { formatSuspensionStatusText } from "../../../../util/suspensionText";
 import styles from "../../../../styles/components/admin/DiagnosticsTab.module.scss";
@@ -91,7 +92,13 @@ const SuspendedCard: React.FC = () => {
     }
   };
 
-  if (error) return <Card accent="suspended" data-testid="diagnostics-suspended-panel">{error}</Card>;
+  if (error) {
+    return (
+      <Card accent="suspended" data-testid="diagnostics-suspended-panel">
+        <DiagnosticsCardError message={error} onRetry={load} />
+      </Card>
+    );
+  }
   if (!suspendedMeetings) {
     return (
       <Card accent="suspended" data-testid="diagnostics-suspended-panel">
@@ -123,7 +130,7 @@ const SuspendedCard: React.FC = () => {
                 <div className={styles.syncIssueRow}>
                   <div>
                     <span className={styles.meetingTitle}>{meeting.title}</span>{" "}
-                    <span className={styles.meetingTags}>({meeting.calType.join(", ")})</span>
+                    <span className={styles.meetingTags}>({meeting.group})</span>
                     <div className={styles.meetingMeta}>
                       {meeting.room} · {meeting.modeType} · {meeting.calType.join(", ")}
                     </div>

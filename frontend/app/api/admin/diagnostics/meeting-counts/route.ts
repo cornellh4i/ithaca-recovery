@@ -41,6 +41,9 @@ export const GET = async () => {
         if (cat in byCategory) byCategory[cat]++;
       }
       if (m.googleSyncStatus === "error") gcalSyncErrors++;
+      // Despite the Google-prefixed field, a pending googleSyncStatus here means the meeting
+      // is waiting on a Zoom host pick, not a Google Calendar write -- same rule sync-issues/
+      // route.ts uses for its "Waiting on a Zoom host" label.
       if (m.googleSyncStatus === "pending") pendingZoomSync++;
       // mode-based, not zoomRoom-truthy -- Remote meetings need Zoom too but no longer have
       // a zoomRoom, so gating this on zoomRoom would silently stop counting their errors.

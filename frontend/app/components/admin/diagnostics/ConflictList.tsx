@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import EditMeetingSidebar from "../../meeting-form/EditMeeting";
 import { IMeeting } from "../../../../util/models";
 import { useZoomHostPool } from "../../../../hooks/useZoomHostPool";
@@ -40,6 +40,30 @@ const ConflictList: React.FC<ConflictListProps> = ({ conflicts, emptyLabel = "No
   // Only needed to turn a zoomHost conflict row's raw email into "Zoom Host N — email" (see
   // conflictValueLabel below) -- room/zoomRoom rows don't touch this.
   const hosts = useZoomHostPool();
+
+  // computeConflicts emits one row per overlapping PAIR, so the same room/zoomRoom/zoomHost
+  // can appear across several rows when 3+ meetings share it (A-B, A-C, B-C). Group those back
+  // into one box per resource -- fieldLabel's raw value is the grouping key (not
+  // conflictValueLabel's zoomHost-formatted version, which is derived and only needed at
+  // render time). Meetings are deduped by mid (the same meeting can appear in more than one
+  // pairwise row); the group's overlap summary spans the earliest start to the latest end
+  // across all its rows -- exact for the common 2-meeting case the design was built around,
+  // an at-a-glance approximation for the rarer 3+ case. Computed unconditionally (before the
+  // conflicts.length === 0 early return below) since it's a hook -- must run on every render.
+  const groups = useMemo(() => conflicts.reduce((acc, conflict) => {
+    const key = `${conflict.field}::${conflict.value}`;
+    const existing = acc.get(key);
+    if (!existing) {
+      acc.set(key, { field: conflict.field, value: conflict.value, overlap: { ...conflict.overlap }, meetings: [...conflict.meetings] });
+      return acc;
+    }
+    if (new Date(conflict.overlap.start) < new Date(existing.overlap.start)) existing.overlap.start = conflict.overlap.start;
+    if (new Date(conflict.overlap.end) > new Date(existing.overlap.end)) existing.overlap.end = conflict.overlap.end;
+    for (const meeting of conflict.meetings) {
+      if (!existing.meetings.some((m) => m.mid === meeting.mid)) existing.meetings.push(meeting);
+    }
+    return acc;
+  }, new Map<string, { field: ConflictListRow["field"]; value: string; overlap: ConflictListRow["overlap"]; meetings: ConflictListRow["meetings"][number][] }>()), [conflicts]);
 
   const collapse = () => {
     setExpandedMid(null);
@@ -98,29 +122,6 @@ const ConflictList: React.FC<ConflictListProps> = ({ conflicts, emptyLabel = "No
     if (field === "zoomRoom") return "Zoom Room";
     return "Zoom Host";
   };
-
-  // computeConflicts emits one row per overlapping PAIR, so the same room/zoomRoom/zoomHost
-  // can appear across several rows when 3+ meetings share it (A-B, A-C, B-C). Group those back
-  // into one box per resource -- fieldLabel's raw value is the grouping key (not
-  // conflictValueLabel's zoomHost-formatted version, which is derived and only needed at
-  // render time). Meetings are deduped by mid (the same meeting can appear in more than one
-  // pairwise row); the group's overlap summary spans the earliest start to the latest end
-  // across all its rows -- exact for the common 2-meeting case the design was built around,
-  // an at-a-glance approximation for the rarer 3+ case.
-  const groups = conflicts.reduce((acc, conflict) => {
-    const key = `${conflict.field}::${conflict.value}`;
-    const existing = acc.get(key);
-    if (!existing) {
-      acc.set(key, { field: conflict.field, value: conflict.value, overlap: { ...conflict.overlap }, meetings: [...conflict.meetings] });
-      return acc;
-    }
-    if (new Date(conflict.overlap.start) < new Date(existing.overlap.start)) existing.overlap.start = conflict.overlap.start;
-    if (new Date(conflict.overlap.end) > new Date(existing.overlap.end)) existing.overlap.end = conflict.overlap.end;
-    for (const meeting of conflict.meetings) {
-      if (!existing.meetings.some((m) => m.mid === meeting.mid)) existing.meetings.push(meeting);
-    }
-    return acc;
-  }, new Map<string, { field: ConflictListRow["field"]; value: string; overlap: ConflictListRow["overlap"]; meetings: ConflictListRow["meetings"][number][] }>());
 
   return (
     <div data-testid="conflict-list">
