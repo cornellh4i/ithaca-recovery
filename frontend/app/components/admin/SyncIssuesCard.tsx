@@ -3,8 +3,14 @@
 import React, { useEffect, useRef, useState } from "react";
 import Card from "./Card";
 import TopLoadingBar from "../atoms/TopLoadingBar";
+import EditMeetingSidebar from "../meeting-form/EditMeeting";
+import { IMeeting } from "../../../util/models";
 import { retryMeetingSync } from "../../../util/syncMeeting";
 import styles from "../../../styles/components/admin/DiagnosticsTab.module.scss";
+// Reuses ConflictList's inline-edit-panel styling (accordion expand + card treatment) rather
+// than duplicating it -- same pattern, same visual language, this card just isn't grouped by
+// resource so it doesn't need ConflictList's own grouping/rendering logic.
+import editStyles from "../../../styles/components/admin/ConflictList.module.scss";
 
 interface SyncIssueRow {
   mid: string;
@@ -28,6 +34,13 @@ const SyncIssuesCard: React.FC = () => {
   // independent load() calls, so a slower first retry's response could otherwise land after (and
   // clobber) a faster second retry's fresher one.
   const latestRequestId = useRef(0);
+  // Which row's inline edit panel is open, if any -- same pattern as ConflictList.tsx, so a
+  // stuck sync (e.g. a pool-exhausted Zoom host) can be fixed by editing the meeting directly
+  // rather than only retrying the same failing sync.
+  const [expandedMid, setExpandedMid] = useState<string | null>(null);
+  const [meetingCache, setMeetingCache] = useState<Record<string, IMeeting>>({});
+  const [loadingMid, setLoadingMid] = useState<string | null>(null);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   const load = async () => {
     const requestId = ++latestRequestId.current;
@@ -70,6 +83,38 @@ const SyncIssuesCard: React.FC = () => {
     }
   };
 
+  const collapseEdit = () => {
+    setExpandedMid(null);
+    setFetchError(null);
+  };
+
+  const fetchMeeting = async (mid: string) => {
+    setLoadingMid(mid);
+    setFetchError(null);
+    try {
+      const response = await fetch(`/api/retrieve/meeting/${mid}`);
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+      const data: IMeeting = await response.json();
+      setMeetingCache((prev) => ({ ...prev, [mid]: data }));
+    } catch (err) {
+      console.error("Error fetching meeting details:", err);
+      setFetchError("Failed to load meeting details. Please try again.");
+    } finally {
+      setLoadingMid(null);
+    }
+  };
+
+  const toggleEdit = (mid: string) => {
+    if (expandedMid === mid) {
+      collapseEdit();
+      return;
+    }
+    setExpandedMid(mid);
+    setFetchError(null);
+    if (meetingCache[mid]) return;
+    fetchMeeting(mid);
+  };
+
   if (error) return <Card accent="syncIssues" data-testid="diagnostics-sync-issues-panel">{error}</Card>;
   if (!syncIssues) {
     return (
@@ -94,30 +139,77 @@ const SyncIssuesCard: React.FC = () => {
       {syncIssues.length === 0 ? (
         <div className={styles.emptyState}>No sync issues.</div>
       ) : (
-        syncIssues.map((meeting) => (
-          <div key={meeting.mid} className={styles.meetingRow}>
-            <div className={styles.syncIssueRow}>
-              <div>
-                <span className={styles.meetingTitle}>{meeting.title}</span>{" "}
-                <span className={styles.meetingTags}>({meeting.group})</span>
-                <div className={styles.meetingMeta}>
-                  {meeting.room} · {meeting.modeType} · {meeting.calType.join(", ")}
+        syncIssues.map((meeting) => {
+          const isExpanded = expandedMid === meeting.mid;
+          const meetingDetails = meetingCache[meeting.mid];
+          return (
+            <div key={meeting.mid} className={styles.meetingRow}>
+              <div className={styles.syncIssueRow}>
+                <div>
+                  <span className={styles.meetingTitle}>{meeting.title}</span>{" "}
+                  <span className={styles.meetingTags}>({meeting.group})</span>
+                  <div className={styles.meetingMeta}>
+                    {meeting.room} · {meeting.modeType} · {meeting.calType.join(", ")}
+                  </div>
+                  {meeting.issues.map((issue) => (
+                    <div key={issue} className={styles.issueLine}>{issue}</div>
+                  ))}
                 </div>
-                {meeting.issues.map((issue) => (
-                  <div key={issue} className={styles.issueLine}>{issue}</div>
-                ))}
+                <div className={styles.rowActions}>
+                  <button
+                    type="button"
+                    className={styles.retryButton}
+                    onClick={() => retrySync(meeting.mid)}
+                    disabled={retryingMid === meeting.mid}
+                  >
+                    {retryingMid === meeting.mid ? "Retrying…" : "Retry sync"}
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.retryButton}
+                    aria-expanded={isExpanded}
+                    onClick={() => toggleEdit(meeting.mid)}
+                  >
+                    {isExpanded ? "Close" : "Edit"}
+                  </button>
+                </div>
               </div>
-              <button
-                type="button"
-                className={styles.retryButton}
-                onClick={() => retrySync(meeting.mid)}
-                disabled={retryingMid === meeting.mid}
-              >
-                {retryingMid === meeting.mid ? "Retrying…" : "Retry sync"}
-              </button>
+              <div className={`${editStyles.editPanel} ${isExpanded ? editStyles.editPanelOpen : ""}`}>
+                <div className={editStyles.editPanelInner}>
+                  {isExpanded && (
+                    loadingMid === meeting.mid ? (
+                      <div className={editStyles.editLoading}>Loading meeting…</div>
+                    ) : fetchError && !meetingDetails ? (
+                      <div className={editStyles.editLoading}>
+                        {fetchError}{" "}
+                        <button type="button" className={styles.retryButton} onClick={() => fetchMeeting(meeting.mid)}>
+                          Retry
+                        </button>
+                      </div>
+                    ) : !meetingDetails ? null : (
+                      <div className={editStyles.editCard}>
+                        <EditMeetingSidebar
+                          layout="wide"
+                          meeting={meetingDetails}
+                          onClose={collapseEdit}
+                          onUpdateSuccess={() => {
+                            collapseEdit();
+                            setMeetingCache((prev) => {
+                              const next = { ...prev };
+                              delete next[meeting.mid];
+                              return next;
+                            });
+                            load();
+                          }}
+                        />
+                      </div>
+                    )
+                  )}
+                </div>
+              </div>
             </div>
-          </div>
-        ))
+          );
+        })
       )}
     </Card>
   );

@@ -78,68 +78,73 @@ const SystemStatusCard: React.FC<SystemStatusCardProps> = ({ email, role }) => {
       <TopLoadingBar active={loading} />
       <div className={styles.sectionLabel}>SYSTEM STATUS</div>
 
-      <div className={styles.statusRow}>
-        <span className={`${styles.dot} ${data.database.ok ? styles.dotOk : styles.dotDown}`} />
-        <span className={styles.statusLabel}>Database</span>
-        <span className={styles.statusDetail}>
+      <div className={styles.statusBlock}>
+        <div className={styles.statusRow}>
+          <span className={`${styles.dot} ${data.database.ok ? styles.dotOk : styles.dotDown}`} />
+          <span className={styles.statusLabel}>Database</span>
+        </div>
+        <div className={styles.statusDetail}>
           {data.database.ok ? `Connected · ${data.database.latencyMs}ms` : "Unreachable"}
-        </span>
+        </div>
       </div>
 
-      <div className={styles.statusRow}>
-        <span className={`${styles.dot} ${gcalReachableCount === gcalEntries.length ? styles.dotOk : styles.dotDown}`} />
-        <span className={styles.statusLabel}>Google Calendar</span>
-        <span className={styles.statusDetail}>
+      <div className={styles.statusBlock}>
+        <div className={styles.statusRow}>
+          <span className={`${styles.dot} ${gcalReachableCount === gcalEntries.length ? styles.dotOk : styles.dotDown}`} />
+          <span className={styles.statusLabel}>Google Calendar</span>
+        </div>
+        <div className={styles.statusDetail}>
           {gcalReachableCount}/{gcalEntries.length} calendars reachable
-        </span>
-      </div>
-      <div className={styles.gcalSubRow}>
-        {gcalEntries.map(([cat, ok]) => (
-          <span key={cat} className={ok ? styles.gcalOk : styles.gcalDown}>
-            {ok ? cat : `${cat}: unreachable`}
-          </span>
-        ))}
+        </div>
+        <div className={styles.gcalSubRow}>
+          {gcalEntries.map(([cat, ok]) => (
+            <span key={cat} className={ok ? styles.gcalOk : styles.gcalDown}>
+              {ok ? cat : `${cat}: unreachable`}
+            </span>
+          ))}
+        </div>
       </div>
 
-      <div className={styles.statusRow}>
-        <span className={`${styles.dot} ${data.zoom.reachable ? styles.dotOk : styles.dotDown}`} />
-        <span className={styles.statusLabel}>Zoom</span>
-        <span className={styles.statusDetail}>
+      <div className={styles.statusBlock}>
+        <div className={styles.statusRow}>
+          <span className={`${styles.dot} ${data.zoom.reachable ? styles.dotOk : styles.dotDown}`} />
+          <span className={styles.statusLabel}>Zoom</span>
+        </div>
+        <div className={styles.statusDetail}>
           {data.zoom.reachable ? "App reachable" : "App unreachable"}
           {" · "}{roomCalendarOkCount}/{roomCalendarEntries.length} rooms
           {" · "}{hostPoolReachableCount}/{hostPoolEntries.length} hosts
-        </span>
-      </div>
-      <div className={styles.gcalSubRow}>
-        {roomCalendarEntries.map(([room, ok]) => (
-          <span key={room} className={ok ? styles.gcalOk : styles.gcalDown}>
-            {ok ? room.replace(/ - Zoom$/, "") : `${room.replace(/ - Zoom$/, "")}: unreachable`}
-          </span>
-        ))}
-      </div>
-
-      <div className={styles.pooledHosts}>
-        <div className={styles.pooledHostsHeader}>
-          POOLED HOSTS · {hostPoolReachableCount} reachable · {hostPoolLicensedCount} Licensed, {hostPoolBasicCount} Basic
         </div>
-        {hostPoolEntries.map(([host, s]) => {
-          const tagClass = !s.ok ? styles.hostTagUnreachable : s.licensed === false ? styles.hostTagBasic : styles.hostTagLicensed;
-          const tagText = !s.ok ? "Unreachable" : s.licensed === false ? "Basic · 40 min cap" : "Licensed";
-          return (
-            <div key={host} className={styles.pooledHostRow}>
-              <span>{host}</span>
-              <span className={tagClass}>{tagText}</span>
-            </div>
-          );
-        })}
+        <div className={styles.gcalSubRow}>
+          {roomCalendarEntries.map(([room, ok]) => (
+            <span key={room} className={ok ? styles.gcalOk : styles.gcalDown}>
+              {ok ? room.replace(/ - Zoom$/, "") : `${room.replace(/ - Zoom$/, "")}: unreachable`}
+            </span>
+          ))}
+        </div>
+        <div className={styles.pooledHosts}>
+          <div className={styles.pooledHostsHeader}>
+            POOLED HOSTS · {hostPoolReachableCount} reachable · {hostPoolLicensedCount} Licensed, {hostPoolBasicCount} Basic
+          </div>
+          {hostPoolEntries.map(([host, s]) => {
+            const tagClass = !s.ok ? styles.hostTagUnreachable : s.licensed === false ? styles.hostTagBasic : styles.hostTagLicensed;
+            const tagText = !s.ok ? "Unreachable" : s.licensed === false ? "Basic · 40 min cap" : "Licensed";
+            return (
+              <div key={host} className={styles.pooledHostRow}>
+                <span>{host}</span>
+                <span className={tagClass}>{tagText}</span>
+              </div>
+            );
+          })}
+        </div>
       </div>
 
-      <div className={styles.statusRow}>
-        <span className={styles.dot} style={{ backgroundColor: "#4CAF50" }} />
-        <span className={styles.statusLabel}>Session</span>
-        <span className={styles.statusDetail}>
-          Active · {email} — Role: {roleLabel[role] ?? role}
-        </span>
+      <div className={styles.statusBlock}>
+        <div className={styles.statusRow}>
+          <span className={styles.dot} style={{ backgroundColor: "#4CAF50" }} />
+          <span className={styles.statusLabel}>{email}</span>
+        </div>
+        <div className={styles.statusDetail}>{roleLabel[role] ?? role}</div>
       </div>
     </Card>
   );

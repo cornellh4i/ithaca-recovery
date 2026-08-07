@@ -16,8 +16,9 @@
 }
 
 .conflictMeta {
-  font-size: 13px;
-  color: #555;
+  font-size: 15px;
+  font-weight: 600;
+  color: $black-color;
 }
 
 .conflictValue {
@@ -29,11 +30,20 @@
   font-size: 13px;
   color: $medium-grey-color;
   margin-top: 2px;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
+}
+
+// Groups every meeting sharing a resource (room/zoomRoom/zoomHost) into one visually distinct
+// surface, so a resource with 3+ overlapping meetings reads as a single conflict, not one box
+// per pairwise overlap.
+.conflictBox {
+  background: $grey-lightest-color;
+  border-radius: 8px;
+  padding: 4px 16px;
 }
 
 .conflictEntry {
-  border-top: 1px solid $grey-lightest-color;
+  border-top: 1px solid $grey-border-color;
 
   &:first-of-type {
     border-top: none;
@@ -68,12 +78,10 @@
   padding: 8px 0 12px;
 }
 
-// Card treatment (mirrors DiagnosticsTab's own .card and the design system's --color-grey-
-// lightest token) so the expanded edit form reads as a distinct surface rather than blending
-// into the conflict row list. Now that ModeTypeButtons' selected state is a solid pink fill
-// (not a near-white pill), this lighter card no longer washes it out.
+// White card treatment so the expanded edit form reads as a distinct surface against
+// .conflictBox's grey background, rather than blending into it.
 .editCard {
-  background: $grey-lightest-color;
+  background: #fff;
   border: 1.5px solid $grey-border-color;
   border-radius: 8px;
   padding: 16px 20px;
@@ -83,7 +91,7 @@
   padding: 16px 24px;
   font-size: 13px;
   color: $medium-grey-color;
-  background: $grey-lightest-color;
+  background: #fff;
   border: 1.5px solid $grey-border-color;
   border-radius: 8px;
 }

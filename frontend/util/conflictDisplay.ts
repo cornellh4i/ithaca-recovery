@@ -53,9 +53,12 @@ const etDate = (date: Date): string =>
 const compactTimeRange = (start: Date, end: Date): string =>
   formatCompactTimeRange(etTimeFmt.format(start), etTimeFmt.format(end));
 
-// "Overlap: Tue 7-8PM · next occurs Jul 14, 2026" for a recurring pair, or
-// "Overlap: Fri 6-7PM (single occurrence) · Sep 12, 2026" when both are one-time.
-export const formatOverlapSummary = (overlap: ConflictListRow["overlap"], meetings: ConflictListRow["meetings"]): string => {
+// "Overlap: Tue 7-8PM · next occurs Jul 14, 2026" if any meeting recurs, or
+// "Overlap: Fri 6-7PM (single occurrence) · Sep 12, 2026" when all of them are one-time.
+// Takes a plain array, not ConflictListRow's own 2-tuple -- ConflictList.tsx also calls this
+// with a resource group's deduped meetings, which can be 3+ when several meetings share one
+// room/zoomRoom/zoomHost.
+export const formatOverlapSummary = (overlap: ConflictListRow["overlap"], meetings: ConflictMeetingSummary[]): string => {
   const start = new Date(overlap.start);
   const end = new Date(overlap.end);
   const bothOneTime = meetings.every((m) => !m.isRecurring);

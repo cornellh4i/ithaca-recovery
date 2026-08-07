@@ -17,11 +17,24 @@
   margin-bottom: 16px;
 }
 
+// One Database/Google Calendar/Zoom/Session block: a title row (dot + name), an indented
+// subtitle line below it, and (for Google Calendar/Zoom) further indented detail rows --
+// all sharing the same left edge (dot width + gap, $status-indent below) so the block reads
+// as one aligned column instead of the title/detail sitting in separate side-by-side columns.
+$status-indent: 21px;
+
+.statusBlock {
+  margin-bottom: 14px;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
 .statusRow {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 6px 0;
 }
 
 .dot {
@@ -41,24 +54,24 @@
 
 .statusLabel {
   font-weight: 600;
-  width: 160px;
-  flex-shrink: 0;
   color: $black-color;
 }
 
 .statusDetail {
   color: #555;
   font-size: 14px;
+  margin-top: 2px;
+  padding-left: $status-indent;
 }
 
 .gcalSubRow {
   display: flex;
   flex-wrap: wrap;
   gap: 8px 16px;
-  padding-left: 21px;
+  padding-left: $status-indent;
   font-size: 13px;
   color: #555;
-  margin-bottom: 6px;
+  margin-top: 6px;
 }
 
 .gcalOk {
@@ -73,7 +86,7 @@
   background: $grey-lightest-color;
   border-radius: 6px;
   padding: 10px 14px;
-  margin: 4px 0 6px;
+  margin: 8px 0 0 $status-indent;
 }
 
 .pooledHostsHeader {
@@ -205,6 +218,12 @@
   font-size: 13px;
   color: $brand-pink-color;
   margin-top: 4px;
+}
+
+.rowActions {
+  display: flex;
+  flex-shrink: 0;
+  gap: 8px;
 }
 
 .retryButton {

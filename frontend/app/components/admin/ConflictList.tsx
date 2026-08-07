@@ -7,7 +7,6 @@ import { useZoomHostPool } from "../../../hooks/useZoomHostPool";
 import { zoomHostLabel } from "../../../util/zoomHosts";
 import {
   ConflictListRow,
-  fieldLabel,
   formatOverlapSummary,
   formatMeetingSchedule,
 } from "../../../util/conflictDisplay";
@@ -81,8 +80,10 @@ const ConflictList: React.FC<ConflictListProps> = ({ conflicts, emptyLabel = "No
   }
 
   // A raw zoomHost email means nothing at a glance -- room/zoomRoom values are already
-  // human-readable names, so they pass through untouched.
-  const conflictValueLabel = (conflict: ConflictListRow): string => {
+  // human-readable names, so they pass through untouched. Takes just field/value (not a full
+  // ConflictListRow) since that's all it reads -- letting callers pass a group summary that
+  // doesn't carry a real 2-tuple meetings array without needing to fake one.
+  const conflictValueLabel = (conflict: { field: ConflictListRow["field"]; value: string }): string => {
     if (conflict.field !== "zoomHost") return conflict.value;
     const index = hosts.indexOf(conflict.value);
     const label = zoomHostLabel(conflict.value, index);
@@ -92,72 +93,103 @@ const ConflictList: React.FC<ConflictListProps> = ({ conflicts, emptyLabel = "No
     return index === -1 ? label : `${label} — ${conflict.value}`;
   };
 
+  const resourceTypeLabel = (field: ConflictListRow["field"]): string => {
+    if (field === "room") return "Physical";
+    if (field === "zoomRoom") return "Zoom Room";
+    return "Zoom Host";
+  };
+
+  // computeConflicts emits one row per overlapping PAIR, so the same room/zoomRoom/zoomHost
+  // can appear across several rows when 3+ meetings share it (A-B, A-C, B-C). Group those back
+  // into one box per resource -- fieldLabel's raw value is the grouping key (not
+  // conflictValueLabel's zoomHost-formatted version, which is derived and only needed at
+  // render time). Meetings are deduped by mid (the same meeting can appear in more than one
+  // pairwise row); the group's overlap summary spans the earliest start to the latest end
+  // across all its rows -- exact for the common 2-meeting case the design was built around,
+  // an at-a-glance approximation for the rarer 3+ case.
+  const groups = conflicts.reduce((acc, conflict) => {
+    const key = `${conflict.field}::${conflict.value}`;
+    const existing = acc.get(key);
+    if (!existing) {
+      acc.set(key, { field: conflict.field, value: conflict.value, overlap: { ...conflict.overlap }, meetings: [...conflict.meetings] });
+      return acc;
+    }
+    if (new Date(conflict.overlap.start) < new Date(existing.overlap.start)) existing.overlap.start = conflict.overlap.start;
+    if (new Date(conflict.overlap.end) > new Date(existing.overlap.end)) existing.overlap.end = conflict.overlap.end;
+    for (const meeting of conflict.meetings) {
+      if (!existing.meetings.some((m) => m.mid === meeting.mid)) existing.meetings.push(meeting);
+    }
+    return acc;
+  }, new Map<string, { field: ConflictListRow["field"]; value: string; overlap: ConflictListRow["overlap"]; meetings: ConflictListRow["meetings"][number][] }>());
+
   return (
     <div data-testid="conflict-list">
-      {conflicts.map((conflict, i) => (
-        <div key={`${conflict.field}-${conflict.value}-${i}`} className={styles.conflictGroup}>
+      {Array.from(groups.values()).map((group, i) => (
+        <div key={`${group.field}-${group.value}`} className={styles.conflictGroup}>
           <div className={styles.conflictMeta}>
-            {fieldLabel(conflict.field)}: <span className={styles.conflictValue}>{conflictValueLabel(conflict)}</span>
+            <span className={styles.conflictValue}>{conflictValueLabel(group)}</span> — {resourceTypeLabel(group.field)}
           </div>
-          <div className={styles.overlapSummary}>{formatOverlapSummary(conflict.overlap, conflict.meetings)}</div>
-          {conflict.meetings.map((meeting) => {
-            const isExpanded = expandedMid === meeting.mid && expandedRowIndex === i;
-            const meetingDetails = meetingCache[meeting.mid];
-            return (
-              <div key={meeting.mid} className={styles.conflictEntry}>
-                <div className={styles.conflictRow}>
-                  <div>
-                    <span className={styles.meetingTitle}>{meeting.title}</span>{" "}
-                    {meeting.calType.length > 0 && (
-                      <span className={styles.meetingTags}>({meeting.calType.join(", ")})</span>
-                    )}
-                    <div className={styles.meetingSchedule}>{formatMeetingSchedule(meeting)}</div>
+          <div className={styles.overlapSummary}>{formatOverlapSummary(group.overlap, group.meetings)}</div>
+          <div className={styles.conflictBox}>
+            {group.meetings.map((meeting) => {
+              const isExpanded = expandedMid === meeting.mid && expandedRowIndex === i;
+              const meetingDetails = meetingCache[meeting.mid];
+              return (
+                <div key={meeting.mid} className={styles.conflictEntry}>
+                  <div className={styles.conflictRow}>
+                    <div>
+                      <span className={styles.meetingTitle}>{meeting.title}</span>{" "}
+                      {meeting.calType.length > 0 && (
+                        <span className={styles.meetingTags}>({meeting.calType.join(", ")})</span>
+                      )}
+                      <div className={styles.meetingSchedule}>{formatMeetingSchedule(meeting)}</div>
+                    </div>
+                    <button
+                      type="button"
+                      className={styles.editButton}
+                      aria-expanded={isExpanded}
+                      onClick={() => toggleEdit(i, meeting.mid)}
+                    >
+                      {isExpanded ? "Close" : "Edit"}
+                    </button>
                   </div>
-                  <button
-                    type="button"
-                    className={styles.editButton}
-                    aria-expanded={isExpanded}
-                    onClick={() => toggleEdit(i, meeting.mid)}
-                  >
-                    {isExpanded ? "Close" : "Edit"}
-                  </button>
-                </div>
-                <div className={`${styles.editPanel} ${isExpanded ? styles.editPanelOpen : ""}`}>
-                  <div className={styles.editPanelInner}>
-                    {isExpanded && (
-                      loadingMid === meeting.mid ? (
-                        <div className={styles.editLoading}>Loading meeting…</div>
-                      ) : fetchError && !meetingDetails ? (
-                        <div className={styles.editLoading}>
-                          {fetchError}{" "}
-                          <button type="button" className={styles.editButton} onClick={() => fetchMeeting(meeting.mid)}>
-                            Retry
-                          </button>
-                        </div>
-                      ) : !meetingDetails ? null : (
-                        <div className={styles.editCard}>
-                          <EditMeetingSidebar
-                            layout="wide"
-                            meeting={meetingDetails}
-                            onClose={collapse}
-                            onUpdateSuccess={() => {
-                              collapse();
-                              setMeetingCache((prev) => {
-                                const next = { ...prev };
-                                delete next[meeting.mid];
-                                return next;
-                              });
-                              onMeetingUpdated?.();
-                            }}
-                          />
-                        </div>
-                      )
-                    )}
+                  <div className={`${styles.editPanel} ${isExpanded ? styles.editPanelOpen : ""}`}>
+                    <div className={styles.editPanelInner}>
+                      {isExpanded && (
+                        loadingMid === meeting.mid ? (
+                          <div className={styles.editLoading}>Loading meeting…</div>
+                        ) : fetchError && !meetingDetails ? (
+                          <div className={styles.editLoading}>
+                            {fetchError}{" "}
+                            <button type="button" className={styles.editButton} onClick={() => fetchMeeting(meeting.mid)}>
+                              Retry
+                            </button>
+                          </div>
+                        ) : !meetingDetails ? null : (
+                          <div className={styles.editCard}>
+                            <EditMeetingSidebar
+                              layout="wide"
+                              meeting={meetingDetails}
+                              onClose={collapse}
+                              onUpdateSuccess={() => {
+                                collapse();
+                                setMeetingCache((prev) => {
+                                  const next = { ...prev };
+                                  delete next[meeting.mid];
+                                  return next;
+                                });
+                                onMeetingUpdated?.();
+                              }}
+                            />
+                          </div>
+                        )
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
       ))}
     </div>
