@@ -8,7 +8,7 @@ import Logo from "../../components/atoms/Logo";
 import CalendarNavbar from "../../components/calendar/desktop/CalendarNavbar";
 import DayView from "../../components/calendar/desktop/DayView";
 import WeekView from "../../components/calendar/desktop/WeekView";
-import { parseSignageFilters, parseSignageView } from "../../../util/signageFilters";
+import { parseSignageFilters, parseSignageView } from "../../../util/filters/signageFilters";
 import { formatETDateString } from "../../../util/date/timeUtils";
 import { useViewport } from "../../../hooks/useViewport";
 import navbarStyles from "../../../styles/components/navbar/AppNavbar.module.scss";

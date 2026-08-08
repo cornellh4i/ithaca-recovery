@@ -2,7 +2,7 @@ import React from "react";
 import { render, within } from "@testing-library/react";
 import DayLandscapeView, { roomDisplayName } from "../../app/components/calendar/mobile/DayLandscapeView";
 import { CalendarProvider } from "../../app/context/CalendarProvider";
-import { createDefaultFilters } from "../../util/meetingFilters";
+import { createDefaultFilters } from "../../util/filters/meetingFilters";
 import { defaultRooms } from "../../util/rooms/rooms";
 import { formatETDateString } from "../../util/date/timeUtils";
 
