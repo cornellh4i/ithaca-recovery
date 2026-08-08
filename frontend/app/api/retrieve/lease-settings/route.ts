@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { Role } from "@prisma/client";
 import { requireRole } from "../../../../services/auth";
-import { defaultLeaseSettings } from "../../../../util/leaseDefaults";
-import { computeLeaseYearCycles } from "../../../../util/leaseYearCycles";
+import { defaultLeaseSettings } from "../../../../util/lease/leaseDefaults";
+import { computeLeaseYearCycles } from "../../../../util/lease/leaseYearCycles";
 import type { IRoomRate } from "../../../../types/models";
 import { prisma } from "../../../../lib/prisma";
 

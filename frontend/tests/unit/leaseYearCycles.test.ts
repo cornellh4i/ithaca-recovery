@@ -1,4 +1,4 @@
-import { computeLeaseYearCycles } from "../../util/leaseYearCycles";
+import { computeLeaseYearCycles } from "../../util/lease/leaseYearCycles";
 
 const d = (iso: string) => new Date(iso);
 
