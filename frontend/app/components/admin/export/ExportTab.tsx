@@ -3,7 +3,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import BackupIcon from "@mui/icons-material/Backup";
 import DescriptionIcon from "@mui/icons-material/Description";
-import MoreVertIcon from "@mui/icons-material/MoreVert";
 import TvIcon from "@mui/icons-material/Tv";
 import {
   SIGNAGE_CAL_TYPES,
@@ -491,7 +490,7 @@ const ExportTab: React.FC = () => {
               }}
             />
             <div className={styles.cardDesc}>
-              Full backup of every meeting. Include meeting mode, room, contact, and schedule fields.
+              Spreadsheet export of every meeting. Configure which fields to include.
             </div>
             <div className={styles.summaryRow}>
               <span className={styles.summaryText}>{meetingExportSummary}</span>
@@ -515,7 +514,7 @@ const ExportTab: React.FC = () => {
               icon={<DescriptionIcon />}
               title="Export PandaDocs Lease (CSV)"
               action={{
-                icon: <MoreVertIcon fontSize="small" />,
+                label: "Configure",
                 onClick: () => setConfigOpen(true),
                 ariaLabel: "Configure export",
                 title: "Configure export…",
