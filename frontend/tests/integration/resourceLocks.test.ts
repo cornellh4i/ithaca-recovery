@@ -1,5 +1,5 @@
 import { getTestPrismaClient, disconnectTestPrismaClient } from "../factories/db";
-import { lockResourceClaims } from "../../util/resourceLocks";
+import { lockResourceClaims } from "../../util/meetings/resourceLocks";
 
 afterAll(async () => {
   await disconnectTestPrismaClient();

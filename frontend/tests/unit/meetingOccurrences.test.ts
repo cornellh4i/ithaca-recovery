@@ -1,4 +1,4 @@
-import { matchesRecurrencePattern, adjustOccurrenceToDate } from "../../util/meetingOccurrences";
+import { matchesRecurrencePattern, adjustOccurrenceToDate } from "../../util/meetings/meetingOccurrences";
 import { convertETToUTC } from "../../util/date/timeUtils";
 
 // startDate/localDate are UTC-midnight-anchored representations of an ET

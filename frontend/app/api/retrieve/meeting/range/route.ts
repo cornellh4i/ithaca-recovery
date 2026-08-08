@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic';
 
-import { getMeetingsForRange } from "../../../../../util/meetingOccurrences";
+import { getMeetingsForRange } from "../../../../../util/meetings/meetingOccurrences";
 import { toETDateString, addDaysToETDateString } from "../../../../../util/date/timeUtils";
 import { NextRequest } from 'next/server';
 

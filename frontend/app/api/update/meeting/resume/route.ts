@@ -11,7 +11,7 @@ import {
   tearDownPendingResumeSeries,
   MeetingWithPattern,
   MeetingWithSuspensions,
-} from '../../../../../util/suspension';
+} from '../../../../../util/meetings/suspension';
 import { prisma } from '../../../../../lib/prisma';
 
 // Resuming always creates a fresh series/event starting today (or recreates the original

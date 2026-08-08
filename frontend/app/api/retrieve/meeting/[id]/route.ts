@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { getAuth } from "../../../../../services/auth";
 import { prisma } from "../../../../../lib/prisma";
 import { toPublicMeeting } from "../../../../../util/meetings/publicMeeting";
-import { getUnresolvedSuspension } from "../../../../../util/suspension";
+import { getUnresolvedSuspension } from "../../../../../util/meetings/suspension";
 import { formatETDateString } from "../../../../../util/date/timeUtils";
 const getMeeting = async(request: NextRequest) => {
   try {

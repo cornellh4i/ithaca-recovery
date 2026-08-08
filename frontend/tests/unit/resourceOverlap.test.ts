@@ -4,7 +4,7 @@ import {
   computeConflicts,
   OVERLAP_HORIZON_YEARS,
   type ConflictCandidateMeeting,
-} from "../../util/resourceOverlap";
+} from "../../util/meetings/resourceOverlap";
 
 const utcDate = (y: number, m: number, d: number, h = 0, min = 0) =>
   new Date(Date.UTC(y, m - 1, d, h, min));

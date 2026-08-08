@@ -4,10 +4,10 @@ import { NextResponse, after } from "next/server";
 import { requireRole } from "../../../../services/auth";
 import { createCalendarEvent, calendarIdsForMeeting } from "../../../../services/googleCalendar";
 import { createZoomMeeting, getZoomMeetingInvitation, resolveZoomHost, zoomRoomCalendarId } from "../../../../services/zoom";
-import { findResourceConflicts, findResourceConflictRows, ConflictRow, ResourceConflictAbort } from "../../../../util/resourceOverlap";
-import { lockResourceClaims, ResourceClaim } from "../../../../util/resourceLocks";
+import { findResourceConflicts, findResourceConflictRows, ConflictRow, ResourceConflictAbort } from "../../../../util/meetings/resourceOverlap";
+import { lockResourceClaims, ResourceClaim } from "../../../../util/meetings/resourceLocks";
 import { meetingSchema } from "../../../../util/meetings/meetingValidation";
-import { calculateEndDateFromOccurrences } from "../../../../util/meetingOccurrences";
+import { calculateEndDateFromOccurrences } from "../../../../util/meetings/meetingOccurrences";
 import { prisma } from "../../../../lib/prisma";
 
 // Runs after the response is sent (see after() call below) — failure sets googleSyncStatus but
