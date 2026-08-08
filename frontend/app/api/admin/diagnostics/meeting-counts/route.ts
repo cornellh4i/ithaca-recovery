@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { requireRole } from "../../../../../services/auth";
 import { calendarIdForCategory } from "../../../../../services/googleCalendar";
 import { isDateSuspended } from "../../../../../util/meetingOccurrences";
-import { formatETDateString } from "../../../../../util/timeUtils";
+import { formatETDateString } from "../../../../../util/date/timeUtils";
 import { prisma } from "../../../../../lib/prisma";
 
 const notDeleted = { deletedAt: null };

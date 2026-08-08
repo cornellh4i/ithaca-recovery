@@ -1,6 +1,6 @@
 import { test, expect } from "./support/fixtures";
 import { seedMeeting } from "../factories/meeting";
-import { convertETToUTC, formatETDateString } from "../../util/timeUtils";
+import { convertETToUTC, formatETDateString } from "../../util/date/timeUtils";
 import { selectView } from "./support/formHelpers";
 
 // Manual script §5 (Calendar Display). §5.9 (2+ overlapping meetings sharing space

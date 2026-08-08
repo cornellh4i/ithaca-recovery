@@ -2,8 +2,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import BoxText from '../../atoms/BoxText';
 import OverlapMeetingsModal from '../shared/OverlapMeetingsModal';
 import styles from '../../../../styles/components/calendar/desktop/DailyViewRow.module.scss';
-import { formatCompactTimeRange } from '../../../../util/timeFormat';
-import { formatETDateString } from '../../../../util/timeUtils';
+import { formatCompactTimeRange } from '../../../../util/date/timeFormat';
+import { formatETDateString } from '../../../../util/date/timeUtils';
 
 // Meeting Interface
 interface Meeting {

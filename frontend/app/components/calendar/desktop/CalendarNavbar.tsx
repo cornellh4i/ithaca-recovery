@@ -7,7 +7,7 @@ import {
   convertETToUTC,
   addDaysToETDateString,
   addMonthsToETDateString,
-} from "../../../../util/timeUtils";
+} from "../../../../util/date/timeUtils";
 
 // view_timeline / calendar_view_week (Material Symbols) -- same icons and same renderElement
 // pattern MobileAppNavbar's own Day/Multi-Day dropdown uses (icon-only in the closed button

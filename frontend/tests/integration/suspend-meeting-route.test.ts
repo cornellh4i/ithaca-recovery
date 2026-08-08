@@ -1,6 +1,6 @@
 import { getTestPrismaClient, disconnectTestPrismaClient } from "../factories/db";
 import { seedMeeting, seedRecurringMeeting, seedSuspensionPeriod } from "../factories/meeting";
-import { formatETDateString, convertETToUTC, getETDayBounds } from "../../util/timeUtils";
+import { formatETDateString, convertETToUTC, getETDayBounds } from "../../util/date/timeUtils";
 
 jest.mock("next/server", () => ({
   ...jest.requireActual("next/server"),

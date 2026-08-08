@@ -1,5 +1,5 @@
 export const dynamic = 'force-dynamic';
-import { getETDayBounds, toETDateString } from "../../../../../util/timeUtils";
+import { getETDayBounds, toETDateString } from "../../../../../util/date/timeUtils";
 import { NextRequest } from 'next/server';
 import { prisma } from "../../../../../lib/prisma";
 import { toPublicMeeting } from "../../../../../util/publicMeeting";

@@ -1,7 +1,7 @@
 import { test, expect } from "./support/fixtures";
 import { seedMeeting, seedRecurringMeeting } from "../factories/meeting";
 import { selectView } from "./support/formHelpers";
-import { convertETToUTC, formatETDateString } from "../../util/timeUtils";
+import { convertETToUTC, formatETDateString } from "../../util/date/timeUtils";
 
 // Manual script §12 (Weekly View). §12.5 (Zoom-room mismatch indicator) is also
 // exercised in 06-zoom-integration.spec.ts's 6.2 — this file keeps its own copy

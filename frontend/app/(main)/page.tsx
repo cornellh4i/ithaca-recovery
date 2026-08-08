@@ -13,7 +13,7 @@ import MobileFab from "../components/calendar/mobile/MobileFab";
 import NewMeetingSidebar from "../components/meeting-form/NewMeeting";
 import EditMeetingSidebar from "../components/meeting-form/EditMeeting";
 
-import { convertUTCToET } from "../../util/timeUtils";
+import { convertUTCToET } from "../../util/date/timeUtils";
 import { IMeeting } from "../../types/models";
 import { useConflictMids } from "../../hooks/useConflictMids";
 import { useViewport } from "../../hooks/useViewport";

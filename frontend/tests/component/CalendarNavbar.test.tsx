@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
 import CalendarNavbar from "../../app/components/calendar/desktop/CalendarNavbar";
-import { formatETDateString, addDaysToETDateString } from "../../util/timeUtils";
+import { formatETDateString, addDaysToETDateString } from "../../util/date/timeUtils";
 
 // Wraps CalendarNavbar with the controlled selectedDate state a real parent would own, so
 // clicking Today/arrows and re-rendering with the updated date exercises the same loop the

@@ -4,9 +4,9 @@ import styles from "../../../../styles/components/calendar/mobile/MultiDayLandsc
 import DayColumn from "../shared/DayColumn";
 import { filterMeetingsForDate, MeetingFilters } from "../../../../util/meetingFilters";
 import { ROOM_COLORS, ZOOM_ROOM_COLOR, REMOTE_COLOR } from "../../../../util/filterColors";
-import { formatETDateString, getCurrentETMinutesSinceMidnight } from "../../../../util/timeUtils";
+import { formatETDateString, getCurrentETMinutesSinceMidnight } from "../../../../util/date/timeUtils";
 import { layoutOverlappingMeetings, OverlapMeeting } from "../../../../util/meetingOverlapLayout";
-import { addDaysToDate, daysBetweenET } from "../../../../util/weekDates";
+import { addDaysToDate, daysBetweenET } from "../../../../util/date/weekDates";
 import { useRangeMeetings } from "../../../../hooks/useRangeMeetings";
 import { useElementWidth } from "../../../../hooks/useElementWidth";
 import { useScrollNavHide } from "../../../../hooks/useScrollNavHide";

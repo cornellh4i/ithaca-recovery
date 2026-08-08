@@ -1,5 +1,5 @@
 import { test, expect } from "./support/fixtures";
-import { formatETDateString } from "../../util/timeUtils";
+import { formatETDateString } from "../../util/date/timeUtils";
 
 // Mobile-portrait viewport for this whole file -- no mobile Playwright project is configured
 // (config/playwright.config.ts only has "chromium" desktop), so it's set per-file here.
