@@ -1,6 +1,6 @@
 import { getETDayBounds, convertETToUTC, addDaysToETDateString } from "./date/timeUtils";
 import { prisma } from "../lib/prisma";
-import { PublicMeeting, toPublicMeeting } from "./publicMeeting";
+import { PublicMeeting, toPublicMeeting } from "./meetings/publicMeeting";
 
 const notDeleted = { deletedAt: null };
 

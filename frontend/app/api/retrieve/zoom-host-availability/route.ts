@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { Role } from "@prisma/client";
 import { requireRole } from "../../../../services/auth";
 import { checkZoomHostPoolAvailability } from "../../../../services/zoom";
-import { zoomHostAvailabilityCheckSchema } from "../../../../util/meetingValidation";
+import { zoomHostAvailabilityCheckSchema } from "../../../../util/meetings/meetingValidation";
 
 // Body is the same IMeeting-shaped object useMeetingForm's buildMeetingPayload() already
 // produces for the real create/update submit -- no separate client-side date/recurrence

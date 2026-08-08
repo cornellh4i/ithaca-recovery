@@ -7,7 +7,7 @@ import { formatETDateString, getCurrentETMinutesSinceMidnight } from "../../../.
 import { formatMeetingDateLine } from "../../../../util/date/timeFormat";
 import { passesTagFilters, passesRoomFilter, MeetingFilters } from "../../../../util/filters/meetingFilters";
 import { defaultRooms } from "../../../../util/rooms/rooms";
-import { layoutOverlappingMeetings, OverlapMeeting } from "../../../../util/meetingOverlapLayout";
+import { layoutOverlappingMeetings, OverlapMeeting } from "../../../../util/meetings/meetingOverlapLayout";
 import { addDaysToDate } from "../../../../util/date/weekDates";
 import { useElementSize } from "../../../../hooks/useElementSize";
 import { useCalendarContext } from "../../../context/CalendarProvider";

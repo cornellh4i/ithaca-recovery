@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic';
 import { getETDayBounds, toETDateString } from "../../../../../util/date/timeUtils";
 import { NextRequest } from 'next/server';
 import { prisma } from "../../../../../lib/prisma";
-import { toPublicMeeting } from "../../../../../util/publicMeeting";
+import { toPublicMeeting } from "../../../../../util/meetings/publicMeeting";
 
 const notDeleted = { deletedAt: null };
 

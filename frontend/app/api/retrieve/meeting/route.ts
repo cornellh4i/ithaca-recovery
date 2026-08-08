@@ -1,5 +1,5 @@
 import { prisma } from "../../../../lib/prisma";
-import { toPublicMeeting } from "../../../../util/publicMeeting";
+import { toPublicMeeting } from "../../../../util/meetings/publicMeeting";
 
 const notDeleted = { deletedAt: null };
 

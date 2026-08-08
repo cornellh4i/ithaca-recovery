@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { Role } from "@prisma/client";
 import { requireRole } from "../../../../services/auth";
-import { sanitizeMeetingExportFields } from "../../../../util/meetingExportFields";
+import { sanitizeMeetingExportFields } from "../../../../util/meetings/meetingExportFields";
 import { prisma } from "../../../../lib/prisma";
 
 // Singleton settings row — updates the existing row if one exists, else creates it.
