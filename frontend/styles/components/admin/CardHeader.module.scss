@@ -19,22 +19,24 @@
   flex: 1;
 }
 
-.menuButton {
-  background: none;
+.configureButton {
+  background: $brand-pink-color;
+  color: #fff;
   border: none;
-  color: $medium-grey-color;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  padding: 4px;
   border-radius: 6px;
+  padding: 6px 14px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
 
   &:hover:not(:disabled) {
-    background: $grey-lightest-color;
+    background: $brand-pink-secondary;
   }
 
   &:disabled {
+    background: $light-grey-color;
     cursor: not-allowed;
-    opacity: 0.5;
   }
 }

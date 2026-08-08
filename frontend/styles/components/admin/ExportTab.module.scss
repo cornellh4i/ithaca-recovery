@@ -19,16 +19,6 @@
   }
 }
 
-.card {
-  background: #fff;
-  border: 1.5px solid #E5E5E5;
-  border-radius: 8px;
-  padding: 20px 24px;
-  width: 100%;
-  box-sizing: border-box;
-  position: relative;
-}
-
 // Grid cells stretch to equal height by default; this makes the export button
 // sit flush with the bottom of its card regardless of how much content (e.g. the
 // PandaDocs card's summary row) sits above it in the sibling card.
@@ -36,6 +26,9 @@
   display: flex;
   flex-direction: column;
   height: 100%;
+
+  // Anchors .ratesPopover's position: absolute (below).
+  position: relative;
 }
 
 .sectionLabel {
@@ -192,15 +185,202 @@
   margin: 0 0 8px;
 }
 
-.dateRow {
+// Lease-year cycle picker (replaces two free-text date inputs -- every selectable option is a
+// real Jul 1 -> Jun 30 cycle derived from actual meeting data, so there's no invalid range to
+// guard against here the way the old start/end inputs needed).
+
+.cycleList {
   display: flex;
-  gap: 16px;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 20px;
 }
 
-.dateError {
-  font-size: 12px;
+.cycleRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1.5px solid #E5E5E5;
+  border-radius: 8px;
+  cursor: pointer;
+
+  &:hover {
+    border-color: $brand-pink-color;
+  }
+}
+
+.cycleRowSelected {
+  border-color: $brand-pink-color;
+  background: #FBE1E7;
+}
+
+.cycleRadioInput {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.cycleRadioIcon {
+  display: inline-flex;
+  align-items: center;
   color: $brand-pink-color;
-  margin: 6px 0 0;
+}
+
+.cycleRadioEmpty {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 1.5px solid $light-grey-color;
+  box-sizing: border-box;
+}
+
+.cycleLabel {
+  flex: 1;
+  font-size: 14px;
+  color: $black-color;
+}
+
+.cycleLabelCurrent {
+  font-weight: 700;
+}
+
+.cycleStatusTag {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: $medium-grey-color;
+  background: $grey-lightest-color;
+  border-radius: 4px;
+  padding: 3px 8px;
+  white-space: nowrap;
+}
+
+// Collapsible modal sections -- same grid-template-rows accordion technique as
+// ConflictList.module.scss's .editPanel, so height animates without a measured pixel value.
+
+.collapsibleSection {
+  border-top: 1px solid $grey-lightest-color;
+  padding-top: 12px;
+  margin-top: 12px;
+
+  &:first-of-type {
+    border-top: none;
+    padding-top: 0;
+    margin-top: 0;
+  }
+}
+
+.collapsibleHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+}
+
+.collapsibleTitleRow {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  min-width: 0;
+}
+
+.collapsibleSummary {
+  font-size: 13px;
+  color: $medium-grey-color;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.collapsibleChevron {
+  flex-shrink: 0;
+  color: $medium-grey-color;
+  transition: transform 0.2s ease;
+}
+
+.collapsibleChevronOpen {
+  transform: rotate(180deg);
+}
+
+.collapsibleBody {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.2s ease;
+}
+
+.collapsibleBodyOpen {
+  grid-template-rows: 1fr;
+}
+
+.collapsibleBodyInner {
+  overflow: hidden;
+  min-height: 0;
+}
+
+.collapsibleBodyOpen .collapsibleBodyInner {
+  padding-top: 12px;
+}
+
+// Email template preview/edit toggle
+
+.templateHeaderRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.templateStateLabel {
+  font-size: 12px;
+  color: $medium-grey-color;
+}
+
+.previewToggleButton {
+  background: none;
+  border: 1.5px solid #E5E5E5;
+  border-radius: 6px;
+  color: $black-color;
+  font-family: inherit;
+  font-size: 12px;
+  padding: 4px 10px;
+  cursor: pointer;
+  white-space: nowrap;
+
+  &:hover {
+    border-color: $brand-pink-color;
+  }
+}
+
+.textareaPreview {
+  width: 100%;
+  min-height: 110px;
+  font-size: 13px;
+  color: $black-color;
+  background: $grey-lightest-color;
+  border: 1.5px solid #E5E5E5;
+  border-radius: 6px;
+  padding: 8px 10px;
+  box-sizing: border-box;
+  white-space: pre-wrap;
+}
+
+.previewHighlight {
+  background: #FBE1E7;
+  color: $brand-pink-color;
+  font-weight: 600;
+  border-radius: 4px;
+  padding: 0 3px;
 }
 
 .fieldLabel {
@@ -241,9 +421,24 @@
   box-sizing: border-box;
 }
 
+// Three columns (room name, rate, unit) no longer fit within the modal's own width at phone
+// size without either truncating the room name or overflowing -- scrolling this table
+// horizontally keeps every column at a legible width instead.
+.ratesTableWrapper {
+  width: 100%;
+
+  @media (width <= $breakpoint-phone) {
+    overflow-x: auto;
+  }
+}
+
 .ratesTable {
   width: 100%;
   border-collapse: collapse;
+
+  @media (width <= $breakpoint-phone) {
+    min-width: 420px;
+  }
 
   th {
     text-align: left;
@@ -266,6 +461,10 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
+
+  @media (width <= $breakpoint-phone) {
+    grid-template-columns: 1fr;
+  }
 }
 
 .textarea {
@@ -335,6 +534,13 @@
   }
 }
 
+// Spacing between two caption-variant FilterGroups stacked in one .filterGrid column --
+// FilterGroup's own .groupSpaced margin is tied to the bigger "title" heading variant, which
+// we don't want here.
+.stackedGroup {
+  margin-top: 20px;
+}
+
 .viewToggle {
   display: inline-flex;
   gap: 8px;
@@ -363,10 +569,22 @@
   display: flex;
   gap: 12px;
   margin-bottom: 8px;
+
+  @media (width <= $breakpoint-phone) {
+    flex-direction: column;
+  }
 }
 
 .linkField {
   flex: 1;
+
+  // Without this, a flex item's default min-width: auto refuses to shrink below its content's
+  // intrinsic width -- a long signage URL would push .linkField (and the row) wider than the
+  // card instead of actually using the flex: 1 space it's been given.
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-family: monospace;
   font-size: 13px;
   color: $black-color;
