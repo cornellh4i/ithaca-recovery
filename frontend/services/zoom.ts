@@ -1,5 +1,5 @@
 import "server-only";
-import { IMeeting } from "../util/models";
+import { IMeeting } from "../types/models";
 import { findResourceConflicts, OccurrenceInput, OccupiedClaim } from "../util/resourceOverlap";
 import { prisma } from "../lib/prisma";
 

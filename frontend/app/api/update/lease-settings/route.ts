@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { Role, Prisma } from "@prisma/client";
 import { requireRole } from "../../../../services/auth";
-import type { ILeaseSettings } from "../../../../util/models";
+import type { ILeaseSettings } from "../../../../types/models";
 import { prisma } from "../../../../lib/prisma";
 
 // Singleton settings document — updates the existing row if one exists, else creates it.

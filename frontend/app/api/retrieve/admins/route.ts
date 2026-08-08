@@ -1,4 +1,4 @@
-import { IAdmin } from "../../../../util/models";
+import { IAdmin } from "../../../../types/models";
 import { Role } from '@prisma/client';
 import { requireRole } from "../../../../services/auth";
 import { prisma } from "../../../../lib/prisma";

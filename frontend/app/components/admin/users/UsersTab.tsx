@@ -8,7 +8,7 @@ import SearchIcon from "@mui/icons-material/Search";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import ArrowDropUpIcon from "@mui/icons-material/ArrowDropUp";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
-import type { IAdmin } from "../../../../util/models";
+import type { IAdmin } from "../../../../types/models";
 import Card from "../shared/Card";
 import TopLoadingBar from "../../atoms/TopLoadingBar";
 import StatusPill, { type StatusPillVariant } from "../../atoms/StatusPill";

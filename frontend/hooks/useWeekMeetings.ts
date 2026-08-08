@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { formatETDateString } from "../util/timeUtils";
-import { createCache } from "../util/simpleCache";
-import { IMeeting } from "../util/models";
+import { createCache } from "../util/common/simpleCache";
+import { IMeeting } from "../types/models";
 import { OverlapMeeting } from "../util/meetingOverlapLayout";
 
 export interface WeekMeeting extends OverlapMeeting {

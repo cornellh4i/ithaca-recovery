@@ -5,8 +5,8 @@ import Card from "../shared/Card";
 import TopLoadingBar from "../../atoms/TopLoadingBar";
 import DiagnosticsCardError from "./DiagnosticsCardError";
 import EditMeetingSidebar from "../../meeting-form/EditMeeting";
-import { IMeeting } from "../../../../util/models";
-import { retryMeetingSync } from "../../../../util/syncMeeting";
+import { IMeeting } from "../../../../types/models";
+import { retryMeetingSync } from "../../../../services/syncMeeting";
 import styles from "../../../../styles/components/admin/DiagnosticsTab.module.scss";
 // Reuses ConflictList's inline-edit-panel styling (accordion expand + card treatment) rather
 // than duplicating it -- same pattern, same visual language, this card just isn't grouped by

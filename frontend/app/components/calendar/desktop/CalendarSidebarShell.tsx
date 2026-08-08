@@ -6,7 +6,7 @@ import CompactCalendarSidebar from "./CompactCalendarSidebar";
 import IconButton from "../../atoms/IconButton";
 import { useSidebar } from "../../../context/SidebarContext";
 import { useBreakpoint } from "../../../../hooks/useBreakpoint";
-import { IMeeting } from "../../../../util/models";
+import { IMeeting } from "../../../../types/models";
 import { MeetingFilters } from "../../../../util/meetingFilters";
 
 interface CalendarSidebarShellProps {

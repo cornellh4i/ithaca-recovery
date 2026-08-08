@@ -1,6 +1,6 @@
 import "server-only";
 import { google } from "googleapis";
-import { IMeeting, IRecurrencePattern } from "../util/models";
+import { IMeeting, IRecurrencePattern } from "../types/models";
 import { getETDayBounds, convertETToUTC } from "../util/timeUtils";
 
 export const calendarIdForCategory: Record<string, string> = {

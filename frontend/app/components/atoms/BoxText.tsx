@@ -1,6 +1,6 @@
 import React, { useLayoutEffect, useRef, useState } from "react";
 import styles from '../../../styles/components/atoms/BoxText.module.scss';
-import { toPastelColor } from '../../../util/color';
+import { toPastelColor } from '../../../util/common/color';
 import { MODE_ICON_SRC } from '../../../util/modeIcons';
 import TagList from './TagList';
 

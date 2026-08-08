@@ -3,9 +3,9 @@ import styles from '../../../../styles/components/calendar/desktop/DayView.modul
 import BoxText from '../../atoms/BoxText';
 import DailyViewRow from "./DailyViewRow";
 import { formatETDateString, getCurrentETMinutesSinceMidnight, getETDayBounds } from "../../../../util/timeUtils";
-import { IMeeting } from "../../../../util/models";
+import { IMeeting } from "../../../../types/models";
 import { passesTagFilters, passesRoomFilter, MeetingFilters } from "../../../../util/meetingFilters";
-import { createCache } from "../../../../util/simpleCache";
+import { createCache } from "../../../../util/common/simpleCache";
 import { defaultRooms } from "../../../../util/rooms";
 import { layoutOverlappingMeetings, OverlapMeeting } from "../../../../util/meetingOverlapLayout";
 
