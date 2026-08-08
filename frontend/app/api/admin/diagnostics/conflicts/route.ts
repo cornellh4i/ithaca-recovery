@@ -1,7 +1,7 @@
 import { Role } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { requireRole } from "../../../../../services/auth";
-import { computeConflicts } from "../../../../../util/resourceOverlap";
+import { computeConflicts } from "../../../../../util/meetings/resourceOverlap";
 import { prisma } from "../../../../../lib/prisma";
 
 const notDeleted = { deletedAt: null };

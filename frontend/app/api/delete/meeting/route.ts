@@ -9,7 +9,7 @@ import {
   calendarIdsForMeeting,
 } from '../../../../services/googleCalendar';
 import { deleteZoomMeeting, zoomRoomCalendarId } from '../../../../services/zoom';
-import { reconcilePendingResume, tearDownPendingResumeSeries, MeetingWithSuspensions } from '../../../../util/suspension';
+import { reconcilePendingResume, tearDownPendingResumeSeries, MeetingWithSuspensions } from '../../../../util/meetings/suspension';
 import { prisma } from '../../../../lib/prisma';
 
 // Returns "YYYY-MM-DD" in Eastern Time for the given UTC timestamp.
