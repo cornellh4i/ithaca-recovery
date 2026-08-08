@@ -10,10 +10,13 @@ export const PUT = async (request: Request) => {
     const auth = await requireRole(Role.SUPER_ADMIN);
     if (auth instanceof Response) return auth;
 
-    const body = await request.json() as { fields: string[] };
+    const body = await request.json() as { fields?: unknown };
+    if (body.fields !== undefined && !Array.isArray(body.fields)) {
+      return NextResponse.json({ error: "fields must be an array." }, { status: 400 });
+    }
     // Sanitized, not trusted as-is -- drops anything that isn't a currently-known field key
     // (e.g. a stale client sending a since-removed key).
-    const fields = sanitizeMeetingExportFields(body.fields ?? []);
+    const fields = sanitizeMeetingExportFields((body.fields as string[] | undefined) ?? []);
 
     const existing = await prisma.meetingExportSettings.findFirst();
     const saved = existing

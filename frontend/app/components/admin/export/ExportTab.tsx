@@ -439,19 +439,24 @@ const ExportTab: React.FC = () => {
   };
 
   const handleSaveMeetingExportFields = async (fields: MeetingExportFieldKey[]) => {
-    const response = await fetch("/api/update/meeting-export-settings", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ fields }),
-    });
-    if (!response.ok) {
-      const json = await response.json().catch(() => ({}));
-      alert(json.error ?? "Failed to save export field settings.");
-      return;
+    try {
+      const response = await fetch("/api/update/meeting-export-settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fields }),
+      });
+      if (!response.ok) {
+        const json = await response.json().catch(() => ({}));
+        alert(json.error ?? "Failed to save export field settings.");
+        return;
+      }
+      const saved: { fields: MeetingExportFieldKey[] } = await response.json();
+      setMeetingExportFields(saved.fields);
+      setMeetingConfigOpen(false);
+    } catch (err) {
+      console.error("Error saving meeting export settings:", err);
+      alert("Failed to save export field settings.");
     }
-    const saved: { fields: MeetingExportFieldKey[] } = await response.json();
-    setMeetingExportFields(saved.fields);
-    setMeetingConfigOpen(false);
   };
 
   const meetingsFilename = `ithaca-recovery-meetings-${todayISO()}.xlsx`;
