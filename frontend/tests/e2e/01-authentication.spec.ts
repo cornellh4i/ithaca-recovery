@@ -160,22 +160,21 @@ test("1.7 Sign Out clears the session and reverts to the signed-out view", async
   await expect(page.getByRole("link", { name: "Sign In" })).toBeVisible();
 });
 
-test("1.8 ADMIN (non-super) sees Diagnostics unlocked but Users/Import/Export locked", async ({ adminPage }) => {
+test("1.8 ADMIN (non-super) sees Diagnostics unlocked but Users/Export locked", async ({ adminPage }) => {
   const { page } = adminPage;
   await page.goto("/admin");
   await expect(page.getByTestId("admin-tab-diagnostics")).toBeEnabled();
   await expect(page.getByTestId("admin-tab-users")).toBeDisabled();
-  await expect(page.getByTestId("admin-tab-import")).toBeDisabled();
   await expect(page.getByTestId("admin-tab-export")).toBeDisabled();
   // Tooltip text is CSS hover-only (visible on :hover/:focus-within) — assert it's
   // present in the DOM rather than requiring an actual hover interaction.
   await expect(page.getByText("Requires super admin").first()).toBeAttached();
 });
 
-test("1.9 SUPER_ADMIN sees all four admin tabs unlocked", async ({ superAdminPage }) => {
+test("1.9 SUPER_ADMIN sees all three admin tabs unlocked", async ({ superAdminPage }) => {
   const { page } = superAdminPage;
   await page.goto("/admin");
-  for (const key of ["diagnostics", "users", "import", "export"]) {
+  for (const key of ["diagnostics", "users", "export"]) {
     await expect(page.getByTestId(`admin-tab-${key}`)).toBeEnabled();
   }
 });

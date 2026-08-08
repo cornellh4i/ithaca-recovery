@@ -20,9 +20,9 @@ let cache: { expiresAt: number; mids: string[]; counts: Record<string, number> }
 // not folded into the public day/week retrieve routes (util/publicMeeting.ts's allowlist) --
 // a Zoom-host conflict is an internal resourcing detail, not something a public viewer needs
 // to see, matching the existing precedent that conflicts are otherwise only surfaced in
-// Diagnostics (also admin-only). Kept separate from the full /api/admin/diagnostics route so
-// the calendar's periodic refresh doesn't also re-check GCal/Zoom reachability and the host
-// pool on every poll.
+// Diagnostics (also admin-only). Kept separate from /api/admin/diagnostics/conflicts so the
+// calendar's periodic refresh doesn't share a route (and its cache) with Diagnostics -- the two
+// compute the same conflict list independently, on their own schedules.
 export const GET = async () => {
   const auth = await requireRole(Role.ADMIN);
   if (auth instanceof Response) return auth;

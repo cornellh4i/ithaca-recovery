@@ -8,29 +8,39 @@
   box-sizing: border-box;
 }
 
-.card {
-  background: #fff;
-  border: 1.5px solid #E5E5E5;
-  border-radius: 8px;
-  padding: 20px 24px;
-  width: 100%;
-  box-sizing: border-box;
-}
+// One Database/Google Calendar/Zoom/Session block: a title row (dot + label + value, all
+// side by side) plus an optional indented line below it (category chips, room chips, the
+// POOLED HOSTS box, or Session's role). That indent lines up with where .statusValue starts
+// on the row above ($status-dot-gap + $status-label-width + row gap), not with the label --
+// so wrapped/secondary content reads as "under the value", matching the design mock.
+$status-dot-gap: 21px; // .dot's own width (9px) + .statusRow's gap (12px)
+$status-label-width: 160px;
+$status-value-indent: $status-dot-gap + $status-label-width + 12px;
 
-.sectionLabel {
-  font-size: 16px;
-  font-weight: 600;
-  color: $medium-grey-color;
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
-  margin-bottom: 16px;
+.statusBlock {
+  padding-bottom: 14px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid $grey-lightest-color;
+
+  &:last-child {
+    padding-bottom: 0;
+    margin-bottom: 0;
+    border-bottom: none;
+  }
 }
 
 .statusRow {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 6px 0;
+
+  // A fixed-width label plus a possibly-long value (e.g. Zoom's "App reachable · 5/5 rooms ·
+  // 5/5 hosts") no longer fits side by side once the card itself has shrunk down to phone
+  // width -- wrapping the value onto its own line keeps the dot+label pair intact instead of
+  // letting the row overflow horizontally.
+  @media (width <= $breakpoint-phone) {
+    flex-wrap: wrap;
+  }
 }
 
 .dot {
@@ -45,57 +55,228 @@
 }
 
 .dotDown {
-  background-color: $brand-pink-color;
+  background-color: $danger-color;
 }
 
 .statusLabel {
   font-weight: 600;
-  width: 160px;
+  width: $status-label-width;
   flex-shrink: 0;
   color: $black-color;
 }
 
-.statusDetail {
+// The row's own value, inline next to .statusLabel (e.g. "Connected · 46ms").
+.statusValue {
   color: #555;
   font-size: 14px;
+
+  // Forces the wrap onto its own full-width line (paired with .statusRow's flex-wrap above)
+  // rather than just being allowed to wrap -- flex-basis: 100% is what actually breaks the
+  // line here, not flex-wrap alone.
+  @media (width <= $breakpoint-phone) {
+    flex-basis: 100%;
+    padding-left: $status-dot-gap;
+  }
+}
+
+// A line below the title row -- Session's role, or (via .gcalSubRow/.pooledHosts below)
+// Google Calendar/Zoom's chips and pooled-hosts box. Indented to $status-value-indent so it
+// lines up under .statusValue above it, not under .statusLabel.
+.statusDetail {
+  color: $medium-grey-color;
+  font-size: 13px;
+  margin-top: 2px;
+  padding-left: $status-value-indent;
+
+  // $status-value-indent (193px) is sized to line up under a full-width label+value row --
+  // once .statusRow itself has wrapped to phone width, that much indent would push this line's
+  // own content into a sliver a few characters wide. Falls back to the same shallow indent
+  // .statusValue uses when it wraps, so this still reads as "nested under the row above" without
+  // starving it of width.
+  @media (width <= $breakpoint-phone) {
+    padding-left: $status-dot-gap;
+  }
 }
 
 .gcalSubRow {
   display: flex;
   flex-wrap: wrap;
   gap: 8px 16px;
-  padding-left: 21px;
+  padding-left: $status-value-indent;
   font-size: 13px;
-  color: #555;
-  margin-bottom: 6px;
+  color: $medium-grey-color;
+  margin-top: 6px;
+
+  @media (width <= $breakpoint-phone) {
+    padding-left: $status-dot-gap;
+  }
 }
 
 .gcalOk {
+  color: $medium-grey-color;
+}
+
+// Split by severity rather than one blanket "down" color: an actual failure (sync error,
+// unreachable) is danger-color; a soft/pending state (waiting on a Zoom host, not broken, just
+// not resolved yet) is warning-color, so the two read as visually distinct at a glance.
+.dangerText {
+  color: $danger-color;
+}
+
+.warningText {
+  color: $warning-text-color;
+}
+
+// Suspended panel's own identity color, for its purely-informational status line (not itself
+// an error or a pending state, so neither .dangerText nor .warningText fits).
+.navyText {
+  color: $navy-color;
+}
+
+.pooledHosts {
+  background: $grey-lightest-color;
+  border-radius: 6px;
+  padding: 10px 14px;
+  margin: 8px 0 0 $status-value-indent;
+
+  @media (width <= $breakpoint-phone) {
+    margin-left: $status-dot-gap;
+  }
+}
+
+.pooledHostsHeader {
+  font-size: 12px;
+  font-weight: 600;
+  color: $medium-grey-color;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  margin-bottom: 6px;
+}
+
+.pooledHostRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+  padding: 2px 0;
+  color: #555;
+
+  // A host email (often 30+ characters) plus its status tag no longer fit on one line at phone
+  // width -- wrapping lets the tag drop below the email instead of forcing horizontal overflow.
+  @media (width <= $breakpoint-phone) {
+    flex-wrap: wrap;
+    padding: 4px 0;
+  }
+}
+
+.hostTagLicensed {
   color: #555;
 }
 
-.gcalDown {
-  color: $brand-pink-color;
+.hostTagBasic {
+  color: $warning-text-color;
+}
+
+.hostTagUnreachable {
+  color: $danger-color;
 }
 
 .countsRow {
   display: flex;
   gap: 40px;
   margin-bottom: 12px;
+
+  @media (width <= $breakpoint-phone) {
+    gap: 20px;
+  }
 }
 
-.countsSecondaryRow {
+.countsDivider {
+  border-top: 1px solid $grey-lightest-color;
+  margin: 12px 0;
+}
+
+.countsDetailRow {
   display: flex;
-  justify-content: space-between;
+  gap: 12px;
   font-size: 14px;
+  padding: 3px 0;
+
+  // A 110px label plus a value like "AA: 44 · Al-Anon: 22 · Other: 1" doesn't reliably fit
+  // beside each other at phone width -- stacking avoids the risk case-by-case rather than
+  // trying to predict which fellowship/schedule breakdowns are short enough to survive.
+  @media (width <= $breakpoint-phone) {
+    flex-direction: column;
+    gap: 2px;
+  }
+}
+
+.countsDetailLabel {
+  width: 110px;
+  flex-shrink: 0;
+  color: $medium-grey-color;
+
+  @media (width <= $breakpoint-phone) {
+    width: auto;
+  }
+}
+
+.countsDetailValue {
   color: #555;
 }
 
 .panelHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   font-size: 16px;
   font-weight: 600;
   color: $black-color;
   margin-bottom: 4px;
+}
+
+// Renders each panel's SVG (public/svg/) as a CSS mask rather than an <img>, so it can be
+// tinted per-panel via background-color -- the source files themselves ship with a single
+// fixed fill baked in (reused elsewhere at that color, e.g. pause-icon.svg's warning-orange
+// in the meeting-suspend UI), so recoloring the shared asset itself isn't an option here.
+.panelIcon {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  mask-repeat: no-repeat;
+  mask-position: center;
+  mask-size: contain;
+}
+
+.panelIconSyncIssues {
+  background-color: $danger-color;
+  mask-image: url('/svg/sync-error-icon.svg');
+}
+
+.panelIconConflicts {
+  background-color: $warning-text-color;
+  mask-image: url('/svg/warning-icon.svg');
+}
+
+.panelIconSuspended {
+  background-color: $navy-color;
+  mask-image: url('/svg/pause-icon.svg');
+}
+
+// System Status/Meeting Counts use real MUI icon components (MonitorHeart/EventAvailable)
+// rather than the mask-image treatment above -- an SVG React component already tints via
+// `color` (currentColor), so it doesn't need a background-color mask at all. Sized via the
+// icon's own fontSize prop, not width/height, to match how MUI icons scale internally.
+.panelIconSystemStatus {
+  display: inline-flex;
+  color: $medium-grey-color;
+}
+
+.panelIconMeetingCounts {
+  display: inline-flex;
+  color: $medium-grey-color;
 }
 
 .panelSubhead {
@@ -109,8 +290,16 @@
   font-size: 14px;
 }
 
+// Groups a panel's meeting rows into one surface, matching ConflictList.module.scss's
+// .conflictBox -- same visual language across Sync Issues, Conflicts, and Suspended.
+.meetingListBox {
+  background: $grey-lightest-color;
+  border-radius: 8px;
+  padding: 4px 16px;
+}
+
 .meetingRow {
-  border-top: 1px solid $grey-lightest-color;
+  border-top: 1px solid $grey-border-color;
   padding: 10px 0;
 
   &:first-of-type {
@@ -138,17 +327,35 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
+
+  // Meeting title/tags/meta plus one or two action buttons no longer reliably fit side by
+  // side at phone width -- stacking (used by both Sync Issues and Suspended, which share this
+  // class) keeps the buttons fully reachable instead of squeezed into whatever width is left.
+  @media (width <= $breakpoint-phone) {
+    flex-direction: column;
+    gap: 10px;
+  }
 }
 
+// Color comes from .dangerText/.warningText, applied alongside this in JSX per issue's
+// severity -- a "waiting on a host" line isn't a failure the same way "sync failed" is.
 .issueLine {
   font-size: 13px;
-  color: $brand-pink-color;
   margin-top: 4px;
 }
 
+.rowActions {
+  display: flex;
+  flex-shrink: 0;
+  gap: 8px;
+}
+
+// Solid white background, not transparent -- these buttons sit inside .meetingListBox's
+// grey surface, and a transparent background would blend into it instead of reading as a
+// distinct, clickable control.
 .retryButton {
   flex-shrink: 0;
-  background: none;
+  background: #fff;
   border: 1px solid $grey-border-color;
   border-radius: 6px;
   padding: 6px 12px;
@@ -158,7 +365,7 @@
   cursor: pointer;
 
   &:hover:not(:disabled) {
-    background-color: $grey-lightest-color;
+    border-color: $medium-grey-color;
   }
 
   &:disabled {

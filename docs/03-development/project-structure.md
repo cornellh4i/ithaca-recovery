@@ -64,7 +64,7 @@ app/
 │   ├── atoms/                   # Primitive UI elements, shared across every domain
 │   ├── calendar/                # Day/Week views, calendar sidebar, meeting filters
 │   ├── meeting-form/            # New/Edit/View meeting, recurrence, Zoom host field
-│   ├── admin/                   # AdminShell + Diagnostics/Users/Import/Export tabs
+│   ├── admin/                   # AdminShell + Diagnostics/Users/Export tabs
 │   ├── navbar/                  # App-wide top nav
 │   └── shared/                  # Cross-domain components (kept intentionally small)
 ├── ClientLayout.tsx             # Client-side layout wrapper
@@ -76,7 +76,7 @@ app/
 | Route | Purpose |
 |---|---|
 | `/` | Home — calendar (Day/Week) |
-| `/admin` | Admin shell: Diagnostics, Users, Import, Export tabs |
+| `/admin` | Admin shell: Diagnostics, Users, Export tabs |
 | `/signage` | Read-only kiosk calendar for the physical display board |
 
 ### Component Hierarchy (by domain)
@@ -89,7 +89,7 @@ Components are grouped by domain/feature rather than by atomic-design tier — w
 
 **`meeting-form/`** — `NewMeeting`, `EditMeeting`, `MeetingForm`, `ViewMeeting`, `RecurringMeeting`, `ZoomHostField`, `DeleteMeetingModal`, `DeleteRecurringModal`
 
-**`admin/`** — `AdminShell`, `DiagnosticsTab`, `UsersTab`, `ImportTab`, `ExportTab`, `CardHeader`, `ConflictList` (imports `meeting-form/EditMeeting` so an admin can jump straight to editing a conflicting meeting — a normal cross-domain dependency, not a reason to relocate either component)
+**`admin/`** — `AdminShell`, `DiagnosticsTab`, `UsersTab`, `ExportTab`, `Card`, `CardHeader`, `ConflictList` (imports `meeting-form/EditMeeting` so an admin can jump straight to editing a conflicting meeting — a normal cross-domain dependency, not a reason to relocate either component)
 
 **`navbar/`** — `AppNavbar`
 
