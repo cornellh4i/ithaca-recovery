@@ -203,7 +203,15 @@ const ExportTab: React.FC = () => {
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
       const json: { settings: ILeaseSettings; cycles: LeaseYearCycle[] } = await response.json();
       setLeaseSettings(json.settings);
-      setLeaseCycles(json.cycles);
+      // fetch/JSON.parse hands back ISO strings for Date fields despite the LeaseYearCycle type,
+      // so callers comparing against `new Date(...)` values (LeaseConfigModal's cycle picker) need real Dates here.
+      setLeaseCycles(
+        json.cycles.map((cycle) => ({
+          ...cycle,
+          startDate: new Date(cycle.startDate),
+          endDate: new Date(cycle.endDate),
+        })),
+      );
       setSettingsError(null);
     } catch (err) {
       console.error("Error loading lease settings:", err);
