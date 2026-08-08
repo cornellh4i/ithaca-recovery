@@ -1,7 +1,7 @@
 import { randomUUID } from "crypto";
 import { Meeting, RecurrencePattern, SuspensionPeriod } from "@prisma/client";
 import { getTestPrismaClient } from "./db";
-import { convertETToUTC, formatETDateString } from "../../util/timeUtils";
+import { convertETToUTC, formatETDateString } from "../../util/date/timeUtils";
 
 export async function seedMeeting(overrides: Partial<Meeting> = {}): Promise<Meeting> {
   const prisma = getTestPrismaClient();

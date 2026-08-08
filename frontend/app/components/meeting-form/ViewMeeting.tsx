@@ -10,8 +10,8 @@ import TagList from '../atoms/TagList';
 import BottomSheet from '../atoms/BottomSheet';
 
 import { IRecurrencePattern } from '../../../types/models';
-import { formatCompactTimeRange, formatMeetingDateLine } from "../../../util/timeFormat";
-import { formatETDateString } from "../../../util/timeUtils";
+import { formatCompactTimeRange, formatMeetingDateLine } from "../../../util/date/timeFormat";
+import { formatETDateString } from "../../../util/date/timeUtils";
 import { retryMeetingSync } from "../../../services/syncMeeting";
 import { formatSuspensionStatusText } from "../../../util/suspensionText";
 import { ROOM_COLORS, ZOOM_ROOM_COLOR } from "../../../util/filterColors";

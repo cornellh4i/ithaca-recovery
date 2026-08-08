@@ -2,7 +2,7 @@ import { test, expect } from "./support/fixtures";
 import { fillTimeRange } from "./support/formHelpers";
 import { seedMeeting } from "../factories/meeting";
 import { getTestPrismaClient } from "../factories/db";
-import { convertETToUTC, formatETDateString } from "../../util/timeUtils";
+import { convertETToUTC, formatETDateString } from "../../util/date/timeUtils";
 
 // Avoids overlapping the default 18:00-19:00 seeded slot, which Day view can't visually split.
 function laterSlot() {

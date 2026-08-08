@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 import { IMeeting, IRecurrencePattern } from '../types/models';
-import { convertUTCToET, convertETToUTC, formatETDateString, getWeekDatesET, getCurrentETMinutesSinceMidnight } from '../util/timeUtils';
+import { convertUTCToET, convertETToUTC, formatETDateString, getWeekDatesET, getCurrentETMinutesSinceMidnight } from '../util/date/timeUtils';
 import { roomToZoomRoom } from '../util/rooms';
 import { DESCRIPTION_MAX_LENGTH } from '../util/meetingValidation';
 

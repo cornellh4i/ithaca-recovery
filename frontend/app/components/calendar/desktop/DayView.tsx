@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useLayoutEffect, useState, useRef } from
 import styles from '../../../../styles/components/calendar/desktop/DayView.module.scss';
 import BoxText from '../../atoms/BoxText';
 import DailyViewRow from "./DailyViewRow";
-import { formatETDateString, getCurrentETMinutesSinceMidnight, getETDayBounds } from "../../../../util/timeUtils";
+import { formatETDateString, getCurrentETMinutesSinceMidnight, getETDayBounds } from "../../../../util/date/timeUtils";
 import { IMeeting } from "../../../../types/models";
 import { passesTagFilters, passesRoomFilter, MeetingFilters } from "../../../../util/meetingFilters";
 import { createCache } from "../../../../util/common/simpleCache";

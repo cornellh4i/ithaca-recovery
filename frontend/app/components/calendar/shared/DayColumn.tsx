@@ -3,8 +3,8 @@ import BoxText from '../../atoms/BoxText';
 import OverlapMeetingsModal from './OverlapMeetingsModal';
 import styles from '../../../../styles/components/calendar/shared/DayColumn.module.scss';
 import { isZoomRoomMismatched } from '../../../../util/rooms';
-import { formatCompactTimeRange } from '../../../../util/timeFormat';
-import { formatETDateString } from '../../../../util/timeUtils';
+import { formatCompactTimeRange } from '../../../../util/date/timeFormat';
+import { formatETDateString } from '../../../../util/date/timeUtils';
 
 interface Meeting {
     id: string;

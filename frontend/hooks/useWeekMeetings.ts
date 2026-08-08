@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { formatETDateString } from "../util/timeUtils";
+import { formatETDateString } from "../util/date/timeUtils";
 import { createCache } from "../util/common/simpleCache";
 import { IMeeting } from "../types/models";
 import { OverlapMeeting } from "../util/meetingOverlapLayout";

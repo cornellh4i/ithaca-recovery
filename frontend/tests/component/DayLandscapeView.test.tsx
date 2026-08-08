@@ -4,7 +4,7 @@ import DayLandscapeView, { roomDisplayName } from "../../app/components/calendar
 import { CalendarProvider } from "../../app/context/CalendarProvider";
 import { createDefaultFilters } from "../../util/meetingFilters";
 import { defaultRooms } from "../../util/rooms";
-import { formatETDateString } from "../../util/timeUtils";
+import { formatETDateString } from "../../util/date/timeUtils";
 
 // Noon ET (UTC-4, matching this repo's other fixed-date component tests, e.g.
 // DayPortraitView.test.tsx's etNoon helper).

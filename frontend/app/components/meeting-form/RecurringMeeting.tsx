@@ -10,7 +10,7 @@ import styles from "../../../styles/components/meeting-form/RecurringMeeting.mod
 
 import CheckButton from '../atoms/CheckButton';
 import { IRecurrencePattern } from "../../../types/models";
-import { convertETToUTC, convertUTCToET } from "../../../util/timeUtils";
+import { convertETToUTC, convertUTCToET } from "../../../util/date/timeUtils";
 
 
 interface RecurringMeetingFormProps {

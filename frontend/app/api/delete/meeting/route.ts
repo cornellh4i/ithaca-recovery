@@ -1,7 +1,7 @@
 import { Role } from '@prisma/client';
 import { after } from 'next/server';
 import { requireRole } from '../../../../services/auth';
-import { getETDayBounds } from '../../../../util/timeUtils';
+import { getETDayBounds } from '../../../../util/date/timeUtils';
 import {
   deleteCalendarEvent,
   deleteCalendarOccurrence,

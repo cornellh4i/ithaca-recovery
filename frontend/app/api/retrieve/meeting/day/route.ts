@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic';
 
 import { getMeetingsForDate } from "../../../../../util/meetingOccurrences";
-import { toETDateString } from "../../../../../util/timeUtils";
+import { toETDateString } from "../../../../../util/date/timeUtils";
 import { NextRequest } from 'next/server';
 
 const retrieveDayMeetings = async (request: NextRequest) => {

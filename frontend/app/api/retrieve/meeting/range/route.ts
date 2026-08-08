@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic';
 
 import { getMeetingsForRange } from "../../../../../util/meetingOccurrences";
-import { toETDateString, addDaysToETDateString } from "../../../../../util/timeUtils";
+import { toETDateString, addDaysToETDateString } from "../../../../../util/date/timeUtils";
 import { NextRequest } from 'next/server';
 
 // A safety backstop, not a real limit any caller should hit -- MultiDayLandscapeView's pages

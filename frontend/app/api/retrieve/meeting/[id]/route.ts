@@ -3,7 +3,7 @@ import { getAuth } from "../../../../../services/auth";
 import { prisma } from "../../../../../lib/prisma";
 import { toPublicMeeting } from "../../../../../util/publicMeeting";
 import { getUnresolvedSuspension } from "../../../../../util/suspension";
-import { formatETDateString } from "../../../../../util/timeUtils";
+import { formatETDateString } from "../../../../../util/date/timeUtils";
 const getMeeting = async(request: NextRequest) => {
   try {
     // Intentionally public (see routeGuards.test.ts PUBLIC_ROUTES) -- backs the

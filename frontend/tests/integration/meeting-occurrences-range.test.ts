@@ -1,7 +1,7 @@
 import { seedMeeting, seedRecurringMeeting } from "../factories/meeting";
 import { disconnectTestPrismaClient } from "../factories/db";
 import { getMeetingsForRange } from "../../util/meetingOccurrences";
-import { convertETToUTC, addDaysToETDateString, formatETDateString } from "../../util/timeUtils";
+import { convertETToUTC, addDaysToETDateString, formatETDateString } from "../../util/date/timeUtils";
 
 afterAll(async () => {
   await disconnectTestPrismaClient();

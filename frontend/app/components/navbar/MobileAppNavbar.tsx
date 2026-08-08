@@ -15,7 +15,7 @@ import MiniCalendar from "../atoms/MiniCalendar";
 import MeetingsFilter from "../calendar/shared/MeetingsFilter";
 import { useCalendarContext } from "../../context/CalendarProvider";
 import { useViewport } from "../../../hooks/useViewport";
-import { toNoonETOnLocalCalendarDay } from "../../../util/weekDates";
+import { toNoonETOnLocalCalendarDay } from "../../../util/date/weekDates";
 import styles from "../../../styles/components/navbar/MobileAppNavbar.module.scss";
 
 const LANDSCAPE_VIEW_LABELS = { day: "Day", multiday: "Multi-Day" } as const;

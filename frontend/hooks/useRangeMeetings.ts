@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { formatETDateString } from "../util/timeUtils";
-import { addDaysToDate } from "../util/weekDates";
+import { formatETDateString } from "../util/date/timeUtils";
+import { addDaysToDate } from "../util/date/weekDates";
 import { createCache } from "../util/common/simpleCache";
 import { WeekMeeting, mapRawMeetingsToWeekMeetings } from "./useWeekMeetings";
 
