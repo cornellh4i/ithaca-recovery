@@ -490,7 +490,7 @@ const ExportTab: React.FC = () => {
               }}
             />
             <div className={styles.cardDesc}>
-              Spreadsheet export of every meeting. Choose which fields to include below.
+              Spreadsheet export of every meeting. Configure which fields to include.
             </div>
             <div className={styles.summaryRow}>
               <span className={styles.summaryText}>{meetingExportSummary}</span>
