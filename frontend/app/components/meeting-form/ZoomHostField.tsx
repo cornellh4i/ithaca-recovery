@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import Dropdown from '../atoms/Dropdown';
 import { useZoomHostPool } from '../../../hooks/useZoomHostPool';
-import { zoomHostLabel } from '../../../util/zoomHosts';
+import { zoomHostLabel } from '../../../util/rooms/zoomHosts';
 import { IMeeting } from '../../../types/models';
 import styles from '../../../styles/components/meeting-form/ZoomHostField.module.scss';
 

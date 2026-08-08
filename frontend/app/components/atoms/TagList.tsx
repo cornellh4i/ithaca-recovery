@@ -1,7 +1,7 @@
 import React, { useLayoutEffect, useRef, useState } from "react";
 import styles from '../../../styles/components/atoms/TagList.module.scss';
 import { sortTags } from '../../../util/tagOrder';
-import { MODE_ICON_SRC } from '../../../util/modeIcons';
+import { MODE_ICON_SRC } from '../../../util/rooms/modeIcons';
 
 interface TagListProps {
   tags: string[];

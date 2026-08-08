@@ -14,7 +14,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import IconButton from '@mui/material/IconButton';
 
 import { IMeeting } from '../../../types/models'
-import { physicalRoomOptions, zoomRoomOptions } from "../../../util/rooms";
+import { physicalRoomOptions, zoomRoomOptions } from "../../../util/rooms/rooms";
 import { useMeetingForm, CAL_TYPE_OPTIONS, CAL_TYPE_COLOR, DESCRIPTION_MAX_LENGTH } from '../../../hooks/useMeetingForm';
 import { ConflictListRow } from '../../../util/conflictDisplay';
 

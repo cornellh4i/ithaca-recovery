@@ -2,7 +2,7 @@
 
 import React from 'react';
 import FilterGroup, { FilterGroupItem } from '../../shared/FilterGroup';
-import { ROOM_COLORS, ZOOM_ROOM_COLOR, CATEGORY_COLOR } from '../../../../util/filterColors';
+import { ROOM_COLORS, ZOOM_ROOM_COLOR, CATEGORY_COLOR } from '../../../../util/rooms/filterColors';
 import { MeetingFilters } from '../../../../util/meetingFilters';
 
 interface MeetingsFilterProps {
