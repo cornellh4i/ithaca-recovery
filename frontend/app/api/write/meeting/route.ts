@@ -6,7 +6,7 @@ import { createCalendarEvent, calendarIdsForMeeting } from "../../../../services
 import { createZoomMeeting, getZoomMeetingInvitation, resolveZoomHost, zoomRoomCalendarId } from "../../../../services/zoom";
 import { findResourceConflicts, findResourceConflictRows, ConflictRow, ResourceConflictAbort } from "../../../../util/resourceOverlap";
 import { lockResourceClaims, ResourceClaim } from "../../../../util/resourceLocks";
-import { meetingSchema } from "../../../../util/meetingValidation";
+import { meetingSchema } from "../../../../util/meetings/meetingValidation";
 import { calculateEndDateFromOccurrences } from "../../../../util/meetingOccurrences";
 import { prisma } from "../../../../lib/prisma";
 

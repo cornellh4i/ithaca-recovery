@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import FilterGroup, { FilterGroupItem } from "../../shared/FilterGroup";
-import { MEETING_EXPORT_FIELD_GROUPS, type MeetingExportFieldKey } from "../../../../util/meetingExportFields";
+import { MEETING_EXPORT_FIELD_GROUPS, type MeetingExportFieldKey } from "../../../../util/meetings/meetingExportFields";
 import styles from "../../../../styles/components/admin/ExportTab.module.scss";
 
 interface MeetingExportConfigModalProps {

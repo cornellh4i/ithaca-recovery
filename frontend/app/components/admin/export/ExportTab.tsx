@@ -12,7 +12,7 @@ import {
 } from "../../../../util/filters/signageFilters";
 import { ROOM_COLORS, ZOOM_ROOM_COLOR, CATEGORY_COLOR } from "../../../../util/rooms/filterColors";
 import type { ILeaseSettings } from "../../../../types/models";
-import { ALL_MEETING_EXPORT_FIELD_KEYS, type MeetingExportFieldKey } from "../../../../util/meetingExportFields";
+import { ALL_MEETING_EXPORT_FIELD_KEYS, type MeetingExportFieldKey } from "../../../../util/meetings/meetingExportFields";
 import type { LeaseYearCycle } from "../../../../util/lease/leaseYearCycles";
 import FilterGroup, { FilterGroupItem } from "../../shared/FilterGroup";
 import Card from "../shared/Card";

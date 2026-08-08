@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import styles from '../../../styles/components/meeting-form/ConflictOverrideModal.module.scss';
-import { fieldLabel, formatOverlapSummary, formatMeetingSchedule, ConflictListRow } from '../../../util/conflictDisplay';
+import { fieldLabel, formatOverlapSummary, formatMeetingSchedule, ConflictListRow } from '../../../util/meetings/conflictDisplay';
 
 interface ConflictOverrideModalProps {
   isOpen: boolean;

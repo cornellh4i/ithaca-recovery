@@ -7,7 +7,7 @@ import { IMeeting } from "../../../../types/models";
 import { passesTagFilters, passesRoomFilter, MeetingFilters } from "../../../../util/filters/meetingFilters";
 import { createCache } from "../../../../util/common/simpleCache";
 import { defaultRooms } from "../../../../util/rooms/rooms";
-import { layoutOverlappingMeetings, OverlapMeeting } from "../../../../util/meetingOverlapLayout";
+import { layoutOverlappingMeetings, OverlapMeeting } from "../../../../util/meetings/meetingOverlapLayout";
 
 interface Meeting extends OverlapMeeting {
   syncError?: boolean;

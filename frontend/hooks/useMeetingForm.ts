@@ -2,7 +2,7 @@ import { useCallback, useState } from 'react';
 import { IMeeting, IRecurrencePattern } from '../types/models';
 import { convertUTCToET, convertETToUTC, formatETDateString, getWeekDatesET, getCurrentETMinutesSinceMidnight } from '../util/date/timeUtils';
 import { roomToZoomRoom } from '../util/rooms/rooms';
-import { DESCRIPTION_MAX_LENGTH } from '../util/meetingValidation';
+import { DESCRIPTION_MAX_LENGTH } from '../util/meetings/meetingValidation';
 
 // What the calendar is currently showing, used to seed a brand-new meeting's default
 // Date field -- see computeDefaultDate below.

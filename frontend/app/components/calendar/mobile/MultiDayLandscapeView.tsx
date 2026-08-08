@@ -5,7 +5,7 @@ import DayColumn from "../shared/DayColumn";
 import { filterMeetingsForDate, MeetingFilters } from "../../../../util/filters/meetingFilters";
 import { ROOM_COLORS, ZOOM_ROOM_COLOR, REMOTE_COLOR } from "../../../../util/rooms/filterColors";
 import { formatETDateString, getCurrentETMinutesSinceMidnight } from "../../../../util/date/timeUtils";
-import { layoutOverlappingMeetings, OverlapMeeting } from "../../../../util/meetingOverlapLayout";
+import { layoutOverlappingMeetings, OverlapMeeting } from "../../../../util/meetings/meetingOverlapLayout";
 import { addDaysToDate, daysBetweenET } from "../../../../util/date/weekDates";
 import { useRangeMeetings } from "../../../../hooks/useRangeMeetings";
 import { useElementWidth } from "../../../../hooks/useElementWidth";

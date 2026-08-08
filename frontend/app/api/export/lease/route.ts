@@ -1,7 +1,7 @@
 import { Role } from "@prisma/client";
 import { requireRole } from "../../../../services/auth";
 import { defaultLeaseSettings } from "../../../../util/lease/leaseDefaults";
-import { formatDayColumn } from "../../../../util/recurrenceDisplay";
+import { formatDayColumn } from "../../../../util/meetings/recurrenceDisplay";
 import type { ILeaseSettings, IRoomRate } from "../../../../types/models";
 import { prisma } from "../../../../lib/prisma";
 

@@ -1,4 +1,4 @@
-import { layoutOverlappingMeetings, MAX_VISIBLE_OVERLAP, type OverlapMeeting } from "../../util/meetingOverlapLayout";
+import { layoutOverlappingMeetings, MAX_VISIBLE_OVERLAP, type OverlapMeeting } from "../../util/meetings/meetingOverlapLayout";
 
 const meeting = (id: string, title: string, startTime: string, endTime: string): OverlapMeeting => ({
   id,

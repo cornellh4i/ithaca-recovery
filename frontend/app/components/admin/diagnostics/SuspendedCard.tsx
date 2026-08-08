@@ -5,7 +5,7 @@ import Card from "../shared/Card";
 import TopLoadingBar from "../../atoms/TopLoadingBar";
 import DiagnosticsCardError from "./DiagnosticsCardError";
 import ResumeMeetingModal from "../../meeting-form/ResumeMeetingModal";
-import { formatSuspensionStatusText } from "../../../../util/suspensionText";
+import { formatSuspensionStatusText } from "../../../../util/meetings/suspensionText";
 import styles from "../../../../styles/components/admin/DiagnosticsTab.module.scss";
 
 interface SuspendedRow {

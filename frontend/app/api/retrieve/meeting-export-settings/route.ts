@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { Role } from "@prisma/client";
 import { requireRole } from "../../../../services/auth";
-import { ALL_MEETING_EXPORT_FIELD_KEYS, sanitizeMeetingExportFields } from "../../../../util/meetingExportFields";
+import { ALL_MEETING_EXPORT_FIELD_KEYS, sanitizeMeetingExportFields } from "../../../../util/meetings/meetingExportFields";
 import { prisma } from "../../../../lib/prisma";
 
 export const GET = async () => {
