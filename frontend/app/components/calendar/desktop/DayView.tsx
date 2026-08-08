@@ -6,7 +6,7 @@ import { formatETDateString, getCurrentETMinutesSinceMidnight, getETDayBounds } 
 import { IMeeting } from "../../../../types/models";
 import { passesTagFilters, passesRoomFilter, MeetingFilters } from "../../../../util/meetingFilters";
 import { createCache } from "../../../../util/common/simpleCache";
-import { defaultRooms } from "../../../../util/rooms";
+import { defaultRooms } from "../../../../util/rooms/rooms";
 import { layoutOverlappingMeetings, OverlapMeeting } from "../../../../util/meetingOverlapLayout";
 
 interface Meeting extends OverlapMeeting {

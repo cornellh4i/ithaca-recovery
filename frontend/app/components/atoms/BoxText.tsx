@@ -1,7 +1,7 @@
 import React, { useLayoutEffect, useRef, useState } from "react";
 import styles from '../../../styles/components/atoms/BoxText.module.scss';
 import { toPastelColor } from '../../../util/common/color';
-import { MODE_ICON_SRC } from '../../../util/modeIcons';
+import { MODE_ICON_SRC } from '../../../util/rooms/modeIcons';
 import TagList from './TagList';
 
 interface BoxProps {

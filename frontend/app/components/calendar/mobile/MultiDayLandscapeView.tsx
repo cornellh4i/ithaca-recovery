@@ -3,7 +3,7 @@ import { motion, useAnimationControls, useDragControls, type PanInfo } from "fra
 import styles from "../../../../styles/components/calendar/mobile/MultiDayLandscapeView.module.scss";
 import DayColumn from "../shared/DayColumn";
 import { filterMeetingsForDate, MeetingFilters } from "../../../../util/meetingFilters";
-import { ROOM_COLORS, ZOOM_ROOM_COLOR, REMOTE_COLOR } from "../../../../util/filterColors";
+import { ROOM_COLORS, ZOOM_ROOM_COLOR, REMOTE_COLOR } from "../../../../util/rooms/filterColors";
 import { formatETDateString, getCurrentETMinutesSinceMidnight } from "../../../../util/date/timeUtils";
 import { layoutOverlappingMeetings, OverlapMeeting } from "../../../../util/meetingOverlapLayout";
 import { addDaysToDate, daysBetweenET } from "../../../../util/date/weekDates";
