@@ -16,8 +16,9 @@
 }
 
 .conflictMeta {
-  font-size: 13px;
-  color: #555;
+  font-size: 15px;
+  font-weight: 600;
+  color: $black-color;
 }
 
 .conflictValue {
@@ -29,11 +30,20 @@
   font-size: 13px;
   color: $medium-grey-color;
   margin-top: 2px;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
+}
+
+// Groups every meeting sharing a resource (room/zoomRoom/zoomHost) into one visually distinct
+// surface, so a resource with 3+ overlapping meetings reads as a single conflict, not one box
+// per pairwise overlap.
+.conflictBox {
+  background: $grey-lightest-color;
+  border-radius: 8px;
+  padding: 4px 16px;
 }
 
 .conflictEntry {
-  border-top: 1px solid $grey-lightest-color;
+  border-top: 1px solid $grey-border-color;
 
   &:first-of-type {
     border-top: none;
@@ -45,6 +55,11 @@
   justify-content: space-between;
   align-items: flex-start;
   padding: 10px 0;
+
+  @media (width <= $breakpoint-phone) {
+    flex-direction: column;
+    gap: 8px;
+  }
 }
 
 // Accordion expand for the inline edit panel, animated via grid-template-rows so it doesn't
@@ -68,12 +83,10 @@
   padding: 8px 0 12px;
 }
 
-// Card treatment (mirrors DiagnosticsTab's own .card and the design system's --color-grey-
-// lightest token) so the expanded edit form reads as a distinct surface rather than blending
-// into the conflict row list. Now that ModeTypeButtons' selected state is a solid pink fill
-// (not a near-white pill), this lighter card no longer washes it out.
+// White card treatment so the expanded edit form reads as a distinct surface against
+// .conflictBox's grey background, rather than blending into it.
 .editCard {
-  background: $grey-lightest-color;
+  background: $white-color;
   border: 1.5px solid $grey-border-color;
   border-radius: 8px;
   padding: 16px 20px;
@@ -83,7 +96,7 @@
   padding: 16px 24px;
   font-size: 13px;
   color: $medium-grey-color;
-  background: $grey-lightest-color;
+  background: $white-color;
   border: 1.5px solid $grey-border-color;
   border-radius: 8px;
 }
@@ -106,6 +119,9 @@
   margin-top: 2px;
 }
 
+// Solid white background, not transparent -- this button sits inside .conflictBox's grey
+// surface, and a transparent background would blend into it instead of reading as a
+// distinct, clickable control.
 .editButton {
   flex-shrink: 0;
   margin-left: 16px;
@@ -115,7 +131,7 @@
   font-size: 13px;
   font-family: inherit;
   color: $black-color;
-  background: none;
+  background: $white-color;
   cursor: pointer;
   white-space: nowrap;
 
@@ -123,8 +139,14 @@
     border-color: $medium-grey-color;
   }
 
+  // Distinct fill (not #fff, not $grey-lightest-color) so the expanded state stays visually
+  // flagged against both the idle button and .conflictBox's own background.
   &[aria-expanded="true"] {
     border-color: $medium-grey-color;
-    background: #F5F5F5;
+    background: $grey-border-color;
+  }
+
+  @media (width <= $breakpoint-phone) {
+    margin-left: 0;
   }
 }

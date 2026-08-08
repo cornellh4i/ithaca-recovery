@@ -56,11 +56,6 @@ export default async function globalSetup(): Promise<void> {
       DATABASE_URL: uri,
       NEXTAUTH_SECRET: TEST_NEXTAUTH_SECRET,
       NEXTAUTH_URL: TEST_BASE_URL,
-      // Feature flags (lib/flags.ts) only gate end-user visibility, not correctness —
-      // e2e always exercises the real behavior behind them regardless of the prod default.
-      NEXT_PUBLIC_FEATURE_IMPORT_TAB: "true",
-      NEXT_PUBLIC_FEATURE_EXPORT_XLSX: "true",
-      NEXT_PUBLIC_FEATURE_EXPORT_CSV: "true",
     },
     3000,
   );

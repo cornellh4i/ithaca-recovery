@@ -131,3 +131,11 @@ model LeaseSettings {
   emailTemplate   String
   updatedAt       DateTime @updatedAt
 }
+
+// Singleton — which optional columns the Export Meetings (XLSX) download includes. Meeting ID
+// and Meeting Name are always exported regardless of this list, so they're never stored here.
+model MeetingExportSettings {
+  id        String   @id @default(cuid())
+  fields    String[] @default([])
+  updatedAt DateTime @updatedAt
+}

@@ -1,10 +1,10 @@
 "use client";
 
 import React from "react";
-import styles from "../../../styles/components/admin/CardHeader.module.scss";
+import styles from "../../../../styles/components/admin/CardHeader.module.scss";
 
 interface CardHeaderAction {
-  icon: React.ReactNode;
+  label: string;
   onClick: () => void;
   ariaLabel: string;
   title?: string;
@@ -23,13 +23,13 @@ const CardHeader: React.FC<CardHeaderProps> = ({ icon, title, action }) => (
     <div className={styles.cardTitle}>{title}</div>
     {action && (
       <button
-        className={styles.menuButton}
+        className={styles.configureButton}
         aria-label={action.ariaLabel}
         title={action.title ?? action.ariaLabel}
         onClick={action.onClick}
         disabled={action.disabled}
       >
-        {action.icon}
+        {action.label}
       </button>
     )}
   </div>

@@ -1,7 +1,12 @@
 import * as XLSX from "xlsx";
 import { Role } from "@prisma/client";
 import { requireRole } from "../../../../services/auth";
-import { formatDayColumn, formatFrequencyColumn } from "../../../../util/recurrenceDisplay";
+import { formatRecurrencePattern } from "../../../../util/recurrenceDisplay";
+import {
+  ALL_MEETING_EXPORT_FIELD_KEYS,
+  sanitizeMeetingExportFields,
+  type MeetingExportFieldKey,
+} from "../../../../util/meetingExportFields";
 import { prisma } from "../../../../lib/prisma";
 
 const notDeleted = { deletedAt: null };
@@ -28,18 +33,6 @@ function formatETDate(date: Date): string {
   }).format(date);
 }
 
-// Combines the per-category GCal event ID map into one cell (e.g. "AA: abc123, Al-Anon: def456").
-// Falls back to the legacy singular googleCalendarEventId for meetings synced before the
-// per-category map existed, since a "full backup" should still capture those IDs.
-function formatGoogleCalendarEventIds(meeting: MeetingWithRecurrence): string {
-  const map = (meeting.googleCalendarEventIds ?? {}) as Record<string, string>;
-  const entries = Object.entries(map).filter(([, id]) => id);
-  if (entries.length > 0) {
-    return entries.map(([category, id]) => `${category}: ${id}`).join(", ");
-  }
-  return meeting.googleCalendarEventId ?? "";
-}
-
 function formatETTime(date: Date): string {
   const parts = new Intl.DateTimeFormat("en-US", {
     timeZone: "America/New_York",
@@ -52,6 +45,29 @@ function formatETTime(date: Date): string {
   const dayPeriod = (parts.find((p) => p.type === "dayPeriod")?.value ?? "AM").toUpperCase();
   return `${hour}:${minute} ${dayPeriod}`;
 }
+
+// One entry per optional field key -- the export route and the config UI both derive their
+// column list from util/meetingExportFields.ts, so this is the only place that needs to know
+// how to actually compute a given field's cell value.
+const FIELD_COLUMN: Record<MeetingExportFieldKey, { label: string; value: (m: MeetingWithRecurrence) => string }> = {
+  status: { label: "Status", value: (m) => m.status ?? "Active" },
+  category: { label: "Category", value: (m) => m.calType.map((c) => CATEGORY_LABELS[c] ?? c).join(", ") },
+  locationType: { label: "Location Type", value: (m) => LOCATION_TYPE_LABELS[m.modeType] ?? m.modeType },
+  physicalRoom: { label: "Physical Room", value: (m) => m.room },
+  zoomRoom: { label: "Zoom Room", value: (m) => m.zoomRoom ?? "" },
+  zoomLink: { label: "Zoom Link", value: (m) => m.zoomLink ?? "" },
+  zoomHost: { label: "Zoom Host", value: (m) => m.zoomHost ?? "" },
+  description: { label: "Description", value: (m) => m.description },
+  // Bundled rather than two separate Day/Frequency columns -- an every-day pattern used to
+  // render as the contradictory "Daily" (Day) / "Weekly" (Frequency) pair; this reuses the
+  // same recurrence-summary logic as ViewMeeting.tsx's own recurrence line.
+  dayFrequency: { label: "Day / Frequency", value: (m) => formatRecurrencePattern(m.recurrencePattern) },
+  startDate: { label: "Start Date", value: (m) => formatETDate(m.startDateTime) },
+  startTime: { label: "Start Time", value: (m) => formatETTime(m.startDateTime) },
+  endDate: { label: "End Date", value: (m) => formatETDate(m.endDateTime) },
+  endTime: { label: "End Time", value: (m) => formatETTime(m.endDateTime) },
+  contactEmail: { label: "Contact Email", value: (m) => m.email },
+};
 
 async function loadMeetings() {
   return prisma.meeting.findMany({
@@ -66,27 +82,29 @@ export const GET = async () => {
     const auth = await requireRole(Role.SUPER_ADMIN);
     if (auth instanceof Response) return auth;
 
-    const meetings = await loadMeetings();
+    const [meetings, settings] = await Promise.all([
+      loadMeetings(),
+      prisma.meetingExportSettings.findFirst(),
+    ]);
+    const selectedFields = new Set(
+      settings ? sanitizeMeetingExportFields(settings.fields) : ALL_MEETING_EXPORT_FIELD_KEYS,
+    );
 
-    const rows = meetings.map((meeting, i) => ({
-      "Meeting ID": `M${String(i + 1).padStart(3, "0")}`,
-      "Meeting Name": meeting.title,
-      Status: meeting.status ?? "Active",
-      Category: meeting.calType.map((c) => CATEGORY_LABELS[c] ?? c).join(", "),
-      Day: formatDayColumn(meeting.recurrencePattern),
-      Frequency: formatFrequencyColumn(meeting.recurrencePattern),
-      "Start Date": formatETDate(meeting.startDateTime),
-      "Start Time": formatETTime(meeting.startDateTime),
-      "End Date": formatETDate(meeting.endDateTime),
-      "End Time": formatETTime(meeting.endDateTime),
-      "Location Type": LOCATION_TYPE_LABELS[meeting.modeType] ?? meeting.modeType,
-      "Physical Room": meeting.room,
-      "Zoom Room": meeting.zoomRoom ?? "",
-      "Contact Email": meeting.email,
-      Description: meeting.description,
-      "Google Calendar Event ID": formatGoogleCalendarEventIds(meeting),
-      "Zoom Meeting ID": meeting.zid ?? "",
-    }));
+    const rows = meetings.map((meeting, i) => {
+      // Meeting ID and Meeting Name are never optional -- everything else is only included if
+      // selected, in the same order as the field registry (matching the config UI's grouping).
+      const row: Record<string, string> = {
+        "Meeting ID": `M${String(i + 1).padStart(3, "0")}`,
+        "Meeting Name": meeting.title,
+      };
+      for (const key of ALL_MEETING_EXPORT_FIELD_KEYS) {
+        if (selectedFields.has(key)) {
+          const column = FIELD_COLUMN[key];
+          row[column.label] = column.value(meeting);
+        }
+      }
+      return row;
+    });
 
     const worksheet = XLSX.utils.json_to_sheet(rows);
     const workbook = XLSX.utils.book_new();

@@ -21,7 +21,9 @@ jest.mock("../../services/zoom", () => ({
 
 import { getTestPrismaClient, disconnectTestPrismaClient } from "../factories/db";
 import { buildMeetingData as buildBaseMeetingData } from "../factories/meeting";
-import { GET } from "../../app/api/admin/diagnostics/route";
+import { GET as getMeetingCounts } from "../../app/api/admin/diagnostics/meeting-counts/route";
+import { GET as getSyncIssues } from "../../app/api/admin/diagnostics/sync-issues/route";
+import { GET as getSuspended } from "../../app/api/admin/diagnostics/suspended/route";
 
 function buildMeetingData(overrides: Partial<Meeting> = {}) {
   return buildBaseMeetingData({ title: "Diagnostics Count Meeting", ...overrides });
@@ -52,20 +54,25 @@ test("counts a Remote meeting's Zoom sync error even though it has no zoomRoom",
     }),
   });
 
-  const response = await GET();
-  expect(response.status).toBe(200);
-  const body = await response.json();
+  const countsResponse = await getMeetingCounts();
+  expect(countsResponse.status).toBe(200);
+  const counts = await countsResponse.json();
 
-  expect(body.meetingCounts.zoomSyncErrors).toBeGreaterThanOrEqual(1);
-  expect(body.meetingCounts.pendingZoomSync).toBeGreaterThanOrEqual(1);
+  expect(counts.zoomSyncErrors).toBeGreaterThanOrEqual(1);
+  expect(counts.pendingZoomSync).toBeGreaterThanOrEqual(1);
 
   // Same regression, but for the actual list of affected meetings (not just the counts) --
   // an admin needs to be able to find *which* meeting has the problem, not just how many.
-  const remoteIssue = body.syncIssues.find((s: { title: string; modeType: string }) => s.title === "Diagnostics Count Meeting" && s.modeType === "Remote");
-  expect(remoteIssue.issues.some((i: string) => i.includes("Zoom sync failed"))).toBe(true);
+  const syncIssuesResponse = await getSyncIssues();
+  const { syncIssues } = await syncIssuesResponse.json();
 
-  const pendingIssue = body.syncIssues.find((s: { modeType: string }) => s.modeType === "Hybrid");
-  expect(pendingIssue.issues.some((i: string) => i.includes("Waiting on a Zoom host"))).toBe(true);
+  const remoteIssue = syncIssues.find((s: { title: string; modeType: string }) => s.title === "Diagnostics Count Meeting" && s.modeType === "Remote");
+  expect(remoteIssue).toBeDefined();
+  expect(remoteIssue.issues.some((i: { text: string }) => i.text.includes("Zoom sync failed"))).toBe(true);
+
+  const pendingIssue = syncIssues.find((s: { modeType: string }) => s.modeType === "Hybrid");
+  expect(pendingIssue).toBeDefined();
+  expect(pendingIssue.issues.some((i: { text: string }) => i.text.includes("Waiting on a Zoom host"))).toBe(true);
 });
 
 test("a stale zoomSyncStatus on an In Person meeting doesn't surface as a sync issue", async () => {
@@ -79,19 +86,19 @@ test("a stale zoomSyncStatus on an In Person meeting doesn't surface as a sync i
     data: buildMeetingData({ mid, modeType: "In Person", zoomSyncStatus: "error" }),
   });
 
-  const response = await GET();
-  const body = await response.json();
+  const response = await getSyncIssues();
+  const { syncIssues } = await response.json();
 
-  expect(body.syncIssues.find((s: { mid: string }) => s.mid === mid)).toBeUndefined();
+  expect(syncIssues.find((s: { mid: string }) => s.mid === mid)).toBeUndefined();
 });
 
 test("a meeting with a suspension scheduled for a future date shows up in the suspended panel, marked not yet active", async () => {
   const prisma = getTestPrismaClient();
 
   // The stored `status` field is "Suspended" (mirroring what the suspend route would set), but
-  // the diagnostics route's active/suspended counts are driven by isDateSuspended against
-  // today's date, not this field -- since the suspension's `from` is next week, this meeting is
-  // counted as active today, not suspended.
+  // the suspended route surfaces this meeting via getUnresolvedSuspension against today's date,
+  // not this field -- since the suspension's `from` is next week, suspensionActive comes back
+  // false (not yet active today), even though the meeting will show up in the panel already.
   const mid = `m-${randomUUID()}`;
   await prisma.meeting.create({
     data: buildMeetingData({ mid, status: "Suspended" }),
@@ -99,10 +106,10 @@ test("a meeting with a suspension scheduled for a future date shows up in the su
   const future = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
   await prisma.suspensionPeriod.create({ data: { mid, from: future, to: null } });
 
-  const response = await GET();
-  const body = await response.json();
+  const response = await getSuspended();
+  const { suspendedMeetings } = await response.json();
 
-  const row = body.suspendedMeetings.find((m: { mid: string }) => m.mid === mid);
+  const row = suspendedMeetings.find((m: { mid: string }) => m.mid === mid);
   expect(row).toBeDefined();
   expect(row.suspensionActive).toBe(false);
   expect(new Date(row.suspendedSince).toISOString()).toBe(future.toISOString());
