@@ -3,7 +3,7 @@ import TextButton from '../../atoms/TextButton';
 
 import MiniCalendar from '../../atoms/MiniCalendar';
 import MeetingsFilter from '../shared/MeetingsFilter';
-import { MeetingFilters } from '../../../../util/meetingFilters';
+import { MeetingFilters } from '../../../../util/filters/meetingFilters';
 import NewMeetingSidebar from '../../meeting-form/NewMeeting';
 import styles from '../../../../styles/components/calendar/desktop/CalendarSidebar.module.scss';
 import AddIcon from '@mui/icons-material/Add';

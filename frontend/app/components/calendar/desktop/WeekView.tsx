@@ -1,7 +1,7 @@
 import React, { useCallback, useLayoutEffect, useRef, useState } from "react";
 import styles from '../../../../styles/components/calendar/desktop/WeekView.module.scss';
 import DayColumn from "../shared/DayColumn";
-import { filterMeetingsForDate, MeetingFilters } from "../../../../util/meetingFilters";
+import { filterMeetingsForDate, MeetingFilters } from "../../../../util/filters/meetingFilters";
 import { ROOM_COLORS, ZOOM_ROOM_COLOR, REMOTE_COLOR } from "../../../../util/rooms/filterColors";
 import { formatETDateString } from "../../../../util/date/timeUtils";
 import { layoutOverlappingMeetings } from "../../../../util/meetingOverlapLayout";

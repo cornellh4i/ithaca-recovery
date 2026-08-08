@@ -4,7 +4,7 @@ import BoxText from '../../atoms/BoxText';
 import DailyViewRow from "./DailyViewRow";
 import { formatETDateString, getCurrentETMinutesSinceMidnight, getETDayBounds } from "../../../../util/date/timeUtils";
 import { IMeeting } from "../../../../types/models";
-import { passesTagFilters, passesRoomFilter, MeetingFilters } from "../../../../util/meetingFilters";
+import { passesTagFilters, passesRoomFilter, MeetingFilters } from "../../../../util/filters/meetingFilters";
 import { createCache } from "../../../../util/common/simpleCache";
 import { defaultRooms } from "../../../../util/rooms/rooms";
 import { layoutOverlappingMeetings, OverlapMeeting } from "../../../../util/meetingOverlapLayout";

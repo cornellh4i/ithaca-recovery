@@ -2,7 +2,7 @@ import React from "react";
 import DayLandscapeView from "./DayLandscapeView";
 import MultiDayLandscapeView from "./MultiDayLandscapeView";
 import { useCalendarContext } from "../../../context/CalendarProvider";
-import { MeetingFilters } from "../../../../util/meetingFilters";
+import { MeetingFilters } from "../../../../util/filters/meetingFilters";
 
 interface DayLandscapeSwitcherProps {
   filters: MeetingFilters;

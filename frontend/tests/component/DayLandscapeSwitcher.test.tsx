@@ -3,7 +3,7 @@ import { render, screen } from "@testing-library/react";
 import DayLandscapeSwitcher from "../../app/components/calendar/mobile/DayLandscapeSwitcher";
 import { roomDisplayName } from "../../app/components/calendar/mobile/DayLandscapeView";
 import { CalendarProvider, useCalendarContext } from "../../app/context/CalendarProvider";
-import { createDefaultFilters } from "../../util/meetingFilters";
+import { createDefaultFilters } from "../../util/filters/meetingFilters";
 
 const etDate = (y: number, m: number, d: number) => new Date(Date.UTC(y, m - 1, d, 16, 0));
 

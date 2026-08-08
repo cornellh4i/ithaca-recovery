@@ -1,7 +1,7 @@
 // Shared calendar/mode-tag and room-key filtering logic used by both DayView and
 // WeekView, so the two views can't drift apart on what a filter key or tag means.
 
-import { formatETDateString } from "./date/timeUtils";
+import { formatETDateString } from "../date/timeUtils";
 
 export type MeetingFilters = Record<string, boolean>;
 

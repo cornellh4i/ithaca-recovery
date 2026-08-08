@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { createDefaultFilters, MeetingFilters } from "../../util/meetingFilters";
+import { createDefaultFilters, MeetingFilters } from "../../util/filters/meetingFilters";
 import { getSwipeDirection, isSameWeek, SwipeDirection } from "../../util/date/weekStripTransition";
 
 // Bridges calendar state between HomePage's page content and the globally-mounted AppNavbar

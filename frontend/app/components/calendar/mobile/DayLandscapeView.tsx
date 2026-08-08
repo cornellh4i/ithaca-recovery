@@ -5,7 +5,7 @@ import DailyViewRow from "../desktop/DailyViewRow";
 import { fetchMeetingsByDay, invalidateCache } from "../desktop/DayView";
 import { formatETDateString, getCurrentETMinutesSinceMidnight } from "../../../../util/date/timeUtils";
 import { formatMeetingDateLine } from "../../../../util/date/timeFormat";
-import { passesTagFilters, passesRoomFilter, MeetingFilters } from "../../../../util/meetingFilters";
+import { passesTagFilters, passesRoomFilter, MeetingFilters } from "../../../../util/filters/meetingFilters";
 import { defaultRooms } from "../../../../util/rooms/rooms";
 import { layoutOverlappingMeetings, OverlapMeeting } from "../../../../util/meetingOverlapLayout";
 import { addDaysToDate } from "../../../../util/date/weekDates";
