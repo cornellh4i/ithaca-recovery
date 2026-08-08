@@ -36,16 +36,13 @@
 .selectAllToggle {
   background: none;
   border: none;
-  color: $brand-pink-color;
+  color: $medium-grey-color;
   font-family: inherit;
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
   padding: 0;
-
-  &:hover {
-    text-decoration: underline;
-  }
+  text-decoration: underline;
 }
 
 .coloredRow {
