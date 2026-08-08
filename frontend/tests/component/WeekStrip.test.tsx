@@ -2,7 +2,7 @@ import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
 import WeekStrip from "../../app/components/calendar/mobile/WeekStrip";
 import { CalendarProvider, useCalendarContext } from "../../app/context/CalendarProvider";
-import { formatETDateString } from "../../util/timeUtils";
+import { formatETDateString } from "../../util/date/timeUtils";
 
 // A fixed "today" (a Thursday) so tests don't depend on when they're run.
 const REAL_DATE_NOW = Date.now;

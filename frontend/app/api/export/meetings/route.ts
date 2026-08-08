@@ -1,12 +1,12 @@
 import * as XLSX from "xlsx";
 import { Role } from "@prisma/client";
 import { requireRole } from "../../../../services/auth";
-import { formatRecurrencePattern } from "../../../../util/recurrenceDisplay";
+import { formatRecurrencePattern } from "../../../../util/meetings/recurrenceDisplay";
 import {
   ALL_MEETING_EXPORT_FIELD_KEYS,
   sanitizeMeetingExportFields,
   type MeetingExportFieldKey,
-} from "../../../../util/meetingExportFields";
+} from "../../../../util/meetings/meetingExportFields";
 import { prisma } from "../../../../lib/prisma";
 
 const notDeleted = { deletedAt: null };

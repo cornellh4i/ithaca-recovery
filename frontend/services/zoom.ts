@@ -1,6 +1,6 @@
 import "server-only";
-import { IMeeting } from "../util/models";
-import { findResourceConflicts, OccurrenceInput, OccupiedClaim } from "../util/resourceOverlap";
+import { IMeeting } from "../types/models";
+import { findResourceConflicts, OccurrenceInput, OccupiedClaim } from "../util/meetings/resourceOverlap";
 import { prisma } from "../lib/prisma";
 
 const ZOOM_BASE_API = process.env.NEXT_PUBLIC_ZOOM_BASE_API ?? "https://api.zoom.us/v2";

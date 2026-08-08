@@ -2,18 +2,18 @@
 
 import React, { useMemo, useState } from "react";
 import EditMeetingSidebar from "../../meeting-form/EditMeeting";
-import { IMeeting } from "../../../../util/models";
+import { IMeeting } from "../../../../types/models";
 import { useZoomHostPool } from "../../../../hooks/useZoomHostPool";
-import { zoomHostLabel } from "../../../../util/zoomHosts";
+import { zoomHostLabel } from "../../../../util/rooms/zoomHosts";
 import {
   ConflictListRow,
   formatOverlapSummary,
   formatMeetingSchedule,
-} from "../../../../util/conflictDisplay";
+} from "../../../../util/meetings/conflictDisplay";
 import styles from "../../../../styles/components/admin/ConflictList.module.scss";
 
-export type { ConflictRecurrenceSummary, ConflictMeetingSummary, ConflictListRow } from "../../../../util/conflictDisplay";
-export { fieldLabel, formatOverlapSummary, formatMeetingSchedule } from "../../../../util/conflictDisplay";
+export type { ConflictRecurrenceSummary, ConflictMeetingSummary, ConflictListRow } from "../../../../util/meetings/conflictDisplay";
+export { fieldLabel, formatOverlapSummary, formatMeetingSchedule } from "../../../../util/meetings/conflictDisplay";
 
 interface ConflictListProps {
   conflicts: ConflictListRow[];

@@ -1,6 +1,6 @@
 import React from 'react';
 import styles from '../../../styles/components/atoms/ModeTypeButtons.module.scss';
-import { MODE_ICON_SRC } from '../../../util/modeIcons';
+import { MODE_ICON_SRC } from '../../../util/rooms/modeIcons';
 
 interface ModeButtonsProps {
   selectedMode: string;

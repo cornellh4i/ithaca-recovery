@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { TABLET_BREAKPOINT } from "../util/breakpoints";
+import { TABLET_BREAKPOINT } from "../util/common/breakpoints";
 
 // Auto-collapses the sidebar the moment the window narrows past the tablet breakpoint.
 // One-way trigger: it only ever calls collapseSidebar() on a downward crossing, never

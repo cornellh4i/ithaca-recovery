@@ -1,8 +1,8 @@
 import { Role } from "@prisma/client";
 import { requireRole } from "../../../../services/auth";
-import { defaultLeaseSettings } from "../../../../util/leaseDefaults";
-import { formatDayColumn } from "../../../../util/recurrenceDisplay";
-import type { ILeaseSettings, IRoomRate } from "../../../../util/models";
+import { defaultLeaseSettings } from "../../../../util/lease/leaseDefaults";
+import { formatDayColumn } from "../../../../util/meetings/recurrenceDisplay";
+import type { ILeaseSettings, IRoomRate } from "../../../../types/models";
 import { prisma } from "../../../../lib/prisma";
 
 const notDeleted = { deletedAt: null };

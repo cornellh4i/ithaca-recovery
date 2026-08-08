@@ -1,14 +1,14 @@
 import { Meeting, Prisma, Role } from "@prisma/client";
 import { NextResponse, after } from "next/server";
 import { requireRole } from "../../../../services/auth";
-import { IMeeting } from "../../../../util/models";
+import { IMeeting } from "../../../../types/models";
 import { createCalendarEvent, updateCalendarEvent, deleteCalendarEvent, reconcileMeetingCalendars } from "../../../../services/googleCalendar";
 import { createZoomMeeting, updateZoomMeeting, deleteZoomMeeting, getZoomMeetingInvitation, resolveZoomHost, zoomRoomCalendarId } from "../../../../services/zoom";
-import { findResourceConflicts, findResourceConflictRows, ConflictRow, ResourceConflictAbort } from "../../../../util/resourceOverlap";
-import { lockResourceClaims, ResourceClaim } from "../../../../util/resourceLocks";
-import { meetingSchema } from "../../../../util/meetingValidation";
-import { reconcilePendingResume } from "../../../../util/suspension";
-import { calculateEndDateFromOccurrences } from "../../../../util/meetingOccurrences";
+import { findResourceConflicts, findResourceConflictRows, ConflictRow, ResourceConflictAbort } from "../../../../util/meetings/resourceOverlap";
+import { lockResourceClaims, ResourceClaim } from "../../../../util/meetings/resourceLocks";
+import { meetingSchema } from "../../../../util/meetings/meetingValidation";
+import { reconcilePendingResume } from "../../../../util/meetings/suspension";
+import { calculateEndDateFromOccurrences } from "../../../../util/meetings/meetingOccurrences";
 import { prisma } from "../../../../lib/prisma";
 
 // Runs after the response is sent (see after() call below) — failure updates googleSyncStatus

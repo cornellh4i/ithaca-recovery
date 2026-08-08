@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { formatETDateString } from "../util/timeUtils";
-import { addDaysToDate } from "../util/weekDates";
-import { createCache } from "../util/simpleCache";
+import { formatETDateString } from "../util/date/timeUtils";
+import { addDaysToDate } from "../util/date/weekDates";
+import { createCache } from "../util/common/simpleCache";
 import { WeekMeeting, mapRawMeetingsToWeekMeetings } from "./useWeekMeetings";
 
 // Separate cache from useWeekMeetings' own -- keyed by the exact date range requested, not a

@@ -1,4 +1,4 @@
-import { physicalRoomOptions, zoomRoomOptions } from './rooms';
+import { physicalRoomOptions, zoomRoomOptions } from '../rooms/rooms';
 
 export const SIGNAGE_CAL_TYPES = ['AA', 'Al-Anon', 'Other'];
 export const SIGNAGE_MODE_TYPES = ['In Person', 'Hybrid', 'Remote'];

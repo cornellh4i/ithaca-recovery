@@ -2,9 +2,9 @@ import { Prisma, Role } from '@prisma/client';
 import { NextResponse, after } from 'next/server';
 import { requireRole } from '../../../../../services/auth';
 import { trimCalendarEventSeries, deleteCalendarEvent, calendarIdsForMeeting } from '../../../../../services/googleCalendar';
-import { formatETDateString, getETDayBounds } from '../../../../../util/timeUtils';
-import { addOneETDay } from '../../../../../util/meetingOccurrences';
-import { getUnresolvedSuspension, reconcilePendingResume, createPendingResumeSeries, MeetingWithPattern } from '../../../../../util/suspension';
+import { formatETDateString, getETDayBounds } from '../../../../../util/date/timeUtils';
+import { addOneETDay } from '../../../../../util/meetings/meetingOccurrences';
+import { getUnresolvedSuspension, reconcilePendingResume, createPendingResumeSeries, MeetingWithPattern } from '../../../../../util/meetings/suspension';
 import { prisma } from '../../../../../lib/prisma';
 
 // MongoDB doesn't support SQL-style isolation levels (no Prisma isolationLevel option), and

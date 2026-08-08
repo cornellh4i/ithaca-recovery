@@ -2,7 +2,7 @@ import { Prisma, Role, SuspensionPeriod } from '@prisma/client';
 import { NextResponse, after } from 'next/server';
 import { requireRole } from '../../../../../services/auth';
 import { deleteCalendarEvent, createCalendarEvent, calendarIdsForMeeting } from '../../../../../services/googleCalendar';
-import { formatETDateString } from '../../../../../util/timeUtils';
+import { formatETDateString } from '../../../../../util/date/timeUtils';
 import {
   getUnresolvedSuspension,
   reconcilePendingResume,
@@ -11,7 +11,7 @@ import {
   tearDownPendingResumeSeries,
   MeetingWithPattern,
   MeetingWithSuspensions,
-} from '../../../../../util/suspension';
+} from '../../../../../util/meetings/suspension';
 import { prisma } from '../../../../../lib/prisma';
 
 // Resuming always creates a fresh series/event starting today (or recreates the original

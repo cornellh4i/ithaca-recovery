@@ -3,11 +3,11 @@ import { motion, useAnimationControls, useDragControls, type PanInfo } from "fra
 import WeekStrip from "./WeekStrip";
 import CalendarHeader from "../shared/CalendarHeader";
 import DayColumn from "../shared/DayColumn";
-import { filterMeetingsForDate, MeetingFilters } from "../../../../util/meetingFilters";
-import { ROOM_COLORS, ZOOM_ROOM_COLOR, REMOTE_COLOR } from "../../../../util/filterColors";
-import { formatETDateString } from "../../../../util/timeUtils";
-import { layoutOverlappingMeetings, OverlapMeeting } from "../../../../util/meetingOverlapLayout";
-import { getFirstDayOfWeek, addDaysToDate } from "../../../../util/weekDates";
+import { filterMeetingsForDate, MeetingFilters } from "../../../../util/filters/meetingFilters";
+import { ROOM_COLORS, ZOOM_ROOM_COLOR, REMOTE_COLOR } from "../../../../util/rooms/filterColors";
+import { formatETDateString } from "../../../../util/date/timeUtils";
+import { layoutOverlappingMeetings, OverlapMeeting } from "../../../../util/meetings/meetingOverlapLayout";
+import { getFirstDayOfWeek, addDaysToDate } from "../../../../util/date/weekDates";
 import { useWeekMeetings } from "../../../../hooks/useWeekMeetings";
 import { useScrollNavHide } from "../../../../hooks/useScrollNavHide";
 import { useCalendarContext } from "../../../context/CalendarProvider";

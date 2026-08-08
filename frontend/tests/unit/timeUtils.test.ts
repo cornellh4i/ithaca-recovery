@@ -1,4 +1,4 @@
-import { convertUTCToET, convertETToUTC, getETDayBounds, formatETDateString } from "../../util/timeUtils";
+import { convertUTCToET, convertETToUTC, getETDayBounds, formatETDateString } from "../../util/date/timeUtils";
 
 describe("convertETToUTC / convertUTCToET round-trip", () => {
   it("round-trips a summer (EDT, UTC-4) date", () => {

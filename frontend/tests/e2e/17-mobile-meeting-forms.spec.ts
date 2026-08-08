@@ -2,7 +2,7 @@ import { test, expect } from "./support/fixtures";
 import type { Page } from "@playwright/test";
 import { fillDatePicker, fillTimeRange, selectFromDropdown, toggleCalType, todayMMDDYYYY } from "./support/formHelpers";
 import { seedMeeting } from "../factories/meeting";
-import { convertETToUTC, formatETDateString } from "../../util/timeUtils";
+import { convertETToUTC, formatETDateString } from "../../util/date/timeUtils";
 
 // Mobile-portrait viewport for this whole file -- no mobile Playwright project is configured
 // (config/playwright.config.ts only has "chromium" desktop), so it's set per-file here.

@@ -1,4 +1,4 @@
-import type { ILeaseSettings } from "./models";
+import type { ILeaseSettings } from "../../types/models";
 import { cycleStartYear } from "./leaseYearCycles";
 
 // Ground-truth defaults: room rates/names match the current room list used by

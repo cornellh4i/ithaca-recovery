@@ -2,8 +2,8 @@
 
 import React, { useRef } from "react";
 import { motion, type PanInfo } from "framer-motion";
-import { getFirstDayOfWeek, getDaysOfWeek, addDaysToDate } from "../../../../util/weekDates";
-import { formatETDateString } from "../../../../util/timeUtils";
+import { getFirstDayOfWeek, getDaysOfWeek, addDaysToDate } from "../../../../util/date/weekDates";
+import { formatETDateString } from "../../../../util/date/timeUtils";
 import { useCalendarContext } from "../../../context/CalendarProvider";
 import styles from "../../../../styles/components/calendar/mobile/WeekStrip.module.scss";
 

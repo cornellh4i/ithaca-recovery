@@ -2,12 +2,12 @@ import React, { useCallback, useEffect, useLayoutEffect, useState, useRef } from
 import styles from '../../../../styles/components/calendar/desktop/DayView.module.scss';
 import BoxText from '../../atoms/BoxText';
 import DailyViewRow from "./DailyViewRow";
-import { formatETDateString, getCurrentETMinutesSinceMidnight, getETDayBounds } from "../../../../util/timeUtils";
-import { IMeeting } from "../../../../util/models";
-import { passesTagFilters, passesRoomFilter, MeetingFilters } from "../../../../util/meetingFilters";
-import { createCache } from "../../../../util/simpleCache";
-import { defaultRooms } from "../../../../util/rooms";
-import { layoutOverlappingMeetings, OverlapMeeting } from "../../../../util/meetingOverlapLayout";
+import { formatETDateString, getCurrentETMinutesSinceMidnight, getETDayBounds } from "../../../../util/date/timeUtils";
+import { IMeeting } from "../../../../types/models";
+import { passesTagFilters, passesRoomFilter, MeetingFilters } from "../../../../util/filters/meetingFilters";
+import { createCache } from "../../../../util/common/simpleCache";
+import { defaultRooms } from "../../../../util/rooms/rooms";
+import { layoutOverlappingMeetings, OverlapMeeting } from "../../../../util/meetings/meetingOverlapLayout";
 
 interface Meeting extends OverlapMeeting {
   syncError?: boolean;

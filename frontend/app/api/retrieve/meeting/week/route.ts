@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic';
 
-import { getMeetingsForRange } from "../../../../../util/meetingOccurrences";
-import { toETDateString, getWeekDatesET } from "../../../../../util/timeUtils";
+import { getMeetingsForRange } from "../../../../../util/meetings/meetingOccurrences";
+import { toETDateString, getWeekDatesET } from "../../../../../util/date/timeUtils";
 import { NextRequest } from 'next/server';
 
 const retrieveWeekMeetings = async (request: NextRequest) => {

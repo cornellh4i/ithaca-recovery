@@ -2,7 +2,7 @@ import React from "react";
 import { render, screen, waitFor } from "@testing-library/react";
 import DayPortraitView from "../../app/components/calendar/mobile/DayPortraitView";
 import { CalendarProvider } from "../../app/context/CalendarProvider";
-import { createDefaultFilters } from "../../util/meetingFilters";
+import { createDefaultFilters } from "../../util/filters/meetingFilters";
 
 const etNoon = (y: number, m: number, d: number) => new Date(Date.UTC(y, m - 1, d, 16, 0));
 

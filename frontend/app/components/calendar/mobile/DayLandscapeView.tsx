@@ -3,12 +3,12 @@ import { motion, useAnimationControls, useDragControls, type PanInfo } from "fra
 import styles from "../../../../styles/components/calendar/mobile/DayLandscapeView.module.scss";
 import DailyViewRow from "../desktop/DailyViewRow";
 import { fetchMeetingsByDay, invalidateCache } from "../desktop/DayView";
-import { formatETDateString, getCurrentETMinutesSinceMidnight } from "../../../../util/timeUtils";
-import { formatMeetingDateLine } from "../../../../util/timeFormat";
-import { passesTagFilters, passesRoomFilter, MeetingFilters } from "../../../../util/meetingFilters";
-import { defaultRooms } from "../../../../util/rooms";
-import { layoutOverlappingMeetings, OverlapMeeting } from "../../../../util/meetingOverlapLayout";
-import { addDaysToDate } from "../../../../util/weekDates";
+import { formatETDateString, getCurrentETMinutesSinceMidnight } from "../../../../util/date/timeUtils";
+import { formatMeetingDateLine } from "../../../../util/date/timeFormat";
+import { passesTagFilters, passesRoomFilter, MeetingFilters } from "../../../../util/filters/meetingFilters";
+import { defaultRooms } from "../../../../util/rooms/rooms";
+import { layoutOverlappingMeetings, OverlapMeeting } from "../../../../util/meetings/meetingOverlapLayout";
+import { addDaysToDate } from "../../../../util/date/weekDates";
 import { useElementSize } from "../../../../hooks/useElementSize";
 import { useCalendarContext } from "../../../context/CalendarProvider";
 import TopLoadingBar from "../../atoms/TopLoadingBar";

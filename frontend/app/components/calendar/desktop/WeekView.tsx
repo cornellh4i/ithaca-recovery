@@ -1,11 +1,11 @@
 import React, { useCallback, useLayoutEffect, useRef, useState } from "react";
 import styles from '../../../../styles/components/calendar/desktop/WeekView.module.scss';
 import DayColumn from "../shared/DayColumn";
-import { filterMeetingsForDate, MeetingFilters } from "../../../../util/meetingFilters";
-import { ROOM_COLORS, ZOOM_ROOM_COLOR, REMOTE_COLOR } from "../../../../util/filterColors";
-import { formatETDateString } from "../../../../util/timeUtils";
-import { layoutOverlappingMeetings } from "../../../../util/meetingOverlapLayout";
-import { getFirstDayOfWeek, getDaysOfWeek } from "../../../../util/weekDates";
+import { filterMeetingsForDate, MeetingFilters } from "../../../../util/filters/meetingFilters";
+import { ROOM_COLORS, ZOOM_ROOM_COLOR, REMOTE_COLOR } from "../../../../util/rooms/filterColors";
+import { formatETDateString } from "../../../../util/date/timeUtils";
+import { layoutOverlappingMeetings } from "../../../../util/meetings/meetingOverlapLayout";
+import { getFirstDayOfWeek, getDaysOfWeek } from "../../../../util/date/weekDates";
 import { useWeekMeetings, WeekMeeting } from "../../../../hooks/useWeekMeetings";
 import TopLoadingBar from "../../atoms/TopLoadingBar";
 

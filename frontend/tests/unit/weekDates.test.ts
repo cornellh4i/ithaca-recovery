@@ -1,5 +1,5 @@
-import { getFirstDayOfWeek, getDaysOfWeek, daysBetweenET } from "../../util/weekDates";
-import { formatETDateString } from "../../util/timeUtils";
+import { getFirstDayOfWeek, getDaysOfWeek, daysBetweenET } from "../../util/date/weekDates";
+import { formatETDateString } from "../../util/date/timeUtils";
 
 const utcNoon = (y: number, m: number, d: number) => new Date(Date.UTC(y, m - 1, d, 16, 0)); // ~noon ET
 

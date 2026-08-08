@@ -1,4 +1,4 @@
-import { IMeeting } from "./models";
+import { IMeeting } from "../../types/models";
 
 // Fields safe to serve from unauthenticated meeting endpoints (public calendar + signage
 // kiosk). Deliberately an allowlist, not a blacklist -- a new sensitive column added to the

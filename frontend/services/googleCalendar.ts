@@ -1,7 +1,7 @@
 import "server-only";
 import { google } from "googleapis";
-import { IMeeting, IRecurrencePattern } from "../util/models";
-import { getETDayBounds, convertETToUTC } from "../util/timeUtils";
+import { IMeeting, IRecurrencePattern } from "../types/models";
+import { getETDayBounds, convertETToUTC } from "../util/date/timeUtils";
 
 export const calendarIdForCategory: Record<string, string> = {
     AA:        process.env.GOOGLE_CALENDAR_AA ?? "",

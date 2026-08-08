@@ -1,4 +1,4 @@
-import { MODE_ICON_SRC } from "../../util/modeIcons";
+import { MODE_ICON_SRC } from "../../util/rooms/modeIcons";
 
 describe("MODE_ICON_SRC", () => {
   it("maps each known mode to its icon", () => {

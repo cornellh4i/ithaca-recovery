@@ -6,8 +6,8 @@ import CompactCalendarSidebar from "./CompactCalendarSidebar";
 import IconButton from "../../atoms/IconButton";
 import { useSidebar } from "../../../context/SidebarContext";
 import { useBreakpoint } from "../../../../hooks/useBreakpoint";
-import { IMeeting } from "../../../../util/models";
-import { MeetingFilters } from "../../../../util/meetingFilters";
+import { IMeeting } from "../../../../types/models";
+import { MeetingFilters } from "../../../../util/filters/meetingFilters";
 
 interface CalendarSidebarShellProps {
   isLoggedIn: boolean | null;

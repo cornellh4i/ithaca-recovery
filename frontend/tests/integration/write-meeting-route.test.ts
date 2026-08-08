@@ -1,7 +1,7 @@
 import { randomUUID } from "crypto";
 import { getTestPrismaClient, disconnectTestPrismaClient } from "../factories/db";
 import { seedSuspensionPeriod } from "../factories/meeting";
-import type { IMeeting } from "../../util/models";
+import type { IMeeting } from "../../types/models";
 
 // Next's after() throws when called outside a real request scope, which route handlers
 // invoked directly (not through the Next server) always are. The sync promise passed to

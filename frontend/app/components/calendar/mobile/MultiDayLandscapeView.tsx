@@ -2,11 +2,11 @@ import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useSta
 import { motion, useAnimationControls, useDragControls, type PanInfo } from "framer-motion";
 import styles from "../../../../styles/components/calendar/mobile/MultiDayLandscapeView.module.scss";
 import DayColumn from "../shared/DayColumn";
-import { filterMeetingsForDate, MeetingFilters } from "../../../../util/meetingFilters";
-import { ROOM_COLORS, ZOOM_ROOM_COLOR, REMOTE_COLOR } from "../../../../util/filterColors";
-import { formatETDateString, getCurrentETMinutesSinceMidnight } from "../../../../util/timeUtils";
-import { layoutOverlappingMeetings, OverlapMeeting } from "../../../../util/meetingOverlapLayout";
-import { addDaysToDate, daysBetweenET } from "../../../../util/weekDates";
+import { filterMeetingsForDate, MeetingFilters } from "../../../../util/filters/meetingFilters";
+import { ROOM_COLORS, ZOOM_ROOM_COLOR, REMOTE_COLOR } from "../../../../util/rooms/filterColors";
+import { formatETDateString, getCurrentETMinutesSinceMidnight } from "../../../../util/date/timeUtils";
+import { layoutOverlappingMeetings, OverlapMeeting } from "../../../../util/meetings/meetingOverlapLayout";
+import { addDaysToDate, daysBetweenET } from "../../../../util/date/weekDates";
 import { useRangeMeetings } from "../../../../hooks/useRangeMeetings";
 import { useElementWidth } from "../../../../hooks/useElementWidth";
 import { useScrollNavHide } from "../../../../hooks/useScrollNavHide";

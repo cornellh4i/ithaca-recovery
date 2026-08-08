@@ -1,8 +1,8 @@
 import { Role } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { requireRole } from "../../../../../services/auth";
-import { getUnresolvedSuspension } from "../../../../../util/suspension";
-import { formatETDateString } from "../../../../../util/timeUtils";
+import { getUnresolvedSuspension } from "../../../../../util/meetings/suspension";
+import { formatETDateString } from "../../../../../util/date/timeUtils";
 import { prisma } from "../../../../../lib/prisma";
 
 const notDeleted = { deletedAt: null };

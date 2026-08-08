@@ -1,10 +1,10 @@
 import "server-only";
 import { Meeting, RecurrencePattern, SuspensionPeriod } from "@prisma/client";
-import { formatETDateString } from "./timeUtils";
+import { formatETDateString } from "../date/timeUtils";
 import { isDateSuspended, adjustOccurrenceToDate, firstOccurrenceOnOrAfter } from "./meetingOccurrences";
-import { calendarIdsForMeeting, createCalendarEvent, deleteCalendarEvent } from "../services/googleCalendar";
-import { IMeeting } from "./models";
-import { prisma } from "../lib/prisma";
+import { calendarIdsForMeeting, createCalendarEvent, deleteCalendarEvent } from "../../services/googleCalendar";
+import { IMeeting } from "../../types/models";
+import { prisma } from "../../lib/prisma";
 
 export type MeetingWithPattern = Meeting & { recurrencePattern: RecurrencePattern | null };
 export type MeetingWithSuspensions = Meeting & {

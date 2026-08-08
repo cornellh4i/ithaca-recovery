@@ -2,7 +2,7 @@ import React from "react";
 import { render, screen, within } from "@testing-library/react";
 import MultiDayLandscapeView from "../../app/components/calendar/mobile/MultiDayLandscapeView";
 import { CalendarProvider } from "../../app/context/CalendarProvider";
-import { createDefaultFilters } from "../../util/meetingFilters";
+import { createDefaultFilters } from "../../util/filters/meetingFilters";
 
 // Noon ET (UTC-4), matching this repo's other fixed-date component tests.
 const etDate = (y: number, m: number, d: number, hourEt: number = 12) => new Date(Date.UTC(y, m - 1, d, hourEt + 4, 0));

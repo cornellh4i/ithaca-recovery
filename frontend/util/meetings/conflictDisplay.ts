@@ -4,7 +4,7 @@
 // (for its inline edit panel) and EditMeetingSidebar itself needs these types, which would
 // otherwise create a circular import between admin/ConflictList.tsx and meeting-form/EditMeeting.tsx.
 import { formatDayColumn } from "./recurrenceDisplay";
-import { formatCompactTimeRange } from "./timeFormat";
+import { formatCompactTimeRange } from "../date/timeFormat";
 
 export interface ConflictRecurrenceSummary {
   type: string;

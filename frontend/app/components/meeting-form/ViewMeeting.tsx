@@ -9,17 +9,17 @@ import ResumeMeetingModal from './ResumeMeetingModal';
 import TagList from '../atoms/TagList';
 import BottomSheet from '../atoms/BottomSheet';
 
-import { IRecurrencePattern } from '../../../util/models';
-import { formatCompactTimeRange, formatMeetingDateLine } from "../../../util/timeFormat";
-import { formatETDateString } from "../../../util/timeUtils";
-import { retryMeetingSync } from "../../../util/syncMeeting";
-import { formatSuspensionStatusText } from "../../../util/suspensionText";
-import { ROOM_COLORS, ZOOM_ROOM_COLOR } from "../../../util/filterColors";
-import { formatRecurrencePattern } from "../../../util/recurrenceDisplay";
-import { isZoomRoomMismatched } from "../../../util/rooms";
-import { linkify } from "../../../util/linkify";
-import { zoomHostLabel } from "../../../util/zoomHosts";
-import { MODE_ICON_SRC } from "../../../util/modeIcons";
+import { IRecurrencePattern } from '../../../types/models';
+import { formatCompactTimeRange, formatMeetingDateLine } from "../../../util/date/timeFormat";
+import { formatETDateString } from "../../../util/date/timeUtils";
+import { retryMeetingSync } from "../../../services/syncMeeting";
+import { formatSuspensionStatusText } from "../../../util/meetings/suspensionText";
+import { ROOM_COLORS, ZOOM_ROOM_COLOR } from "../../../util/rooms/filterColors";
+import { formatRecurrencePattern } from "../../../util/meetings/recurrenceDisplay";
+import { isZoomRoomMismatched } from "../../../util/rooms/rooms";
+import { linkify } from "../../../util/common/linkify";
+import { zoomHostLabel } from "../../../util/rooms/zoomHosts";
+import { MODE_ICON_SRC } from "../../../util/rooms/modeIcons";
 import { useZoomHostPool } from "../../../hooks/useZoomHostPool";
 
 // Extracts ET wall-clock time as "HH:MM" (24hr), which is what formatCompactTimeRange expects.

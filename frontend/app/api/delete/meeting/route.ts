@@ -1,7 +1,7 @@
 import { Role } from '@prisma/client';
 import { after } from 'next/server';
 import { requireRole } from '../../../../services/auth';
-import { getETDayBounds } from '../../../../util/timeUtils';
+import { getETDayBounds } from '../../../../util/date/timeUtils';
 import {
   deleteCalendarEvent,
   deleteCalendarOccurrence,
@@ -9,7 +9,7 @@ import {
   calendarIdsForMeeting,
 } from '../../../../services/googleCalendar';
 import { deleteZoomMeeting, zoomRoomCalendarId } from '../../../../services/zoom';
-import { reconcilePendingResume, tearDownPendingResumeSeries, MeetingWithSuspensions } from '../../../../util/suspension';
+import { reconcilePendingResume, tearDownPendingResumeSeries, MeetingWithSuspensions } from '../../../../util/meetings/suspension';
 import { prisma } from '../../../../lib/prisma';
 
 // Returns "YYYY-MM-DD" in Eastern Time for the given UTC timestamp.
