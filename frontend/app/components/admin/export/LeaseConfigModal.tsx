@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-import type { ILeaseSettings, IRoomRate } from "../../../../util/models";
+import type { ILeaseSettings, IRoomRate } from "../../../../types/models";
 import type { LeaseYearCycle } from "../../../../util/leaseYearCycles";
 import styles from "../../../../styles/components/admin/ExportTab.module.scss";
 

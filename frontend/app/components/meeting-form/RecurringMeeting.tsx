@@ -9,7 +9,7 @@ import Dropdown from '../atoms/Dropdown';
 import styles from "../../../styles/components/meeting-form/RecurringMeeting.module.scss";
 
 import CheckButton from '../atoms/CheckButton';
-import { IRecurrencePattern } from "../../../util/models";
+import { IRecurrencePattern } from "../../../types/models";
 import { convertETToUTC, convertUTCToET } from "../../../util/timeUtils";
 
 

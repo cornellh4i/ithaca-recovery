@@ -14,10 +14,10 @@ import NewMeetingSidebar from "../components/meeting-form/NewMeeting";
 import EditMeetingSidebar from "../components/meeting-form/EditMeeting";
 
 import { convertUTCToET } from "../../util/timeUtils";
-import { IMeeting } from "../../util/models";
+import { IMeeting } from "../../types/models";
 import { useConflictMids } from "../../hooks/useConflictMids";
 import { useViewport } from "../../hooks/useViewport";
-import { PHONE_BREAKPOINT } from "../../util/breakpoints";
+import { PHONE_BREAKPOINT } from "../../util/common/breakpoints";
 import { useCalendarContext } from "../context/CalendarProvider";
 
 export default function HomePage() {

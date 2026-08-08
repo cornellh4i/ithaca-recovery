@@ -1,4 +1,4 @@
-import { IMeeting } from '../../../../util/models';
+import { IMeeting } from '../../../../types/models';
 import { Meeting, Prisma, Role } from "@prisma/client";
 import { NextResponse, after } from "next/server";
 import { requireRole } from "../../../../services/auth";

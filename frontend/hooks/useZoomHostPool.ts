@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { createCache } from "../util/simpleCache";
+import { createCache } from "../util/common/simpleCache";
 
 // Module-scope cache (see util/simpleCache.ts) -- the pool rarely changes within a session,
 // and every meeting-form/ViewMeeting mount asking for it shouldn't each fire its own request.

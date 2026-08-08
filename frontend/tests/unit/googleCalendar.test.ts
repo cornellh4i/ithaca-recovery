@@ -1,5 +1,5 @@
 import type { toRRule as ToRRuleFn, reconcileMeetingCalendars as ReconcileFn } from "../../services/googleCalendar";
-import { IMeeting, IRecurrencePattern } from "../../util/models";
+import { IMeeting, IRecurrencePattern } from "../../types/models";
 
 // calendarIdForCategory (in services/googleCalendar.ts) is computed once at module-load
 // time from process.env.GOOGLE_CALENDAR_* -- if a developer's shell has sourced .env.local

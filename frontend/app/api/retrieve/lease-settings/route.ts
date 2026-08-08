@@ -3,7 +3,7 @@ import { Role } from "@prisma/client";
 import { requireRole } from "../../../../services/auth";
 import { defaultLeaseSettings } from "../../../../util/leaseDefaults";
 import { computeLeaseYearCycles } from "../../../../util/leaseYearCycles";
-import type { IRoomRate } from "../../../../util/models";
+import type { IRoomRate } from "../../../../types/models";
 import { prisma } from "../../../../lib/prisma";
 
 export const GET = async () => {

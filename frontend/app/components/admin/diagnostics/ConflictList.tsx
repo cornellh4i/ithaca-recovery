@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState } from "react";
 import EditMeetingSidebar from "../../meeting-form/EditMeeting";
-import { IMeeting } from "../../../../util/models";
+import { IMeeting } from "../../../../types/models";
 import { useZoomHostPool } from "../../../../hooks/useZoomHostPool";
 import { zoomHostLabel } from "../../../../util/zoomHosts";
 import {

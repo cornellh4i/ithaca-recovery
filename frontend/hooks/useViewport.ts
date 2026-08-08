@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { PHONE_BREAKPOINT, TABLET_BREAKPOINT } from "../util/breakpoints";
+import { PHONE_BREAKPOINT, TABLET_BREAKPOINT } from "../util/common/breakpoints";
 
 // useLayoutEffect on the client (flips viewport before the browser paints) but useEffect
 // during SSR, where useLayoutEffect would otherwise log "does nothing on the server" -- this
