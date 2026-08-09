@@ -31,7 +31,11 @@ export interface ToastProps {
 const Toast: React.FC<ToastProps> = ({ variant, message, onClose }) => {
   const Icon = VARIANT_ICON[variant];
   return (
-    <div className={`${styles.toast} ${VARIANT_CLASS[variant]}`} role="status">
+    <div
+      className={`${styles.toast} ${VARIANT_CLASS[variant]}`}
+      role={variant === "error" ? "alert" : "status"}
+      aria-live={variant === "error" ? "assertive" : "polite"}
+    >
       <span className={styles.iconCircle}>
         <Icon fontSize="small" />
       </span>
