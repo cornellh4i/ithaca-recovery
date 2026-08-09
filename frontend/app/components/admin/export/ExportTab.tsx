@@ -188,22 +188,20 @@ const ExportTab: React.FC = () => {
   const { showToast } = useToast();
   const [leaseSettings, setLeaseSettings] = useState<ILeaseSettings | null>(null);
   const [leaseCycles, setLeaseCycles] = useState<LeaseYearCycle[]>([]);
-  const [settingsError, setSettingsError] = useState<string | null>(null);
   const [configOpen, setConfigOpen] = useState(false);
   const [ratesOpen, setRatesOpen] = useState(false);
   const [downloading, setDownloading] = useState<ExportKind | null>(null);
   const [downloaded, setDownloaded] = useState<ExportKind | null>(null);
-  const [exportError, setExportError] = useState<string | null>(null);
   const [meetingExportFields, setMeetingExportFields] = useState<MeetingExportFieldKey[] | null>(null);
   const [meetingExportTotal, setMeetingExportTotal] = useState(0);
-  const [meetingSettingsError, setMeetingSettingsError] = useState<string | null>(null);
   const [meetingConfigOpen, setMeetingConfigOpen] = useState(false);
 
-  const loadLeaseSettings = async () => {
+  const loadLeaseSettings = async (isCancelled: () => boolean) => {
     try {
       const response = await fetch("/api/retrieve/lease-settings");
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
       const json: { settings: ILeaseSettings; cycles: LeaseYearCycle[] } = await response.json();
+      if (isCancelled()) return;
       setLeaseSettings(json.settings);
       // fetch/JSON.parse hands back ISO strings for Date fields despite the LeaseYearCycle type,
       // so callers comparing against `new Date(...)` values (LeaseConfigModal's cycle picker) need real Dates here.
@@ -214,24 +212,25 @@ const ExportTab: React.FC = () => {
           endDate: new Date(cycle.endDate),
         })),
       );
-      setSettingsError(null);
     } catch (err) {
+      if (isCancelled()) return;
       console.error("Error loading lease settings:", err);
-      setSettingsError("Failed to load lease settings.");
+      showToast({ variant: "error", title: "Failed to load lease settings.", persistent: true });
     }
   };
 
-  const loadMeetingExportSettings = async () => {
+  const loadMeetingExportSettings = async (isCancelled: () => boolean) => {
     try {
       const response = await fetch("/api/retrieve/meeting-export-settings");
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
       const json: { fields: MeetingExportFieldKey[]; total: number } = await response.json();
+      if (isCancelled()) return;
       setMeetingExportFields(json.fields);
       setMeetingExportTotal(json.total);
-      setMeetingSettingsError(null);
     } catch (err) {
+      if (isCancelled()) return;
       console.error("Error loading meeting export settings:", err);
-      setMeetingSettingsError("Failed to load export field settings.");
+      showToast({ variant: "error", title: "Failed to load export field settings.", persistent: true });
     }
   };
 
@@ -239,14 +238,18 @@ const ExportTab: React.FC = () => {
     // Async fetch-then-set; the lint rule can't see the setState calls sit after an
     // await, so this is a false positive for the standard "load on mount" pattern.
     /* eslint-disable react-hooks/set-state-in-effect */
-    loadLeaseSettings();
-    loadMeetingExportSettings();
+    let cancelled = false;
+    const isCancelled = () => cancelled;
+    loadLeaseSettings(isCancelled);
+    loadMeetingExportSettings(isCancelled);
+    return () => {
+      cancelled = true;
+    };
     /* eslint-enable react-hooks/set-state-in-effect */
   }, []);
 
   const handleExport = async (kind: ExportKind) => {
     setDownloading(kind);
-    setExportError(null);
     try {
       if (kind === "meetings") {
         await downloadExport("/api/export/meetings", `ithaca-recovery-meetings-${todayISO()}.xlsx`);
@@ -257,7 +260,11 @@ const ExportTab: React.FC = () => {
       setTimeout(() => setDownloaded((curr) => (curr === kind ? null : curr)), 1800);
     } catch (err) {
       console.error(`Error exporting ${kind}:`, err);
-      setExportError(err instanceof Error ? err.message : "Export failed.");
+      showToast({
+        variant: "error",
+        title: err instanceof Error ? err.message : "Export failed.",
+        persistent: true,
+      });
     } finally {
       setDownloading(null);
     }
@@ -313,10 +320,6 @@ const ExportTab: React.FC = () => {
 
   return (
     <div className={styles.container}>
-      {exportError && <div className={styles.errorBanner}>{exportError}</div>}
-      {settingsError && <div className={styles.errorBanner}>{settingsError}</div>}
-      {meetingSettingsError && <div className={styles.errorBanner}>{meetingSettingsError}</div>}
-
       <div className={styles.grid}>
         <Card className={styles.exportCard}>
           <CardHeader

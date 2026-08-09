@@ -271,6 +271,11 @@
   font-size: 14px;
 }
 
+.errorState {
+  color: $danger-color;
+  font-size: 14px;
+}
+
 .legendAnchor {
   position: relative;
   display: inline-flex;

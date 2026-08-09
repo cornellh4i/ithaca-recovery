@@ -363,7 +363,7 @@ const UsersTab: React.FC = () => {
           </div>
         </div>
         {admins === null && !error && <div className={styles.emptyState}>Loading users…</div>}
-        {error && <div className={styles.emptyState}>{error}</div>}
+        {error && <div className={styles.errorState}>{error}</div>}
         {admins !== null && !error && (
           <div className={styles.tableWrapper}>
             <table className={styles.table}>
