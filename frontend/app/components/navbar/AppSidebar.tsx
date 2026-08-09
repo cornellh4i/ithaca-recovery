@@ -18,7 +18,7 @@ interface AppSidebarProps {
 // AppNavbar.tsx's desktop nav list already has (session-derived, not prop-driven) so the two
 // stay in lockstep without duplicating auth state through props.
 const AppSidebar: React.FC<AppSidebarProps> = ({ isOpen, onClose }) => {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const isAdmin = session?.user?.role === "ADMIN" || session?.user?.role === "SUPER_ADMIN";
   const pathname = usePathname();
 
@@ -55,7 +55,10 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ isOpen, onClose }) => {
               <Link href="/" className={rowClass(pathname === "/")} onClick={onClose}>
                 Main Calendar
               </Link>
-              {isAdmin ? (
+              <Link href="/docs" className={rowClass(pathname?.startsWith("/docs") ?? false)} onClick={onClose}>
+                Resources
+              </Link>
+              {isAdmin && (
                 <Link
                   href="/admin"
                   className={rowClass(pathname?.startsWith("/admin") ?? false)}
@@ -63,26 +66,12 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ isOpen, onClose }) => {
                 >
                   Admin
                 </Link>
-              ) : session ? (
-                <div className={styles.lockedGroup}>
-                  <button className={`${styles.row} ${styles.locked}`} disabled>
-                    <span>Admin</span>
-                    <img src="/svg/lock-icon.svg" alt="" className={styles.lockIcon} />
-                  </button>
-                  <p className={styles.lockedHint}>Requires admin access</p>
-                </div>
-              ) : (
-                <div className={styles.lockedGroup}>
-                  <Link href="/login" className={`${styles.row} ${styles.locked}`} onClick={onClose}>
-                    <span>Admin</span>
-                    <img src="/svg/lock-icon.svg" alt="" className={styles.lockIcon} />
-                  </Link>
-                  <p className={styles.lockedHint}>Sign in to access Admin</p>
-                </div>
               )}
-              <Link href="/docs" className={rowClass(pathname?.startsWith("/docs") ?? false)} onClick={onClose}>
-                Resources
-              </Link>
+              {status === "unauthenticated" && (
+                <Link href="/login" className={rowClass(false)} onClick={onClose}>
+                  Sign In
+                </Link>
+              )}
             </nav>
           </motion.div>
         </React.Fragment>

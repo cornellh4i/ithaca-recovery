@@ -65,7 +65,7 @@ const AppNavbar: React.FC = () => {
         <div className={styles.navbar}>
             <div className={styles.navcontainer}>
                 <div className={styles.navLeft}>
-                    <Logo />
+                    <Logo height={32} />
                 </div>
                 <ul className={styles.navigationlist}>
                     <li className={navItemClass(pathname === "/")}>
@@ -75,36 +75,6 @@ const AppNavbar: React.FC = () => {
                             </Link>
                         </Tooltip>
                     </li>
-                    <li className={navItemClass(pathname === "/signage")}>
-                        <Tooltip content="Read-only calendar view for signage">
-                            <Link href="/signage">
-                                <p>Signage</p>
-                            </Link>
-                        </Tooltip>
-                    </li>
-                    <li className={navItemClass(pathname?.startsWith("/admin") ?? false)}>
-                        {isAdmin ? (
-                            <Tooltip content="Manage users, imports, exports, and diagnostics">
-                                <Link href="/admin">
-                                    <p>Admin</p>
-                                </Link>
-                            </Tooltip>
-                        ) : session ? (
-                            <Tooltip content="Requires admin access">
-                                <button className={styles.navLocked} disabled>
-                                    <p>Admin</p>
-                                    <img src="/svg/lock-icon.svg" alt="" className={styles.lockIcon} />
-                                </button>
-                            </Tooltip>
-                        ) : (
-                            <Tooltip content="Sign in to access Admin">
-                                <Link href="/login" className={styles.navLockedLink}>
-                                    <p>Admin</p>
-                                    <img src="/svg/lock-icon.svg" alt="" className={styles.lockIcon} />
-                                </Link>
-                            </Tooltip>
-                        )}
-                    </li>
                     <li className={navItemClass(pathname?.startsWith("/docs") ?? false)}>
                         <Tooltip content="Guides, admin/import reference, and API docs">
                             <Link href="/docs">
@@ -112,43 +82,52 @@ const AppNavbar: React.FC = () => {
                             </Link>
                         </Tooltip>
                     </li>
-                    <li>
-                        {status === "loading" ? (
-                            <div className={styles.signInButton} style={{ opacity: 0, pointerEvents: "none" }}>
-                                <p>Loading...</p>
-                            </div>
-                        ) : session && session.user ? (
-                            <div className={styles.flyoutAnchor} ref={flyoutRef}>
-                                <Tooltip content="User menu">
-                                    <button
-                                        ref={buttonRef}
-                                        type="button"
-                                        aria-label="User menu"
-                                        aria-haspopup="dialog"
-                                        aria-expanded={openFlyout}
-                                        aria-controls="user-profile-flyout"
-                                        className={styles.profileButton}
-                                        onClick={() => setOpenFlyout((prev) => !prev)}
-                                    >
-                                        {userAvatar}
-                                    </button>
-                                </Tooltip>
-                                {openFlyout && (
-                                    <div
-                                        id="user-profile-flyout"
-                                        className={styles.flyout}
-                                    >
-                                        <ProfileCard session={session} userAvatar={userAvatar} />
-                                    </div>
-                                )}
-                            </div>
-                        ) : (
-                            <Link className={styles.signInButton} href="/login">
-                                <p>Sign In</p>
-                            </Link>
-                        )}
-                    </li>
+                    {isAdmin && (
+                        <li className={navItemClass(pathname?.startsWith("/admin") ?? false)}>
+                            <Tooltip content="Manage users, imports, exports, and diagnostics">
+                                <Link href="/admin">
+                                    <p>Admin</p>
+                                </Link>
+                            </Tooltip>
+                        </li>
+                    )}
                 </ul>
+                <div className={styles.navRight}>
+                    {status === "loading" ? (
+                        <div className={styles.signInButton} style={{ opacity: 0, pointerEvents: "none" }}>
+                            <p>Loading...</p>
+                        </div>
+                    ) : session && session.user ? (
+                        <div className={styles.flyoutAnchor} ref={flyoutRef}>
+                            <Tooltip content="User menu">
+                                <button
+                                    ref={buttonRef}
+                                    type="button"
+                                    aria-label="User menu"
+                                    aria-haspopup="dialog"
+                                    aria-expanded={openFlyout}
+                                    aria-controls="user-profile-flyout"
+                                    className={styles.profileButton}
+                                    onClick={() => setOpenFlyout((prev) => !prev)}
+                                >
+                                    {userAvatar}
+                                </button>
+                            </Tooltip>
+                            {openFlyout && (
+                                <div
+                                    id="user-profile-flyout"
+                                    className={styles.flyout}
+                                >
+                                    <ProfileCard session={session} userAvatar={userAvatar} />
+                                </div>
+                            )}
+                        </div>
+                    ) : (
+                        <Link className={styles.signInButton} href="/login">
+                            <p>Sign In</p>
+                        </Link>
+                    )}
+                </div>
             </div>
         </div>
     );
