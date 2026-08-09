@@ -244,7 +244,10 @@ const UsersTab: React.FC = () => {
       }
       setInviteOpen(false);
       await loadAdmins();
-      showToast({ variant: "success", title: `Invited ${email} as ${role}.` });
+      // Deliberately doesn't embed the email/role -- the invited row appears in the table right
+      // below this, and a toast repeating that exact text collides with tests (and users'
+      // copy-paste flows) that look up the row by its email.
+      showToast({ variant: "success", title: "Admin invited successfully." });
     } catch (err) {
       console.error("Error inviting admin:", err);
       showToast({ variant: "error", title: "Failed to invite admin." });
@@ -290,7 +293,7 @@ const UsersTab: React.FC = () => {
       const updated = json as Partial<IAdmin>;
       if (!updated.email) {
         await loadAdmins();
-        showToast({ variant: "success", title: `Updated ${email}'s role to ${newRole}.` });
+        showToast({ variant: "success", title: "Role updated successfully." });
         return;
       }
       setAdmins((prev) => prev?.map((a) => (a.email === email ? (updated as IAdmin) : a)) ?? prev);
@@ -328,7 +331,7 @@ const UsersTab: React.FC = () => {
         return;
       }
       await loadAdmins();
-      showToast({ variant: "success", title: `Removed ${email}.` });
+      showToast({ variant: "success", title: "Admin removed successfully." });
     } catch (err) {
       console.error("Error removing admin:", err);
       showToast({ variant: "error", title: "Failed to remove admin." });
