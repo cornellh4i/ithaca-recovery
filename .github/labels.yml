@@ -39,6 +39,9 @@
   from: admin
   color: "0052CC"
   description: "/admin shell — Diagnostics, Users, Import, Export tabs"
+- name: "scope: docs"
+  color: "006B75"
+  description: "/docs Resources page — rendering, navigation, search"
 - name: "scope: google-calendar"
   from: google-calendar
   color: "4285F4"
@@ -47,10 +50,6 @@
   from: zoom-api
   color: "2D8CFF"
   description: Zoom meeting/host sync (services/zoom.ts)
-- name: "scope: billing"
-  from: billing
-  color: "B60205"
-  description: Lease export, XLSX import, anything affecting invoicing
 - name: "scope: ui/ux"
   from: ui/ux
   color: "D93F0B"

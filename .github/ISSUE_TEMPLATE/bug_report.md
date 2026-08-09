@@ -43,7 +43,7 @@ labels: "type: bug"
 **Product areas**
 - [ ] auth — sign-in, sessions, NextAuth, role-based access
 - [ ] admin — /admin shell (Diagnostics, Users, Import, Export tabs)
-- [ ] billing — lease export, XLSX import, anything affecting invoicing
+- [ ] docs — /docs Resources page (rendering, navigation, search)
 - [ ] ui/ux — frontend layout/styling not tied to a specific integration
 
 **Integrations**
