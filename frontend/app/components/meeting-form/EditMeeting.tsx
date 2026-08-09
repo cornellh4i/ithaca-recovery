@@ -10,6 +10,7 @@ import LabeledCheckbox from '../atoms/CheckBox';
 import RecurringMeetingForm from './RecurringMeeting';
 import ZoomHostField from './ZoomHostField';
 import ConflictOverrideModal from './ConflictOverrideModal';
+import FormValidationBanner from './FormValidationBanner';
 import CloseIcon from '@mui/icons-material/Close';
 import IconButton from '@mui/material/IconButton';
 
@@ -50,6 +51,10 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
       handleCalTypeToggle,
       getValidationErrors,
       buildMeetingPayload,
+      setSubmitAttempted,
+      liveValidationErrors,
+      markFieldTouched,
+      getFieldError,
     } = useMeetingForm(meeting);
 
     const { showToast } = useToast();
@@ -112,9 +117,9 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
       // actually prevents a second in-flight request.
       if (isSubmitting) return;
 
+      setSubmitAttempted(true);
       const validationErrors = getValidationErrors();
       if (validationErrors.length > 0) {
-        alert(validationErrors.join('\n'));
         return;
       }
 
@@ -132,11 +137,14 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
             <CloseIcon sx={{ color: 'black' }} />
           </IconButton>
         </div>
+        <FormValidationBanner errors={liveValidationErrors} />
         <MeetingForm
           meetingTitleTextField={<TextField
             input="Meeting title"
             value={inputMeetingTitleValue}
             onChange={setMeetingTitleValue}
+            onBlur={() => markFieldTouched("title")}
+            error={getFieldError("title")}
             compact={compact}
           />}
           modeTypeButtons={<ModeTypeButtons
@@ -229,6 +237,8 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
             label={<img src="svg/mail-icon.svg" alt="Mail Icon" />}
             value={inputEmailValue}
             onChange={setEmailValue}
+            onBlur={() => markFieldTouched("email")}
+            error={getFieldError("email")}
             compact={compact}
           />}
           descriptionTextField={<TextField
@@ -236,6 +246,8 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
             label=""
             value={inputDescriptionValue}
             onChange={setDescriptionValue}
+            onBlur={() => markFieldTouched("description")}
+            error={getFieldError("description")}
             multiline
             maxLength={DESCRIPTION_MAX_LENGTH}
             compact={compact}

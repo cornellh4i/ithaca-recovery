@@ -29,7 +29,7 @@ test.describe("meeting creation", () => {
     await expect(page.getByText("Full Flow Meeting")).toBeVisible();
   });
 
-  test("2.3 missing title blocks submission with a validation alert", async ({ adminPage }) => {
+  test("2.3 missing title blocks submission with a validation banner", async ({ adminPage }) => {
     const { page } = adminPage;
     await page.goto("/");
     await page.getByText("New Meeting").click();
@@ -41,20 +41,17 @@ test.describe("meeting creation", () => {
     await toggleCalType(page, "AA");
     await page.getByPlaceholder("Email").fill("noname@test.icr");
 
-    // This alert() fires synchronously inside the click handler (validation runs
-    // before any `await`), so it must be dismissed by a listener that's already
-    // registered when the dialog opens — waitForEvent()'s await-after-click would
-    // deadlock, since the click itself can't resolve until the dialog closes.
-    let dialogMessage = "";
-    page.once("dialog", (dialog) => {
-      dialogMessage = dialog.message();
-      dialog.accept();
-    });
     await page.getByRole("button", { name: "Create Meeting" }).click();
-    expect(dialogMessage).toContain("Meeting title is required");
+    await expect(page.getByText("Fix 1 field before saving")).toBeVisible();
+    await expect(page.getByText("Meeting title is required.")).toBeVisible();
 
     // Form is still open — nothing was submitted.
     await expect(page.getByRole("heading", { name: "New Meeting" })).toBeVisible();
+
+    // The banner's live count decrements as the field is fixed, then disappears once
+    // every validation rule is satisfied.
+    await page.getByPlaceholder("Meeting title").fill("Now Has A Title");
+    await expect(page.getByText("Fix 1 field before saving")).toHaveCount(0);
   });
 
   test("2.4 checking multiple Meeting Types saves both categories", async ({ adminPage }) => {

@@ -18,6 +18,17 @@ export const CAL_TYPE_OPTIONS = ["AA", "Al-Anon", "Other"];
 export const CAL_TYPE_COLOR = "#CC3366";
 export { DESCRIPTION_MAX_LENGTH };
 
+// Field keys a validation error can be attributed to -- lets FormValidationBanner report a
+// live count of distinct fields needing fixing, not just a count of error messages (a single
+// message can cover two fields, e.g. the Hybrid room/zoomRoom rule below).
+export type MeetingFormField =
+  | "title" | "date" | "time" | "email" | "calTypes" | "description" | "room" | "zoomRoom" | "recurrence";
+
+export interface MeetingFormFieldError {
+  fields: MeetingFormField[];
+  message: string;
+}
+
 const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
 // "MM/DD/YYYY" -> "YYYY-MM-DD" via string rearrangement, no Date round-trip — avoids the
@@ -144,6 +155,18 @@ export function useMeetingForm(initialMeeting?: IMeeting, defaultContext?: Meeti
     const [recurrencePattern, setRecurrencePattern] = useState<IRecurrencePattern | null>(
         initialMeeting?.recurrencePattern ?? null
     );
+    // Flips true on the first failed submit -- before that, FormValidationBanner stays hidden
+    // even if fields are technically incomplete (nobody wants to see errors before they've
+    // tried to save). Once true, liveValidationErrors below re-derives on every render, so the
+    // banner's "Fix N fields" count updates live as each field is corrected.
+    const [submitAttempted, setSubmitAttempted] = useState(false);
+    // Which fields the user has focused into and back out of at least once -- an inline
+    // per-field error only renders for a field in this set, so a field the user hasn't
+    // reached yet doesn't show red before they've had a chance to fill it in.
+    const [touchedFields, setTouchedFields] = useState<Set<MeetingFormField>>(new Set());
+    const markFieldTouched = useCallback((field: MeetingFormField) => {
+        setTouchedFields((prev) => (prev.has(field) ? prev : new Set(prev).add(field)));
+    }, []);
 
     // Must be stable: RecurringMeeting.tsx's effect depends on this callback, and an
     // unstable reference here caused an infinite render loop.
@@ -190,37 +213,42 @@ export function useMeetingForm(initialMeeting?: IMeeting, defaultContext?: Meeti
         setZoomHost("");
         setIsRecurring(false);
         setRecurrencePattern(null);
+        setSubmitAttempted(false);
+        setTouchedFields(new Set());
     };
 
-    const getValidationErrors = (): string[] => {
-        const errors: string[] = [];
+    const getValidationErrors = (): MeetingFormFieldError[] => {
+        const errors: MeetingFormFieldError[] = [];
 
-        if (!title.trim()) errors.push("Meeting title is required.");
-        if (!date) errors.push("Date is required.");
+        if (!title.trim()) errors.push({ fields: ["title"], message: "Meeting title is required." });
+        if (!date) errors.push({ fields: ["date"], message: "Date is required." });
 
         const [startTime, endTime] = time?.split(' - ') || [];
-        if (!startTime || !endTime) errors.push("Start and end time are required.");
+        if (!startTime || !endTime) errors.push({ fields: ["time"], message: "Start and end time are required." });
 
         if (!email.trim()) {
-            errors.push("Email is required.");
+            errors.push({ fields: ["email"], message: "Email is required." });
         } else if (!isValidEmail(email)) {
-            errors.push("Email must be a valid email address.");
+            errors.push({ fields: ["email"], message: "Email must be a valid email address." });
         }
 
-        if (calTypes.length === 0) errors.push("At least one calendar type is required.");
+        if (calTypes.length === 0) errors.push({ fields: ["calTypes"], message: "At least one calendar type is required." });
 
         if (description.length > DESCRIPTION_MAX_LENGTH) {
-            errors.push(`Description must be ${DESCRIPTION_MAX_LENGTH} characters or fewer (Zoom's limit) — currently ${description.length}.`);
+            errors.push({
+                fields: ["description"],
+                message: `Description must be ${DESCRIPTION_MAX_LENGTH} characters or fewer (Zoom's limit) — currently ${description.length}.`,
+            });
         }
 
         if (mode === "Hybrid" && (!room || !zoomRoom)) {
-            errors.push("Hybrid meetings require both a physical room and a Zoom room.");
+            errors.push({ fields: ["room", "zoomRoom"], message: "Hybrid meetings require both a physical room and a Zoom room." });
         } else if (mode === "In Person" && !room) {
-            errors.push("In Person meetings require a physical room.");
+            errors.push({ fields: ["room"], message: "In Person meetings require a physical room." });
         }
 
         if (isRecurring && recurrencePattern === null) {
-            errors.push("Recurrence details are required for recurring meetings.");
+            errors.push({ fields: ["recurrence"], message: "Recurrence details are required for recurring meetings." });
         }
 
         return errors;
@@ -275,6 +303,19 @@ export function useMeetingForm(initialMeeting?: IMeeting, defaultContext?: Meeti
         return payload;
     };
 
+    // Recomputed every render rather than memoized -- the form has a handful of fields, so
+    // re-running getValidationErrors() on each render is cheap, and memoizing would just
+    // mean listing every field it reads as a dependency array.
+    const liveValidationErrors = submitAttempted ? getValidationErrors() : [];
+
+    // Independent of submitAttempted -- a field can show its own inline error the moment
+    // it's been touched, even before any submit attempt (e.g. blurring an empty title on
+    // the very first pass through the form).
+    const getFieldError = (field: MeetingFormField): string | undefined => {
+        if (!touchedFields.has(field)) return undefined;
+        return getValidationErrors().find((error) => error.fields.includes(field))?.message;
+    };
+
     return {
         title, setTitle,
         mode, setMode,
@@ -295,5 +336,9 @@ export function useMeetingForm(initialMeeting?: IMeeting, defaultContext?: Meeti
         resetForm,
         getValidationErrors,
         buildMeetingPayload,
+        submitAttempted, setSubmitAttempted,
+        liveValidationErrors,
+        markFieldTouched,
+        getFieldError,
     };
 }
