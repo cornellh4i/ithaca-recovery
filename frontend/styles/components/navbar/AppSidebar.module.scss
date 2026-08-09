@@ -66,29 +66,4 @@
         background-color: $grey-lightest-color;
         font-weight: 600;
     }
-
-    &.locked {
-        color: $light-grey-color;
-
-        &:hover,
-        &:focus {
-            color: $light-grey-color;
-        }
-    }
-}
-
-.lockIcon {
-    width: 14px;
-    height: 14px;
-}
-
-.lockedGroup {
-    display: flex;
-    flex-direction: column;
-}
-
-.lockedHint {
-    margin: 0 0 4px 14px;
-    font-size: 12px;
-    color: $medium-grey-color;
 }

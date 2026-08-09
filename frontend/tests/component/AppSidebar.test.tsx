@@ -49,24 +49,32 @@ describe("AppSidebar", () => {
     expect(adminLink.className).toMatch(/active/);
   });
 
-  it("shows a disabled locked Admin button for a signed-in non-admin", () => {
+  it("hides the Admin link entirely for a signed-in non-admin", () => {
     mockUseSession.mockReturnValue({ data: { user: { name: "Regular User", role: "USER" } } });
     mockUsePathname.mockReturnValue("/");
 
     render(<AppSidebar isOpen onClose={jest.fn()} />);
 
-    const adminButton = screen.getByRole("button", { name: "Admin" });
-    expect(adminButton).toBeDisabled();
+    expect(screen.queryByText("Admin")).not.toBeInTheDocument();
   });
 
-  it("shows a locked Admin link to /login for a signed-out visitor", () => {
+  it("hides the Admin link and shows a Sign In link to /login for a signed-out visitor", () => {
     mockUseSession.mockReturnValue({ data: null });
     mockUsePathname.mockReturnValue("/");
 
     render(<AppSidebar isOpen onClose={jest.fn()} />);
 
-    const adminLink = screen.getByRole("link", { name: "Admin" });
-    expect(adminLink).toHaveAttribute("href", "/login");
+    expect(screen.queryByText("Admin")).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Sign In" })).toHaveAttribute("href", "/login");
+  });
+
+  it("shows the Signage link", () => {
+    mockUseSession.mockReturnValue({ data: null });
+    mockUsePathname.mockReturnValue("/signage");
+
+    render(<AppSidebar isOpen onClose={jest.fn()} />);
+
+    expect(screen.getByRole("link", { name: "Signage" })).toHaveAttribute("href", "/signage");
   });
 
   it("calls onClose when the backdrop is clicked", () => {
