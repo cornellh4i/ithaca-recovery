@@ -7,8 +7,9 @@ import { TABLET_BREAKPOINT, DESKTOP_BREAKPOINT } from "../../../util/common/brea
 import { parseMarkdown } from "../../../util/docs/parseMarkdown";
 import type { DocEntry, DocMeta } from "../../../util/docs/loadDocs";
 import { useScrollNavHide } from "../../../hooks/useScrollNavHide";
+import { usePagefindComponentUI } from "../../../hooks/usePagefindComponentUI";
 import TopLoadingBar from "../atoms/TopLoadingBar";
-import { PanelToggleIcon, TocToggleIcon } from "./DocsIcons";
+import { PanelToggleIcon, TocToggleIcon, SearchIcon, CloseIcon } from "./DocsIcons";
 import TocList from "./DocsTocList";
 import styles from "../../../styles/components/docs/DocsShell.module.scss";
 
@@ -55,6 +56,7 @@ let lastSidebarScrollTop = 0;
 const DocsShell: React.FC<DocsShellProps> = ({ activeDoc, docsMeta }) => {
   const router = useRouter();
   const [isNavigating, startNavigation] = useTransition();
+  usePagefindComponentUI();
   // .article is its own scroll pane on this page (see DocsShell.module.scss), not .content --
   // .content itself never scrolls here, so the mobile hide-on-scroll behavior ClientLayout wires
   // up globally onto .content has nothing to react to on /docs. Same hook, reattached to the
@@ -70,9 +72,24 @@ const DocsShell: React.FC<DocsShellProps> = ({ activeDoc, docsMeta }) => {
   const [tocHidden, setTocHidden] = useState<boolean | null>(null);
   const [tocOpen, setTocOpen] = useState(false);
   const [activeHeadingSlug, setActiveHeadingSlug] = useState<string | null>(null);
+  const [searchOpen, setSearchOpen] = useState(false);
+  // Stays true through the close animation so <pagefind-input> and <pagefind-results> (the
+  // full-bleed results panel) have something to animate out -- searchOpen alone flips instantly,
+  // which would unmount them before any CSS transition could play. See the onTransitionEnd
+  // handler below for where this actually becomes false.
+  const [searchMounted, setSearchMounted] = useState(false);
+  // .mobileSearchResults is position: fixed (see DocsShell.module.scss) so it isn't clipped by
+  // any scrolling ancestor, which means it can't just say "top: 100%" of its own row -- it needs
+  // the compact bar's actual bottom edge in viewport coordinates. Re-measured fresh each time
+  // search opens rather than continuously tracked, since the results panel visually covers the
+  // article underneath while open, so nothing scrolls behind it that would move this in the
+  // meantime.
+  const [compactBarBottom, setCompactBarBottom] = useState(0);
   const articleRef = useRef<HTMLElement>(null);
   const sidebarToggleBtnRef = useRef<HTMLButtonElement>(null);
   const wasSidebarOpenRef = useRef(false);
+  const compactBarRef = useRef<HTMLDivElement>(null);
+  const compactSearchWrapperRef = useRef<HTMLDivElement>(null);
 
   // The compact drawer is only ever transform: translateX()'d off-screen, not unmounted, so
   // without `inert` its links stay tab-reachable and screen-reader-visible while "closed".
@@ -87,7 +104,21 @@ const DocsShell: React.FC<DocsShellProps> = ({ activeDoc, docsMeta }) => {
 
   useEffect(() => {
     const checkBreakpoints = () => {
-      setCompact(window.innerWidth < TABLET_BREAKPOINT);
+      setCompact((prev) => {
+        const next = window.innerWidth < TABLET_BREAKPOINT;
+        // .compactBar (the only place mobile search lives) is display: none whenever !compact --
+        // if search was open, closing it the normal animated way is impossible from here on:
+        // .compactSearchWrapper's flex-grow transition can never fire on a display: none
+        // ancestor, so handleSearchTransitionEnd would never unmount it, leaving
+        // .mobileSearchResults (position: fixed, covers the whole page) stuck open with no
+        // visible close button. Hard-reset both states immediately instead -- there's nothing to
+        // animate against once the bar itself has vanished anyway.
+        if (prev && !next) {
+          setSearchOpen(false);
+          setSearchMounted(false);
+        }
+        return next;
+      });
       setTocHidden((prev) => {
         const next = window.innerWidth < DESKTOP_BREAKPOINT;
         if (prev && !next) setTocOpen(false);
@@ -99,6 +130,21 @@ const DocsShell: React.FC<DocsShellProps> = ({ activeDoc, docsMeta }) => {
     return () => window.removeEventListener("resize", checkBreakpoints);
   }, []);
 
+  // Keeps .mobileSearchResults's top offset in sync with the compact bar's real position while
+  // search is open -- compactBarBottom is otherwise only measured once, at the moment search
+  // opens (see openSearch below), so without this a resize during an open search session (e.g.
+  // a mobile browser's address bar showing/hiding) would leave the results panel's top edge
+  // wrong until the next open/close.
+  useEffect(() => {
+    if (!searchOpen) return;
+    const updateCompactBarBottom = () => {
+      const bar = compactBarRef.current;
+      if (bar) setCompactBarBottom(bar.getBoundingClientRect().bottom);
+    };
+    window.addEventListener("resize", updateCompactBarBottom);
+    return () => window.removeEventListener("resize", updateCompactBarBottom);
+  }, [searchOpen]);
+
   // Closes any drawer/popover left open from the previous doc whenever navigation lands on a
   // new one -- covers every path a new slug can arrive by (sidebar click, browser back/
   // forward), not just the sidebar link's own onClick. Deliberately does not reset the
@@ -107,7 +153,86 @@ const DocsShell: React.FC<DocsShellProps> = ({ activeDoc, docsMeta }) => {
   useEffect(() => {
     setSidebarOpen(false);
     setTocOpen(false);
+    setSearchOpen(false);
   }, [activeDoc.slug]);
+
+  // Measures the compact bar's own bottom edge right as search opens, in viewport coordinates --
+  // see compactBarBottom's own comment above for why the full-bleed results panel needs this
+  // rather than a plain CSS "top: 100%".
+  const openSearch = useCallback(() => {
+    setSearchMounted(true);
+    setSearchOpen(true);
+    const bar = compactBarRef.current;
+    if (bar) setCompactBarBottom(bar.getBoundingClientRect().bottom);
+  }, []);
+
+  // INVARIANT: only ever used on <pagefind-input>, never on pagefind-modal-trigger or
+  // pagefind-searchbox -- confirmed in the shipped pagefind-component-ui.js, all custom elements
+  // here share one base class whose attributeChangedCallback does a blanket
+  // `this[camelCaseName] = newValue` for *any* attribute change after the element's initial
+  // construction (guarded only by an `_initialized` flag, not by whether that property is
+  // actually settable). pagefind-modal-trigger and pagefind-searchbox both additionally define
+  // `placeholder` as a getter-only accessor (`get placeholder(){ return this._userPlaceholder ||
+  // ... }`) -- for those two, ANY later change to the "placeholder" attribute crashes
+  // ("Cannot set property placeholder of #<He> which has only a getter"), regardless of what
+  // triggers the change: React re-rendering the prop (the original bug, e.g. the resize-driven
+  // re-render a phone rotation causes), or even this exact setAttribute call from a ref. Their
+  // own initial construction path avoids it (writes to `_userPlaceholder` instead), which is why
+  // a placeholder baked into the very first server-rendered HTML can appear to work -- but
+  // there's no reliable way to guarantee nothing ever re-touches that attribute afterward, so
+  // pagefind-modal-trigger's own JSX below sets no placeholder at all, full stop.
+  // pagefind-input has no such getter (its readAttributes() writes straight to `this.placeholder`
+  // as a plain field), so it's the one place this is actually safe.
+  const setPagefindPlaceholder = useCallback((el: HTMLElement | null) => {
+    el?.setAttribute("placeholder", "Search docs");
+  }, []);
+
+  // pagefind-input's own autofocus attribute isn't reliable here -- it's read once when the
+  // custom element's internal <input> is first constructed, which can race with the
+  // flex-grow/opacity transition that's still animating .compactSearchWrapper open at that
+  // moment. Queried by ref rather than a global document.querySelector, since <pagefind-modal>
+  // (always mounted, for the sidebar trigger) contains its own internal pagefind-input too, and a
+  // global query could focus that one instead.
+  //
+  // INVARIANT: retries across a few animation frames rather than focusing once. <pagefind-input>
+  // is a custom element that builds its own internal <input> in its connectedCallback -- that's
+  // usually synchronous with this component's own commit, but isn't guaranteed to be, so a single
+  // immediate query can run before the input exists yet. Bails out once searchOpen flips back off
+  // (closed again before the input ever appeared) so a stale focus doesn't land after the fact.
+  useEffect(() => {
+    if (!searchOpen) return;
+    let frame = 0;
+    let attempts = 0;
+    const tryFocus = () => {
+      const input = compactSearchWrapperRef.current?.querySelector<HTMLInputElement>("input");
+      if (input) {
+        input.focus();
+        return;
+      }
+      attempts += 1;
+      if (attempts < 10) frame = requestAnimationFrame(tryFocus);
+    };
+    frame = requestAnimationFrame(tryFocus);
+    return () => cancelAnimationFrame(frame);
+  }, [searchOpen]);
+
+  // Only flips searchOpen -- searchMounted (and therefore <pagefind-input>/<pagefind-results>
+  // themselves) stays true until handleSearchTransitionEnd below sees the collapse animation
+  // actually finish, so there's something on screen for that animation to play against.
+  const closeSearch = useCallback(() => {
+    setSearchOpen(false);
+  }, []);
+
+  // .compactSearchWrapper's own flex-grow transition is what "the collapse animation finishing"
+  // means here -- other properties (opacity) share the same duration, so gating on this one
+  // property is enough to fire exactly once per close, not once per animated property.
+  const handleSearchTransitionEnd = useCallback(
+    (event: React.TransitionEvent<HTMLDivElement>) => {
+      if (event.target !== event.currentTarget || event.propertyName !== "flex-grow") return;
+      if (!searchOpen) setSearchMounted(false);
+    },
+    [searchOpen]
+  );
 
   // Restored from a ref callback rather than an effect: React attaches refs during the commit,
   // after the new node is in the document (so scrollHeight is already real) but before the browser
@@ -187,7 +312,8 @@ const DocsShell: React.FC<DocsShellProps> = ({ activeDoc, docsMeta }) => {
     updateActiveHeading();
     article.addEventListener("scroll", updateActiveHeading, { passive: true });
     // A fragment jump moves the article's scroll position without firing a scroll event on it,
-    // so the scroll listener alone never sees deep links or back/forward between #hashes.
+    // so the scroll listener alone never sees deep links or back/forward between #hashes -- this
+    // also covers a search result's native anchor-link navigation landing on this doc.
     window.addEventListener("hashchange", updateActiveHeading);
     return () => {
       article.removeEventListener("scroll", updateActiveHeading);
@@ -250,19 +376,51 @@ const DocsShell: React.FC<DocsShellProps> = ({ activeDoc, docsMeta }) => {
   return (
     <div className={styles.page}>
       <TopLoadingBar active={isNavigating} />
-      <div className={`${styles.compactBar} ${compact ? styles.isCompact : ""}`}>
+      {/* Single instance for the whole page -- pagefind-modal-trigger (in the sidebar below)
+          and this connect automatically by sharing Pagefind's default "instance". */}
+      <pagefind-modal reset-on-close="true" />
+      <div ref={compactBarRef} className={`${styles.compactBar} ${compact ? styles.isCompact : ""}`}>
+        {/* Panel-toggle + breadcrumb animate out together as search opens, freeing the whole bar
+            (not just the breadcrumb's own space) for the searchbox -- see .compactBarChrome. */}
+        <div className={styles.compactBarChrome} data-hidden={searchOpen}>
+          <button
+            ref={sidebarToggleBtnRef}
+            type="button"
+            className={styles.sidebarIconBtn}
+            aria-label="Open contents"
+            onClick={() => setSidebarOpen(true)}
+          >
+            <PanelToggleIcon />
+          </button>
+          <span className={styles.breadcrumbGroup}>{activeDoc.group}</span>
+          <span className={styles.breadcrumbGroup}>/</span>
+          <span className={styles.breadcrumbTitle}>{activeDoc.title}</span>
+        </div>
+        {/* pagefind-input, not pagefind-searchbox -- decoupled from its own attached dropdown on
+            purpose, since that dropdown is deeply, deliberately hard to restyle (Pagefind wraps
+            its base rule in a 3x :is(*, #\#) specificity-boosting selector). pagefind-results
+            below, connected only by the shared instance="mobile-search" attribute, renders as a
+            plain in-flow block with none of that -- see .mobileSearchResults's own comment.
+            searchMounted (not searchOpen) gates the actual element so closing has something to
+            animate out before unmounting -- see handleSearchTransitionEnd. */}
+        <div
+          ref={compactSearchWrapperRef}
+          className={styles.compactSearchWrapper}
+          data-open={searchOpen}
+          onTransitionEnd={handleSearchTransitionEnd}
+        >
+          {searchMounted && (
+            <pagefind-input ref={setPagefindPlaceholder} instance="mobile-search" autofocus="true" />
+          )}
+        </div>
         <button
-          ref={sidebarToggleBtnRef}
           type="button"
           className={styles.sidebarIconBtn}
-          aria-label="Open contents"
-          onClick={() => setSidebarOpen(true)}
+          aria-label={searchOpen ? "Close search" : "Search docs"}
+          onClick={searchOpen ? closeSearch : openSearch}
         >
-          <PanelToggleIcon />
+          {searchOpen ? <CloseIcon size={20} /> : <SearchIcon size={20} />}
         </button>
-        <span className={styles.breadcrumbGroup}>{activeDoc.group}</span>
-        <span className={styles.breadcrumbGroup}>/</span>
-        <span className={styles.breadcrumbTitle}>{activeDoc.title}</span>
       </div>
 
       {compact && sidebarOpen && (
@@ -289,6 +447,12 @@ const DocsShell: React.FC<DocsShellProps> = ({ activeDoc, docsMeta }) => {
               ✕
             </button>
           </div>
+          {/* No placeholder here -- see setPagefindPlaceholder's own comment above for why
+              pagefind-modal-trigger specifically can't have one set at all, ever, by any method.
+              Falls back to Pagefind's own default trigger text. */}
+          {!compact && (
+            <pagefind-modal-trigger className={styles.sidebarSearchTrigger} hide-shortcut="true" />
+          )}
           {groups.map((group) => (
             <React.Fragment key={group.name}>
               <div className={styles.groupLabel}>{group.name}</div>
@@ -361,6 +525,23 @@ const DocsShell: React.FC<DocsShellProps> = ({ activeDoc, docsMeta }) => {
           </nav>
         )}
       </div>
+
+      {/* Renders over .columns (not inside it) while mobile search is open, filling the exact
+          same content area .columns occupies -- see compactBarBottom's own comment for why the
+          top offset is measured rather than assumed, and .mobileSearchResults for the rest. */}
+      {searchMounted && (
+        <div
+          className={styles.mobileSearchResults}
+          data-open={searchOpen}
+          style={{ "--docs-compact-bar-bottom": `${compactBarBottom}px` } as React.CSSProperties}
+        >
+          {/* No hide-sub-results attribute -- pagefind-results shows sub-results by default
+              (confirmed against the shipped bundle's own attribute list: show-images,
+              hide-sub-results, max-sub-results, max-results, link-target -- there is no
+              show-sub-results attribute on this element, unlike pagefind-searchbox). */}
+          <pagefind-results instance="mobile-search" />
+        </div>
+      )}
     </div>
   );
 };

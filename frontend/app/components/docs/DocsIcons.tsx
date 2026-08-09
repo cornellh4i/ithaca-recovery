@@ -14,3 +14,35 @@ export const TocToggleIcon: React.FC = () => (
     <line x1="4" y1="18" x2="12" y2="18" />
   </svg>
 );
+
+export const SearchIcon: React.FC<{ size?: number; className?: string }> = ({ size = 16, className }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={1.8}
+    strokeLinecap="round"
+    className={className}
+  >
+    <circle cx="11" cy="11" r="7" />
+    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+  </svg>
+);
+
+export const CloseIcon: React.FC<{ size?: number; className?: string }> = ({ size = 20, className }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={1.8}
+    strokeLinecap="round"
+    className={className}
+  >
+    <line x1="6" y1="6" x2="18" y2="18" />
+    <line x1="18" y1="6" x2="6" y2="18" />
+  </svg>
+);

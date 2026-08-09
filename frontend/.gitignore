@@ -19,6 +19,9 @@
 # is the source of truth, this is a disposable snapshot
 /util/docs/docsContent.generated.ts
 
+# generated at build time by build-scripts/generate-pagefind-index.mjs -- the /docs search index
+/public/pagefind
+
 # production
 /build
 
