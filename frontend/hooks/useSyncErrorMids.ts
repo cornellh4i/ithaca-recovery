@@ -19,10 +19,16 @@ export function useSyncErrorMids(refreshTrigger: number, enabled: boolean | null
     (async () => {
       try {
         const res = await fetch("/api/admin/sync-error-mids");
-        if (!res.ok) return;
+        if (!res.ok) {
+          // A mid-session role change or expired session (401/403) after a prior successful
+          // fetch shouldn't leave stale admin-only sync-error mids rendered.
+          if (!cancelled) setMids(new Set());
+          return;
+        }
         const data = await res.json();
         if (!cancelled) setMids(new Set<string>(data.mids ?? []));
       } catch (err) {
+        if (!cancelled) setMids(new Set());
         console.error("Error fetching sync-error mids:", err);
       }
     })();

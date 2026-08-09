@@ -45,6 +45,7 @@ test("returns the mids of meetings with a Google Calendar or Zoom sync error", a
   const midZoomError = `m-${randomUUID()}`;
   const midSynced = `m-${randomUUID()}`;
   const midPending = `m-${randomUUID()}`;
+  const midDeleted = `m-${randomUUID()}`;
 
   await prisma.meeting.create({
     data: buildMeetingData({ mid: midGoogleError, googleSyncStatus: "error", zoomSyncStatus: "synced" }),
@@ -60,6 +61,11 @@ test("returns the mids of meetings with a Google Calendar or Zoom sync error", a
   await prisma.meeting.create({
     data: buildMeetingData({ mid: midPending, googleSyncStatus: "pending", zoomSyncStatus: null }),
   });
+  // A genuine sync error, but soft-deleted -- must still respect the route's `deletedAt: null`
+  // filter, same as every other meeting-list endpoint.
+  await prisma.meeting.create({
+    data: buildMeetingData({ mid: midDeleted, googleSyncStatus: "error", deletedAt: new Date() }),
+  });
 
   const response = await GET();
   expect(response.status).toBe(200);
@@ -68,4 +74,5 @@ test("returns the mids of meetings with a Google Calendar or Zoom sync error", a
   expect(body.mids).toEqual(expect.arrayContaining([midGoogleError, midZoomError]));
   expect(body.mids).not.toContain(midSynced);
   expect(body.mids).not.toContain(midPending);
+  expect(body.mids).not.toContain(midDeleted);
 });
