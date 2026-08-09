@@ -25,7 +25,13 @@
 
 .sidebarScroll {
   height: 100%;
-  overflow-y: auto;
+
+  // overflow-x explicit, not implicit -- overflow-y: auto alone computes overflow-x to auto
+  // too (CSS can't mix visible with non-visible per-axis), which silently let anything a hair
+  // wider than the sidebar (e.g. a popup or dropdown rendered inline rather than portaled)
+  // open up a horizontal scrollbar. This sidebar's width is fixed, so horizontal scroll is
+  // never wanted here.
+  overflow: hidden auto;
 }
 
 // Wraps the full <-> compact cross-fade (see CalendarSidebarShell).
