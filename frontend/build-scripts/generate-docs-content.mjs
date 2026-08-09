@@ -63,9 +63,14 @@ function slugFromRelPath(relPath) {
 // doc's own directory under docs/ ("" for repo-root docs), used to resolve a relative href the
 // same way a file browser would.
 function resolveDocLink(href, currentDir) {
-  const withoutTrailingSlash = href.replace(/\/$/, "");
+  // Split off the query/fragment before any path handling -- "foo.md#section" is a single path
+  // segment as far as path.posix.join/normalize are concerned, so left unsplit its ".md" never
+  // lands at the end of the string and slugFromRelPath's own suffix stripping never fires.
+  const [, hrefPath, query = "", fragment = ""] = href.match(/^([^?#]*)(\?[^#]*)?(#.*)?$/) ?? [null, href];
+  const withoutTrailingSlash = hrefPath.replace(/\/$/, "");
   const joined = path.posix.normalize(path.posix.join(currentDir, withoutTrailingSlash));
-  return `/docs/${slugFromRelPath(joined.endsWith(".md") ? joined : `${joined}.md`)}`;
+  const slug = slugFromRelPath(joined.endsWith(".md") ? joined : `${joined}.md`);
+  return `/docs/${slug}${query}${fragment}`;
 }
 
 // Only rewrites inter-doc links: external (http/https/mailto) and same-page anchors (#slug) are

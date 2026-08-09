@@ -214,8 +214,13 @@ const DocsShell: React.FC<DocsShellProps> = ({ activeDoc, docsMeta }) => {
   // Doc links stay real <Link>s (href for prefetch/right-click/open-in-new-tab), but the click
   // is intercepted so the resulting navigation runs inside a transition -- isNavigating from
   // that transition is the one signal TopLoadingBar needs, regardless of which link (sidebar or
-  // future ones) triggered it.
+  // future ones) triggered it. Only for a plain left-click, though -- a modified or non-primary
+  // click (Cmd/Ctrl-click, Shift-click, middle-click) is the browser's own "open in new
+  // tab/window" gesture, which this must not swallow.
   const navigateToDoc = (event: React.MouseEvent, href: string) => {
+    if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+      return;
+    }
     event.preventDefault();
     setSidebarOpen(false);
     startNavigation(() => {

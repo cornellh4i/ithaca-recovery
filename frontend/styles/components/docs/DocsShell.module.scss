@@ -1,6 +1,8 @@
 @import '../../Variables.module.scss';
 
 .page {
+  display: flex;
+  flex-direction: column;
   font-family: 'Source Sans Pro', sans-serif;
   position: relative; // anchors TopLoadingBar, which positions itself absolutely against this
   height: 100%; // percentage-height chain down to .sidebarNav/.tocNav's max-height -- see .columns
@@ -57,6 +59,11 @@
   display: flex;
   width: 100%;
 
+  // .page is itself a flex column now (see its own comment) so this only ever claims the space
+  // .compactBar (a normal-height sibling, visible in compact mode) doesn't -- height: 100% here
+  // would instead stack on top of .compactBar's own height and push .page taller than its own
+  // container, making the outer .content pane scroll (defeating the whole point of the
+  // independently-scrolling-panes design below).
   // Chained from .page/.content (MainLayout's own flex:1 area, already correctly sized to
   // "viewport minus navbar" by flexbox), so .sidebarNav/.article/.tocNav's own height: 100% each
   // resolve against the real remaining space below the navbar. All three are independently
@@ -64,7 +71,8 @@
   // sticky sidebar -- .content (the shared ancestor's own overflow-y: auto) never actually
   // scrolls on this page as a result, since none of .columns's children overflow past their own
   // capped height anymore.
-  height: 100%;
+  flex: 1;
+  min-height: 0;
   gap: 48px;
   padding: 32px 24px;
   align-items: flex-start;
@@ -182,6 +190,13 @@
   overflow-y: auto;
   padding-top: 4px;
 
+  // Width-or-height, not width alone -- matches MainLayout.module.scss's own $breakpoint-phone
+  // query for the exact same concern: MobileAppNavbar is position: fixed (48px tall) below that
+  // breakpoint, so an anchor-jump needs scroll-margin-top past it, or the heading lands
+  // underneath it. Above the breakpoint the desktop navbar isn't fixed, so 24px (breathing room
+  // only) is enough. h1 gets this too, not just h2/h3 -- the TOC includes h1 entries (any
+  // heading at depth <= 2, see parseMarkdown.ts), so a TOC click can fragment-jump straight to
+  // one on phone just as easily as to an h2.
   :global(h1) {
     font-size: 32px;
     font-weight: 600;
@@ -189,13 +204,13 @@
     color: $black-color;
     border-bottom: 2px solid $light-grey-color;
     padding-bottom: 12px;
+    scroll-margin-top: 24px;
+
+    @media (width <= $breakpoint-phone), (height <= $breakpoint-phone) {
+      scroll-margin-top: 72px;
+    }
   }
 
-  // Width-or-height, not width alone -- matches MainLayout.module.scss's own $breakpoint-phone
-  // query for the exact same concern: MobileAppNavbar is position: fixed (48px tall) below that
-  // breakpoint, so an anchor-jump needs scroll-margin-top past it, or the heading lands
-  // underneath it. Above the breakpoint the desktop navbar isn't fixed, so 24px (breathing room
-  // only) is enough.
   :global(h2) {
     font-size: 24px;
     font-weight: 600;
