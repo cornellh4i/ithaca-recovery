@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { findDocBySlug, loadDocsMeta } from "../../../../util/docs/loadDocs";
-import DocsShell from "../../../components/docs/DocsShell";
+import DocsArticle from "../../../components/docs/DocsArticle";
 
 interface DocsPageProps {
   params: Promise<{ slug?: string[] }>;
@@ -31,5 +31,5 @@ export default async function DocsPage({ params }: DocsPageProps) {
     }
     notFound();
   }
-  return <DocsShell activeDoc={activeDoc} docsMeta={loadDocsMeta()} />;
+  return <DocsArticle activeDoc={activeDoc} />;
 }
