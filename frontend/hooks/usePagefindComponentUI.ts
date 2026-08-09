@@ -5,11 +5,12 @@ import { useEffect } from "react";
 const STYLESHEET_HREF = "/pagefind/pagefind-component-ui.css";
 const SCRIPT_SRC = "/pagefind/pagefind-component-ui.js";
 
-// Module scope, not a ref/state -- DocsShell fully unmounts/remounts on every doc-to-doc
-// navigation (see its own module-scope-variable comments for why), so a per-component guard
-// would re-inject the tags on every navigation. Injecting is idempotent either way (duplicate
-// <link>/<script> tags wouldn't break anything), but there's no reason to ask the browser to
-// refetch and re-register the same custom elements repeatedly.
+// Module scope, not a ref/state -- DocsShell (docs/layout.tsx) is the only caller, and while it
+// stays mounted for an entire docs session (see its own top-of-file comment), leaving /docs
+// entirely and coming back still unmounts/remounts it. A per-component guard would re-inject the
+// tags on that round trip. Injecting is idempotent either way (duplicate <link>/<script> tags
+// wouldn't break anything), but there's no reason to ask the browser to refetch and re-register
+// the same custom elements repeatedly.
 let injected = false;
 
 // Lazily loads Pagefind's prebuilt Component UI (pagefind-modal-trigger, pagefind-modal,
