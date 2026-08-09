@@ -234,6 +234,18 @@ const DocsShell: React.FC<DocsShellProps> = ({ activeDoc, docsMeta }) => {
     [searchOpen]
   );
 
+  // The activeDoc.slug effect above only closes search on a real doc-to-doc navigation -- a
+  // result link to the doc already open, or a same-page anchor within it, never changes that
+  // slug, so without this the results panel would stay open (and cover the article) even after
+  // the reader picked a result. Delegated on the wrapper rather than per-result, since
+  // pagefind-results renders its own result links internally.
+  const handleMobileResultsClick = useCallback(
+    (event: React.MouseEvent<HTMLDivElement>) => {
+      if ((event.target as HTMLElement).closest("a")) closeSearch();
+    },
+    [closeSearch]
+  );
+
   // Restored from a ref callback rather than an effect: React attaches refs during the commit,
   // after the new node is in the document (so scrollHeight is already real) but before the browser
   // paints it -- an effect would let the sidebar paint at 0 first and visibly jump.
@@ -534,6 +546,7 @@ const DocsShell: React.FC<DocsShellProps> = ({ activeDoc, docsMeta }) => {
           className={styles.mobileSearchResults}
           data-open={searchOpen}
           style={{ "--docs-compact-bar-bottom": `${compactBarBottom}px` } as React.CSSProperties}
+          onClick={handleMobileResultsClick}
         >
           {/* No hide-sub-results attribute -- pagefind-results shows sub-results by default
               (confirmed against the shipped bundle's own attribute list: show-images,
