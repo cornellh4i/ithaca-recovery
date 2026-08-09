@@ -1,0 +1,126 @@
+@import '../../Variables.module.scss';
+
+.container {
+  position: fixed;
+  z-index: $z-index-toast;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  // Empty space between/around toasts shouldn't block clicks on whatever's underneath --
+  // individual toasts re-enable pointer-events on themselves below.
+  pointer-events: none;
+}
+
+.positionDesktop {
+  bottom: 24px;
+  right: 24px;
+  width: 340px;
+}
+
+.positionPhonePortrait {
+  left: 8px;
+  right: 8px;
+
+  // 80px = MobileFab's 48px height + its own 16px bottom offset + this toast's 16px clearance
+  // above it (see MobileFab.module.scss). Applied unconditionally, not just when the
+  // admin-only FAB is actually rendered -- a little extra bottom margin when it's absent is
+  // harmless, and avoids threading auth state into this provider.
+  bottom: calc(80px + env(safe-area-inset-bottom));
+}
+
+.positionPhoneLandscape {
+  left: 50%;
+  transform: translateX(-50%);
+  width: 340px;
+  bottom: calc(16px + env(safe-area-inset-bottom));
+}
+
+.toast {
+  pointer-events: auto;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 12px 14px;
+  border-radius: $radius-md;
+  background-color: white;
+  box-shadow: 0 4px 12px rgb(0 0 0 / 15%);
+  font-family: "Source Sans Pro", sans-serif;
+  color: $black-color;
+}
+
+.iconCircle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.success {
+  .iconCircle {
+    background-color: $success-bg-color;
+    color: $success-text-color;
+  }
+}
+
+.error {
+  .iconCircle {
+    background-color: $danger-bg-color;
+    color: $danger-color;
+  }
+}
+
+.warning {
+  .iconCircle {
+    background-color: $warning-bg-color;
+    color: $warning-text-color;
+  }
+}
+
+.info {
+  .iconCircle {
+    background-color: $info-bg-color;
+    color: $info-text-color;
+  }
+}
+
+.body {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.messageList {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.closeButton {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: $medium-grey-color;
+  cursor: pointer;
+
+  &:hover {
+    color: $black-color;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toast {
+    transition: none !important;
+  }
+}
