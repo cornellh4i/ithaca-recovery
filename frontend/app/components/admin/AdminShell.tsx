@@ -42,7 +42,7 @@ const AdminShell: React.FC<AdminShellProps> = ({ role, email }) => {
     if (showResponsiveBanner) {
       showToast({
         variant: "info",
-        message: "Admin works best on a larger screen. Some panels may be cramped here.",
+        title: "Admin works best on a larger screen. Some panels may be cramped here.",
         persistent: true,
       });
     }

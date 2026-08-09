@@ -215,7 +215,7 @@ const ExportTab: React.FC = () => {
     } catch (err) {
       if (isCancelled()) return;
       console.error("Error loading lease settings:", err);
-      showToast({ variant: "error", message: "Failed to load lease settings.", persistent: true });
+      showToast({ variant: "error", title: "Failed to load lease settings.", persistent: true });
     }
   };
 
@@ -230,7 +230,7 @@ const ExportTab: React.FC = () => {
     } catch (err) {
       if (isCancelled()) return;
       console.error("Error loading meeting export settings:", err);
-      showToast({ variant: "error", message: "Failed to load export field settings.", persistent: true });
+      showToast({ variant: "error", title: "Failed to load export field settings.", persistent: true });
     }
   };
 
@@ -262,7 +262,7 @@ const ExportTab: React.FC = () => {
       console.error(`Error exporting ${kind}:`, err);
       showToast({
         variant: "error",
-        message: err instanceof Error ? err.message : "Export failed.",
+        title: err instanceof Error ? err.message : "Export failed.",
         persistent: true,
       });
     } finally {
