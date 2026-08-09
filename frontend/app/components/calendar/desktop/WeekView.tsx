@@ -45,6 +45,8 @@ interface WeekViewProps {
     // Admin-only (see hooks/useConflictMids) -- mids with an unresolved conflict. Omitted
     // entirely by /signage's public kiosk render, which defaults to no badges ever showing.
     conflictMids?: Set<string>;
+    // Admin-only (see hooks/useSyncErrorMids) -- mids with a Google Calendar/Zoom sync error.
+    syncErrorMids?: Set<string>;
 }
 
 const WeekView: React.FC<WeekViewProps> = ({
@@ -60,6 +62,7 @@ const WeekView: React.FC<WeekViewProps> = ({
     refreshTrigger = 0,
     scrollLocked = false,
     conflictMids,
+    syncErrorMids,
 }) => {
     const [currentTimePosition, setCurrentTimePosition] = useState(0);
     const [weekStartDate, setWeekStartDate] = useState<Date>(() => getFirstDayOfWeek(selectedDate));
@@ -222,6 +225,7 @@ const WeekView: React.FC<WeekViewProps> = ({
                                     columnDate={day}
                                     setLastClickedDate={setLastClickedDate}
                                     conflictMids={conflictMids}
+                                    syncErrorMids={syncErrorMids}
                                 />
 
                                 {/* Current time indicator - only show for current day */}

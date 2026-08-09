@@ -16,6 +16,7 @@ interface DayLandscapeSwitcherProps {
   refreshTrigger?: number;
   scrollLocked?: boolean;
   conflictMids?: Set<string>;
+  syncErrorMids?: Set<string>;
 }
 
 // Landscape phone's entry point: DayLandscapeView is the default (all rooms, one day, per the

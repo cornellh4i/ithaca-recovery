@@ -17,7 +17,6 @@ interface Meeting {
     room?: string; // Added room property
     zoomRoom?: string | null;
     primaryColor?: string; // Added to support different colored meetings
-    syncError?: boolean;
     positionIndex?: number; // For handling overlapping meetings
     totalOverlapping?: number; // For handling overlapping meetings
     isOverflowIndicator?: boolean; // "+N more" pseudo-entry, rendered as a small pill instead of a meeting card
@@ -47,6 +46,8 @@ interface DayColumnProps {
     setLastClickedDate?: (date: Date) => void;
     // Admin-only (see hooks/useConflictMids) -- mids with an unresolved conflict.
     conflictMids?: Set<string>;
+    // Admin-only (see hooks/useSyncErrorMids) -- mids with a Google Calendar/Zoom sync error.
+    syncErrorMids?: Set<string>;
     // Desktop's default: 120px/hour, matching .timeSlot's 120px row height in both
     // DayView and WeekView. Mobile passes 60 (half height, to fit more of the day on
     // screen -- see DayPortraitView, whose own .timeColumn/.timeSlot heights must be
@@ -80,6 +81,7 @@ const DayColumn: React.FC<DayColumnProps> = ({
     columnDate,
     setLastClickedDate,
     conflictMids,
+    syncErrorMids,
     hourHeight = DEFAULT_HOUR_HEIGHT,
     hideTags = false,
     tier,
@@ -188,7 +190,7 @@ const DayColumn: React.FC<DayColumnProps> = ({
                             ? formatZoomRoomLabel(meeting.zoomRoom!)
                             : undefined
                     }
-                    syncError={meeting.syncError}
+                    syncError={syncErrorMids?.has(meeting.id)}
                     hasConflict={conflictMids?.has(meeting.id)}
                     fillHeight
                     hideTags={hideTags}
@@ -296,6 +298,7 @@ const DayColumn: React.FC<DayColumnProps> = ({
                 isOpen={overlapModalMeetings !== null}
                 meetings={overlapModalMeetings ?? []}
                 conflictMids={conflictMids}
+                syncErrorMids={syncErrorMids}
                 onClose={() => setOverlapModalMeetings(null)}
                 onSelectMeeting={(meetingId) => {
                     pendingModalAnchorRef.current = true;

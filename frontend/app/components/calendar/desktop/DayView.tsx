@@ -9,9 +9,7 @@ import { createCache } from "../../../../util/common/simpleCache";
 import { defaultRooms } from "../../../../util/rooms/rooms";
 import { layoutOverlappingMeetings, OverlapMeeting } from "../../../../util/meetings/meetingOverlapLayout";
 
-interface Meeting extends OverlapMeeting {
-  syncError?: boolean;
-}
+type Meeting = OverlapMeeting;
 
 type Room = {
   name: string;
@@ -97,7 +95,6 @@ export const fetchMeetingsByDay = async (date: Date): Promise<Room[]> => {
           displayEndTime: etTimeFmt.format(new Date(meeting.trueEndDateTime)),
           date: formattedDate,
           tags: [...meeting.calType, meeting.modeType],
-          syncError: meeting.googleSyncStatus === 'error' || meeting.zoomSyncStatus === 'error',
         };
 
         // A Hybrid meeting occupies both its physical room and its Zoom room; In Person
@@ -178,6 +175,8 @@ interface DayViewProps {
   // room/zoomRoom/zoomHost conflict, for the card's conflict badge. Omitted entirely by
   // /signage's public kiosk render, which defaults to no badges ever showing.
   conflictMids?: Set<string>;
+  // Admin-only (see hooks/useSyncErrorMids) -- mids with a Google Calendar/Zoom sync error.
+  syncErrorMids?: Set<string>;
 }
 
 const DayView: React.FC<DayViewProps> = ({
@@ -192,6 +191,7 @@ const DayView: React.FC<DayViewProps> = ({
   refreshTrigger = 0,
   scrollLocked = false,
   conflictMids,
+  syncErrorMids,
 }) => {
   const [currentTimePosition, setCurrentTimePosition] = useState(0);
   const [meetings, setMeetings] = useState<Room[]>([]);
@@ -340,6 +340,7 @@ const DayView: React.FC<DayViewProps> = ({
                     columnDate={selectedDate}
                     setLastClickedDate={setLastClickedDate}
                     conflictMids={conflictMids}
+                    syncErrorMids={syncErrorMids}
                   />
                 </div>
                 {timeSlots.map((_, colIndex) => (

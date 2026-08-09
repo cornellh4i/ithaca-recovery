@@ -4,9 +4,7 @@ import { createCache } from "../util/common/simpleCache";
 import { IMeeting } from "../types/models";
 import { OverlapMeeting } from "../util/meetings/meetingOverlapLayout";
 
-export interface WeekMeeting extends OverlapMeeting {
-    syncError?: boolean;
-}
+export type WeekMeeting = OverlapMeeting;
 
 // Module-level, shared cache -- extracted out of WeekView.tsx so the mobile day view
 // (DayPortraitView.tsx) hits the exact same cache for the same week's data instead of a
@@ -43,7 +41,6 @@ export const mapRawMeetingsToWeekMeetings = (data: (IMeeting & { date: string })
             tags: [...meeting.calType, meeting.modeType],
             room: meeting.room,
             zoomRoom: meeting.zoomRoom,
-            syncError: meeting.googleSyncStatus === 'error' || meeting.zoomSyncStatus === 'error',
         };
     });
 
