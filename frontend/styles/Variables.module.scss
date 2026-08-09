@@ -28,6 +28,12 @@ $danger-color: #C62828;
 // = color-mix(in srgb, $danger-color 8%, white), precomputed -- this file is plain SCSS vars,
 // not CSS custom properties, so color-mix() can't reference $danger-color at runtime here.
 $danger-bg-color: #FAEEEE;
+
+// = color-mix(in srgb, $danger-color 22%, white), precomputed -- a stronger tint than
+// $danger-bg-color, which is meant as a subtle pill/badge wash. At full-card scale (Toast's
+// filled background, not just an icon accent) that pale a mix reads as pink rather than red;
+// this saturation keeps the same hue but reads unambiguously as red.
+$danger-bg-strong-color: #F4D4D4;
 $link-color: #007BFF;
 $warning-bg-color: #FDF3DC;
 $warning-text-color: #B4790A;

@@ -4,12 +4,17 @@ import React, { createContext, useCallback, useContext, useEffect, useRef, useSt
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useViewport } from "../../../hooks/useViewport";
-import Toast, { type ToastVariant } from "./Toast";
+import Toast, { type ToastAction, type ToastVariant } from "./Toast";
 import styles from "../../../styles/components/shared/Toast.module.scss";
 
 export interface ToastOptions {
   variant: ToastVariant;
-  message: string | string[];
+  title: string;
+  description?: string | string[];
+  // Inline links below the description (e.g. "Retry Zoom" / "View meeting") -- not used by any
+  // call site yet, but part of the design so a future flow can attach follow-up actions without
+  // a Toast/ToastProvider API change.
+  actions?: ToastAction[];
   // Overrides the variant's default dismiss behavior (success/info auto-dismiss, warning/error
   // stay until closed) -- e.g. forcing a persistent info toast for AdminShell's responsive
   // notice, or forcing a non-persistent error for a case that genuinely doesn't need one.
@@ -134,7 +139,13 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
                   exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: 8 }}
                   transition={{ duration: prefersReducedMotion ? 0.01 : 0.2, ease: "easeOut" }}
                 >
-                  <Toast variant={toast.variant} message={toast.message} onClose={() => dismiss(toast.id)} />
+                  <Toast
+                    variant={toast.variant}
+                    title={toast.title}
+                    description={toast.description}
+                    actions={toast.actions}
+                    onClose={() => dismiss(toast.id)}
+                  />
                 </motion.div>
               ))}
             </AnimatePresence>

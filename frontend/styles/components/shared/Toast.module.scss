@@ -43,48 +43,65 @@
   gap: 10px;
   width: 100%;
   box-sizing: border-box;
-  padding: 12px 14px;
+  padding: 14px 16px;
   border-radius: $radius-md;
-  background-color: white;
-  box-shadow: 0 4px 12px rgb(0 0 0 / 15%);
+  box-shadow: 0 4px 12px rgb(0 0 0 / 12%);
   font-family: "Source Sans Pro", sans-serif;
   color: $black-color;
 }
 
-.iconCircle {
+.icon {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
   flex-shrink: 0;
+  margin-top: 1px;
 }
 
 .success {
-  .iconCircle {
-    background-color: $success-bg-color;
+  background-color: $success-bg-color;
+
+  .icon {
+    color: $success-text-color;
+  }
+
+  .actionLink {
     color: $success-text-color;
   }
 }
 
 .error {
-  .iconCircle {
-    background-color: $danger-bg-color;
+  background-color: $danger-bg-strong-color;
+
+  .icon {
+    color: $danger-color;
+  }
+
+  .actionLink {
     color: $danger-color;
   }
 }
 
 .warning {
-  .iconCircle {
-    background-color: $warning-bg-color;
+  background-color: $warning-bg-color;
+
+  .icon {
+    color: $warning-text-color;
+  }
+
+  .actionLink {
     color: $warning-text-color;
   }
 }
 
 .info {
-  .iconCircle {
-    background-color: $info-bg-color;
+  background-color: $info-bg-color;
+
+  .icon {
+    color: $info-text-color;
+  }
+
+  .actionLink {
     color: $info-text-color;
   }
 }
@@ -96,9 +113,41 @@
   line-height: 1.4;
 }
 
-.messageList {
+.title {
   margin: 0;
+  font-weight: 700;
+  color: $black-color;
+}
+
+.description {
+  margin: 2px 0 0;
+  color: $text-secondary-color;
+}
+
+.messageList {
+  margin: 2px 0 0;
   padding-left: 18px;
+  color: $text-secondary-color;
+}
+
+.actions {
+  display: flex;
+  gap: 16px;
+  margin-top: 8px;
+}
+
+.actionLink {
+  padding: 0;
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+
+  &:hover {
+    text-decoration: underline;
+  }
 }
 
 .closeButton {
