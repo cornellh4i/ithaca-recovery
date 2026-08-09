@@ -21,7 +21,7 @@ describe("AppSidebar", () => {
   });
 
   it("renders nothing when isOpen is false", () => {
-    mockUseSession.mockReturnValue({ data: null });
+    mockUseSession.mockReturnValue({ data: null, status: "unauthenticated" });
     mockUsePathname.mockReturnValue("/");
 
     render(<AppSidebar isOpen={false} onClose={jest.fn()} />);
@@ -30,7 +30,7 @@ describe("AppSidebar", () => {
   });
 
   it("highlights Main Calendar as active on /", () => {
-    mockUseSession.mockReturnValue({ data: null });
+    mockUseSession.mockReturnValue({ data: null, status: "unauthenticated" });
     mockUsePathname.mockReturnValue("/");
 
     render(<AppSidebar isOpen onClose={jest.fn()} />);
@@ -39,7 +39,10 @@ describe("AppSidebar", () => {
   });
 
   it("shows a real Admin link, highlighted, for an admin user", () => {
-    mockUseSession.mockReturnValue({ data: { user: { name: "Admin User", role: "ADMIN" } } });
+    mockUseSession.mockReturnValue({
+      data: { user: { name: "Admin User", role: "ADMIN" } },
+      status: "authenticated",
+    });
     mockUsePathname.mockReturnValue("/admin");
 
     render(<AppSidebar isOpen onClose={jest.fn()} />);
@@ -50,7 +53,10 @@ describe("AppSidebar", () => {
   });
 
   it("hides the Admin link entirely for a signed-in non-admin", () => {
-    mockUseSession.mockReturnValue({ data: { user: { name: "Regular User", role: "USER" } } });
+    mockUseSession.mockReturnValue({
+      data: { user: { name: "Regular User", role: "USER" } },
+      status: "authenticated",
+    });
     mockUsePathname.mockReturnValue("/");
 
     render(<AppSidebar isOpen onClose={jest.fn()} />);
@@ -59,7 +65,7 @@ describe("AppSidebar", () => {
   });
 
   it("hides the Admin link and shows a Sign In link to /login for a signed-out visitor", () => {
-    mockUseSession.mockReturnValue({ data: null });
+    mockUseSession.mockReturnValue({ data: null, status: "unauthenticated" });
     mockUsePathname.mockReturnValue("/");
 
     render(<AppSidebar isOpen onClose={jest.fn()} />);
@@ -68,8 +74,17 @@ describe("AppSidebar", () => {
     expect(screen.getByRole("link", { name: "Sign In" })).toHaveAttribute("href", "/login");
   });
 
+  it("hides the Sign In link while the session is still loading", () => {
+    mockUseSession.mockReturnValue({ data: null, status: "loading" });
+    mockUsePathname.mockReturnValue("/");
+
+    render(<AppSidebar isOpen onClose={jest.fn()} />);
+
+    expect(screen.queryByRole("link", { name: "Sign In" })).not.toBeInTheDocument();
+  });
+
   it("does not show a Signage link", () => {
-    mockUseSession.mockReturnValue({ data: null });
+    mockUseSession.mockReturnValue({ data: null, status: "unauthenticated" });
     mockUsePathname.mockReturnValue("/");
 
     render(<AppSidebar isOpen onClose={jest.fn()} />);
@@ -78,7 +93,7 @@ describe("AppSidebar", () => {
   });
 
   it("calls onClose when the backdrop is clicked", () => {
-    mockUseSession.mockReturnValue({ data: null });
+    mockUseSession.mockReturnValue({ data: null, status: "unauthenticated" });
     mockUsePathname.mockReturnValue("/");
     const onClose = jest.fn();
 
@@ -89,7 +104,7 @@ describe("AppSidebar", () => {
   });
 
   it("calls onClose when a nav row is tapped", () => {
-    mockUseSession.mockReturnValue({ data: null });
+    mockUseSession.mockReturnValue({ data: null, status: "unauthenticated" });
     mockUsePathname.mockReturnValue("/admin");
     const onClose = jest.fn();
 

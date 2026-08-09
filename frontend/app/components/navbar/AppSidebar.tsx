@@ -18,7 +18,7 @@ interface AppSidebarProps {
 // AppNavbar.tsx's desktop nav list already has (session-derived, not prop-driven) so the two
 // stay in lockstep without duplicating auth state through props.
 const AppSidebar: React.FC<AppSidebarProps> = ({ isOpen, onClose }) => {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const isAdmin = session?.user?.role === "ADMIN" || session?.user?.role === "SUPER_ADMIN";
   const pathname = usePathname();
 
@@ -67,7 +67,7 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ isOpen, onClose }) => {
                   Admin
                 </Link>
               )}
-              {!session && (
+              {status === "unauthenticated" && (
                 <Link href="/login" className={rowClass(false)} onClick={onClose}>
                   Sign In
                 </Link>
