@@ -29,14 +29,16 @@ const DocsArticle: React.FC<DocsArticleProps> = ({ activeDoc }) => {
   const [tocOpen, setTocOpen] = useState(false);
   const [activeHeadingSlug, setActiveHeadingSlug] = useState<string | null>(null);
   const articleRef = useRef<HTMLElement>(null);
+  const tocPanelRef = useRef<HTMLDivElement>(null);
+  const tocNavRef = useRef<HTMLElement>(null);
+  const prevTocHiddenRef = useRef<boolean | null>(null);
 
   useEffect(() => {
     const checkBreakpoint = () => {
-      setTocHidden((prev) => {
-        const next = window.innerWidth < DESKTOP_BREAKPOINT;
-        if (prev && !next) setTocOpen(false);
-        return next;
-      });
+      const next = window.innerWidth < DESKTOP_BREAKPOINT;
+      if (prevTocHiddenRef.current && !next) setTocOpen(false);
+      prevTocHiddenRef.current = next;
+      setTocHidden(next);
     };
     checkBreakpoint();
     window.addEventListener("resize", checkBreakpoint);
@@ -147,8 +149,9 @@ const DocsArticle: React.FC<DocsArticleProps> = ({ activeDoc }) => {
   // when the active link is already visible.
   useEffect(() => {
     if (!activeHeadingSlug) return;
-    const link = document.querySelector<HTMLElement>(
-      `a[class*="tocLink"][href="#${CSS.escape(activeHeadingSlug)}"]`
+    const container = tocPanelRef.current ?? tocNavRef.current;
+    const link = container?.querySelector<HTMLElement>(
+      `a[href="#${CSS.escape(activeHeadingSlug)}"]`
     );
     link?.scrollIntoView({ block: "nearest" });
   }, [activeHeadingSlug]);
@@ -182,7 +185,7 @@ const DocsArticle: React.FC<DocsArticleProps> = ({ activeDoc }) => {
             {tocOpen && (
               <React.Fragment>
                 <div className={styles.tocScrim} onClick={() => setTocOpen(false)} />
-                <div className={styles.tocPanel}>
+                <div className={styles.tocPanel} ref={tocPanelRef}>
                   <div className={styles.tocPanelHeader}>
                     <span>On this page</span>
                     <button
@@ -210,7 +213,7 @@ const DocsArticle: React.FC<DocsArticleProps> = ({ activeDoc }) => {
       </div>
 
       {!tocHidden && (
-        <nav className={styles.tocNav}>
+        <nav className={styles.tocNav} ref={tocNavRef}>
           <div className={styles.tocLabel}>On this page</div>
           <TocList toc={toc} activeSlug={activeHeadingSlug} onNavigate={handleTocNavigate} />
         </nav>
