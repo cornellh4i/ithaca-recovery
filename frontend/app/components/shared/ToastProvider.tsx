@@ -55,6 +55,19 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   const timers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
   const viewport = useViewport();
   const prefersReducedMotion = useReducedMotion();
+  // The portal must not render during the initial client render -- `document` is undefined
+  // during SSR but defined on the client, so gating on `typeof document` directly flips
+  // between server and client output on the very first paint and triggers a hydration
+  // mismatch. Delaying to a post-mount effect keeps first paint identical to SSR (no portal
+  // either way); the portal then appears via ordinary reconciliation, which isn't subject to
+  // hydration diffing.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    // Deliberately just flips a flag to trigger the post-mount render described above --
+    // not synchronizing with any external system, so this doesn't fit the rule's usual case.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMounted(true);
+  }, []);
 
   const dismiss = useCallback((id: string) => {
     const timer = timers.current.get(id);
@@ -109,7 +122,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   return (
     <ToastContext.Provider value={{ showToast }}>
       {children}
-      {typeof document !== "undefined" &&
+      {mounted &&
         createPortal(
           <div className={`${styles.container} ${positionClass}`}>
             <AnimatePresence>
