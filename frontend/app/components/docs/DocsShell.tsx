@@ -71,6 +71,19 @@ const DocsShell: React.FC<DocsShellProps> = ({ activeDoc, docsMeta }) => {
   const [tocOpen, setTocOpen] = useState(false);
   const [activeHeadingSlug, setActiveHeadingSlug] = useState<string | null>(null);
   const articleRef = useRef<HTMLElement>(null);
+  const sidebarToggleBtnRef = useRef<HTMLButtonElement>(null);
+  const wasSidebarOpenRef = useRef(false);
+
+  // The compact drawer is only ever transform: translateX()'d off-screen, not unmounted, so
+  // without `inert` its links stay tab-reachable and screen-reader-visible while "closed".
+  // Moving focus back to the button that opened it (rather than leaving it on whatever drawer
+  // link had focus, which is about to go inert) keeps keyboard/AT navigation coherent.
+  useEffect(() => {
+    if (wasSidebarOpenRef.current && !sidebarOpen) {
+      sidebarToggleBtnRef.current?.focus();
+    }
+    wasSidebarOpenRef.current = sidebarOpen;
+  }, [sidebarOpen]);
 
   useEffect(() => {
     const checkBreakpoints = () => {
@@ -239,6 +252,7 @@ const DocsShell: React.FC<DocsShellProps> = ({ activeDoc, docsMeta }) => {
       <TopLoadingBar active={isNavigating} />
       <div className={`${styles.compactBar} ${compact ? styles.isCompact : ""}`}>
         <button
+          ref={sidebarToggleBtnRef}
           type="button"
           className={styles.sidebarIconBtn}
           aria-label="Open contents"
@@ -259,6 +273,7 @@ const DocsShell: React.FC<DocsShellProps> = ({ activeDoc, docsMeta }) => {
         <nav
           ref={restoreSidebarScroll}
           onScroll={handleSidebarScroll}
+          inert={compact && !sidebarOpen}
           className={`${styles.sidebarNav} ${compact ? styles.isCompact : ""} ${
             compact && sidebarOpen ? styles.isOpen : ""
           }`}
