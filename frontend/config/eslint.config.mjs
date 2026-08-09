@@ -2,6 +2,12 @@ import nextConfig from "eslint-config-next";
 import nextTypescriptConfig from "eslint-config-next/typescript";
 
 const eslintConfig = [
+  {
+    // Vendored/minified output from build-scripts/generate-pagefind-index.mjs, not source we
+    // own -- same "generated, don't lint" treatment util/docs/docsContent.generated.ts gets
+    // implicitly by having no lint-worthy content of its own.
+    ignores: ["public/pagefind/**"],
+  },
   ...nextConfig,
   ...nextTypescriptConfig,
   {

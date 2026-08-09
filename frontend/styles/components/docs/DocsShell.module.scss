@@ -6,6 +6,14 @@
   font-family: 'Source Sans Pro', sans-serif;
   position: relative; // anchors TopLoadingBar, which positions itself absolutely against this
   height: 100%; // percentage-height chain down to .sidebarNav/.tocNav's max-height -- see .columns
+
+  // Pagefind's Component UI (pagefind-modal-trigger/pagefind-modal/pagefind-searchbox, see
+  // DocsShell.tsx) reads this custom property for its focus ring color. Set once here, not on
+  // each component's own wrapper, since pagefind-modal renders as a fixed overlay that's a
+  // direct child of .page rather than nested under .sidebarNav or .compactBar -- CSS custom
+  // properties cascade through the DOM tree regardless of position: fixed, so this one
+  // declaration covers all three components.
+  --pf-outline-focus: #{$brand-pink-color};
 }
 
 // Compact bar (under the navbar) + drawer/TOC visibility are driven entirely by JS-computed
@@ -26,6 +34,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0; // stays fixed size as .compactBarChrome/.compactSearchWrapper animate between them
   border: 1px solid $light-grey-color;
   background: $white-color;
   color: $black-color;
@@ -34,15 +43,42 @@
   cursor: pointer;
 }
 
+// Panel-toggle button + breadcrumb, animating out as ONE unit as search opens -- not just the
+// breadcrumb text but the toggle button too, so the searchbox gets the whole bar (bounded only
+// by the remaining search/close button on the right), per the "hide the compact navbar toggle"
+// requirement. Opposite of .compactSearchWrapper's own flex-grow/opacity, so the two cross-fade.
+.compactBarChrome {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  opacity: 1;
+  transition: flex-grow 0.2s ease, opacity 0.15s ease;
+
+  // flex-basis must collapse too, not just flex-grow -- "auto" sizes to content, so without this
+  // it keeps claiming its full natural width even at flex-grow: 0, leaving .compactSearchWrapper
+  // far less room than it actually has despite its own flex-grow: 1.
+  &[data-hidden='true'] {
+    flex: 0 1 0;
+    opacity: 0;
+  }
+}
+
 .breadcrumbGroup {
   font-size: 14px;
   color: $medium-grey-color;
+  white-space: nowrap;
 }
 
 .breadcrumbTitle {
   font-size: 14px;
   color: $black-color;
   font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 // Same $z-index-modal tier AppSidebar.module.scss uses for its own backdrop+drawer pair --
@@ -141,6 +177,64 @@
   line-height: 1;
 }
 
+// Pagefind's Component UI ships its own styling (public/pagefind/pagefind-component-ui.css,
+// see hooks/usePagefindComponentUI.ts, and .page's own --pf-outline-focus override above for
+// its focus ring color) -- these two rules only lay the trigger/wrapper out within our own
+// sidebar/compact-bar chrome; everything else (the modal overlay, the searchbox dropdown,
+// result cards) renders exactly as Pagefind's stylesheet defines it.
+
+// Top of .sidebarNav, above the first group label -- only rendered when !compact (the compact
+// bar's own .compactSearchWrapper below replaces this at <768px, see DocsShell.tsx).
+.sidebarSearchTrigger {
+  display: block;
+  width: 100%;
+  margin-bottom: 14px;
+}
+
+// Bounded by the search/close button on the right (the panel-toggle + breadcrumb on the left
+// animate away together, see .compactBarChrome). Holds only pagefind-input -- no dropdown of its
+// own to fight (see .mobileSearchResults below for why that's decoupled out entirely).
+.compactSearchWrapper {
+  flex: 0 1 0;
+  min-width: 0;
+  overflow: hidden; // clips the collapsed/animating state so nothing spills out at 0 width
+  opacity: 0;
+  transition: flex-grow 0.2s ease, opacity 0.15s ease;
+
+  &[data-open='true'] {
+    flex-grow: 1;
+    opacity: 1;
+  }
+}
+
+// Covers .columns (not nested inside it -- see DocsShell.tsx) while mobile search is open,
+// filling the exact same content area. pagefind-results is a plain in-flow list with no baked-in
+// position/dropdown styling of its own (unlike pagefind-searchbox's attached dropdown, which
+// wraps its base rule in a 3x :is(*, #\#) specificity-boosting selector specifically to resist
+// overrides like this one) -- decoupling to the standalone pagefind-input + pagefind-results
+// pair (connected only by instance="mobile-search", see DocsShell.tsx) means this can just be a
+// normal, unforced position: fixed panel instead of fighting that.
+.mobileSearchResults {
+  position: fixed;
+  inset: var(--docs-compact-bar-bottom, 0) 0 0; // top / left+right / bottom
+  overflow-y: auto;
+  background: $white-color;
+  padding: 16px;
+  z-index: $z-index-modal;
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+
+  // Minimizes the results panel on close, not just the input row -- closeSearch (DocsShell.tsx)
+  // only flips data-open, leaving this mounted (searchMounted) until this transition and
+  // .compactSearchWrapper's own flex-grow/opacity one both finish, so both actually animate.
+  &[data-open='false'] {
+    opacity: 0;
+    transform: translateY(-12px);
+    pointer-events: none;
+  }
+}
+
 .groupLabel {
   font-size: 12px;
   font-weight: 600;
@@ -196,7 +290,9 @@
   // underneath it. Above the breakpoint the desktop navbar isn't fixed, so 24px (breathing room
   // only) is enough. h1 gets this too, not just h2/h3 -- the TOC includes h1 entries (any
   // heading at depth <= 2, see parseMarkdown.ts), so a TOC click can fragment-jump straight to
-  // one on phone just as easily as to an h2.
+  // one on phone just as easily as to an h2. Pagefind's own search result links land here the
+  // same way (plain <a href="#slug">s relying entirely on the browser's native fragment scroll,
+  // no JS-computed offset behind them), so this matters for search hits on h1 sections too.
   :global(h1) {
     font-size: 32px;
     font-weight: 600;

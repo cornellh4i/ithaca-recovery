@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "node build-scripts/generate-docs-content.mjs && next dev",
-    "build": "node build-scripts/generate-docs-content.mjs && prisma generate && if [ \"$VERCEL_ENV\" = \"production\" ]; then prisma migrate deploy; fi && next build",
+    "build": "node build-scripts/generate-docs-content.mjs && node build-scripts/generate-pagefind-index.mjs && prisma generate && if [ \"$VERCEL_ENV\" = \"production\" ]; then prisma migrate deploy; fi && next build",
     "start": "next start",
     "lint": "eslint --config config/eslint.config.mjs .",
     "lint:fix": "eslint --config config/eslint.config.mjs . --fix",
@@ -67,6 +67,7 @@
     "identity-obj-proxy": "^3.0.0",
     "jest": "^30.4.2",
     "jest-environment-jsdom": "^30.4.1",
+    "pagefind": "^1.5.2",
     "stylelint": "^17.14.1",
     "stylelint-config-standard-scss": "^17.0.0",
     "typescript": "6.0.3"
