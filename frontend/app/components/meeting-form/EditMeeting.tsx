@@ -84,7 +84,7 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
         const meetingResponse = await response.json();
         console.log(meetingResponse);
         setConflictState(null);
-        showToast({ variant: "success", message: "Meeting updated successfully." });
+        showToast({ variant: "success", title: "Meeting updated successfully." });
         onUpdateSuccess();
         onClose();
       } catch (error) {

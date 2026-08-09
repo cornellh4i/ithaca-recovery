@@ -195,7 +195,7 @@ export default function HomePage() {
       });
 
       if (!response.ok) {
-        showToast({ variant: "error", message: "Unsuccessful delete" });
+        showToast({ variant: "error", title: "Unsuccessful delete" });
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
@@ -208,7 +208,7 @@ export default function HomePage() {
        // Trigger calendar refresh
       triggerCalendarRefresh();
 
-      showToast({ variant: "success", message: "Meeting deleted successfully." });
+      showToast({ variant: "success", title: "Meeting deleted successfully." });
 
     } catch (error) {
       console.error('There was an error fetching the data:', error);
@@ -236,7 +236,7 @@ export default function HomePage() {
       console.error('There was an error suspending the meeting:', error);
       showToast({
         variant: "error",
-        message: `Could not suspend the meeting${error instanceof Error ? ` (${error.message})` : ""}`,
+        title: `Could not suspend the meeting${error instanceof Error ? ` (${error.message})` : ""}`,
       });
     }
   };
@@ -259,7 +259,7 @@ export default function HomePage() {
       console.error('There was an error resuming the meeting:', error);
       showToast({
         variant: "error",
-        message: `Could not resume the meeting${error instanceof Error ? ` (${error.message})` : ""}`,
+        title: `Could not resume the meeting${error instanceof Error ? ` (${error.message})` : ""}`,
       });
     }
   };

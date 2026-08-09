@@ -90,7 +90,7 @@ const SuspendedCard: React.FC = () => {
       console.error("Error resuming meeting:", err);
       showToast({
         variant: "error",
-        message: `Could not resume the meeting${err instanceof Error ? ` (${err.message})` : ""}`,
+        title: `Could not resume the meeting${err instanceof Error ? ` (${err.message})` : ""}`,
       });
     } finally {
       setResumingMid((current) => (current === mid ? null : current));

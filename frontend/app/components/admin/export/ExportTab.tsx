@@ -271,7 +271,7 @@ const ExportTab: React.FC = () => {
     });
     if (!response.ok) {
       const json = await response.json().catch(() => ({}));
-      showToast({ variant: "error", message: json.error ?? "Failed to save lease settings." });
+      showToast({ variant: "error", title: json.error ?? "Failed to save lease settings." });
       return;
     }
     const saved: ILeaseSettings = await response.json();
@@ -288,7 +288,7 @@ const ExportTab: React.FC = () => {
       });
       if (!response.ok) {
         const json = await response.json().catch(() => ({}));
-        showToast({ variant: "error", message: json.error ?? "Failed to save export field settings." });
+        showToast({ variant: "error", title: json.error ?? "Failed to save export field settings." });
         return;
       }
       const saved: { fields: MeetingExportFieldKey[] } = await response.json();
@@ -296,7 +296,7 @@ const ExportTab: React.FC = () => {
       setMeetingConfigOpen(false);
     } catch (err) {
       console.error("Error saving meeting export settings:", err);
-      showToast({ variant: "error", message: "Failed to save export field settings." });
+      showToast({ variant: "error", title: "Failed to save export field settings." });
     }
   };
 

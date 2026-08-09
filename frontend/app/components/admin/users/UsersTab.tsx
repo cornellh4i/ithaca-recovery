@@ -239,14 +239,14 @@ const UsersTab: React.FC = () => {
       });
       if (!response.ok) {
         const json = await response.json().catch(() => ({}));
-        showToast({ variant: "error", message: json.error ?? "Failed to invite admin." });
+        showToast({ variant: "error", title: json.error ?? "Failed to invite admin." });
         return;
       }
       setInviteOpen(false);
       await loadAdmins();
     } catch (err) {
       console.error("Error inviting admin:", err);
-      showToast({ variant: "error", message: "Failed to invite admin." });
+      showToast({ variant: "error", title: "Failed to invite admin." });
     } finally {
       setInviting(false);
     }
@@ -273,7 +273,7 @@ const UsersTab: React.FC = () => {
         // rather than the generic error text.
         showToast({
           variant: "error",
-          message: response.status === 409
+          title: response.status === 409
             ? "Someone else changed the admin list at the same time -- please try again."
             : (json.error ?? "Failed to update role."),
         });
@@ -294,7 +294,7 @@ const UsersTab: React.FC = () => {
       setAdmins((prev) => prev?.map((a) => (a.email === email ? (updated as IAdmin) : a)) ?? prev);
     } catch (err) {
       console.error("Error updating role:", err);
-      showToast({ variant: "error", message: "Failed to update role." });
+      showToast({ variant: "error", title: "Failed to update role." });
       setAdmins((prev) => prev?.map((a) => (a.email === email ? { ...a, role: previousRole } : a)) ?? prev);
     } finally {
       setPendingRoleEmails((prev) => {
@@ -318,7 +318,7 @@ const UsersTab: React.FC = () => {
         // Same Serializable-transaction race as handleRoleChange above.
         showToast({
           variant: "error",
-          message: response.status === 409
+          title: response.status === 409
             ? "Someone else changed the admin list at the same time -- please try again."
             : (json.error ?? "Failed to remove admin."),
         });
@@ -327,7 +327,7 @@ const UsersTab: React.FC = () => {
       await loadAdmins();
     } catch (err) {
       console.error("Error removing admin:", err);
-      showToast({ variant: "error", message: "Failed to remove admin." });
+      showToast({ variant: "error", title: "Failed to remove admin." });
     }
   };
 

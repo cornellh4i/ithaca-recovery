@@ -88,7 +88,7 @@ const SyncIssuesCard: React.FC = () => {
       console.error("Error retrying sync:", err);
       showToast({
         variant: "error",
-        message: `Could not retry the sync${err instanceof Error ? ` (${err.message})` : ""}`,
+        title: `Could not retry the sync${err instanceof Error ? ` (${err.message})` : ""}`,
       });
     } finally {
       // Only clear if this is still the row that started this retry -- a second row's retry

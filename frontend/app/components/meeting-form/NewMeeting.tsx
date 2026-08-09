@@ -93,7 +93,7 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({
 
         setConflictState(null);
         triggerCalendarRefresh();
-        showToast({ variant: "success", message: "Meeting created successfully." });
+        showToast({ variant: "success", title: "Meeting created successfully." });
         handleCloseNewMeeting();
       } catch (error) {
         console.error('There was an error fetching the data:', error);
