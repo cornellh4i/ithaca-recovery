@@ -105,6 +105,13 @@ const AppNavbar: React.FC = () => {
                             </Tooltip>
                         )}
                     </li>
+                    <li className={navItemClass(pathname?.startsWith("/docs") ?? false)}>
+                        <Tooltip content="Guides, admin/import reference, and API docs">
+                            <Link href="/docs">
+                                <p>Resources</p>
+                            </Link>
+                        </Tooltip>
+                    </li>
                     <li>
                         {status === "loading" ? (
                             <div className={styles.signInButton} style={{ opacity: 0, pointerEvents: "none" }}>

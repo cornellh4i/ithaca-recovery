@@ -80,6 +80,9 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ isOpen, onClose }) => {
                   <p className={styles.lockedHint}>Sign in to access Admin</p>
                 </div>
               )}
+              <Link href="/docs" className={rowClass(pathname?.startsWith("/docs") ?? false)} onClick={onClose}>
+                Resources
+              </Link>
             </nav>
           </motion.div>
         </React.Fragment>

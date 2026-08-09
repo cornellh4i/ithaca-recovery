@@ -8,6 +8,7 @@ import type { Session } from "next-auth";
 import { SessionProvider } from "next-auth/react";
 import { SidebarProvider } from "./context/SidebarContext";
 import { CalendarProvider, useCalendarContext } from "./context/CalendarProvider";
+import { useScrollNavHide } from "../hooks/useScrollNavHide";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -21,10 +22,19 @@ interface ClientLayoutProps {
 // component, not inlined into ClientLayout below -- useCalendarContext() needs a
 // CalendarProvider ancestor already mounted, which doesn't exist yet during ClientLayout's
 // own render (the Provider below is still just JSX at that point).
+//
+// onScroll wires the same mobile hide-on-scroll-down/show-on-scroll-up behavior the calendar
+// route already had (there, via its own DayColumn/DayPortraitView wrapper) onto .content
+// itself, so routes that actually scroll .content get it too. Harmless on routes where it
+// doesn't: .content never scrolls on the calendar route (children manage their own internal
+// scroll region) or on /docs (DocsShell's own independently-scrolling panes reattach this same
+// hook to .article instead, see DocsShell.tsx), so this handler simply never fires there -- no
+// conflict with either route's own dedicated listener.
 function MainContent({ children }: PropsWithChildren) {
     const { navHidden } = useCalendarContext();
+    const { handleScroll } = useScrollNavHide();
     return (
-        <div className={`${styles.content} ${navHidden ? styles.navHidden : ""}`}>
+        <div className={`${styles.content} ${navHidden ? styles.navHidden : ""}`} onScroll={handleScroll}>
             {children}
         </div>
     );
