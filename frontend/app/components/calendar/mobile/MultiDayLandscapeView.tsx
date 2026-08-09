@@ -12,9 +12,7 @@ import { useElementWidth } from "../../../../hooks/useElementWidth";
 import { useScrollNavHide } from "../../../../hooks/useScrollNavHide";
 import TopLoadingBar from "../../atoms/TopLoadingBar";
 
-interface Meeting extends OverlapMeeting {
-  syncError?: boolean;
-}
+type Meeting = OverlapMeeting;
 
 // A day column needs at least this much width to stay legible at the compact tier (room +
 // title, per BoxText's tier table) -- the day count below is derived from how many of these
@@ -61,6 +59,7 @@ interface MultiDayLandscapeViewProps {
   refreshTrigger?: number;
   scrollLocked?: boolean;
   conflictMids?: Set<string>;
+  syncErrorMids?: Set<string>;
 }
 
 // Landscape phone's generalized week: a "page" of `days` consecutive dates, `days` itself
@@ -80,6 +79,7 @@ const MultiDayLandscapeView: React.FC<MultiDayLandscapeViewProps> = ({
   refreshTrigger = 0,
   scrollLocked = false,
   conflictMids,
+  syncErrorMids,
 }) => {
   // Two different refs: scrollAreaRef is the vertical-scroll container (unaffected by the
   // time column's width); stripWrapperRef measures only the space actually left for day
@@ -286,6 +286,7 @@ const MultiDayLandscapeView: React.FC<MultiDayLandscapeViewProps> = ({
           columnDate={date}
           setLastClickedDate={setLastClickedDate}
           conflictMids={conflictMids}
+          syncErrorMids={syncErrorMids}
           hourHeight={MULTIDAY_HOUR_HEIGHT}
           hideTags
           tier="compact"

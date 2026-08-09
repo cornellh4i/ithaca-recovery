@@ -16,6 +16,7 @@ import EditMeetingSidebar from "../components/meeting-form/EditMeeting";
 import { convertUTCToET } from "../../util/date/timeUtils";
 import { IMeeting } from "../../types/models";
 import { useConflictMids } from "../../hooks/useConflictMids";
+import { useSyncErrorMids } from "../../hooks/useSyncErrorMids";
 import { useViewport } from "../../hooks/useViewport";
 import { PHONE_BREAKPOINT } from "../../util/common/breakpoints";
 import { useCalendarContext } from "../context/CalendarProvider";
@@ -33,6 +34,11 @@ export default function HomePage() {
   // signed in) to avoid every non-admin viewer firing a denied request on mount and every
   // 30s refresh (see useConflictMids' `enabled` param).
   const { mids: conflictMids, counts: conflictCounts } = useConflictMids(refreshTrigger, isAdmin);
+  // Same admin gate/refresh cadence as conflictMids above (see useSyncErrorMids) -- backs the
+  // calendar block's sync-error badge, previously always false for every viewer (including
+  // admins) since googleSyncStatus/zoomSyncStatus are deliberately excluded from the public
+  // meeting payload the Day/Week views otherwise read from (see util/meetings/publicMeeting.ts).
+  const syncErrorMids = useSyncErrorMids(refreshTrigger, isAdmin);
 
   const triggerCalendarRefresh = useCallback(() => {
     setRefreshTrigger(prev => prev + 1);
@@ -430,6 +436,7 @@ export default function HomePage() {
             refreshTrigger={refreshTrigger}
             scrollLocked={isViewMeetingOpen}
             conflictMids={conflictMids}
+            syncErrorMids={syncErrorMids}
           />
         ) : isPhone ? (
           <DayPortraitView
@@ -444,6 +451,7 @@ export default function HomePage() {
             refreshTrigger={refreshTrigger}
             scrollLocked={isViewMeetingOpen}
             conflictMids={conflictMids}
+            syncErrorMids={syncErrorMids}
             isAdmin={isAdmin}
           />
         ) : (
@@ -468,6 +476,7 @@ export default function HomePage() {
                 refreshTrigger={refreshTrigger}
                 scrollLocked={isViewMeetingOpen}
                 conflictMids={conflictMids}
+                syncErrorMids={syncErrorMids}
               />
             ) : (
               <WeekView
@@ -483,6 +492,7 @@ export default function HomePage() {
                 refreshTrigger={refreshTrigger}
                 scrollLocked={isViewMeetingOpen}
                 conflictMids={conflictMids}
+                syncErrorMids={syncErrorMids}
               />
             )}
           </React.Fragment>

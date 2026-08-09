@@ -14,9 +14,7 @@ import { useCalendarContext } from "../../../context/CalendarProvider";
 import TopLoadingBar from "../../atoms/TopLoadingBar";
 import styles from "../../../../styles/components/calendar/mobile/DayPortraitView.module.scss";
 
-interface Meeting extends OverlapMeeting {
-  syncError?: boolean;
-}
+type Meeting = OverlapMeeting;
 
 // Mobile shows up to 3 overlapping meetings side by side before folding into a "+N"
 // indicator, vs. desktop WeekView's default of 2 (see util/meetingOverlapLayout.ts).
@@ -54,6 +52,7 @@ interface DayPortraitViewProps {
   refreshTrigger?: number;
   scrollLocked?: boolean;
   conflictMids?: Set<string>;
+  syncErrorMids?: Set<string>;
   isAdmin: boolean | null;
 }
 
@@ -78,6 +77,7 @@ const DayPortraitView: React.FC<DayPortraitViewProps> = ({
   refreshTrigger = 0,
   scrollLocked = false,
   conflictMids,
+  syncErrorMids,
   isAdmin,
 }) => {
   const { changeSelectedDate, transitionDirection, transitionAlreadyAnimatedByCaller } =
@@ -294,6 +294,7 @@ const DayPortraitView: React.FC<DayPortraitViewProps> = ({
             columnDate={date}
             setLastClickedDate={setLastClickedDate}
             conflictMids={conflictMids}
+            syncErrorMids={syncErrorMids}
             hourHeight={MOBILE_HOUR_HEIGHT}
             hideTags
           />

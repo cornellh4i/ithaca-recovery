@@ -14,7 +14,6 @@ interface Meeting {
   displayEndTime?: string; // true time, for the label
   tags?: string[];
   id: string;
-  syncError?: boolean;
   positionIndex?: number; // Lane index among overlapping meetings in this room, assigned by layoutOverlappingMeetings
   totalOverlapping?: number; // Lane count among overlapping meetings in this room
   isOverflowIndicator?: boolean; // "+N more" pseudo-entry standing in for meetings past the 2 shown lanes
@@ -41,6 +40,8 @@ interface DailyViewRowProps {
   setLastClickedDate?: (date: Date) => void;
   // Admin-only (see hooks/useConflictMids) -- mids with an unresolved conflict.
   conflictMids?: Set<string>;
+  // Admin-only (see hooks/useSyncErrorMids) -- mids with a Google Calendar/Zoom sync error.
+  syncErrorMids?: Set<string>;
   // Landscape-mode overrides, all optional -- DayLandscapeView passes every one of these
   // together to run a much smaller, dynamically-sized subcompact grid; no other caller sets
   // any of them, so the defaults below reproduce desktop DayView's fixed 155px-hour /
@@ -74,6 +75,7 @@ const DailyViewRow: React.FC<DailyViewRowProps> = ({
   columnDate,
   setLastClickedDate,
   conflictMids,
+  syncErrorMids,
   hourWidth = DEFAULT_HOUR_WIDTH,
   rowHeight = DEFAULT_ROW_HEIGHT,
   startHour = 0,
@@ -180,7 +182,7 @@ const DailyViewRow: React.FC<DailyViewRowProps> = ({
           time={compactTime}
           tags={meeting.tags}
           meetingId={meeting.id}
-          syncError={meeting.syncError}
+          syncError={syncErrorMids?.has(meeting.id)}
           hasConflict={conflictMids?.has(meeting.id)}
           selected={isSelected}
           fillHeight={uniformHeight || (isStacked && !isSelected)}
@@ -286,6 +288,7 @@ const DailyViewRow: React.FC<DailyViewRowProps> = ({
         isOpen={overlapModalMeetings !== null}
         meetings={overlapModalMeetings ?? []}
         conflictMids={conflictMids}
+        syncErrorMids={syncErrorMids}
         onClose={() => setOverlapModalMeetings(null)}
         onSelectMeeting={(meetingId) => {
           pendingModalAnchorRef.current = true;

@@ -13,9 +13,7 @@ import { useElementSize } from "../../../../hooks/useElementSize";
 import { useCalendarContext } from "../../../context/CalendarProvider";
 import TopLoadingBar from "../../atoms/TopLoadingBar";
 
-interface Meeting extends OverlapMeeting {
-  syncError?: boolean;
-}
+type Meeting = OverlapMeeting;
 
 type Room = {
   name: string;
@@ -111,6 +109,7 @@ interface DayLandscapeViewProps {
   refreshTrigger?: number;
   scrollLocked?: boolean;
   conflictMids?: Set<string>;
+  syncErrorMids?: Set<string>;
 }
 
 // Landscape phone's default view (see mobile/MultiDayLandscapeView for the alternate):
@@ -138,6 +137,7 @@ const DayLandscapeView: React.FC<DayLandscapeViewProps> = ({
   refreshTrigger = 0,
   scrollLocked = false,
   conflictMids,
+  syncErrorMids,
 }) => {
   const { changeSelectedDate, transitionDirection, transitionAlreadyAnimatedByCaller, setNavHidden } =
     useCalendarContext();
@@ -429,6 +429,7 @@ const DayLandscapeView: React.FC<DayLandscapeViewProps> = ({
                     columnDate={date}
                     setLastClickedDate={setLastClickedDate}
                     conflictMids={conflictMids}
+                    syncErrorMids={syncErrorMids}
                     hourWidth={hourWidth}
                     rowHeight={rowHeight}
                     startHour={START_HOUR}

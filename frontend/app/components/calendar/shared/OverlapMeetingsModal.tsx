@@ -16,7 +16,6 @@ interface OverlapMeeting {
     zoomRoom?: string | null;
     tags?: string[];
     primaryColor?: string;
-    syncError?: boolean;
 }
 
 interface OverlapMeetingsModalProps {
@@ -26,6 +25,9 @@ interface OverlapMeetingsModalProps {
     // BoxText's corner badge reads from; kept as the live Set (not baked into each meeting at
     // click time) so a conflict that appears/resolves while the modal is open stays accurate.
     conflictMids?: Set<string>;
+    // Admin-only (see hooks/useSyncErrorMids) -- mids with a Google Calendar/Zoom sync error.
+    // Same live-Set treatment as conflictMids above.
+    syncErrorMids?: Set<string>;
     onClose: () => void;
     onSelectMeeting: (meetingId: string) => void;
 }
@@ -34,6 +36,7 @@ const OverlapMeetingsModal: React.FC<OverlapMeetingsModalProps> = ({
     isOpen,
     meetings,
     conflictMids,
+    syncErrorMids,
     onClose,
     onSelectMeeting,
 }) => {
@@ -74,6 +77,7 @@ const OverlapMeetingsModal: React.FC<OverlapMeetingsModalProps> = ({
                     {meetings.map(meeting => {
                         const locationLabel = meeting.room || meeting.zoomRoom || '';
                         const hasConflict = conflictMids?.has(meeting.id);
+                        const hasSyncError = syncErrorMids?.has(meeting.id);
                         return (
                             <div
                                 key={meeting.id}
@@ -84,7 +88,7 @@ const OverlapMeetingsModal: React.FC<OverlapMeetingsModalProps> = ({
                                 }}
                                 onClick={() => onSelectMeeting(meeting.id)}
                             >
-                                {meeting.syncError && (
+                                {hasSyncError && (
                                     <span role="img" aria-label="Sync failed" title="Sync failed" className={styles.syncError}>
                                         <img src="/svg/sync-error-icon.svg" alt="" />
                                     </span>
