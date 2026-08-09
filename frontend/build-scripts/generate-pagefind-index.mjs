@@ -47,7 +47,10 @@ function escapeHtml(text) {
   return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 
-const { index, errors: createErrors } = await pagefind.createIndex();
+// forceLanguage: Pagefind normally detects language from the indexed HTML's own <html lang>
+// attribute, which renderHtml() above never sets -- left undetected, it'd fall back to guessing
+// per-page, and a wrong guess changes stemming/tokenization. All docs/ content is English.
+const { index, errors: createErrors } = await pagefind.createIndex({ forceLanguage: "en" });
 if (createErrors.length > 0) {
   throw new Error(`Failed to create Pagefind index: ${createErrors.join(", ")}`);
 }
