@@ -28,9 +28,20 @@ $danger-color: #C62828;
 // = color-mix(in srgb, $danger-color 8%, white), precomputed -- this file is plain SCSS vars,
 // not CSS custom properties, so color-mix() can't reference $danger-color at runtime here.
 $danger-bg-color: #FAEEEE;
+
+// = color-mix(in srgb, $danger-color 22%, white), precomputed -- a stronger tint than
+// $danger-bg-color, which is meant as a subtle pill/badge wash. At full-card scale (Toast's
+// filled background, not just an icon accent) that pale a mix reads as pink rather than red;
+// this saturation keeps the same hue but reads unambiguously as red.
+$danger-bg-strong-color: #F4D4D4;
 $link-color: #007BFF;
 $warning-bg-color: #FDF3DC;
 $warning-text-color: #B4790A;
+
+// Deliberately not $link-color (#007BFF) -- that's reserved for hyperlink text, and reusing it
+// here would make an info toast/banner read as a clickable link. #1976D2 is a distinct blue.
+$info-bg-color: #E8F1FB;
+$info-text-color: #1976D2;
 
 // Secondary text tones used by ViewMeeting's demoted metadata rows (contact info, room line,
 // recurrence line) -- distinct from $medium-grey-color (#848484, used for icon tints) and

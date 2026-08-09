@@ -8,6 +8,7 @@ import type { Session } from "next-auth";
 import { SessionProvider } from "next-auth/react";
 import { SidebarProvider } from "./context/SidebarContext";
 import { CalendarProvider, useCalendarContext } from "./context/CalendarProvider";
+import { ToastProvider } from "./components/shared/ToastProvider";
 import { useScrollNavHide } from "../hooks/useScrollNavHide";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -51,12 +52,14 @@ export default function ClientLayout({
                 <SessionProvider session={session}>
                     <SidebarProvider>
                         <CalendarProvider>
-                            <div className={styles.mainlayout}>
-                                <div className={styles.navigation}>
-                                    <AppNavbar />
+                            <ToastProvider>
+                                <div className={styles.mainlayout}>
+                                    <div className={styles.navigation}>
+                                        <AppNavbar />
+                                    </div>
+                                    <MainContent>{children}</MainContent>
                                 </div>
-                                <MainContent>{children}</MainContent>
-                            </div>
+                            </ToastProvider>
                         </CalendarProvider>
                     </SidebarProvider>
                 </SessionProvider>
