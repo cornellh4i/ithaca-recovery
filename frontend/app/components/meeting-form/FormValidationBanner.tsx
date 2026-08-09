@@ -46,7 +46,7 @@ const FormValidationBanner: React.FC<FormValidationBannerProps> = ({ errors }) =
       containerRef.current.scrollTop = Math.max(0, containerRef.current.scrollTop - lastHeightRef.current);
     }
     wasVisibleRef.current = visible;
-  }, [visible]);
+  }, [visible, errors]);
 
   if (!visible) return null;
 
