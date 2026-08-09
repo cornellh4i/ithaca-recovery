@@ -15,6 +15,10 @@
 /.next/
 /out/
 
+# generated at dev/build time by build-scripts/generate-docs-content.mjs -- docs/ (repo root)
+# is the source of truth, this is a disposable snapshot
+/util/docs/docsContent.generated.ts
+
 # production
 /build
 

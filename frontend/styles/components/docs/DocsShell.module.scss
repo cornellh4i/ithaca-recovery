@@ -1,0 +1,407 @@
+@import '../../Variables.module.scss';
+
+.page {
+  font-family: 'Source Sans Pro', sans-serif;
+  position: relative; // anchors TopLoadingBar, which positions itself absolutely against this
+  height: 100%; // percentage-height chain down to .sidebarNav/.tocNav's max-height -- see .columns
+}
+
+// Compact bar (under the navbar) + drawer/TOC visibility are driven entirely by JS-computed
+// width state (see DocsShell.tsx), not CSS @media queries, matching the design reference.
+.compactBar {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-bottom: 1px solid $border-divider-color;
+
+  &.isCompact {
+    display: flex;
+  }
+}
+
+.sidebarIconBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid $light-grey-color;
+  background: $white-color;
+  color: $black-color;
+  border-radius: $radius-md;
+  padding: 6px;
+  cursor: pointer;
+}
+
+.breadcrumbGroup {
+  font-size: 14px;
+  color: $medium-grey-color;
+}
+
+.breadcrumbTitle {
+  font-size: 14px;
+  color: $black-color;
+  font-weight: 600;
+}
+
+// Same $z-index-modal tier AppSidebar.module.scss uses for its own backdrop+drawer pair --
+// equal values are fine since DOM order (overlay painted before the drawer) already puts the
+// drawer on top.
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgb(0 0 0 / 30%);
+  z-index: $z-index-modal;
+}
+
+.columns {
+  display: flex;
+  width: 100%;
+
+  // Chained from .page/.content (MainLayout's own flex:1 area, already correctly sized to
+  // "viewport minus navbar" by flexbox), so .sidebarNav/.article/.tocNav's own height: 100% each
+  // resolve against the real remaining space below the navbar. All three are independently
+  // scrollable panes (their own overflow-y: auto) rather than one shared page scroll with a
+  // sticky sidebar -- .content (the shared ancestor's own overflow-y: auto) never actually
+  // scrolls on this page as a result, since none of .columns's children overflow past their own
+  // capped height anymore.
+  height: 100%;
+  gap: 48px;
+  padding: 32px 24px;
+  align-items: flex-start;
+  position: relative;
+  box-sizing: border-box; // width: 100% + padding would otherwise overflow the viewport by the padding amount
+}
+
+.sidebarNav {
+  width: 250px;
+  flex-shrink: 0;
+  height: 100%; // own independent scroll pane -- see .columns's comment
+  overflow-y: auto;
+  padding-right: 16px;
+  padding-bottom: 24px; // breathing room below the last doc link, so it isn't flush against the scroll region's edge
+  border-right: 1px solid $border-divider-color;
+  box-sizing: border-box; // width + padding-right, and .isCompact's width + padding, should include both
+
+  &.isCompact {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    height: auto; // top:0/bottom:0 on a fixed element already gives the full viewport height; overrides the base rule's height:100% (of .columns), which doesn't apply once this is out of flow
+    width: 78%;
+    max-width: 300px;
+    background: $white-color;
+    border-right: 2px solid $light-grey-color;
+    box-shadow: 8px 0 16px rgb(0 0 0 / 8%);
+    z-index: $z-index-modal;
+    padding: 16px;
+    transition: transform 0.25s ease;
+    transform: translateX(-100%);
+
+    &.isOpen {
+      transform: translateX(0);
+    }
+  }
+}
+
+.sidebarHeader {
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: $medium-grey-color;
+  padding-bottom: 12px;
+  margin-bottom: 6px;
+  border-bottom: 1px solid $border-divider-color;
+
+  &.isCompact {
+    display: flex;
+  }
+}
+
+.sidebarClose {
+  border: 1px solid $light-grey-color;
+  background: $white-color;
+  color: $black-color;
+  border-radius: $radius-md;
+  padding: 5px 8px;
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1;
+}
+
+.groupLabel {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: $medium-grey-color;
+  margin: 18px 0 10px;
+}
+
+.docLink {
+  display: block;
+  width: 100%;
+  box-sizing: border-box; // width: 100% + padding would otherwise overflow the sidebar by the padding amount
+  text-align: left;
+  border: none;
+  background: transparent;
+  color: $black-color;
+  font-weight: 400;
+  font-family: 'Source Sans Pro', sans-serif;
+  font-size: 14.5px;
+  padding: 9px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  margin-bottom: 2px;
+  text-decoration: none; // buttons never needed this; now a real <Link> (real <a>), which does
+
+  &.isActive {
+    background: $grey-lightest-color;
+    color: $brand-pink-color;
+    font-weight: 600;
+  }
+}
+
+// The actual flex column (.article inside it just fills it) -- position: relative anchors
+// .tocToggleSlot, which floats inside this same column instead of taking its own flex slot when
+// tocHidden is true (the always-visible desktop .tocNav below is still its own separate column).
+.articleColumn {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  position: relative;
+}
+
+.article {
+  width: 100%;
+  height: 100%; // own independent scroll pane -- see .columns's comment
+  overflow-y: auto;
+  padding-top: 4px;
+
+  :global(h1) {
+    font-size: 32px;
+    font-weight: 600;
+    margin: 0 0 16px;
+    color: $black-color;
+    border-bottom: 2px solid $light-grey-color;
+    padding-bottom: 12px;
+  }
+
+  // Width-or-height, not width alone -- matches MainLayout.module.scss's own $breakpoint-phone
+  // query for the exact same concern: MobileAppNavbar is position: fixed (48px tall) below that
+  // breakpoint, so an anchor-jump needs scroll-margin-top past it, or the heading lands
+  // underneath it. Above the breakpoint the desktop navbar isn't fixed, so 24px (breathing room
+  // only) is enough.
+  :global(h2) {
+    font-size: 24px;
+    font-weight: 600;
+    margin: 40px 0 12px;
+    color: $black-color;
+    scroll-margin-top: 24px;
+
+    @media (width <= $breakpoint-phone), (height <= $breakpoint-phone) {
+      scroll-margin-top: 72px;
+    }
+  }
+
+  :global(h3) {
+    font-size: 18px;
+    font-weight: 600;
+    margin: 28px 0 8px;
+    color: $black-color;
+    scroll-margin-top: 24px;
+
+    @media (width <= $breakpoint-phone), (height <= $breakpoint-phone) {
+      scroll-margin-top: 72px;
+    }
+  }
+
+  :global(p),
+  :global(ul),
+  :global(ol) {
+    font-size: 16px;
+    line-height: 1.65;
+    color: $navy-color;
+    margin: 0 0 16px;
+  }
+
+  :global(ul),
+  :global(ol) {
+    padding-left: 22px;
+  }
+
+  :global(li) {
+    margin-bottom: 6px;
+  }
+
+  :global(li) > :global(p) {
+    margin-bottom: 6px;
+  }
+
+  :global(code) {
+    font-family: SFMono-Regular, Consolas, monospace;
+    font-size: 14px;
+    background: $grey-lightest-color;
+    padding: 2px 6px;
+    border-radius: $radius-sm;
+    color: $brand-pink-color;
+  }
+
+  :global(pre) {
+    background: $black-color;
+    color: $grey-lightest-color;
+    padding: 16px 20px;
+    border-radius: $radius-md;
+    overflow-x: auto;
+    margin: 0 0 20px;
+    font-size: 13.5px;
+    line-height: 1.6;
+
+    :global(code) {
+      background: none;
+      padding: 0;
+      color: inherit;
+    }
+  }
+
+  :global(table) {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 0 0 20px;
+    font-size: 14px;
+  }
+
+  :global(th),
+  :global(td) {
+    border: 1px solid $light-grey-color;
+    padding: 8px 12px;
+    text-align: left;
+  }
+
+  :global(th) {
+    background: $grey-lightest-color;
+    font-weight: 600;
+  }
+
+  :global(a) {
+    color: $brand-pink-color;
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+
+  :global(blockquote) {
+    border-left: 3px solid $light-grey-color;
+    margin: 0 0 16px;
+    padding: 4px 16px;
+    color: $medium-grey-color;
+  }
+
+  :global(hr) {
+    border: none;
+    border-top: 1px solid $light-grey-color;
+    margin: 32px 0;
+  }
+}
+
+.tocNav {
+  width: 250px;
+  flex-shrink: 0;
+  height: 100%; // own independent scroll pane -- see .columns's comment
+  overflow-y: auto;
+  padding-bottom: 24px; // breathing room below the last entry
+}
+
+// Replaces .tocNav below $breakpoint-desktop: floats inside .articleColumn (see its comment)
+// rather than taking its own flex slot, since there's no room for a fourth column at this width.
+// position: absolute here still establishes a containing block for .tocPanel below, so the
+// popover anchors to this button regardless of where .articleColumn itself sits.
+.tocToggleSlot {
+  position: absolute;
+  top: -16px;
+  right: 16px;
+  z-index: $z-index-dropdown; // floats above the article's own (independently scrolling) content
+}
+
+// Transparent click-catcher (not the dark $z-index-modal .overlay used for the sidebar drawer)
+// -- this is a lightweight popover, not a full-screen modal, so dismissing it shouldn't dim the
+// whole page.
+.tocScrim {
+  position: fixed;
+  inset: 0;
+  z-index: $z-index-dropdown;
+}
+
+.tocPanel {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 220px;
+  max-height: 60vh;
+  overflow-y: auto;
+  background: $white-color;
+  border: 1px solid $light-grey-color;
+  border-radius: $radius-md;
+  box-shadow: 0 8px 16px rgb(0 0 0 / 8%);
+  padding: 16px;
+  z-index: $z-index-dropdown;
+  box-sizing: border-box; // width + padding should include both
+}
+
+.tocPanelHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: $medium-grey-color;
+  padding-bottom: 12px;
+  margin-bottom: 6px;
+  border-bottom: 1px solid $border-divider-color;
+}
+
+.tocLabel {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: $medium-grey-color;
+  margin-bottom: 12px;
+}
+
+.tocLink {
+  display: block;
+  font-size: 13.5px;
+  font-weight: 400;
+  color: $navy-color;
+  text-decoration: none;
+  padding: 6px 8px;
+  border-radius: 6px;
+  line-height: 1.4;
+
+  &.isH1 {
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  &.isH2 {
+    padding-left: 22px;
+  }
+
+  // Scrollspy: whichever heading is currently nearest the top of the article (see DocsShell.tsx's
+  // scroll listener). Same background+color+weight treatment as the sidebar's own active
+  // doc-link, for a consistent "you are here" look across both.
+  &.isCurrent {
+    background: $grey-lightest-color;
+    color: $brand-pink-color;
+    font-weight: 600;
+  }
+}

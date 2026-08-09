@@ -61,10 +61,15 @@ $room-remote-color: #7ED8C2;
 
 // Responsive breakpoints. $breakpoint-tablet (768px) is also the value MeetingForm.module.scss
 // already uses in its own media query — same threshold, not a conflict, just worth knowing
-// they now overlap in purpose. Kept in sync manually with util/breakpoints.ts (Sass vars
+// they now overlap in purpose. Kept in sync manually with util/common/breakpoints.ts (Sass vars
 // aren't importable into TS).
 $breakpoint-phone: 480px;
 $breakpoint-tablet: 768px;
+$breakpoint-desktop: 1024px;
+
+// Docs page sidebar/compact-bar dividers -- distinct from $grey-border-color (#DDD), which is
+// used for field-box borders and card fills.
+$border-divider-color: #E5E5E5;
 
 // Z-index scheme -- ground truth for all NEW z-indexing going forward. Existing z-index
 // values elsewhere in the codebase predate this scheme and are not guaranteed to conform;
