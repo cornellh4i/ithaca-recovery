@@ -196,11 +196,12 @@ const ExportTab: React.FC = () => {
   const [meetingExportTotal, setMeetingExportTotal] = useState(0);
   const [meetingConfigOpen, setMeetingConfigOpen] = useState(false);
 
-  const loadLeaseSettings = async () => {
+  const loadLeaseSettings = async (isCancelled: () => boolean) => {
     try {
       const response = await fetch("/api/retrieve/lease-settings");
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
       const json: { settings: ILeaseSettings; cycles: LeaseYearCycle[] } = await response.json();
+      if (isCancelled()) return;
       setLeaseSettings(json.settings);
       // fetch/JSON.parse hands back ISO strings for Date fields despite the LeaseYearCycle type,
       // so callers comparing against `new Date(...)` values (LeaseConfigModal's cycle picker) need real Dates here.
@@ -212,19 +213,22 @@ const ExportTab: React.FC = () => {
         })),
       );
     } catch (err) {
+      if (isCancelled()) return;
       console.error("Error loading lease settings:", err);
       showToast({ variant: "error", message: "Failed to load lease settings.", persistent: true });
     }
   };
 
-  const loadMeetingExportSettings = async () => {
+  const loadMeetingExportSettings = async (isCancelled: () => boolean) => {
     try {
       const response = await fetch("/api/retrieve/meeting-export-settings");
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
       const json: { fields: MeetingExportFieldKey[]; total: number } = await response.json();
+      if (isCancelled()) return;
       setMeetingExportFields(json.fields);
       setMeetingExportTotal(json.total);
     } catch (err) {
+      if (isCancelled()) return;
       console.error("Error loading meeting export settings:", err);
       showToast({ variant: "error", message: "Failed to load export field settings.", persistent: true });
     }
@@ -234,8 +238,13 @@ const ExportTab: React.FC = () => {
     // Async fetch-then-set; the lint rule can't see the setState calls sit after an
     // await, so this is a false positive for the standard "load on mount" pattern.
     /* eslint-disable react-hooks/set-state-in-effect */
-    loadLeaseSettings();
-    loadMeetingExportSettings();
+    let cancelled = false;
+    const isCancelled = () => cancelled;
+    loadLeaseSettings(isCancelled);
+    loadMeetingExportSettings(isCancelled);
+    return () => {
+      cancelled = true;
+    };
     /* eslint-enable react-hooks/set-state-in-effect */
   }, []);
 
