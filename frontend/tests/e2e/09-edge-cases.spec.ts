@@ -25,12 +25,9 @@ test.describe("edge cases", () => {
     await toggleCalType(page, "AA");
     await page.getByPlaceholder("Email").fill("past@test.icr");
 
-    const dialogPromise = page.waitForEvent("dialog");
     await page.getByRole("button", { name: "Create Meeting" }).click();
-    const dialog = await dialogPromise;
-    // No past-date-specific wording — same success alert as any other creation.
-    expect(dialog.message()).toContain("Meeting created successfully");
-    await dialog.accept();
+    // No past-date-specific wording — same success toast as any other creation.
+    await expect(page.getByText("Meeting created successfully")).toBeVisible();
 
     const prisma = getTestPrismaClient();
     const created = await prisma.meeting.findFirst({ where: { title: "Past Meeting" } });
@@ -60,7 +57,6 @@ test.describe("edge cases", () => {
     await toggleCalType(page, "AA");
     await page.getByPlaceholder("Email").fill("rapid@test.icr");
 
-    page.on("dialog", (dialog) => dialog.accept());
     // By CSS class, not accessible name — the button's own text flips to
     // "Creating…" as soon as the first click lands (that's the fix), which
     // would otherwise make a by-name locator stop resolving for the rest.

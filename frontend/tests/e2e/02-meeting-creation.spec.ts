@@ -21,11 +21,8 @@ test.describe("meeting creation", () => {
     await toggleCalType(page, "AA");
     await page.getByPlaceholder("Email").fill("creation@test.icr");
 
-    const dialogPromise = page.waitForEvent("dialog");
     await page.getByRole("button", { name: "Create Meeting" }).click();
-    const dialog = await dialogPromise;
-    expect(dialog.message()).toContain("Meeting created successfully");
-    await dialog.accept();
+    await expect(page.getByText("Meeting created successfully")).toBeVisible();
 
     // Sidebar closes back to the filter/new-meeting view.
     await expect(page.getByText("New Meeting")).toBeVisible();
@@ -74,7 +71,6 @@ test.describe("meeting creation", () => {
     await toggleCalType(page, "Other");
     await page.getByPlaceholder("Email").fill("dual@test.icr");
 
-    page.once("dialog", (dialog) => dialog.accept());
     const writeResponse = page.waitForResponse((r) => r.url().includes("/api/write/meeting"));
     await page.getByRole("button", { name: "Create Meeting" }).click();
     await writeResponse;
@@ -101,18 +97,15 @@ test.describe("meeting creation", () => {
     await page.getByRole("button", { name: "Create Meeting" }).click();
 
     // Blocked by the room conflict -- the override modal appears instead of the normal
-    // success alert, naming the meeting it collides with. Scoped to the dialog and exact-
+    // success toast, naming the meeting it collides with. Scoped to the dialog and exact-
     // matched -- the seeded meeting's own calendar box (still visible behind the overlay) and
     // the modal's own message text both otherwise also match "Already Booked" un-scoped.
     const modal = page.getByRole("dialog");
     await expect(modal.getByText("Scheduling conflict")).toBeVisible();
     await expect(modal.getByText(existing.title, { exact: true })).toBeVisible();
 
-    const dialogPromise = page.waitForEvent("dialog");
     await page.getByRole("button", { name: "Save anyway" }).click();
-    const dialog = await dialogPromise;
-    expect(dialog.message()).toContain("Meeting created successfully");
-    await dialog.accept();
+    await expect(page.getByText("Meeting created successfully")).toBeVisible();
 
     const prisma = getTestPrismaClient();
     const room = await prisma.meeting.findMany({ where: { room: "Seeds of Hope Room" } });

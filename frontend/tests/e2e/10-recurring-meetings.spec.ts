@@ -28,9 +28,8 @@ test.describe("recurring meetings", () => {
     await page.getByText("This meeting is recurring", { exact: true }).click();
     await expect(page.getByText("Repeats", { exact: true })).toBeVisible();
 
-    const dialogPromise = page.waitForEvent("dialog");
     await page.getByRole("button", { name: "Create Meeting" }).click();
-    await (await dialogPromise).accept();
+    await expect(page.getByText("Meeting created successfully")).toBeVisible();
 
     const prisma = getTestPrismaClient();
     const meeting = await prisma.meeting.findFirst({ where: { title: "Weekly Recurring Meeting" } });
@@ -68,9 +67,8 @@ test.describe("recurring meetings", () => {
     await page.getByRole("option").filter({ hasText: "Monthly on the 2nd Tuesday" }).click();
     await expect(page.getByRole("button", { name: "Monthly on the 2nd Tuesday" })).toBeVisible();
 
-    const dialogPromise = page.waitForEvent("dialog");
     await page.getByRole("button", { name: "Create Meeting" }).click();
-    await (await dialogPromise).accept();
+    await expect(page.getByText("Meeting created successfully")).toBeVisible();
 
     const prisma = getTestPrismaClient();
     const meeting = await prisma.meeting.findFirst({ where: { title: "Monthly Recurring Meeting" } });

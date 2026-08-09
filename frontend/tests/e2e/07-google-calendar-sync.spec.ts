@@ -28,7 +28,6 @@ test.describe("google calendar sync", () => {
     await toggleCalType(page, "AA");
     await page.getByPlaceholder("Email").fill("notoken@test.icr");
 
-    page.once("dialog", (dialog) => dialog.accept());
     const writeResponse = page.waitForResponse((r) => r.url().includes("/api/write/meeting"));
     await page.getByRole("button", { name: "Create Meeting" }).click();
     await writeResponse;
@@ -53,7 +52,6 @@ test.describe("google calendar sync", () => {
     await toggleCalType(page, "Other");
     await page.getByPlaceholder("Email").fill("dualcal@test.icr");
 
-    page.once("dialog", (dialog) => dialog.accept());
     const writeResponse = page.waitForResponse((r) => r.url().includes("/api/write/meeting"));
     await page.getByRole("button", { name: "Create Meeting" }).click();
     await writeResponse;

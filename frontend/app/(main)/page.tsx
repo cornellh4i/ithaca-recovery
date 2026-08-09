@@ -19,8 +19,10 @@ import { useConflictMids } from "../../hooks/useConflictMids";
 import { useViewport } from "../../hooks/useViewport";
 import { PHONE_BREAKPOINT } from "../../util/common/breakpoints";
 import { useCalendarContext } from "../context/CalendarProvider";
+import { useToast } from "../components/shared/ToastProvider";
 
 export default function HomePage() {
+  const { showToast } = useToast();
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
   // null until the auth check below resolves -- lets consumers that need to distinguish
   // "don't know yet" from "confirmed not admin" (e.g. CalendarHeader's View-only pill) avoid
@@ -193,7 +195,7 @@ export default function HomePage() {
       });
 
       if (!response.ok) {
-        alert("Error : Unsuccessful delete")
+        showToast({ variant: "error", title: "Unsuccessful delete" });
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
@@ -206,7 +208,7 @@ export default function HomePage() {
        // Trigger calendar refresh
       triggerCalendarRefresh();
 
-      alert("Meeting deleted successfully! Please check the Meeting collection on MongoDB.")
+      showToast({ variant: "success", title: "Meeting deleted successfully." });
 
     } catch (error) {
       console.error('There was an error fetching the data:', error);
@@ -230,9 +232,13 @@ export default function HomePage() {
 
       handleBack();
       triggerCalendarRefresh();
+      showToast({ variant: "success", title: "Meeting suspended successfully." });
     } catch (error) {
       console.error('There was an error suspending the meeting:', error);
-      alert(`Error: could not suspend the meeting${error instanceof Error ? ` (${error.message})` : ""}`);
+      showToast({
+        variant: "error",
+        title: `Could not suspend the meeting${error instanceof Error ? ` (${error.message})` : ""}`,
+      });
     }
   };
 
@@ -250,9 +256,13 @@ export default function HomePage() {
 
       handleBack();
       triggerCalendarRefresh();
+      showToast({ variant: "success", title: "Meeting resumed successfully." });
     } catch (error) {
       console.error('There was an error resuming the meeting:', error);
-      alert(`Error: could not resume the meeting${error instanceof Error ? ` (${error.message})` : ""}`);
+      showToast({
+        variant: "error",
+        title: `Could not resume the meeting${error instanceof Error ? ` (${error.message})` : ""}`,
+      });
     }
   };
 

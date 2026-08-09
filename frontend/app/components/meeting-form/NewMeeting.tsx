@@ -18,6 +18,8 @@ import { physicalRoomOptions, zoomRoomOptions } from "../../../util/rooms/rooms"
 import { useMeetingForm, CAL_TYPE_OPTIONS, CAL_TYPE_COLOR, DESCRIPTION_MAX_LENGTH } from '../../../hooks/useMeetingForm';
 import { IMeeting } from '../../../types/models';
 import { ConflictListRow } from '../../../util/meetings/conflictDisplay';
+import { useToast } from '../shared/ToastProvider';
+import { pollMeetingSyncStatus, describeSyncFailure } from '../../../services/syncMeeting';
 
 import styles from '../../../styles/components/meeting-form/MeetingForm.module.scss';
 
@@ -55,6 +57,7 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({
       buildMeetingPayload,
     } = useMeetingForm(undefined, { selectedDate, selectedView });
 
+    const { showToast } = useToast();
     const [isSubmitting, setIsSubmitting] = useState(false);
     // Holds the payload + conflict rows across the confirm round-trip -- a 409 doesn't clear
     // the form, it just pauses submission until the modal's Cancel or "Save anyway".
@@ -91,8 +94,20 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({
 
         setConflictState(null);
         triggerCalendarRefresh();
-        alert("Meeting created successfully! Please check the Meeting collection on MongoDB.");
+        showToast({ variant: "success", title: "Meeting created successfully." });
         handleCloseNewMeeting();
+
+        // Fire-and-forget -- the create response above is sent before the actual Zoom/Calendar
+        // sync runs (see services/syncMeeting.ts's pollMeetingSyncStatus), so there's nothing
+        // fresh to check yet. showToast is global (ToastProvider context), so this is safe to
+        // resolve after the form itself has already closed.
+        pollMeetingSyncStatus(meetingResponse.mid, {
+          expectGoogle: (payload.calType?.length ?? 0) > 0,
+          expectZoom: payload.modeType === 'Hybrid' || payload.modeType === 'Remote',
+        }).then((result) => {
+          const message = describeSyncFailure(result);
+          if (message) showToast({ variant: "error", title: message, persistent: true });
+        });
       } catch (error) {
         console.error('There was an error fetching the data:', error);
       } finally {

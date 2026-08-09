@@ -17,6 +17,8 @@ import { IMeeting } from '../../../types/models'
 import { physicalRoomOptions, zoomRoomOptions } from "../../../util/rooms/rooms";
 import { useMeetingForm, CAL_TYPE_OPTIONS, CAL_TYPE_COLOR, DESCRIPTION_MAX_LENGTH } from '../../../hooks/useMeetingForm';
 import { ConflictListRow } from '../../../util/meetings/conflictDisplay';
+import { useToast } from '../shared/ToastProvider';
+import { pollMeetingSyncStatus, describeSyncFailure } from '../../../services/syncMeeting';
 
 import styles from '../../../styles/components/meeting-form/MeetingForm.module.scss';
 
@@ -50,6 +52,7 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
       buildMeetingPayload,
     } = useMeetingForm(meeting);
 
+    const { showToast } = useToast();
     const [isSubmitting, setIsSubmitting] = useState(false);
     // Holds the payload + conflict rows across the confirm round-trip -- a 409 doesn't discard
     // the edit, it just pauses submission until the modal's Cancel or "Save anyway".
@@ -82,9 +85,20 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
         const meetingResponse = await response.json();
         console.log(meetingResponse);
         setConflictState(null);
-        alert("Meeting updated successfully! Please check the Meeting collection on MongoDB.");
+        showToast({ variant: "success", title: "Meeting updated successfully." });
         onUpdateSuccess();
         onClose();
+
+        // Fire-and-forget -- see NewMeeting.tsx's identical call for why (the response above
+        // is sent before the actual Zoom/Calendar sync runs). showToast is global, so this is
+        // safe to resolve after the form itself has already closed.
+        pollMeetingSyncStatus(meetingResponse.mid, {
+          expectGoogle: (payload.calType?.length ?? 0) > 0,
+          expectZoom: payload.modeType === 'Hybrid' || payload.modeType === 'Remote',
+        }).then((result) => {
+          const message = describeSyncFailure(result);
+          if (message) showToast({ variant: "error", title: message, persistent: true });
+        });
       } catch (error) {
         console.error('There was an error fetching the data:', error);
       } finally {
