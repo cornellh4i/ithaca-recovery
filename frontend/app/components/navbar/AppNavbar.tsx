@@ -75,13 +75,6 @@ const AppNavbar: React.FC = () => {
                             </Link>
                         </Tooltip>
                     </li>
-                    <li className={navItemClass(pathname === "/signage")}>
-                        <Tooltip content="Read-only calendar view for signage">
-                            <Link href="/signage">
-                                <p>Signage</p>
-                            </Link>
-                        </Tooltip>
-                    </li>
                     <li className={navItemClass(pathname?.startsWith("/docs") ?? false)}>
                         <Tooltip content="Guides, admin/import reference, and API docs">
                             <Link href="/docs">

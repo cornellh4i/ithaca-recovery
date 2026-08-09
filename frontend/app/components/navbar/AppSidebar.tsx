@@ -55,9 +55,6 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ isOpen, onClose }) => {
               <Link href="/" className={rowClass(pathname === "/")} onClick={onClose}>
                 Main Calendar
               </Link>
-              <Link href="/signage" className={rowClass(pathname === "/signage")} onClick={onClose}>
-                Signage
-              </Link>
               <Link href="/docs" className={rowClass(pathname?.startsWith("/docs") ?? false)} onClick={onClose}>
                 Resources
               </Link>

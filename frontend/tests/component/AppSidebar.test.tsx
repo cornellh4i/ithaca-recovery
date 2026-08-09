@@ -68,13 +68,13 @@ describe("AppSidebar", () => {
     expect(screen.getByRole("link", { name: "Sign In" })).toHaveAttribute("href", "/login");
   });
 
-  it("shows the Signage link", () => {
+  it("does not show a Signage link", () => {
     mockUseSession.mockReturnValue({ data: null });
-    mockUsePathname.mockReturnValue("/signage");
+    mockUsePathname.mockReturnValue("/");
 
     render(<AppSidebar isOpen onClose={jest.fn()} />);
 
-    expect(screen.getByRole("link", { name: "Signage" })).toHaveAttribute("href", "/signage");
+    expect(screen.queryByRole("link", { name: "Signage" })).not.toBeInTheDocument();
   });
 
   it("calls onClose when the backdrop is clicked", () => {
