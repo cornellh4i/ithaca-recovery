@@ -13,35 +13,6 @@
   }
 }
 
-.responsiveBanner {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  background: $warning-bg-color;
-  color: $warning-text-color;
-  border-radius: 8px;
-  padding: 10px 12px;
-  font-size: 13px;
-  line-height: 1.4;
-  margin-bottom: 20px;
-}
-
-.responsiveBannerText {
-  flex: 1;
-}
-
-.responsiveBannerDismiss {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  background: none;
-  border: none;
-  padding: 0;
-  cursor: pointer;
-  color: inherit;
-}
-
 .title {
   font-size: 28px;
   font-weight: 600;
