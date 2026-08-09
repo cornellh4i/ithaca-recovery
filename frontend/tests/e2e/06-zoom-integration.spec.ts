@@ -53,7 +53,6 @@ test.describe("zoom integration", () => {
     await toggleCalType(page, "AA");
     await page.getByPlaceholder("Email").fill("zoom@test.icr");
 
-    page.once("dialog", (dialog) => dialog.accept());
     const writeResponse = page.waitForResponse((r) => r.url().includes("/api/write/meeting"));
     await page.getByRole("button", { name: "Create Meeting" }).click();
     await writeResponse;

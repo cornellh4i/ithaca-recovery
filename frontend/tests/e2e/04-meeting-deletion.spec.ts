@@ -30,7 +30,6 @@ test.describe("meeting deletion", () => {
     // Confirming via the modal's "Delete" button actually deletes it -- the kebab's own
     // "Delete" item is already closed/unmounted by the time the modal's button renders, so
     // this stays unambiguous despite sharing the same label.
-    page.on("dialog", (dialog) => dialog.accept());
     await openMeetingOptions(page, "One-Off To Delete");
     await page.getByRole("button", { name: "Delete", exact: true }).click();
     const deleteResponse = page.waitForResponse((r) => r.url().includes("/api/delete/meeting"));
@@ -70,7 +69,6 @@ test.describe("meeting deletion", () => {
     await page.getByRole("button", { name: "Delete", exact: true }).click();
     await page.getByLabel("This event").check();
 
-    page.on("dialog", (dialog) => dialog.accept());
     const deleteResponse = page.waitForResponse((r) => r.url().includes("/api/delete/meeting"));
     await page.getByRole("button", { name: "Delete", exact: true }).click();
     await deleteResponse;
@@ -90,7 +88,6 @@ test.describe("meeting deletion", () => {
     await page.getByRole("button", { name: "Delete", exact: true }).click();
     await page.getByLabel("All events").check();
 
-    page.on("dialog", (dialog) => dialog.accept());
     const deleteResponse = page.waitForResponse((r) => r.url().includes("/api/delete/meeting"));
     await page.getByRole("button", { name: "Delete", exact: true }).click();
     await deleteResponse;

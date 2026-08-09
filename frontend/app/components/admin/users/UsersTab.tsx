@@ -15,6 +15,7 @@ import StatusPill, { type StatusPillVariant } from "../../atoms/StatusPill";
 import EditRoleModal from "./EditRoleModal";
 import RemoveUserModal from "./RemoveUserModal";
 import InviteUserModal from "./InviteUserModal";
+import { useToast } from "../../shared/ToastProvider";
 import { ROLE_LABEL } from "../../../../util/roles";
 import styles from "../../../../styles/components/admin/UsersTab.module.scss";
 
@@ -51,6 +52,7 @@ const SORT_COLUMNS: { key: SortColumn; label: string }[] = [
 ];
 
 const UsersTab: React.FC = () => {
+  const { showToast } = useToast();
   // null means "not yet loaded" (distinct from "loaded, zero admins") -- lets a refetch after
   // invite/role-change/remove show just the TopLoadingBar over the existing rows instead of
   // blanking the whole table back to "Loading users…" every time.
@@ -237,14 +239,14 @@ const UsersTab: React.FC = () => {
       });
       if (!response.ok) {
         const json = await response.json().catch(() => ({}));
-        alert(json.error ?? "Failed to invite admin.");
+        showToast({ variant: "error", message: json.error ?? "Failed to invite admin." });
         return;
       }
       setInviteOpen(false);
       await loadAdmins();
     } catch (err) {
       console.error("Error inviting admin:", err);
-      alert("Failed to invite admin.");
+      showToast({ variant: "error", message: "Failed to invite admin." });
     } finally {
       setInviting(false);
     }
@@ -269,9 +271,12 @@ const UsersTab: React.FC = () => {
         // two admins demoting different Super Admins at once) -- distinct from a plain
         // validation/business-rule rejection, so it gets its own message pointing at a retry
         // rather than the generic error text.
-        alert(response.status === 409
-          ? "Someone else changed the admin list at the same time -- please try again."
-          : (json.error ?? "Failed to update role."));
+        showToast({
+          variant: "error",
+          message: response.status === 409
+            ? "Someone else changed the admin list at the same time -- please try again."
+            : (json.error ?? "Failed to update role."),
+        });
         setAdmins((prev) => prev?.map((a) => (a.email === email ? { ...a, role: previousRole } : a)) ?? prev);
         return;
       }
@@ -289,7 +294,7 @@ const UsersTab: React.FC = () => {
       setAdmins((prev) => prev?.map((a) => (a.email === email ? (updated as IAdmin) : a)) ?? prev);
     } catch (err) {
       console.error("Error updating role:", err);
-      alert("Failed to update role.");
+      showToast({ variant: "error", message: "Failed to update role." });
       setAdmins((prev) => prev?.map((a) => (a.email === email ? { ...a, role: previousRole } : a)) ?? prev);
     } finally {
       setPendingRoleEmails((prev) => {
@@ -311,15 +316,18 @@ const UsersTab: React.FC = () => {
       if (!response.ok) {
         const json = await response.json().catch(() => ({}));
         // Same Serializable-transaction race as handleRoleChange above.
-        alert(response.status === 409
-          ? "Someone else changed the admin list at the same time -- please try again."
-          : (json.error ?? "Failed to remove admin."));
+        showToast({
+          variant: "error",
+          message: response.status === 409
+            ? "Someone else changed the admin list at the same time -- please try again."
+            : (json.error ?? "Failed to remove admin."),
+        });
         return;
       }
       await loadAdmins();
     } catch (err) {
       console.error("Error removing admin:", err);
-      alert("Failed to remove admin.");
+      showToast({ variant: "error", message: "Failed to remove admin." });
     }
   };
 

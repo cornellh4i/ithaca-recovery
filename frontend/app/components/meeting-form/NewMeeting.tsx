@@ -18,6 +18,7 @@ import { physicalRoomOptions, zoomRoomOptions } from "../../../util/rooms/rooms"
 import { useMeetingForm, CAL_TYPE_OPTIONS, CAL_TYPE_COLOR, DESCRIPTION_MAX_LENGTH } from '../../../hooks/useMeetingForm';
 import { IMeeting } from '../../../types/models';
 import { ConflictListRow } from '../../../util/meetings/conflictDisplay';
+import { useToast } from '../shared/ToastProvider';
 
 import styles from '../../../styles/components/meeting-form/MeetingForm.module.scss';
 
@@ -55,6 +56,7 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({
       buildMeetingPayload,
     } = useMeetingForm(undefined, { selectedDate, selectedView });
 
+    const { showToast } = useToast();
     const [isSubmitting, setIsSubmitting] = useState(false);
     // Holds the payload + conflict rows across the confirm round-trip -- a 409 doesn't clear
     // the form, it just pauses submission until the modal's Cancel or "Save anyway".
@@ -91,7 +93,7 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({
 
         setConflictState(null);
         triggerCalendarRefresh();
-        alert("Meeting created successfully! Please check the Meeting collection on MongoDB.");
+        showToast({ variant: "success", message: "Meeting created successfully." });
         handleCloseNewMeeting();
       } catch (error) {
         console.error('There was an error fetching the data:', error);

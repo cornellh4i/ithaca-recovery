@@ -52,11 +52,8 @@ test.describe("mobile meeting interactions", () => {
     await toggleCalType(page, "AA");
     await page.getByPlaceholder("Email").fill("mobile-fab@test.icr");
 
-    const dialogPromise = page.waitForEvent("dialog");
     await page.getByRole("button", { name: "Create Meeting" }).click();
-    const dialog = await dialogPromise;
-    expect(dialog.message()).toContain("Meeting created successfully");
-    await dialog.accept();
+    await expect(page.getByText("Meeting created successfully")).toBeVisible();
 
     // Full-screen form closes back down, the new meeting is now visible on the calendar.
     await expect(page.getByRole("heading", { name: "New Meeting" })).not.toBeVisible();

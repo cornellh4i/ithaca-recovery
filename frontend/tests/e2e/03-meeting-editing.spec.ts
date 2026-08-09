@@ -51,11 +51,8 @@ test.describe("meeting editing", () => {
     await titleInput.fill("Renamed Meeting");
     await fillTimeRange(page, "20:00", "21:00");
 
-    const dialogPromise = page.waitForEvent("dialog");
     await page.getByRole("button", { name: "Update Meeting" }).click();
-    const dialog = await dialogPromise;
-    expect(dialog.message()).toContain("Meeting updated successfully");
-    await dialog.accept();
+    await expect(page.getByText("Meeting updated successfully")).toBeVisible();
 
     await page.reload();
     const prisma = getTestPrismaClient();
@@ -84,7 +81,6 @@ test.describe("meeting editing", () => {
     await openEditFromDetails(page);
     await page.getByPlaceholder("Meeting title").fill("Recurring Series Renamed");
 
-    page.once("dialog", (dialog) => dialog.accept());
     await page.getByRole("button", { name: "Update Meeting" }).click();
     // The calendar (level-3 heading) picks up the rename immediately via the
     // post-update refresh; the still-open detail panel's own <h1> is a known

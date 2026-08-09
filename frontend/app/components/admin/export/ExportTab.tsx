@@ -19,6 +19,7 @@ import Card from "../shared/Card";
 import CardHeader from "../shared/CardHeader";
 import MeetingExportConfigModal from "./MeetingExportConfigModal";
 import LeaseConfigModal from "./LeaseConfigModal";
+import { useToast } from "../../shared/ToastProvider";
 import styles from "../../../../styles/components/admin/ExportTab.module.scss";
 
 type ExportKind = "meetings" | "lease";
@@ -184,6 +185,7 @@ const SignageUrlCard: React.FC = () => {
 };
 
 const ExportTab: React.FC = () => {
+  const { showToast } = useToast();
   const [leaseSettings, setLeaseSettings] = useState<ILeaseSettings | null>(null);
   const [leaseCycles, setLeaseCycles] = useState<LeaseYearCycle[]>([]);
   const [settingsError, setSettingsError] = useState<string | null>(null);
@@ -269,7 +271,7 @@ const ExportTab: React.FC = () => {
     });
     if (!response.ok) {
       const json = await response.json().catch(() => ({}));
-      alert(json.error ?? "Failed to save lease settings.");
+      showToast({ variant: "error", message: json.error ?? "Failed to save lease settings." });
       return;
     }
     const saved: ILeaseSettings = await response.json();
@@ -286,7 +288,7 @@ const ExportTab: React.FC = () => {
       });
       if (!response.ok) {
         const json = await response.json().catch(() => ({}));
-        alert(json.error ?? "Failed to save export field settings.");
+        showToast({ variant: "error", message: json.error ?? "Failed to save export field settings." });
         return;
       }
       const saved: { fields: MeetingExportFieldKey[] } = await response.json();
@@ -294,7 +296,7 @@ const ExportTab: React.FC = () => {
       setMeetingConfigOpen(false);
     } catch (err) {
       console.error("Error saving meeting export settings:", err);
-      alert("Failed to save export field settings.");
+      showToast({ variant: "error", message: "Failed to save export field settings." });
     }
   };
 

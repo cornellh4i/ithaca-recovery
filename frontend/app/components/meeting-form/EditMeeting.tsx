@@ -17,6 +17,7 @@ import { IMeeting } from '../../../types/models'
 import { physicalRoomOptions, zoomRoomOptions } from "../../../util/rooms/rooms";
 import { useMeetingForm, CAL_TYPE_OPTIONS, CAL_TYPE_COLOR, DESCRIPTION_MAX_LENGTH } from '../../../hooks/useMeetingForm';
 import { ConflictListRow } from '../../../util/meetings/conflictDisplay';
+import { useToast } from '../shared/ToastProvider';
 
 import styles from '../../../styles/components/meeting-form/MeetingForm.module.scss';
 
@@ -50,6 +51,7 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
       buildMeetingPayload,
     } = useMeetingForm(meeting);
 
+    const { showToast } = useToast();
     const [isSubmitting, setIsSubmitting] = useState(false);
     // Holds the payload + conflict rows across the confirm round-trip -- a 409 doesn't discard
     // the edit, it just pauses submission until the modal's Cancel or "Save anyway".
@@ -82,7 +84,7 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
         const meetingResponse = await response.json();
         console.log(meetingResponse);
         setConflictState(null);
-        alert("Meeting updated successfully! Please check the Meeting collection on MongoDB.");
+        showToast({ variant: "success", message: "Meeting updated successfully." });
         onUpdateSuccess();
         onClose();
       } catch (error) {

@@ -5,6 +5,7 @@ import Card from "../shared/Card";
 import TopLoadingBar from "../../atoms/TopLoadingBar";
 import DiagnosticsCardError from "./DiagnosticsCardError";
 import ResumeMeetingModal from "../../meeting-form/ResumeMeetingModal";
+import { useToast } from "../../shared/ToastProvider";
 import { formatSuspensionStatusText } from "../../../../util/meetings/suspensionText";
 import styles from "../../../../styles/components/admin/DiagnosticsTab.module.scss";
 
@@ -22,6 +23,7 @@ interface SuspendedRow {
 }
 
 const SuspendedCard: React.FC = () => {
+  const { showToast } = useToast();
   const [suspendedMeetings, setSuspendedMeetings] = useState<SuspendedRow[] | null>(null);
   // Uncapped count -- suspendedMeetings itself is sliced to the 20 most recently updated by
   // the API, so the header can't just use suspendedMeetings.length once that cap is hit.
@@ -86,7 +88,10 @@ const SuspendedCard: React.FC = () => {
       await load();
     } catch (err) {
       console.error("Error resuming meeting:", err);
-      alert(`Error: could not resume the meeting${err instanceof Error ? ` (${err.message})` : ""}`);
+      showToast({
+        variant: "error",
+        message: `Could not resume the meeting${err instanceof Error ? ` (${err.message})` : ""}`,
+      });
     } finally {
       setResumingMid((current) => (current === mid ? null : current));
     }

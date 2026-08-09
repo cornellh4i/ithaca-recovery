@@ -7,6 +7,7 @@ import DiagnosticsCardError from "./DiagnosticsCardError";
 import EditMeetingSidebar from "../../meeting-form/EditMeeting";
 import { IMeeting } from "../../../../types/models";
 import { retryMeetingSync } from "../../../../services/syncMeeting";
+import { useToast } from "../../shared/ToastProvider";
 import styles from "../../../../styles/components/admin/DiagnosticsTab.module.scss";
 // Reuses ConflictList's inline-edit-panel styling (accordion expand + card treatment) rather
 // than duplicating it -- same pattern, same visual language, this card just isn't grouped by
@@ -30,6 +31,7 @@ interface SyncIssueRow {
 }
 
 const SyncIssuesCard: React.FC = () => {
+  const { showToast } = useToast();
   const [syncIssues, setSyncIssues] = useState<SyncIssueRow[] | null>(null);
   const [total, setTotal] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -84,7 +86,10 @@ const SyncIssuesCard: React.FC = () => {
       await load();
     } catch (err) {
       console.error("Error retrying sync:", err);
-      alert(`Error: could not retry the sync${err instanceof Error ? ` (${err.message})` : ""}`);
+      showToast({
+        variant: "error",
+        message: `Could not retry the sync${err instanceof Error ? ` (${err.message})` : ""}`,
+      });
     } finally {
       // Only clear if this is still the row that started this retry -- a second row's retry
       // starting before this one resolves must not un-disable/mislabel it early.
