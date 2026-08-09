@@ -6,6 +6,8 @@ import TopLoadingBar from "../../atoms/TopLoadingBar";
 import DiagnosticsCardError from "./DiagnosticsCardError";
 import ResumeMeetingModal from "../../meeting-form/ResumeMeetingModal";
 import { useToast } from "../../shared/ToastProvider";
+import { invalidateAllDayCache } from "../../calendar/desktop/DayView";
+import { invalidateAllWeekCache } from "../../../../hooks/useWeekMeetings";
 import { formatSuspensionStatusText } from "../../../../util/meetings/suspensionText";
 import styles from "../../../../styles/components/admin/DiagnosticsTab.module.scss";
 
@@ -85,7 +87,14 @@ const SuspendedCard: React.FC = () => {
         const body = await response.json().catch(() => null);
         throw new Error(body?.error || `HTTP error! status: ${response.status}`);
       }
+      // This resume happened outside the calendar route entirely, so its Day/Week views
+      // (if open in another tab, or navigated back to later) would otherwise keep serving
+      // this meeting as still-suspended from their own module-level cache until that cache's
+      // next unrelated fetch happens to overwrite it.
+      invalidateAllDayCache();
+      invalidateAllWeekCache();
       await load();
+      showToast({ variant: "success", title: "Meeting resumed successfully." });
     } catch (err) {
       console.error("Error resuming meeting:", err);
       showToast({

@@ -82,8 +82,21 @@ const SyncIssuesCard: React.FC = () => {
   const retrySync = async (mid: string) => {
     setRetryingMid(mid);
     try {
-      await retryMeetingSync(mid);
+      const data = await retryMeetingSync(mid);
       await load();
+      // Same "null is fine, only 'error' blocks success" rule as ViewMeeting's own retry --
+      // zoomSyncStatus is legitimately null for a meeting that never needed Zoom.
+      const calendarOk = data.googleSyncStatus == null || data.googleSyncStatus === 'synced';
+      const zoomOk = data.zoomSyncStatus == null || data.zoomSyncStatus === 'synced';
+      if (calendarOk && zoomOk) {
+        showToast({ variant: "success", title: "Sync retried successfully." });
+      } else {
+        const failures = [
+          !calendarOk && `Google Calendar (${data.googleSyncError ?? 'sync failed'})`,
+          !zoomOk && `Zoom (${data.zoomSyncError ?? 'sync failed'})`,
+        ].filter(Boolean).join(', ');
+        showToast({ variant: "error", title: `Retry failed: ${failures}` });
+      }
     } catch (err) {
       console.error("Error retrying sync:", err);
       showToast({

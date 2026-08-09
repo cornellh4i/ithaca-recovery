@@ -19,6 +19,7 @@ import { useMeetingForm, CAL_TYPE_OPTIONS, CAL_TYPE_COLOR, DESCRIPTION_MAX_LENGT
 import { IMeeting } from '../../../types/models';
 import { ConflictListRow } from '../../../util/meetings/conflictDisplay';
 import { useToast } from '../shared/ToastProvider';
+import { pollMeetingSyncStatus, describeSyncFailure } from '../../../services/syncMeeting';
 
 import styles from '../../../styles/components/meeting-form/MeetingForm.module.scss';
 
@@ -95,6 +96,18 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({
         triggerCalendarRefresh();
         showToast({ variant: "success", title: "Meeting created successfully." });
         handleCloseNewMeeting();
+
+        // Fire-and-forget -- the create response above is sent before the actual Zoom/Calendar
+        // sync runs (see services/syncMeeting.ts's pollMeetingSyncStatus), so there's nothing
+        // fresh to check yet. showToast is global (ToastProvider context), so this is safe to
+        // resolve after the form itself has already closed.
+        pollMeetingSyncStatus(meetingResponse.mid, {
+          expectGoogle: (payload.calType?.length ?? 0) > 0,
+          expectZoom: payload.modeType === 'Hybrid' || payload.modeType === 'Remote',
+        }).then((result) => {
+          const message = describeSyncFailure(result);
+          if (message) showToast({ variant: "error", title: message, persistent: true });
+        });
       } catch (error) {
         console.error('There was an error fetching the data:', error);
       } finally {

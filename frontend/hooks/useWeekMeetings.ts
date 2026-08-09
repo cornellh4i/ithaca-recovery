@@ -75,6 +75,13 @@ export const invalidateWeekCache = (startDate: Date, endDate: Date) => {
     weekMeetingCache.invalidate(`${formattedStart}-${formattedEnd}`);
 };
 
+// For callers that changed a meeting from outside the calendar route entirely (e.g. Admin
+// Diagnostics resuming a suspended meeting) and so don't know/can't reach the specific week key
+// -- clears every cached week rather than guessing one.
+export const invalidateAllWeekCache = () => {
+    weekMeetingCache.clear();
+};
+
 export interface UseWeekMeetingsResult {
     meetings: WeekMeeting[];
     // True while a fetch for the currently-requested week is in flight -- including a cache hit,

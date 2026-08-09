@@ -13,6 +13,7 @@ import { IRecurrencePattern } from '../../../types/models';
 import { formatCompactTimeRange, formatMeetingDateLine } from "../../../util/date/timeFormat";
 import { formatETDateString } from "../../../util/date/timeUtils";
 import { retryMeetingSync } from "../../../services/syncMeeting";
+import { useToast } from "../shared/ToastProvider";
 import { formatSuspensionStatusText } from "../../../util/meetings/suspensionText";
 import { ROOM_COLORS, ZOOM_ROOM_COLOR } from "../../../util/rooms/filterColors";
 import { formatRecurrencePattern } from "../../../util/meetings/recurrenceDisplay";
@@ -152,6 +153,7 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
   const hasSuspension = !!suspendedSince;
   const isSuspended = hasSuspension && !!suspensionActive;
   const hasPendingSuspension = hasSuspension && !isSuspended;
+  const { showToast } = useToast();
   const [googleSyncStatus, setGoogleSyncStatus] = useState(initialGoogleSyncStatus ?? null);
   const [googleSyncError, setGoogleSyncError] = useState(initialGoogleSyncError ?? null);
   const [zoomSyncStatus, setZoomSyncStatus] = useState(initialZoomSyncStatus ?? null);
@@ -294,12 +296,22 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
       // fired as soon as just one side synced, even while the other was still failing).
       const calendarOk = data.googleSyncStatus == null || data.googleSyncStatus === 'synced';
       const zoomOk = data.zoomSyncStatus == null || data.zoomSyncStatus === 'synced';
-      if (calendarOk && zoomOk) onSyncSuccess?.();
+      if (calendarOk && zoomOk) {
+        onSyncSuccess?.();
+        showToast({ variant: "success", title: "Sync retried successfully." });
+      } else {
+        const failures = [
+          !calendarOk && `Google Calendar (${data.googleSyncError ?? 'sync failed'})`,
+          !zoomOk && `Zoom (${data.zoomSyncError ?? 'sync failed'})`,
+        ].filter(Boolean).join(', ');
+        showToast({ variant: "error", title: `Retry failed: ${failures}` });
+      }
     } catch {
       // Stale from a prior fetch/retry -- this failure is the request itself, not a specific
       // provider error, so clear it and let the details list fall back to "Sync failed.".
       setGoogleSyncStatus('error');
       setGoogleSyncError(null);
+      showToast({ variant: "error", title: "Could not retry the sync." });
     } finally {
       setSyncing(false);
     }

@@ -232,6 +232,7 @@ export default function HomePage() {
 
       handleBack();
       triggerCalendarRefresh();
+      showToast({ variant: "success", title: "Meeting suspended successfully." });
     } catch (error) {
       console.error('There was an error suspending the meeting:', error);
       showToast({
@@ -255,6 +256,7 @@ export default function HomePage() {
 
       handleBack();
       triggerCalendarRefresh();
+      showToast({ variant: "success", title: "Meeting resumed successfully." });
     } catch (error) {
       console.error('There was an error resuming the meeting:', error);
       showToast({

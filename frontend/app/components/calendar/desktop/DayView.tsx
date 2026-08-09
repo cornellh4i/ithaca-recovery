@@ -144,6 +144,13 @@ export const invalidateCache = (date: Date) => {
   dayMeetingCache.invalidate(formatETDateString(date));
 };
 
+// For callers that changed a meeting from outside the calendar route entirely (e.g. Admin
+// Diagnostics resuming a suspended meeting) and so don't know/can't reach the specific date key
+// -- clears every cached day rather than guessing one.
+export const invalidateAllDayCache = () => {
+  dayMeetingCache.clear();
+};
+
 const formatTime = (hour: number): string => {
   const period = hour >= 12 ? "PM" : "AM";
   const formattedHour = hour % 12 || 12;

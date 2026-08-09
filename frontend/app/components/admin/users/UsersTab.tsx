@@ -244,6 +244,7 @@ const UsersTab: React.FC = () => {
       }
       setInviteOpen(false);
       await loadAdmins();
+      showToast({ variant: "success", title: `Invited ${email} as ${role}.` });
     } catch (err) {
       console.error("Error inviting admin:", err);
       showToast({ variant: "error", title: "Failed to invite admin." });
@@ -289,9 +290,11 @@ const UsersTab: React.FC = () => {
       const updated = json as Partial<IAdmin>;
       if (!updated.email) {
         await loadAdmins();
+        showToast({ variant: "success", title: `Updated ${email}'s role to ${newRole}.` });
         return;
       }
       setAdmins((prev) => prev?.map((a) => (a.email === email ? (updated as IAdmin) : a)) ?? prev);
+      showToast({ variant: "success", title: `Updated ${email}'s role to ${newRole}.` });
     } catch (err) {
       console.error("Error updating role:", err);
       showToast({ variant: "error", title: "Failed to update role." });
@@ -325,6 +328,7 @@ const UsersTab: React.FC = () => {
         return;
       }
       await loadAdmins();
+      showToast({ variant: "success", title: `Removed ${email}.` });
     } catch (err) {
       console.error("Error removing admin:", err);
       showToast({ variant: "error", title: "Failed to remove admin." });
