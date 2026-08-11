@@ -52,7 +52,3 @@ meeting itself is set up:
 "The meeting's own hours" means that one meeting's start-to-end duration, not a sum across its
 whole recurrence — a weekly 1-hour meeting is still just "1 hour" for this calculation, not "1
 hour × however many weeks are in the lease."
-
-## Generate a signage URL
-
-See [Use Digital Signage](use-digital-signage.md).

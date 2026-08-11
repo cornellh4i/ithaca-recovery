@@ -32,6 +32,10 @@
 1. Click meeting → click **⋮** → **"Suspend"** (or **"Reactivate"** if already suspended)
 2. Suspending hides it from the live calendar without deleting it — all data is preserved
 
+**Generate a signage URL** *(Admin → Signage)*
+1. Pick locations, calendars, and modes to include
+2. Copy the generated link into the display board's device
+
 **Export data** *(Admin → Export, Super Admin only)*
 1. "Export Meetings" → full XLSX backup
 2. "Export Lease CSV" → PandaDoc Bulk Send, once per year in early July
