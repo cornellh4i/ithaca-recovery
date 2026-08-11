@@ -56,21 +56,19 @@ This project aims to develop internal tooling and automation to streamline ICR's
 
 ### Built With
 
-* ![React](https://img.shields.io/badge/react-%2320232a.svg?style=for-the-badge&logo=react&logoColor=%2361DAFB)
-* [![Next][Next.js]][Next-url]
-* ![MongoDB](https://img.shields.io/badge/MongoDB-%234ea94b.svg?style=for-the-badge&logo=mongodb&logoColor=white)
-* [![Prisma][Prisma.io]][Prisma-url]
-* ![NextAuth](https://img.shields.io/badge/NextAuth-000000?style=for-the-badge&logo=nextauth&logoColor=white) ![Google Calendar](https://img.shields.io/badge/Google_Calendar-4285F4?style=for-the-badge&logo=googlecalendar&logoColor=white)
-* ![Vercel](https://img.shields.io/badge/vercel-%23000000.svg?style=for-the-badge&logo=vercel&logoColor=white)
-* ![Playwright](https://img.shields.io/badge/Playwright-2EAD33?style=for-the-badge&logo=playwright&logoColor=white) ![Jest](https://img.shields.io/badge/Jest-C21325?style=for-the-badge&logo=jest&logoColor=white)
+* [![Next.js][Next.js]][Next.js-url] [![React][React]][React-url]
+* [![Neon][Neon]][Neon-url] [![PostgreSQL][PostgreSQL]][PostgreSQL-url] [![Prisma][Prisma]][Prisma-url]
+* [![NextAuth][NextAuth]][NextAuth-url] [![Google Calendar][Google Calendar]][Google Calendar-url] [![Zoom][Zoom]][Zoom-url]
+* [![Vercel][Vercel]][Vercel-url]
+* [![Playwright][Playwright]][Playwright-url] [![Jest][Jest]][Jest-url]
 
 <!-- Setup -->
 ## Documents
 
 Documentation lives in [`docs/`](docs/), organized by audience — see [`docs/README.md`](docs/README.md) for the full index:
-* **`docs/01-user-guide/`** — for ICR board members using the platform day to day
-* **`docs/02-handoff/`** — for ICR leadership and future maintainers: ownership, credentials, deployment, backups, support, contingency
-* **`docs/03-development/`** — for developers working on the codebase: architecture, API reference, integration setup, testing
+* **[User Guide](docs/01-user-guide/)** — for ICR board members using the platform day to day
+* **[Handoff](docs/02-handoff/)** — for ICR leadership and future maintainers: ownership, credentials, deployment, backups, support, contingency
+* **[Development](docs/03-development/)** — for developers working on the codebase: architecture, API reference, integration setup, testing
 
 ### Project Structure
 
@@ -83,9 +81,9 @@ Documentation lives in [`docs/`](docs/), organized by audience — see [`docs/RE
 
 ### CI/CD & Automation
 
-Everything under [`.github/`](.github/) runs automatically on push/PR to `master`, or on a schedule - no manual triggering needed.
+Everything under [`.github/`](.github/) runs automatically on push/PR to `master` or on a schedule.
 
-* [`workflows/test.yml`](.github/workflows/test.yml) — lint, unit, integration, Playwright e2e (see [Running Tests](`#running-tests`) below), and a `doc-freshness` job that fails if README.md / `docs/03-development/project-structure.md` cite a Node or Next.js major version that no longer matches `frontend/package.json` (via [`.github/scripts/check-doc-versions.sh`](.github/scripts/check-doc-versions.sh))
+* [`workflows/test.yml`](.github/workflows/test.yml) — lint, unit, component, integration, Playwright e2e (see [Running Tests](#running-tests) below), and a `doc-freshness` job that fails if README.md / `docs/03-development/project-structure.md` cite a Node or Next.js major version that no longer matches `frontend/package.json` (via [`.github/scripts/check-doc-versions.sh`](.github/scripts/check-doc-versions.sh))
 * [`workflows/codeql.yml`](.github/workflows/codeql.yml) — CodeQL static analysis for security vulnerabilities, on every PR plus a weekly scheduled scan
 * [`workflows/bump-node-version.yml`](.github/workflows/bump-node-version.yml) — monthly check for a new Node.js Active LTS release; opens a PR bumping `.nvmrc`/`package.json`/`test.yml` if one exists (Vercel's supported versions still need a manual check before merging)
 * [`workflows/calver-bump.yml`](.github/workflows/calver-bump.yml) — monthly CalVer bump (see [Versioning](#versioning)); opens a PR resetting `PATCH` to `0` on the 1st of each month
@@ -94,27 +92,34 @@ Everything under [`.github/`](.github/) runs automatically on push/PR to `master
 ### Prerequisites
 * Node.js 24.x (see `frontend/.nvmrc`)
 * Yarn
-* MongoDB Compass (Recommended)
+* A [Neon](https://neon.tech) Postgres project (or any Postgres instance) for `DATABASE_URL`
 
 ### Quickstart
 
 ```bash
 cd frontend
 yarn install
-# add a .env file — see docs/03-development/integration-guides.md, section 1, for every variable needed
+# add a .env file — see docs/03-development/environment-variables.md for every variable needed
 yarn dev
 ```
 
-Opens at [http://localhost:3000](http://localhost:3000). See [`docs/03-development/project-structure.md`](docs/03-development/project-structure.md) and [`docs/03-development/integration-guides.md`](docs/03-development/integration-guides.md) for the full setup (MongoDB, Google OAuth, Google Calendar).
+Opens at [http://localhost:3000](http://localhost:3000). See
+[`docs/03-development/local-setup.md`](docs/03-development/local-setup.md) for a full guided
+walkthrough (env vars, running the test suite, making a first change), or
+[`docs/03-development/project-structure.md`](docs/03-development/project-structure.md) and
+[`docs/03-development/integration-guides.md`](docs/03-development/integration-guides.md) for
+architecture and per-service setup (Postgres, Google OAuth, Google Calendar, Zoom).
 
 ### Running Tests
 
 ```bash
-yarn lint                # ESLint
+yarn lint                # ESLint (part of test:all below)
+yarn lint:css             # stylelint — separate from yarn lint (part of test:all below)
 yarn test:unit           # pure functions, seconds, no setup
-yarn test:integration    # route handlers against an in-memory Mongo replica set
-yarn test:e2e            # full Playwright E2E suite (needs `npx playwright install --with-deps chromium` once)
-yarn test:all            # lint + unit + integration + e2e, in that order
+yarn test:component      # individual components in isolation, seconds, no setup
+yarn test:integration    # route handlers against an embedded Postgres instance
+yarn test:e2e            # full Playwright E2E suite (needs `yarn playwright install --with-deps chromium` once)
+yarn test:all            # lint + unit + component + integration + e2e, in that order
 ```
 
 See [`docs/03-development/testing/README.md`](docs/03-development/testing/README.md) for how the suite and CI work.
@@ -172,11 +177,25 @@ This project uses [CalVer](https://calver.org/) (`YYYY.MM.PATCH`). For a detaile
 
 <!-- MARKDOWN LINKS & IMAGES -->
 <!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
-[Next.js]: https://img.shields.io/badge/next.js-000000?style=for-the-badge&logo=nextdotjs&logoColor=white
-[Next-url]: https://nextjs.org/
-[React.js]: https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB
-[React-url]: https://reactjs.org/
-[Prisma.io]: https://img.shields.io/badge/Prisma-3982CE?style=for-the-badge&logo=Prisma&logoColor=white
-[Express.js]: https://img.shields.io/badge/express.js-%23404d59.svg?style=for-the-badge&logo=express&logoColor=%2361DAFB
-[Express-url]: https://expressjs.com/
+[Next.js]: https://img.shields.io/badge/Next.js-000000?style=for-the-badge&logo=nextdotjs&logoColor=white
+[Next.js-url]: https://nextjs.org/
+[React]: https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB
+[React-url]: https://react.dev/
+[Neon]: https://img.shields.io/badge/Neon-018281?style=for-the-badge&logo=neon&logoColor=white
+[Neon-url]: https://neon.tech/
+[PostgreSQL]: https://img.shields.io/badge/PostgreSQL-316192?style=for-the-badge&logo=postgresql&logoColor=white
+[PostgreSQL-url]: https://www.postgresql.org/
+[Prisma]: https://img.shields.io/badge/Prisma-2D3748?style=for-the-badge&logo=prisma&logoColor=white
 [Prisma-url]: https://www.prisma.io/
+[NextAuth]: https://img.shields.io/badge/NextAuth-000000?style=for-the-badge&logo=nextauth&logoColor=white
+[NextAuth-url]: https://next-auth.js.org/
+[Google Calendar]: https://img.shields.io/badge/Google_Calendar-4285F4?style=for-the-badge&logo=googlecalendar&logoColor=white
+[Google Calendar-url]: https://calendar.google.com/
+[Zoom]: https://img.shields.io/badge/Zoom-2D8CFF?style=for-the-badge&logo=zoom&logoColor=white
+[Zoom-url]: https://zoom.us/
+[Vercel]: https://img.shields.io/badge/Vercel-000000?style=for-the-badge&logo=vercel&logoColor=white
+[Vercel-url]: https://vercel.com/
+[Playwright]: https://img.shields.io/badge/Playwright-2EAD33?style=for-the-badge&logo=playwright&logoColor=white
+[Playwright-url]: https://playwright.dev/
+[Jest]: https://img.shields.io/badge/Jest-C21325?style=for-the-badge&logo=jest&logoColor=white
+[Jest-url]: https://jestjs.io/
