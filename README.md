@@ -60,6 +60,7 @@ This project aims to develop internal tooling and automation to streamline ICR's
 * [![Neon][Neon]][Neon-url] [![PostgreSQL][PostgreSQL]][PostgreSQL-url] [![Prisma][Prisma]][Prisma-url]
 * [![NextAuth][NextAuth]][NextAuth-url] [![Google Calendar][Google Calendar]][Google Calendar-url] [![Zoom][Zoom]][Zoom-url]
 * [![Vercel][Vercel]][Vercel-url]
+* [![Pagefind][Pagefind]][Pagefind-url] [![Marked][Marked]][Marked-url]
 * [![Playwright][Playwright]][Playwright-url] [![Jest][Jest]][Jest-url]
 
 <!-- Setup -->
@@ -199,3 +200,7 @@ This project uses [CalVer](https://calver.org/) (`YYYY.MM.PATCH`). For a detaile
 [Playwright-url]: https://playwright.dev/
 [Jest]: https://img.shields.io/badge/Jest-C21325?style=for-the-badge&logo=jest&logoColor=white
 [Jest-url]: https://jestjs.io/
+[Pagefind]: https://img.shields.io/badge/Pagefind-000000?style=for-the-badge
+[Pagefind-url]: https://pagefind.app/
+[Marked]: https://img.shields.io/badge/Marked-000000?style=for-the-badge&logo=markdown&logoColor=white
+[Marked-url]: https://marked.js.org/
