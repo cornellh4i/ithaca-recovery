@@ -10,11 +10,12 @@ The platform is the single source of truth. Changes made here sync automatically
 - **Direct edits in Google Calendar will not sync back** to the platform.
 - **Subsequent platform syncs will overwrite** any changes made directly in Google Calendar.
 
-## Why sync can fail, and what the ⚠ badge means
+## Why sync can fail, and what the sync-error badge means
 
 Meetings are saved to the platform **immediately**, while Google Calendar and Zoom sync in the background. 
 
-- **Sync failures:** The meeting stays saved on the platform, but displays a **⚠ badge**.
+- **Sync failures:** The meeting stays saved on the platform, but displays a **sync-error badge**
+  (see the [Icon and Badge Legend](../reference/icon-and-badge-legend.md) for what it looks like).
 - **Separately tracked, but oftentimes dependent:** Google Calendar and Zoom each get their own status. For In Person meetings (no Zoom involved) they're fully independent. For Hybrid/Remote meetings, though, Google Calendar sync **waits on Zoom** — if Zoom hasn't succeeded yet, Google sync is deferred rather than attempted, so a Zoom failure delays Google too (see [How automatic Zoom host assignment works](#how-automatic-zoom-host-assignment-works) below for the most common cause).
 - **Data protection:** Outages or permission errors won't erase your entry.
 

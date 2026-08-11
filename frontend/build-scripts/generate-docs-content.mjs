@@ -44,6 +44,7 @@ const MANIFEST = [
   { group: "User Guide", relPath: "01-user-guide/reference/roles-and-permissions.md" },
   { group: "User Guide", relPath: "01-user-guide/reference/meeting-fields-and-modes.md" },
   { group: "User Guide", relPath: "01-user-guide/reference/troubleshooting.md" },
+  { group: "User Guide", relPath: "01-user-guide/reference/icon-and-badge-legend.md" },
   { group: "User Guide", relPath: "01-user-guide/reference/quick-reference-card.md" },
   { group: "User Guide", relPath: "01-user-guide/explanation/how-sync-works.md" },
   { group: "User Guide", relPath: "01-user-guide/explanation/why-some-actions-cant-be-undone.md" },

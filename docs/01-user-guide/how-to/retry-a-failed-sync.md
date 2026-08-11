@@ -1,10 +1,11 @@
 # Retry a Failed Sync
 
-A meeting showing a ⚠ badge means its Google Calendar and/or Zoom sync failed — see
+A meeting showing a sync-error badge means its Google Calendar and/or Zoom sync failed — see
 [how sync works](../explanation/how-sync-works.md) for why this can happen without losing the
-meeting itself.
+meeting itself, or the [Icon and Badge Legend](../reference/icon-and-badge-legend.md) if you're not
+sure which icon this is (it's not the same as the amber conflict triangle).
 
-![A ⚠ badge on a calendar block indicating a sync failure](../assets/sync-error-badge.png)
+![A sync-error badge on a calendar block indicating a sync failure](../assets/sync-error-badge.png)
 
 1. Click the meeting to open its detail panel.
 2. The sync status is shown as separate lines for Google Calendar and Zoom, each with its own
