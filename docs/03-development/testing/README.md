@@ -119,6 +119,9 @@ required set yet. See [Deployment and Rollback](../../02-handoff/deployment-and-
 for the full picture, including why CI passing and a production deploy happening aren't the same
 guarantee.
 
+`test.yml` is one of several workflows in `.github/workflows/` — commit/PR-title linting,
+CodeQL, dependency-update automation, and more. See [CI/CD](../ci-cd.md) for the full set.
+
 ## What's still manual
 
 `tests/e2e/` only runs Chromium, and none of the automated tiers touch real Zoom/Google

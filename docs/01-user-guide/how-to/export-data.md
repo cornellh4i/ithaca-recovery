@@ -40,9 +40,8 @@ Each meeting's "Rent Charge" in the CSV depends on its room's configured rate/un
 meeting itself is set up:
 
 - **A `/hr`-rate room:** `4 × the meeting's own hours × the hourly rate`. E.g. a 1-hour meeting in
-  a $15/hr room charges $60/month. The `4` is a flat, deliberately round weeks-per-month — it's
-  not recalculated per month, so the charge stays the same $60 every month regardless of how many
-  times that specific weekday actually falls in a given month.
+  a $15/hr room charges $60/month. The `4` is a flat, not recalculated per month,
+  so the charge stays the same $60 every month.
 - **A `/month`-rate room:** just that flat monthly rate, regardless of the meeting's actual
   duration.
 - **Remote meetings (no physical room):** billed at the flat rate configured for the "Zoom Only"
