@@ -56,17 +56,23 @@ Each section ends with a **Revisit if:** line — the condition under which this
 
 ## Write-Time Conflict Race: Advisory Locks, Not a DB Constraint
 
-**Decision:** `write/meeting` and `update/meeting` wrap their room/zoomRoom/zoomHost conflict check and the actual write in one Prisma transaction, guarded by a Postgres transaction-scoped advisory lock (`pg_advisory_xact_lock`) per requested resource (`frontend/util/meetings/resourceLocks.ts`), rather than a database-level `EXCLUDE` constraint.
+**Decision:** `write/meeting` and `update/meeting` wrap conflict checks and writes inside a single Prisma transaction, serialized by Postgres transaction-scoped advisory locks (`pg_advisory_xact_lock`) per resource (`frontend/util/meetings/resourceLocks.ts`).
 
-**Why not `EXCLUDE USING gist`:** the obvious Postgres-native answer — was considered and rejected. The app has an explicit, client-approved "warn, don't block" policy: an admin can save a genuine double-booking anyway via `ConflictOverrideModal`. An `EXCLUDE` constraint enforces a symmetric, *permanent* pairwise invariant — it has no way to express "these two specific rows were pre-approved to overlap, but each should still count against a *future* row." A `WHERE (NOT overridden)` partial-constraint variant was tried on paper and found broken: marking a row `overridden` doesn't just exempt its own write, it exempts that row from every future conflict check too — a meeting double-booked via override becomes permanently invisible to the constraint, even after whatever it originally conflicted with is deleted and a brand-new booking collides with it instead.
+**Why advisory locks over Postgres `EXCLUDE` constraints:**
+- **Native constraints break override logic:** The app allows admins to intentionally save double-bookings via `ConflictOverrideModal`. `EXCLUDE USING gist` enforces hard invariants at database level and cannot support "warn, don't block."
+- **Partial constraints create invisible rows:** A `WHERE (NOT overridden)` partial index was rejected. Marking a row `overridden` exempts it from *all* future conflict checks — making overridden meetings permanently invisible to subsequent bookings.
+- **Advisory locks preserve check-then-write atomicity:** Locking per-resource (`room`, `zoomRoom`, `zoomHost`) prevents check-then-write race conditions without modifying database constraints. Overridden meetings are saved normally and remain visible to future conflict checks.
 
-**Why advisory locks work:** the check-then-write race (two concurrent requests both pass the check before either writes, both succeed) is closed by making the check and the write atomic relative to any other transaction locking the same resource — but the override decision only ever affects *that* transaction's willingness to proceed past *its own* check. An overridden meeting still lands as a completely ordinary row, so the very next conflict check finds it naturally. No permanent exemption, no invisibility window.
+**Deadlock Prevention:** `lockResourceClaims` sorts requested lock keys into a deterministic order before acquisition to prevent concurrent multi-resource deadlocks.
 
-**Deadlock avoidance:** a single request can need up to 3 locks (room + zoomRoom + zoomHost). `lockResourceClaims` sorts them into a fixed order before acquiring, so two concurrent multi-resource requests always lock in the same sequence — without this, acquiring in different orders is a textbook deadlock.
+**Deliberately out of scope (Known TOCTOU Bug):** Zoom pool-auto-assignment (`resolveZoomHost`, used when no manual host is picked) contains an accepted **Time-of-Check to Time-of-Use (TOCTOU)** race condition created by its connection management strategy:
 
-**Deliberately out of scope:** Zoom pool-auto-assignment (`resolveZoomHost`, used when no manual host is picked) stays outside the lock — a pre-existing, accepted gap. It's also hoisted to run *before* either transaction opens, not inside it: it always queries via the global Prisma client (never the transaction's `tx`), and calling it from inside an open interactive transaction would hold two DB connections per in-flight request.
+- **Time of Check:** `resolveZoomHost` is hoisted to run *before* any transaction opens, querying host availability via the global Prisma client outside the lock (calling it inside an open interactive transaction would hold two DB connections per in-flight request).
+- **Time of Use:** The chosen host is assigned later inside the actual transaction/lock.
 
-**Revisit if:** the "warn, don't block" double-booking policy is ever replaced with a hard block — at that point an `EXCLUDE` constraint (or a non-partial variant of one) becomes viable again and should probably replace this lock-based approach for simplicity. 
+Because host availability is checked before acquiring the lock, concurrent requests can evaluate the same stale host state during this gap and attempt to claim the same host, potentially causing double-bookings. This remains an accepted architectural compromise.
+
+**Revisit if:** the "warn, don't block" double-booking policy is ever replaced with a hard block — at that point an `EXCLUDE` constraint (or a non-partial variant of one) becomes viable again and should probably replace this lock-based approach for simplicity.
 
 ---
 
