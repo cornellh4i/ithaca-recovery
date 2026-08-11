@@ -34,6 +34,25 @@ Until someone saves settings here, the export uses ICR's default rates (Serenity
 other rooms $10/hr; Zoom-only $10/month flat) and a default rental-agent contact. Settings persist
 once saved — no code change needed to update rates going forward.
 
+### How the rate is calculated
+
+Each meeting's "Rent Charge" in the CSV depends on its room's configured rate/unit and how the
+meeting itself is set up:
+
+- **A `/hr`-rate room:** `4 × the meeting's own hours × the hourly rate`. E.g. a 1-hour meeting in
+  a $15/hr room charges $60/month. The `4` is a flat, deliberately round weeks-per-month — it's
+  not recalculated per month, so the charge stays the same $60 every month regardless of how many
+  times that specific weekday actually falls in a given month.
+- **A `/month`-rate room:** just that flat monthly rate, regardless of the meeting's actual
+  duration.
+- **Remote meetings (no physical room):** billed at the flat rate configured for the "Zoom Only"
+  entry in the rooms list, regardless of duration — same as a `/month` room, just always applied
+  to Remote meetings specifically.
+
+"The meeting's own hours" means that one meeting's start-to-end duration, not a sum across its
+whole recurrence — a weekly 1-hour meeting is still just "1 hour" for this calculation, not "1
+hour × however many weeks are in the lease."
+
 ## Generate a signage URL
 
 See [Use Digital Signage](use-digital-signage.md).
