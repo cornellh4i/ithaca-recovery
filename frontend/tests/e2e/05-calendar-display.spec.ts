@@ -70,4 +70,34 @@ test.describe("calendar display", () => {
     await expect(page.getByText("Morning Meeting")).toBeVisible();
     await expect(page.getByText("Evening Meeting")).toBeVisible();
   });
+
+  // Regression test for #350: the view-toggle icon and the unauthenticated "View only" pill
+  // stayed a fixed pixel size while the rest of the header row scaled continuously with its
+  // own container width (container queries, not viewport-based breakpoints). The pill in
+  // particular couldn't scale at all -- it rendered as a DOM sibling of the container-query
+  // root, not a descendant, so cqi units had no ancestor to resolve against. Both widths stay
+  // above the tablet breakpoint (768px, see hooks/useViewport.ts) so the desktop shell -- and
+  // this container-query row -- stays mounted at both sizes; only the row's own available
+  // width (viewport minus the sidebar) changes.
+  test("calendar header: view-toggle icon and 'View only' pill scale continuously with the header row's own width", async ({ page }) => {
+    await page.goto("/");
+    const viewToggleIcon = page.locator('img[src*="view-timeline-icon.svg"]');
+    const pillText = page.getByText("View only - sign in as Admin to manage meetings");
+    const pillIcon = page.locator('img[src="/svg/lock-icon.svg"]');
+
+    await page.setViewportSize({ width: 1400, height: 900 });
+    await expect(viewToggleIcon).toBeVisible();
+    const wideIconWidth = await viewToggleIcon.evaluate((el) => el.getBoundingClientRect().width);
+    const widePillFontSize = parseFloat(await pillText.evaluate((el) => window.getComputedStyle(el).fontSize));
+    const widePillIconWidth = await pillIcon.evaluate((el) => el.getBoundingClientRect().width);
+
+    await page.setViewportSize({ width: 820, height: 900 });
+    const narrowIconWidth = await viewToggleIcon.evaluate((el) => el.getBoundingClientRect().width);
+    const narrowPillFontSize = parseFloat(await pillText.evaluate((el) => window.getComputedStyle(el).fontSize));
+    const narrowPillIconWidth = await pillIcon.evaluate((el) => el.getBoundingClientRect().width);
+
+    expect(narrowIconWidth).toBeLessThan(wideIconWidth);
+    expect(narrowPillFontSize).toBeLessThan(widePillFontSize);
+    expect(narrowPillIconWidth).toBeLessThan(widePillIconWidth);
+  });
 });
