@@ -26,17 +26,12 @@ meeting]
 
 ## 3. Long-term H4I responsibility
 
-Confirmed: maintenance is expected to continue through at least the upcoming semester. Beyond
-that, it's contingent on whether H4I stands up a maintenance team the following semester — not a
-guaranteed indefinite commitment.
-
-Still open, raised 2026-07-26, **not yet decided**: who within Hack4Impact is responsible after
-the current student team transitions, and how continuity between teams is handled (i.e. the
-*mechanism* — e.g. a persistent role like "H4I Maintenance Lead for ICR" regardless of who fills
-it, a required handoff meeting each transition, confirmation the incoming team has read this
-Handoff section — not just a name).
-
-[TODO: this needs an answer from H4I leadership before or during the handoff meeting.]
+Confirmed, 2026-08-11: maintenance is owned by a semesterly H4I team, not a fixed individual or an
+indefinite commitment — it's contingent on H4I standing up a maintenance team each semester. The
+persistent role that carries continuity between teams is **Maintenance Lead**: whoever holds that
+role at any given time is the point of contact (see §4 and [Support Process](support-process.md)).
+H4I will proactively communicate toward the end of each semester if the Maintenance Lead is
+changing for the next one, rather than ICR needing to ask.
 
 ## 4. ICR access and visibility
 
@@ -47,7 +42,8 @@ What ICR gets, even though H4I remains the technical owner:
 - [ ] Read access to backups — [TODO: once [Backups and Recovery](backups-and-recovery.md) is
   finalized, link the mechanism here]
 - [ ] Read access to production data (beyond what the app UI already exposes) — [TODO]
-- [ ] A standing point of contact — see [Support Process](support-process.md)
+- [x] A standing point of contact: the current H4I Maintenance Lead — see §3 above and
+  [Support Process](support-process.md)
 
 [TODO: decide the actual access level — e.g. Vercel "Viewer" role invite, a read-only Neon
 (Postgres) role, or just periodic exports]
