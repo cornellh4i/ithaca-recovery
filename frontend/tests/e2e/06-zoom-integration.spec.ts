@@ -34,10 +34,15 @@ test.describe("zoom integration", () => {
       zoomRoom: "Unity Room - Zoom",
     });
     await page.goto("/");
-    // The zoomTag mismatch badge (util/rooms.ts isZoomRoomMismatched) is rendered by
-    // DayColumn only — DayView's BoxText usage doesn't pass a zoomTag at all.
-    await selectView(page, "Week");
+    // The zoomTag mismatch badge (util/rooms.ts isZoomRoomMismatched) renders in both
+    // Day view (DailyViewRow) and Week view (DayColumn) -- Day view used to silently
+    // drop it (DayView.tsx never carried zoomRoom through its room/zoomRoom-bucketing,
+    // and DailyViewRow never passed a zoomTag prop at all), so check both here rather
+    // than only the view that happened to already work.
     await toggleFilter(page, "Serenity Room");
+    await expect(page.getByTitle("Zoom room: Unity Room")).toBeVisible();
+
+    await selectView(page, "Week");
     await expect(page.getByTitle("Zoom room: Unity Room")).toBeVisible();
   });
 
