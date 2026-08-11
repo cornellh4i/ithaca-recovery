@@ -20,6 +20,9 @@ function getRoomRate(room: string, rooms: IRoomRate[]): IRoomRate {
   return rooms.find((r) => r.room === key) ?? { room: key, rate: 10, unit: "hr" };
 }
 
+// Flat 4 weeks/month, by design -- not the yearly average (52/12). ICR bills a stable, round
+// monthly rate regardless of which months a lease covers or how many times a given weekday
+// lands in a specific month.
 function calculateRentCharge(premiseType: string, billableHours: number, roomRate: IRoomRate): number {
   if (premiseType === "Zoom Only") return roomRate.rate;
   if (roomRate.unit === "month") return roomRate.rate;
@@ -76,14 +79,17 @@ export const GET = async () => {
       ? { ...stored, rooms: stored.rooms as unknown as IRoomRate[] }
       : defaultLeaseSettings();
 
+    // Deliberately not filtered by status: "Active" -- a Suspended meeting's lease obligation
+    // doesn't end just because its calendar visibility is toggled off (suspend hides/pauses,
+    // it doesn't terminate the group's agreement). Only deletedAt excludes a meeting here.
     const meetings = await prisma.meeting.findMany({
-      where: { ...notDeleted, status: "Active" },
+      where: notDeleted,
       include: { recurrencePattern: true },
       orderBy: { title: "asc" },
     });
 
     if (meetings.length === 0) {
-      return new Response(JSON.stringify({ error: "No active meetings to export." }), {
+      return new Response(JSON.stringify({ error: "No meetings to export." }), {
         status: 404,
         headers: { "Content-Type": "application/json" },
       });
