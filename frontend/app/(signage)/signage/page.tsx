@@ -2,7 +2,7 @@
 
 export const dynamic = "force-dynamic";
 
-import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Logo from "../../components/atoms/Logo";
 import CalendarNavbar from "../../components/calendar/desktop/CalendarNavbar";
@@ -51,33 +51,36 @@ function SignageContent() {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
-  const contentRef = useRef<HTMLDivElement>(null);
+  // A callback ref (stored in state), not a plain useRef -- a plain ref's populated value
+  // isn't reactive, so on first mount (viewport still null, page renders null) the element
+  // stays permanently absent from this effect's closure with no re-run ever triggered once it
+  // actually attaches. Storing it in state makes attachment itself a dependency change.
+  const [contentEl, setContentEl] = useState<HTMLDivElement | null>(null);
   const [scale, setScale] = useState(1);
 
   // Scale the whole page (header + calendar) together as one unit.
-  // Day's timeline runs horizontally, so it scales to fit height. 
+  // Day's timeline runs horizontally, so it scales to fit height.
   // Week's timeline runs downward, so it scales to fit width.
   useLayoutEffect(() => {
-    const el = contentRef.current;
-    if (!el) return;
+    if (!contentEl) return;
 
     const recalcScale = () => {
       if (view === "Day") {
-        if (el.scrollHeight > 0) setScale(window.innerHeight / el.scrollHeight);
-      } else if (el.scrollWidth > 0) {
-        setScale(window.innerWidth / el.scrollWidth);
+        if (contentEl.scrollHeight > 0) setScale(window.innerHeight / contentEl.scrollHeight);
+      } else if (contentEl.scrollWidth > 0) {
+        setScale(window.innerWidth / contentEl.scrollWidth);
       }
     };
 
     recalcScale();
     const observer = new ResizeObserver(recalcScale);
-    observer.observe(el);
+    observer.observe(contentEl);
     window.addEventListener("resize", recalcScale);
     return () => {
       observer.disconnect();
       window.removeEventListener("resize", recalcScale);
     };
-  }, [view, filters]);
+  }, [view, filters, contentEl]);
 
   useEffect(() => {
     const id = setInterval(() => setRefreshTrigger(prev => prev + 1), REFRESH_INTERVAL_MS);
@@ -116,7 +119,7 @@ function SignageContent() {
   return (
     <div style={{ height: "100vh", overflow: view === "Day" ? "hidden" : "auto" }}>
       <div
-        ref={contentRef}
+        ref={setContentEl}
         style={{
           transform: `scale(${scale})`,
           transformOrigin: "top left",
