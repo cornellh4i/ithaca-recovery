@@ -500,7 +500,7 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
                     aria-label={syncDetailsOpen ? "Hide sync error details" : "Show sync error details"}
                     onClick={() => setSyncDetailsOpen((v) => !v)}
                   >
-                    <img src="/svg/warning-circle-icon.svg" alt="" />
+                    <img src="/svg/danger-circle-icon.svg" alt="" />
                   </button>
                 </div>
                 {syncDetailsOpen && (
