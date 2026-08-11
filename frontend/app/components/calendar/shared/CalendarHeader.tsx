@@ -65,7 +65,7 @@ const CalendarHeader: React.FC<CalendarHeaderProps> = ({ selectedDate, selectedV
   );
 
   return (
-    <>
+    <div className={styles.headerWrapper}>
       <div className={styles.navbarContainer}>
         {heading}
         {children}
@@ -76,7 +76,7 @@ const CalendarHeader: React.FC<CalendarHeaderProps> = ({ selectedDate, selectedV
           <span>View only - sign in as Admin to manage meetings</span>
         </div>
       )}
-    </>
+    </div>
   );
 };
 
