@@ -62,6 +62,7 @@ const MANIFEST = [
   { group: "Development", relPath: "03-development/api-reference.md" },
   { group: "Development", relPath: "03-development/environment-variables.md" },
   { group: "Development", relPath: "03-development/integration-guides.md" },
+  { group: "Development", relPath: "03-development/ci-cd.md" },
   { group: "Development", relPath: "03-development/testing/README.md" },
   { group: "Development", relPath: "03-development/testing/manual-test-script-template.md" },
 ];

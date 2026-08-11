@@ -18,6 +18,9 @@ For developers (current or future H4I teams) writing code against this app. Orga
 - **How does testing work? How do I run the suite?** [Testing](testing/README.md).
   Before a release, see [Manual Test Script](testing/manual-test-script-template.md)
   for what automation can't cover.
+- **What runs automatically on a push/PR? How do dependency bumps, release versioning, and
+  labeling work?** [CI/CD](ci-cd.md) — every GitHub Actions workflow in the repo, and how they
+  fit together.
 
 > [!NOTE]
 > Adding a new page under `docs/`? It also needs an entry in the hand-curated `MANIFEST` array in
