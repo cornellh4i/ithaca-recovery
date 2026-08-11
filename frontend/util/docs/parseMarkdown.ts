@@ -13,10 +13,62 @@ export function slugify(text: string): string {
     .replace(/(^-|-$)/g, "");
 }
 
+const CALLOUT_LABELS: Record<string, string> = {
+  NOTE: "NOTE",
+  TIP: "TIP",
+  IMPORTANT: "IMPORTANT",
+  WARNING: "WARNING",
+  CAUTION: "CAUTION",
+};
+
+// Path data lifted straight from the matching @mui/icons-material icon (see node_modules or
+// Toast.tsx's own VARIANT_ICON map, which uses the same WarningAmber for its warning variant) --
+// rendered as a raw inline <svg>, not the React component, since this whole callout is a plain
+// HTML string produced by marked, not JSX. fill="currentColor" means the icon automatically picks
+// up whatever color :global(.calloutLabel) sets per callout-* variant, no separate color needed.
+const CALLOUT_ICON_PATHS: Record<string, string[]> = {
+  NOTE: [
+    "M11 7h2v2h-2zm0 4h2v6h-2zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2m0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8",
+  ], // InfoOutlined
+  TIP: [
+    "M9 21c0 .5.4 1 1 1h4c.6 0 1-.5 1-1v-1H9zm3-19C8.1 2 5 5.1 5 9c0 2.4 1.2 4.5 3 5.7V17c0 .5.4 1 1 1h6c.6 0 1-.5 1-1v-2.3c1.8-1.3 3-3.4 3-5.7 0-3.9-3.1-7-7-7",
+  ], // Lightbulb
+  IMPORTANT: [
+    "M11 15h2v2h-2zm0-8h2v6h-2zm.99-5C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2M12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8",
+  ], // ErrorOutline
+  WARNING: ["M12 5.99 19.53 19H4.47zM12 2 1 21h22z", "M13 16h-2v2h2zm0-6h-2v5h2z"], // WarningAmber
+  CAUTION: [
+    "M15.73 3H8.27L3 8.27v7.46L8.27 21h7.46L21 15.73V8.27zM19 14.9 14.9 19H9.1L5 14.9V9.1L9.1 5h5.8L19 9.1zm-4.17-7.14L12 10.59 9.17 7.76 7.76 9.17 10.59 12l-2.83 2.83 1.41 1.41L12 13.41l2.83 2.83 1.41-1.41L13.41 12l2.83-2.83z",
+  ], // DangerousOutlined
+};
+
+function calloutIconSvg(kind: string): string {
+  const paths = CALLOUT_ICON_PATHS[kind].map((d) => `<path d="${d}"/>`).join("");
+  return `<svg class="calloutIcon" viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true">${paths}</svg>`;
+}
+
+// GitHub's alert syntax -- a blockquote whose first line is "[!WARNING]" (etc.) -- renders as a
+// distinctly-styled callout instead of a plain blockquote. Reuses the same success/error/warning/
+// info color language as Toast.module.scss's variants (see DocsShell.module.scss's :global(.callout-*)
+// rules), and degrades gracefully to a normal blockquote with a visible "[!WARNING]" line if ever
+// viewed as raw markdown outside this renderer (e.g. on GitHub, which renders the same syntax
+// natively).
+const CALLOUT_MARKER = /^\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]\s*\n?/i;
+
 export function parseMarkdown(markdown: string): { html: string; toc: TocItem[] } {
   const toc: TocItem[] = [];
   const slugCounts = new Map<string, number>();
   const renderer = new Renderer();
+  renderer.blockquote = ({ text, tokens }: Tokens.Blockquote) => {
+    const match = text.match(CALLOUT_MARKER);
+    if (!match) {
+      return `<blockquote>\n${marked.parser(tokens, { renderer })}</blockquote>\n`;
+    }
+    const kind = match[1].toUpperCase();
+    const body = text.slice(match[0].length);
+    const bodyHtml = marked.parser(marked.lexer(body), { renderer });
+    return `<div class="callout callout-${kind.toLowerCase()}"><p class="calloutLabel">${calloutIconSvg(kind)}${CALLOUT_LABELS[kind]}</p>${bodyHtml}</div>\n`;
+  };
   renderer.heading = ({ text, depth }: Tokens.Heading) => {
     // Repeated heading text (e.g. two "Overview" sections in one doc) would otherwise collide on
     // both the rendered element's id and the TOC's own slug -- a fragment link then always jumps

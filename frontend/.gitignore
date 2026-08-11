@@ -19,6 +19,10 @@
 # is the source of truth, this is a disposable snapshot
 /util/docs/docsContent.generated.ts
 
+# copied at dev/build time by build-scripts/generate-docs-content.mjs -- docs/01-user-guide/
+# assets/ (repo root) is the source of truth, this is a disposable copy
+/public/docs-assets
+
 # generated at build time by build-scripts/generate-pagefind-index.mjs -- the /docs search index
 /public/pagefind
 

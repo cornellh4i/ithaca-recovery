@@ -7,7 +7,7 @@ import { TABLET_BREAKPOINT } from "../../../util/common/breakpoints";
 import type { DocMeta } from "../../../util/docs/loadDocs";
 import { usePagefindComponentUI } from "../../../hooks/usePagefindComponentUI";
 import TopLoadingBar from "../atoms/TopLoadingBar";
-import { PanelToggleIcon, SearchIcon, CloseIcon } from "./DocsIcons";
+import { PanelToggleIcon, SearchIcon, CloseIcon, ChevronDownIcon } from "./DocsIcons";
 import styles from "../../../styles/components/docs/DocsShell.module.scss";
 
 interface DocsShellProps {
@@ -15,19 +15,35 @@ interface DocsShellProps {
   children: React.ReactNode;
 }
 
+// A group's docs render as one or more blocks: a block with subgroup === null renders its docs
+// flat, directly under the group label (e.g. User Guide's own overview doc); a block with a real
+// subgroup renders a subcategory header first (e.g. "Tutorials", "How-to"). Adjacent docs sharing
+// the same subgroup merge into one block rather than one block per doc, so MANIFEST's existing
+// tutorial -> how-to -> reference -> explanation ordering (see generate-docs-content.mjs) becomes
+// exactly the sidebar's section order for free, with no separate sort step.
+interface DocSubgroupBlock {
+  subgroup: string | null;
+  docs: DocMeta[];
+}
+
 interface DocGroup {
   name: string;
-  docs: DocMeta[];
+  blocks: DocSubgroupBlock[];
 }
 
 function buildGroups(docsMeta: DocMeta[]): DocGroup[] {
   const groups: DocGroup[] = [];
   docsMeta.forEach((doc) => {
-    const existing = groups.find((g) => g.name === doc.group);
-    if (existing) {
-      existing.docs.push(doc);
+    let group = groups.find((g) => g.name === doc.group);
+    if (!group) {
+      group = { name: doc.group, blocks: [] };
+      groups.push(group);
+    }
+    const lastBlock = group.blocks[group.blocks.length - 1];
+    if (lastBlock && lastBlock.subgroup === doc.subgroup) {
+      lastBlock.docs.push(doc);
     } else {
-      groups.push({ name: doc.group, docs: [doc] });
+      group.blocks.push({ subgroup: doc.subgroup, docs: [doc] });
     }
   });
   return groups;
@@ -61,6 +77,15 @@ const DocsShell: React.FC<DocsShellProps> = ({ docsMeta, children }) => {
   // phone load right before snapping to compact; gating the render below on this instead avoids
   // that.
   const [compact, setCompact] = useState<boolean | null>(null);
+  // Keys of collapsed sections (both top-level groups and subgroups within them) -- absence from
+  // this set means expanded, so the default (empty set) is "everything open" with no per-section
+  // bookkeeping needed up front. Lives in DocsShell rather than DocsArticle specifically because
+  // DocsShell is the one rendered from docs/layout.tsx and so never remounts on doc-to-doc
+  // navigation (see this component's own comment further down) -- plain useState here already
+  // persists across that "soft" navigation for free, with no localStorage/sessionStorage needed.
+  // A full page reload (new tab, hard refresh) does lose it, same as sidebarOpen/searchOpen above
+  // -- that's the intended scope, not a gap.
+  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
   const [searchOpen, setSearchOpen] = useState(false);
   // Stays true through the close animation so <pagefind-input> and <pagefind-results> (the
   // full-bleed results panel) have something to animate out -- searchOpen alone flips instantly,
@@ -232,6 +257,18 @@ const DocsShell: React.FC<DocsShellProps> = ({ docsMeta, children }) => {
     [docsMeta, pathname]
   );
 
+  const toggleSection = useCallback((key: string) => {
+    setCollapsedSections((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
+  }, []);
+
   // Doc links stay real <Link>s (href for prefetch/right-click/open-in-new-tab), but the click
   // is intercepted so the resulting navigation runs inside a transition -- isNavigating from
   // that transition is the one signal TopLoadingBar needs, regardless of which link triggered
@@ -335,21 +372,58 @@ const DocsShell: React.FC<DocsShellProps> = ({ docsMeta, children }) => {
           {!compact && (
             <pagefind-modal-trigger className={styles.sidebarSearchTrigger} hide-shortcut="true" />
           )}
-          {groups.map((group) => (
-            <React.Fragment key={group.name}>
-              <div className={styles.groupLabel}>{group.name}</div>
-              {group.docs.map((doc) => (
-                <Link
-                  key={doc.slug}
-                  href={docHref(doc.slug)}
-                  className={`${styles.docLink} ${doc.slug === activeMeta?.slug ? styles.isActive : ""}`}
-                  onClick={(event) => navigateToDoc(event, docHref(doc.slug))}
+          {groups.map((group) => {
+            const groupCollapsed = collapsedSections.has(group.name);
+            return (
+              <React.Fragment key={group.name}>
+                <button
+                  type="button"
+                  className={styles.groupLabel}
+                  aria-expanded={!groupCollapsed}
+                  onClick={() => toggleSection(group.name)}
                 >
-                  {doc.title}
-                </Link>
-              ))}
-            </React.Fragment>
-          ))}
+                  <ChevronDownIcon size={12} className={groupCollapsed ? styles.chevronCollapsed : styles.chevron} />
+                  {group.name}
+                </button>
+                {!groupCollapsed &&
+                  group.blocks.map((block, blockIndex) => {
+                    const subgroupKey = `${group.name}::${block.subgroup ?? blockIndex}`;
+                    const subgroupCollapsed = block.subgroup ? collapsedSections.has(subgroupKey) : false;
+                    return (
+                      <React.Fragment key={block.subgroup ?? `flat-${blockIndex}`}>
+                        {block.subgroup && (
+                          <button
+                            type="button"
+                            className={styles.subgroupLabel}
+                            aria-expanded={!subgroupCollapsed}
+                            onClick={() => toggleSection(subgroupKey)}
+                          >
+                            <ChevronDownIcon
+                              size={10}
+                              className={subgroupCollapsed ? styles.chevronCollapsed : styles.chevron}
+                            />
+                            {block.subgroup}
+                          </button>
+                        )}
+                        {!subgroupCollapsed &&
+                          block.docs.map((doc) => (
+                            <Link
+                              key={doc.slug}
+                              href={docHref(doc.slug)}
+                              className={`${styles.docLink} ${block.subgroup ? styles.docLinkNested : ""} ${
+                                doc.slug === activeMeta?.slug ? styles.isActive : ""
+                              }`}
+                              onClick={(event) => navigateToDoc(event, docHref(doc.slug))}
+                            >
+                              {doc.title}
+                            </Link>
+                          ))}
+                      </React.Fragment>
+                    );
+                  })}
+              </React.Fragment>
+            );
+          })}
         </nav>
 
         {children}

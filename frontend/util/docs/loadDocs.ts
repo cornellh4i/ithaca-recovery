@@ -5,7 +5,15 @@ export interface DocEntry {
   slug: string;
   title: string;
   group: string;
+  // Sidebar subcategory within group (e.g. "Tutorials", "How-to") -- null for a doc directly in
+  // its group's own root, which renders flat under the group label with no subcategory header.
+  subgroup: string | null;
   markdown: string;
+  // Git-derived (see generate-docs-content.mjs's lastEditInfo) -- null editedBy means the file
+  // has no git history yet (falls back to filesystem mtime for lastEdited in that case).
+  lastEdited: string;
+  editedBy: string | null;
+  readingTimeMinutes: number;
 }
 
 export type DocMeta = Omit<DocEntry, "markdown">;
