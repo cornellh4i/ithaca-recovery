@@ -95,6 +95,7 @@ export const fetchMeetingsByDay = async (date: Date): Promise<Room[]> => {
           displayEndTime: etTimeFmt.format(new Date(meeting.trueEndDateTime)),
           date: formattedDate,
           tags: [...meeting.calType, meeting.modeType],
+          zoomRoom: meeting.zoomRoom,
         };
 
         // A Hybrid meeting occupies both its physical room and its Zoom room; In Person
@@ -112,8 +113,11 @@ export const fetchMeetingsByDay = async (date: Date): Promise<Room[]> => {
           }
           // Own copy per room bucket -- a Hybrid meeting appears in both its physical
           // room and Zoom room rows, and each row lays out overlap independently, so
-          // they can't share one `room` field value.
-          groupedRooms[roomName].push({ ...meetingEntry, room: roomName });
+          // they can't share one card object. `room` stays the meeting's actual physical
+          // room in *both* copies (not the bucket's own roomName) -- isZoomRoomMismatched
+          // compares physical room to zoomRoom, and that pairing doesn't change depending
+          // on which row happens to be rendering the card.
+          groupedRooms[roomName].push({ ...meetingEntry, room: meeting.room });
         });
       });
 

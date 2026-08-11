@@ -2,8 +2,12 @@ import React, { useState, useRef, useEffect } from 'react';
 import BoxText from '../../atoms/BoxText';
 import OverlapMeetingsModal from '../shared/OverlapMeetingsModal';
 import styles from '../../../../styles/components/calendar/desktop/DailyViewRow.module.scss';
+import { isZoomRoomMismatched } from '../../../../util/rooms/rooms';
 import { formatCompactTimeRange } from '../../../../util/date/timeFormat';
 import { formatETDateString } from '../../../../util/date/timeUtils';
+
+// Drops the " - Zoom" suffix for a more compact badge label -- same helper as DayColumn.tsx
+const formatZoomRoomLabel = (zoomRoom: string) => zoomRoom.replace(/ - Zoom$/, '');
 
 // Meeting Interface
 interface Meeting {
@@ -14,6 +18,8 @@ interface Meeting {
   displayEndTime?: string; // true time, for the label
   tags?: string[];
   id: string;
+  room?: string; // Physical room -- compared against zoomRoom for the mismatch badge
+  zoomRoom?: string | null;
   positionIndex?: number; // Lane index among overlapping meetings in this room, assigned by layoutOverlappingMeetings
   totalOverlapping?: number; // Lane count among overlapping meetings in this room
   isOverflowIndicator?: boolean; // "+N more" pseudo-entry standing in for meetings past the 2 shown lanes
@@ -182,6 +188,11 @@ const DailyViewRow: React.FC<DailyViewRowProps> = ({
           time={compactTime}
           tags={meeting.tags}
           meetingId={meeting.id}
+          zoomTag={
+            meeting.room && isZoomRoomMismatched(meeting.room, meeting.zoomRoom)
+              ? formatZoomRoomLabel(meeting.zoomRoom!)
+              : undefined
+          }
           syncError={syncErrorMids?.has(meeting.id)}
           hasConflict={conflictMids?.has(meeting.id)}
           selected={isSelected}
