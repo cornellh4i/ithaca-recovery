@@ -5,13 +5,20 @@ import { DESKTOP_BREAKPOINT } from "../../../util/common/breakpoints";
 import { parseMarkdown } from "../../../util/docs/parseMarkdown";
 import type { DocEntry } from "../../../util/docs/loadDocs";
 import { useScrollNavHide } from "../../../hooks/useScrollNavHide";
-import { TocToggleIcon } from "./DocsIcons";
+import { CheckIcon, ChevronDownIcon, CopyIcon, ExternalLinkIcon, TocToggleIcon } from "./DocsIcons";
 import TocList from "./DocsTocList";
 import styles from "../../../styles/components/docs/DocsShell.module.scss";
 
 interface DocsArticleProps {
   activeDoc: DocEntry;
 }
+
+const DATE_FORMATTER = new Intl.DateTimeFormat("en-US", {
+  year: "numeric",
+  month: "short",
+  day: "numeric",
+  timeZone: "UTC",
+});
 
 // Rendered from [[...slug]]/page.tsx -- the part of the docs page that's SUPPOSED to remount on
 // every doc-to-doc navigation (a new doc starts at the top, gets a fresh TOC, etc). The
@@ -28,6 +35,8 @@ const DocsArticle: React.FC<DocsArticleProps> = ({ activeDoc }) => {
   const [tocHidden, setTocHidden] = useState<boolean | null>(null);
   const [tocOpen, setTocOpen] = useState(false);
   const [activeHeadingSlug, setActiveHeadingSlug] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+  const [markdownMenuOpen, setMarkdownMenuOpen] = useState(false);
   const articleRef = useRef<HTMLElement>(null);
   const tocPanelRef = useRef<HTMLDivElement>(null);
   const tocNavRef = useRef<HTMLElement>(null);
@@ -52,9 +61,38 @@ const DocsArticle: React.FC<DocsArticleProps> = ({ activeDoc }) => {
   // silently breaking later).
   useEffect(() => {
     setTocOpen(false);
+    setCopied(false);
+    setMarkdownMenuOpen(false);
   }, [activeDoc.slug]);
 
   const { html, toc } = useMemo(() => parseMarkdown(activeDoc.markdown), [activeDoc.markdown]);
+
+  // Fixed locale/timeZone (not the visitor's own) so this renders identically on the server and
+  // after hydration -- a locale- or timeZone-dependent format here would mismatch whenever the
+  // rendering machine's Intl defaults differ from the browser's.
+  const lastEditedLabel = useMemo(
+    () => DATE_FORMATTER.format(new Date(activeDoc.lastEdited)),
+    [activeDoc.lastEdited]
+  );
+
+  // Copies the raw markdown source (not the rendered HTML) -- useful for pasting into a GitHub
+  // issue/PR, another editor, or back into an LLM, none of which want this page's rendered DOM.
+  // 2s revert matches Toast's own auto-dismiss feel elsewhere in the app, just local state here
+  // instead of a real toast, since this is a one-off inline confirmation, not a cross-page event.
+  const handleCopyMarkdown = useCallback(() => {
+    navigator.clipboard.writeText(activeDoc.markdown).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }, [activeDoc.markdown]);
+
+  // Opens this doc's raw markdown at its own stable, shareable URL (GitHub's "Raw" button, same
+  // idea) -- /docs/<slug>.md, served by app/api/docs-raw/route.ts via next.config.mjs's rewrite.
+  // Just appends ".md" to the current path rather than reading activeDoc.slug directly, since the
+  // current URL is already exactly "/docs" + "/" + slug (or bare "/docs" when slug is "").
+  const handleOpenMarkdown = useCallback(() => {
+    window.open(`${window.location.pathname}.md`, "_blank");
+  }, []);
 
   // INVARIANT: this object's identity must stay stable across re-renders that don't change the
   // markdown. React diffs dangerouslySetInnerHTML by the wrapper object's *identity*, never by
@@ -165,6 +203,56 @@ const DocsArticle: React.FC<DocsArticleProps> = ({ activeDoc }) => {
   return (
     <React.Fragment>
       <div className={styles.articleColumn}>
+        <div className={styles.docMeta}>
+          <span>
+            Last edited {lastEditedLabel}
+            {activeDoc.editedBy ? ` by ${activeDoc.editedBy}` : ""}
+          </span>
+          <span className={styles.docMetaDot} aria-hidden="true" />
+          <span>
+            {activeDoc.readingTimeMinutes} min read
+          </span>
+          <div className={styles.copyMarkdownGroup}>
+            <button type="button" className={styles.copyMarkdownBtn} onClick={handleCopyMarkdown}>
+              {copied ? <CheckIcon size={14} /> : <CopyIcon size={14} />}
+              {copied ? "Copied" : "Copy as Markdown"}
+            </button>
+            <button
+              type="button"
+              className={styles.copyMarkdownCaretBtn}
+              aria-label="More markdown options"
+              aria-expanded={markdownMenuOpen}
+              onClick={() => setMarkdownMenuOpen((prev) => !prev)}
+            >
+              <ChevronDownIcon size={12} />
+            </button>
+            {markdownMenuOpen && (
+              <React.Fragment>
+                <div className={styles.tocScrim} onClick={() => setMarkdownMenuOpen(false)} />
+                <div className={styles.copyMarkdownMenu}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleCopyMarkdown();
+                      setMarkdownMenuOpen(false);
+                    }}
+                  >
+                    <CopyIcon size={14} /> Copy as Markdown
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleOpenMarkdown();
+                      setMarkdownMenuOpen(false);
+                    }}
+                  >
+                    <ExternalLinkIcon size={14} /> Open Markdown
+                  </button>
+                </div>
+              </React.Fragment>
+            )}
+          </div>
+        </div>
         <main
           ref={articleRef}
           className={styles.article}

@@ -19,6 +19,26 @@ const nextConfig = {
     // Sass warnings. Drop this once the styles/ tree migrates to @use.
     silenceDeprecations: ["import"],
   },
+  // /docs/<slug>.md serves that doc's raw markdown (GitHub-raw-URL-style), via a real Route
+  // Handler at /api/docs-raw -- app/(main)/docs/[[...slug]]/page.tsx can't handle this itself,
+  // since Next.js doesn't allow a route.ts and a page.tsx to resolve the same URL, and a page
+  // component can't return a non-HTML Response body anyway. :slug(.*) matches zero or more path
+  // segments (including none, for the root doc's /docs.md), rewritten transparently -- the
+  // browser's address bar still shows the clean /docs/<slug>.md URL, not /api/docs-raw.
+  async rewrites() {
+    return [
+      {
+        source: "/docs/:slug(.*)\\.md",
+        destination: "/api/docs-raw/:slug",
+      },
+      {
+        // The root doc's slug is "" (see loadDocs.ts's DocEntry) -- no slash before ".md" to
+        // match the pattern above, so it needs its own literal rule.
+        source: "/docs.md",
+        destination: "/api/docs-raw",
+      },
+    ];
+  },
 };
 
 export default nextConfig;

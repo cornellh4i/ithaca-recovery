@@ -235,6 +235,23 @@
   }
 }
 
+// Both are real <button>s now (collapsible sections, see DocsShell.tsx's toggleSection) --
+// this resets them back to reading like the plain text labels they used to be, before adding the
+// chevron + click behavior.
+.groupLabel,
+.subgroupLabel {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  border: none;
+  background: transparent;
+  padding: 0;
+  text-align: left;
+  font-family: inherit;
+  cursor: pointer;
+}
+
 .groupLabel {
   font-size: 12px;
   font-weight: 600;
@@ -242,6 +259,33 @@
   text-transform: uppercase;
   color: $medium-grey-color;
   margin: 18px 0 10px;
+}
+
+// One notch smaller/lighter than .groupLabel and indented to read as nested under it -- e.g.
+// "Tutorials"/"How-to"/"Reference"/"Explanation" under the "User Guide" group label. A block with
+// no subgroup (see DocSubgroupBlock) renders no header at all, so this only ever appears for a
+// group that actually has subcategories.
+.subgroupLabel {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: $medium-grey-color;
+  opacity: 0.75;
+  margin: 12px 0 4px 12px;
+}
+
+.chevron {
+  flex-shrink: 0;
+  transition: transform 0.15s ease;
+}
+
+// Collapsed = pointing right instead of down, same convention as any standard accordion/tree
+// view -- rotating the same down-chevron rather than swapping to a second icon asset.
+.chevronCollapsed {
+  flex-shrink: 0;
+  transition: transform 0.15s ease;
+  transform: rotate(-90deg);
 }
 
 .docLink {
@@ -261,6 +305,12 @@
   margin-bottom: 2px;
   text-decoration: none; // buttons never needed this; now a real <Link> (real <a>), which does
 
+  // Indented to sit visually under its .subgroupLabel header, same 12px .subgroupLabel itself is
+  // already offset by -- lines its own text up with the header's, not just the link's padding box.
+  &.docLinkNested {
+    padding-left: 24px;
+  }
+
   &.isActive {
     background: $grey-lightest-color;
     color: $brand-pink-color;
@@ -276,11 +326,119 @@
   min-width: 0;
   height: 100%;
   position: relative;
+
+  // Column layout so .docMeta (natural height) and .article (fills the rest) share this box --
+  // .tocToggleSlot/.tocPanel stay unaffected, since position: absolute already takes them out of
+  // flow regardless of the parent's display mode.
+  display: flex;
+  flex-direction: column;
+}
+
+// Byline row above the article's own h1 -- "Last edited <date> by <author> · N min read", both
+// sourced at build time from git history (see generate-docs-content.mjs's lastEditInfo).
+.docMeta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 13px;
+  color: $medium-grey-color;
+  padding: 0 0 8px;
+}
+
+// Split button: .copyMarkdownBtn is the primary one-click action, .copyMarkdownCaretBtn opens
+// .copyMarkdownMenu with both options (including a redundant copy of the primary action) -- the
+// group itself (not the individual buttons) establishes position: relative, so the dropdown
+// anchors here rather than to .articleColumn at large.
+.copyMarkdownGroup {
+  position: relative;
+  display: flex;
+  margin-left: auto; // pushes to the row's right edge; wraps onto its own line on narrow viewports
+}
+
+.copyMarkdownBtn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border: 1px solid $light-grey-color;
+  border-right: none;
+  border-radius: $radius-md 0 0 $radius-md;
+  background: $white-color;
+  color: $medium-grey-color;
+  font-size: 13px;
+  cursor: pointer;
+
+  &:hover {
+    background: $grey-lightest-color;
+    color: $black-color;
+  }
+}
+
+.copyMarkdownCaretBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px 8px;
+  border: 1px solid $light-grey-color;
+  border-radius: 0 $radius-md $radius-md 0;
+  background: $white-color;
+  color: $medium-grey-color;
+  cursor: pointer;
+
+  &:hover {
+    background: $grey-lightest-color;
+    color: $black-color;
+  }
+}
+
+.copyMarkdownMenu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  width: 180px;
+  background: $white-color;
+  border: 1px solid $light-grey-color;
+  border-radius: $radius-md;
+  box-shadow: 0 8px 16px rgb(0 0 0 / 8%);
+  padding: 4px;
+  z-index: $z-index-dropdown;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+
+  button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 8px 10px;
+    border: none;
+    background: none;
+    border-radius: $radius-sm;
+    font-size: 13px;
+    color: $navy-color;
+    text-align: left;
+    cursor: pointer;
+
+    &:hover {
+      background: $grey-lightest-color;
+    }
+  }
+}
+
+.docMetaDot {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: $medium-grey-color;
+  flex-shrink: 0;
 }
 
 .article {
   width: 100%;
-  height: 100%; // own independent scroll pane -- see .columns's comment
+  flex: 1;
+  min-height: 0; // lets this shrink to the remaining space instead of overflowing past .docMeta
   overflow-y: auto;
   padding-top: 4px;
 
@@ -407,11 +565,108 @@
     }
   }
 
+  // Screenshots (docs/01-user-guide/assets/*, served from /docs-assets/ -- see
+  // generate-docs-content.mjs's rewriteImageSrcs/copyDocAssets) always fill the article's width
+  // rather than rendering at their own natural pixel size, so they read consistently regardless
+  // of what resolution a given screenshot happened to be taken at. display: block drops the
+  // few-px gap a still-inline <img> leaves below itself; height: auto keeps the forced width
+  // from distorting the image's own aspect ratio.
+  :global(img) {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: $radius-md;
+    border: 1px solid $light-grey-color;
+    margin: 0 0 16px;
+  }
+
+  // One-off override, not a general "authors can size images" mechanism -- the Diátaxis quadrant
+  // diagram (User Guide README) reads better narrower and centered than full-bleed like the
+  // actual app screenshots elsewhere in the docs. Matched by filename since there's no per-image
+  // sizing syntax in the markdown itself.
+  :global(img[src$="diataxis-quadrants.png"]) {
+    width: 80%;
+    margin: 0 auto 16px;
+  }
+
   :global(blockquote) {
     border-left: 3px solid $light-grey-color;
     margin: 0 0 16px;
     padding: 4px 16px;
     color: $medium-grey-color;
+  }
+
+  // GitHub-alert-syntax callouts (see parseMarkdown.ts's renderer.blockquote) -- p:last-child
+  // reset clears the trailing 16px margin :global(p) sets above, which would otherwise leave
+  // extra padding at the callout's own bottom edge.
+  :global(.callout) {
+    margin: 0 0 16px;
+    padding: 12px 16px;
+    border-radius: $radius-md;
+    border-left: 3px solid;
+
+    :global(p:last-child) {
+      margin-bottom: 0;
+    }
+  }
+
+  :global(.calloutLabel) {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0 0 4px;
+    font-weight: 600;
+  }
+
+  :global(.calloutIcon) {
+    flex-shrink: 0;
+  }
+
+  :global(.callout-note) {
+    background: $info-bg-color;
+    border-left-color: $info-text-color;
+
+    :global(.calloutLabel) {
+      color: $info-text-color;
+    }
+  }
+
+  :global(.callout-tip) {
+    background: $success-bg-color;
+    border-left-color: $success-text-color;
+
+    :global(.calloutLabel) {
+      color: $success-text-color;
+    }
+  }
+
+  :global(.callout-important) {
+    // No dedicated "pink-tint" background token exists (unlike info/success/warning/danger) --
+    // derived inline rather than adding one just for this one variant.
+    background: rgba($brand-pink-color, 8%);
+    border-left-color: $brand-pink-color;
+
+    :global(.calloutLabel) {
+      color: $brand-pink-color;
+    }
+  }
+
+  :global(.callout-warning) {
+    background: $warning-bg-color;
+    border-left-color: $warning-text-color;
+
+    :global(.calloutLabel) {
+      color: $warning-text-color;
+    }
+  }
+
+  :global(.callout-caution) {
+    background: $danger-bg-color;
+    border-left-color: $danger-color;
+
+    :global(.calloutLabel) {
+      color: $danger-color;
+    }
   }
 
   :global(hr) {

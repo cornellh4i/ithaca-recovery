@@ -14,6 +14,7 @@ const API_ROOT = path.resolve(__dirname, "../../app/api");
 const PUBLIC_ROUTES = new Set([
   "auth/[...nextauth]/route.ts", // NextAuth's own handler, not a custom route
   "auth/status/route.ts", // public session-status probe by design
+  "docs-raw/[[...slug]]/route.ts", // raw markdown for /docs/<slug>.md -- docs are already public at /docs itself
   "retrieve/meeting/route.ts",
   "retrieve/meeting/day/route.ts",
   "retrieve/meeting/week/route.ts",

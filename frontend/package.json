@@ -8,15 +8,15 @@
     "start": "next start",
     "lint": "eslint --config config/eslint.config.mjs .",
     "lint:fix": "eslint --config config/eslint.config.mjs . --fix",
-    "lint:css": "stylelint --config config/stylelint.config.mjs \"styles/**/*.scss\"",
-    "lint:css:fix": "stylelint --config config/stylelint.config.mjs \"styles/**/*.scss\" --fix",
+    "lint:css": "stylelint --config config/stylelint.config.mjs \"{styles,app}/**/*.scss\"",
+    "lint:css:fix": "stylelint --config config/stylelint.config.mjs \"{styles,app}/**/*.scss\" --fix",
     "commitlint": "commitlint --config config/commitlint.config.mjs",
     "postinstall": "prisma generate",
     "test:unit": "jest --config config/jest.config.ts",
     "test:component": "jest --config config/jest.component.config.ts",
     "test:integration": "jest --config config/jest.integration.config.ts",
     "test:e2e": "playwright test --config config/playwright.config.ts",
-    "test:all": "yarn lint && yarn test:unit && yarn test:component && yarn test:integration && yarn test:e2e"
+    "test:all": "yarn lint && yarn lint:css && yarn test:unit && yarn test:component && yarn test:integration && yarn test:e2e"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",

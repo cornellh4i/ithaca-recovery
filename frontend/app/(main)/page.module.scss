@@ -9,7 +9,7 @@
   position: relative; // anchors the collapse/expand chevron to the visible viewport,
                        // not to whatever height the scrollable content grows to
   width: 280px;
-  background-color: #ffffff;
+  background-color: #fff;
   padding: 24px;
   min-height: 0; // lets the flex item shrink so .sidebarScroll's height: 100% is bounded
   // No overflow here on purpose -- overflow-y auto/hidden forces overflow-x to compute as
@@ -85,6 +85,7 @@
   top: 50%;
   right: -10px;
   transform: translateY(-50%);
+
   // `transform` establishes a new stacking context, which traps the tooltip's own z-index
   // inside it -- without an explicit z-index here too, this wrapper paints in plain DOM
   // order at the root stacking context, so .primaryCalendar's content (which comes later
@@ -96,7 +97,7 @@
 .primaryCalendar {
   flex: 1;
   min-height: 0;
-  background-color: #ffffff;
+  background-color: #fff;
   padding: 10px;
 
   // Must be a real flex column, not plain block flow: CalendarNavbar and the Day/Week view
@@ -142,8 +143,8 @@
   flex-direction: row;
   justify-content: space-between;
   align-items: center;
-  color: var(--Dark-Navy, #3A3E49);
-  font-family: "Source Sans Pro";
+  color: #3a3e49;
+  font-family: "Source Sans Pro", sans-serif;
   font-style: normal;
   font-weight: 600;
   background-color: white;
