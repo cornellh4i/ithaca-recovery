@@ -15,12 +15,14 @@ All workflows live in [`.github/workflows/`](https://github.com/cornellh4i/ithac
 
 ## Test suite — `test.yml`
 
-Runs on every push/PR to `main`/`master` as separate jobs (`doc-freshness`, `lint`, `unit`,
-`component`, `integration`, `e2e`), so a slow or flaky e2e run doesn't hold up the fast unit-test
-signal. Full breakdown of what each job actually tests: [Testing §CI](testing/README.md#ci).
+Runs on pushes to `main`/`master` and on every pull request (targeting any base branch), as
+separate jobs (`doc-freshness`, `lint`, `unit`, `component`, `integration`, `e2e`), so a slow or
+flaky e2e run doesn't hold up the fast unit-test signal. Full breakdown of what each job actually
+tests: [Testing §CI](testing/README.md#ci).
 
-`CHECKPOINT_DISABLE: "1"` is set repo-wide in this workflow's `env` — Prisma CLI otherwise pings
-`checkpoint.prisma.io` after every command and can hang a job if that ping stalls.
+`CHECKPOINT_DISABLE: "1"` is set at the workflow level in `test.yml`'s `env`, so every job in this
+workflow (not other workflows) skips it — Prisma CLI otherwise pings `checkpoint.prisma.io` after
+every command and can hang a job if that ping stalls.
 
 ## Commit and PR title linting — `commitlint.yml`, `pr-title-lint.yml`
 
@@ -42,21 +44,22 @@ configured in `frontend/config/commitlint.config.mjs` (extends
 
 Not a GitHub Actions workflow — a separate GitHub App, configured via
 [`.coderabbit.yaml`](https://github.com/cornellh4i/ithaca-recovery/blob/master/.coderabbit.yaml)
-at the repo root. Auto-reviews every PR with inline comments and a summary, except PRs opened by
-`dependabot[bot]` (already gated by CI + the auto-merge policy below — a review there is just
-noise). It also suggests a Conventional-Commits-compliant title on open, mirroring the same rules
+at the repo root. Auto-reviews PRs based on the repo's default branch (`master`) with inline
+comments and a summary, except PRs opened by `dependabot[bot]` (already gated by CI + the
+auto-merge policy below — a review there is just noise). It also suggests a
+Conventional-Commits-compliant title on open, mirroring the same rules
 `commitlint.yml`/`pr-title-lint.yml` enforce.
 
 > [!NOTE]
-> Auto-review only fires for PRs based on the repo's default branch. A PR stacked on top of
-> another PR (base branch isn't `master`) needs a manual `@coderabbitai review` comment on that PR
-> to trigger one.
+> A PR stacked on top of another PR (base branch isn't `master`) needs a manual
+> `@coderabbitai review` comment on that PR to trigger one.
 
 ## Security scanning — `codeql.yml`
 
-[CodeQL](https://codeql.github.com/) static analysis on every push/PR to `main`/`master`, plus a
-weekly scheduled run (Sundays 01:30 UTC) to catch anything a new advisory flags in code that
-hasn't changed recently. Currently scans `javascript-typescript` only. Findings post to the repo's
+[CodeQL](https://codeql.github.com/) static analysis on pushes to `main`/`master` and on every
+pull request (targeting any base branch), plus a weekly scheduled run (Sundays 01:30 UTC) to
+catch anything a new advisory flags in code that hasn't changed recently. Currently scans
+`javascript-typescript` only. Findings post to the repo's
 **Security → Code scanning alerts** tab, not as PR check failures.
 
 ## Dependency updates — `dependabot.yml`, `dependabot-auto-merge.yml`
