@@ -18,6 +18,10 @@ jest.mock("../../services/zoom", () => ({
   updateZoomMeeting: jest.fn(),
   getZoomMeetingInvitation: jest.fn(),
   resolveZoomHost: jest.fn(),
+  // resolveZoomHost itself is mocked (its result is controlled per-test below), but the route
+  // now locks every pool host via lockResourceClaims (the real implementation, not mocked)
+  // before calling it -- needs real string values to lock, not the real env-derived pool.
+  zoomHostPool: ["mock-pool-host-1@icr.test", "mock-pool-host-2@icr.test"],
   zoomRoomCalendarId: {},
 }));
 
@@ -110,6 +114,39 @@ test("a retry that still can't get a host stays pending and does not attempt the
 
   const afterRetry = await prisma.meeting.findUnique({ where: { mid: meetingData.mid } });
   expect(afterRetry?.googleSyncStatus).toBe("pending");
+});
+
+// #360: the pool-host reservation (lock the pool, resolve, persist zoomHost) must commit BEFORE
+// the external Zoom API call, and must survive that call failing -- otherwise a failed retry
+// would silently free the host it just reserved, letting a concurrent request take it while this
+// meeting's own zoomSyncError still claims pool exhaustion.
+test("a retry reserves the resolved pool host before calling the Zoom API, and keeps the reservation even if that call fails", async () => {
+  const prisma = getTestPrismaClient();
+  const meetingData = buildMeetingData();
+  await prisma.meeting.create({ data: meetingData });
+
+  mockedResolveZoomHost.mockResolvedValue("reserved-host@icr.test");
+  mockedCreateZoomMeeting.mockImplementation(async () => {
+    // The reservation transaction must already have committed by the time this external call
+    // fires -- assert the DB reflects it, not just that resolveZoomHost returned a value.
+    const duringCall = await prisma.meeting.findUnique({ where: { mid: meetingData.mid } });
+    expect(duringCall?.zoomHost).toBe("reserved-host@icr.test");
+    return null; // simulate the external Zoom API call itself failing
+  });
+
+  const request = new Request("http://localhost/api/update/meeting/sync", {
+    method: "POST",
+    body: JSON.stringify({ mid: meetingData.mid }),
+  });
+
+  const response = await POST(request);
+  expect(response.status).toBe(200);
+  const body = await response.json();
+  expect(body.zoomSyncStatus).toBe("error");
+  expect(body.zoomSyncError).toMatch(/failed to create the zoom meeting/i);
+
+  const afterRetry = await prisma.meeting.findUnique({ where: { mid: meetingData.mid } });
+  expect(afterRetry?.zoomHost).toBe("reserved-host@icr.test");
 });
 
 // BUG-023: zoomBlocking must key off the *resulting* zoomSyncStatus, not off "does a zid

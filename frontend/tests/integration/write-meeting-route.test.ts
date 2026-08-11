@@ -28,6 +28,10 @@ jest.mock("../../services/zoom", () => ({
   createZoomMeeting: jest.fn(),
   getZoomMeetingInvitation: jest.fn(),
   resolveZoomHost: jest.fn(),
+  // resolveZoomHost itself is mocked (its result is controlled per-test below), but the route
+  // now locks every pool host via lockResourceClaims (the real implementation, not mocked)
+  // before calling it -- needs real string values to lock, not the real env-derived pool.
+  zoomHostPool: ["mock-pool-host-1@icr.test", "mock-pool-host-2@icr.test"],
   zoomRoomCalendarId: {},
 }));
 
