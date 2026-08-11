@@ -3,7 +3,7 @@ import { NextResponse, after } from "next/server";
 import { requireRole } from "../../../../services/auth";
 import { IMeeting } from "../../../../types/models";
 import { createCalendarEvent, updateCalendarEvent, deleteCalendarEvent, reconcileMeetingCalendars } from "../../../../services/googleCalendar";
-import { createZoomMeeting, updateZoomMeeting, deleteZoomMeeting, getZoomMeetingInvitation, resolveZoomHost, zoomRoomCalendarId } from "../../../../services/zoom";
+import { createZoomMeeting, updateZoomMeeting, deleteZoomMeeting, getZoomMeetingInvitation, resolveZoomHost, zoomHostPool, zoomRoomCalendarId } from "../../../../services/zoom";
 import { findResourceConflicts, findResourceConflictRows, ConflictRow, ResourceConflictAbort } from "../../../../util/meetings/resourceOverlap";
 import { lockResourceClaims, ResourceClaim } from "../../../../util/meetings/resourceLocks";
 import { meetingSchema } from "../../../../util/meetings/meetingValidation";
@@ -269,34 +269,27 @@ const updateMeeting = async (request: Request): Promise<Response> => {
         (existingMeeting.zoomRoom || "") !== (newMeeting.zoomRoom || "") ||
         explicitHostChange);
 
-    // Pool-auto-assignment resolved BEFORE the transaction below, not inside it: resolveZoomHost
-    // always queries via the global `prisma` client (it's intentionally NOT lock/tx-guarded --
-    // pool-auto-assignment is a pre-existing, documented accepted gap, see the PR #303 and
-    // "[Designed 2026-08-06]" arch-decision entries, out of scope for this pass). Running it
-    // inside an already-open interactive transaction would hold a second DB connection open for
-    // the duration of up to 5 sequential pool-availability queries on top of the transaction's
-    // own connection -- under concurrent load that's a real connection-pool exhaustion risk.
-    let poolResolvedHost: string | null = null;
-    let poolSyncError: string | null = null;
+    // Pure/cheap (no DB) -- only decides which claims to lock below. The actual pool-host
+    // resolution runs on `tx`, after every pool host is locked, inside the transaction (see the
+    // zoomHost-resolution block further down) -- same reasoning as write/meeting/route.ts, closes
+    // #360's TOCTOU gap.
     const needsAutoHost = needsNewHost && !newMeeting.zoomHost;
-    if (needsAutoHost) {
-      poolResolvedHost = await resolveZoomHost(candidate, { excludeMid: mid });
-      if (!poolResolvedHost) {
-        poolSyncError = "No Zoom host available for this meeting's schedule (pool exhausted).";
-      }
-    }
 
     let resolvedHost: string | null = null;
     let hostSyncError: string | null = null;
 
     // Everything from the conflict check through the Meeting(+RecurrencePattern) write runs
-    // inside one transaction, guarded by lockResourceClaims -- this closes the check-then-write
-    // race (two concurrent requests could both pass the conflict check before either wrote, and
-    // both succeed), the same fix as write/meeting/route.ts. No explicit transaction timeout
-    // override: everything inside is DB-only (Zoom/GCal calls are all deferred to
-    // syncUpdatedMeeting via after(), outside this transaction entirely, and the pool-auto-
-    // assign case above already ran before this opens), so lock hold time is bounded by a
-    // handful of fast queries, well under Prisma's 5s default.
+    // inside one transaction, guarded by a single lockResourceClaims call -- this closes the
+    // check-then-write race (two concurrent requests could both pass the conflict check before
+    // either wrote, and both succeed), the same fix as write/meeting/route.ts, now including
+    // #360's pool-auto-assignment gap (every zoomHostPool candidate locked here too). Explicit
+    // timeout: with the whole pool now locked and resolved in-transaction, lock-wait time under
+    // real pool contention is no longer bounded by Prisma's 5s default -- 10s is a conservative
+    // starting point pending the real measurement in ithaca-recovery-zoom-host-pool-race-plan.md.
+    // maxWait raised alongside it for the same reason: every concurrent auto-assign request now
+    // holds a pooled connection for its full lock wait, so a burst of them can exhaust Prisma's
+    // default 2s connection-acquisition budget before a queued request even starts waiting on the
+    // lock itself.
     let updatedMeeting: Meeting;
     try {
       updatedMeeting = await prisma.$transaction(async (tx) => {
@@ -304,6 +297,9 @@ const updateMeeting = async (request: Request): Promise<Response> => {
         if (newMeeting.room) claims.push({ type: "room", value: newMeeting.room });
         if (newMeeting.zoomRoom) claims.push({ type: "zoomRoom", value: newMeeting.zoomRoom });
         if (newMeeting.zoomHost) claims.push({ type: "zoomHost", value: newMeeting.zoomHost });
+        if (needsAutoHost) {
+          for (const host of zoomHostPool) claims.push({ type: "zoomHost", value: host });
+        }
         await lockResourceClaims(tx, claims);
 
         // Blocks the save outright on a room/zoomRoom collision, or an explicit zoomHost
@@ -363,8 +359,11 @@ const updateMeeting = async (request: Request): Promise<Response> => {
               attemptedZoomHost = newMeeting.zoomHost;
             }
           } else {
+            const poolResolvedHost = await resolveZoomHost(candidate, tx, { excludeMid: mid });
             resolvedHost = poolResolvedHost;
-            hostSyncError = poolSyncError;
+            hostSyncError = poolResolvedHost
+              ? null
+              : "No Zoom host available for this meeting's schedule (pool exhausted).";
           }
         }
 
@@ -422,7 +421,7 @@ const updateMeeting = async (request: Request): Promise<Response> => {
                 : undefined,
           },
         });
-      });
+      }, { timeout: 10_000, maxWait: 10_000 });
     } catch (error) {
       if (error instanceof ResourceConflictAbort) {
         return NextResponse.json(

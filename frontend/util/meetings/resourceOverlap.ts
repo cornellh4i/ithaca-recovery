@@ -41,11 +41,6 @@ export type OccurrenceInput = {
 
 export type Occurrence = { start: Date; end: Date };
 
-// `value` is the resource value this claim occupies (a room name, zoomRoom name, or host
-// email) — findResourceConflicts only counts a claim against a query for the same value, so
-// one flat list of a batch's claims-so-far can be reused across every field/value check.
-export type OccupiedClaim = OccurrenceInput & { mid: string; title: string; value: string };
-
 export type ConflictCandidateMeeting = OccurrenceInput & {
   mid: string;
   title: string;
@@ -178,9 +173,6 @@ export type FindConflictsOptions = {
   // Suspended meetings still occupy their Zoom host (sync is skipped while suspended, not
   // torn down) but shouldn't nag admins on the room/zoomRoom conflicts panel. Default false.
   includeSuspended?: boolean;
-  // In-memory claims not yet committed to the DB — used by the XLSX import route to avoid two
-  // rows in the same batch racing for the same resource before either has been created.
-  extraOccupied?: OccupiedClaim[];
 };
 
 // Finds every existing meeting occupying `field = value` whose occurrences overlap
@@ -246,15 +238,79 @@ export async function findResourceConflicts(
     }
   }
 
-  for (const claim of opts.extraOccupied ?? []) {
-    if (claim.value !== value) continue;
-    const occurrences = expandOccurrences(claim, rangeStart, rangeEnd);
-    if (occurrencesOverlap(candidateOccurrences, occurrences)) {
-      conflicts.push({ mid: claim.mid, title: claim.title });
-    }
+  return conflicts;
+}
+
+// Picks the first host in `pool` (list order) with zero conflicts against `candidate`'s
+// occurrences -- the batched counterpart to calling findResourceConflicts once per pool host.
+// One query (`zoomHost: { in: pool }`) instead of up to `pool.length`, and the candidate's own
+// occurrences are expanded once and reused across every host, instead of once per query. `client`
+// must be the same `tx` a caller's `lockResourceClaims` call locked every pool host on (see
+// util/resourceLocks.ts) -- same reasoning as findResourceConflicts' own `client` param above.
+// Returns null if every host conflicts (pool exhausted).
+export async function findFirstFreePoolHost(
+  pool: string[],
+  candidate: OccurrenceInput,
+  client: Prisma.TransactionClient,
+  opts: FindConflictsOptions = {},
+): Promise<string | null> {
+  if (pool.length === 0) return null;
+
+  const [rangeStart, rangeEnd] = candidateHorizonRange(OVERLAP_HORIZON_YEARS);
+  const candidateOccurrences = expandOccurrences(candidate, rangeStart, rangeEnd);
+  if (candidateOccurrences.length === 0) return pool[0];
+
+  const where: Prisma.MeetingWhereInput = {
+    AND: [
+      notDeleted,
+      { zoomHost: { in: pool } },
+      ...(opts.excludeMid ? [{ mid: { not: opts.excludeMid } }] : []),
+    ],
+  };
+
+  const todayStr = formatETDateString(new Date());
+  const meetingsRaw = await client.meeting.findMany({
+    where,
+    select: {
+      zoomHost: true,
+      startDateTime: true,
+      endDateTime: true,
+      isRecurring: true,
+      recurrencePattern: true,
+      suspensions: true,
+    },
+  });
+  const meetings = opts.includeSuspended
+    ? meetingsRaw
+    : meetingsRaw.filter((m) => !isDateSuspended(m.suspensions, todayStr));
+
+  const occupiedByHost = new Map<string, typeof meetings>();
+  for (const meeting of meetings) {
+    if (!meeting.zoomHost) continue;
+    const bucket = occupiedByHost.get(meeting.zoomHost);
+    if (bucket) bucket.push(meeting);
+    else occupiedByHost.set(meeting.zoomHost, [meeting]);
   }
 
-  return conflicts;
+  for (const host of pool) {
+    const hostMeetings = occupiedByHost.get(host) ?? [];
+    const conflicted = hostMeetings.some((meeting) => {
+      const occurrences = expandOccurrences(
+        {
+          startDateTime: meeting.startDateTime,
+          endDateTime: meeting.endDateTime,
+          isRecurring: meeting.isRecurring,
+          recurrencePattern: meeting.recurrencePattern,
+        },
+        rangeStart,
+        rangeEnd,
+      );
+      return occurrencesOverlap(candidateOccurrences, occurrences);
+    });
+    if (!conflicted) return host;
+  }
+
+  return null;
 }
 
 // The display-relevant subset of a meeting's recurrence pattern (no Date fields — those

@@ -3,7 +3,8 @@ import { NextResponse } from "next/server";
 import { requireRole } from "../../../../../services/auth";
 import { IMeeting } from "../../../../../types/models";
 import { createCalendarEvent, updateCalendarEvent, reconcileMeetingCalendars } from "../../../../../services/googleCalendar";
-import { createZoomMeeting, updateZoomMeeting, getZoomMeetingInvitation, resolveZoomHost, zoomRoomCalendarId } from "../../../../../services/zoom";
+import { createZoomMeeting, updateZoomMeeting, getZoomMeetingInvitation, resolveZoomHost, zoomHostPool, zoomRoomCalendarId } from "../../../../../services/zoom";
+import { lockResourceClaims } from "../../../../../util/meetings/resourceLocks";
 import { prisma } from "../../../../../lib/prisma";
 
 const syncMeeting = async (request: Request): Promise<Response> => {
@@ -69,17 +70,36 @@ const syncMeeting = async (request: Request): Promise<Response> => {
                 const ok = await updateZoomMeeting(zid, meetingForCalendar);
                 if (!ok) zoomSynced = false;
             } else {
-                const host = await resolveZoomHost(meetingForCalendar, { excludeMid: mid });
+                // Reserve a pool host under lock BEFORE ever calling the external Zoom API below
+                // -- closes #360's TOCTOU gap: two retries of this same meeting (or a retry
+                // racing a fresh write/meeting create) could otherwise both read the same
+                // last-free host before either persisted it. The reservation transaction only
+                // ever writes `zoomHost` and stays DB-only; the external API call happens
+                // afterward, outside the lock -- a Postgres advisory lock can't stay held across
+                // a network call the way it can across another DB query (see write/meeting and
+                // update/meeting's transactions, which don't make external calls either).
+                const host = await prisma.$transaction(async (tx) => {
+                    await lockResourceClaims(tx, zoomHostPool.map((h) => ({ type: "zoomHost" as const, value: h })));
+                    const resolved = await resolveZoomHost(meetingForCalendar, tx, { excludeMid: mid });
+                    if (resolved) {
+                        await tx.meeting.update({ where: { mid }, data: { zoomHost: resolved } });
+                    }
+                    return resolved;
+                }, { timeout: 10_000 });
+
                 if (!host) {
                     zoomSynced = false;
                     zoomSyncError = "No Zoom host available for this meeting's schedule (pool exhausted).";
                 } else {
+                    // Reserved above regardless of what happens next -- a createZoomMeeting
+                    // failure below must not roll back the reservation (the final
+                    // prisma.meeting.update further down re-persists this same value either way).
+                    zoomHost = host;
                     const created = await createZoomMeeting(meetingForCalendar, host);
                     if (created) {
                         zid = created.zid;
                         zoomLink = created.zoomLink;
                         zoomPasscode = created.zoomPasscode;
-                        zoomHost = host;
                     } else {
                         zoomSynced = false;
                         zoomSyncError = "Failed to create the Zoom meeting.";

@@ -18,6 +18,14 @@ const TYPE_KEY: Record<ResourceField, number> = { room: 1, zoomRoom: 2, zoomHost
 // to any other transaction racing for the same resource. Locks auto-release at commit/rollback
 // -- no manual unlock needed. Must be called with the same `tx` used for the conflict check and
 // the eventual write, so the lock and the queries run on the same DB session.
+//
+// INVARIANT: call this at most once per transaction, with every claim the transaction will ever
+// need (including every zoomHost pool candidate on an auto-assignment request, not just the
+// resolved winner -- see resolveZoomHost/findFirstFreePoolHost). The sort below establishes one
+// global lock-acquisition order that every transaction in the system follows, which is the
+// entire reason concurrent transactions can't deadlock on this (see below). A second call in
+// the same transaction -- even one that itself sorts its own claims -- breaks that global
+// ordering guarantee for any transaction that split its claims across two calls the same way.
 export async function lockResourceClaims(tx: Prisma.TransactionClient, claims: ResourceClaim[]): Promise<void> {
   const seen = new Set<string>();
   const unique = claims.filter((c) => {
@@ -29,11 +37,18 @@ export async function lockResourceClaims(tx: Prisma.TransactionClient, claims: R
   });
 
   // Sorted by the plain (type, value) string, not the resulting lock key -- any deterministic
-  // order works, as long as every caller uses the same one. A single request can need up to 3
-  // locks (room + zoomRoom + zoomHost); without a fixed order, two concurrent multi-resource
-  // requests acquiring the same set of locks in different orders can deadlock (Postgres's
-  // deadlock detector would abort one, which is safe but wastes a retry).
-  unique.sort((a, b) => `${a.type}:${a.value}`.localeCompare(`${b.type}:${b.value}`));
+  // order works, as long as every caller uses the same one. A request can need several locks
+  // (room + zoomRoom + zoomHost, or the whole zoomHost pool on an auto-assignment request);
+  // without a fixed order, two concurrent multi-resource requests acquiring the same set of
+  // locks in different orders can deadlock (Postgres's deadlock detector would abort one, which
+  // is safe but wastes a retry). Plain `<`/`>`, not localeCompare -- localeCompare can return 0
+  // for distinct strings (locale-aware collation), which would make the sort's tie-breaking
+  // order dependent on the initial array order instead of a total order on the string itself.
+  unique.sort((a, b) => {
+    const ka = `${a.type}:${a.value}`;
+    const kb = `${b.type}:${b.value}`;
+    return ka < kb ? -1 : ka > kb ? 1 : 0;
+  });
 
   // Sequential, not Promise.all -- parallelizing would race the very ordering this exists to
   // enforce.
