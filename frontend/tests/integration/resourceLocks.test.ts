@@ -1,5 +1,5 @@
 import { getTestPrismaClient, disconnectTestPrismaClient } from "../factories/db";
-import { seedMeeting } from "../factories/meeting";
+import { seedMeeting, buildMeetingData } from "../factories/meeting";
 import { lockResourceClaims } from "../../util/meetings/resourceLocks";
 import { findFirstFreePoolHost } from "../../util/meetings/resourceOverlap";
 
@@ -163,10 +163,14 @@ test("auto-assignment locks the whole pool, so a second transaction sees the fir
 
   // Mirrors the reservation shape write/meeting, update/meeting, and update/meeting/sync all
   // now share: lock the whole pool, resolve on `tx`, persist the winning host before releasing.
+  // The reservation write goes through `tx.meeting.create` (not the seedMeeting factory, which
+  // writes via the global test client on a separate connection/session) -- committing it outside
+  // the locked transaction would make this test pass even if production code did the same thing,
+  // which is the exact failure mode #360 describes.
   const firstTx = prisma.$transaction(async (tx) => {
     await lockResourceClaims(tx, pool.map((value) => ({ type: "zoomHost" as const, value })));
     const host = await findFirstFreePoolHost(pool, window, tx, { includeSuspended: true });
-    if (host) await seedMeeting({ zoomHost: host, modeType: "Remote", room: "", ...window });
+    if (host) await tx.meeting.create({ data: buildMeetingData({ zoomHost: host, modeType: "Remote", room: "", ...window }) });
     signalFirstAcquired();
     await firstMayFinish;
     return host;

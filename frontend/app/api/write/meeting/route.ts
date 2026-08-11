@@ -211,7 +211,10 @@ const createMeeting = async (request: Request) => {
     // in-transaction (previously a pre-transaction, unlocked step), lock-wait time under real
     // pool contention is no longer bounded by Prisma's 5s default the way a short, DB-only
     // transaction normally would be -- 10s is a conservative starting point pending the real
-    // measurement in ithaca-recovery-zoom-host-pool-race-plan.md.
+    // measurement in ithaca-recovery-zoom-host-pool-race-plan.md. maxWait raised alongside it for
+    // the same reason: every concurrent auto-assign request now holds a pooled connection for its
+    // full lock wait, so a burst of them can exhaust Prisma's default 2s connection-acquisition
+    // budget before a queued request even starts waiting on the lock itself.
     let result: { createdMeeting: Meeting; createdPattern: Awaited<ReturnType<typeof prisma.recurrencePattern.create>> | null };
     try {
       result = await prisma.$transaction(async (tx) => {
@@ -318,7 +321,7 @@ const createMeeting = async (request: Request) => {
           : null;
 
         return { createdMeeting, createdPattern };
-      }, { timeout: 10_000 });
+      }, { timeout: 10_000, maxWait: 10_000 });
     } catch (error) {
       if (error instanceof ResourceConflictAbort) {
         return NextResponse.json(

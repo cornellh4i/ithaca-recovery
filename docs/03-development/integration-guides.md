@@ -240,7 +240,7 @@ category calendars in section 3) — set its ID as `GOOGLE_CALENDAR_ZOOM_<ROOM>`
 Room slugs match `zoomRoomOptions` in `frontend/util/rooms/rooms.ts`: `SERENITY_ROOM`, `SEEDS_OF_HOPE_ROOM`, `UNITY_ROOM`, `ROOM_FOR_IMPROVEMENT`, `CHILDRENS_ROOM_518`.
 
 ### Key client code
-`frontend/services/zoom.ts` — `checkZoomReachable`, `checkZoomHostPool`, `resolveZoomHost(candidate, opts)`, `createZoomMeeting(meeting, hostEmail)`, `updateZoomMeeting(zid, meeting)`, `deleteZoomMeeting(zid)`, plus the `zoomRoomCalendarId` and `zoomHostPool` lookup values. Called directly from the meeting routes (`write`, `update`, `delete`, `update/meeting/sync`) — there's no separate `/api/zoom/*` HTTP surface.
+`frontend/services/zoom.ts` — `checkZoomReachable`, `checkZoomHostPool`, `resolveZoomHost(candidate, client, opts)`, `createZoomMeeting(meeting, hostEmail)`, `updateZoomMeeting(zid, meeting)`, `deleteZoomMeeting(zid)`, plus the `zoomRoomCalendarId` and `zoomHostPool` lookup values. Called directly from the meeting routes (`write`, `update`, `delete`, `update/meeting/sync`) — there's no separate `/api/zoom/*` HTTP surface.
 
 Every call first fetches a fresh token (posts to `https://zoom.us/oauth/token`, `grant_type=account_credentials`) — the token is short-lived and not cached.
 
