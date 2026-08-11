@@ -5,15 +5,20 @@ be included in a support request, who receives those requests, and what response
 reasonable during the academic year and between student teams.*
 
 This is one of the "shouldn't depend on any one person" items — see
-[`ownership-and-access.md`](ownership-and-access.md) §5 (post-November continuity).
+[Ownership and Access](ownership-and-access.md) §5 (post-November continuity).
 
 ---
 
 ## 1. How to report a problem
 
-[TODO: decide the channel — options to weigh: a shared email alias (not a personal H4I email), a
-GitHub Issue template on this repo, a shared form. Whatever it is, it needs to survive a team
-transition without ICR needing to learn a new contact each time.]
+This repo already has GitHub Issue templates for **Bug Report** and **Feature Request**
+([`.github/ISSUE_TEMPLATE/`](https://github.com/cornellh4i/ithaca-recovery/tree/master/.github/ISSUE_TEMPLATE)) — but this requires whoever's
+reporting to have (or get) GitHub access, which is a technical barrier for most ICR board members.
+
+[TODO: decide whether GitHub Issues is the actual intended channel for ICR to report problems
+directly, or whether it's just where the H4I team tracks issues once received through something
+more accessible (a shared email alias, a form) — see [Ownership and Access](ownership-and-access.md)
+§4 on ICR access/visibility, which is also still open]
 
 ## 2. What to include in a support request
 
@@ -25,8 +30,7 @@ transition without ICR needing to learn a new contact each time.]
 
 ## 3. Who receives requests
 
-[TODO: name a role, not a person — see the long-term-responsibility question in
-[`ownership-and-access.md`](ownership-and-access.md) §3, which is still open]
+The current H4I Maintenance Lead.
 
 ## 4. Response time expectations
 
@@ -38,6 +42,6 @@ transition without ICR needing to learn a new contact each time.]
 ## 5. Where this connects to other docs
 
 - Non-technical troubleshooting a board member can try first:
-  [`../01-user-guide/user-guide.md`, §14](../01-user-guide/user-guide.md#14-troubleshooting)
+  [Troubleshooting](../01-user-guide/reference/troubleshooting.md)
 - If the fix requires deploying a code change: see
-  [`deployment-and-rollback.md`](deployment-and-rollback.md)
+  [Deployment and Rollback](deployment-and-rollback.md)
