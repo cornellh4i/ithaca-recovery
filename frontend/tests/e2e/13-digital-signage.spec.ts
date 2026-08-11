@@ -32,4 +32,22 @@ test.describe("digital signage", () => {
     await expect(page.getByText("Serenity Signage Meeting")).toBeVisible();
     await expect(page.getByText("Unity Signage Meeting")).toHaveCount(0);
   });
+
+  // Regression test for #348: the auto-fit scale calculation used to be gated on a plain
+  // useRef, which isn't reactive -- on a fresh direct navigation (not a click-through from an
+  // already-scaled state) the effect fired before the content div ever mounted and never
+  // re-ran, leaving the page stuck at scale(1) until something else (a view switch) happened
+  // to force a re-run. Deliberately does a fresh page.goto (not reusing a warmed-up page) to
+  // match the bug's actual repro path.
+  test("13.6 /signage rescales to fit the viewport on first direct navigation, without a view switch", async ({ page }) => {
+    await seedMeeting({ title: "Direct Nav Signage Meeting" });
+    await page.goto("/signage");
+    await expect(page.getByText("Direct Nav Signage Meeting")).toBeVisible();
+
+    const contentDiv = page.locator('div[style*="transform"]').first();
+    const transform = await contentDiv.evaluate((el) => window.getComputedStyle(el).transform);
+    // scale(1) resolves to the identity matrix -- if the auto-fit calculation never ran, this
+    // is exactly what a fresh, unscaled render would still show.
+    expect(transform).not.toBe("matrix(1, 0, 0, 1, 0, 0)");
+  });
 });
