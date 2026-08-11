@@ -1,6 +1,7 @@
 import "server-only";
+import { Prisma } from "@prisma/client";
 import { IMeeting } from "../types/models";
-import { findResourceConflicts, OccurrenceInput, OccupiedClaim } from "../util/meetings/resourceOverlap";
+import { findResourceConflicts, findFirstFreePoolHost, OccurrenceInput } from "../util/meetings/resourceOverlap";
 import { prisma } from "../lib/prisma";
 
 const ZOOM_BASE_API = process.env.NEXT_PUBLIC_ZOOM_BASE_API ?? "https://api.zoom.us/v2";
@@ -98,26 +99,22 @@ export async function checkZoomHostPoolAvailability(
 }
 
 // Picks the first host in the pool (list order) with zero conflicts against `candidate`'s
-// occurrences, per the resource-generic overlap check in util/resourceOverlap.ts. Suspended
-// meetings are included in the occupancy check (opts.excludeMid lets an update re-check a
-// meeting without conflicting against its own prior occurrences) — a suspended meeting's Zoom
-// meeting still exists, it's just not synced. `opts.extraOccupied` lets a caller processing
-// several candidates in one batch (the XLSX import route) claim a host in memory before it's
-// committed to the DB, so two rows in the same batch can't race for the same host. Returns
-// null if every host is busy.
+// occurrences. Suspended meetings are included in the occupancy check (opts.excludeMid lets an
+// update re-check a meeting without conflicting against its own prior occurrences) — a
+// suspended meeting's Zoom meeting still exists, it's just not synced. `client` must be the same
+// `tx` a caller's `lockResourceClaims` call locked the whole `zoomHostPool` on (see
+// util/resourceLocks.ts's INVARIANT comment) -- resolving without holding those locks first
+// reopens the exact check-then-write race this function exists to close (see #360). Returns
+// null if every host is busy (pool exhausted).
 export async function resolveZoomHost(
   candidate: OccurrenceInput,
-  opts: { excludeMid?: string; extraOccupied?: OccupiedClaim[] } = {},
+  client: Prisma.TransactionClient,
+  opts: { excludeMid?: string } = {},
 ): Promise<string | null> {
-  for (const host of zoomHostPool) {
-    const conflicts = await findResourceConflicts("zoomHost", host, candidate, prisma, {
-      excludeMid: opts.excludeMid,
-      includeSuspended: true,
-      extraOccupied: opts.extraOccupied,
-    });
-    if (conflicts.length === 0) return host;
-  }
-  return null;
+  return findFirstFreePoolHost(zoomHostPool, candidate, client, {
+    excludeMid: opts.excludeMid,
+    includeSuspended: true,
+  });
 }
 
 // Zoom ignores `timezone` if start_time ends in "Z" — send ET wall-clock time instead.
