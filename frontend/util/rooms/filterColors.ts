@@ -1,6 +1,6 @@
 // Shared physical-room / zoom-room / category color coding used by both the calendar
-// sidebar filter (MeetingsFilter) and the Export tab's signage filter (SignageUrlCard) —
-// keyed by the same full room names used in util/signageFilters.ts, so a color change
+// sidebar filter (MeetingsFilter) and the Signage tab's URL-generator filter (SignageTab) —
+// keyed by the same full room names used in util/filters/signageFilters.ts, so a color change
 // only has to happen in one place. Mirrored (manually -- Sass vars aren't importable into
 // TS) in styles/Variables.module.scss's $room-*-color variables, for any SCSS that needs
 // to reference the same palette directly.

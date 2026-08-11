@@ -62,7 +62,7 @@ app/
 │   ├── atoms/                   # Primitive UI elements, shared across every domain
 │   ├── calendar/                # desktop/, mobile/, shared/ — see Component Hierarchy below
 │   ├── meeting-form/            # New/Edit/View meeting, recurrence, Zoom host field, suspend/resume
-│   ├── admin/                   # AdminShell + diagnostics/, export/, users/, shared/ subfolders
+│   ├── admin/                   # AdminShell + diagnostics/, signage/, users/, export/, shared/ subfolders
 │   ├── docs/                    # Renders the in-app /docs Resources page
 │   ├── navbar/                  # App-wide top nav (desktop + mobile variants)
 │   └── shared/                  # Cross-domain components (Toast/ToastProvider, FilterGroup)
@@ -76,7 +76,7 @@ app/
 | Route | Purpose |
 |---|---|
 | `/` | Home — calendar (Day/Week, responsive mobile layouts) |
-| `/admin` | Admin shell: Diagnostics, Users, Export tabs |
+| `/admin` | Admin shell: Diagnostics, Signage, Users, Export tabs |
 | `/docs` | In-app documentation (Resources page), Pagefind-searchable |
 | `/login` | Sign-in |
 | `/signage` | Read-only kiosk calendar for the physical display board |
@@ -108,8 +108,9 @@ We group components by what they do (domain/feature) rather than how they compos
   `MeetingCountsCard`, `ConflictsCard`/`ConflictList`, `SuspendedCard`, `SyncIssuesCard`,
   `DiagnosticsCardError`) — each card fetches its own `/api/admin/diagnostics/*` endpoint
   independently (see [API Reference §Diagnostics](api-reference.md#diagnostics))
-- `export/` — `ExportTab`, `LeaseConfigModal`, `MeetingExportConfigModal`
+- `signage/` — `SignageTab` (builds a filtered `/signage` URL to hand to the display device)
 - `users/` — `UsersTab`, `InviteUserModal`, `EditRoleModal`, `RemoveUserModal`
+- `export/` — `ExportTab`, `LeaseConfigModal`, `MeetingExportConfigModal`
 - `shared/` — `Card`, `CardHeader` (used across every admin tab)
 
 **`docs/`** — `DocsShell`, `DocsArticle`, `DocsTocList`, `DocsIcons` — renders `/docs` from this

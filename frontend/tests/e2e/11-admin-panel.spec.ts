@@ -7,10 +7,10 @@ import { Role } from "@prisma/client";
 // Manual script §11 (Admin Panel — Roles & Tabs).
 
 test.describe("admin panel", () => {
-  test("11.2 SUPER_ADMIN sees all three tabs accessible", async ({ superAdminPage }) => {
+  test("11.2 SUPER_ADMIN sees all four tabs accessible", async ({ superAdminPage }) => {
     const { page } = superAdminPage;
     await page.goto("/admin");
-    for (const key of ["diagnostics", "users", "export"]) {
+    for (const key of ["diagnostics", "signage", "users", "export"]) {
       await expect(page.getByTestId(`admin-tab-${key}`)).toBeEnabled();
     }
     await expect(page.getByTestId("admin-tab-import")).toHaveCount(0);
@@ -95,6 +95,14 @@ test.describe("admin panel", () => {
 
     await page.getByRole("button", { name: "Edit Role" }).click();
     await expect(page.getByText("Can't change the last Super Admin's role.")).toBeVisible();
+  });
+
+  test("11.8b the Signage tab shows the signage URL generator, unlocked for a non-super Admin", async ({ adminPage }) => {
+    const { page } = adminPage;
+    await page.goto("/admin");
+    await page.getByTestId("admin-tab-signage").click();
+    await expect(page.getByText("Generate Signage URL")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Copy Link" })).toBeVisible();
   });
 
   test("11.9 exporting meetings downloads a real file", async ({ superAdminPage }) => {

@@ -5,8 +5,8 @@ Three roles, each a superset of the one before it.
 | Role | Can do |
 |---|---|
 | **User** (no sign-in and basic users) | View the calendar and `/signage`.|
-| **Admin** | Everything a User can, plus: create, edit, delete, suspend, and resume meetings; retry a failed sync; view the Diagnostics tab. |
-| **Super Admin** | Everything an Admin can, plus: invite/remove admins and change their roles (Users tab); use the Export tab (meetings backup, lease CSV, signage URL generator, lease/export settings). |
+| **Admin** | Everything a User can, plus: create, edit, delete, suspend, and resume meetings; retry a failed sync; view the Diagnostics tab; use the Signage tab (signage URL generator). |
+| **Super Admin** | Everything an Admin can, plus: invite/remove admins and change their roles (Users tab); use the Export tab (meetings backup, lease CSV, lease/export settings). |
 
 ## How you get a role
 

@@ -13,5 +13,5 @@ requiring a phone or computer.
 
 Which rooms, calendars, and modes the signage page shows can be pre-configured via URL query
 parameters. Generate one from
-**Admin → Export → Generate Signage URL**, pick the filters you want baked in, and use the
+**Admin → Signage**, pick the filters you want baked in, and use the
 resulting link on whatever device drives the display board.
