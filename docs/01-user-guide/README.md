@@ -18,6 +18,7 @@ For ICR board members using the platform day to day. Organized by what you need 
   - [Roles and Permissions](reference/roles-and-permissions.md)
   - [Meeting Fields and Modes](reference/meeting-fields-and-modes.md)
   - [Troubleshooting](reference/troubleshooting.md)
+  - [Icon and Badge Legend](reference/icon-and-badge-legend.md)
   - [Quick Reference Card](reference/quick-reference-card.md) — printable
 - **Want to understand why something works the way it does?** Explanation:
   - [How Calendar and Zoom Sync Work](explanation/how-sync-works.md)

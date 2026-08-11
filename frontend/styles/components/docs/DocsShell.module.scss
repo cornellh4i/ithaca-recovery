@@ -120,7 +120,7 @@
   width: 250px;
   flex-shrink: 0;
   height: 100%; // own independent scroll pane -- see .columns's comment
-  overflow-y: auto;
+  overflow: hidden auto; // shorthand order is x y -- x hidden, y auto
   padding-right: 16px;
   padding-bottom: 24px; // breathing room below the last doc link, so it isn't flush against the scroll region's edge
   border-right: 1px solid $border-divider-color;
@@ -586,6 +586,17 @@
   // sizing syntax in the markdown itself.
   :global(img[src$="diataxis-quadrants.png"]) {
     width: 80%;
+    margin: 0 auto 16px;
+  }
+
+  // Icon/badge legend crops (icon-and-badge-legend.md) are cropped tight around a single UI
+  // element, not full-page screenshots -- forcing them to the article's full width like above
+  // would blow them up past their natural size and blur them. width: auto renders each at its
+  // own pixel size; max-width only steps in as a ceiling if that size would overflow the
+  // article column. The auto margins center what's left over.
+  :global(img[src*="/icon-legend-"]) {
+    width: auto;
+    max-width: 100%;
     margin: 0 auto 16px;
   }
 

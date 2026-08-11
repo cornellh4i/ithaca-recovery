@@ -6,8 +6,9 @@
 | No "Admin" link in the top nav | It's hidden, not locked/disabled — only shows for accounts with admin access. Ask a Super Admin to check your role |
 | Calendar shows no meetings | Check that a room/category filter wasn't unchecked in the Filters sidebar. Click "Today" to reset the date. |
 | Meeting not visible after creating it | Wait 30 seconds for the auto-refresh, or reload the page |
-| Zoom link is blank on a meeting | Open the meeting — if it shows a ⚠ badge, use [Retry a Failed Sync](../how-to/retry-a-failed-sync.md) first. Deleting and recreating is a last resort, not a first step — it's permanent, see [why some actions can't be undone](../explanation/why-some-actions-cant-be-undone.md) |
-| A meeting shows a ⚠ badge | Google Calendar and/or Zoom sync failed for that meeting — see [Retry a Failed Sync](../how-to/retry-a-failed-sync.md) |
+| Zoom link is blank on a meeting | Open the meeting — if it shows a sync-error badge, use [Retry a Failed Sync](../how-to/retry-a-failed-sync.md) first. Deleting and recreating is a last resort, not a first step — it's permanent, see [why some actions can't be undone](../explanation/why-some-actions-cant-be-undone.md) |
+| A meeting shows a sync-error badge | Google Calendar and/or Zoom sync failed for that meeting — see [Retry a Failed Sync](../how-to/retry-a-failed-sync.md) |
+| Not sure what an icon or badge on the calendar means | See the [Icon and Badge Legend](icon-and-badge-legend.md) |
 | "Export Lease CSV" fails with no meetings to export | Confirm at least one non-deleted meeting exists (suspended meetings still count) |
 | Page behaves unexpectedly | Hard refresh: Ctrl+Shift+R (Windows) or Cmd+Shift+R (Mac). Or try a different browser |
 
