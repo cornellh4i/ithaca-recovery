@@ -75,9 +75,13 @@ const WeekView: React.FC<WeekViewProps> = ({
     const reducedMotion = useReducedMotion();
     const [currentTimePosition, setCurrentTimePosition] = useState(0);
     const [weekStartDate, setWeekStartDate] = useState<Date>(() => getFirstDayOfWeek(selectedDate));
-    const [daysOfWeek, setDaysOfWeek] = useState<Date[]>(() => getDaysOfWeek(weekStartDate));
     const viewContainerRef = useRef<HTMLDivElement>(null);
-    const { meetings: allMeetings, isLoading } = useWeekMeetings(weekStartDate, refreshTrigger);
+    const { meetings: allMeetings, isLoading, loadedWeekStartDate } = useWeekMeetings(weekStartDate, refreshTrigger);
+    // The days actually rendered -- derived from loadedWeekStartDate (what allMeetings belongs
+    // to), not weekStartDate (what's being requested), so the enter transition and the day
+    // columns/meetings it wraps update atomically once real data has landed. See
+    // useWeekMeetings' own comment on loadedWeekStartDate for why this distinction matters.
+    const renderedDaysOfWeek = getDaysOfWeek(loadedWeekStartDate);
 
     // Format time slots for hour markers
     const formatTime = (hour: number): string => {
@@ -120,7 +124,6 @@ const WeekView: React.FC<WeekViewProps> = ({
         const newWeekStartDate = getFirstDayOfWeek(selectedDate);
         if (formatETDateString(weekStartDate) !== formatETDateString(newWeekStartDate)) {
             setWeekStartDate(newWeekStartDate);
-            setDaysOfWeek(getDaysOfWeek(newWeekStartDate));
         }
     }
 
@@ -211,17 +214,21 @@ const WeekView: React.FC<WeekViewProps> = ({
                     </div>
                 </div>
 
-                {/* Day columns -- keyed by week start (not selectedDate) so picking a
-                    different day within the same visible week doesn't re-trigger the
-                    transition, only navigating to a different week does. Horizontal (x), not
-                    vertical -- a week of days reads left-to-right the same way DayPortraitView's
-                    own day-to-day swipe does, unlike DayView's per-room-row vertical one. */}
+                {/* Day columns -- keyed by loadedWeekStartDate (what allMeetings actually
+                    belongs to), not weekStartDate (what's being requested) or selectedDate, so
+                    (1) picking a different day within the same visible week doesn't re-trigger
+                    the transition, only navigating to a different week does, and (2) the
+                    transition doesn't start until real data for the new week has landed --
+                    otherwise it can animate in empty or prior-week content for however long the
+                    fetch takes. Horizontal (x), not vertical -- a week of days reads
+                    left-to-right the same way DayPortraitView's own day-to-day swipe does,
+                    unlike DayView's per-room-row vertical one. */}
                 <motion.div
-                    key={formatETDateString(weekStartDate)}
+                    key={formatETDateString(loadedWeekStartDate)}
                     className={styles.daysContainer}
                     {...dateEnterMotion(transitionDirection, "x", 24, { reducedMotion })}
                 >
-                    {daysOfWeek.map((day, index) => {
+                    {renderedDaysOfWeek.map((day, index) => {
                         const dayMeetings = getMeetingsForDay(day);
                         const isToday = isCurrentDate(day);
 

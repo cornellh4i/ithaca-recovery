@@ -221,6 +221,14 @@ const DayView: React.FC<DayViewProps> = ({
   const reducedMotion = useReducedMotion();
   const [currentTimePosition, setCurrentTimePosition] = useState(0);
   const [meetings, setMeetings] = useState<Room[]>([]);
+  // The ET date `meetings` actually belongs to -- may lag `selectedDate` while a fetch for the
+  // newly selected date is still in flight (fetchMeetingsByDay is async, but selectedDate
+  // itself updates synchronously during render). The enter transition (and DailyViewRow's own
+  // columnDate) is keyed off this instead of selectedDate directly, so the transition doesn't
+  // start -- and clicked-occurrence tracking doesn't misattribute -- until the meetings shown
+  // have actually caught up to what's requested; otherwise it can animate in the *previous*
+  // day's still-cached meetings under the new date's heading for however long the fetch takes.
+  const [meetingsDate, setMeetingsDate] = useState<Date>(selectedDate);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   // Guards against out-of-order responses: rapid date/filter changes can fire overlapping
   // fetches, and without this a slower-but-stale response can overwrite a newer one.
@@ -260,9 +268,11 @@ const DayView: React.FC<DayViewProps> = ({
     }
 
     const requestId = ++fetchRequestIdRef.current;
-    const data = await fetchMeetingsByDay(selectedDateRef.current);
+    const requestDate = selectedDateRef.current;
+    const data = await fetchMeetingsByDay(requestDate);
     if (requestId === fetchRequestIdRef.current) {
       setMeetings(data);
+      setMeetingsDate(requestDate);
       updateTimePosition();
     }
   }, [updateTimePosition]);
@@ -375,9 +385,11 @@ const DayView: React.FC<DayViewProps> = ({
                       both auto, so its height resolves via the content-based algorithm), and
                       every meaningful descendant inside DailyViewRow is itself absolutely
                       positioned and out of flow, so a height:100% here would only ever resolve
-                      to auto/0 regardless -- confirmed empirically, not just by inspection. */}
+                      to auto/0 regardless -- confirmed empirically, not just by inspection.
+                      Keyed by meetingsDate (what `room.meetings` actually belongs to), not
+                      selectedDate -- see meetingsDate's own comment. */}
                   <motion.div
-                    key={formatETDateString(selectedDate)}
+                    key={formatETDateString(meetingsDate)}
                     {...dateEnterMotion(transitionDirection, "y", 12, { reducedMotion })}
                   >
                     <DailyViewRow
@@ -388,7 +400,7 @@ const DayView: React.FC<DayViewProps> = ({
                       selectedOccurrenceDate={selectedOccurrenceDate}
                       setSelectedNewMeeting={setSelectedNewMeeting}
                       setAnchorEl={setAnchorEl}
-                      columnDate={selectedDate}
+                      columnDate={meetingsDate}
                       setLastClickedDate={setLastClickedDate}
                       conflictMids={conflictMids}
                       syncErrorMids={syncErrorMids}

@@ -97,6 +97,14 @@ export interface UseWeekMeetingsResult {
     // since getOrFetch always returns a promise either way; a cache hit just resolves on the
     // next microtask, so this flips back to false before paint and never visibly flashes.
     isLoading: boolean;
+    // The week `meetings` actually belongs to -- may lag `weekStartDate` while a fetch for the
+    // newly requested week is still in flight (the fetch above is async, but weekStartDate
+    // itself updates synchronously during render). WeekView keys its enter transition, and
+    // which day columns/DayColumn occurrence-date it renders, off this instead of
+    // weekStartDate directly -- otherwise the transition (and the days it shows) can start
+    // before `meetings` has actually caught up, animating in empty or prior-week content under
+    // the new week's heading.
+    loadedWeekStartDate: Date;
 }
 
 // Fetches (and caches) all meetings for the ET week starting `weekStartDate` (a Sunday).
@@ -104,6 +112,7 @@ export interface UseWeekMeetingsResult {
 export function useWeekMeetings(weekStartDate: Date, refreshTrigger: number = 0): UseWeekMeetingsResult {
     const [allMeetings, setAllMeetings] = useState<WeekMeeting[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [loadedWeekStartDate, setLoadedWeekStartDate] = useState<Date>(weekStartDate);
 
     // Ref instead of a `weekStartDate` closure/dependency so fetchWeekMeetings's identity
     // stays stable across week changes -- needed so the refreshTrigger effect below doesn't
@@ -144,6 +153,7 @@ export function useWeekMeetings(weekStartDate: Date, refreshTrigger: number = 0)
             const meetings = await fetchMeetingsByWeek(startDate, endDate);
             if (requestId === fetchRequestIdRef.current) {
                 setAllMeetings(meetings);
+                setLoadedWeekStartDate(startDate);
             }
         } finally {
             if (requestId === fetchRequestIdRef.current) {
@@ -164,5 +174,5 @@ export function useWeekMeetings(weekStartDate: Date, refreshTrigger: number = 0)
         }
     }, [refreshTrigger, fetchWeekMeetings]);
 
-    return { meetings: allMeetings, isLoading };
+    return { meetings: allMeetings, isLoading, loadedWeekStartDate };
 }

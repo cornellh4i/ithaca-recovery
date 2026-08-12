@@ -374,9 +374,21 @@ const DayLandscapeView: React.FC<DayLandscapeViewProps> = ({
   // too, not just this view's own drag. initial={false} suppresses it specifically for drag-
   // committed changes (transitionAlreadyAnimatedByCaller), where the drag's own pan already was
   // that motion.
+  const selectedDateKey = formatETDateString(selectedDate);
+
   const renderDayPanel = (date: Date, rooms: ReturnType<typeof computeCombinedRooms>) => {
     const dateKey = formatETDateString(date);
     const panelIsToday = isDateToday(date);
+    // A non-drag date change (WeekStrip tap, Today, mini-calendar) that lands exactly ±1 day
+    // away reuses the already-mounted prev/next panel for the newly "current" role -- the
+    // outer <div key={dateKey}> below is unchanged, so React's key-based reconciliation moves
+    // it into position without remounting, and the *inner* motion.div (same dateKey) never
+    // re-consults `initial`, silently skipping the enter transition. Suffixing only the inner
+    // motion.div's key with ":selected" while a panel holds the current role forces it to
+    // remount exactly when a panel becomes selected, regardless of whether it was already
+    // mounted as prev/next -- drag-driven changes are unaffected, still suppressed via
+    // transitionAlreadyAnimatedByCaller below despite the new key.
+    const isSelectedPanel = dateKey === selectedDateKey;
     return (
       <div key={dateKey} className={styles.dayPanel} style={{ height: panelHeight, width: totalGridWidth }}>
         <div className={styles.headerRow} style={{ height: HEADER_HEIGHT, width: totalGridWidth }}>
@@ -410,7 +422,7 @@ const DayLandscapeView: React.FC<DayLandscapeViewProps> = ({
                   ))}
                 </div>
                 <motion.div
-                  key={dateKey}
+                  key={isSelectedPanel ? `${dateKey}:selected` : dateKey}
                   {...dateEnterMotion(transitionDirection, "y", 12, { alreadyAnimatedByCaller: transitionAlreadyAnimatedByCaller, reducedMotion })}
                   style={{ height: "100%" }}
                 >
