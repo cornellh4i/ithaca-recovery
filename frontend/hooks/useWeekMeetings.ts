@@ -66,6 +66,18 @@ const fetchMeetingsByWeek = async (startDate: Date, endDate: Date): Promise<Week
     });
 };
 
+// Warms weekMeetingCache for a week WeekView isn't currently showing (its own prev/next
+// neighbor) -- fire-and-forget, no return value: fetchMeetingsByWeek's own cache is the only
+// effect wanted here. So that an arrow click's fetch is (almost always) a cache hit by the time
+// the new week's motion.div mounts, instead of the enter transition sliding in an empty grid
+// for however long the real fetch takes (invisible before this component had any transition;
+// visible now that one draws the eye to the moment the new week "arrives").
+export const prefetchWeek = (weekStartDate: Date): void => {
+    const endDate = new Date(weekStartDate);
+    endDate.setDate(weekStartDate.getDate() + 6);
+    fetchMeetingsByWeek(weekStartDate, endDate);
+};
+
 export const invalidateWeekCache = (startDate: Date, endDate: Date) => {
     const formattedStart = formatETDateString(startDate);
     const formattedEnd = formatETDateString(endDate);
