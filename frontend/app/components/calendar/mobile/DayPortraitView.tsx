@@ -145,7 +145,8 @@ const DayPortraitView: React.FC<DayPortraitViewProps> = ({
   // wrong scroll position at 12 AM before JS jumps it to "now"), which useLayoutEffect alone
   // doesn't fully rule out (e.g. a slow first paint). One-way: only ever flips true once, on
   // the very first date this view renders -- later date changes (day swipe/tap/mini-calendar
-  // pick) reset scroll position same as always but don't re-hide already-visible content.
+  // pick) deliberately leave the user's scroll position alone, and don't re-hide already-
+  // visible content either.
   const [initialScrollDone, setInitialScrollDone] = useState(false);
 
   const scrollToCurrentTime = useCallback(() => {
@@ -277,7 +278,7 @@ const DayPortraitView: React.FC<DayPortraitViewProps> = ({
       <div className={styles.dayContent}>
         <motion.div
           key={formatETDateString(date)}
-          {...dateEnterMotion(transitionDirection, "x", 24, { alreadyAnimatedByCaller: transitionAlreadyAnimatedByCaller, reducedMotion: !!reducedMotion })}
+          {...dateEnterMotion(transitionDirection, "x", 24, { alreadyAnimatedByCaller: transitionAlreadyAnimatedByCaller, reducedMotion })}
         >
           <DayColumn
             roomColor={ZOOM_ROOM_COLOR} // Unused fallback: every meeting sets primaryColor via getRoomColor

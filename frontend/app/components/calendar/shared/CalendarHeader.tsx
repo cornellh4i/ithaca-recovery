@@ -68,7 +68,7 @@ const CalendarHeader: React.FC<CalendarHeaderProps> = ({ selectedDate, selectedV
         animatedHeading.direction,
         animatedHeading.axis ?? 'x',
         HEADING_MAGNITUDE[animatedHeading.axis ?? 'x'],
-        { reducedMotion: !!reducedMotion },
+        { reducedMotion },
       )}
     >
       {getDateRange(selectedDate)}

@@ -1,8 +1,12 @@
 // Pure helpers for deciding how a selectedDate change should animate -- shared by every
 // trigger, mobile (WeekStrip tap/swipe, DayColumn swipe, mini-calendar pick) and desktop
-// (CalendarNavbar's nav arrows/Today/view toggle, DayView/WeekView's own content transition),
-// so "every consumer produces the same visual transition" holds by construction, not by
-// convention.
+// (CalendarNavbar's nav arrows/Today/view toggle, DayView/WeekView's own content transition).
+// getSwipeDirection/isSameWeek are used everywhere a transition exists, including WeekStrip's
+// own separate FLIP/slide animation (a different enough shape -- percentage-width, no opacity,
+// gated on transitionCrossesWeek rather than every date change -- that it doesn't use
+// dateEnterMotion below). dateEnterMotion is the shared shape (0.25s easeOut slide+fade) for
+// every OTHER enter transition, so those hold by construction, not by convention; axis/magnitude
+// still vary per call site (see its own comment).
 
 import { formatETDateString } from "./timeUtils";
 import { getFirstDayOfWeek } from "./weekDates";
@@ -33,7 +37,10 @@ export const dateEnterMotion = (
     direction: SwipeDirection,
     axis: "x" | "y",
     magnitude: number,
-    opts: { alreadyAnimatedByCaller?: boolean; reducedMotion?: boolean } = {},
+    // reducedMotion accepts framer-motion's useReducedMotion() return type (boolean | null)
+    // directly -- null only during the brief pre-hydration window, treated the same as false
+    // (not reduced) below, so callers don't need their own !! wrapper.
+    opts: { alreadyAnimatedByCaller?: boolean; reducedMotion?: boolean | null } = {},
 ) => {
     const offset = direction === "forward" ? magnitude : -magnitude;
     // Reduced motion skips the enter animation entirely (element appears already in its final

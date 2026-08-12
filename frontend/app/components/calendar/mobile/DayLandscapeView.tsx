@@ -411,7 +411,7 @@ const DayLandscapeView: React.FC<DayLandscapeViewProps> = ({
                 </div>
                 <motion.div
                   key={dateKey}
-                  {...dateEnterMotion(transitionDirection, "y", 12, { alreadyAnimatedByCaller: transitionAlreadyAnimatedByCaller, reducedMotion: !!reducedMotion })}
+                  {...dateEnterMotion(transitionDirection, "y", 12, { alreadyAnimatedByCaller: transitionAlreadyAnimatedByCaller, reducedMotion })}
                   style={{ height: "100%" }}
                 >
                   <DailyViewRow
