@@ -26,6 +26,9 @@ test("expands a weekly recurring meeting across a 7-day range", async () => {
   expect(new Set(own.map(r => r.date)).size).toBe(7);
 });
 
+// Also the regression guard for roadmap item 7 (bounding allRecurringMeetings's query by the
+// pattern's own startDate/endDate) -- a far-future series showing up here would mean that
+// bound regressed, not just a range-expansion bug.
 test("excludes a recurring series whose span doesn't overlap the range", async () => {
   const farFuture = formatETDateString(new Date(Date.now() + 1000 * 60 * 60 * 24 * 400));
   const { meeting } = await seedRecurringMeeting(
