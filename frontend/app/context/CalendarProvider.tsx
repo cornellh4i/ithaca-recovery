@@ -18,32 +18,33 @@ import { getSwipeDirection, isSameWeek, SwipeDirection } from "../../util/date/d
 // calendar pick), goes through changeSelectedDate rather than a raw setter. It derives
 // direction/crossesWeek from the *previous* selectedDate before updating, so WeekStrip and
 // DayPortraitView (which just react to selectedDate + these fields changing, regardless of
-// which trigger caused it) render the same transition no matter the source. Desktop's
-// page.tsx reads transitionDirection/transitionAlreadyAnimatedByCaller too (for
-// CalendarNavbar/DayView/WeekView's own enter transition, added for GH #371) and threads them
-// down as explicit props rather than those three calling useCalendarContext directly --
-// CalendarNavbar only needs transitionDirection (it has no content of its own to skip an
-// already-animated entry for), DayView/WeekView take both. All three are also rendered by
-// /signage, which has no CalendarProvider ancestor, so a direct context read there would
-// throw; transitionCrossesWeek remains mobile (WeekStrip)-only. There's deliberately no raw
-// setSelectedDate on this context: a desktop call site bypassing changeSelectedDate would
-// leave these three fields stale for whatever view mounts next after a resize crossing the
-// desktop<->mobile breakpoint in either direction (DayPortraitView/DayLandscapeView and
-// DayView/WeekView all unmount/remount across that boundary, but the context itself does not).
+// which trigger caused it) render the same transition no matter the source. Desktop's page.tsx
+// reads transitionDirection too (for CalendarNavbar/DayView/WeekView's own enter transition,
+// added for GH #371) and threads it down as an explicit prop rather than those three calling
+// useCalendarContext directly, since all three are also rendered by /signage, which has no
+// CalendarProvider ancestor and would throw on a direct context read. transitionCrossesWeek
+// remains mobile (WeekStrip)-only. There's deliberately no raw setSelectedDate on this context:
+// a desktop call site bypassing changeSelectedDate would leave transitionDirection stale for
+// whatever view mounts next after a resize crossing the desktop<->mobile breakpoint in either
+// direction (DayPortraitView/DayLandscapeView and DayView/WeekView all unmount/remount across
+// that boundary, but the context itself does not).
 //
 // transitionAlreadyAnimatedByCaller: set when the caller's own gesture already delivered the
 // motion (only DayPortraitView's drag -- the pan itself slides the content into place), so
 // consumers that play their own enter transition on every selectedDate change (DayPortraitView's
-// per-panel slide-in) know to skip it for that one commit rather than layering a redundant
-// second slide right after the drag's. Plain state (not a ref) specifically so it's safe to
-// read during render. Auto-cleared back to false in the effect below, one render after it's
-// set -- framer-motion's `initial` prop is only ever consulted at a motion element's own mount,
-// so clearing it a render later doesn't undo the suppression the *intended* consumer's mount
-// already read it for, but it does close a real gap: without the auto-clear, this flag stays
-// true until the next changeSelectedDate call, so a drag on mobile immediately followed by a
-// resize crossing the desktop<->mobile breakpoint (no date change in between) would mount the
-// other side's view with a stale true, silently skipping *that* mount's own, unrelated entry
-// animation.
+// own per-panel slide-in, and DayLandscapeView's -- an orientation switch between the two with
+// no intervening date change would otherwise read the other's stale flag) know to skip it for
+// that one commit rather than layering a redundant second slide right after the drag's. Not
+// threaded into DayView/WeekView -- desktop has no gesture of its own that pre-delivers the
+// motion, so a live context value would only ever be observably false there anyway (mobile is
+// the only setter, and the effect below already clears it before any other mount could read a
+// stale true). Plain state (not a ref) specifically so it's safe to read during render.
+// Auto-cleared back to false in the effect below, one render after it's set -- framer-motion's
+// `initial` prop is only ever consulted at a motion element's own mount, so clearing it a
+// render later doesn't undo the suppression the *intended* consumer's mount already read it
+// for, but it does close a real gap: without the auto-clear, this flag stays true until the
+// next changeSelectedDate call, so it could otherwise leak into an unrelated later mount (e.g.
+// a resize-triggered remount) with no intervening date change.
 interface CalendarContextValue {
   selectedDate: Date;
   selectedView: string;
@@ -106,9 +107,12 @@ export const CalendarProvider: React.FC<CalendarProviderProps> = ({ children, in
   }, []);
 
   // One-shot: see transitionAlreadyAnimatedByCaller's own comment above for why this needs to
-  // exist and why clearing it a render later is still safe for the mount it was set for.
+  // exist and why clearing it a render later is still safe for the mount it was set for. The
+  // cascading render this triggers is the whole point (not an accidental side effect to guard
+  // against), so it's disabled rather than restructured to avoid it.
   useEffect(() => {
     if (transitionAlreadyAnimatedByCaller) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setTransitionAlreadyAnimatedByCaller(false);
     }
   }, [transitionAlreadyAnimatedByCaller]);

@@ -83,7 +83,6 @@ export default function HomePage() {
     weekFilters,
     setWeekFilters,
     transitionDirection,
-    transitionAlreadyAnimatedByCaller,
   } = useCalendarContext();
   const [selectedMeeting, setSelectedMeeting] = useState<IMeeting | null>(null);
   const [selectedMeetingID, setSelectedMeetingID] = useState<string | null>(null);
@@ -481,7 +480,6 @@ export default function HomePage() {
                 conflictMids={conflictMids}
                 syncErrorMids={syncErrorMids}
                 transitionDirection={transitionDirection}
-                transitionAlreadyAnimatedByCaller={transitionAlreadyAnimatedByCaller}
               />
             ) : (
               <WeekView
@@ -499,7 +497,6 @@ export default function HomePage() {
                 conflictMids={conflictMids}
                 syncErrorMids={syncErrorMids}
                 transitionDirection={transitionDirection}
-                transitionAlreadyAnimatedByCaller={transitionAlreadyAnimatedByCaller}
               />
             )}
           </React.Fragment>

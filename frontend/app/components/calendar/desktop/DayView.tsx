@@ -155,6 +155,18 @@ export const invalidateAllDayCache = () => {
   dayMeetingCache.clear();
 };
 
+// Warms dayMeetingCache for the neighboring days so an arrow click's fetch is (almost always)
+// a cache hit by the time the new date's motion.div mounts -- without this, the enter
+// transition slides in showing the *previous* day's still-cached meetings for however long the
+// real fetch takes, which reads as a glitch now that a deliberate "the new date arrived" motion
+// draws the eye to it (it was an invisible flash-of-stale-content before, since nothing
+// animated). Fire-and-forget: fetchMeetingsByDay's own cache is the only effect wanted here.
+// Module-level (not a useCallback), matching prefetchWeek's own shape in useWeekMeetings.ts.
+export const prefetchAdjacentDays = (date: Date): void => {
+  fetchMeetingsByDay(addDaysToDate(date, -1));
+  fetchMeetingsByDay(addDaysToDate(date, 1));
+};
+
 const formatTime = (hour: number): string => {
   const period = hour >= 12 ? "PM" : "AM";
   const formattedHour = hour % 12 || 12;
@@ -189,11 +201,6 @@ interface DayViewProps {
   // /signage renders this component with no CalendarProvider ancestor at all; defaults to
   // "forward" there, so the transition still plays, just always in one direction.
   transitionDirection?: SwipeDirection;
-  // Set by CalendarProvider only for a mobile drag gesture, and auto-cleared back to false one
-  // render later (see its own doc comment for why that's safe) -- /signage never sets it (no
-  // CalendarProvider), so it's always false there; the real desktop caller (page.tsx) passes
-  // the live context value.
-  transitionAlreadyAnimatedByCaller?: boolean;
 }
 
 const DayView: React.FC<DayViewProps> = ({
@@ -210,7 +217,6 @@ const DayView: React.FC<DayViewProps> = ({
   conflictMids,
   syncErrorMids,
   transitionDirection = "forward",
-  transitionAlreadyAnimatedByCaller = false,
 }) => {
   const reducedMotion = useReducedMotion();
   const [currentTimePosition, setCurrentTimePosition] = useState(0);
@@ -261,18 +267,6 @@ const DayView: React.FC<DayViewProps> = ({
     }
   }, [updateTimePosition]);
 
-  // Warms dayMeetingCache for the neighboring days so an arrow click's fetch is (almost
-  // always) a cache hit by the time the new date's motion.div mounts -- without this, the
-  // enter transition slides in showing the *previous* day's still-cached meetings for however
-  // long the real fetch takes, which reads as a glitch now that a deliberate "the new date
-  // arrived" motion draws the eye to it (it was an invisible flash-of-stale-content before,
-  // since nothing animated). Fire-and-forget: fetchMeetingsByDay's own cache is the only
-  // effect, no state here to race against fetchData's requestId guard.
-  const prefetchAdjacentDays = useCallback((date: Date) => {
-    fetchMeetingsByDay(addDaysToDate(date, -1));
-    fetchMeetingsByDay(addDaysToDate(date, 1));
-  }, []);
-
   // Gates .viewContainer's visibility until the very first scroll-to-current-time
   // completes -- without this there's a beat of the wrong scroll position visible before JS
   // jumps it to "now". One-way: only ever flips true once, on this view's first mount --
@@ -281,13 +275,16 @@ const DayView: React.FC<DayViewProps> = ({
   // initialScrollDone-guarded scrollToCurrentTime call).
   const [initialScrollDone, setInitialScrollDone] = useState(false);
 
-  // useLayoutEffect (not useEffect) so the scroll jump happens before paint.
+  // useLayoutEffect (not useEffect) so the scroll jump happens before paint. fetchData() runs
+  // before prefetchAdjacentDays() so the visible day's own request is never queued behind its
+  // off-screen neighbors'.
   useLayoutEffect(() => {
     selectedDateRef.current = selectedDate;
     fetchData();
     prefetchAdjacentDays(selectedDate);
     if (initialScrollDone === false) {
       scrollToCurrentTime();
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setInitialScrollDone(true);
     }
 
@@ -296,12 +293,18 @@ const DayView: React.FC<DayViewProps> = ({
     return () => {
       clearInterval(intervalId);
     };
-  }, [selectedDate, fetchData, prefetchAdjacentDays, updateTimePosition]);
+    // initialScrollDone is deliberately omitted: it's a write-once latch, so re-running this
+    // effect when it flips would just re-run fetchData/prefetchAdjacentDays for no reason.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedDate, fetchData, scrollToCurrentTime, updateTimePosition]);
 
   useEffect(() => {
     if (refreshTrigger > 0) {
       console.log("Refreshing calendar due to trigger change:", refreshTrigger);
-      fetchData(true); // Force fetch (invalidate cache)
+      // dayMeetingCache.clear() (inside fetchData(true)) wipes the prefetched neighbors too --
+      // re-warm them once the visible day's own force-fetch has landed, or the next arrow click
+      // within the 30s auto-refresh window would slide in stale content again.
+      fetchData(true).then(() => prefetchAdjacentDays(selectedDateRef.current));
     }
   }, [refreshTrigger, fetchData]);
 
@@ -366,11 +369,16 @@ const DayView: React.FC<DayViewProps> = ({
               <div key={rowIndex} className={styles.gridRow}>
                 <div className={styles.gridMeetingRow}>
                   {/* Matches DayLandscapeView.tsx's per-room-row transition (y, not x --
-                      desktop's wide viewport is closer to landscape than portrait). */}
+                      desktop's wide viewport is closer to landscape than portrait). No explicit
+                      height style here (unlike DayLandscapeView's own equivalent motion.div) --
+                      .gridMeetingRow itself has no CSS height (position: absolute, top/bottom
+                      both auto, so its height resolves via the content-based algorithm), and
+                      every meaningful descendant inside DailyViewRow is itself absolutely
+                      positioned and out of flow, so a height:100% here would only ever resolve
+                      to auto/0 regardless -- confirmed empirically, not just by inspection. */}
                   <motion.div
                     key={formatETDateString(selectedDate)}
-                    {...dateEnterMotion(transitionDirection, "y", 12, { alreadyAnimatedByCaller: transitionAlreadyAnimatedByCaller, reducedMotion: !!reducedMotion })}
-                    style={{ height: "100%" }}
+                    {...dateEnterMotion(transitionDirection, "y", 12, { reducedMotion })}
                   >
                     <DailyViewRow
                       roomColor={room.primaryColor}

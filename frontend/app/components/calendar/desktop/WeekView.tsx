@@ -1,4 +1,4 @@
-import React, { useCallback, useLayoutEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import styles from '../../../../styles/components/calendar/desktop/WeekView.module.scss';
 import DayColumn from "../shared/DayColumn";
@@ -6,11 +6,10 @@ import { filterMeetingsForDate, MeetingFilters } from "../../../../util/filters/
 import { ROOM_COLORS, ZOOM_ROOM_COLOR, REMOTE_COLOR } from "../../../../util/rooms/filterColors";
 import { formatETDateString } from "../../../../util/date/timeUtils";
 import { layoutOverlappingMeetings } from "../../../../util/meetings/meetingOverlapLayout";
-import { getFirstDayOfWeek, getDaysOfWeek } from "../../../../util/date/weekDates";
+import { getFirstDayOfWeek, getDaysOfWeek, addDaysToDate } from "../../../../util/date/weekDates";
 import { useWeekMeetings, WeekMeeting, prefetchWeek } from "../../../../hooks/useWeekMeetings";
 import TopLoadingBar from "../../atoms/TopLoadingBar";
 import { dateEnterMotion, type SwipeDirection } from "../../../../util/date/dateTransition";
-import { addDaysToDate } from "../../../../util/date/weekDates";
 
 export { invalidateWeekCache } from "../../../../hooks/useWeekMeetings";
 
@@ -55,11 +54,6 @@ interface WeekViewProps {
     // /signage renders this component with no CalendarProvider ancestor at all; defaults to
     // "forward" there, so the transition still plays, just always in one direction.
     transitionDirection?: SwipeDirection;
-    // Set by CalendarProvider only for a mobile drag gesture, and auto-cleared back to false one
-    // render later (see its own doc comment for why that's safe) -- /signage never sets it (no
-    // CalendarProvider), so it's always false there; the real desktop caller (page.tsx) passes
-    // the live context value.
-    transitionAlreadyAnimatedByCaller?: boolean;
 }
 
 const WeekView: React.FC<WeekViewProps> = ({
@@ -77,7 +71,6 @@ const WeekView: React.FC<WeekViewProps> = ({
     conflictMids,
     syncErrorMids,
     transitionDirection = "forward",
-    transitionAlreadyAnimatedByCaller = false,
 }) => {
     const reducedMotion = useReducedMotion();
     const [currentTimePosition, setCurrentTimePosition] = useState(0);
@@ -153,15 +146,29 @@ const WeekView: React.FC<WeekViewProps> = ({
             scrollToCurrentTime();
             setInitialScrollDone(true);
         }
-        // Warms the cache for the neighboring weeks (see prefetchWeek's own comment) so an
-        // arrow click's fetch is (almost always) a cache hit by the time the new week's
-        // motion.div mounts.
-        prefetchWeek(addDaysToDate(weekStartDate, -7));
-        prefetchWeek(addDaysToDate(weekStartDate, 7));
 
         const intervalId = setInterval(updateTimePosition, 60000);
         return () => clearInterval(intervalId);
+        // initialScrollDone is deliberately omitted: it's a write-once latch, so re-running
+        // this effect when it flips would just reset the interval above for no reason.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [weekStartDate, updateTimePosition, scrollToCurrentTime]);
+
+    // Warms weekMeetingCache for the neighboring weeks (see prefetchWeek's own comment) so an
+    // arrow click's fetch is (almost always) a cache hit by the time the new week's motion.div
+    // mounts. A separate, plain useEffect (not the layout effect above, and not folded into
+    // useWeekMeetings' own fetch) for two reasons: (1) useWeekMeetings' visible-week fetch runs
+    // in its own passive useEffect -- keeping the prefetch calls out of a *layout* effect means
+    // React flushes that fetch first (layout effects always run before passive ones), so the
+    // week the user is actually looking at is never queued behind its off-screen neighbors; (2)
+    // it needs refreshTrigger in its deps, since useWeekMeetings' own force-fetch on a
+    // refreshTrigger bump clears weekMeetingCache wholesale (including the prefetched
+    // neighbors) -- without re-running this, the next arrow click within the 30s auto-refresh
+    // window would slide in stale content again.
+    useEffect(() => {
+        prefetchWeek(addDaysToDate(weekStartDate, -7));
+        prefetchWeek(addDaysToDate(weekStartDate, 7));
+    }, [weekStartDate, refreshTrigger]);
 
     // Get meetings for a specific day, filtered by room if applicable
     const getMeetingsForDay = (date: Date) => {
@@ -212,7 +219,7 @@ const WeekView: React.FC<WeekViewProps> = ({
                 <motion.div
                     key={formatETDateString(weekStartDate)}
                     className={styles.daysContainer}
-                    {...dateEnterMotion(transitionDirection, "x", 24, { alreadyAnimatedByCaller: transitionAlreadyAnimatedByCaller, reducedMotion: !!reducedMotion })}
+                    {...dateEnterMotion(transitionDirection, "x", 24, { reducedMotion })}
                 >
                     {daysOfWeek.map((day, index) => {
                         const dayMeetings = getMeetingsForDay(day);
