@@ -1,13 +1,13 @@
 import React from 'react';
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 import styles from "../../../../styles/components/calendar/desktop/CalendarNavbar.module.scss";
 import { formatMeetingDateLine, monthNameForETDateString, formatMeetingWeekLine } from "../../../../util/date/timeFormat";
 import { formatETDateString } from "../../../../util/date/timeUtils";
 import { dateEnterMotion, type SwipeDirection } from "../../../../util/date/dateTransition";
 
-// Desktop's heading slide matches its own content's magnitude (DayView/WeekView's y:12);
-// mobile-portrait's slide matches DayPortraitView's own heading precedent (x:40, wider than
-// its content's x:24 -- the heading was tuned separately before this shared helper existed).
+// Day's heading slide matches its own content's magnitude (DayView/DayLandscapeView's y:12);
+// Week's/mobile-portrait's slide matches DayPortraitView's own heading precedent (x:40, wider
+// than its content's x:24 -- the heading was tuned separately before this shared helper existed).
 const HEADING_MAGNITUDE: Record<'x' | 'y', number> = { x: 40, y: 12 };
 
 type CalendarHeaderProps = {
@@ -31,13 +31,14 @@ type CalendarHeaderProps = {
   // room rows / WeekView's day columns on desktop), so the two appear to move simultaneously.
   // The "View only" pill below is deliberately never part of this animation (stays fixed while
   // the heading swaps), matching the mobile swipe spec.
-  // axis: which direction the slide travels -- 'x' (default) matches DayPortraitView's
-  // horizontal swipe; 'y' matches DayView/WeekView/DayLandscapeView's vertical one, so
-  // CalendarNavbar (desktop) requests 'y' to move in the same direction as its own content.
+  // axis: which direction the slide travels -- 'x' (default) matches DayPortraitView's and
+  // WeekView's horizontal one; 'y' matches DayView's/DayLandscapeView's vertical one.
+  // CalendarNavbar (desktop) requests whichever axis matches its own active view's content.
   animatedHeading?: { transitionKey: string; direction: SwipeDirection; axis?: 'x' | 'y' };
 };
 
 const CalendarHeader: React.FC<CalendarHeaderProps> = ({ selectedDate, selectedView, isAdmin, children, animatedHeading }) => {
+  const reducedMotion = useReducedMotion();
   const getDateRange = (date: Date): React.ReactNode => {
     if (selectedView === 'Day') {
       return formatMeetingDateLine(date, true);
@@ -67,6 +68,7 @@ const CalendarHeader: React.FC<CalendarHeaderProps> = ({ selectedDate, selectedV
         animatedHeading.direction,
         animatedHeading.axis ?? 'x',
         HEADING_MAGNITUDE[animatedHeading.axis ?? 'x'],
+        { reducedMotion: !!reducedMotion },
       )}
     >
       {getDateRange(selectedDate)}

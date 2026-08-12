@@ -101,13 +101,17 @@ const CalendarNavbar: React.FC<CalendarNavbarProps> = ({
     const handleNext = () => shiftSelectedDate(1);
 
     const headingTransitionKey = computeHeadingTransitionKey(selectedView, selectedDate);
+    // Day matches its own content's vertical transition (DayView's room rows); Week matches
+    // its own content's horizontal one (WeekView's day columns, which read left-to-right the
+    // same way a week of days does) -- see WeekView.tsx's own dateEnterMotion call.
+    const headingAxis: 'x' | 'y' = selectedView === 'Week' ? 'x' : 'y';
 
     return (
       <CalendarHeader
         selectedDate={selectedDate}
         selectedView={selectedView}
         isAdmin={isAdmin}
-        animatedHeading={{ transitionKey: headingTransitionKey, direction: transitionDirection, axis: 'y' }}
+        animatedHeading={{ transitionKey: headingTransitionKey, direction: transitionDirection, axis: headingAxis }}
       >
         <div className={styles.navbarControls}>
           <div className={styles.viewDropdown}>

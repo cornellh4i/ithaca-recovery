@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { motion, useAnimationControls, useDragControls, type PanInfo } from "framer-motion";
+import { motion, useAnimationControls, useDragControls, useReducedMotion, type PanInfo } from "framer-motion";
 import styles from "../../../../styles/components/calendar/mobile/DayLandscapeView.module.scss";
 import DailyViewRow from "../desktop/DailyViewRow";
 import { fetchMeetingsByDay, invalidateCache } from "../desktop/DayView";
@@ -142,6 +142,7 @@ const DayLandscapeView: React.FC<DayLandscapeViewProps> = ({
 }) => {
   const { changeSelectedDate, transitionDirection, transitionAlreadyAnimatedByCaller, setNavHidden } =
     useCalendarContext();
+  const reducedMotion = useReducedMotion();
   // No scroll-to-hide-navbar here (unlike DayPortraitView/MultiDayLandscapeView) -- the
   // vertical gesture is now day-navigation, not a scroll a nav-hide listener could also read.
   // Forces the navbar visible once on mount/switch-in, in case it was left hidden by whichever
@@ -410,7 +411,7 @@ const DayLandscapeView: React.FC<DayLandscapeViewProps> = ({
                 </div>
                 <motion.div
                   key={dateKey}
-                  {...dateEnterMotion(transitionDirection, "y", 12, transitionAlreadyAnimatedByCaller)}
+                  {...dateEnterMotion(transitionDirection, "y", 12, { alreadyAnimatedByCaller: transitionAlreadyAnimatedByCaller, reducedMotion: !!reducedMotion })}
                   style={{ height: "100%" }}
                 >
                   <DailyViewRow

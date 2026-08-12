@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { motion, useAnimationControls, useDragControls, type PanInfo } from "framer-motion";
+import { motion, useAnimationControls, useDragControls, useReducedMotion, type PanInfo } from "framer-motion";
 import WeekStrip from "./WeekStrip";
 import CalendarHeader from "../shared/CalendarHeader";
 import DayColumn from "../shared/DayColumn";
@@ -11,6 +11,7 @@ import { getFirstDayOfWeek, addDaysToDate } from "../../../../util/date/weekDate
 import { useWeekMeetings } from "../../../../hooks/useWeekMeetings";
 import { useScrollNavHide } from "../../../../hooks/useScrollNavHide";
 import { useCalendarContext } from "../../../context/CalendarProvider";
+import { dateEnterMotion } from "../../../../util/date/dateTransition";
 import TopLoadingBar from "../../atoms/TopLoadingBar";
 import styles from "../../../../styles/components/calendar/mobile/DayPortraitView.module.scss";
 
@@ -82,6 +83,7 @@ const DayPortraitView: React.FC<DayPortraitViewProps> = ({
 }) => {
   const { changeSelectedDate, transitionDirection, transitionAlreadyAnimatedByCaller } =
     useCalendarContext();
+  const reducedMotion = useReducedMotion();
   const { handleScroll, syncScrollAnchor } = useScrollNavHide();
 
   // A prev/current/next-day carousel needs whichever week(s) contain selectedDate - 1 and
@@ -275,13 +277,7 @@ const DayPortraitView: React.FC<DayPortraitViewProps> = ({
       <div className={styles.dayContent}>
         <motion.div
           key={formatETDateString(date)}
-          initial={
-            transitionAlreadyAnimatedByCaller
-              ? false
-              : { x: transitionDirection === "forward" ? 24 : -24, opacity: 0 }
-          }
-          animate={{ x: 0, opacity: 1 }}
-          transition={{ duration: 0.25, ease: "easeOut" }}
+          {...dateEnterMotion(transitionDirection, "x", 24, { alreadyAnimatedByCaller: transitionAlreadyAnimatedByCaller, reducedMotion: !!reducedMotion })}
         >
           <DayColumn
             roomColor={ZOOM_ROOM_COLOR} // Unused fallback: every meeting sets primaryColor via getRoomColor
