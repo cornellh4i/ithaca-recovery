@@ -26,9 +26,12 @@ test("expands a weekly recurring meeting across a 7-day range", async () => {
   expect(new Set(own.map(r => r.date)).size).toBe(7);
 });
 
-// Also the regression guard for roadmap item 7 (bounding allRecurringMeetings's query by the
-// pattern's own startDate/endDate) -- a far-future series showing up here would mean that
-// bound regressed, not just a range-expansion bug.
+// Guards the observable outcome only -- roadmap item 7's query-level bound on
+// allRecurringMeetings (recurrencePattern.startDate/endDate vs. the range) is a pure
+// over-fetch/performance optimization, not a correctness one: matchesRecurrencePattern's own
+// etDateStr < patternStartDate check already rejects a pre-start occurrence downstream, so
+// removing that DB-level bound would not fail this test. Guarding the bound itself needs a
+// query/row-count assertion, not an output assertion.
 test("excludes a recurring series whose span doesn't overlap the range", async () => {
   const farFuture = formatETDateString(new Date(Date.now() + 1000 * 60 * 60 * 24 * 400));
   const { meeting } = await seedRecurringMeeting(
