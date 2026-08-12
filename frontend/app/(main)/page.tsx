@@ -460,6 +460,7 @@ export default function HomePage() {
             <CalendarNavbar
               selectedDate={selectedDate}
               onDateChange={changeSelectedDate}
+              selectedView={selectedView}
               onViewChange={setSelectedView}
               isAdmin={isAdmin}
               transitionDirection={transitionDirection}

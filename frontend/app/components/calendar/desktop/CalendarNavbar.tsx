@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import Dropdown from '../../atoms/Dropdown';
 import CalendarHeader from '../shared/CalendarHeader';
 import styles from "../../../../styles/components/calendar/desktop/CalendarNavbar.module.scss";
@@ -38,10 +38,21 @@ export const computeHeadingTransitionKey = (selectedView: string, selectedDate: 
 type CalendarNavbarProps = {
     selectedDate: Date;
     onDateChange: (date : Date) => void;
+    // Controlled -- CalendarNavbar previously owned this as local state (useState('Day')),
+    // which desynced from whichever caller-owned selectedView actually decides which content
+    // (DayView vs. WeekView) renders below it: page.tsx keeps its own selectedView in
+    // CalendarContext (only ever updated via this same onViewChange, but re-initialized to
+    // "Day" on every CalendarNavbar remount -- e.g. a viewport resize crossing the desktop/
+    // mobile breakpoint round-trip), and /signage seeds its own view from a URL param that
+    // CalendarNavbar's old local state had no way to see at all (?view=week rendered WeekView
+    // while the navbar still believed it was in Day view -- wrong heading text, wrong arrow
+    // step, and, once the heading gained a per-view axis, a wrong slide direction too). Now the
+    // single source of truth lives with whichever parent actually decides what to render.
+    selectedView: string;
     onViewChange: (view: string) => void;
     // Optional: signage (a public kiosk with no sign-in concept at all) renders this without
-    // ever resolving a real admin status, CalendarHeader treats the resulting null the same as 
-    // "not yet known" and skips the View-only pill either way, whereas the main calendar always 
+    // ever resolving a real admin status, CalendarHeader treats the resulting null the same as
+    // "not yet known" and skips the View-only pill either way, whereas the main calendar always
     // supplies its resolved (or still-loading) boolean | null.
     isAdmin?: boolean | null;
     // Which way CalendarHeader's heading slides on a date/view change (see CalendarProvider's
@@ -54,22 +65,20 @@ type CalendarNavbarProps = {
 const CalendarNavbar: React.FC<CalendarNavbarProps> = ({
     selectedDate,
     onDateChange,
+    selectedView,
     onViewChange,
     isAdmin = null,
     transitionDirection = 'forward',
 }) => {
-    const [selectedView, setSelectedView] = useState('Day');
-
     const handleViewChange = (value: string) => {
-      setSelectedView(value);
       onViewChange(value); // Call the external function
       onDateChange(new Date());
     };
   
-    // Jumps to today's date within whatever view is currently active -- must not touch
-    // selectedView (previously forced this to "Day" without telling the parent via
-    // onViewChange, desyncing CalendarHeader's date-range label and shiftSelectedDate's own
-    // day-vs-week step from whatever view was actually still rendered underneath).
+    // Jumps to today's date within whatever view is currently active. selectedView is now the
+    // caller's own controlled prop (see its own comment), so there's no local state here that
+    // could silently reset it -- this used to matter when it was still local state, forced to
+    // "Day" without telling the parent via onViewChange.
     const handleToday = () => {
       onDateChange(new Date());
     };

@@ -45,8 +45,9 @@ function SignageContent() {
     () => parseSignageFilters(searchParams),
     [searchParams]
   );
-  // Seeded once from the URL; CalendarNavbar can still change it locally (e.g. if
-  // the kiosk is touch-enabled), since it's the same navbar the interactive app uses.
+  // Seeded once from the URL; passed to CalendarNavbar as its controlled selectedView (see that
+  // component's own comment), so a touch-enabled kiosk's dropdown still works via onViewChange
+  // -- it's the same navbar the interactive app uses, just no longer owning this state itself.
   const [view, setView] = useState<'Day' | 'Week'>(() => parseSignageView(searchParams));
 
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -154,6 +155,7 @@ function SignageContent() {
         <CalendarNavbar
           selectedDate={selectedDate}
           onDateChange={changeSelectedDate}
+          selectedView={view}
           onViewChange={(v) => setView(v === "Week" ? "Week" : "Day")}
           transitionDirection={transitionDirection}
         />
