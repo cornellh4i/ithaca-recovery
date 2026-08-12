@@ -9,7 +9,7 @@ import {
   addMonthsToETDateString,
 } from "../../../../util/date/timeUtils";
 import { getFirstDayOfWeek } from "../../../../util/date/weekDates";
-import type { SwipeDirection } from "../../../../util/date/weekStripTransition";
+import type { SwipeDirection } from "../../../../util/date/dateTransition";
 
 // view_timeline / calendar_view_week (Material Symbols) -- same icons and same renderElement
 // pattern MobileAppNavbar's own Day/Multi-Day dropdown uses (icon-only in the closed button
@@ -18,6 +18,22 @@ const VIEW_ICONS: Record<string, string> = {
   Day: "/svg/view-timeline-icon.svg",
   Week: "/svg/calendar-view-week-icon.svg",
 };
+
+// Week view's displayed range only changes when the week itself changes (see
+// formatMeetingWeekLine), so the key is the week's start date, not selectedDate directly --
+// otherwise picking a different day within the same visible week would re-trigger the heading
+// transition for text that didn't actually change. Prefixed with the view name -- handleViewChange
+// always resets selectedDate to today, so on a Day<->Week toggle when today is a Sunday
+// (getFirstDayOfWeek(today) === today), the two branches would otherwise compute the identical ET
+// date string and the heading would silently skip its transition even though the displayed text
+// (day line vs. week line) really did change. Exported (not inlined in the component) so the
+// Sunday case above has a direct unit test rather than depending on a real Sunday date -- Jest's
+// "fake system time" is on the same real clock this function reads via getFirstDayOfWeek, so it
+// still needs a fixed `date` argument, not `new Date()`, to be deterministic on any day.
+export const computeHeadingTransitionKey = (selectedView: string, selectedDate: Date): string =>
+  selectedView === 'Week'
+    ? `Week:${formatETDateString(getFirstDayOfWeek(selectedDate))}`
+    : `${selectedView}:${formatETDateString(selectedDate)}`;
 
 type CalendarNavbarProps = {
     selectedDate: Date;
@@ -31,16 +47,16 @@ type CalendarNavbarProps = {
     // Which way CalendarHeader's heading slides on a date/view change (see CalendarProvider's
     // changeSelectedDate) -- optional (not read from useCalendarContext directly) because
     // /signage renders this component with no CalendarProvider ancestor at all; defaults to
-    // "forward" there, so the heading still animates, just always in one direction.
+    // 'forward' there, so the heading still animates, just always in one direction.
     transitionDirection?: SwipeDirection;
   };
 
 const CalendarNavbar: React.FC<CalendarNavbarProps> = ({
-  selectedDate,
-  onDateChange,
-  onViewChange,
-  isAdmin = null,
-  transitionDirection = "forward",
+    selectedDate,
+    onDateChange,
+    onViewChange,
+    isAdmin = null,
+    transitionDirection = 'forward',
 }) => {
     const [selectedView, setSelectedView] = useState('Day');
 
@@ -84,20 +100,14 @@ const CalendarNavbar: React.FC<CalendarNavbarProps> = ({
     const handlePrevious = () => shiftSelectedDate(-1);
     const handleNext = () => shiftSelectedDate(1);
 
-    // Week view's displayed range only changes when the week itself changes (see
-    // formatMeetingWeekLine), so the key is the week's start date, not selectedDate directly --
-    // otherwise picking a different day within the same visible week would re-trigger the
-    // heading transition for text that didn't actually change.
-    const headingTransitionKey = selectedView === 'Week'
-      ? formatETDateString(getFirstDayOfWeek(selectedDate))
-      : formatETDateString(selectedDate);
+    const headingTransitionKey = computeHeadingTransitionKey(selectedView, selectedDate);
 
     return (
       <CalendarHeader
         selectedDate={selectedDate}
         selectedView={selectedView}
         isAdmin={isAdmin}
-        animatedHeading={{ transitionKey: headingTransitionKey, direction: transitionDirection }}
+        animatedHeading={{ transitionKey: headingTransitionKey, direction: transitionDirection, axis: 'y' }}
       >
         <div className={styles.navbarControls}>
           <div className={styles.viewDropdown}>

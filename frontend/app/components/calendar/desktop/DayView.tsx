@@ -9,7 +9,8 @@ import { passesTagFilters, passesRoomFilter, MeetingFilters } from "../../../../
 import { createCache } from "../../../../util/common/simpleCache";
 import { defaultRooms } from "../../../../util/rooms/rooms";
 import { layoutOverlappingMeetings, OverlapMeeting } from "../../../../util/meetings/meetingOverlapLayout";
-import type { SwipeDirection } from "../../../../util/date/weekStripTransition";
+import { dateEnterMotion, type SwipeDirection } from "../../../../util/date/dateTransition";
+import { addDaysToDate } from "../../../../util/date/weekDates";
 
 type Meeting = OverlapMeeting;
 
@@ -188,9 +189,13 @@ interface DayViewProps {
   // /signage renders this component with no CalendarProvider ancestor at all; defaults to
   // "forward" there, so the transition still plays, just always in one direction.
   transitionDirection?: SwipeDirection;
-  // See CalendarProvider's own doc comment -- only ever true for a mobile drag gesture, so
-  // this is always false for every real desktop/signage caller; kept as a prop (not hardcoded)
-  // so this component doesn't have to know that.
+  // Set by CalendarProvider only for a mobile drag gesture (see its own doc comment) and never
+  // cleared until the next changeSelectedDate -- /signage never sets it (no CalendarProvider),
+  // so it's always false there, but the real desktop caller (page.tsx) passes the live context
+  // value: a mobile drag immediately followed by a resize past the phone breakpoint (no date
+  // change in between) mounts this view with a stale true, silently skipping that one entry
+  // animation. Cosmetic and self-correcting on the very next date change; not worth suppressing
+  // this prop over.
   transitionAlreadyAnimatedByCaller?: boolean;
 }
 
@@ -258,6 +263,18 @@ const DayView: React.FC<DayViewProps> = ({
     }
   }, [updateTimePosition]);
 
+  // Warms dayMeetingCache for the neighboring days so an arrow click's fetch is (almost
+  // always) a cache hit by the time the new date's motion.div mounts -- without this, the
+  // enter transition slides in showing the *previous* day's still-cached meetings for however
+  // long the real fetch takes, which reads as a glitch now that a deliberate "the new date
+  // arrived" motion draws the eye to it (it was an invisible flash-of-stale-content before,
+  // since nothing animated). Fire-and-forget: fetchMeetingsByDay's own cache is the only
+  // effect, no state here to race against fetchData's requestId guard.
+  const prefetchAdjacentDays = useCallback((date: Date) => {
+    fetchMeetingsByDay(addDaysToDate(date, -1));
+    fetchMeetingsByDay(addDaysToDate(date, 1));
+  }, []);
+
   // Gates .viewContainer's visibility until the very first scroll-to-current-time
   // completes -- without this there's a beat of the wrong scroll position visible before JS
   // jumps it to "now". One-way: only ever flips true once, on this view's first mount --
@@ -269,6 +286,7 @@ const DayView: React.FC<DayViewProps> = ({
   useLayoutEffect(() => {
     selectedDateRef.current = selectedDate;
     fetchData();
+    prefetchAdjacentDays(selectedDate);
     scrollToCurrentTime();
     setInitialScrollDone(true);
 
@@ -277,7 +295,7 @@ const DayView: React.FC<DayViewProps> = ({
     return () => {
       clearInterval(intervalId);
     };
-  }, [selectedDate, fetchData, scrollToCurrentTime, updateTimePosition]);
+  }, [selectedDate, fetchData, prefetchAdjacentDays, scrollToCurrentTime, updateTimePosition]);
 
   useEffect(() => {
     if (refreshTrigger > 0) {
@@ -350,13 +368,8 @@ const DayView: React.FC<DayViewProps> = ({
                       desktop's wide viewport is closer to landscape than portrait). */}
                   <motion.div
                     key={formatETDateString(selectedDate)}
-                    initial={
-                      transitionAlreadyAnimatedByCaller
-                        ? false
-                        : { y: transitionDirection === "forward" ? 12 : -12, opacity: 0 }
-                    }
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ duration: 0.25, ease: "easeOut" }}
+                    {...dateEnterMotion(transitionDirection, "y", 12, transitionAlreadyAnimatedByCaller)}
+                    style={{ height: "100%" }}
                   >
                     <DailyViewRow
                       roomColor={room.primaryColor}

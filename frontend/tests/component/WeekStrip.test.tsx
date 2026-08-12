@@ -68,6 +68,6 @@ describe("WeekStrip", () => {
   // triggerable via jsdom's fireEvent.pointer* -- framer-motion's own gesture recognition
   // needs real pointer-capture/layout measurement jsdom doesn't provide. Covered instead by
   // a real-browser Playwright spec (tests/e2e/16-mobile-swipe.spec.ts) using
-  // page.touchscreen. The underlying direction/same-week math (util/weekStripTransition.ts)
+  // page.touchscreen. The underlying direction/same-week math (util/date/dateTransition.ts)
   // has its own unit tests.
 });

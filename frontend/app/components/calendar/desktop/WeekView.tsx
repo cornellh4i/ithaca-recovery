@@ -7,9 +7,10 @@ import { ROOM_COLORS, ZOOM_ROOM_COLOR, REMOTE_COLOR } from "../../../../util/roo
 import { formatETDateString } from "../../../../util/date/timeUtils";
 import { layoutOverlappingMeetings } from "../../../../util/meetings/meetingOverlapLayout";
 import { getFirstDayOfWeek, getDaysOfWeek } from "../../../../util/date/weekDates";
-import { useWeekMeetings, WeekMeeting } from "../../../../hooks/useWeekMeetings";
+import { useWeekMeetings, WeekMeeting, prefetchWeek } from "../../../../hooks/useWeekMeetings";
 import TopLoadingBar from "../../atoms/TopLoadingBar";
-import type { SwipeDirection } from "../../../../util/date/weekStripTransition";
+import { dateEnterMotion, type SwipeDirection } from "../../../../util/date/dateTransition";
+import { addDaysToDate } from "../../../../util/date/weekDates";
 
 export { invalidateWeekCache } from "../../../../hooks/useWeekMeetings";
 
@@ -54,9 +55,13 @@ interface WeekViewProps {
     // /signage renders this component with no CalendarProvider ancestor at all; defaults to
     // "forward" there, so the transition still plays, just always in one direction.
     transitionDirection?: SwipeDirection;
-    // See CalendarProvider's own doc comment -- only ever true for a mobile drag gesture, so
-    // this is always false for every real desktop/signage caller; kept as a prop (not hardcoded)
-    // so this component doesn't have to know that.
+    // Set by CalendarProvider only for a mobile drag gesture (see its own doc comment) and never
+    // cleared until the next changeSelectedDate -- /signage never sets it (no CalendarProvider),
+    // so it's always false there, but the real desktop caller (page.tsx) passes the live context
+    // value: a mobile drag immediately followed by a resize past the phone breakpoint (no date
+    // change in between) mounts this view with a stale true, silently skipping that one entry
+    // animation. Cosmetic and self-correcting on the very next date change; not worth suppressing
+    // this prop over.
     transitionAlreadyAnimatedByCaller?: boolean;
 }
 
@@ -146,6 +151,11 @@ const WeekView: React.FC<WeekViewProps> = ({
         updateTimePosition();
         scrollToCurrentTime();
         setInitialScrollDone(true);
+        // Warms the cache for the neighboring weeks (see prefetchWeek's own comment) so an
+        // arrow click's fetch is (almost always) a cache hit by the time the new week's
+        // motion.div mounts.
+        prefetchWeek(addDaysToDate(weekStartDate, -7));
+        prefetchWeek(addDaysToDate(weekStartDate, 7));
 
         const intervalId = setInterval(updateTimePosition, 60000);
         return () => clearInterval(intervalId);
@@ -200,13 +210,7 @@ const WeekView: React.FC<WeekViewProps> = ({
                 <motion.div
                     key={formatETDateString(weekStartDate)}
                     className={styles.daysContainer}
-                    initial={
-                        transitionAlreadyAnimatedByCaller
-                            ? false
-                            : { y: transitionDirection === "forward" ? 12 : -12, opacity: 0 }
-                    }
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ duration: 0.25, ease: "easeOut" }}
+                    {...dateEnterMotion(transitionDirection, "y", 12, transitionAlreadyAnimatedByCaller)}
                 >
                     {daysOfWeek.map((day, index) => {
                         const dayMeetings = getMeetingsForDay(day);

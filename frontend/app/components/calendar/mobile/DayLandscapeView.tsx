@@ -9,6 +9,7 @@ import { passesTagFilters, passesRoomFilter, MeetingFilters } from "../../../../
 import { defaultRooms } from "../../../../util/rooms/rooms";
 import { layoutOverlappingMeetings, OverlapMeeting } from "../../../../util/meetings/meetingOverlapLayout";
 import { addDaysToDate } from "../../../../util/date/weekDates";
+import { dateEnterMotion } from "../../../../util/date/dateTransition";
 import { useElementSize } from "../../../../hooks/useElementSize";
 import { useCalendarContext } from "../../../context/CalendarProvider";
 import TopLoadingBar from "../../atoms/TopLoadingBar";
@@ -409,13 +410,7 @@ const DayLandscapeView: React.FC<DayLandscapeViewProps> = ({
                 </div>
                 <motion.div
                   key={dateKey}
-                  initial={
-                    transitionAlreadyAnimatedByCaller
-                      ? false
-                      : { y: transitionDirection === "forward" ? 12 : -12, opacity: 0 }
-                  }
-                  animate={{ y: 0, opacity: 1 }}
-                  transition={{ duration: 0.25, ease: "easeOut" }}
+                  {...dateEnterMotion(transitionDirection, "y", 12, transitionAlreadyAnimatedByCaller)}
                   style={{ height: "100%" }}
                 >
                   <DailyViewRow

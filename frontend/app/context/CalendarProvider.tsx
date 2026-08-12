@@ -2,7 +2,7 @@
 
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { createDefaultFilters, MeetingFilters } from "../../util/filters/meetingFilters";
-import { getSwipeDirection, isSameWeek, SwipeDirection } from "../../util/date/weekStripTransition";
+import { getSwipeDirection, isSameWeek, SwipeDirection } from "../../util/date/dateTransition";
 
 // Bridges calendar state between HomePage's page content and the globally-mounted AppNavbar
 // (ClientLayout.tsx renders them as siblings, not parent/child, so AppNavbar can't just read
@@ -22,12 +22,16 @@ import { getSwipeDirection, isSameWeek, SwipeDirection } from "../../util/date/w
 // page.tsx reads transitionDirection/transitionAlreadyAnimatedByCaller too (for
 // CalendarNavbar/DayView/WeekView's own enter transition, added for GH #371) and threads them
 // down as explicit props rather than those three calling useCalendarContext directly --
-// they're also rendered by /signage, which has no CalendarProvider ancestor, so a direct
-// context read there would throw; transitionCrossesWeek remains mobile (WeekStrip)-only.
-// There's deliberately no raw setSelectedDate on this context: a desktop call site bypassing
-// changeSelectedDate would leave these three fields stale for whatever mobile view mounts
-// next after a desktop<->mobile resize (DayPortraitView unmounts/remounts across that
-// boundary, but the context itself does not).
+// CalendarNavbar only needs transitionDirection (it has no content of its own to skip an
+// already-animated entry for), DayView/WeekView take both. All three are also rendered by
+// /signage, which has no CalendarProvider ancestor, so a direct context read there would
+// throw; transitionCrossesWeek remains mobile (WeekStrip)-only. There's deliberately no raw
+// setSelectedDate on this context: a desktop call site bypassing changeSelectedDate would
+// leave these three fields stale for whatever view mounts next after a resize crossing the
+// desktop<->mobile breakpoint in either direction (DayPortraitView/DayLandscapeView and
+// DayView/WeekView all unmount/remount across that boundary, but the context itself does not)
+// -- see transitionAlreadyAnimatedByCaller's own comment on DayView/WeekView's props for the
+// concrete, currently-accepted consequence on the mobile->desktop direction.
 //
 // transitionAlreadyAnimatedByCaller: set when the caller's own gesture already delivered the
 // motion (only DayPortraitView's drag -- the pan itself slides the content into place), so
