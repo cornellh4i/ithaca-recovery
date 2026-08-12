@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useLayoutEffect, useState, useRef } from "react";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import styles from '../../../../styles/components/calendar/desktop/DayView.module.scss';
 import BoxText from '../../atoms/BoxText';
 import DailyViewRow from "./DailyViewRow";
@@ -189,13 +189,10 @@ interface DayViewProps {
   // /signage renders this component with no CalendarProvider ancestor at all; defaults to
   // "forward" there, so the transition still plays, just always in one direction.
   transitionDirection?: SwipeDirection;
-  // Set by CalendarProvider only for a mobile drag gesture (see its own doc comment) and never
-  // cleared until the next changeSelectedDate -- /signage never sets it (no CalendarProvider),
-  // so it's always false there, but the real desktop caller (page.tsx) passes the live context
-  // value: a mobile drag immediately followed by a resize past the phone breakpoint (no date
-  // change in between) mounts this view with a stale true, silently skipping that one entry
-  // animation. Cosmetic and self-correcting on the very next date change; not worth suppressing
-  // this prop over.
+  // Set by CalendarProvider only for a mobile drag gesture, and auto-cleared back to false one
+  // render later (see its own doc comment for why that's safe) -- /signage never sets it (no
+  // CalendarProvider), so it's always false there; the real desktop caller (page.tsx) passes
+  // the live context value.
   transitionAlreadyAnimatedByCaller?: boolean;
 }
 
@@ -215,6 +212,7 @@ const DayView: React.FC<DayViewProps> = ({
   transitionDirection = "forward",
   transitionAlreadyAnimatedByCaller = false,
 }) => {
+  const reducedMotion = useReducedMotion();
   const [currentTimePosition, setCurrentTimePosition] = useState(0);
   const [meetings, setMeetings] = useState<Room[]>([]);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -278,8 +276,9 @@ const DayView: React.FC<DayViewProps> = ({
   // Gates .viewContainer's visibility until the very first scroll-to-current-time
   // completes -- without this there's a beat of the wrong scroll position visible before JS
   // jumps it to "now". One-way: only ever flips true once, on this view's first mount --
-  // later date changes reset scroll position same as always but don't re-hide already-
-  // visible content.
+  // later date changes must NOT reset scroll position, or navigating to the next/prev day
+  // fights the user back to "now" every time (matching DayPortraitView's own
+  // initialScrollDone-guarded scrollToCurrentTime call).
   const [initialScrollDone, setInitialScrollDone] = useState(false);
 
   // useLayoutEffect (not useEffect) so the scroll jump happens before paint.
@@ -287,15 +286,17 @@ const DayView: React.FC<DayViewProps> = ({
     selectedDateRef.current = selectedDate;
     fetchData();
     prefetchAdjacentDays(selectedDate);
-    scrollToCurrentTime();
-    setInitialScrollDone(true);
+    if (initialScrollDone === false) {
+      scrollToCurrentTime();
+      setInitialScrollDone(true);
+    }
 
     const intervalId = setInterval(updateTimePosition, 60000);
 
     return () => {
       clearInterval(intervalId);
     };
-  }, [selectedDate, fetchData, prefetchAdjacentDays, scrollToCurrentTime, updateTimePosition]);
+  }, [selectedDate, fetchData, prefetchAdjacentDays, updateTimePosition]);
 
   useEffect(() => {
     if (refreshTrigger > 0) {
@@ -368,7 +369,7 @@ const DayView: React.FC<DayViewProps> = ({
                       desktop's wide viewport is closer to landscape than portrait). */}
                   <motion.div
                     key={formatETDateString(selectedDate)}
-                    {...dateEnterMotion(transitionDirection, "y", 12, transitionAlreadyAnimatedByCaller)}
+                    {...dateEnterMotion(transitionDirection, "y", 12, { alreadyAnimatedByCaller: transitionAlreadyAnimatedByCaller, reducedMotion: !!reducedMotion })}
                     style={{ height: "100%" }}
                   >
                     <DailyViewRow
