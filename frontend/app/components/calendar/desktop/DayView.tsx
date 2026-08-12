@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useLayoutEffect, useState, useRef } from "react";
+import { motion } from "framer-motion";
 import styles from '../../../../styles/components/calendar/desktop/DayView.module.scss';
 import BoxText from '../../atoms/BoxText';
 import DailyViewRow from "./DailyViewRow";
@@ -8,6 +9,7 @@ import { passesTagFilters, passesRoomFilter, MeetingFilters } from "../../../../
 import { createCache } from "../../../../util/common/simpleCache";
 import { defaultRooms } from "../../../../util/rooms/rooms";
 import { layoutOverlappingMeetings, OverlapMeeting } from "../../../../util/meetings/meetingOverlapLayout";
+import type { SwipeDirection } from "../../../../util/date/weekStripTransition";
 
 type Meeting = OverlapMeeting;
 
@@ -181,6 +183,15 @@ interface DayViewProps {
   conflictMids?: Set<string>;
   // Admin-only (see hooks/useSyncErrorMids) -- mids with a Google Calendar/Zoom sync error.
   syncErrorMids?: Set<string>;
+  // Which way the date-transition animation below slides (see CalendarProvider's
+  // changeSelectedDate) -- optional (not read from useCalendarContext directly) because
+  // /signage renders this component with no CalendarProvider ancestor at all; defaults to
+  // "forward" there, so the transition still plays, just always in one direction.
+  transitionDirection?: SwipeDirection;
+  // See CalendarProvider's own doc comment -- only ever true for a mobile drag gesture, so
+  // this is always false for every real desktop/signage caller; kept as a prop (not hardcoded)
+  // so this component doesn't have to know that.
+  transitionAlreadyAnimatedByCaller?: boolean;
 }
 
 const DayView: React.FC<DayViewProps> = ({
@@ -196,6 +207,8 @@ const DayView: React.FC<DayViewProps> = ({
   scrollLocked = false,
   conflictMids,
   syncErrorMids,
+  transitionDirection = "forward",
+  transitionAlreadyAnimatedByCaller = false,
 }) => {
   const [currentTimePosition, setCurrentTimePosition] = useState(0);
   const [meetings, setMeetings] = useState<Room[]>([]);
@@ -333,19 +346,32 @@ const DayView: React.FC<DayViewProps> = ({
             return (
               <div key={rowIndex} className={styles.gridRow}>
                 <div className={styles.gridMeetingRow}>
-                  <DailyViewRow
-                    roomColor={room.primaryColor}
-                    meetings={room.meetings}
-                    selectedMeetingID={selectedMeetingID}
-                    setSelectedMeetingID={setSelectedMeetingID}
-                    selectedOccurrenceDate={selectedOccurrenceDate}
-                    setSelectedNewMeeting={setSelectedNewMeeting}
-                    setAnchorEl={setAnchorEl}
-                    columnDate={selectedDate}
-                    setLastClickedDate={setLastClickedDate}
-                    conflictMids={conflictMids}
-                    syncErrorMids={syncErrorMids}
-                  />
+                  {/* Matches DayLandscapeView.tsx's per-room-row transition (y, not x --
+                      desktop's wide viewport is closer to landscape than portrait). */}
+                  <motion.div
+                    key={formatETDateString(selectedDate)}
+                    initial={
+                      transitionAlreadyAnimatedByCaller
+                        ? false
+                        : { y: transitionDirection === "forward" ? 12 : -12, opacity: 0 }
+                    }
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ duration: 0.25, ease: "easeOut" }}
+                  >
+                    <DailyViewRow
+                      roomColor={room.primaryColor}
+                      meetings={room.meetings}
+                      selectedMeetingID={selectedMeetingID}
+                      setSelectedMeetingID={setSelectedMeetingID}
+                      selectedOccurrenceDate={selectedOccurrenceDate}
+                      setSelectedNewMeeting={setSelectedNewMeeting}
+                      setAnchorEl={setAnchorEl}
+                      columnDate={selectedDate}
+                      setLastClickedDate={setLastClickedDate}
+                      conflictMids={conflictMids}
+                      syncErrorMids={syncErrorMids}
+                    />
+                  </motion.div>
                 </div>
                 {timeSlots.map((_, colIndex) => (
                   <div key={colIndex} className={styles.gridCell}></div>

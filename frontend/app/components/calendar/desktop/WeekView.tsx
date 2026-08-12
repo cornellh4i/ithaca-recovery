@@ -1,4 +1,5 @@
 import React, { useCallback, useLayoutEffect, useRef, useState } from "react";
+import { motion } from "framer-motion";
 import styles from '../../../../styles/components/calendar/desktop/WeekView.module.scss';
 import DayColumn from "../shared/DayColumn";
 import { filterMeetingsForDate, MeetingFilters } from "../../../../util/filters/meetingFilters";
@@ -8,6 +9,7 @@ import { layoutOverlappingMeetings } from "../../../../util/meetings/meetingOver
 import { getFirstDayOfWeek, getDaysOfWeek } from "../../../../util/date/weekDates";
 import { useWeekMeetings, WeekMeeting } from "../../../../hooks/useWeekMeetings";
 import TopLoadingBar from "../../atoms/TopLoadingBar";
+import type { SwipeDirection } from "../../../../util/date/weekStripTransition";
 
 export { invalidateWeekCache } from "../../../../hooks/useWeekMeetings";
 
@@ -47,6 +49,15 @@ interface WeekViewProps {
     conflictMids?: Set<string>;
     // Admin-only (see hooks/useSyncErrorMids) -- mids with a Google Calendar/Zoom sync error.
     syncErrorMids?: Set<string>;
+    // Which way the week-transition animation below slides (see CalendarProvider's
+    // changeSelectedDate) -- optional (not read from useCalendarContext directly) because
+    // /signage renders this component with no CalendarProvider ancestor at all; defaults to
+    // "forward" there, so the transition still plays, just always in one direction.
+    transitionDirection?: SwipeDirection;
+    // See CalendarProvider's own doc comment -- only ever true for a mobile drag gesture, so
+    // this is always false for every real desktop/signage caller; kept as a prop (not hardcoded)
+    // so this component doesn't have to know that.
+    transitionAlreadyAnimatedByCaller?: boolean;
 }
 
 const WeekView: React.FC<WeekViewProps> = ({
@@ -63,6 +74,8 @@ const WeekView: React.FC<WeekViewProps> = ({
     scrollLocked = false,
     conflictMids,
     syncErrorMids,
+    transitionDirection = "forward",
+    transitionAlreadyAnimatedByCaller = false,
 }) => {
     const [currentTimePosition, setCurrentTimePosition] = useState(0);
     const [weekStartDate, setWeekStartDate] = useState<Date>(() => getFirstDayOfWeek(selectedDate));
@@ -179,8 +192,22 @@ const WeekView: React.FC<WeekViewProps> = ({
                     </div>
                 </div>
 
-                {/* Day columns */}
-                <div className={styles.daysContainer}>
+                {/* Day columns -- keyed by week start (not selectedDate) so picking a
+                    different day within the same visible week doesn't re-trigger the
+                    transition, only navigating to a different week does. Same y/duration/
+                    easing as DayView's per-room-row transition and DayLandscapeView.tsx's
+                    mobile-landscape precedent. */}
+                <motion.div
+                    key={formatETDateString(weekStartDate)}
+                    className={styles.daysContainer}
+                    initial={
+                        transitionAlreadyAnimatedByCaller
+                            ? false
+                            : { y: transitionDirection === "forward" ? 12 : -12, opacity: 0 }
+                    }
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ duration: 0.25, ease: "easeOut" }}
+                >
                     {daysOfWeek.map((day, index) => {
                         const dayMeetings = getMeetingsForDay(day);
                         const isToday = isCurrentDate(day);
@@ -238,7 +265,7 @@ const WeekView: React.FC<WeekViewProps> = ({
                             </div>
                         );
                     })}
-                </div>
+                </motion.div>
             </div>
         </div>
     );

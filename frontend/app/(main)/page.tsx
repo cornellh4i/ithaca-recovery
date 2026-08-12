@@ -82,6 +82,8 @@ export default function HomePage() {
     setDayFilters,
     weekFilters,
     setWeekFilters,
+    transitionDirection,
+    transitionAlreadyAnimatedByCaller,
   } = useCalendarContext();
   const [selectedMeeting, setSelectedMeeting] = useState<IMeeting | null>(null);
   const [selectedMeetingID, setSelectedMeetingID] = useState<string | null>(null);
@@ -461,6 +463,7 @@ export default function HomePage() {
               onDateChange={changeSelectedDate}
               onViewChange={setSelectedView}
               isAdmin={isAdmin}
+              transitionDirection={transitionDirection}
             />
             {selectedView === "Day" ? (
               <DayView
@@ -477,6 +480,8 @@ export default function HomePage() {
                 scrollLocked={isViewMeetingOpen}
                 conflictMids={conflictMids}
                 syncErrorMids={syncErrorMids}
+                transitionDirection={transitionDirection}
+                transitionAlreadyAnimatedByCaller={transitionAlreadyAnimatedByCaller}
               />
             ) : (
               <WeekView
@@ -493,6 +498,8 @@ export default function HomePage() {
                 scrollLocked={isViewMeetingOpen}
                 conflictMids={conflictMids}
                 syncErrorMids={syncErrorMids}
+                transitionDirection={transitionDirection}
+                transitionAlreadyAnimatedByCaller={transitionAlreadyAnimatedByCaller}
               />
             )}
           </React.Fragment>

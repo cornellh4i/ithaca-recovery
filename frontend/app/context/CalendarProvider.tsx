@@ -18,10 +18,13 @@ import { getSwipeDirection, isSameWeek, SwipeDirection } from "../../util/date/w
 // calendar pick), goes through changeSelectedDate rather than a raw setter. It derives
 // direction/crossesWeek from the *previous* selectedDate before updating, so WeekStrip and
 // DayPortraitView (which just react to selectedDate + these fields changing, regardless of
-// which trigger caused it) render the same transition no matter the source -- desktop simply
-// never reads transitionDirection/transitionCrossesWeek/transitionAlreadyAnimatedByCaller, so
-// routing its changes through here too is a no-op for it, not a behavior change. There's
-// deliberately no raw setSelectedDate on this context: a desktop call site bypassing
+// which trigger caused it) render the same transition no matter the source. Desktop's
+// page.tsx reads transitionDirection/transitionAlreadyAnimatedByCaller too (for
+// CalendarNavbar/DayView/WeekView's own enter transition, added for GH #371) and threads them
+// down as explicit props rather than those three calling useCalendarContext directly --
+// they're also rendered by /signage, which has no CalendarProvider ancestor, so a direct
+// context read there would throw; transitionCrossesWeek remains mobile (WeekStrip)-only.
+// There's deliberately no raw setSelectedDate on this context: a desktop call site bypassing
 // changeSelectedDate would leave these three fields stale for whatever mobile view mounts
 // next after a desktop<->mobile resize (DayPortraitView unmounts/remounts across that
 // boundary, but the context itself does not).
