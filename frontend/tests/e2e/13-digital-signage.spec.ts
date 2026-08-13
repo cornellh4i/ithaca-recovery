@@ -33,6 +33,20 @@ test.describe("digital signage", () => {
     await expect(page.getByText("Unity Signage Meeting")).toHaveCount(0);
   });
 
+  // Regression test: CalendarNavbar used to own selectedView as its own local state, always
+  // initialized to "Day" regardless of what a caller wanted rendered -- /signage?view=week
+  // seeded WeekView from this URL param, but the navbar still believed it was in Day view (its
+  // own dropdown/heading showed Day-formatted text, and its arrows stepped by 1 day instead of
+  // 7). selectedView is now a controlled prop threaded from this page's own `view` state.
+  test("13.7 /signage?view=week renders the week view and the navbar agrees", async ({ page }) => {
+    await seedMeeting({ title: "Week View Signage Meeting" });
+    await page.goto("/signage?view=week");
+    await expect(page.getByText("Week View Signage Meeting")).toBeVisible();
+    // The navbar's own view dropdown must read "Week", not the "Day" it would show if it were
+    // still tracking view as disconnected local state defaulting to "Day".
+    await expect(page.getByRole("button", { name: "Week" })).toBeVisible();
+  });
+
   // Regression test for #348: the auto-fit scale calculation used to be gated on a plain
   // useRef, which isn't reactive -- on a fresh direct navigation (not a click-through from an
   // already-scaled state) the effect fired before the content div ever mounted and never
