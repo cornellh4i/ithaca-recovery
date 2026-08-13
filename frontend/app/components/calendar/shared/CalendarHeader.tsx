@@ -1,9 +1,14 @@
 import React from 'react';
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'motion/react';
 import styles from "../../../../styles/components/calendar/desktop/CalendarNavbar.module.scss";
 import { formatMeetingDateLine, monthNameForETDateString, formatMeetingWeekLine } from "../../../../util/date/timeFormat";
 import { formatETDateString } from "../../../../util/date/timeUtils";
-import type { SwipeDirection } from "../../../../util/date/weekStripTransition";
+import { dateEnterMotion, type SwipeDirection } from "../../../../util/date/dateTransition";
+
+// Day's heading slide matches its own content's magnitude (DayView/DayLandscapeView's y:12);
+// Week's/mobile-portrait's slide matches DayPortraitView's own heading precedent (x:40, wider
+// than its content's x:24 -- the heading was tuned separately before this shared helper existed).
+const HEADING_MAGNITUDE: Record<'x' | 'y', number> = { x: 40, y: 12 };
 
 type CalendarHeaderProps = {
   selectedDate: Date;
@@ -20,15 +25,20 @@ type CalendarHeaderProps = {
   // CalendarHeader directly (bypassing CalendarNavbar entirely -- WeekStrip/the mobile navbar's
   // Today button/bottom sheets replace that role there), so it has no controls to pass.
   children?: React.ReactNode;
-  // Mobile only: when set, the date-range heading slides between values (keyed by
-  // transitionKey, e.g. the ET date string) instead of updating in place -- driven by the
-  // same selectedDate change that also swaps DayPortraitView's DayColumn, so the two
-  // appear to move simultaneously. The "View only" pill below is deliberately never part of
-  // this animation (stays fixed while the heading swaps), matching the mobile swipe spec.
-  animatedHeading?: { transitionKey: string; direction: SwipeDirection };
+  // When set, the date-range heading slides between values (keyed by transitionKey, e.g. the
+  // ET date string) instead of updating in place -- driven by the same selectedDate change
+  // that also swaps the content below it (DayPortraitView's DayColumn on mobile, DayView's
+  // room rows / WeekView's day columns on desktop), so the two appear to move simultaneously.
+  // The "View only" pill below is deliberately never part of this animation (stays fixed while
+  // the heading swaps), matching the mobile swipe spec.
+  // axis: which direction the slide travels -- 'x' (default) matches DayPortraitView's and
+  // WeekView's horizontal one; 'y' matches DayView's/DayLandscapeView's vertical one.
+  // CalendarNavbar (desktop) requests whichever axis matches its own active view's content.
+  animatedHeading?: { transitionKey: string; direction: SwipeDirection; axis?: 'x' | 'y' };
 };
 
 const CalendarHeader: React.FC<CalendarHeaderProps> = ({ selectedDate, selectedView, isAdmin, children, animatedHeading }) => {
+  const reducedMotion = useReducedMotion();
   const getDateRange = (date: Date): React.ReactNode => {
     if (selectedView === 'Day') {
       return formatMeetingDateLine(date, true);
@@ -54,9 +64,12 @@ const CalendarHeader: React.FC<CalendarHeaderProps> = ({ selectedDate, selectedV
     <motion.h2
       key={animatedHeading.transitionKey}
       className={styles.navbarHeading}
-      initial={{ x: animatedHeading.direction === 'forward' ? 40 : -40, opacity: 0 }}
-      animate={{ x: 0, opacity: 1 }}
-      transition={{ duration: 0.25, ease: 'easeOut' }}
+      {...dateEnterMotion(
+        animatedHeading.direction,
+        animatedHeading.axis ?? 'x',
+        HEADING_MAGNITUDE[animatedHeading.axis ?? 'x'],
+        { reducedMotion },
+      )}
     >
       {getDateRange(selectedDate)}
     </motion.h2>

@@ -1,13 +1,15 @@
-import React, { useCallback, useLayoutEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { motion, useReducedMotion } from "framer-motion";
 import styles from '../../../../styles/components/calendar/desktop/WeekView.module.scss';
 import DayColumn from "../shared/DayColumn";
 import { filterMeetingsForDate, MeetingFilters } from "../../../../util/filters/meetingFilters";
 import { ROOM_COLORS, ZOOM_ROOM_COLOR, REMOTE_COLOR } from "../../../../util/rooms/filterColors";
 import { formatETDateString } from "../../../../util/date/timeUtils";
 import { layoutOverlappingMeetings } from "../../../../util/meetings/meetingOverlapLayout";
-import { getFirstDayOfWeek, getDaysOfWeek } from "../../../../util/date/weekDates";
-import { useWeekMeetings, WeekMeeting } from "../../../../hooks/useWeekMeetings";
+import { getFirstDayOfWeek, getDaysOfWeek, addDaysToDate } from "../../../../util/date/weekDates";
+import { useWeekMeetings, WeekMeeting, prefetchWeek } from "../../../../hooks/useWeekMeetings";
 import TopLoadingBar from "../../atoms/TopLoadingBar";
+import { dateEnterMotion, type SwipeDirection } from "../../../../util/date/dateTransition";
 
 export { invalidateWeekCache } from "../../../../hooks/useWeekMeetings";
 
@@ -47,6 +49,11 @@ interface WeekViewProps {
     conflictMids?: Set<string>;
     // Admin-only (see hooks/useSyncErrorMids) -- mids with a Google Calendar/Zoom sync error.
     syncErrorMids?: Set<string>;
+    // Which way the week-transition animation below slides (see CalendarProvider's
+    // changeSelectedDate) -- optional (not read from useCalendarContext directly) because
+    // /signage renders this component with no CalendarProvider ancestor at all; defaults to
+    // "forward" there, so the transition still plays, just always in one direction.
+    transitionDirection?: SwipeDirection;
 }
 
 const WeekView: React.FC<WeekViewProps> = ({
@@ -63,12 +70,18 @@ const WeekView: React.FC<WeekViewProps> = ({
     scrollLocked = false,
     conflictMids,
     syncErrorMids,
+    transitionDirection = "forward",
 }) => {
+    const reducedMotion = useReducedMotion();
     const [currentTimePosition, setCurrentTimePosition] = useState(0);
     const [weekStartDate, setWeekStartDate] = useState<Date>(() => getFirstDayOfWeek(selectedDate));
-    const [daysOfWeek, setDaysOfWeek] = useState<Date[]>(() => getDaysOfWeek(weekStartDate));
     const viewContainerRef = useRef<HTMLDivElement>(null);
-    const { meetings: allMeetings, isLoading } = useWeekMeetings(weekStartDate, refreshTrigger);
+    const { meetings: allMeetings, isLoading, loadedWeekStartDate } = useWeekMeetings(weekStartDate, refreshTrigger);
+    // The days actually rendered -- derived from loadedWeekStartDate (what allMeetings belongs
+    // to), not weekStartDate (what's being requested), so the enter transition and the day
+    // columns/meetings it wraps update atomically once real data has landed. See
+    // useWeekMeetings' own comment on loadedWeekStartDate for why this distinction matters.
+    const renderedDaysOfWeek = getDaysOfWeek(loadedWeekStartDate);
 
     // Format time slots for hour markers
     const formatTime = (hour: number): string => {
@@ -111,32 +124,54 @@ const WeekView: React.FC<WeekViewProps> = ({
         const newWeekStartDate = getFirstDayOfWeek(selectedDate);
         if (formatETDateString(weekStartDate) !== formatETDateString(newWeekStartDate)) {
             setWeekStartDate(newWeekStartDate);
-            setDaysOfWeek(getDaysOfWeek(newWeekStartDate));
         }
     }
 
     // Gates .viewContainer's visibility until the very first scroll-to-current-time
     // completes -- without this there's a beat of the wrong scroll position (12 AM) visible
     // before JS jumps it to "now". One-way: only ever flips true once, on this view's first
-    // mount -- later week changes reset scroll position same as always but don't re-hide
-    // already-visible content.
+    // mount -- later week changes must NOT reset scroll position, or navigating to the
+    // next/prev week fights the user back to "now" every time (matching DayPortraitView's own
+    // initialScrollDone-guarded scrollToCurrentTime call, and DayView's identical fix).
     const [initialScrollDone, setInitialScrollDone] = useState(false);
 
-    // Resets the current-time indicator/scroll position whenever the visible week changes.
-    // Meeting fetching itself is owned by useWeekMeetings above -- kept as a separate effect
-    // since it's an independent concern (indicator/scroll vs. data), not because the trigger
-    // differs. useLayoutEffect (not useEffect) so the scroll jump happens before paint.
+    // Resets the current-time indicator whenever the visible week changes (scroll position
+    // itself is one-way, guarded below). Meeting fetching itself is owned by useWeekMeetings
+    // above -- kept as a separate effect since it's an independent concern (indicator/scroll vs.
+    // data), not because the trigger differs. useLayoutEffect (not useEffect) so the scroll
+    // jump happens before paint.
     useLayoutEffect(() => {
         // Sets the current-time indicator immediately rather than leaving it blank for up
         // to 60s until the interval below first fires.
         // eslint-disable-next-line react-hooks/set-state-in-effect
         updateTimePosition();
-        scrollToCurrentTime();
-        setInitialScrollDone(true);
+        if (initialScrollDone === false) {
+            scrollToCurrentTime();
+            setInitialScrollDone(true);
+        }
 
         const intervalId = setInterval(updateTimePosition, 60000);
         return () => clearInterval(intervalId);
+        // initialScrollDone is deliberately omitted: it's a write-once latch, so re-running
+        // this effect when it flips would just reset the interval above for no reason.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [weekStartDate, updateTimePosition, scrollToCurrentTime]);
+
+    // Warms weekMeetingCache for the neighboring weeks (see prefetchWeek's own comment) so an
+    // arrow click's fetch is (almost always) a cache hit by the time the new week's motion.div
+    // mounts. A separate, plain useEffect (not the layout effect above, and not folded into
+    // useWeekMeetings' own fetch) for two reasons: (1) useWeekMeetings' visible-week fetch runs
+    // in its own passive useEffect -- keeping the prefetch calls out of a *layout* effect means
+    // React flushes that fetch first (layout effects always run before passive ones), so the
+    // week the user is actually looking at is never queued behind its off-screen neighbors; (2)
+    // it needs refreshTrigger in its deps, since useWeekMeetings' own force-fetch on a
+    // refreshTrigger bump clears weekMeetingCache wholesale (including the prefetched
+    // neighbors) -- without re-running this, the next arrow click within the 30s auto-refresh
+    // window would slide in stale content again.
+    useEffect(() => {
+        prefetchWeek(addDaysToDate(weekStartDate, -7));
+        prefetchWeek(addDaysToDate(weekStartDate, 7));
+    }, [weekStartDate, refreshTrigger]);
 
     // Get meetings for a specific day, filtered by room if applicable
     const getMeetingsForDay = (date: Date) => {
@@ -179,9 +214,21 @@ const WeekView: React.FC<WeekViewProps> = ({
                     </div>
                 </div>
 
-                {/* Day columns */}
-                <div className={styles.daysContainer}>
-                    {daysOfWeek.map((day, index) => {
+                {/* Day columns -- keyed by loadedWeekStartDate (what allMeetings actually
+                    belongs to), not weekStartDate (what's being requested) or selectedDate, so
+                    (1) picking a different day within the same visible week doesn't re-trigger
+                    the transition, only navigating to a different week does, and (2) the
+                    transition doesn't start until real data for the new week has landed --
+                    otherwise it can animate in empty or prior-week content for however long the
+                    fetch takes. Horizontal (x), not vertical -- a week of days reads
+                    left-to-right the same way DayPortraitView's own day-to-day swipe does,
+                    unlike DayView's per-room-row vertical one. */}
+                <motion.div
+                    key={formatETDateString(loadedWeekStartDate)}
+                    className={styles.daysContainer}
+                    {...dateEnterMotion(transitionDirection, "x", 24, { reducedMotion })}
+                >
+                    {renderedDaysOfWeek.map((day, index) => {
                         const dayMeetings = getMeetingsForDay(day);
                         const isToday = isCurrentDate(day);
 
@@ -238,7 +285,7 @@ const WeekView: React.FC<WeekViewProps> = ({
                             </div>
                         );
                     })}
-                </div>
+                </motion.div>
             </div>
         </div>
     );

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useRef } from "react";
-import { motion, type PanInfo } from "framer-motion";
+import { motion, useReducedMotion, type PanInfo } from "framer-motion";
 import { getFirstDayOfWeek, getDaysOfWeek, addDaysToDate } from "../../../../util/date/weekDates";
 import { formatETDateString } from "../../../../util/date/timeUtils";
 import { useCalendarContext } from "../../../context/CalendarProvider";
@@ -26,6 +26,7 @@ const SWIPE_VELOCITY_THRESHOLD = 400;
 
 const WeekStrip: React.FC = () => {
   const { selectedDate, changeSelectedDate, transitionDirection, transitionCrossesWeek } = useCalendarContext();
+  const reducedMotion = useReducedMotion();
   const weekStartDate = getFirstDayOfWeek(selectedDate);
   const weekStartEtDateStr = formatETDateString(weekStartDate);
   const days = getDaysOfWeek(weekStartDate);
@@ -110,7 +111,7 @@ const WeekStrip: React.FC = () => {
               <motion.span
                 layoutId="week-strip-highlight"
                 className={circleClass}
-                transition={{ layout: { duration: 0.25, ease: "easeOut" } }}
+                transition={{ layout: { duration: reducedMotion ? 0 : 0.25, ease: "easeOut" } }}
               >
                 {formatDayNumber(day)}
               </motion.span>
@@ -143,9 +144,13 @@ const WeekStrip: React.FC = () => {
       >
         <motion.div
           key={weekStartEtDateStr}
-          initial={transitionCrossesWeek ? { x: transitionDirection === "forward" ? "100%" : "-100%" } : false}
+          initial={
+            transitionCrossesWeek && !reducedMotion
+              ? { x: transitionDirection === "forward" ? "100%" : "-100%" }
+              : false
+          }
           animate={{ x: 0 }}
-          transition={{ type: "tween", duration: 0.25, ease: "easeOut" }}
+          transition={{ type: "tween", duration: reducedMotion ? 0 : 0.25, ease: "easeOut" }}
         >
           {stripContent}
         </motion.div>

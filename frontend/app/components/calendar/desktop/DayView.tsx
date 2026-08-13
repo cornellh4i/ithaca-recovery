@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useLayoutEffect, useState, useRef } from "react";
+import { motion, useReducedMotion } from "framer-motion";
 import styles from '../../../../styles/components/calendar/desktop/DayView.module.scss';
 import BoxText from '../../atoms/BoxText';
 import DailyViewRow from "./DailyViewRow";
@@ -8,6 +9,8 @@ import { passesTagFilters, passesRoomFilter, MeetingFilters } from "../../../../
 import { createCache } from "../../../../util/common/simpleCache";
 import { defaultRooms } from "../../../../util/rooms/rooms";
 import { layoutOverlappingMeetings, OverlapMeeting } from "../../../../util/meetings/meetingOverlapLayout";
+import { dateEnterMotion, type SwipeDirection } from "../../../../util/date/dateTransition";
+import { addDaysToDate } from "../../../../util/date/weekDates";
 
 type Meeting = OverlapMeeting;
 
@@ -152,6 +155,18 @@ export const invalidateAllDayCache = () => {
   dayMeetingCache.clear();
 };
 
+// Warms dayMeetingCache for the neighboring days so an arrow click's fetch is (almost always)
+// a cache hit by the time the new date's motion.div mounts -- without this, the enter
+// transition slides in showing the *previous* day's still-cached meetings for however long the
+// real fetch takes, which reads as a glitch now that a deliberate "the new date arrived" motion
+// draws the eye to it (it was an invisible flash-of-stale-content before, since nothing
+// animated). Fire-and-forget: fetchMeetingsByDay's own cache is the only effect wanted here.
+// Module-level (not a useCallback), matching prefetchWeek's own shape in useWeekMeetings.ts.
+export const prefetchAdjacentDays = (date: Date): void => {
+  fetchMeetingsByDay(addDaysToDate(date, -1));
+  fetchMeetingsByDay(addDaysToDate(date, 1));
+};
+
 const formatTime = (hour: number): string => {
   const period = hour >= 12 ? "PM" : "AM";
   const formattedHour = hour % 12 || 12;
@@ -181,6 +196,11 @@ interface DayViewProps {
   conflictMids?: Set<string>;
   // Admin-only (see hooks/useSyncErrorMids) -- mids with a Google Calendar/Zoom sync error.
   syncErrorMids?: Set<string>;
+  // Which way the date-transition animation below slides (see CalendarProvider's
+  // changeSelectedDate) -- optional (not read from useCalendarContext directly) because
+  // /signage renders this component with no CalendarProvider ancestor at all; defaults to
+  // "forward" there, so the transition still plays, just always in one direction.
+  transitionDirection?: SwipeDirection;
 }
 
 const DayView: React.FC<DayViewProps> = ({
@@ -196,9 +216,19 @@ const DayView: React.FC<DayViewProps> = ({
   scrollLocked = false,
   conflictMids,
   syncErrorMids,
+  transitionDirection = "forward",
 }) => {
+  const reducedMotion = useReducedMotion();
   const [currentTimePosition, setCurrentTimePosition] = useState(0);
   const [meetings, setMeetings] = useState<Room[]>([]);
+  // The ET date `meetings` actually belongs to -- may lag `selectedDate` while a fetch for the
+  // newly selected date is still in flight (fetchMeetingsByDay is async, but selectedDate
+  // itself updates synchronously during render). The enter transition (and DailyViewRow's own
+  // columnDate) is keyed off this instead of selectedDate directly, so the transition doesn't
+  // start -- and clicked-occurrence tracking doesn't misattribute -- until the meetings shown
+  // have actually caught up to what's requested; otherwise it can animate in the *previous*
+  // day's still-cached meetings under the new date's heading for however long the fetch takes.
+  const [meetingsDate, setMeetingsDate] = useState<Date>(selectedDate);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   // Guards against out-of-order responses: rapid date/filter changes can fire overlapping
   // fetches, and without this a slower-but-stale response can overwrite a newer one.
@@ -238,9 +268,11 @@ const DayView: React.FC<DayViewProps> = ({
     }
 
     const requestId = ++fetchRequestIdRef.current;
-    const data = await fetchMeetingsByDay(selectedDateRef.current);
+    const requestDate = selectedDateRef.current;
+    const data = await fetchMeetingsByDay(requestDate);
     if (requestId === fetchRequestIdRef.current) {
       setMeetings(data);
+      setMeetingsDate(requestDate);
       updateTimePosition();
     }
   }, [updateTimePosition]);
@@ -248,28 +280,41 @@ const DayView: React.FC<DayViewProps> = ({
   // Gates .viewContainer's visibility until the very first scroll-to-current-time
   // completes -- without this there's a beat of the wrong scroll position visible before JS
   // jumps it to "now". One-way: only ever flips true once, on this view's first mount --
-  // later date changes reset scroll position same as always but don't re-hide already-
-  // visible content.
+  // later date changes must NOT reset scroll position, or navigating to the next/prev day
+  // fights the user back to "now" every time (matching DayPortraitView's own
+  // initialScrollDone-guarded scrollToCurrentTime call).
   const [initialScrollDone, setInitialScrollDone] = useState(false);
 
-  // useLayoutEffect (not useEffect) so the scroll jump happens before paint.
+  // useLayoutEffect (not useEffect) so the scroll jump happens before paint. fetchData() runs
+  // before prefetchAdjacentDays() so the visible day's own request is never queued behind its
+  // off-screen neighbors'.
   useLayoutEffect(() => {
     selectedDateRef.current = selectedDate;
     fetchData();
-    scrollToCurrentTime();
-    setInitialScrollDone(true);
+    prefetchAdjacentDays(selectedDate);
+    if (initialScrollDone === false) {
+      scrollToCurrentTime();
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setInitialScrollDone(true);
+    }
 
     const intervalId = setInterval(updateTimePosition, 60000);
 
     return () => {
       clearInterval(intervalId);
     };
+    // initialScrollDone is deliberately omitted: it's a write-once latch, so re-running this
+    // effect when it flips would just re-run fetchData/prefetchAdjacentDays for no reason.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedDate, fetchData, scrollToCurrentTime, updateTimePosition]);
 
   useEffect(() => {
     if (refreshTrigger > 0) {
       console.log("Refreshing calendar due to trigger change:", refreshTrigger);
-      fetchData(true); // Force fetch (invalidate cache)
+      // dayMeetingCache.clear() (inside fetchData(true)) wipes the prefetched neighbors too --
+      // re-warm them once the visible day's own force-fetch has landed, or the next arrow click
+      // within the 30s auto-refresh window would slide in stale content again.
+      fetchData(true).then(() => prefetchAdjacentDays(selectedDateRef.current));
     }
   }, [refreshTrigger, fetchData]);
 
@@ -333,19 +378,34 @@ const DayView: React.FC<DayViewProps> = ({
             return (
               <div key={rowIndex} className={styles.gridRow}>
                 <div className={styles.gridMeetingRow}>
-                  <DailyViewRow
-                    roomColor={room.primaryColor}
-                    meetings={room.meetings}
-                    selectedMeetingID={selectedMeetingID}
-                    setSelectedMeetingID={setSelectedMeetingID}
-                    selectedOccurrenceDate={selectedOccurrenceDate}
-                    setSelectedNewMeeting={setSelectedNewMeeting}
-                    setAnchorEl={setAnchorEl}
-                    columnDate={selectedDate}
-                    setLastClickedDate={setLastClickedDate}
-                    conflictMids={conflictMids}
-                    syncErrorMids={syncErrorMids}
-                  />
+                  {/* Matches DayLandscapeView.tsx's per-room-row transition (y, not x --
+                      desktop's wide viewport is closer to landscape than portrait). No explicit
+                      height style here (unlike DayLandscapeView's own equivalent motion.div) --
+                      .gridMeetingRow itself has no CSS height (position: absolute, top/bottom
+                      both auto, so its height resolves via the content-based algorithm), and
+                      every meaningful descendant inside DailyViewRow is itself absolutely
+                      positioned and out of flow, so a height:100% here would only ever resolve
+                      to auto/0 regardless -- confirmed empirically, not just by inspection.
+                      Keyed by meetingsDate (what `room.meetings` actually belongs to), not
+                      selectedDate -- see meetingsDate's own comment. */}
+                  <motion.div
+                    key={formatETDateString(meetingsDate)}
+                    {...dateEnterMotion(transitionDirection, "y", 12, { reducedMotion })}
+                  >
+                    <DailyViewRow
+                      roomColor={room.primaryColor}
+                      meetings={room.meetings}
+                      selectedMeetingID={selectedMeetingID}
+                      setSelectedMeetingID={setSelectedMeetingID}
+                      selectedOccurrenceDate={selectedOccurrenceDate}
+                      setSelectedNewMeeting={setSelectedNewMeeting}
+                      setAnchorEl={setAnchorEl}
+                      columnDate={meetingsDate}
+                      setLastClickedDate={setLastClickedDate}
+                      conflictMids={conflictMids}
+                      syncErrorMids={syncErrorMids}
+                    />
+                  </motion.div>
                 </div>
                 {timeSlots.map((_, colIndex) => (
                   <div key={colIndex} className={styles.gridCell}></div>

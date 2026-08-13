@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
-import CalendarNavbar from "../../app/components/calendar/desktop/CalendarNavbar";
+import CalendarNavbar, { computeHeadingTransitionKey } from "../../app/components/calendar/desktop/CalendarNavbar";
 import { formatETDateString, addDaysToETDateString } from "../../util/date/timeUtils";
+import { getFirstDayOfWeek } from "../../util/date/weekDates";
 
 // Wraps CalendarNavbar with the controlled selectedDate state a real parent would own, so
 // clicking Today/arrows and re-rendering with the updated date exercises the same loop the
@@ -41,4 +42,24 @@ test("clicking Today while in Week view keeps arrow navigation stepping by week,
   // The view dropdown itself must still read "Week" -- proves Today never silently reset it
   // to "Day" in the first place, which is the actual root cause the arrow-step above depends on.
   expect(screen.getByRole("button", { name: "Week" })).toBeInTheDocument();
+});
+
+// Regression test: handleViewChange always resets selectedDate to today, so a Day<->Week
+// toggle on a Sunday (getFirstDayOfWeek(today) === today) previously produced the identical
+// ET date string on both sides of the toggle, and the animated heading (keyed on this string)
+// silently skipped its transition even though the displayed text (day line vs. week line)
+// really did change. Fixed by prefixing the key with the view name.
+test("heading transition key differs between Day and Week when today is the start of the week", () => {
+  const sunday = new Date("2026-08-16T12:00:00-04:00"); // an ET Sunday
+  expect(formatETDateString(getFirstDayOfWeek(sunday))).toBe(formatETDateString(sunday));
+
+  const dayKey = computeHeadingTransitionKey("Day", sunday);
+  const weekKey = computeHeadingTransitionKey("Week", sunday);
+  expect(dayKey).not.toBe(weekKey);
+});
+
+test("heading transition key stays the same for a different day within the same visible week", () => {
+  const sunday = new Date("2026-08-16T12:00:00-04:00");
+  const wednesday = new Date("2026-08-19T12:00:00-04:00");
+  expect(computeHeadingTransitionKey("Week", sunday)).toBe(computeHeadingTransitionKey("Week", wednesday));
 });

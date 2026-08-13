@@ -1,4 +1,4 @@
-import { getSwipeDirection, isSameWeek } from "../../util/date/weekStripTransition";
+import { getSwipeDirection, isSameWeek } from "../../util/date/dateTransition";
 
 const utcNoon = (y: number, m: number, d: number) => new Date(Date.UTC(y, m - 1, d, 16, 0)); // ~noon ET
 

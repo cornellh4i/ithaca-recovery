@@ -132,7 +132,9 @@ relative path — there are no barrel/index files in either tree.
 ### `util/` — domain-logic utilities, grouped by subfolder
 
 - `common/` — `breakpoints.ts`, `color.ts`, `simpleCache.ts` (generic get-or-fetch cache)
-- `date/` — `timeUtils.ts`, `weekDates.ts`, `weekStripTransition.ts`
+- `date/` — `timeUtils.ts`, `weekDates.ts`, `dateTransition.ts` (swipe direction/same-week math
+  plus the shared `dateEnterMotion` enter-transition helper, used by both mobile and desktop
+  calendar views)
 - `filters/` — `meetingFilters.ts` (tag/room predicates for the authenticated Day/Week views),
   `signageFilters.ts` (standalone URL-param parsing for the public `/signage` page — the two
   never share code), `tagOrder.ts`
