@@ -1,8 +1,8 @@
 @import '../../Variables.module.scss';
 
 .card {
-    background-color: #fff;
-    border-radius: 8px;
+    background-color: $white-color;
+    border-radius: $radius-md;
     display: flex;
     flex-direction: column;
     align-items: flex-start;

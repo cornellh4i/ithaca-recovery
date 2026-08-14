@@ -28,7 +28,7 @@ export const authOptions: NextAuthOptions = {
     ],
     callbacks: {
         async signIn({ user }) {
-            if (!user.email) return false;
+            if (!user.email) return "/login?error=AccessDenied";
             const admin = await prisma.admin.findUnique({ where: { email: user.email } });
             if (admin) return true;
             return `/login?error=AccessDenied&email=${encodeURIComponent(user.email)}`;

@@ -33,11 +33,14 @@ describe("AccessDeniedCard", () => {
     expect(screen.queryByText(/signed in as/i)).not.toBeInTheDocument();
   });
 
-  it("starts a new Google sign-in with the account chooser forced when clicked", () => {
+  it("starts a new Google sign-in with the account chooser forced and consent still required", () => {
     render(<AccessDeniedCard email="jrivera@ithacarecovery.org" />);
 
     fireEvent.click(screen.getByRole("button", { name: "Sign in with a different account" }));
 
-    expect(mockSignIn).toHaveBeenCalledWith("google", { callbackUrl: "/" }, { prompt: "select_account" });
+    // "consent" must stay alongside "select_account" -- authorizationParams replaces (not merges
+    // with) authConfig.ts's own prompt, so dropping it would skip re-consent for an
+    // already-authorized admin and omit refresh_token.
+    expect(mockSignIn).toHaveBeenCalledWith("google", { callbackUrl: "/" }, { prompt: "select_account consent" });
   });
 });

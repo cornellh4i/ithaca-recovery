@@ -205,3 +205,17 @@ test("1.10b landing on /login with an AccessDenied error shows the Access Denied
   await expect(page.getByText("jrivera@ithacarecovery.org")).toBeVisible();
   await expect(page.getByRole("button", { name: "Sign in with a different account" })).toBeVisible();
 });
+
+// Covers a real ordering bug: page.tsx used to check the current session and redirect("/")
+// before ever reading the AccessDenied error param, so a still-valid Admin session (e.g. from
+// using SignInDifferentAccountButton to try a second, rejected account) silently swallowed the
+// rejection and bounced back to the calendar instead of showing this card.
+test("1.10c a signed-in Admin who lands on an AccessDenied redirect still sees the card, not a bounce to /", async ({
+  adminPage,
+}) => {
+  const { page } = adminPage;
+  await page.goto("/login?error=AccessDenied&email=jrivera%40ithacarecovery.org");
+
+  await expect(page).toHaveURL(/\/login/);
+  await expect(page.getByRole("heading", { name: "Access denied" })).toBeVisible();
+});
