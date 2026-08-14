@@ -8,7 +8,7 @@ import DayView from "../components/calendar/desktop/DayView";
 import WeekView from "../components/calendar/desktop/WeekView";
 import DayPortraitView from "../components/calendar/mobile/DayPortraitView";
 import DayLandscapeSwitcher from "../components/calendar/mobile/DayLandscapeSwitcher";
-import MobileFullScreenSheet from "../components/atoms/MobileFullScreenSheet";
+import MobileFullScreenSheet from "../components/ui/overlays/MobileFullScreenSheet";
 import MobileFab from "../components/calendar/mobile/MobileFab";
 import NewMeetingSidebar from "../components/meeting-form/NewMeeting";
 import EditMeetingSidebar from "../components/meeting-form/EditMeeting";

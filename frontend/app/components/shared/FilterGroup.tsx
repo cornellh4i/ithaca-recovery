@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import LabeledCheckbox from "../atoms/CheckBox";
+import LabeledCheckbox from "../ui/inputs/CheckBox";
 import styles from "../../../styles/components/shared/FilterGroup.module.scss";
 
 export interface FilterGroupItem {

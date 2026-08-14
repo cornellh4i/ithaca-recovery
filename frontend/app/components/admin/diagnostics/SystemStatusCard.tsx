@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import type { Role } from "@prisma/client";
 import MonitorHeartIcon from "@mui/icons-material/MonitorHeart";
 import Card from "../shared/Card";
-import TopLoadingBar from "../../atoms/TopLoadingBar";
+import TopLoadingBar from "../../ui/displays/TopLoadingBar";
 import DiagnosticsCardError from "./DiagnosticsCardError";
 import styles from "../../../../styles/components/admin/DiagnosticsTab.module.scss";
 

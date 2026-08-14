@@ -6,9 +6,9 @@ import DeleteRecurringModal from './DeleteRecurringModal';
 import DeleteMeetingModal from './DeleteMeetingModal';
 import SuspendMeetingModal from './SuspendMeetingModal';
 import ResumeMeetingModal from './ResumeMeetingModal';
-import TagList from '../atoms/TagList';
-import BottomSheet from '../atoms/BottomSheet';
-import Icon from '../atoms/Icon';
+import TagList from '../ui/displays/TagList';
+import BottomSheet from '../ui/overlays/BottomSheet';
+import Icon from '../ui/displays/Icon';
 
 import { IRecurrencePattern } from '../../../types/models';
 import { formatCompactTimeRange, formatMeetingDateLine } from "../../../util/date/timeFormat";

@@ -2,9 +2,9 @@
 
 import React, { useEffect, useState } from "react";
 import EventAvailableIcon from "@mui/icons-material/EventAvailable";
-import StatCounter from "../../atoms/StatCounter";
+import StatCounter from "../../ui/displays/StatCounter";
 import Card from "../shared/Card";
-import TopLoadingBar from "../../atoms/TopLoadingBar";
+import TopLoadingBar from "../../ui/displays/TopLoadingBar";
 import DiagnosticsCardError from "./DiagnosticsCardError";
 import styles from "../../../../styles/components/admin/DiagnosticsTab.module.scss";
 

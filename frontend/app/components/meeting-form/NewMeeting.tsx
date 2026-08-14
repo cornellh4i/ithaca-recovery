@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import { MeetingForm } from './MeetingForm';
 
-import TextField from '../atoms/TextField';
-import Icon from '../atoms/Icon';
-import ModeTypeButtons from '../atoms/ModeTypeButtons';
-import DatePicker from '../atoms/DatePicker';
-import TimePicker from '../atoms/TimePicker';
-import Dropdown from '../atoms/Dropdown';
-import LabeledCheckbox from '../atoms/CheckBox';
+import TextField from '../ui/inputs/TextField';
+import Icon from '../ui/displays/Icon';
+import ModeTypeButtons from '../ui/inputs/ModeTypeButtons';
+import DatePicker from '../ui/pickers/DatePicker';
+import TimePicker from '../ui/pickers/TimePicker';
+import Dropdown from '../ui/inputs/Dropdown';
+import LabeledCheckbox from '../ui/inputs/CheckBox';
 import RecurringMeetingForm from './RecurringMeeting';
 import ZoomHostField from './ZoomHostField';
 import ConflictOverrideModal from './ConflictOverrideModal';

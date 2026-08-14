@@ -1,7 +1,7 @@
 import React from 'react';
-import TextButton from '../../atoms/TextButton';
+import TextButton from '../../ui/buttons/TextButton';
 
-import MiniCalendar from '../../atoms/MiniCalendar';
+import MiniCalendar from '../MiniCalendar';
 import MeetingsFilter from '../shared/MeetingsFilter';
 import { MeetingFilters } from '../../../../util/filters/meetingFilters';
 import NewMeetingSidebar from '../../meeting-form/NewMeeting';

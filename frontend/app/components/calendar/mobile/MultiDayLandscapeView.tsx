@@ -10,7 +10,7 @@ import { addDaysToDate, daysBetweenET } from "../../../../util/date/weekDates";
 import { useRangeMeetings } from "../../../../hooks/useRangeMeetings";
 import { useElementWidth } from "../../../../hooks/useElementWidth";
 import { useScrollNavHide } from "../../../../hooks/useScrollNavHide";
-import TopLoadingBar from "../../atoms/TopLoadingBar";
+import TopLoadingBar from "../../ui/displays/TopLoadingBar";
 
 type Meeting = OverlapMeeting;
 

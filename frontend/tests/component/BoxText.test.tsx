@@ -1,6 +1,6 @@
 import React from "react";
 import { render, screen } from "@testing-library/react";
-import BoxText from "../../app/components/atoms/BoxText";
+import BoxText from "../../app/components/ui/displays/BoxText";
 
 const baseProps = {
   boxType: "Meeting Block" as const,

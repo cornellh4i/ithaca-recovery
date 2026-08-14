@@ -1,6 +1,6 @@
 import React from "react";
 import { render, screen } from "@testing-library/react";
-import ModeTypeButtons from "../../app/components/atoms/ModeTypeButtons";
+import ModeTypeButtons from "../../app/components/ui/inputs/ModeTypeButtons";
 
 describe("ModeTypeButtons", () => {
   it.each([

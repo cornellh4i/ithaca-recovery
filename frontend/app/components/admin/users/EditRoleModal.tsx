@@ -3,9 +3,9 @@
 import React, { useLayoutEffect, useState } from "react";
 import type { Role } from "@prisma/client";
 import ManageAccountsIcon from "@mui/icons-material/ManageAccounts";
-import Icon from "../../atoms/Icon";
-import Modal from "../../atoms/Modal";
-import RadioGroup from "../../atoms/RadioGroup";
+import Icon from "../../ui/displays/Icon";
+import Modal from "../../ui/overlays/Modal";
+import RadioGroup from "../../ui/inputs/RadioGroup";
 import { ROLE_LABEL, LABEL_TO_ROLE, ROLE_OPTIONS } from "../../../../util/roles";
 import styles from "../../../../styles/components/admin/UserModals.module.scss";
 

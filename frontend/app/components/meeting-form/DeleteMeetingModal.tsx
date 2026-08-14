@@ -1,5 +1,5 @@
 import React from 'react';
-import Icon from '../atoms/Icon';
+import Icon from '../ui/displays/Icon';
 import styles from '../../../styles/components/meeting-form/DeleteMeetingModal.module.scss';
 
 interface DeleteMeetingModalProps {

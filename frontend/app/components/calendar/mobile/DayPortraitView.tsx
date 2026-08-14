@@ -12,7 +12,7 @@ import { useWeekMeetings } from "../../../../hooks/useWeekMeetings";
 import { useScrollNavHide } from "../../../../hooks/useScrollNavHide";
 import { useCalendarContext } from "../../../context/CalendarProvider";
 import { dateEnterMotion } from "../../../../util/date/dateTransition";
-import TopLoadingBar from "../../atoms/TopLoadingBar";
+import TopLoadingBar from "../../ui/displays/TopLoadingBar";
 import styles from "../../../../styles/components/calendar/mobile/DayPortraitView.module.scss";
 
 type Meeting = OverlapMeeting;

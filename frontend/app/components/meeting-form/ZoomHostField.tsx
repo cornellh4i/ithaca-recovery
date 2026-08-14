@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import Dropdown from '../atoms/Dropdown';
-import Icon from '../atoms/Icon';
+import Dropdown from '../ui/inputs/Dropdown';
+import Icon from '../ui/displays/Icon';
 import { useZoomHostPool } from '../../../hooks/useZoomHostPool';
 import { zoomHostLabel } from '../../../util/rooms/zoomHosts';
 import { IMeeting } from '../../../types/models';

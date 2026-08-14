@@ -117,7 +117,7 @@
   }
 }
 
-// The in-house Dropdown atom (app/components/atoms/Dropdown.tsx) brings its own bordered
+// The in-house Dropdown atom (app/components/ui/inputs/Dropdown.tsx) brings its own bordered
 // button chrome and defaults to width: 100%, which would otherwise stretch to fill this
 // flex row -- constrain it to fit "Day"/"Week" instead, alongside the .box pill buttons,
 // and override its default look (fixed 42px height, 6px radius, lighter border, native

@@ -1,0 +1,14 @@
+@import '../../../Variables.module';
+
+.fullScreen {
+    position: fixed;
+    inset: 0;
+    z-index: $z-index-modal;
+    background-color: #fff;
+
+    // See page.module.scss's .sidebarScroll for why overflow-x is explicit, not left to the
+    // overflow-y: auto/visible-x default.
+    overflow: hidden auto;
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+}

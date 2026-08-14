@@ -1,5 +1,5 @@
 import React from "react";
-import IconButton from "../../atoms/IconButton";
+import IconButton from "../../ui/buttons/IconButton";
 import styles from "../../../../styles/components/calendar/mobile/MobileFab.module.scss";
 
 interface MobileFabProps {

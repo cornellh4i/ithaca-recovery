@@ -1,0 +1,46 @@
+@import '../../../Variables.module';
+
+.checkbox {
+    display: flex;
+    align-items: center;
+    font-size: 16px;
+  
+    input[type='checkbox'] {
+      display: none;
+    }
+  
+    .customCheckbox {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 16px;
+      height: 16px;
+      border: 2px solid;
+      border-radius: 4px;
+      margin-right: 10px;
+      cursor: pointer;
+    }
+  
+    .checkboxLabel {
+      color: var(--black, $black-color);
+      font-family: "Source Sans Pro", sans-serif;
+      font-size: 18px;
+      font-style: normal;
+      font-weight: 400;
+      line-height: normal;
+    }
+
+    .checkmark {
+        color: white;
+    }
+
+    // Scales font-size to ~80% for narrow embedding contexts (the 280px Main Calendar sidebar).
+    &.compact {
+        font-size: 12.8px;
+
+        .checkboxLabel {
+            font-size: 14.4px;
+        }
+    }
+}
+  

@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getAuth } from "../../../services/auth";
-import LoginCard from "../../components/navigation/LoginCard";
-import AccessDeniedCard from "../../components/navigation/AccessDeniedCard";
+import LoginCard from "../../components/auth/LoginCard";
+import AccessDeniedCard from "../../components/auth/AccessDeniedCard";
 import styles from "./page.module.scss";
 
 interface LoginPageProps {

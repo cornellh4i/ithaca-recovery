@@ -6,7 +6,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { AnimatePresence, motion } from "framer-motion";
-import Logo from "../atoms/Logo";
+import Logo from "../ui/displays/Logo";
 import styles from "../../../styles/components/navigation/MobileAppSidebar.module.scss";
 
 interface MobileAppSidebarProps {

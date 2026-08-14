@@ -63,7 +63,7 @@
     text-align: center;
 }
 
-// The in-house Dropdown atom (app/components/atoms/Dropdown.tsx) brings its own bordered
+// The in-house Dropdown atom (app/components/ui/inputs/Dropdown.tsx) brings its own bordered
 // button chrome and defaults to width: 100% -- constrained and re-skinned here to sit
 // alongside .todayButton at the same 32px height, mirroring how CalendarNavbar.module.scss's
 // .viewDropdown does the same for the desktop navbar's Day/Week dropdown.

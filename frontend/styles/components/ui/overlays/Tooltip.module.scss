@@ -1,0 +1,43 @@
+@import '../../../Variables.module';
+
+.wrapper {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+
+    // :focus-visible (not :focus-within) so a mouse click doesn't leave the tooltip stuck open
+    // until the user clicks elsewhere -- clicking focuses the trigger but isn't :focus-visible
+    // in browsers' focus heuristics, while real keyboard-tab focus still shows it.
+    &:hover .tooltip,
+    &:has(:focus-visible) .tooltip {
+        opacity: 1;
+        visibility: visible;
+    }
+}
+
+.tooltip {
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    margin-top: 6px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    background-color: $black-color;
+    color: #fff;
+    font-size: 12px;
+    width: max-content;
+    max-width: 220px;
+    text-align: center;
+    line-height: 1.4;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.15s ease;
+    pointer-events: none;
+    z-index: $z-index-dropdown;
+}
+
+.alignLeft {
+    left: 0;
+    transform: none;
+}

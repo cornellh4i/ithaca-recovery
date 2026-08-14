@@ -8,7 +8,7 @@ import { formatETDateString } from "../../../../util/date/timeUtils";
 import { layoutOverlappingMeetings } from "../../../../util/meetings/meetingOverlapLayout";
 import { getFirstDayOfWeek, getDaysOfWeek, addDaysToDate } from "../../../../util/date/weekDates";
 import { useWeekMeetings, WeekMeeting, prefetchWeek } from "../../../../hooks/useWeekMeetings";
-import TopLoadingBar from "../../atoms/TopLoadingBar";
+import TopLoadingBar from "../../ui/displays/TopLoadingBar";
 import { dateEnterMotion, type SwipeDirection } from "../../../../util/date/dateTransition";
 
 export { invalidateWeekCache } from "../../../../hooks/useWeekMeetings";
