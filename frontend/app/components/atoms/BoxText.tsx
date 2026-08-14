@@ -1,7 +1,8 @@
 import React, { useLayoutEffect, useRef, useState } from "react";
 import styles from '../../../styles/components/atoms/BoxText.module.scss';
 import { toPastelColor } from '../../../util/common/color';
-import { MODE_ICON_SRC } from '../../../util/rooms/modeIcons';
+import { MODE_ICON_NAME } from '../../../util/rooms/modeIcons';
+import Icon from './Icon';
 import TagList from './TagList';
 
 interface BoxProps {
@@ -39,7 +40,7 @@ interface BoxProps {
   // Extra badge alongside tags, e.g. flagging a Zoom-room mismatch.
   zoomTag?: string;
   // Mobile's half-height DayColumn rows have no room for a full tag row -- drops it
-  // entirely and prefixes the title with a small mode icon instead (see MODE_ICON_SRC),
+  // entirely and prefixes the title with a small mode icon instead (see MODE_ICON_NAME),
   // so the one piece of tag info that mattered most for a glance (how to attend) survives.
   hideTags?: boolean;
   // Explicit density tier. Defaults to "full" (today's non-compact layout, unchanged).
@@ -87,8 +88,8 @@ const BoxText: React.FC<BoxProps> = ({
   // Subcompact's row is too short for the standard 6px accent to read proportionally.
   const borderLeftWidth = isSubcompact ? 3 : 6;
 
-  const modeTag = tags?.find(tag => MODE_ICON_SRC[tag]);
-  const modeIconSrc = modeTag ? MODE_ICON_SRC[modeTag] : undefined;
+  const modeTag = tags?.find(tag => MODE_ICON_NAME[tag]);
+  const modeIconName = modeTag ? MODE_ICON_NAME[modeTag] : undefined;
 
   // Measures the zoomTag badge's actual rendered width so the title reserves exactly
   // that much space (plus its own right offset).
@@ -122,7 +123,7 @@ const BoxText: React.FC<BoxProps> = ({
     >
       {syncError && (
         <span role="img" aria-label="Sync failed" title="Sync failed" className={styles.syncError}>
-          <img src="/svg/sync-error-icon.svg" alt="" />
+          <Icon name="sync-error" />
         </span>
       )}
       {hasConflict && (
@@ -132,12 +133,12 @@ const BoxText: React.FC<BoxProps> = ({
           title="Conflicts with another meeting (see Diagnostics)"
           className={styles.conflictBadge}
         >
-          <img src="/svg/warning-icon.svg" alt="" />
+          <Icon name="warning" />
         </span>
       )}
       {zoomTag && (
         <span ref={zoomTagRef} className={styles.zoomTag} title={`Zoom room: ${zoomTag}`}>
-          <img src="/svg/video-call-icon.svg" alt="" className={styles.zoomTagIcon} />
+          <Icon name="video-call" className={styles.zoomTagIcon} />
           {zoomTag}
         </span>
       )}
@@ -150,9 +151,9 @@ const BoxText: React.FC<BoxProps> = ({
           ...(hasConflict ? { paddingLeft: 16 } : undefined),
         }}
       >
-        {iconInTitle && modeIconSrc && (
+        {iconInTitle && modeIconName && (
           <span role="img" aria-label={modeTag} title={modeTag} className={styles.modeIcon}>
-            <img src={modeIconSrc} alt="" />
+            <Icon name={modeIconName} />
           </span>
         )}
         {title}

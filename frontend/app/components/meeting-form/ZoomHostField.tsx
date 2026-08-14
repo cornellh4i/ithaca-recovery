@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import Dropdown from '../atoms/Dropdown';
+import Icon from '../atoms/Icon';
 import { useZoomHostPool } from '../../../hooks/useZoomHostPool';
 import { zoomHostLabel } from '../../../util/rooms/zoomHosts';
 import { IMeeting } from '../../../types/models';
@@ -23,16 +24,12 @@ export interface ZoomHostFieldProps {
   getCandidate: () => IMeeting | null;
 }
 
-// public/svg/check-icon.svg and close-icon.svg -- Google Material Symbols "check"/"close"
-// glyphs, in $success-text-color/$danger-color respectively (baked into the file, matching
-// this codebase's existing two-file-per-color convention -- see plus-icon.svg vs.
-// plus-icon-white.svg -- rather than one recolorable asset).
 const CheckIcon: React.FC = () => (
-  <img src="/svg/check-icon.svg" alt="Available" className={styles.checkIcon} />
+  <Icon name="check" ariaLabel="Available" className={styles.checkIcon} />
 );
 
 const CrossIcon: React.FC = () => (
-  <img src="/svg/close-icon.svg" alt="Busy" className={styles.crossIcon} />
+  <Icon name="close" ariaLabel="Busy" className={styles.crossIcon} />
 );
 
 // How long to wait, after the candidate (date/time/recurrence) last changed, before firing
@@ -228,7 +225,7 @@ export const ZoomHostField: React.FC<ZoomHostFieldProps> = ({
       )}
       <Dropdown
         key={selectedLabel}
-        label={<img src="/svg/person-icon.svg" alt="Person Icon" />}
+        label={<Icon name="person" size={28} ariaLabel="Person Icon" />}
         value={selectedLabel}
         isVisible
         elements={elements}

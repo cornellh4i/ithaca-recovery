@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import styles from '../../../../styles/components/calendar/shared/OverlapMeetingsModal.module.scss';
 import { formatCompactTimeRange } from '../../../../util/date/timeFormat';
 import { toPastelColor } from '../../../../util/common/color';
+import Icon from '../../atoms/Icon';
 import TagList from '../../atoms/TagList';
 
 interface OverlapMeeting {
@@ -90,7 +91,7 @@ const OverlapMeetingsModal: React.FC<OverlapMeetingsModalProps> = ({
                             >
                                 {hasSyncError && (
                                     <span role="img" aria-label="Sync failed" title="Sync failed" className={styles.syncError}>
-                                        <img src="/svg/sync-error-icon.svg" alt="" />
+                                        <Icon name="sync-error" />
                                     </span>
                                 )}
                                 {hasConflict && (
@@ -100,7 +101,7 @@ const OverlapMeetingsModal: React.FC<OverlapMeetingsModalProps> = ({
                                         title="Conflicts with another meeting (see Diagnostics)"
                                         className={styles.conflictBadge}
                                     >
-                                        <img src="/svg/warning-icon.svg" alt="" />
+                                        <Icon name="warning" />
                                     </span>
                                 )}
                                 <h3 className={styles.title} style={hasConflict ? { paddingLeft: 16 } : undefined}>

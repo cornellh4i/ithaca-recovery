@@ -1,5 +1,6 @@
 import React from 'react';
 import { motion, useReducedMotion } from 'motion/react';
+import Icon from '../../atoms/Icon';
 import styles from "../../../../styles/components/calendar/desktop/CalendarNavbar.module.scss";
 import { formatMeetingDateLine, monthNameForETDateString, formatMeetingWeekLine } from "../../../../util/date/timeFormat";
 import { formatETDateString } from "../../../../util/date/timeUtils";
@@ -85,7 +86,7 @@ const CalendarHeader: React.FC<CalendarHeaderProps> = ({ selectedDate, selectedV
       </div>
       {isAdmin === false && (
         <div className={styles.viewOnlyPill}>
-          <img src="/svg/lock-icon.svg" alt="" className={styles.viewOnlyIcon} />
+          <Icon name="lock" className={styles.viewOnlyIcon} />
           <span>View only - sign in as Admin to manage meetings</span>
         </div>
       )}

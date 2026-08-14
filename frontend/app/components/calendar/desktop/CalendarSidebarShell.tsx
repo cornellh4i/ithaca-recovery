@@ -254,7 +254,7 @@ const CalendarSidebarShell: React.FC<CalendarSidebarShellProps> = ({
       {showSidebarToggle && (
         <div className={styles.sidebarToggleWrapper}>
           <IconButton
-            icon={<img src={isCompact ? "/svg/chevron-right-icon.svg" : "/svg/chevron-left-icon.svg"} alt="" />}
+            name={isCompact ? "chevron-right" : "chevron-left"}
             ariaLabel={isCompact ? "Show calendar sidebar" : "Collapse sidebar"}
             tooltip={isCompact ? "Show calendar sidebar" : "Collapse sidebar"}
             tooltipAlign={isCompact ? "left" : "center"}

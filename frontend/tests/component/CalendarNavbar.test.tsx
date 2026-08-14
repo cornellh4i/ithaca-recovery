@@ -43,7 +43,7 @@ test("clicking Today while in Week view keeps arrow navigation stepping by week,
   fireEvent.click(screen.getByText("Today"));
   const today = screen.getByTestId("selected-date").textContent;
 
-  fireEvent.click(screen.getByAltText("Right Arrow"));
+  fireEvent.click(screen.getByRole("button", { name: "Next" }));
 
   const afterOneClick = screen.getByTestId("selected-date").textContent;
   expect(afterOneClick).toBe(addDaysToETDateString(today as string, 7));
@@ -101,7 +101,7 @@ test("mounting directly in Week view renders week controls and steps by week, no
   expect(screen.getByRole("button", { name: "Week" })).toBeInTheDocument();
 
   const start = screen.getByTestId("selected-date").textContent as string;
-  fireEvent.click(screen.getByAltText("Right Arrow"));
+  fireEvent.click(screen.getByRole("button", { name: "Next" }));
   const afterOneClick = screen.getByTestId("selected-date").textContent;
 
   expect(afterOneClick).toBe(addDaysToETDateString(start, 7));

@@ -60,14 +60,14 @@
 }
 
 .icon {
-  width: 14px;
-  height: 14px;
+  // !important: @mui/icons-material icons carry their own same-specificity .MuiSvgIcon-root
+  // class (width/height: 1em) that otherwise wins unpredictably depending on emotion's
+  // <style> injection order.
+  width: 14px !important;
+  height: 14px !important;
   margin-right: 4px;
   vertical-align: -2px;
 }
 
-// Selected state's icon comes pre-colored dark grey (see public/svg/*-icon.svg's fill) --
-// invert to white so it stays visible against the solid pink selected background.
-.button.selected .icon {
-  filter: brightness(0) invert(1);
-}
+// No color override needed for .button.selected -- the icon renders at currentColor (see
+// Icon.tsx) and .button.selected above already sets color: #fff, so it inherits automatically.

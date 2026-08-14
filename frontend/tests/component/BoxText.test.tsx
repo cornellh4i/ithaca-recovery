@@ -22,8 +22,8 @@ describe("BoxText", () => {
     render(<BoxText {...baseProps} tags={["In Person", "AA"]} />);
 
     const tag = screen.getByText("In Person");
-    expect(tag.querySelector("img")).toHaveAttribute("src", "/svg/location-icon.svg");
-    expect(screen.getByText("AA").querySelector("img")).not.toBeInTheDocument();
+    expect(tag.querySelector("[data-icon-name]")).toHaveAttribute("data-icon-name", "location");
+    expect(screen.getByText("AA").querySelector("[data-icon-name]")).not.toBeInTheDocument();
   });
 
   it("hides tags and prefixes the title with the mode icon when hideTags is set", () => {
@@ -33,26 +33,26 @@ describe("BoxText", () => {
     expect(screen.queryByText("AA")).not.toBeInTheDocument();
 
     const heading = screen.getByRole("heading", { name: /Weekly Check-in/ });
-    const icon = heading.querySelector("img");
-    expect(icon).toHaveAttribute("src", "/svg/location-icon.svg");
+    const icon = heading.querySelector("[data-icon-name]");
+    expect(icon).toHaveAttribute("data-icon-name", "location");
   });
 
   it.each([
-    ["In Person", "/svg/location-icon.svg"],
-    ["Remote", "/svg/video-call-icon.svg"],
-    ["Hybrid", "/svg/co-present-icon.svg"],
-  ])("maps the %s mode tag to %s", (modeTag, expectedSrc) => {
+    ["In Person", "location"],
+    ["Remote", "video-call"],
+    ["Hybrid", "co-present"],
+  ])("maps the %s mode tag to %s", (modeTag, expectedIconName) => {
     render(<BoxText {...baseProps} tags={[modeTag, "AA"]} hideTags />);
 
     const heading = screen.getByRole("heading", { name: /Weekly Check-in/ });
-    expect(heading.querySelector("img")).toHaveAttribute("src", expectedSrc);
+    expect(heading.querySelector("[data-icon-name]")).toHaveAttribute("data-icon-name", expectedIconName);
   });
 
   it("renders no prefix icon when hideTags is set but no mode tag is present", () => {
     render(<BoxText {...baseProps} tags={["AA"]} hideTags />);
 
     const heading = screen.getByRole("heading", { name: "Weekly Check-in" });
-    expect(heading.querySelector("img")).not.toBeInTheDocument();
+    expect(heading.querySelector("[data-icon-name]")).not.toBeInTheDocument();
   });
 
   it("tier=\"compact\" applies the same styling the compact boolean already did", () => {
@@ -70,14 +70,14 @@ describe("BoxText", () => {
     expect(screen.queryByText("9-10AM")).not.toBeInTheDocument();
 
     const heading = screen.getByRole("heading", { name: /Weekly Check-in/ });
-    expect(heading.querySelector("img")).toHaveAttribute("src", "/svg/location-icon.svg");
+    expect(heading.querySelector("[data-icon-name]")).toHaveAttribute("data-icon-name", "location");
   });
 
   it("tier=\"subcompact\" still shows the title with no icon when no mode tag is present", () => {
     render(<BoxText {...baseProps} tags={["AA"]} time="9-10AM" tier="subcompact" />);
 
     const heading = screen.getByRole("heading", { name: "Weekly Check-in" });
-    expect(heading.querySelector("img")).not.toBeInTheDocument();
+    expect(heading.querySelector("[data-icon-name]")).not.toBeInTheDocument();
   });
 
   it("defaults to the full tier when neither tier nor compact is passed", () => {

@@ -78,10 +78,15 @@
   top: 4px;
   right: 4px;
   line-height: 1;
+  color: $danger-color;
 
-  img {
-    width: 14px;
-    height: 14px;
+  img,
+  svg {
+    // !important: @mui/icons-material icons carry their own same-specificity
+    // .MuiSvgIcon-root class (width/height: 1em) that otherwise wins unpredictably
+    // depending on emotion's <style> injection order.
+    width: 14px !important;
+    height: 14px !important;
     display: block;
   }
 }
@@ -91,10 +96,15 @@
   top: 4px;
   left: 4px;
   line-height: 1;
+  color: $warning-text-color;
 
-  img {
-    width: 14px;
-    height: 14px;
+  img,
+  svg {
+    // !important: @mui/icons-material icons carry their own same-specificity
+    // .MuiSvgIcon-root class (width/height: 1em) that otherwise wins unpredictably
+    // depending on emotion's <style> injection order.
+    width: 14px !important;
+    height: 14px !important;
     display: block;
   }
 }

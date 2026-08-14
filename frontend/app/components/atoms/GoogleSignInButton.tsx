@@ -2,6 +2,7 @@
 
 import React from "react";
 import { signIn } from "next-auth/react";
+import Icon from "./Icon";
 import styles from "../../../styles/components/atoms/GoogleSignInButton.module.scss";
 
 const GoogleSignInButton: React.FC = () => {
@@ -11,7 +12,7 @@ const GoogleSignInButton: React.FC = () => {
             className={styles.googleButton}
             onClick={() => signIn("google", { callbackUrl: "/" })}
         >
-            <img src="/svg/google-icon.svg" alt="" className={styles.googleIcon} />
+            <Icon name="google" className={styles.googleIcon} />
             <span>Continue with Google</span>
         </button>
     );

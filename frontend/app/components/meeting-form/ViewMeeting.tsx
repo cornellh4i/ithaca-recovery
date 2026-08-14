@@ -8,6 +8,7 @@ import SuspendMeetingModal from './SuspendMeetingModal';
 import ResumeMeetingModal from './ResumeMeetingModal';
 import TagList from '../atoms/TagList';
 import BottomSheet from '../atoms/BottomSheet';
+import Icon from '../atoms/Icon';
 
 import { IRecurrencePattern } from '../../../types/models';
 import { formatCompactTimeRange, formatMeetingDateLine } from "../../../util/date/timeFormat";
@@ -20,7 +21,7 @@ import { formatRecurrencePattern } from "../../../util/meetings/recurrenceDispla
 import { isZoomRoomMismatched } from "../../../util/rooms/rooms";
 import { linkify } from "../../../util/common/linkify";
 import { zoomHostLabel } from "../../../util/rooms/zoomHosts";
-import { MODE_ICON_SRC } from "../../../util/rooms/modeIcons";
+import { MODE_ICON_NAME } from "../../../util/rooms/modeIcons";
 import { useZoomHostPool } from "../../../hooks/useZoomHostPool";
 
 // Extracts ET wall-clock time as "HH:MM" (24hr), which is what formatCompactTimeRange expects.
@@ -448,15 +449,15 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
     <div className={styles.meetingDetails}>
       <div className={styles.header}>
         <button className={styles.backButton} onClick={onBack}>
-          <img src="/svg/back-arrow.svg" alt="Back" />
+          <Icon name="back-arrow" ariaLabel="Back" />
         </button>
         <h1>{title}</h1>
         <span
           className={styles.settingLabel}
           style={{ backgroundColor: primaryColor, borderColor: primaryColor }}
         >
-          {MODE_ICON_SRC[modeType] && (
-            <img src={MODE_ICON_SRC[modeType]} alt="" className={styles.settingLabelIcon} />
+          {MODE_ICON_NAME[modeType] && (
+            <Icon name={MODE_ICON_NAME[modeType]} className={styles.settingLabelIcon} />
           )}
           {modeType}
         </span>
@@ -492,7 +493,7 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
             {hasSyncFailure && (
               <div className={styles.syncFailureBlock}>
                 <div className={styles.syncFailureHeader}>
-                  <img src="/svg/sync-error-icon.svg" alt="" />
+                  <Icon name="sync-error" />
                   <span>Failed to sync</span>
                   <button
                     className={styles.syncDetailsToggle}
@@ -500,7 +501,7 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
                     aria-label={syncDetailsOpen ? "Hide sync error details" : "Show sync error details"}
                     onClick={() => setSyncDetailsOpen((v) => !v)}
                   >
-                    <img src="/svg/danger-circle-icon.svg" alt="" />
+                    <Icon name="danger-circle" />
                   </button>
                 </div>
                 {syncDetailsOpen && (
@@ -525,7 +526,7 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
 
             {conflictCount > 0 && (
               <div className={styles.conflictBlock}>
-                <img src="/svg/warning-icon.svg" alt="" />
+                <Icon name="warning" />
                 <span>
                   Conflicts with {conflictCount} other meeting{conflictCount === 1 ? '' : 's'} —{' '}
                   <Link href="/admin" className={styles.diagnosticsLink}>view the Admin Diagnostics page</Link> for more info.
@@ -535,7 +536,7 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
 
             {hasSuspension && (
               <div className={styles.suspensionBlock}>
-                <img src="/svg/pause-icon.svg" alt="" />
+                <Icon name="pause" />
                 <span>{formatSuspensionStatusText(suspendedSince, resumesAt, suspensionActive)}</span>
               </div>
             )}
@@ -544,27 +545,27 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
 
         <div className={styles.scheduleGroup}>
           <p className={styles.scheduleTime}>
-            <img src="/svg/clock-icon.svg" alt="" />
+            <Icon name="clock" />
             <span>{formatMeetingDateLine(displayStartDate)} · {timeRangeText}</span>
           </p>
 
           {isRecurring && (
             <p className={styles.recurrenceLine}>
-              <img src="/svg/repeat-icon.svg" alt="" />
+              <Icon name="repeat" />
               <span>{getRecurrenceText()}</span>
             </p>
           )}
 
           {primaryLocation && (
             <p className={styles.roomLine}>
-              <img src="/svg/location-icon.svg" alt="" />
+              <Icon name="location" />
               <span>{primaryLocation}</span>
             </p>
           )}
 
           {showZoomMismatchRow && (
             <p className={styles.roomLine}>
-              <img src="/svg/video-call-icon.svg" alt="" />
+              <Icon name="video-call" />
               <span>{stripZoomSuffix(zoomRoom as string)}</span>
             </p>
           )}
@@ -574,12 +575,12 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
           <div className={styles.zoomBlock}>
             <div className={styles.zoomTopRow}>
               <a href={zoomLink} target="_blank" rel="noopener noreferrer" className={styles.zoomLink}>
-                <img src="/svg/zoom-icon.svg" alt="" />
+                <Icon name="zoom" />
                 Join Zoom Meeting
               </a>
               {zoomSyncStatus === 'synced' && (
                 <span className={styles.zoomSyncedBadge}>
-                  <img src="/svg/check-icon.svg" alt="" />
+                  <Icon name="check" />
                   Synced
                 </span>
               )}
@@ -608,13 +609,13 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
           <div className={`${styles.contactGroup} ${description ? styles.withDivider : ''}`}>
             {email && (
               <p className={styles.contactRow}>
-                <img src="/svg/mail-icon.svg" alt="" />
+                <Icon name="mail" />
                 <span>{email}</span>
               </p>
             )}
             {zoomHost && (
               <p className={styles.contactRow}>
-                <img src="/svg/person-icon.svg" alt="" />
+                <Icon name="person" />
                 <span>Host: {zoomHostLabel(zoomHost, zoomHostPool.indexOf(zoomHost))} — {zoomHost}</span>
               </p>
             )}
@@ -623,7 +624,7 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
 
         {description && (
           <div className={styles.descriptionRow}>
-            <img src="/svg/description-icon.svg" alt="" />
+            <Icon name="description" />
             <div className={styles.descriptionContent}>
               <p ref={setDescNode} className={descExpanded ? undefined : styles.descriptionClamped}>
                 {linkify(description)}

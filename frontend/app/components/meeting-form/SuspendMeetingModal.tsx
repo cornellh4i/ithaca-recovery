@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import styles from '../../../styles/components/meeting-form/SuspendMeetingModal.module.scss';
 import DatePicker from '../atoms/DatePicker';
+import Icon from '../atoms/Icon';
 import { formatETDateString, parseMMDDYYYY } from '../../../util/date/timeUtils';
 
 interface SuspendMeetingModalProps {
@@ -50,7 +51,7 @@ const SuspendMeetingModal: React.FC<SuspendMeetingModalProps> = ({
       <div className={styles.modalContent}>
         <div className={styles.header}>
           <span className={styles.iconCircle}>
-            <img src="/svg/pause-icon.svg" alt="" width="20" height="20" />
+            <Icon name="pause" size={20} />
           </span>
           <h2 className={styles.title}>Suspend this meeting?</h2>
         </div>

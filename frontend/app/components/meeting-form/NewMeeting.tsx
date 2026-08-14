@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { MeetingForm } from './MeetingForm';
 
 import TextField from '../atoms/TextField';
+import Icon from '../atoms/Icon';
 import ModeTypeButtons from '../atoms/ModeTypeButtons';
 import DatePicker from '../atoms/DatePicker';
 import TimePicker from '../atoms/TimePicker';
@@ -11,7 +12,6 @@ import RecurringMeetingForm from './RecurringMeeting';
 import ZoomHostField from './ZoomHostField';
 import ConflictOverrideModal from './ConflictOverrideModal';
 import FormValidationBanner from './FormValidationBanner';
-import CloseIcon from '@mui/icons-material/Close';
 import IconButton from '@mui/material/IconButton';
 
 import { v4 as uuidv4 } from 'uuid';
@@ -143,7 +143,7 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({
         <div className={styles.meetingHeader}>
           <h3>New Meeting</h3>
           <IconButton className={styles.iconButton} onClick={handleCloseNewMeeting}>
-            <CloseIcon sx={{ color: 'black' }} />
+            <Icon name="close" ariaLabel="Close" />
           </IconButton>
         </div>
         <FormValidationBanner errors={liveValidationErrors} />
@@ -165,13 +165,13 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({
           }
           selectedMode={selectedMode}
           DatePicker={<DatePicker
-            label={<img src='/svg/calendar-icon.svg' alt="Calendar Icon" />}
+            label={<Icon name="calendar" size={28} ariaLabel="Calendar Icon" />}
             value={dateValue}
             onChange={setDateValue}
             compact
           />}
           TimePicker={<TimePicker
-            label={<img src='/svg/clock-icon.svg' alt="Clock Icon" />}
+            label={<Icon name="clock" size={28} ariaLabel="Clock Icon" />}
             value={timeValue}
             onChange={setTimeValue}
             disablePast={true}
@@ -185,7 +185,7 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({
           }
           roomSelectionDropdown={
             <Dropdown
-              label={<img src="/svg/location-icon.svg" alt="Location Icon" />}
+              label={<Icon name="location" size={28} ariaLabel="Location Icon" />}
               isVisible={selectedMode !== "Remote"}
               elements={physicalRoomOptions}
               name="Select Room"
@@ -195,8 +195,11 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({
           }
           meetingTypeDropdown={
             <div style={{ display: 'flex', alignItems: 'center' }}>
-              <span style={{ marginRight: '6px', display: 'flex', alignItems: 'center' }}>
-                <img src="svg/group-icon.svg" alt="Group Icon" />
+              <span
+                className={styles.meetingTypeIcon}
+                style={{ marginRight: '6px', display: 'flex', alignItems: 'center' }}
+              >
+                <Icon name="group" size={28} ariaLabel="Group Icon" />
               </span>
               <div
                 data-testid="meeting-type-checkboxes"
@@ -219,7 +222,7 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({
           zoomRoomDropdown={
             <Dropdown
               key={selectedZoomRoom}
-              label={<img src="/svg/video-call-icon.svg" alt="Zoom Icon" />}
+              label={<Icon name="video-call" size={28} ariaLabel="Zoom Icon" />}
               value={selectedZoomRoom}
               isVisible={selectedMode === "Hybrid"}
               elements={zoomRoomOptions}
@@ -239,7 +242,7 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({
           }
           emailTextField={<TextField
             input="Email"
-            label={<img src="svg/mail-icon.svg" alt="Mail Icon" />}
+            label={<Icon name="mail" size={28} ariaLabel="Mail Icon" />}
             value={inputEmailValue}
             onChange={setEmailValue}
             onBlur={() => markFieldTouched("email")}

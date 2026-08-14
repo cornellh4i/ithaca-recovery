@@ -37,10 +37,12 @@
       align-items: center;
       padding: 0;
       margin-top: 2px;
+      color: $medium-grey-color;
 
-      img {
-        width: 18px;
-        height: 18px;
+      img,
+      svg {
+        width: 18px !important;
+        height: 18px !important;
       }
     }
 
@@ -68,10 +70,14 @@
     }
 
     .settingLabelIcon {
-      width: 11px;
-      height: 11px;
+      width: 11px !important;
+      height: 11px !important;
       margin-right: 4px;
       vertical-align: -1px;
+
+      // .settingLabel sets color: $black-color for its border/text -- override so the mode
+      // icon keeps its original neutral grey instead of inheriting black.
+      color: $medium-grey-color;
     }
 
     .moreOptions {
@@ -165,9 +171,10 @@
       font-weight: 600;
       line-height: 1.4;
 
-      img {
-        width: 16px;
-        height: 16px;
+      img,
+      svg {
+        width: 16px !important;
+        height: 16px !important;
         flex-shrink: 0;
         margin-top: 1px;
       }
@@ -184,10 +191,12 @@
       padding: 0;
       display: flex;
       flex-shrink: 0;
+      color: $danger-color;
 
-      img {
-        width: 16px;
-        height: 16px;
+      img,
+      svg {
+        width: 16px !important;
+        height: 16px !important;
         margin: 0;
       }
     }
@@ -233,9 +242,10 @@
       font-weight: 600;
       line-height: 1.4;
 
-      img {
-        width: 16px;
-        height: 16px;
+      img,
+      svg {
+        width: 16px !important;
+        height: 16px !important;
         flex-shrink: 0;
         margin-top: 1px;
       }
@@ -273,9 +283,10 @@
       font-weight: 600;
       color: $black-color;
 
-      img {
-        width: 18px;
-        height: 18px;
+      img,
+      svg {
+        width: 18px !important;
+        height: 18px !important;
         flex-shrink: 0;
       }
     }
@@ -289,9 +300,10 @@
       font-weight: 400;
       color: $text-secondary-color;
 
-      img {
-        width: 14px;
-        height: 14px;
+      img,
+      svg {
+        width: 14px !important;
+        height: 14px !important;
         flex-shrink: 0;
       }
     }
@@ -304,9 +316,10 @@
       font-weight: 400;
       color: $text-secondary-color;
 
-      img {
-        width: 18px;
-        height: 18px;
+      img,
+      svg {
+        width: 18px !important;
+        height: 18px !important;
         flex-shrink: 0;
       }
     }
@@ -360,9 +373,10 @@
       font-weight: 600;
       white-space: nowrap;
 
-      img {
-        width: 12px;
-        height: 12px;
+      img,
+      svg {
+        width: 12px !important;
+        height: 12px !important;
       }
     }
 
@@ -446,9 +460,10 @@
       font-weight: 400;
       color: $text-secondary-color;
 
-      img {
-        width: 16px;
-        height: 16px;
+      img,
+      svg {
+        width: 16px !important;
+        height: 16px !important;
         flex-shrink: 0;
       }
     }
@@ -458,9 +473,15 @@
       align-items: flex-start;
       gap: 10px;
 
-      img {
-        width: 18px;
-        height: 18px;
+      // Sibling rows (.recurrenceLine, .roomLine, .contactRow) all set this same secondary
+      // color -- .descriptionRow never had its own until now since the icon carried its own
+      // grey fill directly.
+      color: $text-secondary-color;
+
+      img,
+      svg {
+        width: 18px !important;
+        height: 18px !important;
         flex-shrink: 0;
         margin-top: 1px;
       }

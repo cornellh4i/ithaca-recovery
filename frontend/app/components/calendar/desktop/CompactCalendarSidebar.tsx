@@ -53,7 +53,7 @@ const CompactCalendarSidebar: React.FC<CompactCalendarSidebarProps> = ({
     <div className={styles.rail} ref={railRef}>
       {isAdmin && (
         <IconButton
-          icon={<img src="/svg/plus-icon-white.svg" alt="" />}
+          name="plus"
           ariaLabel="New Meeting"
           tooltip="New Meeting"
           tooltipAlign="left"
@@ -65,7 +65,7 @@ const CompactCalendarSidebar: React.FC<CompactCalendarSidebarProps> = ({
 
       <div className={styles.flyoutAnchor}>
         <IconButton
-          icon={<img src="/svg/calendar-icon.svg" alt="" />}
+          name="calendar"
           ariaLabel="Show mini calendar"
           tooltip="Calendar"
           tooltipAlign="left"
@@ -80,7 +80,7 @@ const CompactCalendarSidebar: React.FC<CompactCalendarSidebarProps> = ({
 
       <div className={styles.flyoutAnchor}>
         <IconButton
-          icon={<img src="/svg/location-icon.svg" alt="" />}
+          name="location"
           ariaLabel="Show location filters"
           tooltip="Location"
           tooltipAlign="left"
@@ -101,7 +101,7 @@ const CompactCalendarSidebar: React.FC<CompactCalendarSidebarProps> = ({
 
       <div className={styles.flyoutAnchor}>
         <IconButton
-          icon={<img src="/svg/video-call-icon.svg" alt="" />}
+          name="video-call"
           ariaLabel="Show Zoom Room filters"
           tooltip="Zoom Rooms"
           tooltipAlign="left"
@@ -122,7 +122,7 @@ const CompactCalendarSidebar: React.FC<CompactCalendarSidebarProps> = ({
 
       <div className={styles.flyoutAnchor}>
         <IconButton
-          icon={<img src="/svg/group-icon.svg" alt="" />}
+          name="group"
           ariaLabel="Show calendar and mode filters"
           tooltip="Calendar & Mode"
           tooltipAlign="left"

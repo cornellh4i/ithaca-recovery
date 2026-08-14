@@ -92,13 +92,13 @@ test.describe("recurring meetings", () => {
     // Jump a week ahead — the ET-day-boundary math around DST is exactly what
     // meetingOccurrences.test.ts covers at the unit level; this just checks the
     // occurrence actually renders through the real day-retrieval API.
-    await page.locator('img[alt="Right Arrow"]').click();
-    await page.locator('img[alt="Right Arrow"]').click();
-    await page.locator('img[alt="Right Arrow"]').click();
-    await page.locator('img[alt="Right Arrow"]').click();
-    await page.locator('img[alt="Right Arrow"]').click();
-    await page.locator('img[alt="Right Arrow"]').click();
-    await page.locator('img[alt="Right Arrow"]').click();
+    await page.getByRole('button', { name: 'Next', exact: true }).click();
+    await page.getByRole('button', { name: 'Next', exact: true }).click();
+    await page.getByRole('button', { name: 'Next', exact: true }).click();
+    await page.getByRole('button', { name: 'Next', exact: true }).click();
+    await page.getByRole('button', { name: 'Next', exact: true }).click();
+    await page.getByRole('button', { name: 'Next', exact: true }).click();
+    await page.getByRole('button', { name: 'Next', exact: true }).click();
     await expect(page.getByText("Recurring Occurrence Meeting")).toBeVisible();
   });
 });

@@ -52,12 +52,22 @@
     min-width: 0;
 }
 
-// Color is baked into check-icon.svg/close-icon.svg themselves -- nothing to fill here.
 .checkIcon,
 .crossIcon {
-    width: 14px;
-    height: 14px;
+    // !important: @mui/icons-material icons carry their own same-specificity
+    // .MuiSvgIcon-root class (width/height: 1em) that otherwise wins unpredictably
+    // depending on emotion's <style> injection order.
+    width: 14px !important;
+    height: 14px !important;
     flex-shrink: 0;
+}
+
+.checkIcon {
+    color: $success-text-color;
+}
+
+.crossIcon {
+    color: $danger-color;
 }
 
 .busyWarning {

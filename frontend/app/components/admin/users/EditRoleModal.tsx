@@ -3,6 +3,7 @@
 import React, { useLayoutEffect, useState } from "react";
 import type { Role } from "@prisma/client";
 import ManageAccountsIcon from "@mui/icons-material/ManageAccounts";
+import Icon from "../../atoms/Icon";
 import Modal from "../../atoms/Modal";
 import RadioGroup from "../../atoms/RadioGroup";
 import { ROLE_LABEL, LABEL_TO_ROLE, ROLE_OPTIONS } from "../../../../util/roles";
@@ -60,7 +61,7 @@ const EditRoleModal: React.FC<EditRoleModalProps> = ({
 
       {isLastSuperAdmin && (
         <div className={styles.warningNudge}>
-          <img src="/svg/warning-circle-icon.svg" alt="" width="16" height="16" className={styles.warningNudgeIcon} />
+          <Icon name="warning-circle" size={16} className={styles.warningNudgeIcon} />
           <span>Can&apos;t change the last Super Admin&apos;s role.</span>
         </div>
       )}

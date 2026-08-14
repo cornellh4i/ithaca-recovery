@@ -2,6 +2,7 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import Card from "../shared/Card";
+import Icon from "../../atoms/Icon";
 import TopLoadingBar from "../../atoms/TopLoadingBar";
 import DiagnosticsCardError from "./DiagnosticsCardError";
 import EditMeetingSidebar from "../../meeting-form/EditMeeting";
@@ -162,7 +163,7 @@ const SyncIssuesCard: React.FC = () => {
     <Card accent="syncIssues" data-testid="diagnostics-sync-issues-panel">
       <TopLoadingBar active={loading} />
       <div className={styles.panelHeader}>
-        <span className={`${styles.panelIcon} ${styles.panelIconSyncIssues}`} />
+        <Icon name="sync-error" className={`${styles.panelIcon} ${styles.panelIconSyncIssues}`} />
         Sync Issues ({total})
       </div>
       <div className={styles.panelSubhead}>

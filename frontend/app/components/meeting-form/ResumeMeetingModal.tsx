@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import styles from '../../../styles/components/meeting-form/ResumeMeetingModal.module.scss';
 import DatePicker from '../atoms/DatePicker';
+import Icon from '../atoms/Icon';
 import { formatETDateString, parseMMDDYYYY } from '../../../util/date/timeUtils';
 
 interface ResumeMeetingModalProps {
@@ -56,7 +57,7 @@ const ResumeMeetingModal: React.FC<ResumeMeetingModalProps> = ({
       <div className={styles.modalContent}>
         <div className={styles.header}>
           <span className={styles.iconCircle}>
-            <img src="/svg/resume-icon.svg" alt="" width="20" height="20" />
+            <Icon name="resume" size={20} />
           </span>
           <h2 className={styles.title}>{isActive ? 'Resume this meeting?' : 'Cancel scheduled suspension?'}</h2>
         </div>

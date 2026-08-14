@@ -1,7 +1,8 @@
 import React, { useLayoutEffect, useRef, useState } from "react";
 import styles from '../../../styles/components/atoms/TagList.module.scss';
 import { sortTags } from '../../../util/filters/tagOrder';
-import { MODE_ICON_SRC } from '../../../util/rooms/modeIcons';
+import { MODE_ICON_NAME } from '../../../util/rooms/modeIcons';
+import Icon from './Icon';
 
 interface TagListProps {
   tags: string[];
@@ -77,9 +78,11 @@ const TagList: React.FC<TagListProps> = ({ tags, color, gap = 3, containerStyle,
         const addPill = (text: string, isOverflow: boolean) => {
           const span = document.createElement('span');
           span.className = isOverflow ? styles.overflowTag : styles.tag;
-          if (!isOverflow && MODE_ICON_SRC[text]) {
+          // A plain sized <img> stand-in is enough for this measurement -- .tagIcon's explicit
+          // width/height apply regardless of a real src, and the probe never attaches to the
+          // visible DOM, so it doesn't need to render the actual icon (img vs. svg) faithfully.
+          if (!isOverflow && MODE_ICON_NAME[text]) {
             const icon = document.createElement('img');
-            icon.src = MODE_ICON_SRC[text];
             icon.className = styles.tagIcon;
             span.appendChild(icon);
           }
@@ -123,7 +126,7 @@ const TagList: React.FC<TagListProps> = ({ tags, color, gap = 3, containerStyle,
       <div ref={containerRef} className={styles.tags} style={{ gap, ...containerStyle }}>
         {sorted.slice(0, visibleCount).map(tag => (
           <span key={tag} className={styles.tag} style={{ backgroundColor: color, ...tagStyle }}>
-            {MODE_ICON_SRC[tag] && <img src={MODE_ICON_SRC[tag]} alt="" className={styles.tagIcon} />}
+            {MODE_ICON_NAME[tag] && <Icon name={MODE_ICON_NAME[tag]} className={styles.tagIcon} />}
             {tag}
           </span>
         ))}

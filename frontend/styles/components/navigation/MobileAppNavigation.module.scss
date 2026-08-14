@@ -126,8 +126,15 @@
 }
 
 .viewOptionIcon {
-    width: 20px;
-    height: 20px;
+    // !important: @mui/icons-material icons carry their own same-specificity
+    // .MuiSvgIcon-root class (width/height: 1em) that otherwise wins unpredictably
+    // depending on emotion's <style> injection order.
+    width: 20px !important;
+    height: 20px !important;
+
+    // Dropdown's .DropdownButton sets color: $black-color for its label text -- override so
+    // the icon keeps its original neutral grey instead of inheriting black.
+    color: $medium-grey-color;
 }
 
 .todayButton {

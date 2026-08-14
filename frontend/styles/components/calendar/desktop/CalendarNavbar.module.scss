@@ -86,9 +86,17 @@
   align-items: flex-start;
   gap: clamp(24px, 5.33cqi, 48px);
 
-  img {
-    // Overrides the 24x24 width/height HTML attributes CalendarNavbar sets on the arrow
-    // <img>s -- CSS wins over presentational attributes, so this still shrinks them.
+  button {
+    display: flex;
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    color: $medium-grey-color;
+  }
+
+  img,
+  svg {
     width: clamp(12px, 2.67cqi, 24px);
     height: clamp(12px, 2.67cqi, 24px);
   }
@@ -193,8 +201,15 @@
   // Same clamp(min, Xcqi, max) treatment as .dateToggle img above, at the same 2.67cqi rate --
   // was left as a hardcoded 22px while the button chrome around it already scaled, so it stayed
   // a fixed size while everything around it shrank.
-  width: clamp(11px, 2.67cqi, 22px);
-  height: clamp(11px, 2.67cqi, 22px);
+  // !important: @mui/icons-material icons carry their own same-specificity .MuiSvgIcon-root
+  // class (width/height: 1em) -- without this, whichever rule's <style> tag was injected last
+  // wins, which is unreliable (see IconButton.module.scss's .icon for the same fix).
+  width: clamp(11px, 2.67cqi, 22px) !important;
+  height: clamp(11px, 2.67cqi, 22px) !important;
+
+  // Dropdown's .DropdownButton sets color: $black-color for its label text -- override so
+  // the icon keeps its original neutral grey instead of inheriting black.
+  color: $medium-grey-color;
 }
 
 // "View only" footer pill -- shown beneath the main nav row for anyone not signed in as
@@ -218,6 +233,13 @@
 }
 
 .viewOnlyIcon {
-  width: clamp(7px, 2.67cqi, 14px);
-  height: clamp(7px, 2.67cqi, 14px);
+  // !important: @mui/icons-material icons carry their own same-specificity .MuiSvgIcon-root
+  // class (width/height: 1em) that otherwise wins unpredictably depending on emotion's
+  // <style> injection order.
+  width: clamp(7px, 2.67cqi, 14px) !important;
+  height: clamp(7px, 2.67cqi, 14px) !important;
+
+  // Original lock-icon.svg was neutral grey, not the pill's own $brand-pink-color text --
+  // override so it keeps reading as a plain lock rather than a pink-tinted one.
+  color: $medium-grey-color;
 }
