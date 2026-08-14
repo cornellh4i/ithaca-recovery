@@ -4,12 +4,12 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useR
 import { createDefaultFilters, MeetingFilters } from "../../util/filters/meetingFilters";
 import { getSwipeDirection, isSameWeek, SwipeDirection } from "../../util/date/dateTransition";
 
-// Bridges calendar state between HomePage's page content and the globally-mounted AppNavbar
-// (ClientLayout.tsx renders them as siblings, not parent/child, so AppNavbar can't just read
+// Bridges calendar state between HomePage's page content and the globally-mounted AppNavigation
+// (ClientLayout.tsx renders them as siblings, not parent/child, so AppNavigation can't just read
 // state HomePage owns locally). Provided once in ClientLayout.tsx, wrapping both; HomePage
 // consumes it instead of owning this state itself. navHidden/setNavHidden is the mobile
 // scroll-hide bridge (written by the mobile day view's scroll listener, read by
-// MobileAppNavbar's hide/show CSS) added ahead of the branch that needs it, same as
+// MobileAppNavigation's hide/show CSS) added ahead of the branch that needs it, same as
 // selectedDate/filters, so the Provider is the single bridge for all of it.
 //
 // transitionDirection/transitionCrossesWeek/changeSelectedDate: the shared animated-date-
@@ -72,7 +72,7 @@ const CalendarContext = createContext<CalendarContextValue | null>(null);
 interface CalendarProviderProps {
   children: React.ReactNode;
   // Test-only override -- real app usage always defaults to today. Lets component tests
-  // render WeekStrip/DayPortraitView/MobileAppNavbar against a fixed, deterministic date
+  // render WeekStrip/DayPortraitView/MobileAppNavigation against a fixed, deterministic date
   // instead of the real "today" (which would make date-dependent assertions flaky).
   initialDate?: Date;
 }

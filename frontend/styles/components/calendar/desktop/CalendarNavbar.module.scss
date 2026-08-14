@@ -155,7 +155,7 @@
   // .elementList reserves for a real text caption sitting to its left -- align it flush
   // under the button instead, matching .elementListFullWidth's behavior. Rounded to match
   // the button's own 8px radius (its default is a subtler 6px). Fixed 150px, not a cqi-based
-  // clamp -- matches MobileAppNavbar's own equivalent list exactly ("Day"/"Week" need the same
+  // clamp -- matches MobileAppNavigation's own equivalent list exactly ("Day"/"Week" need the same
   // real room for icon + text regardless of this row's own container width, and a clamp tied
   // to .navbarContainer's inline size read as cramped at the container widths this row
   // actually renders at).
@@ -174,7 +174,7 @@
     z-index: 200;
   }
 
-  // Left-aligned (matching MobileAppNavbar's own equivalent list) and bigger than the atom's
+  // Left-aligned (matching MobileAppNavigation's own equivalent list) and bigger than the atom's
   // own 15px default -- "Day"/"Week" read as a real menu, not a cramped afterthought.
   li {
     justify-content: flex-start;
@@ -198,7 +198,7 @@
 }
 
 // "View only" footer pill -- shown beneath the main nav row for anyone not signed in as
-// Admin (mirrors AppNavbar's .navLocked lock-icon treatment, but in brand-pink to read as
+// Admin (mirrors AppNavigation's .navLocked lock-icon treatment, but in brand-pink to read as
 // an informational notice rather than a disabled control). Scales continuously via the same
 // cqi units as the rest of the row now that it's a descendant of .headerWrapper (see
 // CalendarHeader.tsx) -- previously a single hardcoded step-down at the phone breakpoint,

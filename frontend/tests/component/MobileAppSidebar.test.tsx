@@ -2,7 +2,7 @@ import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { useSession } from "next-auth/react";
 import { usePathname } from "next/navigation";
-import AppSidebar from "../../app/components/navbar/AppSidebar";
+import MobileAppSidebar from "../../app/components/navigation/MobileAppSidebar";
 
 jest.mock("next-auth/react", () => ({
   useSession: jest.fn(),
@@ -15,7 +15,7 @@ jest.mock("next/navigation", () => ({
 const mockUseSession = useSession as jest.Mock;
 const mockUsePathname = usePathname as jest.Mock;
 
-describe("AppSidebar", () => {
+describe("MobileAppSidebar", () => {
   afterEach(() => {
     jest.clearAllMocks();
   });
@@ -24,7 +24,7 @@ describe("AppSidebar", () => {
     mockUseSession.mockReturnValue({ data: null, status: "unauthenticated" });
     mockUsePathname.mockReturnValue("/");
 
-    render(<AppSidebar isOpen={false} onClose={jest.fn()} />);
+    render(<MobileAppSidebar isOpen={false} onClose={jest.fn()} />);
 
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
@@ -33,7 +33,7 @@ describe("AppSidebar", () => {
     mockUseSession.mockReturnValue({ data: null, status: "unauthenticated" });
     mockUsePathname.mockReturnValue("/");
 
-    render(<AppSidebar isOpen onClose={jest.fn()} />);
+    render(<MobileAppSidebar isOpen onClose={jest.fn()} />);
 
     expect(screen.getByRole("link", { name: "Main Calendar" }).className).toMatch(/active/);
   });
@@ -45,7 +45,7 @@ describe("AppSidebar", () => {
     });
     mockUsePathname.mockReturnValue("/admin");
 
-    render(<AppSidebar isOpen onClose={jest.fn()} />);
+    render(<MobileAppSidebar isOpen onClose={jest.fn()} />);
 
     const adminLink = screen.getByRole("link", { name: "Admin" });
     expect(adminLink).toHaveAttribute("href", "/admin");
@@ -59,7 +59,7 @@ describe("AppSidebar", () => {
     });
     mockUsePathname.mockReturnValue("/");
 
-    render(<AppSidebar isOpen onClose={jest.fn()} />);
+    render(<MobileAppSidebar isOpen onClose={jest.fn()} />);
 
     expect(screen.queryByText("Admin")).not.toBeInTheDocument();
   });
@@ -68,7 +68,7 @@ describe("AppSidebar", () => {
     mockUseSession.mockReturnValue({ data: null, status: "unauthenticated" });
     mockUsePathname.mockReturnValue("/");
 
-    render(<AppSidebar isOpen onClose={jest.fn()} />);
+    render(<MobileAppSidebar isOpen onClose={jest.fn()} />);
 
     expect(screen.queryByText("Admin")).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Sign In" })).toHaveAttribute("href", "/login");
@@ -78,7 +78,7 @@ describe("AppSidebar", () => {
     mockUseSession.mockReturnValue({ data: null, status: "loading" });
     mockUsePathname.mockReturnValue("/");
 
-    render(<AppSidebar isOpen onClose={jest.fn()} />);
+    render(<MobileAppSidebar isOpen onClose={jest.fn()} />);
 
     expect(screen.queryByRole("link", { name: "Sign In" })).not.toBeInTheDocument();
   });
@@ -87,7 +87,7 @@ describe("AppSidebar", () => {
     mockUseSession.mockReturnValue({ data: null, status: "unauthenticated" });
     mockUsePathname.mockReturnValue("/");
 
-    render(<AppSidebar isOpen onClose={jest.fn()} />);
+    render(<MobileAppSidebar isOpen onClose={jest.fn()} />);
 
     expect(screen.queryByRole("link", { name: "Signage" })).not.toBeInTheDocument();
   });
@@ -97,7 +97,7 @@ describe("AppSidebar", () => {
     mockUsePathname.mockReturnValue("/");
     const onClose = jest.fn();
 
-    render(<AppSidebar isOpen onClose={onClose} />);
+    render(<MobileAppSidebar isOpen onClose={onClose} />);
     fireEvent.click(document.body.querySelector('[class*="backdrop"]') as Element);
 
     expect(onClose).toHaveBeenCalledTimes(1);
@@ -108,7 +108,7 @@ describe("AppSidebar", () => {
     mockUsePathname.mockReturnValue("/admin");
     const onClose = jest.fn();
 
-    render(<AppSidebar isOpen onClose={onClose} />);
+    render(<MobileAppSidebar isOpen onClose={onClose} />);
     fireEvent.click(screen.getByRole("link", { name: "Main Calendar" }));
 
     expect(onClose).toHaveBeenCalledTimes(1);

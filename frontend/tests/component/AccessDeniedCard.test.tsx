@@ -1,7 +1,7 @@
 import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { signIn } from "next-auth/react";
-import AccessDeniedCard from "../../app/components/navbar/AccessDeniedCard";
+import AccessDeniedCard from "../../app/components/navigation/AccessDeniedCard";
 
 jest.mock("next-auth/react", () => ({
   signIn: jest.fn(),

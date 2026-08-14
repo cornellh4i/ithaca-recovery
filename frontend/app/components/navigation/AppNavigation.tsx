@@ -6,12 +6,12 @@ import { usePathname } from "next/navigation";
 import Logo from "../atoms/Logo";
 import Tooltip from "../atoms/Tooltip";
 import ProfileCard from "./ProfileCard";
-import MobileAppNavbar from "./MobileAppNavbar";
+import MobileAppNavigation from "./MobileAppNavigation";
 import { useIsPhone } from "../../../hooks/useIsPhone";
 import { useUserAvatar } from "../../../hooks/useUserAvatar";
-import styles from "../../../styles/components/navbar/AppNavbar.module.scss";
+import styles from "../../../styles/components/navigation/AppNavigation.module.scss";
 
-const AppNavbar: React.FC = () => {
+const AppNavigation: React.FC = () => {
     const isPhone = useIsPhone();
     const { session, status, userAvatar } = useUserAvatar(styles.avatar, styles.avatarFallback);
 
@@ -58,7 +58,7 @@ const AppNavbar: React.FC = () => {
     }
 
     if (isPhone) {
-        return <MobileAppNavbar session={session} status={status} userAvatar={userAvatar} />;
+        return <MobileAppNavigation session={session} status={status} userAvatar={userAvatar} />;
     }
 
     return (
@@ -133,4 +133,4 @@ const AppNavbar: React.FC = () => {
     );
 };
 
-export default AppNavbar;
+export default AppNavigation;

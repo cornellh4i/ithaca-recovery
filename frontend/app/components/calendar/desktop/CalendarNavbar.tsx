@@ -12,7 +12,7 @@ import { getFirstDayOfWeek } from "../../../../util/date/weekDates";
 import type { SwipeDirection } from "../../../../util/date/dateTransition";
 
 // view_timeline / calendar_view_week (Material Symbols) -- same icons and same renderElement
-// pattern MobileAppNavbar's own Day/Multi-Day dropdown uses (icon-only in the closed button
+// pattern MobileAppNavigation's own Day/Multi-Day dropdown uses (icon-only in the closed button
 // via .viewOptionText's display:none, icon+label in the open list).
 const VIEW_ICONS: Record<string, string> = {
   Day: "/svg/view-timeline-icon.svg",

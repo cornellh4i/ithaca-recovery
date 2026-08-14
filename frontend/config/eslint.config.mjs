@@ -36,7 +36,7 @@ const eslintConfig = [
     // dangerouslyAllowSVG for these and gains nothing doing so.
     files: [
       "app/components/atoms/BoxText.tsx",
-      "app/components/navbar/AppNavbar.tsx",
+      "app/components/navigation/AppNavigation.tsx",
       "app/components/calendar/CalendarNavbar.tsx",
       "app/components/meeting-form/EditMeeting.tsx",
       "app/components/meeting-form/NewMeeting.tsx",

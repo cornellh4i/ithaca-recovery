@@ -63,7 +63,7 @@ const isDateToday = (date: Date): boolean => formatETDateString(date) === format
 // above the scroll area, not competing for the same scroll container DayColumn uses) while
 // DayColumn's own wrapper scrolls independently underneath -- also where the mobile navbar's
 // scroll-hide listener attaches (writes navHidden to CalendarProvider, read by
-// MobileAppNavbar). CalendarHeader's heading has its own independent tween (fires when the
+// MobileAppNavigation). CalendarHeader's heading has its own independent tween (fires when the
 // date change commits, same as WeekStrip taps/mini-calendar picks) -- it is not unified into
 // the carousel drag below.
 const DayPortraitView: React.FC<DayPortraitViewProps> = ({

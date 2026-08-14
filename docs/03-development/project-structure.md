@@ -64,7 +64,7 @@ app/
 │   ├── meeting-form/            # New/Edit/View meeting, recurrence, Zoom host field, suspend/resume
 │   ├── admin/                   # AdminShell + diagnostics/, signage/, users/, export/, shared/ subfolders
 │   ├── docs/                    # Renders the in-app /docs Resources page
-│   ├── navbar/                  # App-wide top nav (desktop + mobile variants)
+│   ├── navigation/               # App-wide top nav (desktop + mobile variants)
 │   └── shared/                  # Cross-domain components (Toast/ToastProvider, FilterGroup)
 ├── ClientLayout.tsx             # Client-side layout wrapper — mounts SessionProvider,
 │                                 #   SidebarProvider, CalendarProvider, ToastProvider
@@ -86,7 +86,7 @@ app/
 We group components by what they do (domain/feature) rather than how they composite (atomic design). The `atoms/` folder is the only exception — holding generic primitives that every feature can share.
 
 **`atoms/`** — `BottomSheet`, `BoxText`, `CheckBox`, `CheckButton`, `DatePicker`, `Dropdown`,
-`GoogleSignInButton`, `IconButton`, `LoginCard`, `Logo`, `MiniCalendar`, `MobileFullScreenSheet`,
+`GoogleSignInButton`, `IconButton`, `Logo`, `MiniCalendar`, `MobileFullScreenSheet`,
 `Modal`, `ModeTypeButtons`, `RadioGroup`, `SpinnerInput`, `StatCounter`, `StatusPill`, `TagList`,
 `TextButton`, `TextField`, `TimePicker`, `Tooltip`, `TopLoadingBar`
 
@@ -117,7 +117,8 @@ We group components by what they do (domain/feature) rather than how they compos
 repository's own top-level `docs/` folder, snapshotted at build time into
 `util/docs/docsContent.generated.ts` (see `util/` below) — there's no separate `frontend/docs/`.
 
-**`navbar/`** — `AppNavbar`, `AppSidebar`, `MobileAppNavbar`, `MobileLoginSheet`, `ProfileCard`
+**`navigation/`** — `AccessDeniedCard`, `AppNavigation`, `LoginCard`, `MobileAppNavigation`,
+`MobileAppSidebar`, `MobileLoginSheet`, `ProfileCard`, `SignInDifferentAccountButton`
 
 **`shared/`** — components genuinely used by 2+ domains, kept deliberately small:
 `Toast`/`ToastProvider` (app-wide notification system — see
@@ -126,7 +127,7 @@ repository's own top-level `docs/` folder, snapshotted at build time into
 that caller's domain.
 
 `styles/components/` mirrors this exact folder structure (`atoms/`, `calendar/`, `meeting-form/`,
-`admin/`, `docs/`, `navbar/`, `shared/`) since every component imports its `.module.scss` by
+`admin/`, `docs/`, `navigation/`, `shared/`) since every component imports its `.module.scss` by
 relative path — there are no barrel/index files in either tree.
 
 ### `util/` — domain-logic utilities, grouped by subfolder

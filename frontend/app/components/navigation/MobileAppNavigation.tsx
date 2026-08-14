@@ -8,7 +8,7 @@ import FilterListIcon from "@mui/icons-material/FilterList";
 import IconButton from "../atoms/IconButton";
 import BottomSheet from "../atoms/BottomSheet";
 import Dropdown from "../atoms/Dropdown";
-import AppSidebar from "./AppSidebar";
+import MobileAppSidebar from "./MobileAppSidebar";
 import ProfileCard from "./ProfileCard";
 import MobileLoginSheet from "./MobileLoginSheet";
 import MiniCalendar from "../atoms/MiniCalendar";
@@ -16,7 +16,7 @@ import MeetingsFilter from "../calendar/shared/MeetingsFilter";
 import { useCalendarContext } from "../../context/CalendarProvider";
 import { useViewport } from "../../../hooks/useViewport";
 import { toNoonETOnLocalCalendarDay } from "../../../util/date/weekDates";
-import styles from "../../../styles/components/navbar/MobileAppNavbar.module.scss";
+import styles from "../../../styles/components/navigation/MobileAppNavigation.module.scss";
 
 const LANDSCAPE_VIEW_LABELS = { day: "Day", multiday: "Multi-Day" } as const;
 type LandscapeViewLabel = (typeof LANDSCAPE_VIEW_LABELS)[keyof typeof LANDSCAPE_VIEW_LABELS];
@@ -34,18 +34,18 @@ const LANDSCAPE_VIEW_ICONS: Record<LandscapeViewLabel, string> = {
 
 type OpenSheet = "calendar" | "filter" | "profile" | null;
 
-interface MobileAppNavbarProps {
+interface MobileAppNavigationProps {
   session: Session | null;
   status: "loading" | "authenticated" | "unauthenticated";
   userAvatar: React.ReactNode;
 }
 
-// Rendered in place of the desktop AppNavbar at phone widths (see AppNavbar.tsx's
+// Rendered in place of the desktop AppNavigation at phone widths (see AppNavigation.tsx's
 // useIsPhone() branch). Mounted globally (every route, via ClientLayout.tsx), so the menu
 // toggle and profile button always render; the calendar/filter/Today controls are scoped to
 // the main calendar route only, mirroring how CalendarNavbar today is likewise only ever
 // mounted from app/(main)/page.tsx, never globally.
-const MobileAppNavbar: React.FC<MobileAppNavbarProps> = ({ session, status, userAvatar }) => {
+const MobileAppNavigation: React.FC<MobileAppNavigationProps> = ({ session, status, userAvatar }) => {
   const pathname = usePathname();
   const isCalendarRoute = pathname === "/";
   const { selectedDate, changeSelectedDate, dayFilters, setDayFilters, navHidden, landscapeView, setLandscapeView } =
@@ -162,7 +162,7 @@ const MobileAppNavbar: React.FC<MobileAppNavbarProps> = ({ session, status, user
         )}
       </div>
 
-      <AppSidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <MobileAppSidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
       <BottomSheet isOpen={openSheet === "calendar"} onClose={closeSheet} title="Navigate to this day">
         <MiniCalendar
@@ -194,4 +194,4 @@ const MobileAppNavbar: React.FC<MobileAppNavbarProps> = ({ session, status, user
   );
 };
 
-export default MobileAppNavbar;
+export default MobileAppNavigation;

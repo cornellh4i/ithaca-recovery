@@ -2,7 +2,7 @@ import React from "react";
 import { render, screen, fireEvent, within } from "@testing-library/react";
 import { useSession } from "next-auth/react";
 import { usePathname } from "next/navigation";
-import MobileAppNavbar from "../../app/components/navbar/MobileAppNavbar";
+import MobileAppNavigation from "../../app/components/navigation/MobileAppNavigation";
 import { CalendarProvider, useCalendarContext } from "../../app/context/CalendarProvider";
 import type { Session } from "next-auth";
 
@@ -25,17 +25,17 @@ const adminSession: Session = {
 
 // Renders the current context's selectedDate as text so tests can assert the Today button
 // (and, in a later branch, swipe/mini-calendar transitions) actually mutated shared state,
-// without reaching into MobileAppNavbar's own internals.
+// without reaching into MobileAppNavigation's own internals.
 const SelectedDateProbe: React.FC = () => {
   const { selectedDate } = useCalendarContext();
   return <div data-testid="selected-date">{selectedDate.toDateString()}</div>;
 };
 
-const renderNavbar = () =>
+const renderNavigation = () =>
   render(
     <CalendarProvider>
       <SelectedDateProbe />
-      <MobileAppNavbar session={adminSession} status="authenticated" userAvatar={<div data-testid="avatar" />} />
+      <MobileAppNavigation session={adminSession} status="authenticated" userAvatar={<div data-testid="avatar" />} />
     </CalendarProvider>
   );
 
@@ -55,7 +55,7 @@ const withWindowSize = (width: number, height: number, run: () => void) => {
   }
 };
 
-describe("MobileAppNavbar", () => {
+describe("MobileAppNavigation", () => {
   afterEach(() => {
     jest.clearAllMocks();
   });
@@ -64,7 +64,7 @@ describe("MobileAppNavbar", () => {
     mockUseSession.mockReturnValue({ data: adminSession });
     mockUsePathname.mockReturnValue("/");
 
-    renderNavbar();
+    renderNavigation();
 
     expect(screen.getByRole("button", { name: "Open menu" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Navigate to a day" })).toBeInTheDocument();
@@ -77,7 +77,7 @@ describe("MobileAppNavbar", () => {
     mockUseSession.mockReturnValue({ data: adminSession });
     mockUsePathname.mockReturnValue("/admin");
 
-    renderNavbar();
+    renderNavigation();
 
     expect(screen.getByRole("button", { name: "Open menu" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Account" })).toBeInTheDocument();
@@ -90,7 +90,7 @@ describe("MobileAppNavbar", () => {
     mockUseSession.mockReturnValue({ data: adminSession });
     mockUsePathname.mockReturnValue("/");
 
-    renderNavbar();
+    renderNavigation();
     fireEvent.click(screen.getByRole("button", { name: "Navigate to a day" }));
 
     expect(screen.getByRole("dialog", { name: "Navigate to this day" })).toBeInTheDocument();
@@ -100,7 +100,7 @@ describe("MobileAppNavbar", () => {
     mockUseSession.mockReturnValue({ data: adminSession });
     mockUsePathname.mockReturnValue("/");
 
-    renderNavbar();
+    renderNavigation();
     fireEvent.click(screen.getByRole("button", { name: "Today" }));
 
     expect(screen.getByTestId("selected-date")).toHaveTextContent(new Date().toDateString());
@@ -110,7 +110,7 @@ describe("MobileAppNavbar", () => {
     mockUseSession.mockReturnValue({ data: adminSession });
     mockUsePathname.mockReturnValue("/");
 
-    renderNavbar();
+    renderNavigation();
 
     expect(screen.queryByText(/^\d+$/)).not.toBeInTheDocument();
   });
@@ -119,7 +119,7 @@ describe("MobileAppNavbar", () => {
     mockUseSession.mockReturnValue({ data: adminSession });
     mockUsePathname.mockReturnValue("/");
 
-    renderNavbar();
+    renderNavigation();
     fireEvent.click(screen.getByRole("button", { name: "Filter meetings" }));
 
     const sheet = screen.getByRole("dialog", { name: "Filter meetings" });
@@ -133,7 +133,7 @@ describe("MobileAppNavbar", () => {
     mockUseSession.mockReturnValue({ data: adminSession });
     mockUsePathname.mockReturnValue("/");
 
-    renderNavbar();
+    renderNavigation();
     fireEvent.click(screen.getByRole("button", { name: "Account" }));
 
     expect(screen.getByRole("dialog", { name: "Account" })).toBeInTheDocument();
@@ -145,7 +145,7 @@ describe("MobileAppNavbar", () => {
     mockUsePathname.mockReturnValue("/");
 
     withWindowSize(390, 844, () => {
-      renderNavbar();
+      renderNavigation();
       expect(screen.queryByRole("button", { name: "Day" })).not.toBeInTheDocument();
     });
   });
@@ -155,7 +155,7 @@ describe("MobileAppNavbar", () => {
     mockUsePathname.mockReturnValue("/");
 
     withWindowSize(844, 390, () => {
-      renderNavbar();
+      renderNavigation();
       expect(screen.getByRole("button", { name: "Day" })).toBeInTheDocument();
     });
   });
@@ -165,7 +165,7 @@ describe("MobileAppNavbar", () => {
     mockUsePathname.mockReturnValue("/");
 
     withWindowSize(1024, 768, () => {
-      renderNavbar();
+      renderNavigation();
       expect(screen.queryByRole("button", { name: "Day" })).not.toBeInTheDocument();
     });
   });
@@ -175,7 +175,7 @@ describe("MobileAppNavbar", () => {
     mockUsePathname.mockReturnValue("/");
 
     withWindowSize(844, 390, () => {
-      renderNavbar();
+      renderNavigation();
       fireEvent.click(screen.getByRole("button", { name: "Day" }));
       fireEvent.click(screen.getByRole("option", { name: "Multi-Day" }));
 
