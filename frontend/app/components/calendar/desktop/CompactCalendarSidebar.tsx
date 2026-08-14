@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import IconButton from '../../atoms/IconButton';
-import MiniCalendar from '../../atoms/MiniCalendar';
+import IconButton from '../../ui/buttons/IconButton';
+import MiniCalendar from '../MiniCalendar';
 import FilterGroup from '../../shared/FilterGroup';
 import { LOCATION_ITEMS, ZOOM_ITEMS, CALENDAR_ITEMS, MODE_ITEMS } from '../shared/MeetingsFilter';
 import { MeetingFilters } from '../../../../util/filters/meetingFilters';

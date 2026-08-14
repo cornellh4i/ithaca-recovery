@@ -1,0 +1,57 @@
+@import '../../../Variables.module';
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  padding: 0;
+  margin-top: auto;
+  min-width: 0;
+}
+
+.tag {
+  padding: 2px 7px;
+  border-radius: 10.593px;
+  font-size: 10px;
+  font-weight: 400;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.tagIcon {
+  // !important: @mui/icons-material icons carry their own same-specificity .MuiSvgIcon-root
+  // class (width/height: 1em) that otherwise wins unpredictably depending on emotion's
+  // <style> injection order.
+  width: 9px !important;
+  height: 9px !important;
+  margin-right: 3px;
+  vertical-align: -1px;
+
+  // .tag sets no color of its own (inherits whatever ambient text color each caller has) --
+  // pin explicitly so the icon stays its original neutral grey regardless of caller context.
+  color: $medium-grey-color;
+}
+
+.overflowTag {
+  padding: 2px 7px;
+  border-radius: 10.593px;
+  font-size: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+// Off-screen probe used to test-wrap candidate tag/overflow-pill combinations at the
+// container's real width and measure the resulting wrapped height -- never visible, and
+// out of normal flow so it can't affect layout or scroll size. Populated imperatively
+// (see TagList.tsx) rather than via React, since it needs to be rebuilt and re-measured
+// synchronously several times per layout pass.
+.measurer {
+  position: absolute;
+  visibility: hidden;
+  pointer-events: none;
+  top: -9999px;
+  left: -9999px;
+  display: flex;
+  flex-wrap: wrap;
+}

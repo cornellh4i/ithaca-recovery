@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import BoxText from '../../atoms/BoxText';
+import BoxText from '../../ui/displays/BoxText';
 import OverlapMeetingsModal from './OverlapMeetingsModal';
 import styles from '../../../../styles/components/calendar/shared/DayColumn.module.scss';
 import { isZoomRoomMismatched } from '../../../../util/rooms/rooms';

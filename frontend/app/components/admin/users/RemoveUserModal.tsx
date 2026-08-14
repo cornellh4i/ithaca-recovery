@@ -2,7 +2,7 @@
 
 import React from "react";
 import PriorityHighIcon from "@mui/icons-material/PriorityHigh";
-import Modal from "../../atoms/Modal";
+import Modal from "../../ui/overlays/Modal";
 import styles from "../../../../styles/components/admin/UserModals.module.scss";
 
 interface RemoveUserModalProps {

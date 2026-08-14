@@ -3,9 +3,9 @@
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import Logo from "../atoms/Logo";
-import Tooltip from "../atoms/Tooltip";
-import ProfileCard from "./ProfileCard";
+import Logo from "../ui/displays/Logo";
+import Tooltip from "../ui/overlays/Tooltip";
+import ProfileCard from "../auth/ProfileCard";
 import MobileAppNavigation from "./MobileAppNavigation";
 import { useIsPhone } from "../../../hooks/useIsPhone";
 import { useUserAvatar } from "../../../hooks/useUserAvatar";

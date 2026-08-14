@@ -59,12 +59,13 @@ app/
 ├── api/                         # All API route handlers (see api-reference.md)
 ├── context/                     # React context providers (CalendarProvider, SidebarContext)
 ├── components/
-│   ├── atoms/                   # Primitive UI elements, shared across every domain
+│   ├── ui/                      # Generic UI primitives, split by kind — see Component Hierarchy below
 │   ├── calendar/                # desktop/, mobile/, shared/ — see Component Hierarchy below
 │   ├── meeting-form/            # New/Edit/View meeting, recurrence, Zoom host field, suspend/resume
 │   ├── admin/                   # AdminShell + diagnostics/, signage/, users/, export/, shared/ subfolders
 │   ├── docs/                    # Renders the in-app /docs Resources page
-│   ├── navigation/               # App-wide top nav (desktop + mobile variants)
+│   ├── auth/                    # Sign-in/access-denied/profile UI — see Component Hierarchy below
+│   ├── navigation/               # App-wide site chrome (desktop + mobile variants)
 │   └── shared/                  # Cross-domain components (Toast/ToastProvider, FilterGroup)
 ├── ClientLayout.tsx             # Client-side layout wrapper — mounts SessionProvider,
 │                                 #   SidebarProvider, CalendarProvider, ToastProvider
@@ -83,19 +84,23 @@ app/
 
 ### Component Hierarchy (by domain)
 
-We group components by what they do (domain/feature) rather than how they composite (atomic design). The `atoms/` folder is the only exception — holding generic primitives that every feature can share.
+We group components by what they do (domain/feature) rather than how they composite (atomic design). The `ui/` folder is the only exception — holding generic primitives that every feature can share, split into sub-buckets by kind rather than kept as one flat folder.
 
-**`atoms/`** — `BottomSheet`, `BoxText`, `CheckBox`, `CheckButton`, `DatePicker`, `Dropdown`,
-`GoogleSignInButton`, `Icon`, `IconButton`, `Logo`, `MiniCalendar`, `MobileFullScreenSheet`,
-`Modal`, `ModeTypeButtons`, `RadioGroup`, `SpinnerInput`, `StatCounter`, `StatusPill`, `TagList`,
-`TextButton`, `TextField`, `TimePicker`, `Tooltip`, `TopLoadingBar`
+**`ui/`** — generic, non-domain primitives, by kind:
+- `buttons/` — `CheckButton`, `IconButton`, `TextButton`
+- `inputs/` — `CheckBox`, `Dropdown`, `ModeTypeButtons` (a segmented value-selector, grouped here
+  by function despite the "Buttons" name), `RadioGroup`, `SpinnerInput`, `TextField`
+- `overlays/` — `BottomSheet`, `Modal`, `MobileFullScreenSheet`, `Tooltip`
+- `pickers/` — `DatePicker`, `TimePicker`
+- `displays/` — `BoxText`, `Icon`, `Logo`, `StatCounter`, `StatusPill`, `TagList`, `TopLoadingBar`
 
 `Icon` is the name-based entry point (e.g. `<Icon name="warning" />`) for what used to be the
 app's `/public/svg` icon set — most render as `@mui/icons-material` glyphs tinted via
 `currentColor` from ambient CSS; a couple of brand logos with no MUI equivalent (Google, Zoom)
 stay as local `public/svg/` assets. `IconButton` wraps it for clickable icon-only buttons.
 
-**`calendar/`** — split into three subfolders, not a flat list:
+**`calendar/`** — `MiniCalendar` (a compact date-picker calendar, used from multiple contexts)
+sits directly in `calendar/`, alongside three subfolders, not a flat list:
 - `desktop/` — `CalendarNavbar`, `CalendarSidebar`, `CalendarSidebarShell`,
   `CompactCalendarSidebar`, `DayView`, `DailyViewRow`, `WeekView`
 - `mobile/` — `DayLandscapeSwitcher`, `DayLandscapeView`, `DayPortraitView`, `MobileFab`,
@@ -122,8 +127,12 @@ stay as local `public/svg/` assets. `IconButton` wraps it for clickable icon-onl
 repository's own top-level `docs/` folder, snapshotted at build time into
 `util/docs/docsContent.generated.ts` (see `util/` below) — there's no separate `frontend/docs/`.
 
-**`navigation/`** — `AccessDeniedCard`, `AppNavigation`, `LoginCard`, `MobileAppNavigation`,
-`MobileAppSidebar`, `MobileLoginSheet`, `ProfileCard`, `SignInDifferentAccountButton`
+**`auth/`** — the signed-in/signed-out/access-denied state: `AccessDeniedCard`,
+`GoogleSignInButton`, `LoginCard`, `MobileLoginSheet`, `ProfileCard`,
+`SignInDifferentAccountButton`
+
+**`navigation/`** — real site-chrome only: `AppNavigation`, `MobileAppNavigation`,
+`MobileAppSidebar`
 
 **`shared/`** — components genuinely used by 2+ domains, kept deliberately small:
 `Toast`/`ToastProvider` (app-wide notification system — see
@@ -131,9 +140,10 @@ repository's own top-level `docs/` folder, snapshotted at build time into
 `FilterGroup`. Not a general dumping ground — i.e. if a component only has one caller, it should belong in
 that caller's domain.
 
-`styles/components/` mirrors this exact folder structure (`atoms/`, `calendar/`, `meeting-form/`,
-`admin/`, `docs/`, `navigation/`, `shared/`) since every component imports its `.module.scss` by
-relative path — there are no barrel/index files in either tree.
+`styles/components/` mirrors this exact folder structure (`ui/` with the same buttons/inputs/
+overlays/pickers/displays split, `calendar/`, `meeting-form/`, `admin/`, `docs/`, `auth/`,
+`navigation/`, `shared/`) since every component imports its `.module.scss` by relative path —
+there are no barrel/index files in either tree.
 
 ### `util/` — domain-logic utilities, grouped by subfolder
 

@@ -1,4 +1,4 @@
-import type { IconName } from '../../app/components/atoms/Icon';
+import type { IconName } from '../../app/components/ui/displays/Icon';
 
 // Meeting-mode -> icon mapping, shared by every place a mode ("Hybrid", "In Person",
 // "Remote") is shown as text, so users learn the association before mobile's BoxText

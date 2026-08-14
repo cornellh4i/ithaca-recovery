@@ -19,7 +19,7 @@ export async function fillTimeRange(page: Page, startHHMM: string, endHHMM: stri
   await timeInputs.nth(1).fill(endHHMM);
 }
 
-// Opens one of the atoms/Dropdown.tsx menus by its placeholder button text
+// Opens one of the ui/inputs/Dropdown.tsx menus by its placeholder button text
 // (`name` prop, e.g. "Select Room") and clicks the target option.
 export async function selectFromDropdown(page: Page, buttonName: string, optionText: string): Promise<void> {
   // Not `exact` — Dropdown.tsx's button has a CSS-generated "▼" suffix appended
@@ -46,7 +46,7 @@ export async function toggleFilter(page: Page, label: string): Promise<void> {
   await page.locator('[class*="meetingsFilter"]').getByText(label, { exact: true }).first().click();
 }
 
-// Switches the CalendarNavbar Day/Week view via its atoms/Dropdown.tsx view-switcher.
+// Switches the CalendarNavbar Day/Week view via its ui/inputs/Dropdown.tsx view-switcher.
 // Scoped to the navbar's own dropdown wrapper (not the meeting form's Dropdown
 // instances) so the button can be clicked without knowing which view is currently
 // selected -- unlike selectFromDropdown's callers, this button's accessible name

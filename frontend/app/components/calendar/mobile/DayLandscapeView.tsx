@@ -12,7 +12,7 @@ import { addDaysToDate } from "../../../../util/date/weekDates";
 import { dateEnterMotion } from "../../../../util/date/dateTransition";
 import { useElementSize } from "../../../../hooks/useElementSize";
 import { useCalendarContext } from "../../../context/CalendarProvider";
-import TopLoadingBar from "../../atoms/TopLoadingBar";
+import TopLoadingBar from "../../ui/displays/TopLoadingBar";
 
 type Meeting = OverlapMeeting;
 

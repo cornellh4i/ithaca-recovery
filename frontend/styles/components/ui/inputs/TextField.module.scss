@@ -1,0 +1,73 @@
+@import '../../../Variables.module';
+
+.textfieldwrapper {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
+
+.textfieldlabel {
+    // Only ever an icon or "" (never a real text string) at every current call site -- see
+    // Icon.tsx's callers -- so this is safe to pin without risking a string label's color.
+    color: $medium-grey-color;
+}
+
+.textfieldcontainer {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    align-self: stretch;
+    border: 1px solid $grey-border-color;
+    border-radius: 6px;
+    background: #fff;
+    padding: 0 12px;
+    transition: border-color 0.15s ease;
+
+    &:focus-within {
+        border-color: $brand-pink-color;
+    }
+}
+
+.textfieldContainerError {
+    border-color: $danger-color;
+
+    &:focus-within {
+        border-color: $danger-color;
+    }
+}
+
+.textfieldErrorText {
+    margin-top: 4px;
+    font-family: 'Source Sans Pro', sans-serif;
+    font-size: 12px;
+    color: $danger-color;
+}
+
+.textfieldinput {
+    border: none;
+    outline: none;
+    flex: 1 0 0;
+    align-self: stretch;
+    font-family: 'Source Sans Pro', sans-serif;
+    font-size: 18px;
+    font-weight: 400;
+    padding: 10px 0;
+    color: $black-color;
+    width: 100%;
+    background: transparent;
+
+    &::placeholder {
+        color: $medium-grey-color;
+    }
+
+    &.multiline {
+        // Height comes from the auto-grow effect, not a fixed box — resize/scroll would fight it.
+        resize: none;
+        overflow: hidden;
+        display: block;
+        font-family: inherit;
+        white-space: pre-wrap;
+        overflow-wrap: break-word;
+        padding: 10px 0;
+    }
+}

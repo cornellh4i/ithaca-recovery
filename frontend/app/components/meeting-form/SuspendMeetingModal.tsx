@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import styles from '../../../styles/components/meeting-form/SuspendMeetingModal.module.scss';
-import DatePicker from '../atoms/DatePicker';
-import Icon from '../atoms/Icon';
+import DatePicker from '../ui/pickers/DatePicker';
+import Icon from '../ui/displays/Icon';
 import { formatETDateString, parseMMDDYYYY } from '../../../util/date/timeUtils';
 
 interface SuspendMeetingModalProps {

@@ -3,7 +3,7 @@ import styles from "../../../(main)/page.module.scss";
 import EditMeetingSidebar from "../../meeting-form/EditMeeting";
 import CalendarSidebar from "./CalendarSidebar";
 import CompactCalendarSidebar from "./CompactCalendarSidebar";
-import IconButton from "../../atoms/IconButton";
+import IconButton from "../../ui/buttons/IconButton";
 import { useSidebar } from "../../../context/SidebarContext";
 import { useBreakpoint } from "../../../../hooks/useBreakpoint";
 import { IMeeting } from "../../../../types/models";

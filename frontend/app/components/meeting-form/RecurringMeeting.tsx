@@ -1,14 +1,14 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from 'react';
-import RadioGroup from '../atoms/RadioGroup';
-import LabeledCheckbox from '../atoms/CheckBox';
-import SpinnerInput from '../atoms/SpinnerInput';
-import DatePicker from '../atoms/DatePicker';
-import Dropdown from '../atoms/Dropdown';
+import RadioGroup from '../ui/inputs/RadioGroup';
+import LabeledCheckbox from '../ui/inputs/CheckBox';
+import SpinnerInput from '../ui/inputs/SpinnerInput';
+import DatePicker from '../ui/pickers/DatePicker';
+import Dropdown from '../ui/inputs/Dropdown';
 import styles from "../../../styles/components/meeting-form/RecurringMeeting.module.scss";
 
-import CheckButton from '../atoms/CheckButton';
+import CheckButton from '../ui/buttons/CheckButton';
 import { IRecurrencePattern } from "../../../types/models";
 import { convertETToUTC, convertUTCToET } from "../../../util/date/timeUtils";
 

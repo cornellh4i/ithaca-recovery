@@ -2,8 +2,8 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import Card from "../shared/Card";
-import Icon from "../../atoms/Icon";
-import TopLoadingBar from "../../atoms/TopLoadingBar";
+import Icon from "../../ui/displays/Icon";
+import TopLoadingBar from "../../ui/displays/TopLoadingBar";
 import DiagnosticsCardError from "./DiagnosticsCardError";
 import EditMeetingSidebar from "../../meeting-form/EditMeeting";
 import { IMeeting } from "../../../../types/models";

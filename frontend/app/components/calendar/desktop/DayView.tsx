@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useLayoutEffect, useState, useRef } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import styles from '../../../../styles/components/calendar/desktop/DayView.module.scss';
-import BoxText from '../../atoms/BoxText';
+import BoxText from '../../ui/displays/BoxText';
 import DailyViewRow from "./DailyViewRow";
 import { formatETDateString, getCurrentETMinutesSinceMidnight, getETDayBounds } from "../../../../util/date/timeUtils";
 import { IMeeting } from "../../../../types/models";

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import Icon from '../atoms/Icon';
+import Icon from '../ui/displays/Icon';
 import styles from '../../../styles/components/meeting-form/DeleteRecurringModal.module.scss';
 
 interface DeleteRecurringModalProps {

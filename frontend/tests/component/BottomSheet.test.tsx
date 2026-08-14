@@ -1,6 +1,6 @@
 import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
-import BottomSheet from "../../app/components/atoms/BottomSheet";
+import BottomSheet from "../../app/components/ui/overlays/BottomSheet";
 
 describe("BottomSheet", () => {
   it("renders nothing when isOpen is false", () => {

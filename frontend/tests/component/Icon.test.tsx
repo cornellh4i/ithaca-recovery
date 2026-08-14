@@ -1,6 +1,6 @@
 import React from "react";
 import { render } from "@testing-library/react";
-import Icon, { ALL_ICON_NAMES } from "../../app/components/atoms/Icon";
+import Icon, { ALL_ICON_NAMES } from "../../app/components/ui/displays/Icon";
 
 describe("Icon", () => {
   it.each(ALL_ICON_NAMES)("renders name=\"%s\" as a non-empty element with matching data-icon-name", (name) => {

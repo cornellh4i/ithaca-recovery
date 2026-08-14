@@ -6,7 +6,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { TABLET_BREAKPOINT } from "../../../util/common/breakpoints";
 import type { DocMeta } from "../../../util/docs/loadDocs";
 import { usePagefindComponentUI } from "../../../hooks/usePagefindComponentUI";
-import TopLoadingBar from "../atoms/TopLoadingBar";
+import TopLoadingBar from "../ui/displays/TopLoadingBar";
 import { PanelToggleIcon, SearchIcon, CloseIcon, ChevronDownIcon } from "./DocsIcons";
 import styles from "../../../styles/components/docs/DocsShell.module.scss";
 
