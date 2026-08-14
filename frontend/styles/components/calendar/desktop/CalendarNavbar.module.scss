@@ -1,4 +1,4 @@
-@import '../../../Variables.module.scss';
+@import '../../../Variables.module';
 
 // Establishes the container-query boundary that .navbarContainer's and .viewOnlyPill's own
 // clamp(...cqi...) rules below all query against -- both need to live *inside* this wrapper
