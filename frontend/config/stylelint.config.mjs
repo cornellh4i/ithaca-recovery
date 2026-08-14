@@ -1,7 +1,7 @@
 const stylelintConfig = {
   extends: ["stylelint-config-standard-scss"],
   rules: {
-    "scss/load-partial-extension": null,
+    "scss/load-partial-extension": "never",
     // CSS Modules classes are accessed as JS properties (styles.emptyState),
     // so camelCase is the codebase-wide convention -- not kebab-case.
     "selector-class-pattern": null,
