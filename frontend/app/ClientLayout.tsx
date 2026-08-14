@@ -1,7 +1,7 @@
 "use client";
 
 import { PropsWithChildren } from "react";
-import AppNavbar from "./components/navbar/AppNavbar";
+import AppNavigation from "./components/navigation/AppNavigation";
 import { Inter } from "next/font/google";
 import styles from "../styles/MainLayout.module.scss";
 import type { Session } from "next-auth";
@@ -17,7 +17,7 @@ interface ClientLayoutProps {
     session: Session | null;
 }
 
-// Slides .content's top padding shut in sync with MobileAppNavbar sliding away, so
+// Slides .content's top padding shut in sync with MobileAppNavigation sliding away, so
 // WeekStrip/CalendarHeader (normal-flow children further down the tree) ride up to fill
 // exactly the gap the navbar vacates instead of leaving it empty. Has to be its own
 // component, not inlined into ClientLayout below -- useCalendarContext() needs a
@@ -55,7 +55,7 @@ export default function ClientLayout({
                             <ToastProvider>
                                 <div className={styles.mainlayout}>
                                     <div className={styles.navigation}>
-                                        <AppNavbar />
+                                        <AppNavigation />
                                     </div>
                                     <MainContent>{children}</MainContent>
                                 </div>

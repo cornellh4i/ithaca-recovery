@@ -8,7 +8,7 @@ export interface ElementSize {
 // Tracks an element's live clientWidth/clientHeight via ResizeObserver -- used by the
 // phone-landscape calendar views, which size their grid dynamically off the available
 // viewport instead of a fixed pixel constant (DayLandscapeView's room-row height fits exactly
-// to the available height, reacting live as MobileAppNavbar hides/shows on scroll; see
+// to the available height, reacting live as MobileAppNavigation hides/shows on scroll; see
 // useElementWidth.ts for the width-only case built on top of this).
 export function useElementSize<T extends HTMLElement>(): [React.RefObject<T | null>, ElementSize] {
   const ref = useRef<T>(null);

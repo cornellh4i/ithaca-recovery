@@ -7,17 +7,17 @@ import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { AnimatePresence, motion } from "framer-motion";
 import Logo from "../atoms/Logo";
-import styles from "../../../styles/components/navbar/AppSidebar.module.scss";
+import styles from "../../../styles/components/navigation/MobileAppSidebar.module.scss";
 
-interface AppSidebarProps {
+interface MobileAppSidebarProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
 // Mobile hamburger-menu drawer. Reuses the exact Link + usePathname + isAdmin gating logic
-// AppNavbar.tsx's desktop nav list already has (session-derived, not prop-driven) so the two
+// AppNavigation.tsx's desktop nav list already has (session-derived, not prop-driven) so the two
 // stay in lockstep without duplicating auth state through props.
-const AppSidebar: React.FC<AppSidebarProps> = ({ isOpen, onClose }) => {
+const MobileAppSidebar: React.FC<MobileAppSidebarProps> = ({ isOpen, onClose }) => {
   const { data: session, status } = useSession();
   const isAdmin = session?.user?.role === "ADMIN" || session?.user?.role === "SUPER_ADMIN";
   const pathname = usePathname();
@@ -81,4 +81,4 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ isOpen, onClose }) => {
   );
 };
 
-export default AppSidebar;
+export default MobileAppSidebar;

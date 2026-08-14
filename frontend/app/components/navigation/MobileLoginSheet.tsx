@@ -5,7 +5,7 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import MobileFullScreenSheet from "../atoms/MobileFullScreenSheet";
 import LoginCard from "./LoginCard";
 import IconButton from "../atoms/IconButton";
-import styles from "../../../styles/components/navbar/MobileLoginSheet.module.scss";
+import styles from "../../../styles/components/navigation/MobileLoginSheet.module.scss";
 
 interface MobileLoginSheetProps {
   isOpen: boolean;
@@ -13,7 +13,7 @@ interface MobileLoginSheetProps {
 }
 
 // Slides in from the right over the calendar when the signed-out profile button is tapped
-// (see MobileAppNavbar.tsx) -- purely a local state toggle, never a real navigation to
+// (see MobileAppNavigation.tsx) -- purely a local state toggle, never a real navigation to
 // /login, so "back" just slides this back out and the calendar underneath is exactly as the
 // user left it (nothing unmounted/refetched). onSwipeDismiss lets a rightward swipe (the same
 // direction this sheet slides back out to) trigger that same "back" path as the arrow button.

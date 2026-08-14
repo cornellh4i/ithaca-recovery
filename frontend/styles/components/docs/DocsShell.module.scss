@@ -81,7 +81,7 @@
   text-overflow: ellipsis;
 }
 
-// Same $z-index-modal tier AppSidebar.module.scss uses for its own backdrop+drawer pair --
+// Same $z-index-modal tier MobileAppSidebar.module.scss uses for its own backdrop+drawer pair --
 // equal values are fine since DOM order (overlay painted before the drawer) already puts the
 // drawer on top.
 .overlay {
@@ -443,7 +443,7 @@
   padding-top: 4px;
 
   // Width-or-height, not width alone -- matches MainLayout.module.scss's own $breakpoint-phone
-  // query for the exact same concern: MobileAppNavbar is position: fixed (48px tall) below that
+  // query for the exact same concern: MobileAppNavigation is position: fixed (48px tall) below that
   // breakpoint, so an anchor-jump needs scroll-margin-top past it, or the heading lands
   // underneath it. Above the breakpoint the desktop navbar isn't fixed, so 24px (breathing room
   // only) is enough. h1 gets this too, not just h2/h3 -- the TOC includes h1 entries (any

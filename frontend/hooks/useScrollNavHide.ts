@@ -5,7 +5,7 @@ import { useCalendarContext } from "../app/context/CalendarProvider";
 // jitter (e.g. rubber-banding at the top) doesn't flicker the navbar in and out.
 const SCROLL_HIDE_THRESHOLD_PX = 4;
 
-// Hides/shows MobileAppNavbar in response to vertical scroll inside a phone calendar view's
+// Hides/shows MobileAppNavigation in response to vertical scroll inside a phone calendar view's
 // own scroll container -- shared by DayPortraitView and MultiDayLandscapeView so both read
 // "scrolled down -> hide, scrolled up -> show" the same way, with the same rubber-band-
 // overscroll guard. DayLandscapeView deliberately doesn't use this -- its dual-axis (hour +

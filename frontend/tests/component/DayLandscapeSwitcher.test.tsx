@@ -16,10 +16,10 @@ const baseProps = {
   setAnchorEl: jest.fn(),
 };
 
-// The Day/Multi-Day choice now lives in CalendarProvider and is driven by MobileAppNavbar's
+// The Day/Multi-Day choice now lives in CalendarProvider and is driven by MobileAppNavigation's
 // dropdown, not by any UI inside DayLandscapeSwitcher itself -- this test-only component
 // stands in for that dropdown so these tests can force landscapeView without rendering the
-// navbar (same "probe/driver" pattern MobileAppNavbar.test.tsx's SelectedDateProbe uses).
+// navbar (same "probe/driver" pattern MobileAppNavigation.test.tsx's SelectedDateProbe uses).
 const LandscapeViewSetter: React.FC<{ view: "day" | "multiday" }> = ({ view }) => {
   const { setLandscapeView } = useCalendarContext();
   useEffect(() => {

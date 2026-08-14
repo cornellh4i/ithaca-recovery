@@ -1,6 +1,6 @@
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import SignInDifferentAccountButton from "./SignInDifferentAccountButton";
-import styles from "../../../styles/components/navbar/AccessDeniedCard.module.scss";
+import styles from "../../../styles/components/navigation/AccessDeniedCard.module.scss";
 
 // Rendered by the /login route (page.tsx) in place of LoginCard when NextAuth's signIn
 // callback (authConfig.ts) rejects a non-admin Google account, redirecting to

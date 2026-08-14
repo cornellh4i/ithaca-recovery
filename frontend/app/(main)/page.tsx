@@ -304,7 +304,7 @@ export default function HomePage() {
   const isPhone = viewport?.device === "phone";
   const isLandscapePhone = isPhone && viewport?.orientation === "landscape";
 
-  // Same null-during-resolution guard as AppNavbar: viewport starts null until the client's
+  // Same null-during-resolution guard as AppNavigation: viewport starts null until the client's
   // first layout effect measures it, and both branches below treat a null viewport as
   // "desktop" -- without this, every load would flash the desktop sidebar/grid first.
   if (viewport === null) {
@@ -313,8 +313,8 @@ export default function HomePage() {
 
   return (
     <div className={styles.container}>
-      {/* No sidebar on mobile -- filters/mini-calendar move into MobileAppNavbar's bottom
-          sheets instead (see CalendarProvider/MobileAppNavbar); New/Edit Meeting instead get
+      {/* No sidebar on mobile -- filters/mini-calendar move into MobileAppNavigation's bottom
+          sheets instead (see CalendarProvider/MobileAppNavigation); New/Edit Meeting instead get
           the full-screen sheets rendered below. */}
       {!isPhone && (
         <CalendarSidebarShell

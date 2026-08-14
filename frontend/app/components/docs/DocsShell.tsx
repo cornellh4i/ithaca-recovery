@@ -287,7 +287,7 @@ const DocsShell: React.FC<DocsShellProps> = ({ docsMeta, children }) => {
   };
 
   // See compact's own state comment above -- render nothing until it's measured, same as
-  // AppNavbar's isPhone === null guard.
+  // AppNavigation's isPhone === null guard.
   if (compact === null) {
     return null;
   }

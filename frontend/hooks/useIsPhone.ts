@@ -1,7 +1,7 @@
 import { useViewport } from "./useViewport";
 
 // Thin wrapper over useViewport(), kept for call sites that only ever branched on phone vs.
-// not-phone (AppNavbar, MobileAppNavbar, page.tsx) -- device is now decided by the *smaller*
+// not-phone (AppNavigation, MobileAppNavigation, page.tsx) -- device is now decided by the *smaller*
 // viewport dimension rather than width alone (see useViewport.ts), so a phone in landscape
 // still reports true here instead of falling through to the desktop branch.
 //

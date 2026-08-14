@@ -2,7 +2,7 @@ import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
 import type { Session } from "next-auth";
 import { signOut } from "next-auth/react";
-import ProfileCard from "../../app/components/navbar/ProfileCard";
+import ProfileCard from "../../app/components/navigation/ProfileCard";
 
 jest.mock("next-auth/react", () => ({
   signOut: jest.fn(),

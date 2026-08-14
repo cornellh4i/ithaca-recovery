@@ -7,12 +7,12 @@ interface UseUserAvatarResult {
   status: "loading" | "authenticated" | "unauthenticated";
   // Real <img> when the session has a loadable avatar URL, otherwise an initial-letter
   // fallback div -- shared here (rather than recomputed per navbar variant) so the
-  // imageError pre-verification effect below has exactly one copy across desktop AppNavbar
-  // and MobileAppNavbar.
+  // imageError pre-verification effect below has exactly one copy across desktop AppNavigation
+  // and MobileAppNavigation.
   userAvatar: React.ReactNode;
 }
 
-// Extracted out of AppNavbar.tsx so the mobile navbar (a separate render path, not nested
+// Extracted out of AppNavigation.tsx so the mobile navbar (a separate render path, not nested
 // inside the desktop one) doesn't need its own divergent copy of this logic.
 export function useUserAvatar(avatarClassName: string, fallbackClassName: string): UseUserAvatarResult {
   const { data: session, status } = useSession();

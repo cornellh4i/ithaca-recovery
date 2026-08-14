@@ -21,7 +21,7 @@ interface DayLandscapeSwitcherProps {
 
 // Landscape phone's entry point: DayLandscapeView is the default (all rooms, one day, per the
 // design handoff's prototype); MultiDayLandscapeView is the alternate, chosen via the Day/
-// Multi-Day dropdown in MobileAppNavbar (not rendered here -- landscapeView lives in
+// Multi-Day dropdown in MobileAppNavigation (not rendered here -- landscapeView lives in
 // CalendarProvider so the navbar and this switcher can both read/drive the same choice, and
 // it survives this component unmounting/remounting across an orientation round-trip).
 const DayLandscapeSwitcher: React.FC<DayLandscapeSwitcherProps> = (props) => {
