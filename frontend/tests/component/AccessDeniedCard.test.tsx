@@ -15,26 +15,14 @@ describe("AccessDeniedCard", () => {
   });
 
   it("renders the access-denied heading and description", () => {
-    render(<AccessDeniedCard email="jrivera@ithacarecovery.org" />);
+    render(<AccessDeniedCard />);
 
     expect(screen.getByRole("heading", { name: "Access denied" })).toBeVisible();
     expect(screen.getByText(/not authorized for this application/i)).toBeVisible();
   });
 
-  it("shows who is signed in when an email is provided", () => {
-    render(<AccessDeniedCard email="jrivera@ithacarecovery.org" />);
-
-    expect(screen.getByText("jrivera@ithacarecovery.org")).toBeVisible();
-  });
-
-  it("omits the signed-in-as line when no email is provided", () => {
-    render(<AccessDeniedCard email="" />);
-
-    expect(screen.queryByText(/signed in as/i)).not.toBeInTheDocument();
-  });
-
   it("starts a new Google sign-in with the account chooser forced and consent still required", () => {
-    render(<AccessDeniedCard email="jrivera@ithacarecovery.org" />);
+    render(<AccessDeniedCard />);
 
     fireEvent.click(screen.getByRole("button", { name: "Sign in with a different account" }));
 

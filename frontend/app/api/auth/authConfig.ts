@@ -31,7 +31,9 @@ export const authOptions: NextAuthOptions = {
             if (!user.email) return "/login?error=AccessDenied";
             const admin = await prisma.admin.findUnique({ where: { email: user.email } });
             if (admin) return true;
-            return `/login?error=AccessDenied&email=${encodeURIComponent(user.email)}`;
+            // No email in this redirect -- URL encoding isn't confidentiality, and this URL can
+            // persist in browser history, access logs, or a copied link.
+            return "/login?error=AccessDenied";
         },
         async jwt({ token, account, user, profile }) {
             if (account) {

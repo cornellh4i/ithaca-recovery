@@ -6,18 +6,16 @@ import AccessDeniedCard from "../../components/navbar/AccessDeniedCard";
 import styles from "./page.module.scss";
 
 interface LoginPageProps {
-  // Next resolves a repeated query key (e.g. ?email=a&email=b) to string[], not string, despite
+  // Next resolves a repeated query key (e.g. ?error=a&error=b) to string[], not string, despite
   // most call sites only ever needing the single-value case -- normalized below.
-  searchParams: Promise<{ error?: string | string[]; email?: string | string[] }>;
+  searchParams: Promise<{ error?: string | string[] }>;
 }
 
 const firstOf = (value: string | string[] | undefined) => (Array.isArray(value) ? value[0] : value);
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
-  const { error: rawError, email: rawEmail } = await searchParams;
-  const error = firstOf(rawError);
-  const email = firstOf(rawEmail);
-  const accessDenied = error === "AccessDenied";
+  const { error: rawError } = await searchParams;
+  const accessDenied = firstOf(rawError) === "AccessDenied";
 
   // Skipped entirely when accessDenied -- a stale Admin session cookie (e.g. this device was
   // already signed in when SignInDifferentAccountButton was used to try a second, rejected
@@ -36,7 +34,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
         ← Back to calendar
       </Link>
       <div className={styles.card}>
-        {accessDenied ? <AccessDeniedCard email={email ?? ""} /> : <LoginCard />}
+        {accessDenied ? <AccessDeniedCard /> : <LoginCard />}
       </div>
     </div>
   );
