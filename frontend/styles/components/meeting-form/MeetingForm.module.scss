@@ -133,4 +133,12 @@
 .iconButton {
   width: auto;
   height: 40px;
+
+  // Preserves the previous <CloseIcon sx={{color:'black'}}> exactly -- .meetingHeader's own
+  // ambient color is navy ($navy-color, #3A3E49), not black, so this can't just inherit.
+  // !important: MUI's own MuiIconButton-root class sets its own same-specificity default
+  // color (rgba(0,0,0,.54)) on this same button element, which otherwise wins unpredictably
+  // depending on emotion's <style> injection order (same class of bug already fixed for
+  // IconButton.module.scss's own .iconButton, verified there via getComputedStyle).
+  color: #000 !important;
 }

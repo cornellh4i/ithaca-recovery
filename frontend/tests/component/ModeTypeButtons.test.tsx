@@ -11,6 +11,8 @@ describe("ModeTypeButtons", () => {
     render(<ModeTypeButtons selectedMode={mode} onModeSelect={jest.fn()} />);
 
     const button = screen.getByRole("button", { name: new RegExp(mode) });
-    expect(button.querySelector("[data-icon-name]")).toHaveAttribute("data-icon-name", expectedIconName);
+    // firstElementChild, not a descendant querySelector -- asserts the icon actually prefixes
+    // the label (matching this test's own name), not just that one exists somewhere inside.
+    expect(button.firstElementChild).toHaveAttribute("data-icon-name", expectedIconName);
   });
 });

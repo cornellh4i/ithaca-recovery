@@ -12,7 +12,6 @@ import RecurringMeetingForm from './RecurringMeeting';
 import ZoomHostField from './ZoomHostField';
 import ConflictOverrideModal from './ConflictOverrideModal';
 import FormValidationBanner from './FormValidationBanner';
-import CloseIcon from '@mui/icons-material/Close';
 import IconButton from '@mui/material/IconButton';
 
 import { v4 as uuidv4 } from 'uuid';
@@ -144,7 +143,7 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({
         <div className={styles.meetingHeader}>
           <h3>New Meeting</h3>
           <IconButton className={styles.iconButton} onClick={handleCloseNewMeeting}>
-            <CloseIcon sx={{ color: 'black' }} />
+            <Icon name="close" ariaLabel="Close" />
           </IconButton>
         </div>
         <FormValidationBanner errors={liveValidationErrors} />
