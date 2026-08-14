@@ -1,14 +1,31 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getAuth } from "../../../services/auth";
-import LoginCard from "../../components/atoms/LoginCard";
+import LoginCard from "../../components/navbar/LoginCard";
+import AccessDeniedCard from "../../components/navbar/AccessDeniedCard";
 import styles from "./page.module.scss";
 
-export default async function LoginPage() {
-  const session = await getAuth();
+interface LoginPageProps {
+  // Next resolves a repeated query key (e.g. ?error=a&error=b) to string[], not string, despite
+  // most call sites only ever needing the single-value case -- normalized below.
+  searchParams: Promise<{ error?: string | string[] }>;
+}
 
-  if (session?.user?.role === "ADMIN" || session?.user?.role === "SUPER_ADMIN") {
-    redirect("/");
+const firstOf = (value: string | string[] | undefined) => (Array.isArray(value) ? value[0] : value);
+
+export default async function LoginPage({ searchParams }: LoginPageProps) {
+  const { error: rawError } = await searchParams;
+  const accessDenied = firstOf(rawError) === "AccessDenied";
+
+  // Skipped entirely when accessDenied -- a stale Admin session cookie (e.g. this device was
+  // already signed in when SignInDifferentAccountButton was used to try a second, rejected
+  // account) must not silently swallow that rejection by bouncing back to "/" before
+  // AccessDeniedCard ever gets a chance to render.
+  if (!accessDenied) {
+    const session = await getAuth();
+    if (session?.user?.role === "ADMIN" || session?.user?.role === "SUPER_ADMIN") {
+      redirect("/");
+    }
   }
 
   return (
@@ -17,7 +34,7 @@ export default async function LoginPage() {
         ← Back to calendar
       </Link>
       <div className={styles.card}>
-        <LoginCard />
+        {accessDenied ? <AccessDeniedCard /> : <LoginCard />}
       </div>
     </div>
   );

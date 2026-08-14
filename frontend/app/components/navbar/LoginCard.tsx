@@ -1,8 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import IcrLogo from "../../assets/icr.png";
-import GoogleSignInButton from "./GoogleSignInButton";
-import styles from "../../../styles/components/atoms/LoginCard.module.scss";
+import GoogleSignInButton from "../atoms/GoogleSignInButton";
+import styles from "../../../styles/components/navbar/LoginCard.module.scss";
 
 // The sign-in card content shared by the /login route (page.tsx, reached by direct
 // navigation/desktop) and MobileLoginSheet (a full-screen slide-in overlay reached from the

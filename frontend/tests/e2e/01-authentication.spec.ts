@@ -193,3 +193,28 @@ test("1.11 non-admin (no session) is redirected away from /admin", async ({ page
   await page.goto("/admin");
   await expect(page).toHaveURL("/login");
 });
+
+// Real Google OAuth's own AccessDenied rejection (authConfig.ts's signIn callback returning
+// false/a redirect for a non-admin email) can't be driven headlessly -- see this file's header
+// comment. What's covered here is everything downstream: the /login route's own rendering of
+// the redirect NextAuth sends the browser to, `/login?error=AccessDenied`.
+test("1.10b landing on /login with an AccessDenied error shows the Access Denied card", async ({ page }) => {
+  await page.goto("/login?error=AccessDenied");
+
+  await expect(page.getByRole("heading", { name: "Access denied" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Sign in with a different account" })).toBeVisible();
+});
+
+// Covers a real ordering bug: page.tsx used to check the current session and redirect("/")
+// before ever reading the AccessDenied error param, so a still-valid Admin session (e.g. from
+// using SignInDifferentAccountButton to try a second, rejected account) silently swallowed the
+// rejection and bounced back to the calendar instead of showing this card.
+test("1.10c a signed-in Admin who lands on an AccessDenied redirect still sees the card, not a bounce to /", async ({
+  adminPage,
+}) => {
+  const { page } = adminPage;
+  await page.goto("/login?error=AccessDenied");
+
+  await expect(page).toHaveURL(/\/login/);
+  await expect(page.getByRole("heading", { name: "Access denied" })).toBeVisible();
+});

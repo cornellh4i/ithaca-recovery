@@ -3,7 +3,7 @@
 import React from "react";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import MobileFullScreenSheet from "../atoms/MobileFullScreenSheet";
-import LoginCard from "../atoms/LoginCard";
+import LoginCard from "./LoginCard";
 import IconButton from "../atoms/IconButton";
 import styles from "../../../styles/components/navbar/MobileLoginSheet.module.scss";
 
