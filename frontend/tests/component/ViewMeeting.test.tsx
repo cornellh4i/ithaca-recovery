@@ -79,7 +79,7 @@ describe("ViewMeeting", () => {
   it("prefixes the mode label with its mode icon", async () => {
     renderViewMeeting({ ...baseProps, anchorEl: makeAnchorEl(), isPhone: false });
     const label = await screen.findByText("In Person");
-    expect(label.querySelector("img")).toHaveAttribute("src", "/svg/location-icon.svg");
+    expect(label.querySelector("[data-icon-name]")).toHaveAttribute("data-icon-name", "location");
   });
 
   // BUG-022: the status band (sync-failure/conflict) must be admin-only -- a public/

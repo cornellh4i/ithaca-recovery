@@ -1,6 +1,7 @@
 import React from 'react';
 import Dropdown from '../../atoms/Dropdown';
 import CalendarHeader from '../shared/CalendarHeader';
+import Icon, { IconName } from '../../atoms/Icon';
 import styles from "../../../../styles/components/calendar/desktop/CalendarNavbar.module.scss";
 import {
   formatETDateString,
@@ -11,12 +12,11 @@ import {
 import { getFirstDayOfWeek } from "../../../../util/date/weekDates";
 import type { SwipeDirection } from "../../../../util/date/dateTransition";
 
-// view_timeline / calendar_view_week (Material Symbols) -- same icons and same renderElement
-// pattern MobileAppNavigation's own Day/Multi-Day dropdown uses (icon-only in the closed button
-// via .viewOptionText's display:none, icon+label in the open list).
-const VIEW_ICONS: Record<string, string> = {
-  Day: "/svg/view-timeline-icon.svg",
-  Week: "/svg/calendar-view-week-icon.svg",
+// Same renderElement pattern MobileAppNavigation's own Day/Multi-Day dropdown uses (icon-only
+// in the closed button via .viewOptionText's display:none, icon+label in the open list).
+const VIEW_ICONS: Record<string, IconName> = {
+  Day: "view-timeline",
+  Week: "calendar-view-week",
 };
 
 // Week view's displayed range only changes when the week itself changes (see
@@ -134,7 +134,7 @@ const CalendarNavbar: React.FC<CalendarNavbarProps> = ({
               onChange={handleViewChange}
               renderElement={(element) => (
                 <span className={styles.viewOption}>
-                  <img src={VIEW_ICONS[element]} alt="" className={styles.viewOptionIcon} />
+                  <Icon name={VIEW_ICONS[element]} className={styles.viewOptionIcon} />
                   <span className={styles.viewOptionText}>{element}</span>
                 </span>
               )}
@@ -144,8 +144,12 @@ const CalendarNavbar: React.FC<CalendarNavbarProps> = ({
             <a href="#" onClick={handleToday}>Today</a>
           </div>
           <div className={styles.dateToggle}>
-            <img src="/svg/left-arrow.svg" alt="Left Arrow" width={24} height={24} onClick={handlePrevious} />
-            <img src="/svg/right-arrow.svg" alt="Right Arrow" width={24} height={24} onClick={handleNext} />
+            <button type="button" aria-label="Previous" onClick={handlePrevious}>
+              <Icon name="chevron-left" />
+            </button>
+            <button type="button" aria-label="Next" onClick={handleNext}>
+              <Icon name="chevron-right" />
+            </button>
           </div>
         </div>
       </CalendarHeader>

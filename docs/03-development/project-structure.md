@@ -86,9 +86,14 @@ app/
 We group components by what they do (domain/feature) rather than how they composite (atomic design). The `atoms/` folder is the only exception — holding generic primitives that every feature can share.
 
 **`atoms/`** — `BottomSheet`, `BoxText`, `CheckBox`, `CheckButton`, `DatePicker`, `Dropdown`,
-`GoogleSignInButton`, `IconButton`, `Logo`, `MiniCalendar`, `MobileFullScreenSheet`,
+`GoogleSignInButton`, `Icon`, `IconButton`, `Logo`, `MiniCalendar`, `MobileFullScreenSheet`,
 `Modal`, `ModeTypeButtons`, `RadioGroup`, `SpinnerInput`, `StatCounter`, `StatusPill`, `TagList`,
 `TextButton`, `TextField`, `TimePicker`, `Tooltip`, `TopLoadingBar`
+
+`Icon` is the name-based entry point (e.g. `<Icon name="warning" />`) for what used to be the
+app's `/public/svg` icon set — most render as `@mui/icons-material` glyphs tinted via
+`currentColor` from ambient CSS; a couple of brand logos with no MUI equivalent (Google, Zoom)
+stay as local `public/svg/` assets. `IconButton` wraps it for clickable icon-only buttons.
 
 **`calendar/`** — split into three subfolders, not a flat list:
 - `desktop/` — `CalendarNavbar`, `CalendarSidebar`, `CalendarSidebarShell`,

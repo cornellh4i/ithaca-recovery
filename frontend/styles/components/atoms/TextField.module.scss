@@ -6,6 +6,12 @@
     width: 100%;
 }
 
+.textfieldlabel {
+    // Only ever an icon or "" (never a real text string) at every current call site -- see
+    // Icon.tsx's callers -- so this is safe to pin without risking a string label's color.
+    color: $medium-grey-color;
+}
+
 .textfieldcontainer {
     display: flex;
     align-items: center;

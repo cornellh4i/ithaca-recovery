@@ -30,10 +30,10 @@ test.describe("calendar display", () => {
     const heading = page.getByRole("heading", { level: 2 });
     const initialLabel = await heading.textContent();
 
-    await page.locator('img[alt="Right Arrow"]').click();
+    await page.getByRole("button", { name: "Next", exact: true }).click();
     await expect(heading).not.toHaveText(initialLabel ?? "");
 
-    await page.locator('img[alt="Left Arrow"]').click();
+    await page.getByRole("button", { name: "Previous", exact: true }).click();
     await expect(heading).toHaveText(initialLabel ?? "");
   });
 
@@ -81,9 +81,9 @@ test.describe("calendar display", () => {
   // width (viewport minus the sidebar) changes.
   test("calendar header: view-toggle icon and 'View only' pill scale continuously with the header row's own width", async ({ page }) => {
     await page.goto("/");
-    const viewToggleIcon = page.locator('img[src*="view-timeline-icon.svg"]');
+    const viewToggleIcon = page.locator('[data-icon-name="view-timeline"]');
     const pillText = page.getByText("View only - sign in as Admin to manage meetings");
-    const pillIcon = page.locator('img[src="/svg/lock-icon.svg"]');
+    const pillIcon = page.locator('[data-icon-name="lock"]');
 
     await page.setViewportSize({ width: 1400, height: 900 });
     await expect(viewToggleIcon).toBeVisible();

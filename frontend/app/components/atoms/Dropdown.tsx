@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import Icon from "./Icon";
 import styles from "../../../styles/components/atoms/Dropdown.module.scss";
 
 interface DropdownProps {
@@ -114,7 +115,7 @@ const Dropdown: React.FC<DropdownProps> = ({
               {selectedElement ? (renderElement ? renderElement(selectedElement) : selectedElement) : name}
             </span>
           </span>
-          <img src="/svg/drop-down-arrow.svg" alt="" className={styles.dropdownArrow} />
+          <Icon name="drop-down-arrow" className={styles.dropdownArrow} />
         </button>
         {activeDropdown === "element" && (
           <ul

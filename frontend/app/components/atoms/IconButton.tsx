@@ -2,11 +2,12 @@
 
 import React from "react";
 import MuiIconButton from "@mui/material/IconButton";
+import Icon, { IconName } from "./Icon";
 import Tooltip from "./Tooltip";
 import styles from "../../../styles/components/atoms/IconButton.module.scss";
 
 interface IconButtonProps {
-    icon: React.ReactNode;
+    name: IconName;
     ariaLabel: string;
     onClick?: () => void;
     variant?: "filled" | "ghost" | "outlined";
@@ -18,7 +19,7 @@ interface IconButtonProps {
 }
 
 const IconButton: React.FC<IconButtonProps> = ({
-    icon,
+    name,
     ariaLabel,
     onClick,
     variant = "ghost",
@@ -52,7 +53,9 @@ const IconButton: React.FC<IconButtonProps> = ({
             aria-label={ariaLabel}
             style={variant === "filled" && backgroundColor ? { backgroundColor } : undefined}
         >
-            <span className={styles.iconWrap}>{icon}</span>
+            <span className={styles.iconWrap}>
+                <Icon name={name} className={styles.icon} />
+            </span>
         </MuiIconButton>
     );
 

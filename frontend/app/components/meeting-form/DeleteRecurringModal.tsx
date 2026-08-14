@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import Icon from '../atoms/Icon';
 import styles from '../../../styles/components/meeting-form/DeleteRecurringModal.module.scss';
 
 interface DeleteRecurringModalProps {
@@ -37,7 +38,7 @@ const DeleteRecurringModal: React.FC<DeleteRecurringModalProps> = ({
       <div className={styles.modalContent}>
         <div className={styles.header}>
           <span className={styles.iconCircle}>
-            <img src="/svg/trash-icon.svg" alt="" width="20" height="20" />
+            <Icon name="delete" size={20} />
           </span>
           <h2 className={styles.modalTitle}>Delete recurring event</h2>
         </div>
@@ -105,7 +106,7 @@ const DeleteRecurringModal: React.FC<DeleteRecurringModalProps> = ({
 
         {onSuspendInstead && (
           <div className={styles.suspendNudge}>
-            <img src="/svg/warning-circle-icon.svg" alt="" width="16" height="16" className={styles.nudgeIcon} />
+            <Icon name="warning-circle" size={16} className={styles.nudgeIcon} />
             <span>
               Not sure? <strong>Suspend</strong> instead — the meeting is paused and hidden from the
               calendar, but can be viewed from the admin dashboard and reactivated. <strong>Delete</strong> is

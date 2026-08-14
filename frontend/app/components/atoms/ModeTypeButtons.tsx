@@ -1,6 +1,7 @@
 import React from 'react';
 import styles from '../../../styles/components/atoms/ModeTypeButtons.module.scss';
-import { MODE_ICON_SRC } from '../../../util/rooms/modeIcons';
+import { MODE_ICON_NAME } from '../../../util/rooms/modeIcons';
+import Icon from './Icon';
 
 interface ModeButtonsProps {
   selectedMode: string;
@@ -19,21 +20,21 @@ const ModeButtons: React.FC<ModeButtonsProps> = ({ selectedMode, onModeSelect, c
         className={buttonClassName("Hybrid")}
         onClick={() => onModeSelect("Hybrid")}
       >
-        <img src={MODE_ICON_SRC.Hybrid} alt="" className={styles.icon} />
+        <Icon name={MODE_ICON_NAME.Hybrid} className={styles.icon} />
         Hybrid
       </button>
       <button
         className={buttonClassName("In Person")}
         onClick={() => onModeSelect("In Person")}
       >
-        <img src={MODE_ICON_SRC["In Person"]} alt="" className={styles.icon} />
+        <Icon name={MODE_ICON_NAME["In Person"]} className={styles.icon} />
         In Person
       </button>
       <button
         className={buttonClassName("Remote")}
         onClick={() => onModeSelect("Remote")}
       >
-        <img src={MODE_ICON_SRC.Remote} alt="" className={styles.icon} />
+        <Icon name={MODE_ICON_NAME.Remote} className={styles.icon} />
         Remote
       </button>
     </div>

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { MeetingForm } from './MeetingForm';
 
 import TextField from '../atoms/TextField';
+import Icon from '../atoms/Icon';
 import ModeTypeButtons from '../atoms/ModeTypeButtons';
 import DatePicker from '../atoms/DatePicker';
 import TimePicker from '../atoms/TimePicker';
@@ -154,13 +155,13 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
           />}
           selectedMode={selectedMode}
           DatePicker={<DatePicker
-            label={<img src='/svg/calendar-icon.svg' alt="Calendar Icon" />}
+            label={<Icon name="calendar" size={28} ariaLabel="Calendar Icon" />}
             value={dateValue}
             onChange={setDateValue}
             compact={compact}
           />}
           TimePicker={<TimePicker
-            label={<img src='/svg/clock-icon.svg' alt="Clock Icon" />}
+            label={<Icon name="clock" size={28} ariaLabel="Clock Icon" />}
             value={timeValue}
             onChange={setTimeValue}
             disablePast={true}
@@ -179,7 +180,7 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
           }
           roomSelectionDropdown={
             <Dropdown
-              label={<img src="/svg/location-icon.svg" alt="Location Icon" />}
+              label={<Icon name="location" size={28} ariaLabel="Location Icon" />}
               value={selectedRoom}
               isVisible={true}
               elements={physicalRoomOptions}
@@ -190,8 +191,11 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
           }
           meetingTypeDropdown={
             <div style={{ display: 'flex', alignItems: 'center' }}>
-              <span style={{ marginRight: '6px', display: 'flex', alignItems: 'center' }}>
-                <img src="svg/group-icon.svg" alt="Group Icon" />
+              <span
+                className={styles.meetingTypeIcon}
+                style={{ marginRight: '6px', display: 'flex', alignItems: 'center' }}
+              >
+                <Icon name="group" size={28} ariaLabel="Group Icon" />
               </span>
               <div
                 data-testid="meeting-type-checkboxes"
@@ -214,7 +218,7 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
           zoomRoomDropdown={
             <Dropdown
               key={selectedZoomRoom}
-              label={<img src="/svg/video-call-icon.svg" alt="Zoom Icon" />}
+              label={<Icon name="video-call" size={28} ariaLabel="Zoom Icon" />}
               value={selectedZoomRoom}
               isVisible={true}
               elements={zoomRoomOptions}
@@ -234,7 +238,7 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
           }
           emailTextField={<TextField
             input="Email"
-            label={<img src="svg/mail-icon.svg" alt="Mail Icon" />}
+            label={<Icon name="mail" size={28} ariaLabel="Mail Icon" />}
             value={inputEmailValue}
             onChange={setEmailValue}
             onBlur={() => markFieldTouched("email")}

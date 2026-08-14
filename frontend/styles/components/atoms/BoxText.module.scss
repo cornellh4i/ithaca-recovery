@@ -12,10 +12,15 @@
   .modeIcon {
     margin-right: 3px;
     vertical-align: -1px;
+    color: $medium-grey-color;
 
-    img {
-      width: 11px;
-      height: 11px;
+    img,
+    svg {
+      // !important: @mui/icons-material icons carry their own same-specificity
+      // .MuiSvgIcon-root class (width/height: 1em) that otherwise wins unpredictably
+      // depending on emotion's <style> injection order.
+      width: 11px !important;
+      height: 11px !important;
     }
   }
 
@@ -151,9 +156,10 @@
       line-height: 1.1;
     }
 
-    .modeIcon img {
-      width: 11px;
-      height: 11px;
+    .modeIcon img,
+    .modeIcon svg {
+      width: 11px !important;
+      height: 11px !important;
     }
   }
 
@@ -167,10 +173,12 @@
     top: 4px;
     right: 4px;
     line-height: 1;
+    color: $danger-color;
 
-    img {
-      width: 14px;
-      height: 14px;
+    img,
+    svg {
+      width: 14px !important;
+      height: 14px !important;
       display: block;
     }
   }
@@ -183,10 +191,12 @@
     top: 4px;
     left: 4px;
     line-height: 1;
+    color: $warning-text-color;
 
-    img {
-      width: 14px;
-      height: 14px;
+    img,
+    svg {
+      width: 14px !important;
+      height: 14px !important;
       display: block;
     }
   }
@@ -212,7 +222,8 @@
   }
 
   .zoomTagIcon {
-    width: 10px;
-    height: 10px;
+    width: 10px !important;
+    height: 10px !important;
+    color: $medium-grey-color;
   }
 }

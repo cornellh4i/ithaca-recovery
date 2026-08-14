@@ -236,33 +236,31 @@ $status-value-indent: $status-dot-gap + $status-label-width + 12px;
   margin-bottom: 4px;
 }
 
-// Renders each panel's SVG (public/svg/) as a CSS mask rather than an <img>, so it can be
-// tinted per-panel via background-color -- the source files themselves ship with a single
-// fixed fill baked in (reused elsewhere at that color, e.g. pause-icon.svg's warning-orange
-// in the meeting-suspend UI), so recoloring the shared asset itself isn't an option here.
+// Icon.tsx's MUI-backed icons tint via currentColor, same as System Status/Meeting Counts
+// below -- this used to need a CSS mask + background-color hack because the raw SVG assets
+// shipped with a single fixed fill baked in, but that's no longer true now that these route
+// through the shared Icon component.
 .panelIcon {
   display: inline-block;
-  width: 18px;
-  height: 18px;
   flex-shrink: 0;
-  mask-repeat: no-repeat;
-  mask-position: center;
-  mask-size: contain;
+
+  // !important: @mui/icons-material icons carry their own same-specificity .MuiSvgIcon-root
+  // class (width/height: 1em) that otherwise wins unpredictably depending on emotion's
+  // <style> injection order.
+  width: 18px !important;
+  height: 18px !important;
 }
 
 .panelIconSyncIssues {
-  background-color: $danger-color;
-  mask-image: url('/svg/sync-error-icon.svg');
+  color: $danger-color;
 }
 
 .panelIconConflicts {
-  background-color: $warning-text-color;
-  mask-image: url('/svg/warning-icon.svg');
+  color: $warning-text-color;
 }
 
 .panelIconSuspended {
-  background-color: $navy-color;
-  mask-image: url('/svg/pause-icon.svg');
+  color: $navy-color;
 }
 
 // System Status/Meeting Counts use real MUI icon components (MonitorHeart/EventAvailable)

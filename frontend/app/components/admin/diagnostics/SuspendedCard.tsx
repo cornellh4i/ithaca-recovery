@@ -2,6 +2,7 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import Card from "../shared/Card";
+import Icon from "../../atoms/Icon";
 import TopLoadingBar from "../../atoms/TopLoadingBar";
 import DiagnosticsCardError from "./DiagnosticsCardError";
 import ResumeMeetingModal from "../../meeting-form/ResumeMeetingModal";
@@ -127,7 +128,7 @@ const SuspendedCard: React.FC = () => {
       <Card accent="suspended" data-testid="diagnostics-suspended-panel">
         <TopLoadingBar active={loading} />
         <div className={styles.panelHeader}>
-          <span className={`${styles.panelIcon} ${styles.panelIconSuspended}`} />
+          <Icon name="pause" className={`${styles.panelIcon} ${styles.panelIconSuspended}`} />
           Suspended ({total})
         </div>
         <div className={styles.panelSubhead}>

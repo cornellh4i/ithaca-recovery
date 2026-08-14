@@ -40,6 +40,7 @@
   height: 36px;
   border-radius: 50%;
   background-color: #FEE4E2;
+  color: $danger-color;
   flex-shrink: 0;
 }
 
@@ -109,6 +110,10 @@
 .nudgeIcon {
   flex-shrink: 0;
   margin-top: 1px;
+
+  // .suspendNudge's own text color (#444) isn't amber -- override so the icon still reads
+  // as the same warning color it always was.
+  color: $warning-text-color;
 }
 
 .buttonContainer {

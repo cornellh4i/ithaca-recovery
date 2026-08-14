@@ -1,7 +1,6 @@
 "use client";
 
 import React from "react";
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import MobileFullScreenSheet from "../atoms/MobileFullScreenSheet";
 import LoginCard from "./LoginCard";
 import IconButton from "../atoms/IconButton";
@@ -20,7 +19,7 @@ interface MobileLoginSheetProps {
 const MobileLoginSheet: React.FC<MobileLoginSheetProps> = ({ isOpen, onBack }) => (
   <MobileFullScreenSheet isOpen={isOpen} slideFrom="right" onSwipeDismiss={onBack}>
     <div className={styles.header}>
-      <IconButton icon={<ArrowBackIcon />} ariaLabel="Back to calendar" variant="ghost" onClick={onBack} />
+      <IconButton name="back-arrow" ariaLabel="Back to calendar" variant="ghost" onClick={onBack} />
     </div>
     <div className={styles.content}>
       <LoginCard />

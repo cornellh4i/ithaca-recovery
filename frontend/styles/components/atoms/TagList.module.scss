@@ -1,3 +1,5 @@
+@import '../../Variables.module';
+
 .tags {
   display: flex;
   flex-wrap: wrap;
@@ -17,10 +19,17 @@
 }
 
 .tagIcon {
-  width: 9px;
-  height: 9px;
+  // !important: @mui/icons-material icons carry their own same-specificity .MuiSvgIcon-root
+  // class (width/height: 1em) that otherwise wins unpredictably depending on emotion's
+  // <style> injection order.
+  width: 9px !important;
+  height: 9px !important;
   margin-right: 3px;
   vertical-align: -1px;
+
+  // .tag sets no color of its own (inherits whatever ambient text color each caller has) --
+  // pin explicitly so the icon stays its original neutral grey regardless of caller context.
+  color: $medium-grey-color;
 }
 
 .overflowTag {

@@ -1,16 +1,16 @@
-import { MODE_ICON_SRC } from "../../util/rooms/modeIcons";
+import { MODE_ICON_NAME } from "../../util/rooms/modeIcons";
 
-describe("MODE_ICON_SRC", () => {
+describe("MODE_ICON_NAME", () => {
   it("maps each known mode to its icon", () => {
-    expect(MODE_ICON_SRC["In Person"]).toBe("/svg/location-icon.svg");
-    expect(MODE_ICON_SRC.Remote).toBe("/svg/video-call-icon.svg");
-    expect(MODE_ICON_SRC.Hybrid).toBe("/svg/co-present-icon.svg");
+    expect(MODE_ICON_NAME["In Person"]).toBe("location");
+    expect(MODE_ICON_NAME.Remote).toBe("video-call");
+    expect(MODE_ICON_NAME.Hybrid).toBe("co-present");
   });
 
   it.each(["constructor", "toString", "__proto__", "hasOwnProperty", "valueOf"])(
     "returns undefined for the inherited Object.prototype key %s",
     (key) => {
-      expect(MODE_ICON_SRC[key]).toBeUndefined();
+      expect(MODE_ICON_NAME[key]).toBeUndefined();
     },
   );
 });

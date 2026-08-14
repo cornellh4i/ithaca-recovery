@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import Icon from '../atoms/Icon';
 import styles from '../../../styles/components/meeting-form/ConflictOverrideModal.module.scss';
 import { fieldLabel, formatOverlapSummary, formatMeetingSchedule, ConflictListRow } from '../../../util/meetings/conflictDisplay';
 
@@ -51,7 +52,7 @@ const ConflictOverrideModal: React.FC<ConflictOverrideModalProps> = ({
       <div className={styles.modalContent} role="dialog" aria-modal="true" aria-labelledby="conflict-override-title">
         <div className={styles.header}>
           <span className={styles.iconCircle}>
-            <img src="/svg/warning-circle-icon.svg" alt="" width="20" height="20" />
+            <Icon name="warning-circle" size={20} />
           </span>
           <h2 id="conflict-override-title" className={styles.title}>Scheduling conflict</h2>
         </div>

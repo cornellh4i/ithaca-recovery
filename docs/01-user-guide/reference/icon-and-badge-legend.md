@@ -6,6 +6,12 @@ What each icon and badge on the calendar means, and where you'll see it.
 Conflict, sync-failure, and suspension data isn't fetched for public viewers, so a board member
 browsing without an admin account never sees any of it — not "hidden," just never loaded.
 
+**Screenshot freshness:** the app's icon set was migrated from custom SVG assets to
+`@mui/icons-material` glyphs. The mode-icon screenshot below was recaptured against the new
+icons; every other screenshot on this page (conflict, sync-failure, suspend, diagnostics-panel,
+overlap-modal) still shows the pre-migration glyphs and needs re-capturing by an admin — the
+icons themselves are correct, just these specific images are stale.
+
 | Icon | Meaning | Where you'll see it |
 |---|---|---|
 | Co-present (mode tag) | Meeting is **Hybrid** | Mode picker, calendar tags, detail panel |

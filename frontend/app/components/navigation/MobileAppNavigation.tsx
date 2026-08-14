@@ -3,9 +3,8 @@
 import React, { useState } from "react";
 import { usePathname } from "next/navigation";
 import type { Session } from "next-auth";
-import MenuIcon from "@mui/icons-material/Menu";
-import FilterListIcon from "@mui/icons-material/FilterList";
 import IconButton from "../atoms/IconButton";
+import Icon, { IconName } from "../atoms/Icon";
 import BottomSheet from "../atoms/BottomSheet";
 import Dropdown from "../atoms/Dropdown";
 import MobileAppSidebar from "./MobileAppSidebar";
@@ -24,12 +23,11 @@ const LANDSCAPE_VIEW_BY_LABEL: Record<LandscapeViewLabel, "day" | "multiday"> = 
   Day: "day",
   "Multi-Day": "multiday",
 };
-// view_timeline / calendar_view_week (Material Symbols) -- stand in for the text label in the
-// dropdown's own closed button (see .viewOptionText's display:none there in the module.scss),
-// and sit in front of the label in the open list.
-const LANDSCAPE_VIEW_ICONS: Record<LandscapeViewLabel, string> = {
-  Day: "/svg/view-timeline-icon.svg",
-  "Multi-Day": "/svg/calendar-view-week-icon.svg",
+// Stand in for the text label in the dropdown's own closed button (see .viewOptionText's
+// display:none there in the module.scss), and sit in front of the label in the open list.
+const LANDSCAPE_VIEW_ICONS: Record<LandscapeViewLabel, IconName> = {
+  Day: "view-timeline",
+  "Multi-Day": "calendar-view-week",
 };
 
 type OpenSheet = "calendar" | "filter" | "profile" | null;
@@ -71,7 +69,7 @@ const MobileAppNavigation: React.FC<MobileAppNavigationProps> = ({ session, stat
     <div className={`${styles.navbar} ${navHidden ? styles.hidden : ""}`}>
       <div className={styles.left}>
         <IconButton
-          icon={<MenuIcon />}
+          name="menu"
           ariaLabel="Open menu"
           variant="ghost"
           onClick={() => setSidebarOpen(true)}
@@ -79,7 +77,7 @@ const MobileAppNavigation: React.FC<MobileAppNavigationProps> = ({ session, stat
         {isCalendarRoute && (
           <React.Fragment>
             <IconButton
-              icon={<img src="/svg/calendar-icon.svg" alt="" />}
+              name="calendar"
               ariaLabel="Navigate to a day"
               variant="outlined"
               size="compact"
@@ -88,7 +86,7 @@ const MobileAppNavigation: React.FC<MobileAppNavigationProps> = ({ session, stat
             />
             <div className={styles.filterButtonWrapper}>
               <IconButton
-                icon={<FilterListIcon />}
+                name="filter"
                 ariaLabel="Filter meetings"
                 variant="outlined"
                 size="compact"
@@ -116,9 +114,8 @@ const MobileAppNavigation: React.FC<MobileAppNavigationProps> = ({ session, stat
               onChange={(value) => setLandscapeView(LANDSCAPE_VIEW_BY_LABEL[value as LandscapeViewLabel])}
               renderElement={(element) => (
                 <span className={styles.viewOption}>
-                  <img
-                    src={LANDSCAPE_VIEW_ICONS[element as LandscapeViewLabel]}
-                    alt=""
+                  <Icon
+                    name={LANDSCAPE_VIEW_ICONS[element as LandscapeViewLabel]}
                     className={styles.viewOptionIcon}
                   />
                   <span className={styles.viewOptionText}>{element}</span>
