@@ -1,0 +1,54 @@
+@import '../../Variables.module.scss';
+
+.card {
+    background-color: #fff;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    text-align: left;
+}
+
+.iconBadge {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: $radius-sm;
+    background-color: $grey-lightest-color;
+    color: $medium-grey-color;
+    margin-bottom: 16px;
+}
+
+.heading {
+    font-size: 21px;
+    font-weight: 700;
+    color: $black-color;
+    margin: 0 0 12px;
+}
+
+.description {
+    font-size: 14px;
+    color: $medium-grey-color;
+    line-height: 1.5;
+    margin: 0 0 24px;
+    width: 100%;
+}
+
+.divider {
+    width: 100%;
+    border-top: 1px solid $grey-border-color;
+    margin: 20px 0 16px;
+}
+
+.signedInAs {
+    font-size: 13px;
+    color: $medium-grey-color;
+    margin: 0;
+}
+
+.email {
+    color: $black-color;
+    font-weight: 600;
+}

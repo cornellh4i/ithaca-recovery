@@ -1,15 +1,22 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getAuth } from "../../../services/auth";
-import LoginCard from "../../components/atoms/LoginCard";
+import LoginCard from "../../components/navbar/LoginCard";
+import AccessDeniedCard from "../../components/navbar/AccessDeniedCard";
 import styles from "./page.module.scss";
 
-export default async function LoginPage() {
+interface LoginPageProps {
+  searchParams: Promise<{ error?: string; email?: string }>;
+}
+
+export default async function LoginPage({ searchParams }: LoginPageProps) {
   const session = await getAuth();
 
   if (session?.user?.role === "ADMIN" || session?.user?.role === "SUPER_ADMIN") {
     redirect("/");
   }
+
+  const { error, email } = await searchParams;
 
   return (
     <div className={styles.page}>
@@ -17,7 +24,7 @@ export default async function LoginPage() {
         ← Back to calendar
       </Link>
       <div className={styles.card}>
-        <LoginCard />
+        {error === "AccessDenied" ? <AccessDeniedCard email={email ?? ""} /> : <LoginCard />}
       </div>
     </div>
   );

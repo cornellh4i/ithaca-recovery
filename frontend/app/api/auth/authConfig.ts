@@ -30,7 +30,8 @@ export const authOptions: NextAuthOptions = {
         async signIn({ user }) {
             if (!user.email) return false;
             const admin = await prisma.admin.findUnique({ where: { email: user.email } });
-            return !!admin;
+            if (admin) return true;
+            return `/login?error=AccessDenied&email=${encodeURIComponent(user.email)}`;
         },
         async jwt({ token, account, user, profile }) {
             if (account) {
