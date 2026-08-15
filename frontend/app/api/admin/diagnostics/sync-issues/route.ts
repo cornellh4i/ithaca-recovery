@@ -10,6 +10,12 @@ const notDeleted = { deletedAt: null };
 // `null` forever, which nothing else here flags as a problem. Guarded by this staleness window
 // so a meeting that's mid-flight (its deferred job just hasn't reached its write yet) isn't
 // misreported as broken.
+//
+// Known limitation: `updatedAt` is used as the "last touched" signal because Meeting has no
+// dedicated createdAt/lastSyncAttemptAt field. Any unrelated edit (suspend/resume, promotion,
+// a plain field edit) bumps updatedAt too, which resets this staleness window -- a genuinely
+// stuck sync can be masked for a while by an unrelated later edit. A dedicated timestamp would
+// close this gap but is a bigger schema change than this fix warrants.
 const NEVER_ATTEMPTED_STALE_MS = 5 * 60 * 1000;
 
 // Diagnostics Sync Issues panel: meetings that failed to sync to Zoom or Google Calendar, or
@@ -23,7 +29,7 @@ export const GET = async () => {
     const meetings = await prisma.meeting.findMany({
       where: notDeleted,
       select: {
-        mid: true, title: true, group: true, modeType: true, calType: true, room: true,
+        mid: true, title: true, group: true, modeType: true, calType: true, room: true, status: true,
         googleSyncStatus: true, zoomSyncStatus: true, zoomSyncError: true, updatedAt: true,
       },
     });
@@ -45,6 +51,11 @@ export const GET = async () => {
         } else if (
           m.googleSyncStatus === null &&
           m.calType.length > 0 &&
+          // Suspended meetings deliberately never get a googleSyncStatus -- syncNewMeeting/
+          // syncUpdatedMeeting early-return for them by design (see the write/update routes'
+          // syncNewMeeting/syncUpdatedMeeting) and nothing else in this meeting's lifecycle
+          // writes one, so null here is expected and permanent, not a stuck job.
+          m.status !== "Suspended" &&
           Date.now() - (m.updatedAt?.getTime() ?? 0) > NEVER_ATTEMPTED_STALE_MS
         ) {
           issues.push({ text: "Google Calendar sync was never attempted for this meeting.", severity: "danger" });
