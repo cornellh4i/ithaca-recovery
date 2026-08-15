@@ -25,14 +25,15 @@ ithaca-recovery/
 │   ├── lib/           # Shared server-side singletons/helpers (Prisma client)
 │   ├── hooks/         # Shared React hooks
 │   ├── types/         # Shared TypeScript interfaces (models.ts)
-│   ├── styles/        # SCSS modules
+│   ├── styles/        # Global SCSS (design tokens + app shell); per-component styles are
+│   │                  #   colocated with their component under app/components/
 │   ├── prisma/        # Prisma schema + migrations
 │   ├── public/        # Static assets (svg/, favicon)
 │   ├── config/        # jest/playwright/eslint/stylelint configs (next.config.mjs and
 │   │                  #   tsconfig.json stay at the frontend/ root — both tools require that)
 │   ├── tests/         # Playwright + Jest suite — see Testing section below
 │   └── util/          # Domain-logic utilities, grouped into subfolders (see below)
-├── docs/              # This documentation set -- snapshotted at build/dev time into
+├── docs/              # This documentation set — snapshotted at build/dev time into
 │                      #   frontend/util/docs/docsContent.generated.ts (see util/ below), which
 │                      #   backs the in-app /docs Resources page
 └── .github/           # CI workflows + scripts (test.yml, codeql.yml, doc-freshness check, etc.)
@@ -51,7 +52,7 @@ app/
 │   ├── page.tsx                 # Home — calendar (Day/Week/mobile views)
 │   ├── admin/page.tsx           # /admin — AdminShell
 │   └── docs/[[...slug]]/        # /docs — Resources page (renders repo-root docs/, snapshotted
-│                                 #   at build time -- see util/docs/ below)
+│                                 #   at build time — see util/docs/ below)
 ├── (auth)/
 │   └── login/                   # /login — sign-in page
 ├── (signage)/                   # No auth check — renders fully logged out
@@ -84,25 +85,25 @@ app/
 
 ### Component Hierarchy (by domain)
 
-We group components by what they do (domain/feature) rather than how they composite (atomic design). The `ui/` folder is the only exception — holding generic primitives that every feature can share, split into sub-buckets by kind rather than kept as one flat folder.
+We group components by what they do (domain/feature) rather than how they compose (atomic design). The `ui/` folder is the only exception — holding generic primitives that every feature can share, split into sub-buckets by kind rather than kept as one flat folder.
 
 **`ui/`** — generic, non-domain primitives, by kind:
 - `buttons/` — `CheckButton`, `IconButton`, `TextButton`
 - `inputs/` — `CheckBox`, `Dropdown`, `ModeTypeButtons` (a segmented value-selector, grouped here
   by function despite the "Buttons" name), `RadioGroup`, `SpinnerInput`, `TextField`
-- `overlays/` — `BottomSheet`, `Modal`, `MobileFullScreenSheet`, `Tooltip`
+- `overlays/` — `BottomSheet`, `MobileFullScreenSheet`, `Modal`, `Tooltip`
 - `pickers/` — `DatePicker`, `TimePicker`
 - `displays/` — `BoxText`, `Icon`, `Logo`, `StatCounter`, `StatusPill`, `TagList`, `TopLoadingBar`
 
-`Icon` is the name-based entry point (e.g. `<Icon name="warning" />`) for what used to be the
-app's `/public/svg` icon set — most render as `@mui/icons-material` glyphs tinted via
-`currentColor` from ambient CSS; a couple of brand logos with no MUI equivalent (Google, Zoom)
-stay as local `public/svg/` assets. `IconButton` wraps it for clickable icon-only buttons.
+`Icon` is the name-based entry point (e.g. `<Icon name="warning" />`) for the app's icon set —
+most render as `@mui/icons-material` glyphs tinted via `currentColor` from ambient CSS; a couple
+of brand logos with no MUI equivalent (Google, Zoom) stay as local `public/svg/` assets.
+`IconButton` wraps it for clickable icon-only buttons.
 
 **`calendar/`** — `MiniCalendar` (a compact date-picker calendar, used from multiple contexts)
 sits directly in `calendar/`, alongside three subfolders, not a flat list:
 - `desktop/` — `CalendarNavbar`, `CalendarSidebar`, `CalendarSidebarShell`,
-  `CompactCalendarSidebar`, `DayView`, `DailyViewRow`, `WeekView`
+  `CompactCalendarSidebar`, `DailyViewRow`, `DayView`, `WeekView`
 - `mobile/` — `DayLandscapeSwitcher`, `DayLandscapeView`, `DayPortraitView`, `MobileFab`,
   `MultiDayLandscapeView`, `WeekStrip`
 - `shared/` — `CalendarHeader`, `DayColumn` (the day-to-meetings column mapping, reused by both
@@ -140,17 +141,19 @@ repository's own top-level `docs/` folder, snapshotted at build time into
 `FilterGroup`. Not a general dumping ground — i.e. if a component only has one caller, it should belong in
 that caller's domain.
 
-`styles/components/` mirrors this exact folder structure (`ui/` with the same buttons/inputs/
-overlays/pickers/displays split, `calendar/`, `meeting-form/`, `admin/`, `docs/`, `auth/`,
-`navigation/`, `shared/`) since every component imports its `.module.scss` by relative path —
-there are no barrel/index files in either tree.
+Each component's `.module.scss` lives alongside it as a sibling file in the same folder (e.g.
+`Button.tsx` + `Button.module.scss`) — there are no barrel/index files. `styles/` at the
+`frontend/` root holds two global files: `Variables.module.scss` (design tokens, `@import`ed by
+nearly every component module) and `MainLayout.module.scss` (the app shell, used by
+`app/ClientLayout.tsx`).
 
 ### `util/` — domain-logic utilities, grouped by subfolder
 
-- `common/` — `breakpoints.ts`, `color.ts`, `simpleCache.ts` (generic get-or-fetch cache)
-- `date/` — `timeUtils.ts`, `weekDates.ts`, `dateTransition.ts` (swipe direction/same-week math
-  plus the shared `dateEnterMotion` enter-transition helper, used by both mobile and desktop
-  calendar views)
+- `common/` — `breakpoints.ts`, `color.ts`, `linkify.tsx`, `simpleCache.ts` (generic get-or-fetch
+  cache)
+- `date/` — `timeUtils.ts`, `timeFormat.tsx`, `weekDates.ts`, `dateTransition.ts` (swipe
+  direction/same-week math plus the shared `dateEnterMotion` enter-transition helper, used by both
+  mobile and desktop calendar views)
 - `filters/` — `meetingFilters.ts` (tag/room predicates for the authenticated Day/Week views),
   `signageFilters.ts` (standalone URL-param parsing for the public `/signage` page — the two
   never share code), `tagOrder.ts`
@@ -180,7 +183,7 @@ occurrences actually conflict on a shared resource.
 ### `services/` — backend services
 
 `auth.ts` (`getAuth`, `requireRole`), `googleCalendar.ts` (multi-calendar
-create/update/delete/EXDATE/UNTIL/reachability), `googleTokenRefresh.ts` (extracted out of
+create/update/delete/EXDATE/UNTIL/reachability), `googleTokenRefresh.ts` (kept separate from
 `authConfig.ts` so it has no Prisma dependency and can run on Edge middleware — see
 [Technical Decisions §Authentication (NextAuth + Google OAuth 2.0 + OIDC)](../02-handoff/technical-decisions.md#authentication-nextauth-google-oauth-2-0-oidc)),
 `syncMeeting.ts` (client-side helpers: `retryMeetingSync`, `pollMeetingSyncStatus` — see the Toast
@@ -192,9 +195,9 @@ create/update/delete Zoom meeting, room→calendar lookup map, `resolveZoomHost`
 `useMeetingForm.ts` (shared state/handlers/validation for `NewMeeting`/`EditMeeting`),
 `useConflictMids.ts` / `useSyncErrorMids.ts` (admin-gated calendar-badge data — see the
 admin-gated-mids pattern above), `useWeekMeetings.ts` / `useRangeMeetings.ts` (Day/Week meeting
-fetch + module-level cache), `useZoomHostPool.ts`, `useViewport.ts` / `useIsPhone.ts` /
-`useBreakpoint.ts` (responsive layout), `useElementSize.ts` / `useElementWidth.ts`,
-`useScrollNavHide.ts`, `usePagefindComponentUI.ts` (docs search).
+fetch + module-level cache), `useZoomHostPool.ts`, `useUserAvatar.tsx`, `useViewport.ts` /
+`useIsPhone.ts` / `useBreakpoint.ts` (responsive layout), `useElementSize.ts` /
+`useElementWidth.ts`, `useScrollNavHide.ts`, `usePagefindComponentUI.ts` (docs search).
 
 ---
 

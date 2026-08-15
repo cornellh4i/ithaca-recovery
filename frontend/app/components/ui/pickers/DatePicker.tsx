@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import styles from "../../../../styles/components/ui/pickers/DatePicker.module.scss";
+import styles from "./DatePicker.module.scss";
 import MiniCalendar from '../../calendar/MiniCalendar'; // Adjust import path as needed
 
 interface DatePickerProps {

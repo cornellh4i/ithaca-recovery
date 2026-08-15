@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import styles from "../../../../styles/components/admin/DiagnosticsTab.module.scss";
+import styles from "./DiagnosticsTab.module.scss";
 
 interface DiagnosticsCardErrorProps {
   message: string;

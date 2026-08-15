@@ -1,5 +1,5 @@
 import React from 'react';
-import styles from "../../../../styles/components/ui/buttons/CheckButton.module.scss";
+import styles from "./CheckButton.module.scss";
 
 interface CheckButtonProps {
   label: string;

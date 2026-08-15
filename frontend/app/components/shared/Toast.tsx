@@ -3,7 +3,7 @@ import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from "@mui/icons-material/Close";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
-import styles from "../../../styles/components/shared/Toast.module.scss";
+import styles from "./Toast.module.scss";
 
 export type ToastVariant = "success" | "error" | "warning" | "info";
 

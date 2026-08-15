@@ -15,7 +15,7 @@ import MeetingsFilter from "../calendar/shared/MeetingsFilter";
 import { useCalendarContext } from "../../context/CalendarProvider";
 import { useViewport } from "../../../hooks/useViewport";
 import { toNoonETOnLocalCalendarDay } from "../../../util/date/weekDates";
-import styles from "../../../styles/components/navigation/MobileAppNavigation.module.scss";
+import styles from "./MobileAppNavigation.module.scss";
 
 const LANDSCAPE_VIEW_LABELS = { day: "Day", multiday: "Multi-Day" } as const;
 type LandscapeViewLabel = (typeof LANDSCAPE_VIEW_LABELS)[keyof typeof LANDSCAPE_VIEW_LABELS];

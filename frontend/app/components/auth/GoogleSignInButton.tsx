@@ -3,7 +3,7 @@
 import React from "react";
 import { signIn } from "next-auth/react";
 import Icon from "../ui/displays/Icon";
-import styles from "../../../styles/components/auth/GoogleSignInButton.module.scss";
+import styles from "./GoogleSignInButton.module.scss";
 
 const GoogleSignInButton: React.FC = () => {
     return (

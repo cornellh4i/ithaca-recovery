@@ -7,7 +7,7 @@ import Icon from "../../ui/displays/Icon";
 import Modal from "../../ui/overlays/Modal";
 import RadioGroup from "../../ui/inputs/RadioGroup";
 import { ROLE_LABEL, LABEL_TO_ROLE, ROLE_OPTIONS } from "../../../../util/roles";
-import styles from "../../../../styles/components/admin/UserModals.module.scss";
+import styles from "./UserModals.module.scss";
 
 interface EditRoleModalProps {
   isOpen: boolean;

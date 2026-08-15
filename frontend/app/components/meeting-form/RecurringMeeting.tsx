@@ -6,7 +6,7 @@ import LabeledCheckbox from '../ui/inputs/CheckBox';
 import SpinnerInput from '../ui/inputs/SpinnerInput';
 import DatePicker from '../ui/pickers/DatePicker';
 import Dropdown from '../ui/inputs/Dropdown';
-import styles from "../../../styles/components/meeting-form/RecurringMeeting.module.scss";
+import styles from "./RecurringMeeting.module.scss";
 
 import CheckButton from '../ui/buttons/CheckButton';
 import { IRecurrencePattern } from "../../../types/models";

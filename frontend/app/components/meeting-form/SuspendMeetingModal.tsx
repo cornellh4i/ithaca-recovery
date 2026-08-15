@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import styles from '../../../styles/components/meeting-form/SuspendMeetingModal.module.scss';
+import styles from './SuspendMeetingModal.module.scss';
 import DatePicker from '../ui/pickers/DatePicker';
 import Icon from '../ui/displays/Icon';
 import { formatETDateString, parseMMDDYYYY } from '../../../util/date/timeUtils';

@@ -2,7 +2,7 @@
 
 import React from "react";
 import LabeledCheckbox from "../ui/inputs/CheckBox";
-import styles from "../../../styles/components/shared/FilterGroup.module.scss";
+import styles from "./FilterGroup.module.scss";
 
 export interface FilterGroupItem {
   key: string;

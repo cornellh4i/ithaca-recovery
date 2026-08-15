@@ -6,7 +6,7 @@ import StatCounter from "../../ui/displays/StatCounter";
 import Card from "../shared/Card";
 import TopLoadingBar from "../../ui/displays/TopLoadingBar";
 import DiagnosticsCardError from "./DiagnosticsCardError";
-import styles from "../../../../styles/components/admin/DiagnosticsTab.module.scss";
+import styles from "./DiagnosticsTab.module.scss";
 
 interface MeetingCountsData {
   total: number;

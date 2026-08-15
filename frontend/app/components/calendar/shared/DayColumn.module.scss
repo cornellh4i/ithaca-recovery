@@ -1,0 +1,68 @@
+@import '../../../../styles/Variables.module';
+
+.columnWrapper {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+}
+
+.columnBody {
+  position: relative;
+  width: 100%;
+  height: 2880px; // 24 hours * 120px/hour default -- overridden inline for a non-default hourHeight (see DayColumn.tsx)
+  border-right: 1px solid #e5e7eb;
+  cursor: pointer;
+
+  // Clips cards to this column so they can't bleed into the next day. Don't do this one
+  // level up at .dayColumn instead — it has the sticky day header as a sibling, and hiding
+  // overflow there would break its stickiness against the scrolling .viewContainer.
+  overflow: hidden;
+}
+
+.hourMarker {
+  position: absolute;
+  width: 100%;
+  height: 120px; // default hourHeight -- overridden inline for a non-default hourHeight (see DayColumn.tsx)
+  border-top: 1px solid #e5e7eb;
+}
+
+.meetingWrapper {
+  position: absolute;
+  border-radius: 6px;
+  z-index: 10;
+}
+
+// Background container spanning an overlapping cluster's full time range, rendered beneath
+// the cluster's meeting cards and the "+N" pill (z-index 10/12 below) -- no left-accent
+// border, unlike a real meeting card, since it isn't standing in for any one meeting.
+.clusterContainer {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  border-radius: 6px;
+  background: $grey-lightest-color;
+  z-index: 5;
+  pointer-events: none;
+}
+
+// Stands in for meetings beyond MAX_VISIBLE_OVERLAP columns — a small pill rather
+// than a shrunk-further column, which would be too narrow to show anything readable.
+.overflowIndicator {
+  position: absolute;
+  right: 4px;
+  z-index: 12;
+  background: #3A3E49;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1;
+  padding: 3px 6px;
+  border-radius: 999px;
+  white-space: nowrap;
+  cursor: pointer;
+
+  &:hover {
+    opacity: 0.85;
+  }
+}

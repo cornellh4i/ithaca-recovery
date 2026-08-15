@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { DayPicker } from "react-day-picker";
 import "react-day-picker/dist/style.css";
-import styles from "../../../styles/components/calendar/MiniCalendar.module.scss";
+import styles from "./MiniCalendar.module.scss";
 
 type MiniCalendarProps = {
   selectedDate: Date

@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import styles from "../../../../styles/components/admin/Card.module.scss";
+import styles from "./Card.module.scss";
 
 // Left-border accent per Diagnostics panel type (2026-08-05 spec) -- each maps to a fixed
 // SCSS color variable rather than a passed-in hex, so the palette stays centralized in

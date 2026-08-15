@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import Icon from "../displays/Icon";
-import styles from "../../../../styles/components/ui/inputs/Dropdown.module.scss";
+import styles from "./Dropdown.module.scss";
 
 interface DropdownProps {
   label: string | React.ReactNode;

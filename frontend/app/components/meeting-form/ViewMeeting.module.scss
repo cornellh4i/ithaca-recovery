@@ -1,0 +1,542 @@
+@import '../../../styles/Variables.module';
+@import 'https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;600&display=swap';
+
+// Wraps the visual card below; carries only the portal's fixed positioning so the card's
+// own overflow:auto never risks clipping the Delete modals, which are siblings of the card
+// (not descendants) further down in this file's markup.
+.popupAnchor {
+  position: fixed;
+  z-index: 2000;
+}
+
+.meetingDetails {
+  font-family: "Source Sans Pro", sans-serif;
+  text-align: left;
+  color: $black-color;
+  background: $white-color;
+  border: 1px solid $grey-border-color;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgb(0 0 0 / 15%);
+  max-height: min(80vh, 600px);
+  overflow-y: auto;
+  padding: 18px;
+
+  .header {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    position: relative;
+    padding-bottom: 14px;
+    border-bottom: 1px solid $grey-border-color;
+
+    .backButton {
+      background: none;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      padding: 0;
+      margin-top: 2px;
+      color: $medium-grey-color;
+
+      img,
+      svg {
+        width: 18px !important;
+        height: 18px !important;
+      }
+    }
+
+    h1 {
+      font-size: 20px;
+      font-weight: 600;
+      line-height: 1.25;
+      flex: 1;
+      margin: 0;
+      overflow-wrap: break-word;
+    }
+
+    .settingLabel {
+      // Styled like a meeting card's tag pill (BoxText.module.scss's .tag).
+      display: inline-flex;
+      align-items: center;
+      color: $black-color;
+      border: 1.5px solid;
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 700;
+      white-space: nowrap;
+      margin-top: 2px;
+    }
+
+    .settingLabelIcon {
+      width: 11px !important;
+      height: 11px !important;
+      margin-right: 4px;
+      vertical-align: -1px;
+
+      // .settingLabel sets color: $black-color for its border/text -- override so the mode
+      // icon keeps its original neutral grey instead of inheriting black.
+      color: $medium-grey-color;
+    }
+
+    .moreOptions {
+      position: relative;
+      display: flex;
+      align-items: center;
+      margin-top: 2px;
+
+      button {
+        background: none;
+        border: none;
+        font-size: 16px;
+        cursor: pointer;
+        color: $black-color;
+      }
+
+      .optionsMenu {
+        position: absolute;
+        right: 0;
+        top: 24px;
+        background: white;
+        box-shadow: 0 4px 8px rgb(0 0 0 / 10%);
+        border-radius: 4px;
+        overflow: hidden;
+        z-index: 10;
+
+        button {
+          font-family: "Source Sans Pro", sans-serif;
+          width: 100%;
+          padding: 8px 16px;
+          font-size: 16px;
+          cursor: pointer;
+          text-align: left;
+          border: none;
+          background: none;
+          color: $black-color;
+          white-space: nowrap;
+
+          &:hover {
+            background-color: #f8f8f8;
+          }
+        }
+
+        .suspendOption {
+          color: $warning-text-color;
+        }
+
+        .deleteOption {
+          color: $danger-color;
+        }
+      }
+    }
+  }
+
+  // A flex column with a single gap is deliberate: every top-level group below (status band,
+  // schedule, Zoom block, contact metadata, description, the closing divider) gets identical
+  // spacing from its neighbor regardless of which optional ones actually render -- letting each
+  // group carry its own margin (as a previous version did) meant the rhythm only looked even
+  // when a specific combination of sections happened to be present.
+  .details {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding-top: 14px;
+    font-size: 15px;
+    line-height: 1.5;
+
+    // Status band -- sync-failure / conflict / suspension blocks, each independently
+    // conditional. Problems live here, above the schedule, instead of buried mid-list.
+    .statusBand {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .syncFailureBlock {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding: 10px 12px;
+      border-radius: $radius-lg;
+      background: $danger-bg-color;
+    }
+
+    .syncFailureHeader {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      color: $danger-color;
+      font-size: 13px;
+      font-weight: 600;
+      line-height: 1.4;
+
+      img,
+      svg {
+        width: 16px !important;
+        height: 16px !important;
+        flex-shrink: 0;
+        margin-top: 1px;
+      }
+
+      span {
+        flex: 1;
+      }
+    }
+
+    .syncDetailsToggle {
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 0;
+      display: flex;
+      flex-shrink: 0;
+      color: $danger-color;
+
+      img,
+      svg {
+        width: 16px !important;
+        height: 16px !important;
+        margin: 0;
+      }
+    }
+
+    .syncDetailsList {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      margin-left: 22px;
+      font-size: 12.5px;
+      font-weight: 400;
+      color: $danger-color;
+      line-height: 1.4;
+    }
+
+    .retryButton {
+      align-self: flex-start;
+      margin-left: 22px;
+      border: 1px solid $danger-color;
+      background: $white-color;
+      color: $danger-color;
+      border-radius: $radius-md;
+      padding: 4px 10px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+
+      &:disabled {
+        cursor: not-allowed;
+        opacity: 0.6;
+      }
+    }
+
+    .conflictBlock, .suspensionBlock {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      padding: 10px 12px;
+      border-radius: $radius-lg;
+      background: $warning-bg-color;
+      color: $warning-text-color;
+      font-size: 13px;
+      font-weight: 600;
+      line-height: 1.4;
+
+      img,
+      svg {
+        width: 16px !important;
+        height: 16px !important;
+        flex-shrink: 0;
+        margin-top: 1px;
+      }
+    }
+
+    .diagnosticsLink {
+      color: inherit;
+      text-decoration: underline;
+
+      &:hover {
+        opacity: 0.8;
+      }
+    }
+
+    // Schedule group -- the loudest line in the card (bold date/time), demoting recurrence
+    // and room to secondary metadata beneath it. No closing rule of its own: the Zoom block
+    // (when present) already reads as a break via its own tinted background, and when it's
+    // absent (In Person -- no Zoom block, no Zoom host) the next row (email) is light enough
+    // to just sit under location without one.
+    .scheduleGroup {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+
+      p {
+        margin: 0;
+      }
+    }
+
+    .scheduleTime {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 16px;
+      font-weight: 600;
+      color: $black-color;
+
+      img,
+      svg {
+        width: 18px !important;
+        height: 18px !important;
+        flex-shrink: 0;
+      }
+    }
+
+    .recurrenceLine {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding-left: 26px;
+      font-size: 13px;
+      font-weight: 400;
+      color: $text-secondary-color;
+
+      img,
+      svg {
+        width: 14px !important;
+        height: 14px !important;
+        flex-shrink: 0;
+      }
+    }
+
+    .roomLine {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 14px;
+      font-weight: 400;
+      color: $text-secondary-color;
+
+      img,
+      svg {
+        width: 18px !important;
+        height: 18px !important;
+        flex-shrink: 0;
+      }
+    }
+
+    // Zoom block -- one tinted card instead of four stacked rows. No margin of its own --
+    // it's a direct flex child of .details, so the container's gap already spaces it.
+    .zoomBlock {
+      padding: 12px 14px;
+      background: $grey-lightest-color;
+      border-radius: $radius-lg;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .zoomTopRow {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    a.zoomLink {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: $link-color;
+      font-size: 15px;
+      font-weight: 600;
+      text-decoration: none;
+      min-width: 0;
+
+      img {
+        width: 18px;
+        height: 18px;
+        flex-shrink: 0;
+      }
+
+      &:hover {
+        text-decoration: underline;
+      }
+    }
+
+    .zoomSyncedBadge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      flex-shrink: 0;
+      color: $success-text-color;
+      font-size: 11px;
+      font-weight: 600;
+      white-space: nowrap;
+
+      img,
+      svg {
+        width: 12px !important;
+        height: 12px !important;
+      }
+    }
+
+    .zoomMetaRow {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      font-size: 13px;
+      font-weight: 400;
+      color: $text-secondary-color;
+
+      span {
+        overflow-wrap: break-word;
+      }
+    }
+
+    .invitationToggle {
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 0;
+      flex-shrink: 0;
+      color: $link-color;
+      font-size: 13px;
+      white-space: nowrap;
+
+      &:hover {
+        text-decoration: underline;
+      }
+    }
+
+    // Its own border (not $grey-lightest-color, which is the block's own background) so the
+    // expanded separator actually reads as a divider instead of disappearing into the tint.
+    .zoomInvitationDivider {
+      border: none;
+      border-top: 1px solid $grey-border-color;
+      margin: 2px 0;
+    }
+
+    .invitationText {
+      white-space: pre-line;
+      overflow-wrap: break-word;
+      font-family: "Source Sans Pro", sans-serif;
+      font-size: 13px;
+      color: $text-secondary-color;
+      margin: 0;
+
+      a {
+        color: $link-color;
+        text-decoration: none;
+        word-break: break-all;
+
+        &:hover {
+          text-decoration: underline;
+        }
+      }
+    }
+
+    // Contact metadata -- demoted, admin-only. The closing rule (withDivider) is applied only
+    // when a description follows -- otherwise this is the last thing before the footer's own
+    // divider, and a second rule right above it would just double up (same issue as the
+    // schedule group's old rule, see above).
+    .contactGroup {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+
+      &.withDivider {
+        padding-bottom: 14px;
+        border-bottom: 1px solid $grey-lightest-color;
+      }
+    }
+
+    .contactRow {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 0;
+      font-size: 13.5px;
+      font-weight: 400;
+      color: $text-secondary-color;
+
+      img,
+      svg {
+        width: 16px !important;
+        height: 16px !important;
+        flex-shrink: 0;
+      }
+    }
+
+    .descriptionRow {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+
+      // Sibling rows (.recurrenceLine, .roomLine, .contactRow) all set this same secondary
+      // color -- .descriptionRow never had its own until now since the icon carried its own
+      // grey fill directly.
+      color: $text-secondary-color;
+
+      img,
+      svg {
+        width: 18px !important;
+        height: 18px !important;
+        flex-shrink: 0;
+        margin-top: 1px;
+      }
+
+      .descriptionContent {
+        flex: 1;
+        min-width: 0;
+
+        p {
+          margin: 0;
+          color: $medium-grey-color;
+          font-size: 13px;
+          font-style: italic;
+          white-space: pre-line;
+
+          a {
+            color: $link-color;
+            font-style: normal;
+            text-decoration: none;
+            word-break: break-all;
+
+            &:hover {
+              text-decoration: underline;
+            }
+          }
+        }
+
+        .descriptionClamped {
+          display: -webkit-box;
+          -webkit-line-clamp: 3;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
+        }
+
+        .showMoreToggle {
+          display: block;
+          margin-left: auto;
+          margin-top: 4px;
+          background: none;
+          border: none;
+          color: $link-color;
+          font-size: 13px;
+          font-style: normal;
+          cursor: pointer;
+          padding: 0;
+        }
+      }
+    }
+  }
+
+  // Closes the card before the footer tag list. No margin of its own -- it's a direct flex
+  // child of .details (see above), so the container's gap already spaces both sides of it.
+  .divider {
+    border: none;
+    border-top: 1px solid $grey-border-color;
+    margin: 0;
+  }
+}

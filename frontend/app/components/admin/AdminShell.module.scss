@@ -1,0 +1,96 @@
+@import '../../../styles/Variables.module';
+
+.container {
+  width: 100%;
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: 32px 24px 80px;
+  box-sizing: border-box;
+  font-family: 'Source Sans Pro', sans-serif;
+
+  @media (width <= $breakpoint-phone) {
+    padding: 24px 16px 60px;
+  }
+}
+
+.title {
+  font-size: 28px;
+  font-weight: 600;
+  color: $black-color;
+  margin: 0 0 24px;
+}
+
+.tabRow {
+  display: flex;
+  gap: 24px;
+  border-bottom: 1.5px solid #E5E5E5;
+  margin-bottom: 24px;
+}
+
+.tab {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 16px;
+  color: #3A3E49;
+  padding: 0 0 10px;
+  border-bottom: 2.5px solid transparent;
+}
+
+.tabActive {
+  color: $brand-pink-color;
+  border-bottom-color: $brand-pink-color;
+}
+
+.tabLocked {
+  color: $light-grey-color;
+  cursor: not-allowed;
+}
+
+.lockIcon {
+  color: $light-grey-color;
+}
+
+.tabWrapper {
+  position: relative;
+  display: inline-flex;
+
+  &:hover .tooltip,
+  &:focus-within .tooltip {
+    opacity: 1;
+    visibility: visible;
+  }
+}
+
+.tooltip {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-top: 6px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  background-color: $black-color;
+  color: #fff;
+  font-size: 12px;
+  width: max-content;
+  max-width: 220px;
+  text-align: center;
+  line-height: 1.4;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.15s ease;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.tabContent {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+}

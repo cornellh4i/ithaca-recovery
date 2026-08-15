@@ -12,7 +12,7 @@ import { parseSignageFilters, parseSignageView } from "../../../util/filters/sig
 import { formatETDateString } from "../../../util/date/timeUtils";
 import { getSwipeDirection, type SwipeDirection } from "../../../util/date/dateTransition";
 import { useViewport } from "../../../hooks/useViewport";
-import navbarStyles from "../../../styles/components/navigation/AppNavigation.module.scss";
+import navbarStyles from "../../components/navigation/AppNavigation.module.scss";
 
 const REFRESH_INTERVAL_MS = 2 * 60 * 1000;
 const MIDNIGHT_CHECK_INTERVAL_MS = 30 * 1000;

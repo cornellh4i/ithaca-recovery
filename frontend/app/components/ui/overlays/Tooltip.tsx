@@ -1,5 +1,5 @@
 import React from "react";
-import styles from "../../../../styles/components/ui/overlays/Tooltip.module.scss";
+import styles from "./Tooltip.module.scss";
 
 interface TooltipProps {
     content: string;

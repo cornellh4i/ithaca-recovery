@@ -17,7 +17,7 @@ import RemoveUserModal from "./RemoveUserModal";
 import InviteUserModal from "./InviteUserModal";
 import { useToast } from "../../shared/ToastProvider";
 import { ROLE_LABEL } from "../../../../util/roles";
-import styles from "../../../../styles/components/admin/UsersTab.module.scss";
+import styles from "./UsersTab.module.scss";
 
 const rolePillVariant: Record<Role, StatusPillVariant> = {
   SUPER_ADMIN: "error",

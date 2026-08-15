@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion, useReducedMotion } from 'motion/react';
 import Icon from '../../ui/displays/Icon';
-import styles from "../../../../styles/components/calendar/desktop/CalendarNavbar.module.scss";
+import styles from "../desktop/CalendarNavbar.module.scss";
 import { formatMeetingDateLine, monthNameForETDateString, formatMeetingWeekLine } from "../../../../util/date/timeFormat";
 import { formatETDateString } from "../../../../util/date/timeUtils";
 import { dateEnterMotion, type SwipeDirection } from "../../../../util/date/dateTransition";

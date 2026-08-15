@@ -1,5 +1,5 @@
 import React, { useLayoutEffect, useRef, useState } from "react";
-import styles from '../../../../styles/components/ui/displays/BoxText.module.scss';
+import styles from './BoxText.module.scss';
 import { toPastelColor } from '../../../../util/common/color';
 import { MODE_ICON_NAME } from '../../../../util/rooms/modeIcons';
 import Icon from './Icon';

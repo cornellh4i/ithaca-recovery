@@ -1,0 +1,80 @@
+@import '../../../styles/Variables.module';
+
+.zoomHostField {
+    width: 100%;
+}
+
+.checkingIndicator {
+    margin: 0 0 6px;
+    color: $medium-grey-color;
+    font-size: 13px;
+    font-family: 'Source Sans Pro', sans-serif;
+}
+
+.checkDoneIndicator {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0 0 6px;
+    color: $success-text-color;
+    font-size: 13px;
+    font-family: 'Source Sans Pro', sans-serif;
+}
+
+.noHostIndicator {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0 0 6px;
+    color: $danger-color;
+    font-size: 13px;
+    font-family: 'Source Sans Pro', sans-serif;
+}
+
+// One row per host option (both the closed button's selected value and each open-list row,
+// see Dropdown.tsx's renderElement) -- label on the left, availability icon pinned to the
+// row's right edge instead of trailing right after the label text.
+.hostOption {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    gap: 8px;
+}
+
+.hostLabel {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
+    // Without this, a flex child won't shrink below its content's natural width, so long
+    // labels would push the icon out past the row's right edge instead of truncating.
+    min-width: 0;
+}
+
+.checkIcon,
+.crossIcon {
+    // !important: @mui/icons-material icons carry their own same-specificity
+    // .MuiSvgIcon-root class (width/height: 1em) that otherwise wins unpredictably
+    // depending on emotion's <style> injection order.
+    width: 14px !important;
+    height: 14px !important;
+    flex-shrink: 0;
+}
+
+.checkIcon {
+    color: $success-text-color;
+}
+
+.crossIcon {
+    color: $danger-color;
+}
+
+.busyWarning {
+    margin: 6px 0 0;
+    padding: 8px 10px;
+    background-color: $warning-bg-color;
+    color: $warning-text-color;
+    font-size: 13px;
+    border-radius: 6px;
+}

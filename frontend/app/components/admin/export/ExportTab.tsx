@@ -11,7 +11,7 @@ import CardHeader from "../shared/CardHeader";
 import MeetingExportConfigModal from "./MeetingExportConfigModal";
 import LeaseConfigModal from "./LeaseConfigModal";
 import { useToast } from "../../shared/ToastProvider";
-import styles from "../../../../styles/components/admin/ExportTab.module.scss";
+import styles from "./ExportTab.module.scss";
 
 type ExportKind = "meetings" | "lease";
 

@@ -4,7 +4,7 @@ import React from "react";
 import MuiIconButton from "@mui/material/IconButton";
 import Icon, { IconName } from "../displays/Icon";
 import Tooltip from "../overlays/Tooltip";
-import styles from "../../../../styles/components/ui/buttons/IconButton.module.scss";
+import styles from "./IconButton.module.scss";
 
 interface IconButtonProps {
     name: IconName;

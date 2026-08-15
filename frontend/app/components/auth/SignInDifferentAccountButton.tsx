@@ -1,7 +1,7 @@
 "use client";
 
 import { signIn } from "next-auth/react";
-import styles from "../../../styles/components/auth/SignInDifferentAccountButton.module.scss";
+import styles from "./SignInDifferentAccountButton.module.scss";
 
 const SignInDifferentAccountButton: React.FC = () => (
     <button

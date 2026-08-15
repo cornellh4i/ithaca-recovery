@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import Icon from '../ui/displays/Icon';
-import styles from '../../../styles/components/meeting-form/DeleteRecurringModal.module.scss';
+import styles from './DeleteRecurringModal.module.scss';
 
 interface DeleteRecurringModalProps {
   isOpen: boolean;

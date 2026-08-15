@@ -4,7 +4,7 @@ import Icon from '../ui/displays/Icon';
 import { useZoomHostPool } from '../../../hooks/useZoomHostPool';
 import { zoomHostLabel } from '../../../util/rooms/zoomHosts';
 import { IMeeting } from '../../../types/models';
-import styles from '../../../styles/components/meeting-form/ZoomHostField.module.scss';
+import styles from './ZoomHostField.module.scss';
 
 const AUTOMATIC = 'Automatic assignment';
 

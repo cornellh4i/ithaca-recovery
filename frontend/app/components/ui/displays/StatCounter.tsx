@@ -1,5 +1,5 @@
 import React from "react";
-import styles from "../../../../styles/components/ui/displays/StatCounter.module.scss";
+import styles from "./StatCounter.module.scss";
 
 interface StatCounterProps {
   value: number | string;

@@ -8,7 +8,7 @@ import type { DocMeta } from "../../../util/docs/loadDocs";
 import { usePagefindComponentUI } from "../../../hooks/usePagefindComponentUI";
 import TopLoadingBar from "../ui/displays/TopLoadingBar";
 import { PanelToggleIcon, SearchIcon, CloseIcon, ChevronDownIcon } from "./DocsIcons";
-import styles from "../../../styles/components/docs/DocsShell.module.scss";
+import styles from "./DocsShell.module.scss";
 
 interface DocsShellProps {
   docsMeta: DocMeta[];

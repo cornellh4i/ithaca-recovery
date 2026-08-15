@@ -4,7 +4,7 @@ import MiniCalendar from '../MiniCalendar';
 import FilterGroup from '../../shared/FilterGroup';
 import { LOCATION_ITEMS, ZOOM_ITEMS, CALENDAR_ITEMS, MODE_ITEMS } from '../shared/MeetingsFilter';
 import { MeetingFilters } from '../../../../util/filters/meetingFilters';
-import styles from '../../../../styles/components/calendar/desktop/CompactCalendarSidebar.module.scss';
+import styles from './CompactCalendarSidebar.module.scss';
 
 type FlyoutKey = 'calendar' | 'location' | 'video' | 'group';
 

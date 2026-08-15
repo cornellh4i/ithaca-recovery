@@ -6,7 +6,7 @@ import Icon from "../../ui/displays/Icon";
 import TopLoadingBar from "../../ui/displays/TopLoadingBar";
 import DiagnosticsCardError from "./DiagnosticsCardError";
 import ConflictList, { ConflictListRow } from "./ConflictList";
-import styles from "../../../../styles/components/admin/DiagnosticsTab.module.scss";
+import styles from "./DiagnosticsTab.module.scss";
 
 const ConflictsCard: React.FC = () => {
   const [conflicts, setConflicts] = useState<ConflictListRow[] | null>(null);

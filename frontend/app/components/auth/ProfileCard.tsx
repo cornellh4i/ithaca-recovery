@@ -1,7 +1,7 @@
 import React from "react";
 import type { Session } from "next-auth";
 import { signOut } from "next-auth/react";
-import styles from "../../../styles/components/navigation/AppNavigation.module.scss";
+import styles from "../navigation/AppNavigation.module.scss";
 
 interface ProfileCardProps {
   session: Session;

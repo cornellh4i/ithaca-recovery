@@ -1,0 +1,353 @@
+@import '../../../../styles/Variables.module';
+
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.headerRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+
+  // panelHeader + a fixed-width search field + Invite button no longer fit on one line once
+  // the card has shrunk down from desktop -- wrapping lets search+Invite drop to their own
+  // full-width row below the title instead of squeezing (or overflowing).
+  @media (width <= $breakpoint-tablet) {
+    flex-wrap: wrap;
+    row-gap: 12px;
+  }
+}
+
+// Matches DiagnosticsTab.module.scss's .panelHeader/.panelIconX pattern exactly, so the
+// Users card's header reads consistently with the Diagnostics panel cards.
+.panelHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  color: $black-color;
+}
+
+.panelIconUsers {
+  display: inline-flex;
+  color: $medium-grey-color;
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  // Once .headerRow has wrapped, this becomes its own full-width row -- letting the search
+  // field (below) actually use that width via flex: 1 instead of staying pinned at 200px.
+  @media (width <= $breakpoint-tablet) {
+    width: 100%;
+  }
+}
+
+.searchField {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border: 1.5px solid $grey-border-color;
+  border-radius: 8px;
+  color: $medium-grey-color;
+
+  &:focus-within {
+    border-color: $medium-grey-color;
+  }
+
+  @media (width <= $breakpoint-tablet) {
+    flex: 1;
+  }
+}
+
+.searchInput {
+  border: none;
+  outline: none;
+  font-family: inherit;
+  font-size: 14px;
+  color: $black-color;
+  width: 200px;
+
+  &::placeholder {
+    color: $medium-grey-color;
+  }
+
+  @media (width <= $breakpoint-tablet) {
+    width: 100%;
+  }
+}
+
+.inviteButton {
+  background: $brand-pink-color;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 18px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+
+  &:hover {
+    background: $brand-pink-secondary;
+  }
+}
+
+// table-layout: fixed keeps the table itself from ever overflowing horizontally by squeezing
+// Name/Email down -- but past a point that just wraps every email across 4+ lines instead of
+// staying readable. Below phone width, this wrapper switches to a horizontal-scroll table
+// (a min-width on .table, below) so rows stay one line and legible instead.
+.tableWrapper {
+  width: 100%;
+
+  @media (width <= $breakpoint-phone) {
+    overflow-x: auto;
+  }
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+
+  @media (width <= $breakpoint-phone) {
+    min-width: 480px;
+  }
+
+  th {
+    text-align: left;
+    font-size: 13px;
+    font-weight: 600;
+    color: $medium-grey-color;
+    border-bottom: 1.5px solid #E5E5E5;
+    padding: 0 8px 10px;
+  }
+
+  td {
+    padding: 12px 8px;
+    border-bottom: 1px solid $grey-lightest-color;
+    font-size: 15px;
+    color: $black-color;
+  }
+
+  // Name/Email specifically -- table-layout: fixed squeezes these two down at narrower widths
+  // (Role/kebab have their own explicit widths below), and a long name or email should
+  // truncate to one line rather than wrap into a multi-line row.
+  td:nth-child(1),
+  td:nth-child(2) {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  tr:last-child td {
+    border-bottom: none;
+  }
+
+  // width: 1% doesn't actually work here -- in a table-layout: fixed table whose own width is
+  // a fixed 100%, a percentage column gets exactly that percentage of the total regardless of
+  // its content; white-space: nowrap doesn't expand it to fit, the pill just visually overflows
+  // past the column's real boundary into the kebab column next to it. Role's possible values
+  // are a small, fixed set (User/Admin/Super Admin) rather than open-ended content, so sizing
+  // this explicitly for the known-widest pill ("Super Admin") is the correct fix, not a
+  // workaround -- true content-based auto-sizing would need table-layout: auto (loses the
+  // guaranteed-no-reflow-while-loading behavior table-layout: fixed exists for) or a
+  // grid/flexbox rewrite of the whole table, both bigger changes than this warrants.
+  // 120px verified against a rendered "Super Admin" pill (~100-114px depending on font
+  // fallback) -- if a role label is ever added or renamed, recheck the widest one still fits.
+  th:nth-child(3),
+  td:nth-child(3) {
+    width: 120px;
+  }
+
+  th:last-child,
+  td:last-child {
+    width: 44px;
+  }
+}
+
+.thLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+// Dimmed until active (or hovered) so an idle column's sort control doesn't compete with the
+// header text -- clicking sets that column active and starts it descending.
+.sortButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: $medium-grey-color;
+  opacity: 0.5;
+
+  &:hover {
+    opacity: 1;
+  }
+}
+
+.sortButtonActive {
+  opacity: 1;
+  color: $black-color;
+}
+
+.emailCell {
+  font-size: 14px;
+  color: #555;
+}
+
+.actionCell {
+  text-align: right;
+}
+
+.moreOptions {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+
+  button {
+    background: none;
+    border: none;
+    font-size: 16px;
+    cursor: pointer;
+    color: $black-color;
+    padding: 4px 8px;
+  }
+}
+
+// position: fixed, not absolute -- this is portaled to document.body (see UsersTab.tsx), so
+// it's no longer a descendant of the scrollable .tableWrapper (which would otherwise clip it
+// via overflow-x once the table goes wider than the viewport at phone width). top/right come
+// from an inline style computed in JS from the kebab button's actual on-screen position.
+.optionsMenu {
+  position: fixed;
+  background: white;
+  box-shadow: 0 4px 8px rgb(0 0 0 / 10%);
+  border-radius: $radius-sm;
+  overflow: hidden;
+  z-index: $z-index-dropdown;
+
+  button {
+    font-family: "Source Sans Pro", sans-serif;
+    width: 100%;
+    padding: 8px 16px;
+    font-size: 14px;
+    text-align: left;
+    white-space: nowrap;
+    cursor: pointer;
+    color: $black-color;
+
+    &:hover:not(:disabled) {
+      background: $grey-lightest-color;
+    }
+
+    &:disabled {
+      color: $light-grey-color;
+      cursor: not-allowed;
+    }
+  }
+
+  .dangerOption:not(:disabled) {
+    color: $danger-color;
+  }
+}
+
+.emptyState {
+  color: $medium-grey-color;
+  font-size: 14px;
+}
+
+.errorState {
+  color: $danger-color;
+  font-size: 14px;
+}
+
+.legendAnchor {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.infoButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: $medium-grey-color;
+
+  &:hover {
+    color: $black-color;
+  }
+}
+
+// White surface (unlike the grey .meetingListBox-style informational boxes elsewhere) -- a
+// popover reads as a transient overlay regardless of fill, so it doesn't need a grey background
+// to signal "not part of the table" the way an inline box would. position: fixed, not absolute
+// -- this is portaled to document.body (see UsersTab.tsx), so it's
+// no longer a descendant of the scrollable .tableWrapper (which would otherwise clip it once the
+// table itself goes wider than the viewport) and isn't bound to wherever the info icon happens
+// to sit mid-row. top/left/width all come from an inline style computed in JS from the icon's
+// actual on-screen position, already clamped there to stay within the viewport -- nothing here
+// needs its own responsive override.
+.legendPopover {
+  position: fixed;
+  background: #fff;
+  border: 1px solid $grey-border-color;
+  border-radius: $radius-sm;
+  box-shadow: 0 4px 12px rgb(0 0 0 / 15%);
+  padding: 14px 16px;
+  z-index: $z-index-dropdown;
+  box-sizing: border-box;
+
+  // Header cells are font-weight: 600/uppercase-adjacent styling -- reset both so the popover's
+  // own content doesn't inherit them.
+  font-weight: 400;
+  text-transform: none;
+}
+
+.legendPopoverTitle {
+  font-size: 13px;
+  font-weight: 600;
+  color: $black-color;
+  margin-bottom: 10px;
+}
+
+.legendTable {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 10px 14px;
+  align-items: center;
+}
+
+.legendPillCell {
+  display: flex;
+}
+
+.legendDescCell {
+  font-size: 13px;
+  color: #555;
+  line-height: 1.4;
+
+  // A 1fr grid column still won't shrink below its content's intrinsic width by default
+  // (same min-width: auto behavior as a flex item) -- without this, a long description forces
+  // the grid (and the popover around it) wider instead of actually wrapping.
+  min-width: 0;
+  overflow-wrap: break-word;
+}

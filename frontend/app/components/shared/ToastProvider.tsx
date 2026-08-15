@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useViewport } from "../../../hooks/useViewport";
 import Toast, { type ToastAction, type ToastVariant } from "./Toast";
-import styles from "../../../styles/components/shared/Toast.module.scss";
+import styles from "./Toast.module.scss";
 
 export interface ToastOptions {
   variant: ToastVariant;
