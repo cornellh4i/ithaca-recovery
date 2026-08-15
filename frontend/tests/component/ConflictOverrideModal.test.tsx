@@ -36,16 +36,42 @@ describe("ConflictOverrideModal", () => {
   });
 
   it("lists the conflicting meetings by field and title when open", () => {
-    const { container } = render(
-      <ConflictOverrideModal isOpen conflicts={conflicts} onCancel={jest.fn()} onConfirm={jest.fn()} />,
-    );
+    render(<ConflictOverrideModal isOpen conflicts={conflicts} onCancel={jest.fn()} onConfirm={jest.fn()} />);
     expect(screen.getByText("Scheduling conflict")).toBeInTheDocument();
-    // "Room:" and its value render as separate text/element siblings within .conflictMeta, so
-    // check the container's full text rather than an exact single-node match.
-    expect(container.textContent).toContain("Room:");
+    // "Room:" and its value render as separate text/element siblings within .conflictMeta, and
+    // ConflictOverrideModal now renders via Modal's createPortal (to document.body, not RTL's
+    // own container div), so check the dialog's own text rather than an exact single-node match
+    // or the render() container.
+    expect(screen.getByRole("dialog").textContent).toContain("Room:");
     expect(screen.getByText("Fellowship Room")).toBeInTheDocument();
     expect(screen.getByText("New Meeting")).toBeInTheDocument();
     expect(screen.getByText("Busy Meeting")).toBeInTheDocument();
+  });
+
+  it("renders accessible dialog semantics", () => {
+    render(<ConflictOverrideModal isOpen conflicts={conflicts} onCancel={jest.fn()} onConfirm={jest.fn()} />);
+    const dialog = screen.getByRole("dialog");
+    expect(dialog).toHaveAttribute("aria-modal", "true");
+    expect(dialog).toHaveAccessibleName("Scheduling conflict");
+  });
+
+  it("focuses Go back (the non-destructive default) on open", () => {
+    render(<ConflictOverrideModal isOpen conflicts={conflicts} onCancel={jest.fn()} onConfirm={jest.fn()} />);
+    expect(screen.getByRole("button", { name: "Go back" })).toHaveFocus();
+  });
+
+  it("calls onCancel on Escape", () => {
+    const onCancel = jest.fn();
+    render(<ConflictOverrideModal isOpen conflicts={conflicts} onCancel={onCancel} onConfirm={jest.fn()} />);
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(onCancel).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not call onCancel on Escape while confirming", () => {
+    const onCancel = jest.fn();
+    render(<ConflictOverrideModal isOpen conflicts={conflicts} onCancel={onCancel} onConfirm={jest.fn()} isConfirming />);
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(onCancel).not.toHaveBeenCalled();
   });
 
   it("calls onCancel when Go back is clicked", () => {

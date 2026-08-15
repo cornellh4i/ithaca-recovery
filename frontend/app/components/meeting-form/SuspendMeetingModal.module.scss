@@ -10,7 +10,13 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 1000;
+
+  // Must beat ViewMeeting's own .popupAnchor (z-index: 2000) -- this modal is rendered inside
+  // ViewMeeting as a sibling of the popup card, but Modal's own createPortal moves it straight
+  // to document.body, escaping .popupAnchor's already-portaled stacking context rather than
+  // inheriting it. A lower value here means ViewMeeting's popup renders on top and intercepts
+  // clicks meant for this modal's buttons.
+  z-index: 2001;
 }
 
 .modalContent {

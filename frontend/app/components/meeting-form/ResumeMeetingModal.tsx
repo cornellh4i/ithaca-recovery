@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import styles from './ResumeMeetingModal.module.scss';
 import DatePicker from '../ui/pickers/DatePicker';
 import Icon from '../ui/displays/Icon';
+import Modal from '../ui/overlays/Modal';
 import { formatETDateString, parseMMDDYYYY } from '../../../util/date/timeUtils';
 
 interface ResumeMeetingModalProps {
@@ -37,8 +38,6 @@ const ResumeMeetingModal: React.FC<ResumeMeetingModalProps> = ({
   // DatePicker's own value/onChange contract is MM/DD/YYYY (see DatePicker.tsx's doc comment).
   const [resumeDate, setResumeDate] = useState('');
 
-  if (!isOpen) return null;
-
   const todayStr = formatETDateString(new Date());
   const sinceStr = suspendedSince ? formatETDateString(new Date(suspendedSince)) : null;
   const minStr = sinceStr && sinceStr > todayStr ? sinceStr : todayStr;
@@ -53,13 +52,21 @@ const ResumeMeetingModal: React.FC<ResumeMeetingModalProps> = ({
   };
 
   return (
-    <div className={styles.modalOverlay} data-testid="resume-meeting-modal">
-      <div className={styles.modalContent}>
+    <Modal
+      isOpen={isOpen}
+      onClose={onCancel}
+      overlayClassName={styles.modalOverlay}
+      contentClassName={styles.modalContent}
+      labelledBy="resume-meeting-title"
+    >
+      {/* data-testid lives on this inner wrapper, not Modal's own content div, since Modal
+          doesn't accept passthrough props -- see tests/e2e/14-meeting-suspension.spec.ts. */}
+      <div data-testid="resume-meeting-modal">
         <div className={styles.header}>
           <span className={styles.iconCircle}>
             <Icon name="resume" size={20} />
           </span>
-          <h2 className={styles.title}>{isActive ? 'Resume this meeting?' : 'Cancel scheduled suspension?'}</h2>
+          <h2 id="resume-meeting-title" className={styles.title}>{isActive ? 'Resume this meeting?' : 'Cancel scheduled suspension?'}</h2>
         </div>
 
         <p className={styles.message}>
@@ -120,7 +127,7 @@ const ResumeMeetingModal: React.FC<ResumeMeetingModalProps> = ({
           </button>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 };
 
