@@ -24,7 +24,15 @@ export const zoomHostPool: string[] = (process.env.ZOOM_HOSTS ?? "")
   .map((email) => email.trim())
   .filter(Boolean);
 
+// Zoom Server-to-Server OAuth tokens are valid ~1hr; cached module-level (not per-request) so
+// a burst of Zoom API calls (e.g. bulk meeting creation, each of which hits this 3+ times)
+// fires one token request instead of one per call -- Zoom rate-limits the token endpoint itself.
+let cachedZoomToken: { token: string; expiresAt: number } | null = null;
+const ZOOM_TOKEN_CACHE_MS = 50 * 60 * 1000; // 50min, margin under Zoom's ~60min expiry
+
 async function getZoomAccessToken(): Promise<string | null> {
+  if (cachedZoomToken && cachedZoomToken.expiresAt > Date.now()) return cachedZoomToken.token;
+
   try {
     const clientId = process.env.ZOOM_CLIENT_ID;
     const clientSecret = process.env.ZOOM_CLIENT_SECRET;
@@ -42,7 +50,9 @@ async function getZoomAccessToken(): Promise<string | null> {
     );
     if (!res.ok) return null;
     const data = await res.json();
-    return data.access_token ?? null;
+    const token = data.access_token ?? null;
+    if (token) cachedZoomToken = { token, expiresAt: Date.now() + ZOOM_TOKEN_CACHE_MS };
+    return token;
   } catch (error) {
     console.error("Zoom getAccessToken error:", error);
     return null;
