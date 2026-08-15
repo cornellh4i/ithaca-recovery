@@ -92,11 +92,12 @@ for the specifics.
 ```bash
 yarn lint                # ESLint
 yarn lint:css            # stylelint — .scss files only, not part of plain `yarn lint`
+yarn typecheck           # tsc --noEmit — full cross-file type-checking, ESLint alone doesn't do this
 yarn test:unit           # seconds, no setup
 yarn test:component      # seconds, no setup
 yarn test:integration    # spins up an embedded Postgres instance
 yarn test:e2e            # spawns a real `next dev` server + Chromium
-yarn test:all            # lint && lint:css && test:unit && test:component && test:integration && test:e2e
+yarn test:all            # lint && lint:css && typecheck && test:unit && test:component && test:integration && test:e2e
 ```
 
 `test:e2e` needs Playwright's browser binaries installed once: `yarn playwright install --with-deps chromium`.
@@ -104,20 +105,20 @@ yarn test:all            # lint && lint:css && test:unit && test:component && te
 ## CI
 
 [`.github/workflows/test.yml`](https://github.com/cornellh4i/ithaca-recovery/blob/master/.github/workflows/test.yml) runs on every push/PR to
-`main`/`master`, as separate jobs: `lint` (ESLint + stylelint), `unit`, `component`, `integration`,
-`e2e`, plus `doc-freshness` (fails if the README/docs cite a stale Node/Next version) — a slow or
-flaky e2e run shouldn't hold up the fast unit-test signal on a PR.
+`main`/`master`, as separate jobs: `lint` (ESLint + stylelint), `typecheck` (`tsc --noEmit`), `unit`,
+`component`, `integration`, `e2e`, plus `doc-freshness` (fails if the README/docs cite a stale
+Node/Next version) — a slow or flaky e2e run shouldn't hold up the fast unit-test signal on a PR.
 The `e2e` job deliberately has no Google/Zoom secrets configured, per the fail-soft design above,
 so it never makes a real external call. On failure it uploads Playwright's trace files
 (`test-results/`) as a downloadable artifact for debugging a CI-only failure.
 
 Note that CI and the Vercel deployment are independent systems — a red `test.yml` run doesn't
 itself block a Vercel deploy. Separately, `master` **is** protected: merging requires a passing
-run of `title-lint`, `commitlint`, `lint`, `unit`, `integration`, and `e2e`, plus one approving
-review (repo Admins can bypass this) — `component` and `doc-freshness` run but aren't part of that
-required set yet. See [Deployment and Rollback](../../02-handoff/deployment-and-rollback.md) §1-2
-for the full picture, including why CI passing and a production deploy happening aren't the same
-guarantee.
+run of `title-lint`, `commitlint`, `lint`, `typecheck`, `unit`, `component`, `integration`, and
+`e2e`, plus one approving review (repo Admins can bypass this) — `doc-freshness` runs but isn't
+part of that required set. See [Deployment and Rollback](../../02-handoff/deployment-and-rollback.md)
+§1-2 for the full picture, including why CI passing and a production deploy happening aren't the
+same guarantee.
 
 `test.yml` is one of several workflows in `.github/workflows/` — commit/PR-title linting,
 CodeQL, dependency-update automation, and more. See [CI/CD](../ci-cd.md) for the full set.

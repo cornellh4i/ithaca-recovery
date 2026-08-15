@@ -84,7 +84,7 @@ Documentation lives in [`docs/`](docs/), organized by audience — see [`docs/RE
 
 Everything under [`.github/`](.github/) runs automatically on push/PR to `master` or on a schedule.
 
-* [`workflows/test.yml`](.github/workflows/test.yml) — lint, unit, component, integration, Playwright e2e (see [Running Tests](#running-tests) below), and a `doc-freshness` job that fails if README.md / `docs/03-development/project-structure.md` cite a Node or Next.js major version that no longer matches `frontend/package.json` (via [`.github/scripts/check-doc-versions.sh`](.github/scripts/check-doc-versions.sh))
+* [`workflows/test.yml`](.github/workflows/test.yml) — lint, typecheck, unit, component, integration, Playwright e2e (see [Running Tests](#running-tests) below), and a `doc-freshness` job that fails if README.md / `docs/03-development/project-structure.md` cite a Node or Next.js major version that no longer matches `frontend/package.json` (via [`.github/scripts/check-doc-versions.sh`](.github/scripts/check-doc-versions.sh))
 * [`workflows/codeql.yml`](.github/workflows/codeql.yml) — CodeQL static analysis for security vulnerabilities, on every PR plus a weekly scheduled scan
 * [`workflows/bump-node-version.yml`](.github/workflows/bump-node-version.yml) — monthly check for a new Node.js Active LTS release; opens a PR bumping `.nvmrc`/`package.json`/`test.yml` if one exists (Vercel's supported versions still need a manual check before merging)
 * [`workflows/calver-bump.yml`](.github/workflows/calver-bump.yml) — monthly CalVer bump (see [Versioning](#versioning)); opens a PR resetting `PATCH` to `0` on the 1st of each month
@@ -116,11 +116,12 @@ architecture and per-service setup (Postgres, Google OAuth, Google Calendar, Zoo
 ```bash
 yarn lint                # ESLint (part of test:all below)
 yarn lint:css             # stylelint — separate from yarn lint (part of test:all below)
+yarn typecheck           # tsc --noEmit — full cross-file type-checking (part of test:all below)
 yarn test:unit           # pure functions, seconds, no setup
 yarn test:component      # individual components in isolation, seconds, no setup
 yarn test:integration    # route handlers against an embedded Postgres instance
 yarn test:e2e            # full Playwright E2E suite (needs `yarn playwright install --with-deps chromium` once)
-yarn test:all            # lint + unit + component + integration + e2e, in that order
+yarn test:all            # lint + lint:css + typecheck + unit + component + integration + e2e, in that order
 ```
 
 See [`docs/03-development/testing/README.md`](docs/03-development/testing/README.md) for how the suite and CI work.

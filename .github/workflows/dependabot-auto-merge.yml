@@ -23,7 +23,7 @@ jobs:
       # individual PRs for manual review + CI green -- those are the ones most likely to
       # carry breaking changes this repo's CI doesn't always catch.
       # Auto-merge still doesn't bypass required status checks -- it just lets the PR merge
-      # itself once lint/unit/integration/e2e all pass.
+      # itself once lint/typecheck/unit/component/integration/e2e all pass.
       - name: Enable auto-merge for patch/minor updates
         if: steps.metadata.outputs.dependency-group == 'safe-updates'
         run: gh pr merge --auto --squash "$PR_URL"

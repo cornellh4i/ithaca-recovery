@@ -274,9 +274,10 @@ yarn build             # rebuild docs snapshot + search index, prisma generate, 
 yarn start             # Start production server
 yarn lint              # Run ESLint
 yarn lint:css          # Run stylelint (separate from yarn lint — only runs on .scss files)
+yarn typecheck         # tsc --noEmit — full cross-file type-checking
 yarn test:unit         # Jest — pure functions
 yarn test:component    # Jest + React Testing Library — components in isolation
 yarn test:integration  # Jest — route handlers against an embedded Postgres instance
 yarn test:e2e          # Playwright — full browser E2E (needs `yarn playwright install --with-deps chromium` once)
-yarn test:all          # lint && lint:css && test:unit && test:component && test:integration && test:e2e
+yarn test:all          # lint && lint:css && typecheck && test:unit && test:component && test:integration && test:e2e
 ```

@@ -73,13 +73,14 @@ that already has a working `GOOGLE_CLIENT_ID`/`_SECRET` and an admin account you
 ```bash
 yarn lint               # ESLint, seconds
 yarn lint:css           # stylelint, seconds — separate from `yarn lint`, .scss files only
+yarn typecheck          # tsc --noEmit, seconds — full cross-file type-checking
 yarn test:unit          # seconds, no setup beyond what you already have
 yarn test:component     # seconds, no setup
 yarn test:integration   # spins up its own embedded Postgres instance — separate from your Neon dev DB
 yarn test:e2e           # needs `yarn playwright install --with-deps chromium` once
 ```
 
-All six should pass on a clean clone with no further setup — the test suites don't use your
+All seven should pass on a clean clone with no further setup — the test suites don't use your
 `.env`'s `DATABASE_URL` at all (`integration`/`e2e` spin up their own embedded Postgres instances).
 If something fails here before you've changed any code, flag and investigate immediately.
 
@@ -89,9 +90,9 @@ Either make a small edit (e.g. add a one line comment), or work on a small issue
 [*good first issue*s](https://github.com/cornellh4i/ithaca-recovery/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22).
 
 1. Make an edit.
-2. `yarn test:all` — runs lint, lint:css, unit, component, integration, and e2e in sequence
-   (`lint:css` covers any `.scss` file you touched too, no separate step needed). This is the same
-   set of tiers CI runs (see [Testing](testing/README.md)).
+2. `yarn test:all` — runs lint, lint:css, typecheck, unit, component, integration, and e2e in
+   sequence (`lint:css` covers any `.scss` file you touched too, no separate step needed). This is
+   the same set of tiers CI runs (see [Testing](testing/README.md)).
 3. `git diff` to see your change, then `git checkout -- <file>` to revert it if it was just practice.
 
 ## Where to go next

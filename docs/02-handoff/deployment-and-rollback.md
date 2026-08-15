@@ -16,18 +16,18 @@ it becomes part of the live app. Before one can be merged, two things are requir
 
 - **A second person has to approve it.** Whoever wrote the change can't approve their own pull
   request — that's not allowed.
-- **A set of automated checks has to pass** — code style, and three tiers of automated tests
-  (unit, integration, and full click-through tests of the actual app). See
-  [Testing](../03-development/testing/README.md) for what each covers.
+- **A set of automated checks has to pass** — code style, a type-check pass, and four tiers of
+  automated tests (unit, component-level, integration, and full click-through tests of the actual
+  app). See [Testing](../03-development/testing/README.md) for what each covers.
 
 GitHub itself blocks the merge until both are satisfied.
 
 **Two caveats:**
 
-- A few secondary checks (a component-level test tier, a documentation-freshness check, and a
-  security scan) run automatically but aren't required to pass before merging. Thus, it's
-  possible, though not typical, for one of those specifically to be failing at merge time. The
-  core tests mentioned above are always required.
+- A couple of secondary checks (a documentation-freshness check and a security scan) run
+  automatically but aren't required to pass before merging. Thus, it's possible, though not
+  typical, for one of those specifically to be failing at merge time. The core tests mentioned
+  above are always required.
 - A small number of people with Admin-level access on the repository can skip the
   review/check requirement entirely if needed. This is a standard GitHub capability reserved for
   exceptional cases, and is not part of the normal day-to-day process.
