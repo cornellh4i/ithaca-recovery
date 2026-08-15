@@ -174,7 +174,7 @@ Zoom sync runs the same mode-gated, resolve-before-publish way as `POST /api/wri
 ```
 
 **Response:** `200 OK` — created `IAdmin` object
-**Error:** `400 Bad Request` — request body fails schema validation (issues listed in the response); `409 Conflict` — an admin with this email already exists
+**Error:** `400 Bad Request` — request body fails schema validation (issues listed in the response) or is malformed JSON; `409 Conflict` — an admin with this email already exists; `500 Internal Server Error`
 
 ---
 
@@ -186,7 +186,7 @@ Zoom sync runs the same mode-gated, resolve-before-publish way as `POST /api/wri
 | `email` | string | Admin email address |
 
 **Response:** `200 OK` — `IAdmin`
-**Error:** `404 Not Found`
+**Error:** `404 Not Found`; `500 Internal Server Error`
 
 ---
 
@@ -194,6 +194,7 @@ Zoom sync runs the same mode-gated, resolve-before-publish way as `POST /api/wri
 **Requires:** `SUPER_ADMIN`. Retrieve all admins (backs the Users tab on `/admin`).
 
 **Response:** `200 OK` — `IAdmin[]`
+**Error:** `500 Internal Server Error`
 
 ---
 
@@ -206,7 +207,7 @@ Zoom sync runs the same mode-gated, resolve-before-publish way as `POST /api/wri
 ```
 
 **Response:** `200 OK` — updated `IAdmin`
-**Error:** `400 Bad Request` — request body fails schema validation, or it would leave zero Super Admins; `404 Not Found`; `409 Conflict` — a concurrent change conflicted with this update, retry
+**Error:** `400 Bad Request` — request body fails schema validation, is malformed JSON, or it would leave zero Super Admins; `404 Not Found`; `409 Conflict` — a concurrent change conflicted with this update, retry; `500 Internal Server Error`
 
 ---
 
@@ -219,7 +220,7 @@ Zoom sync runs the same mode-gated, resolve-before-publish way as `POST /api/wri
 ```
 
 **Response:** `200 OK` — deleted `IAdmin` object
-**Error:** `400 Bad Request` — it would leave zero Super Admins; `404 Not Found`; `409 Conflict` — a concurrent change conflicted with this removal, retry
+**Error:** `400 Bad Request` — it would leave zero Super Admins; `404 Not Found`; `409 Conflict` — a concurrent change conflicted with this removal, retry; `500 Internal Server Error`
 
 ---
 

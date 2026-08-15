@@ -12,7 +12,14 @@ export const POST = async (request: Request) => {
     const auth = await requireRole(Role.SUPER_ADMIN);
     if (auth instanceof Response) return auth;
 
-    const parsed = adminInviteSchema.safeParse(await request.json());
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: "Invalid email or role" }, { status: 400 });
+    }
+
+    const parsed = adminInviteSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json({ error: "Invalid email or role", issues: parsed.error.issues }, { status: 400 });
     }

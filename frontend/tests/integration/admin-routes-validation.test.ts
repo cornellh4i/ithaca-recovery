@@ -42,3 +42,21 @@ test("updating an admin's role with an invalid role string returns 400", async (
   const response = await PUT(request);
   expect(response.status).toBe(400);
 });
+
+test("inviting an admin with a malformed JSON body returns 400, not 500", async () => {
+  const request = new Request("http://localhost/api/write/admin", {
+    method: "POST",
+    body: "{not valid json",
+  });
+  const response = await POST(request);
+  expect(response.status).toBe(400);
+});
+
+test("updating an admin's role with a malformed JSON body returns 400, not 500", async () => {
+  const request = new Request("http://localhost/api/update/admin", {
+    method: "PUT",
+    body: "{not valid json",
+  });
+  const response = await PUT(request);
+  expect(response.status).toBe(400);
+});
