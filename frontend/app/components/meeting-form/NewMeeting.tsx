@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useImperativeHandle, useState } from 'react';
 import { MeetingForm } from './MeetingForm';
 
 import TextField from '../ui/inputs/TextField';
@@ -33,12 +33,20 @@ interface NewMeetingSidebarProps {
   selectedView: string;
 }
 
-const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({
+// Exposed via ref so a host that also renders its own dialog chrome around this component
+// (MobileFullScreenSheet's Escape-to-close on mobile) can trigger the exact same reset-then-
+// close path the in-form Cancel/X button uses, instead of a bare setIsNewMeetingOpen(false)
+// that would skip resetForm() -- see page.tsx's mobile New Meeting sheet.
+export interface NewMeetingSidebarHandle {
+  requestClose: () => void;
+}
+
+const NewMeetingSidebar = React.forwardRef<NewMeetingSidebarHandle, NewMeetingSidebarProps>(({
   setIsNewMeetingOpen,
   triggerCalendarRefresh,
   selectedDate,
   selectedView,
-}) => {
+}, ref) => {
     const {
       title: inputMeetingTitleValue, setTitle: setMeetingTitleValue,
       mode: selectedMode,
@@ -72,6 +80,8 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({
       resetForm();
       setIsNewMeetingOpen(false);
     };
+
+    useImperativeHandle(ref, () => ({ requestClose: handleCloseNewMeeting }));
 
     const submitMeeting = async (payload: IMeeting, confirmOverride: boolean) => {
       setIsSubmitting(true);
@@ -292,6 +302,8 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({
         />
       </div>
     );
-  };
+  });
+
+NewMeetingSidebar.displayName = 'NewMeetingSidebar';
 
 export default NewMeetingSidebar;
