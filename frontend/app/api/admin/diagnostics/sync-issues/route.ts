@@ -5,6 +5,13 @@ import { prisma } from "../../../../../lib/prisma";
 
 const notDeleted = { deletedAt: null };
 
+// A meeting whose deferred sync job never even started (e.g. the request crashed before
+// `after()` ran) or crashed before writing any status leaves googleSyncStatus at its default
+// `null` forever, which nothing else here flags as a problem. Guarded by this staleness window
+// so a meeting that's mid-flight (its deferred job just hasn't reached its write yet) isn't
+// misreported as broken.
+const NEVER_ATTEMPTED_STALE_MS = 5 * 60 * 1000;
+
 // Diagnostics Sync Issues panel: meetings that failed to sync to Zoom or Google Calendar, or
 // are waiting on a Zoom host. Split out from the old combined /api/admin/diagnostics route so
 // retrying a sync issue only needs to refetch this panel, not the other four.
@@ -35,6 +42,12 @@ export const GET = async () => {
           issues.push({ text: "Waiting on a Zoom host to become available — calendars not yet published.", severity: "warning" });
         } else if (m.googleSyncStatus === "error") {
           issues.push({ text: "Google Calendar sync failed.", severity: "danger" });
+        } else if (
+          m.googleSyncStatus === null &&
+          m.calType.length > 0 &&
+          Date.now() - (m.updatedAt?.getTime() ?? 0) > NEVER_ATTEMPTED_STALE_MS
+        ) {
+          issues.push({ text: "Google Calendar sync was never attempted for this meeting.", severity: "danger" });
         }
         if (needsZoom && m.zoomSyncStatus === "error") {
           issues.push({ text: m.zoomSyncError ? `Zoom sync failed: ${m.zoomSyncError}` : "Zoom sync failed.", severity: "danger" });

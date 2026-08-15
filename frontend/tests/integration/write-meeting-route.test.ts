@@ -35,10 +35,12 @@ jest.mock("../../services/zoom", () => ({
   zoomRoomCalendarId: {},
 }));
 
+import { requireRole } from "../../services/auth";
 import { createCalendarEvent } from "../../services/googleCalendar";
 import { resolveZoomHost, createZoomMeeting } from "../../services/zoom";
 import { POST } from "../../app/api/write/meeting/route";
 
+const mockedRequireRole = requireRole as jest.Mock;
 const mockedCreateCalendarEvent = createCalendarEvent as jest.Mock;
 const mockedResolveZoomHost = resolveZoomHost as jest.Mock;
 const mockedCreateZoomMeeting = createZoomMeeting as jest.Mock;
@@ -628,4 +630,24 @@ test("a category with no configured calendar fails the meeting's sync, even if i
   // a false "synced" from only checking the categories that happened to resolve.
   expect(mockedCreateCalendarEvent).toHaveBeenCalledTimes(1);
   expect(afterSync?.googleSyncStatus).toBe("error");
+});
+
+test("a missing access token persists an error status instead of leaving googleSyncStatus null forever", async () => {
+  mockedRequireRole.mockResolvedValueOnce({ user: { role: "ADMIN" }, accessToken: undefined });
+
+  // Distinct room -- buildMeetingPayload's default ("Serenity Room") is shared by other tests
+  // in this suite (see the "Distinct room" comment further down).
+  const payload = buildMeetingPayload({ room: "No Access Token Room" });
+  const request = new Request("http://localhost/api/write/meeting", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+
+  const response = await POST(request);
+  expect(response.status).toBe(201);
+
+  const afterSync = await waitForGoogleSyncStatus(payload.mid);
+  expect(afterSync?.googleSyncStatus).toBe("error");
+  expect(afterSync?.googleSyncError).toBeTruthy();
+  expect(mockedCreateCalendarEvent).not.toHaveBeenCalled();
 });

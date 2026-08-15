@@ -166,6 +166,14 @@ async function syncUpdatedMeeting(
         googleSyncError: allSynced ? null : googleSyncError,
       },
     });
+  } else {
+    // No accessToken and not zoomBlocking -- without this branch googleSyncStatus is never
+    // touched by this run, leaving it at whatever it already was (often null) with nothing
+    // surfacing the failure to an admin.
+    await prisma.meeting.update({
+      where: { mid },
+      data: { googleSyncStatus: 'error', googleSyncError: "No Google Calendar access token available for this sync." },
+    });
   }
 
   if (zoomEnabled) {
@@ -432,8 +440,24 @@ const updateMeeting = async (request: Request): Promise<Response> => {
       throw error;
     }
 
-    // GCal/Zoom sync runs after the response is sent — see syncUpdatedMeeting above.
-    after(syncUpdatedMeeting(mid, newMeeting, existingMeeting, auth.accessToken, resolvedHost, hostSyncError));
+    // GCal/Zoom sync runs after the response is sent — see syncUpdatedMeeting above. Caught here
+    // so a throw mid-sync (as opposed to a handled failure, which syncUpdatedMeeting already
+    // persists as an error status itself) doesn't vanish as a silent unhandled rejection,
+    // leaving the meeting's sync status at whatever it was before this run.
+    after(
+      syncUpdatedMeeting(mid, newMeeting, existingMeeting, auth.accessToken, resolvedHost, hostSyncError)
+        .catch(async (error) => {
+          console.error("syncUpdatedMeeting threw:", error);
+          try {
+            await prisma.meeting.update({
+              where: { mid },
+              data: { googleSyncStatus: 'error', googleSyncError: "Sync job failed unexpectedly." },
+            });
+          } catch (persistError) {
+            console.error("Failed to persist sync failure status:", persistError);
+          }
+        }),
+    );
 
     return NextResponse.json(updatedMeeting);
   } catch (error) {

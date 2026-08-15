@@ -40,9 +40,11 @@ jest.mock("../../services/zoom", () => ({
 import { getTestPrismaClient, disconnectTestPrismaClient } from "../factories/db";
 import { seedSuspensionPeriod } from "../factories/meeting";
 import { PUT } from "../../app/api/update/meeting/route";
+import { requireRole } from "../../services/auth";
 import { updateZoomMeeting, createZoomMeeting, deleteZoomMeeting, resolveZoomHost } from "../../services/zoom";
 import { reconcileMeetingCalendars, createCalendarEvent } from "../../services/googleCalendar";
 
+const mockedRequireRole = requireRole as jest.Mock;
 const mockedUpdateZoomMeeting = updateZoomMeeting as jest.Mock;
 const mockedCreateZoomMeeting = createZoomMeeting as jest.Mock;
 const mockedDeleteZoomMeeting = deleteZoomMeeting as jest.Mock;
@@ -581,4 +583,34 @@ test("editing a meeting whose scheduled resume date has already passed promotes 
 
   const suspension = await prisma.suspensionPeriod.findFirst({ where: { mid } });
   expect(suspension?.promoted).toBe(true);
+});
+
+test("a missing access token persists an error status instead of leaving googleSyncStatus unset", async () => {
+  mockedRequireRole.mockResolvedValueOnce({ user: { role: "ADMIN" }, accessToken: undefined });
+
+  const prisma = getTestPrismaClient();
+  const mid = `m-${randomUUID()}`;
+  // Distinct room -- buildMeetingPayload's default ("Serenity Room") is shared by other tests
+  // in this suite that also create real rows at its default date, and the room conflict check
+  // would otherwise make this order-dependent on unrelated leftover data.
+  const { recurrencePattern: _rp, ...existingMeetingData } = buildMeetingPayload({ mid, room: "No Access Token Room" });
+  await prisma.meeting.create({ data: existingMeetingData });
+
+  const payload = buildMeetingPayload({ mid, room: "No Access Token Room", title: "Edited Title" });
+  const request = new Request("http://localhost/api/update/meeting", {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+
+  const response = await PUT(request);
+  expect(response.status).toBe(200);
+
+  const afterSync = await waitFor(async () => {
+    const row = await prisma.meeting.findUnique({ where: { mid } });
+    return row?.googleSyncStatus != null ? row : null;
+  });
+
+  expect(afterSync?.googleSyncStatus).toBe("error");
+  expect(afterSync?.googleSyncError).toBeTruthy();
+  expect(mockedReconcileMeetingCalendars).not.toHaveBeenCalled();
 });
