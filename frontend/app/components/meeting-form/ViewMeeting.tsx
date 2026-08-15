@@ -12,7 +12,13 @@ import Icon from '../ui/displays/Icon';
 
 import { IRecurrencePattern } from '../../../types/models';
 import { formatCompactTimeRange, formatMeetingDateLine } from "../../../util/date/timeFormat";
-import { formatETDateString } from "../../../util/date/timeUtils";
+import {
+  convertETToUTC,
+  formatETDateString,
+  formatETWeekdayLong,
+  getETTimeOfDay,
+} from "../../../util/date/timeUtils";
+import { daysBetweenET } from "../../../util/date/weekDates";
 import { retryMeetingSync } from "../../../services/syncMeeting";
 import { useToast } from "../shared/ToastProvider";
 import { formatSuspensionStatusText } from "../../../util/meetings/suspensionText";
@@ -326,24 +332,26 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
   };
 
   const doesMeetingOccurOnDate = (date: Date): boolean => {
+    // date is currentOccurrenceDate, an optional prop with no upstream validity guarantee
+    // beyond an existence check at the call site below -- guard first, since the ET-safe
+    // Intl.DateTimeFormat-based helpers below throw a RangeError on an invalid Date.
+    if (isNaN(date.getTime())) return false;
     if (!isRecurring || !recurrencePattern) {
       const meetingDate = new Date(startDateTime);
-      return (
-        meetingDate.getFullYear() === date.getFullYear() &&
-        meetingDate.getMonth() === date.getMonth() &&
-        meetingDate.getDate() === date.getDate()
-      );
+      return formatETDateString(meetingDate) === formatETDateString(date);
     }
 
     if (recurrencePattern.type === "weekly") {
-      const dayOfWeek = date.toLocaleDateString('en-US', { weekday: 'long' });
+      const dayOfWeek = formatETWeekdayLong(date);
       if (!(recurrencePattern.daysOfWeek ?? []).includes(dayOfWeek)) {
         return false;
       }
 
-      const originalDate = new Date(startDateTime);
-      const diffTime = Math.abs(date.getTime() - originalDate.getTime());
-      const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+      // ET calendar-day difference, not a raw instant diff -- date (the occurrence being
+      // checked) and startDateTime aren't anchored to the same time-of-day (occurrence dates
+      // are noon-ET-anchored, see weekDates.ts), so diffing getTime() directly and flooring by
+      // 24h can undercount by a day and miscompute diffWeeks for interval > 1 patterns.
+      const diffDays = Math.abs(daysBetweenET(startDateTime, date));
       const diffWeeks = Math.floor(diffDays / 7);
 
       return diffWeeks % recurrencePattern.interval === 0;
@@ -356,10 +364,15 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
   let displayEndDate = endDateTime;
 
   if (isRecurring && currentOccurrenceDate && doesMeetingOccurOnDate(currentOccurrenceDate)) {
-    const newStartDate = new Date(startDateTime);
-    newStartDate.setFullYear(currentOccurrenceDate.getFullYear());
-    newStartDate.setMonth(currentOccurrenceDate.getMonth());
-    newStartDate.setDate(currentOccurrenceDate.getDate());
+    // Keeps startDateTime's ET time-of-day, moved onto currentOccurrenceDate's ET calendar
+    // day -- via convertETToUTC so this is correct regardless of the viewer's own timezone.
+    const occurrenceDateStr = formatETDateString(currentOccurrenceDate);
+    const { hour, minute, second } = getETTimeOfDay(startDateTime);
+    // convertETToUTC's time-part parsing tolerates unpadded numbers, so no padStart needed.
+    const newStartDate = new Date(convertETToUTC(`${occurrenceDateStr}T${hour}:${minute}:${second}`));
+    // Milliseconds have no timezone component -- getETTimeOfDay doesn't carry them, so restore
+    // directly from startDateTime rather than losing sub-second precision on the re-anchor.
+    newStartDate.setUTCMilliseconds(startDateTime.getUTCMilliseconds());
 
     displayStartDate = newStartDate;
 

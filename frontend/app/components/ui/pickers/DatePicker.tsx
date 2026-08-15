@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import styles from "./DatePicker.module.scss";
 import MiniCalendar from '../../calendar/MiniCalendar'; // Adjust import path as needed
+import { formatETDateString } from '../../../../util/date/timeUtils';
+import { toNoonETOnLocalCalendarDay } from '../../../../util/date/weekDates';
 
 interface DatePickerProps {
   label: string | React.JSX.Element;
@@ -75,8 +77,15 @@ const DatePicker = ({ label, value: propValue = '', onChange, underlineOnFocus =
    * @returns dateString in Date form
    */
   const stringToDate = (dateString: string): Date => {
-    // TODO: Validate that this is compatible with timezone fix
-    // If it's a formatted date (e.g., "January 1, 2023")
+    // INVARIANT: both branches below deliberately return a local-midnight Date (not routed
+    // through convertETToUTC) -- this feeds MiniCalendar's underlying react-day-picker, which
+    // compares `selected` against click-generated dates using its own local Date getters (see
+    // weekDates.ts's toNoonETOnLocalCalendarDay, and MiniCalendar.tsx's own INVARIANT comment).
+    // Matching that library's local semantics here is what's correct; an ET-anchored instant
+    // would highlight the wrong cell on a runtime whose local zone isn't ET.
+
+    // If it's a formatted date (e.g., "January 1, 2023"). Single-arg new Date(string) isn't
+    // banned by the lint rule (only the multi-arg local-component form is).
     if (dateString.includes(",")) {
       return new Date(dateString);
     }
@@ -85,6 +94,7 @@ const DatePicker = ({ label, value: propValue = '', onChange, underlineOnFocus =
     const regex = /^(1[0-2]|0?[1-9])\/([1-2][0-9]|3[01]|0?[1-9])\/(\d{4})$/;
     if (regex.test(dateString)) {
       const [month, day, year] = dateString.split('/').map(Number);
+      // eslint-disable-next-line no-restricted-syntax -- see comment above
       return new Date(year, month - 1, day);
     }
 
@@ -99,7 +109,7 @@ const DatePicker = ({ label, value: propValue = '', onChange, underlineOnFocus =
  */
 
   const stringToDateString = (dateString: string): string => {
-    const currentYear = new Date().getFullYear();
+    const currentYear = Number(formatETDateString(new Date()).slice(0, 4));
     const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
     const monthAbbr = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   
@@ -214,10 +224,12 @@ const DatePicker = ({ label, value: propValue = '', onChange, underlineOnFocus =
   };
 
   const handleDateSelect = (date: Date) => {
-  const month = date.getMonth() + 1;
-  const day = date.getDate();
-  const year = date.getFullYear();
-  const dateString = `${month.toString().padStart(2, '0')}/${day.toString().padStart(2, '0')}/${year}`;
+  // date comes from MiniCalendar's underlying react-day-picker onSelect, which hands back a
+  // local-midnight-anchored Date for whichever cell was clicked -- normalize via the same
+  // adapter stringToDate's comment above references, then read back the ET (== the clicked
+  // cell's) calendar day.
+  const [year, month, day] = formatETDateString(toNoonETOnLocalCalendarDay(date)).split('-');
+  const dateString = `${month}/${day}/${year}`;
 
   // Format the date for display, but notify the parent with the MM/DD/YYYY
   // form (per this component's own `value` doc comment) — same split as

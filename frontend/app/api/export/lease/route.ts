@@ -4,6 +4,7 @@ import { defaultLeaseSettings } from "../../../../util/lease/leaseDefaults";
 import { formatDayColumn } from "../../../../util/meetings/recurrenceDisplay";
 import type { ILeaseSettings, IRoomRate } from "../../../../types/models";
 import { prisma } from "../../../../lib/prisma";
+import { getETTimeOfDay } from "../../../../util/date/timeUtils";
 
 const notDeleted = { deletedAt: null };
 
@@ -33,11 +34,14 @@ function formatRoomDisplay(room: string, roomRate: IRoomRate): string {
   return `${room} ($${roomRate.rate}/${roomRate.unit})`;
 }
 
+// Meeting.startDateTime/endDateTime are real ET wall-clock instants (unlike the lease
+// @db.Date fields formatLeaseDate handles below), so this reads ET, not UTC -- getUTCHours
+// would show the meeting's UTC hour, off by 4-5 hours (DST-dependent) from what it's
+// actually scheduled for.
 function formatTime(date: Date): string {
-  let hours = date.getUTCHours();
-  const minutes = date.getUTCMinutes();
-  const ampm = hours >= 12 ? "PM" : "AM";
-  hours = hours % 12 || 12;
+  const { hour, minute: minutes } = getETTimeOfDay(date);
+  const ampm = hour >= 12 ? "PM" : "AM";
+  const hours = hour % 12 || 12;
   const minutesStr = minutes < 10 ? `0${minutes}` : `${minutes}`;
   return `${hours}:${minutesStr} ${ampm}`;
 }
@@ -47,7 +51,10 @@ function calculateBillableTime(start: Date, end: Date): number {
 }
 
 function formatLeaseDate(date: Date): string {
+  // Deliberately UTC, not ET -- lease dates are plain @db.Date calendar dates with no time
+  // component (unlike Meeting.startDateTime/endDateTime), so there's no ET wall-clock to derive.
   const day = date.getUTCDate();
+  // eslint-disable-next-line no-restricted-syntax -- explicit timeZone: "UTC" above, see comment
   const month = date.toLocaleString("en-US", { month: "short", timeZone: "UTC" });
   const year = date.getUTCFullYear().toString().slice(-2);
   return `${day}-${month}-${year}`;

@@ -10,7 +10,7 @@ import styles from "./RecurringMeeting.module.scss";
 
 import CheckButton from '../ui/buttons/CheckButton';
 import { IRecurrencePattern } from "../../../types/models";
-import { convertETToUTC, convertUTCToET } from "../../../util/date/timeUtils";
+import { convertUTCToET, formatETDateString, getDaysInMonth, getETDayOfWeek, parseMMDDYYYY } from "../../../util/date/timeUtils";
 
 
 interface RecurringMeetingFormProps {
@@ -57,7 +57,8 @@ function inferEndOption(pattern: IRecurrencePattern | null): string {
 }
 
 // Format a Date (or ISO string) to "MM/DD/YYYY". Reads back via ET, not raw UTC getters —
-// startDate/endDate are ET-midnight-anchored UTC instants (see etMidnightUTC below).
+// startDate/endDate are ET-midnight-anchored UTC instants (see parseMMDDYYYY's own call sites
+// below for the inverse).
 function toDatePickerString(date: Date | string | null | undefined): string {
   if (!date) return "";
   const d = new Date(date as string);
@@ -66,24 +67,20 @@ function toDatePickerString(date: Date | string | null | undefined): string {
   return etDateString.split(',')[0];
 }
 
-// Converts "MM/DD/YYYY" into a UTC Date at ET midnight for that day — matching how the
-// meeting's own start/end times are built, independent of the browser's local timezone.
-function etMidnightUTC(datePickerString: string): Date {
-  const match = datePickerString.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-  if (!match) return new Date(NaN);
-  const [, month, day, year] = match;
-  return new Date(convertETToUTC(`${year}-${month}-${day}T00:00:00`));
-}
-
 // Derives the dropdown options for monthly recurrence from the meeting's start date.
 // A 5th weekday is always the last, so we show "last" instead of "5th".
 function getMonthlyOptions(startDateStr: string): string[] {
-  const date = new Date(startDateStr);
-  if (isNaN(date.getTime())) return [];
-  const dayOfMonth = date.getDate();
-  const weekdayName = weekdayNames[date.getDay()];
+  // startDateStr is the DatePicker's raw "MM/DD/YYYY" value (see NewMeeting/EditMeeting's
+  // dateValue), not an ISO instant -- parseMMDDYYYY handles the unpadded digits DatePicker's
+  // onChange can forward, unlike new Date(string), whose non-ISO MM/DD/YYYY parsing behavior
+  // isn't reliably specified across engines.
+  const date = parseMMDDYYYY(startDateStr);
+  if (!date) return [];
+  const [year, month, day] = formatETDateString(date).split('-').map(Number);
+  const dayOfMonth = day;
+  const weekdayName = weekdayNames[getETDayOfWeek(date)];
   const nth = Math.ceil(dayOfMonth / 7);
-  const daysInMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+  const daysInMonth = getDaysInMonth(year, month);
   const isLast = dayOfMonth + 7 > daysInMonth;
 
   const options: string[] = [`Monthly on day ${dayOfMonth}`];
@@ -135,10 +132,12 @@ const RecurringMeetingForm: React.FC<RecurringMeetingFormProps> = ({
   useEffect(() => {
     if (isRecurring && recurrenceType === "weekly" && startDate) {
       try {
-        const date = new Date(startDate);
-        if (!isNaN(date.getTime()) && selectedDays.length === 0) {
+        // startDate is the DatePicker's raw "MM/DD/YYYY" value -- see getMonthlyOptions'
+        // comment on why this goes through parseMMDDYYYY, not new Date(string).
+        const date = parseMMDDYYYY(startDate);
+        if (date && selectedDays.length === 0) {
           // eslint-disable-next-line react-hooks/set-state-in-effect
-          setSelectedDays([days[date.getDay()].id]);
+          setSelectedDays([days[getETDayOfWeek(date)].id]);
         }
       } catch (error) {
         console.error("Error parsing date:", error);
@@ -211,22 +210,22 @@ const RecurringMeetingForm: React.FC<RecurringMeetingFormProps> = ({
         recurrencePattern = {
           type: "monthly",
           interval: 1,
-          startDate: startDate ? etMidnightUTC(startDate) : new Date(),
+          startDate: parseMMDDYYYY(startDate ?? '') ?? new Date(),
           firstDayOfWeek: "Sunday",
           daysOfWeek,
           weekOfMonth,
           dayOfMonth,
-          endDate: endOption === 'On' && endDate ? etMidnightUTC(endDate) : null,
+          endDate: endOption === 'On' && endDate ? parseMMDDYYYY(endDate) : null,
           numberOfOccurrences: endOption === 'After' ? occurrences : null,
         };
       } else {
         recurrencePattern = {
           type: "weekly",
           interval: frequency,
-          startDate: startDate ? etMidnightUTC(startDate) : new Date(),
+          startDate: parseMMDDYYYY(startDate ?? '') ?? new Date(),
           firstDayOfWeek: "Sunday",
           daysOfWeek: selectedDays.map(day => dayMapping[day]),
-          endDate: endOption === 'On' && endDate ? etMidnightUTC(endDate) : null,
+          endDate: endOption === 'On' && endDate ? parseMMDDYYYY(endDate) : null,
           numberOfOccurrences: endOption === 'After' ? occurrences : null,
         };
       }

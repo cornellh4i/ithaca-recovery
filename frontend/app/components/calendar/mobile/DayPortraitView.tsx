@@ -5,7 +5,7 @@ import CalendarHeader from "../shared/CalendarHeader";
 import DayColumn from "../shared/DayColumn";
 import { filterMeetingsForDate, MeetingFilters } from "../../../../util/filters/meetingFilters";
 import { ROOM_COLORS, ZOOM_ROOM_COLOR, REMOTE_COLOR } from "../../../../util/rooms/filterColors";
-import { formatETDateString } from "../../../../util/date/timeUtils";
+import { formatETDateString, getCurrentETMinutesSinceMidnight } from "../../../../util/date/timeUtils";
 import { layoutOverlappingMeetings, OverlapMeeting } from "../../../../util/meetings/meetingOverlapLayout";
 import { getFirstDayOfWeek, addDaysToDate } from "../../../../util/date/weekDates";
 import { useWeekMeetings } from "../../../../hooks/useWeekMeetings";
@@ -152,8 +152,7 @@ const DayPortraitView: React.FC<DayPortraitViewProps> = ({
   const scrollToCurrentTime = useCallback(() => {
     const el = scrollAreaRef.current;
     if (!el) return;
-    const now = new Date();
-    const nowPositionPx = (now.getHours() * 60 + now.getMinutes()) * (MOBILE_HOUR_HEIGHT / 60);
+    const nowPositionPx = getCurrentETMinutesSinceMidnight() * (MOBILE_HOUR_HEIGHT / 60);
     const scrollPosition = Math.max(0, nowPositionPx - MOBILE_HOUR_HEIGHT * 2);
     el.scrollTop = scrollPosition;
     // Keeps handleScroll's own delta calculation from seeing this programmatic jump as a
@@ -299,7 +298,7 @@ const DayPortraitView: React.FC<DayPortraitViewProps> = ({
         {isDateToday(date) && (
           <div
             className={styles.currentTimeIndicator}
-            style={{ top: `${(new Date().getHours() * 60 + new Date().getMinutes()) * (MOBILE_HOUR_HEIGHT / 60)}px` }}
+            style={{ top: `${getCurrentETMinutesSinceMidnight() * (MOBILE_HOUR_HEIGHT / 60)}px` }}
           />
         )}
       </div>

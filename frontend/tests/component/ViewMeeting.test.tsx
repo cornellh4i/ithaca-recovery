@@ -128,4 +128,44 @@ describe("ViewMeeting", () => {
       expect(screen.getByRole("button", { name: "Hide sync error details" })).toBeInTheDocument();
     });
   });
+
+  describe("biweekly recurrence occurrence re-anchoring", () => {
+    // doesMeetingOccurOnDate diffs ET calendar days (daysBetweenET), not raw instants --
+    // date (noon-ET-anchored) and startDateTime aren't at the same time-of-day, so a raw
+    // getTime() diff can undercount and miscompute diffWeeks for interval > 1 patterns.
+    const biweeklyProps = {
+      ...baseProps,
+      // Wednesday, July 15 2026, 6:00 PM ET (EDT, UTC-4).
+      startDateTime: new Date("2026-07-15T22:00:00Z"),
+      endDateTime: new Date("2026-07-15T23:00:00Z"),
+      isRecurring: true,
+      recurrencePattern: {
+        type: "weekly",
+        startDate: new Date("2026-07-15T04:00:00Z"),
+        daysOfWeek: ["Wednesday"],
+        firstDayOfWeek: "Sunday",
+        interval: 2,
+      },
+      // Noon ET, Wednesday July 29 2026 -- exactly 2 ET calendar weeks after startDateTime,
+      // noon-anchored the same way weekDates.ts's getDaysOfWeek/getFirstDayOfWeek build
+      // occurrence dates in the real calendar views.
+      currentOccurrenceDate: new Date("2026-07-29T16:00:00Z"),
+      anchorEl: makeAnchorEl(),
+      isPhone: false,
+    };
+
+    it("shows the clicked occurrence's date, not the series' original start date", async () => {
+      renderViewMeeting(biweeklyProps);
+      expect(await screen.findByText(/July 29/)).toBeInTheDocument();
+      expect(screen.queryByText(/July 15/)).not.toBeInTheDocument();
+    });
+
+    // currentOccurrenceDate is an optional prop with no upstream parseability guarantee beyond
+    // an existence check. doesMeetingOccurOnDate guards it before running any ET-safe helper
+    // on it, since those throw a RangeError on an invalid Date.
+    it("does not crash on an invalid currentOccurrenceDate, and falls back to the series' start date", async () => {
+      renderViewMeeting({ ...biweeklyProps, currentOccurrenceDate: new Date("not-a-date") });
+      expect(await screen.findByText(/July 15/)).toBeInTheDocument();
+    });
+  });
 });

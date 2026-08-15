@@ -1,4 +1,10 @@
-import { getFirstDayOfWeek, getDaysOfWeek, daysBetweenET } from "../../util/date/weekDates";
+import {
+  getFirstDayOfWeek,
+  getDaysOfWeek,
+  daysBetweenET,
+  addDaysToDate,
+  toNoonETOnLocalCalendarDay,
+} from "../../util/date/weekDates";
 import { formatETDateString } from "../../util/date/timeUtils";
 
 const utcNoon = (y: number, m: number, d: number) => new Date(Date.UTC(y, m - 1, d, 16, 0)); // ~noon ET
@@ -57,5 +63,24 @@ describe("daysBetweenET", () => {
 
   it("handles a month boundary correctly", () => {
     expect(daysBetweenET(utcNoon(2026, 7, 30), utcNoon(2026, 8, 3))).toBe(4);
+  });
+});
+
+describe("addDaysToDate", () => {
+  it("shifts forward across a month boundary", () => {
+    expect(formatETDateString(addDaysToDate(utcNoon(2026, 7, 30), 3))).toBe("2026-08-02");
+  });
+
+  it("shifts backward across a month boundary", () => {
+    expect(formatETDateString(addDaysToDate(utcNoon(2026, 8, 2), -3))).toBe("2026-07-30");
+  });
+});
+
+describe("toNoonETOnLocalCalendarDay", () => {
+  it("re-anchors a local-midnight Date to the matching ET calendar day", () => {
+    // Tests run under TZ=UTC (config/jest.config.ts), so "local" here is UTC -- a local-
+    // midnight Date for July 15 should round-trip to ET calendar day July 15, not 14 or 16.
+    const localMidnight = new Date(2026, 6, 15);
+    expect(formatETDateString(toNoonETOnLocalCalendarDay(localMidnight))).toBe("2026-07-15");
   });
 });

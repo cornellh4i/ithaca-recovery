@@ -33,11 +33,14 @@ const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
 
 // "MM/DD/YYYY" -> "YYYY-MM-DD" via string rearrangement, no Date round-trip — avoids the
 // timezone bug where new Date("MM/DD/YYYY") + .toISOString() rolls the date back a day.
+// Tolerates unpadded month/day: DatePicker's onChange can forward the user's raw typed text
+// (e.g. "1/5/2026"), not just its zero-padded formatDate() output, and buildMeetingPayload
+// treats a null return here as a silent save failure (see below).
 function toISODate(dateString: string): string | null {
-    const match = dateString.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+    const match = dateString.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
     if (!match) return null;
     const [, month, day, year] = match;
-    return `${year}-${month}-${day}`;
+    return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
 }
 
 // Formats a UTC Date into ET wall-clock "MM/DD/YYYY" / "HH:MM", for seeding edit-form initial values.

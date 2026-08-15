@@ -4,7 +4,7 @@ import styles from "./MultiDayLandscapeView.module.scss";
 import DayColumn from "../shared/DayColumn";
 import { filterMeetingsForDate, MeetingFilters } from "../../../../util/filters/meetingFilters";
 import { ROOM_COLORS, ZOOM_ROOM_COLOR, REMOTE_COLOR } from "../../../../util/rooms/filterColors";
-import { formatETDateString, getCurrentETMinutesSinceMidnight } from "../../../../util/date/timeUtils";
+import { formatETDateString, formatETWeekdayShort, getCurrentETMinutesSinceMidnight } from "../../../../util/date/timeUtils";
 import { layoutOverlappingMeetings, OverlapMeeting } from "../../../../util/meetings/meetingOverlapLayout";
 import { addDaysToDate, daysBetweenET } from "../../../../util/date/weekDates";
 import { useRangeMeetings } from "../../../../hooks/useRangeMeetings";
@@ -37,8 +37,7 @@ const TIME_COLUMN_WIDTH = 32;
 const SWIPE_VELOCITY_THRESHOLD = 400;
 const SETTLE_TRANSITION = { type: "tween" as const, duration: 0.2, ease: [0.2, 0.8, 0.3, 1] as [number, number, number, number] };
 
-const formatDayName = (date: Date): string =>
-  date.toLocaleDateString("en-US", { weekday: "short", timeZone: "America/New_York" }).toUpperCase();
+const formatDayName = (date: Date): string => formatETWeekdayShort(date).toUpperCase();
 const formatDateNumber = (date: Date): string => formatETDateString(date).split("-")[2].replace(/^0/, "");
 const isDateToday = (date: Date): boolean => formatETDateString(date) === formatETDateString(new Date());
 const formatHour = (hour: number): string => {
@@ -176,8 +175,7 @@ const MultiDayLandscapeView: React.FC<MultiDayLandscapeViewProps> = ({
   useLayoutEffect(() => {
     const el = scrollAreaRef.current;
     if (!el) return;
-    const now = new Date();
-    const scrollOffset = MULTIDAY_HOUR_HEIGHT * (now.getHours() + now.getMinutes() / 60) - MULTIDAY_HOUR_HEIGHT * 2;
+    const scrollOffset = MULTIDAY_HOUR_HEIGHT * (getCurrentETMinutesSinceMidnight() / 60) - MULTIDAY_HOUR_HEIGHT * 2;
     const clampedOffset = Math.max(0, scrollOffset);
     el.scrollTop = clampedOffset;
     // Keeps handleScroll's own delta calculation from seeing this programmatic jump as a

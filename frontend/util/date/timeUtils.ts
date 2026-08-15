@@ -98,19 +98,70 @@ const etDateFmt = new Intl.DateTimeFormat('en-CA', {
  */
 export const formatETDateString = (date: Date): string => etDateFmt.format(date);
 
+// Short weekday label ("Mon"), pinned ET -- callers apply their own case/substring
+// (e.g. WeekView uppercases it, MiniCalendar takes just the first letter).
+const etWeekdayShortFmt = new Intl.DateTimeFormat('en-US', {
+  timeZone: 'America/New_York', weekday: 'short',
+});
+
+/** ET short weekday label (e.g. "Mon") for a given instant. */
+export const formatETWeekdayShort = (date: Date): string => etWeekdayShortFmt.format(date);
+
+// Full weekday label ("Monday"), pinned ET -- e.g. for matching against a recurrence
+// pattern's daysOfWeek, which stores full names.
+const etWeekdayLongFmt = new Intl.DateTimeFormat('en-US', {
+  timeZone: 'America/New_York', weekday: 'long',
+});
+
+/** ET full weekday label (e.g. "Monday") for a given instant. */
+export const formatETWeekdayLong = (date: Date): string => etWeekdayLongFmt.format(date);
+
+// "August 14, 2026" -- pinned ET, for prose date display (e.g. suspension status text).
+const etLongDateFmt = new Intl.DateTimeFormat('en-US', {
+  timeZone: 'America/New_York', month: 'long', day: 'numeric', year: 'numeric',
+});
+
+/** ET long-form prose date (e.g. "August 14, 2026") for a given instant. */
+export const formatETLongDate = (date: Date): string => etLongDateFmt.format(date);
+
+/** ET day-of-month (1-31) for a given instant. */
+export const getETDayOfMonth = (date: Date): number => Number(formatETDateString(date).slice(-2));
+
 /**
- * Parses a DatePicker field's MM/DD/YYYY value into a Date, or null for an empty/unset value.
- * Shared by SuspendMeetingModal and ResumeMeetingModal, whose "Until"/"On" date fields both
- * need this exact parsing before comparing against an ET calendar day or converting to ISO.
+ * ET "YYYY-MM-DD" calendar date as a UTC millisecond timestamp -- Date.UTC used purely as a
+ * proleptic-Gregorian calendar calculator (never a real timezone conversion), for calendar-day
+ * arithmetic (day-of-week, day differences) that only cares about relative calendar position.
+ * The single canonical implementation of this idiom -- getETDayOfWeek, getWeekDatesET below,
+ * and weekDates.ts's daysBetweenET all build on this instead of each re-deriving it.
+ */
+export const getETCalendarDateMs = (etDateStr: string): number => {
+  const [year, month, day] = etDateStr.split('-').map(Number);
+  return Date.UTC(year, month - 1, day);
+};
+
+/** ET day of week (0 = Sunday .. 6 = Saturday) for a given instant. */
+export const getETDayOfWeek = (date: Date): number =>
+  new Date(getETCalendarDateMs(formatETDateString(date))).getUTCDay();
+
+/**
+ * Parses a DatePicker field's MM/DD/YYYY value into a UTC Date at ET midnight for that day, or
+ * null for an empty/unparseable value. Tolerates unpadded month/day -- DatePicker's onChange
+ * can forward the user's raw typed text (e.g. "1/5/2026"), not just its zero-padded output.
  * Goes through convertETToUTC (same as getETDayBounds above) rather than `new Date(y, m, d)`,
  * which builds the date in the *browser's* local timezone -- for a user whose clock isn't on a
  * US zone (or is simply set to UTC), that can silently resolve to the previous ET calendar day.
+ * Shared by SuspendMeetingModal, ResumeMeetingModal, and RecurringMeeting's start/end date fields.
  */
 export const parseMMDDYYYY = (value: string): Date | null => {
-  if (!value) return null;
-  const [month, day, year] = value.split('/').map(Number);
-  const etDateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-  return new Date(convertETToUTC(`${etDateStr}T00:00:00`));
+  const match = value.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (!match) return null;
+  const [, month, day, year] = match;
+  const etDateStr = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+  const parsed = new Date(convertETToUTC(`${etDateStr}T00:00:00`));
+  // Reject calendar-invalid input (e.g. "02/30/2026") that Date.UTC would otherwise silently
+  // normalize into a different valid date (March 2) instead of failing.
+  if (isNaN(parsed.getTime()) || formatETDateString(parsed) !== etDateStr) return null;
+  return parsed;
 };
 
 /**
@@ -125,19 +176,14 @@ export const toETDateString = (dateParam: string): string =>
  * containing the given ET date string.
  */
 export const getWeekDatesET = (etDateStr: string): string[] => {
-  const [year, month, day] = etDateStr.split('-').map(Number);
-  const base = new Date(Date.UTC(year, month - 1, day));
-  const dow = base.getUTCDay();
-  return Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(Date.UTC(year, month - 1, day - dow + i));
-    return d.toISOString().slice(0, 10);
-  });
+  const dow = new Date(getETCalendarDateMs(etDateStr)).getUTCDay();
+  return Array.from({ length: 7 }, (_, i) => addDaysToETDateString(etDateStr, i - dow));
 };
 
 /**
  * Adds `days` calendar days to an ET "YYYY-MM-DD" string, returning a new ET date string.
- * Date.UTC is used purely as a proleptic-Gregorian calculator here (same construction as
- * getWeekDatesET above) -- the result is read back with toISOString(), never reinterpreted
+ * Date.UTC is used purely as a proleptic-Gregorian calculator here (same idiom as
+ * getETCalendarDateMs above) -- the result is read back with toISOString(), never reinterpreted
  * through a real timezone, so it stays correct regardless of DST or the runtime's local zone.
  */
 export const addDaysToETDateString = (etDateStr: string, days: number): string => {
@@ -146,13 +192,23 @@ export const addDaysToETDateString = (etDateStr: string, days: number): string =
 };
 
 /**
+ * Number of days in the given month (1-indexed: 1 = January) of `year`, per the proleptic
+ * Gregorian calendar -- Date.UTC(year, month, 0) is "day 0" of the following month, i.e. the
+ * last day of `month` itself. `month` isn't clamped to 1-12: Date.UTC normalizes any integer
+ * (e.g. 13 = January of `year + 1`), which addMonthsToETDateString below relies on for its own
+ * year-boundary math.
+ */
+export const getDaysInMonth = (year: number, month: number): number =>
+  new Date(Date.UTC(year, month, 0)).getUTCDate();
+
+/**
  * Adds `months` calendar months to an ET "YYYY-MM-DD" string, clamping the day if the target
  * month is shorter (e.g. Jan 31 + 1 month -> Feb 28/29, not rolling into March).
  */
 export const addMonthsToETDateString = (etDateStr: string, months: number): string => {
   const [year, month, day] = etDateStr.split('-').map(Number);
   const targetMonthIndex = month - 1 + months;
-  const daysInTargetMonth = new Date(Date.UTC(year, targetMonthIndex + 1, 0)).getUTCDate();
+  const daysInTargetMonth = getDaysInMonth(year, targetMonthIndex + 1);
   return new Date(Date.UTC(year, targetMonthIndex, Math.min(day, daysInTargetMonth))).toISOString().slice(0, 10);
 };
 
@@ -169,4 +225,20 @@ export const getCurrentETMinutesSinceMidnight = (): number => {
   const hour = parseInt(parts.find(p => p.type === 'hour')?.value ?? '0', 10);
   const minute = parseInt(parts.find(p => p.type === 'minute')?.value ?? '0', 10);
   return hour * 60 + minute;
+};
+
+// Same en-GB/hour12:false reasoning as etTimeFmt above, plus seconds.
+const etTimeOfDayFmt = new Intl.DateTimeFormat('en-GB', {
+  timeZone: 'America/New_York', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
+});
+
+/**
+ * ET wall-clock hour/minute/second (24h) for a given instant -- for re-anchoring a
+ * known time-of-day onto a different ET calendar date (combine with convertETToUTC).
+ */
+export const getETTimeOfDay = (date: Date): { hour: number; minute: number; second: number } => {
+  const parts = etTimeOfDayFmt.formatToParts(date);
+  const get = (type: Intl.DateTimeFormatPartTypes) =>
+    parseInt(parts.find(p => p.type === type)?.value ?? '0', 10);
+  return { hour: get('hour') % 24, minute: get('minute'), second: get('second') };
 };

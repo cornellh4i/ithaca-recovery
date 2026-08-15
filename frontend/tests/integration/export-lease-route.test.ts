@@ -14,16 +14,20 @@ afterAll(async () => {
   await disconnectTestPrismaClient();
 });
 
-// Parses the CSV's "Rent Charge" column for a row identified by its "Group Name" -- avoids
-// pulling in a full CSV parser for a handful of dollar-amount fields with no embedded commas.
-function rentChargeFor(csv: string, groupName: string): string {
+// Parses a named CSV column for a row identified by its "Group Name" -- avoids pulling in a
+// full CSV parser for a handful of fields with no embedded commas.
+function columnValueFor(csv: string, groupName: string, column: string): string {
   const lines = csv.trim().split("\n");
   const header = lines[0].split(",");
   const groupNameIndex = header.indexOf("Group Name");
-  const rentChargeIndex = header.indexOf("Rent Charge");
+  const columnIndex = header.indexOf(column);
   const row = lines.slice(1).find((line) => line.split(",")[groupNameIndex] === groupName);
   if (!row) throw new Error(`No CSV row found for group "${groupName}"`);
-  return row.split(",")[rentChargeIndex];
+  return row.split(",")[columnIndex];
+}
+
+function rentChargeFor(csv: string, groupName: string): string {
+  return columnValueFor(csv, groupName, "Rent Charge");
 }
 
 test("calculateRentCharge: non-monthly room uses a flat 4 weeks/month, monthly room and Zoom Only return the flat rate", async () => {
@@ -70,5 +74,30 @@ test("calculateRentCharge: non-monthly room uses a flat 4 weeks/month, monthly r
   expect(rentChargeFor(csv, "Remote Group")).toBe("$25.00");
 
   await prisma.meeting.deleteMany({ where: { group: { in: ["Hourly Group", "Monthly Group", "Remote Group"] } } });
+  await prisma.leaseSettings.deleteMany();
+});
+
+// formatTime() reads Meeting.startDateTime/endDateTime (real UTC instants) in ET, not UTC --
+// seedMeeting's default 6:00-7:00 PM ET start/end exercises this directly, since reading the
+// UTC hour instead would show a different time (4-5 hours off, DST-dependent).
+test("formatTime: Start/End Time columns show the meeting's ET wall-clock time, not its UTC hour", async () => {
+  const prisma = getTestPrismaClient();
+
+  await seedLeaseSettings({ rooms: [{ room: "Serenity Room", rate: 15, unit: "hr" }] });
+  await seedMeeting({
+    title: "Time Group",
+    group: "Time Group",
+    room: "Serenity Room",
+    modeType: "In Person",
+  });
+
+  const response = await GET();
+  expect(response.status).toBe(200);
+  const csv = await response.text();
+
+  expect(columnValueFor(csv, "Time Group", "Start Time")).toBe("6:00 PM");
+  expect(columnValueFor(csv, "Time Group", "End Time")).toBe("7:00 PM");
+
+  await prisma.meeting.deleteMany({ where: { group: "Time Group" } });
   await prisma.leaseSettings.deleteMany();
 });

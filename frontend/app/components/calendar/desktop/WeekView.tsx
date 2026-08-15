@@ -4,7 +4,12 @@ import styles from './WeekView.module.scss';
 import DayColumn from "../shared/DayColumn";
 import { filterMeetingsForDate, MeetingFilters } from "../../../../util/filters/meetingFilters";
 import { ROOM_COLORS, ZOOM_ROOM_COLOR, REMOTE_COLOR } from "../../../../util/rooms/filterColors";
-import { formatETDateString } from "../../../../util/date/timeUtils";
+import {
+    formatETDateString,
+    formatETWeekdayShort,
+    getCurrentETMinutesSinceMidnight,
+    getETDayOfMonth,
+} from "../../../../util/date/timeUtils";
 import { layoutOverlappingMeetings } from "../../../../util/meetings/meetingOverlapLayout";
 import { getFirstDayOfWeek, getDaysOfWeek, addDaysToDate } from "../../../../util/date/weekDates";
 import { useWeekMeetings, WeekMeeting, prefetchWeek } from "../../../../hooks/useWeekMeetings";
@@ -17,12 +22,12 @@ type Meeting = WeekMeeting;
 
 // Format date to display in column header - just return the day number
 const formatDateNumber = (date: Date): string => {
-    return date.getDate().toString();
+    return getETDayOfMonth(date).toString();
 };
 
 // Format day name - just 3 letter abbreviation
 const formatDayName = (date: Date): string => {
-    return date.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
+    return formatETWeekdayShort(date).toUpperCase();
 };
 
 
@@ -94,10 +99,7 @@ const WeekView: React.FC<WeekViewProps> = ({
 
     // Update current time indicator position
     const updateTimePosition = useCallback(() => {
-        const now = new Date();
-        const currentHour = now.getHours();
-        const currentMinutes = now.getMinutes();
-        const basePosition = currentHour * 120 + currentMinutes * (120 / 60);
+        const basePosition = getCurrentETMinutesSinceMidnight() * (120 / 60);
         const offset = 40; // height of .dayHeader
         setCurrentTimePosition(basePosition + offset);
     }, []);
@@ -105,11 +107,8 @@ const WeekView: React.FC<WeekViewProps> = ({
     // Scroll the grid so the current time starts ~2 hours into the visible area
     const scrollToCurrentTime = useCallback(() => {
         if (viewContainerRef.current) {
-            const now = new Date();
-            const currentHour = now.getHours();
-            const currentMinutes = now.getMinutes();
             const dayHeaderOffset = 40; // height of .dayHeader, see updateTimePosition
-            const scrollOffset = dayHeaderOffset + (currentHour * 120 + currentMinutes * (120 / 60)) - 240;
+            const scrollOffset = dayHeaderOffset + getCurrentETMinutesSinceMidnight() * (120 / 60) - 240;
             viewContainerRef.current.scrollTop = Math.max(0, scrollOffset);
         }
     }, []);
