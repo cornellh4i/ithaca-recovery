@@ -6,16 +6,23 @@ import { z } from "zod";
 // (hooks/useMeetingForm.ts) enforces this too; this is the server-side backstop.
 export const DESCRIPTION_MAX_LENGTH = 1024;
 
+// 10 years of weekly occurrences -- calculateEndDateFromOccurrences (meetingOccurrences.ts)
+// runs an unbounded-looking while loop over this count on the request thread, before the write
+// transaction even opens. Shared with hooks/useMeetingForm.ts's client-side check (and
+// RecurringMeeting.tsx's SpinnerInput) so the UI can't submit a value this schema will reject.
+export const MAX_RECURRENCE_OCCURRENCES = 520;
+
 // Shared by write/meeting and update/meeting — both expect the full IMeeting shape
-// (update is a full replace, not a partial patch). Validates shape/types only, not
-// business rules (e.g. endDateTime > startDateTime) — Prisma already rejects those
-// that matter, and the form UI enforces the rest.
+// (update is a full replace, not a partial patch). Validates shape/types, plus the business
+// rules hooks/useMeetingForm.ts's getValidationErrors enforces client-side (end > start, at
+// least one calType, Hybrid/In-Person room requirements) -- the client form is not the only
+// caller of these routes, so those rules need a server-side backstop too.
 export const recurrencePatternSchema = z.object({
   mid: z.string().optional(),
   type: z.string(),
   startDate: z.coerce.date(),
   endDate: z.coerce.date().nullable().optional(),
-  numberOfOccurrences: z.number().nullable().optional(),
+  numberOfOccurrences: z.number().int().min(1).max(MAX_RECURRENCE_OCCURRENCES).nullable().optional(),
   daysOfWeek: z.array(z.string()).nullable().optional(),
   firstDayOfWeek: z.string(),
   interval: z.number(),
@@ -57,7 +64,26 @@ export const meetingSchema = z.object({
   zoomSyncError: z.string().nullable().optional(),
   deletedAt: z.coerce.date().nullable().optional(),
   updatedAt: z.coerce.date().nullable().optional(),
-});
+})
+  .refine((meeting) => meeting.endDateTime > meeting.startDateTime, {
+    message: "endDateTime must be after startDateTime.",
+    path: ["endDateTime"],
+  })
+  .refine((meeting) => meeting.calType.length > 0, {
+    message: "At least one calendar type is required.",
+    path: ["calType"],
+  })
+  .refine(
+    (meeting) => meeting.modeType !== "Hybrid" || (!!meeting.room && !!meeting.zoomRoom),
+    {
+      message: "Hybrid meetings require both a physical room and a Zoom room.",
+      path: ["room"],
+    },
+  )
+  .refine((meeting) => meeting.modeType !== "In Person" || !!meeting.room, {
+    message: "In Person meetings require a physical room.",
+    path: ["room"],
+  });
 
 // Narrower shape for the Zoom host-availability check — only the fields
 // checkZoomHostPoolAvailability's OccurrenceInput actually needs. The client posts the same

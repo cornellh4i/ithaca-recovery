@@ -11,6 +11,7 @@ import styles from "./RecurringMeeting.module.scss";
 import CheckButton from '../ui/buttons/CheckButton';
 import { IRecurrencePattern } from "../../../types/models";
 import { convertUTCToET, formatETDateString, getDaysInMonth, getETDayOfWeek, parseMMDDYYYY } from "../../../util/date/timeUtils";
+import { MAX_RECURRENCE_OCCURRENCES } from "../../../util/meetings/meetingValidation";
 
 
 interface RecurringMeetingFormProps {
@@ -122,7 +123,12 @@ const RecurringMeetingForm: React.FC<RecurringMeetingFormProps> = ({
   );
   const [endOption, setEndOption] = useState(inferEndOption(initPattern));
   const [endDate, setEndDate] = useState<string | undefined>(toDatePickerString(initPattern?.endDate));
-  const [occurrences, setOccurrences] = useState(initPattern?.numberOfOccurrences ?? 1);
+  // Clamped defensively: a stored pattern from before this cap existed (or an otherwise
+  // corrupt value) shouldn't load into the spinner as something that would fail the same
+  // cap the moment the form is resaved unchanged.
+  const [occurrences, setOccurrences] = useState(
+    Math.min(Math.max(initPattern?.numberOfOccurrences ?? 1, 1), MAX_RECURRENCE_OCCURRENCES)
+  );
   const [touched, setTouched] = useState<boolean>(false);
   const isFirstRender = useRef(true);
 
@@ -365,6 +371,7 @@ const RecurringMeetingForm: React.FC<RecurringMeetingFormProps> = ({
                       <SpinnerInput
                         value={occurrences}
                         min={1}
+                        max={MAX_RECURRENCE_OCCURRENCES}
                         step={1}
                         onChange={setOccurrences}
                       />
@@ -373,6 +380,11 @@ const RecurringMeetingForm: React.FC<RecurringMeetingFormProps> = ({
                     {(!occurrences || occurrences < 1) && (
                       <div className={styles['error-message']}>
                         Please enter at least one occurrence.
+                      </div>
+                    )}
+                    {occurrences > MAX_RECURRENCE_OCCURRENCES && (
+                      <div className={styles['error-message']}>
+                        Please enter {MAX_RECURRENCE_OCCURRENCES} occurrences or fewer.
                       </div>
                     )}
                   </div>
