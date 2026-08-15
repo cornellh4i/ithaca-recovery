@@ -149,6 +149,41 @@ test("a retry reserves the resolved pool host before calling the Zoom API, and k
   expect(afterRetry?.zoomHost).toBe("reserved-host@icr.test");
 });
 
+// #337: the Suspended early return must echo all four sync fields, not just the google* ones --
+// MeetingSyncResult requires zoomSyncStatus/zoomSyncError too, and retryMeetingSync() casts
+// response.json() straight to that type with no runtime validation.
+test("a suspended meeting's sync response includes zoomSyncStatus/zoomSyncError, not just google*", async () => {
+  const prisma = getTestPrismaClient();
+  const meetingData = buildMeetingData({
+    status: "Suspended",
+    googleSyncStatus: "synced",
+    googleSyncError: null,
+    zoomSyncStatus: "error",
+    zoomSyncError: "No Zoom host available for this meeting's schedule (pool exhausted).",
+  });
+  await prisma.meeting.create({ data: meetingData });
+
+  const request = new Request("http://localhost/api/update/meeting/sync", {
+    method: "POST",
+    body: JSON.stringify({ mid: meetingData.mid }),
+  });
+
+  const response = await POST(request);
+  expect(response.status).toBe(200);
+  const body = await response.json();
+  expect(body).toMatchObject({
+    googleSyncStatus: "synced",
+    googleSyncError: null,
+    zoomSyncStatus: "error",
+    zoomSyncError: "No Zoom host available for this meeting's schedule (pool exhausted).",
+  });
+
+  // Suspended meetings skip sync entirely -- confirms this is really the early-return branch,
+  // not a coincidental pass-through of the normal sync path.
+  expect(mockedResolveZoomHost).not.toHaveBeenCalled();
+  expect(mockedReconcileMeetingCalendars).not.toHaveBeenCalled();
+});
+
 // BUG-023: zoomBlocking must key off the *resulting* zoomSyncStatus, not off "does a zid
 // already exist" -- an already-synced meeting's zid persists across retries regardless of
 // whether this retry itself succeeds, so !zid alone can't tell the two cases apart.
