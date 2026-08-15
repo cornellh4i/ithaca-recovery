@@ -92,6 +92,62 @@ test("a stale zoomSyncStatus on an In Person meeting doesn't surface as a sync i
   expect(syncIssues.find((s: { mid: string }) => s.mid === mid)).toBeUndefined();
 });
 
+test("a stale null googleSyncStatus shows up as a 'never attempted' sync issue", async () => {
+  const prisma = getTestPrismaClient();
+
+  // Default googleSyncStatus is null (never set), calType defaults to ["AA"] -- the two
+  // conditions the "never attempted" bucket requires. updatedAt is forced back past the
+  // staleness window (see the NEVER_ATTEMPTED_STALE_MS comment in sync-issues/route.ts) since
+  // a freshly created row's own updatedAt is too recent to qualify.
+  const mid = `m-${randomUUID()}`;
+  await prisma.meeting.create({ data: buildMeetingData({ mid }) });
+  await prisma.meeting.update({
+    where: { mid },
+    data: { updatedAt: new Date(Date.now() - 10 * 60 * 1000) },
+  });
+
+  const response = await getSyncIssues();
+  const { syncIssues } = await response.json();
+
+  const issue = syncIssues.find((s: { mid: string }) => s.mid === mid);
+  expect(issue).toBeDefined();
+  expect(issue.issues.some((i: { text: string }) => i.text.includes("never attempted"))).toBe(true);
+});
+
+test("a Suspended meeting with a stale null googleSyncStatus is excluded from the 'never attempted' bucket", async () => {
+  const prisma = getTestPrismaClient();
+
+  // Suspended meetings deliberately never get a googleSyncStatus written for them (see the
+  // comment in sync-issues/route.ts) -- null here is the expected, permanent state, not a
+  // stuck sync, even once it's past the same staleness window the positive case above uses.
+  const mid = `m-${randomUUID()}`;
+  await prisma.meeting.create({ data: buildMeetingData({ mid, status: "Suspended" }) });
+  await prisma.meeting.update({
+    where: { mid },
+    data: { updatedAt: new Date(Date.now() - 10 * 60 * 1000) },
+  });
+
+  const response = await getSyncIssues();
+  const { syncIssues } = await response.json();
+
+  expect(syncIssues.find((s: { mid: string }) => s.mid === mid)).toBeUndefined();
+});
+
+test("a freshly created null googleSyncStatus isn't flagged as 'never attempted' yet", async () => {
+  const prisma = getTestPrismaClient();
+
+  // Same null googleSyncStatus/non-empty calType as the positive case above, but updatedAt is
+  // left at its just-created value -- still inside the staleness window, so this meeting's
+  // deferred sync job may simply not have reached its write yet and shouldn't be misreported.
+  const mid = `m-${randomUUID()}`;
+  await prisma.meeting.create({ data: buildMeetingData({ mid }) });
+
+  const response = await getSyncIssues();
+  const { syncIssues } = await response.json();
+
+  expect(syncIssues.find((s: { mid: string }) => s.mid === mid)).toBeUndefined();
+});
+
 test("a meeting with a suspension scheduled for a future date shows up in the suspended panel, marked not yet active", async () => {
   const prisma = getTestPrismaClient();
 
