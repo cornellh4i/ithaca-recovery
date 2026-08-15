@@ -10,6 +10,7 @@ import {
   getETDayOfWeek,
   getETTimeOfDay,
   getWeekDatesET,
+  parseMMDDYYYY,
 } from "../../util/date/timeUtils";
 
 describe("convertETToUTC / convertUTCToET round-trip", () => {
@@ -105,5 +106,35 @@ describe("getETTimeOfDay", () => {
   it("returns the ET wall-clock hour/minute/second across a winter (EST) instant", () => {
     const utc = convertETToUTC("2026-01-15T09:05:02");
     expect(getETTimeOfDay(new Date(utc))).toEqual({ hour: 9, minute: 5, second: 2 });
+  });
+});
+
+describe("parseMMDDYYYY", () => {
+  it("parses a zero-padded date to ET midnight", () => {
+    expect(formatETDateString(parseMMDDYYYY("08/15/2026")!)).toBe("2026-08-15");
+  });
+
+  it("tolerates unpadded month/day", () => {
+    expect(formatETDateString(parseMMDDYYYY("9/5/2026")!)).toBe("2026-09-05");
+  });
+
+  it("returns null for an empty value", () => {
+    expect(parseMMDDYYYY("")).toBeNull();
+  });
+
+  // Date.UTC silently normalizes an out-of-range day into the following month (Feb 30 -> Mar 2)
+  // instead of failing -- parseMMDDYYYY must catch that itself rather than returning the wrong
+  // real date for calendar-invalid input.
+  it("rejects an invalid day for the given month", () => {
+    expect(parseMMDDYYYY("02/30/2026")).toBeNull();
+  });
+
+  it("rejects an out-of-range month", () => {
+    expect(parseMMDDYYYY("13/01/2026")).toBeNull();
+  });
+
+  it("accepts Feb 29 on a leap year but rejects it on a non-leap year", () => {
+    expect(formatETDateString(parseMMDDYYYY("02/29/2028")!)).toBe("2028-02-29");
+    expect(parseMMDDYYYY("02/29/2026")).toBeNull();
   });
 });

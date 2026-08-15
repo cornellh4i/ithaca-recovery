@@ -157,7 +157,11 @@ export const parseMMDDYYYY = (value: string): Date | null => {
   if (!match) return null;
   const [, month, day, year] = match;
   const etDateStr = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
-  return new Date(convertETToUTC(`${etDateStr}T00:00:00`));
+  const parsed = new Date(convertETToUTC(`${etDateStr}T00:00:00`));
+  // Reject calendar-invalid input (e.g. "02/30/2026") that Date.UTC would otherwise silently
+  // normalize into a different valid date (March 2) instead of failing.
+  if (isNaN(parsed.getTime()) || formatETDateString(parsed) !== etDateStr) return null;
+  return parsed;
 };
 
 /**
