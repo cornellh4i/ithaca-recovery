@@ -104,8 +104,15 @@ export function expandOccurrences(
 
     if (!matchesRecurrencePattern(pattern, etDateStr, localDate)) continue;
 
-    const { start, end } = adjustOccurrenceToDate(meeting, etDateStr);
-    occurrences.push({ start, end });
+    // adjustOccurrenceToDate throws when this occurrence's ET start/end time lands in the DST
+    // spring-forward gap on this particular date -- isolated per-occurrence so one unrenderable
+    // occurrence in a long expansion doesn't abort the whole conflict scan.
+    try {
+      const { start, end } = adjustOccurrenceToDate(meeting, etDateStr);
+      occurrences.push({ start, end });
+    } catch (err) {
+      console.warn(`Skipping occurrence on ${etDateStr}: ${err instanceof Error ? err.message : err}`);
+    }
   }
 
   return occurrences;

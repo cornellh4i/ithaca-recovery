@@ -126,7 +126,15 @@ export async function createPendingResumeSeries(
     );
     if (!resumeDateStr) return { resumeEventIds: {}, error: null };
     recordUnconfiguredCat();
-    const { start, end } = adjustOccurrenceToDate(meeting, resumeDateStr);
+    // adjustOccurrenceToDate throws if the resume occurrence's ET start/end time lands in the
+    // DST spring-forward gap on this date (the one day/year that time doesn't exist) -- treated
+    // as nothing to pre-create rather than crashing the whole suspend/resume request.
+    let start: Date, end: Date;
+    try {
+      ({ start, end } = adjustOccurrenceToDate(meeting, resumeDateStr));
+    } catch (err) {
+      return { resumeEventIds: {}, error: err instanceof Error ? err.message : "Could not compute the resume occurrence" };
+    }
     const resumeMeeting = toCalendarMeeting(meeting, start, end);
     for (const [cat, calId] of Object.entries(calendarIds)) {
       const { id, error: createError } = await createCalendarEvent(accessToken, resumeMeeting, calId);

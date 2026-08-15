@@ -143,7 +143,17 @@ export const getMeetingsForRange = async (
             if (!recurrence) continue;
             if (!matchesRecurrencePattern(recurrence, etDateStr, localDate)) continue;
 
-            const { start, end } = adjustOccurrenceToDate(meeting, etDateStr);
+            // adjustOccurrenceToDate throws when the meeting's ET start/end time lands in the
+            // DST spring-forward gap on this particular calendar date (e.g. a recurring 2:30 AM
+            // meeting, on the one day/year that time doesn't exist) -- isolated per-occurrence so
+            // one unrenderable occurrence doesn't 500 every other meeting in this request.
+            let start: Date, end: Date;
+            try {
+                ({ start, end } = adjustOccurrenceToDate(meeting, etDateStr));
+            } catch (err) {
+                console.warn(`Skipping occurrence of meeting ${meeting.id} on ${etDateStr}: ${err instanceof Error ? err.message : err}`);
+                continue;
+            }
             // Only relevant on the lead-in day if it actually spills into the requested range --
             // otherwise this occurrence belongs entirely to the lead-in day, which is outside
             // what the caller asked for.
@@ -206,9 +216,16 @@ export function calculateEndDateFromOccurrences(
 
         // 23:59:59 ET so the end date is inclusive of its full day
         // even against a naive instant comparison (e.g. `meetingStart <= endDate`).
-        const toETDate = (day: number) => new Date(convertETToUTC(
-            `${targetYear}-${String(targetMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}T23:59:59`
-        ));
+        // `day` is clamped to the target month's real length -- e.g. a "day 31" pattern lands
+        // on Feb 28/29 rather than building an out-of-range calendar date like "2026-02-31",
+        // which convertETToUTC now rejects instead of silently rolling it into March.
+        const toETDate = (day: number) => {
+            const daysInTargetMonth = new Date(Date.UTC(targetYear, targetMonth + 1, 0)).getUTCDate();
+            const clampedDay = Math.min(day, daysInTargetMonth);
+            return new Date(convertETToUTC(
+                `${targetYear}-${String(targetMonth + 1).padStart(2, '0')}-${String(clampedDay).padStart(2, '0')}T23:59:59`
+            ));
+        };
 
         if (dayOfMonth != null) {
             return toETDate(dayOfMonth);
