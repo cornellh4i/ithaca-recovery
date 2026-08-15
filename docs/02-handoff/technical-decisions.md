@@ -125,7 +125,7 @@ Each section ends with a **Revisit if:** line — the condition under which this
 
 **A trap worth knowing about:** see `services/zoom.ts`'s `toZoomStartTime()` and its comment — Zoom silently ignores the request's timezone under a specific condition that's easy to reintroduce by accident.
 
-**Revisit if:** the app ever runs as multiple concurrent instances sharing one Zoom account — the access token cache (`services/zoom.ts`) is per-instance in-memory, so each instance would independently fetch and hold its own token; fine at ICR's current single-instance scale, but a real cost driver if that changes. Also revisit the 2-year host-overlap horizon (`OVERLAP_HORIZON_YEARS`) if a real collision ever surfaces beyond that window; Diagnostics' periodic scan is the current backstop for that residual gap.
+**Revisit if:** the per-instance token cache (`services/zoom.ts`) stops being sufficient — it's in-memory per serverless invocation (this app runs on Vercel, which already spins up multiple concurrent instances today, not a hypothetical future scale-up), so token fetches scale with instance count rather than request count. Fine at ICR's current traffic level; revisit if invocation volume grows enough to make that instance-count-driven fetch rate a real cost against Zoom's rate limit. Also revisit the 2-year host-overlap horizon (`OVERLAP_HORIZON_YEARS`) if a real collision ever surfaces beyond that window; Diagnostics' periodic scan is the current backstop for that residual gap.
 
 ---
 

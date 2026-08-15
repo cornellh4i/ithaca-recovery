@@ -51,10 +51,12 @@ export const GET = async () => {
         } else if (
           m.googleSyncStatus === null &&
           m.calType.length > 0 &&
-          // Suspended meetings deliberately never get a googleSyncStatus -- syncNewMeeting/
-          // syncUpdatedMeeting early-return for them by design (see the write/update routes'
-          // syncNewMeeting/syncUpdatedMeeting) and nothing else in this meeting's lifecycle
-          // writes one, so null here is expected and permanent, not a stuck job.
+          // syncNewMeeting/syncUpdatedMeeting (write/update routes) early-return for a
+          // Suspended meeting by design, without touching googleSyncStatus -- suspend/resume
+          // routes do write a (non-null) status in some cases, but a meeting created or last
+          // edited while already Suspended can go through its whole lifecycle without ever
+          // passing through one of those writes, leaving googleSyncStatus permanently null.
+          // That's expected for this status, not a stuck job.
           m.status !== "Suspended" &&
           Date.now() - (m.updatedAt?.getTime() ?? 0) > NEVER_ATTEMPTED_STALE_MS
         ) {
