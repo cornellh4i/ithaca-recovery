@@ -16,6 +16,10 @@ afterAll(async () => {
 });
 
 const ADMIN_ONLY_FIELDS = ["creator", "email", "googleSyncStatus", "zoomSyncError", "zoomPasscode", "zoomInvitation"];
+const PUBLIC_MEETING_FIELDS = [
+  "mid", "title", "startDateTime", "endDateTime", "calType",
+  "modeType", "room", "zoomRoom", "isRecurring", "recurrencePattern",
+].sort();
 
 async function getMeetingDetail(mid: string) {
   const request = new NextRequest(`http://localhost/api/retrieve/meeting/${mid}`);
@@ -29,6 +33,7 @@ test("an unauthenticated caller only gets the public-safe meeting fields", async
 
   const body = await getMeetingDetail(meeting.mid);
   expect(body.mid).toBe(meeting.mid);
+  expect(Object.keys(body).sort()).toEqual(PUBLIC_MEETING_FIELDS);
   ADMIN_ONLY_FIELDS.forEach((field) => expect(body).not.toHaveProperty(field));
 });
 
@@ -38,6 +43,7 @@ test("a USER-role session gets the same public-safe subset as an unauthenticated
 
   const body = await getMeetingDetail(meeting.mid);
   expect(body.mid).toBe(meeting.mid);
+  expect(Object.keys(body).sort()).toEqual(PUBLIC_MEETING_FIELDS);
   ADMIN_ONLY_FIELDS.forEach((field) => expect(body).not.toHaveProperty(field));
 });
 

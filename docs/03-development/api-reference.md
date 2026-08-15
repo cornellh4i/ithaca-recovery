@@ -46,7 +46,7 @@ Once Zoom has resolved (or wasn't needed), sync publishes to Google Calendar per
 ### `GET /api/retrieve/meeting/[id]`
 Retrieve a single non-deleted meeting by `mid` in the URL path. An unauthenticated caller, or a `USER`-role session, gets the `PublicMeeting`-shaped subset (see [Technical Decisions](../02-handoff/technical-decisions.md#admin-gated-mids-pattern-for-calendar-badges)); an `ADMIN`/`SUPER_ADMIN` session gets the full row plus `recurrencePattern` and derived suspension fields (`resumesAt`/`suspendedSince`/`suspensionActive`).
 
-**Response:** `200 OK` — `IMeeting`
+**Response:** `200 OK` — `PublicMeeting` for unauthenticated/`USER`; `IMeeting` for `ADMIN`/`SUPER_ADMIN`
 **Error:** `404 Not Found`
 
 ---
