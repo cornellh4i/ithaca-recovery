@@ -635,9 +635,12 @@ test("a category with no configured calendar fails the meeting's sync, even if i
 test("a missing access token persists an error status instead of leaving googleSyncStatus null forever", async () => {
   mockedRequireRole.mockResolvedValueOnce({ user: { role: "ADMIN" }, accessToken: undefined });
 
-  // Distinct room -- buildMeetingPayload's default ("Serenity Room") is shared by other tests
-  // in this suite (see the "Distinct room" comment further down).
-  const payload = buildMeetingPayload({ room: "No Access Token Room" });
+  // Distinct room, and distinct from update-meeting-route.test.ts's own "no access token" test
+  // -- both files run against the same shared test-DB instance within one test run, and this
+  // test doesn't override the default startDateTime/endDateTime, so a same-named room here would
+  // collide with that other file's meeting at the same default time window and fail this POST
+  // with an unrelated 409, not the googleSyncStatus assertion this test actually checks.
+  const payload = buildMeetingPayload({ room: "Write Route No Access Token Room" });
   const request = new Request("http://localhost/api/write/meeting", {
     method: "POST",
     body: JSON.stringify(payload),

@@ -590,13 +590,15 @@ test("a missing access token persists an error status instead of leaving googleS
 
   const prisma = getTestPrismaClient();
   const mid = `m-${randomUUID()}`;
-  // Distinct room -- buildMeetingPayload's default ("Serenity Room") is shared by other tests
-  // in this suite that also create real rows at its default date, and the room conflict check
-  // would otherwise make this order-dependent on unrelated leftover data.
-  const { recurrencePattern: _rp, ...existingMeetingData } = buildMeetingPayload({ mid, room: "No Access Token Room" });
+  // Distinct room, and distinct from write-meeting-route.test.ts's own "no access token" test
+  // -- both files run against the same shared test-DB instance within one test run, and this
+  // test doesn't override the default startDateTime/endDateTime, so a same-named room here would
+  // collide with that other file's meeting at the same default time window and fail this PUT
+  // with an unrelated 409, not the googleSyncStatus assertion this test actually checks.
+  const { recurrencePattern: _rp, ...existingMeetingData } = buildMeetingPayload({ mid, room: "Update Route No Access Token Room" });
   await prisma.meeting.create({ data: existingMeetingData });
 
-  const payload = buildMeetingPayload({ mid, room: "No Access Token Room", title: "Edited Title" });
+  const payload = buildMeetingPayload({ mid, room: "Update Route No Access Token Room", title: "Edited Title" });
   const request = new Request("http://localhost/api/update/meeting", {
     method: "PUT",
     body: JSON.stringify(payload),
