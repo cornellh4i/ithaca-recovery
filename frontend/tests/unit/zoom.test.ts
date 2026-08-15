@@ -56,16 +56,17 @@ function buildMeeting(overrides: Partial<IMeeting> = {}): IMeeting {
   };
 }
 
-// Mocks fetch to succeed on the token endpoint (by default) and record the JSON body sent to
-// whichever Zoom meetings-API call the test triggers.
-function mockFetchCapturingBody(opts: { tokenOk?: boolean; tokenStatus?: number } = {}) {
+// Mocks fetch to succeed on the token endpoint and record the JSON body sent to whichever Zoom
+// meetings-API call the test triggers. Token-fetch failure paths are covered separately below
+// with their own inline fetch mocks (a token-status knob here was never actually exercised by
+// any call site).
+function mockFetchCapturingBody() {
   let capturedBody: Record<string, unknown> | undefined;
   const fetchMock = jest.fn((url: string, init?: RequestInit) => {
     if (url.includes("oauth/token")) {
-      const ok = opts.tokenOk ?? true;
       return Promise.resolve({
-        ok,
-        status: opts.tokenStatus ?? (ok ? 200 : 500),
+        ok: true,
+        status: 200,
         json: async () => ({ access_token: "tok-1", expires_in: 3600 }),
       });
     }
@@ -109,17 +110,18 @@ describe("toZoomStartTime / buildZoomMeetingBody (via createZoomMeeting's reques
     expect(getCapturedBody()?.duration).toBe(90);
   });
 
-  it("rounds a fractional-minute duration to the nearest whole minute", async () => {
+  it("rounds a fractional-minute duration to the nearest whole minute, not ceil", async () => {
     const { getCapturedBody } = mockFetchCapturingBody();
     const meeting = buildMeeting({
       startDateTime: new Date("2026-03-10T22:00:00.000Z"),
-      // 5 minutes 30 seconds -> 5.5 minutes, Math.round rounds to 6.
-      endDateTime: new Date("2026-03-10T22:05:30.000Z"),
+      // 5 minutes 20 seconds -> 5.33 minutes: Math.round gives 5, Math.ceil would give 6 --
+      // 5.5 (5m30s) can't distinguish the two, since both round and ceil agree on it.
+      endDateTime: new Date("2026-03-10T22:05:20.000Z"),
     });
 
     await createZoomMeeting(meeting, "host@test.icr");
 
-    expect(getCapturedBody()?.duration).toBe(6);
+    expect(getCapturedBody()?.duration).toBe(5);
   });
 
   it("carries the meeting's title/description into topic/agenda and fixes type: 2 (reused stable meeting)", async () => {

@@ -37,6 +37,7 @@ const mockSuspensionUpdate = prisma.suspensionPeriod.update as jest.Mock;
 
 const now = Date.now();
 const DAY_MS = 24 * 60 * 60 * 1000;
+const today = new Date(now);
 const yesterday = new Date(now - DAY_MS);
 const tomorrow = new Date(now + DAY_MS);
 const weekdayFmt = new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", weekday: "long" });
@@ -167,6 +168,23 @@ describe("reconcilePendingResume", () => {
     expect(mockTransaction).toHaveBeenCalledTimes(1);
   });
 
+  it("promotes a suspension whose resume date is exactly today (the <= boundary, not just already-past)", async () => {
+    const dueToday = buildSuspension({ id: "s-today", to: today, resumeEventIds: { AA: "evt-today" } });
+    const meeting: MeetingWithSuspensions = {
+      ...buildMeeting({ googleCalendarEventIds: {} }),
+      recurrencePattern: null,
+      suspensions: [dueToday],
+    };
+
+    const result = await reconcilePendingResume(meeting);
+
+    expect(result).toEqual({ AA: "evt-today" });
+    expect(mockSuspensionUpdate).toHaveBeenCalledWith({
+      where: { id: "s-today" },
+      data: { promoted: true },
+    });
+  });
+
   it("ignores a suspension whose resume date has not arrived yet", async () => {
     const notYetDue = buildSuspension({ to: tomorrow, resumeEventIds: { AA: "evt-future" } });
     const meeting: MeetingWithSuspensions = {
@@ -210,7 +228,9 @@ describe("reconcilePendingResume", () => {
   });
 
   it("ignores a due suspension with no pre-created resumeEventIds", async () => {
-    const noEventIds = buildSuspension({ to: yesterday, resumeEventIds: undefined });
+    // Relies on buildSuspension's own default (null) -- a real SuspensionPeriod row's
+    // resumeEventIds is never `undefined`, only `null` or a populated Json value.
+    const noEventIds = buildSuspension({ to: yesterday });
     const meeting: MeetingWithSuspensions = {
       ...buildMeeting({ googleCalendarEventIds: {} }),
       recurrencePattern: null,
@@ -248,6 +268,10 @@ describe("reconcilePendingResume", () => {
     expect(result).toEqual({ AA: "evt-newer" });
     expect(mockSuspensionUpdate).toHaveBeenCalledWith({
       where: { id: "s-newer" },
+      data: { promoted: true },
+    });
+    expect(mockSuspensionUpdate).not.toHaveBeenCalledWith({
+      where: { id: "s-older" },
       data: { promoted: true },
     });
   });
@@ -305,6 +329,32 @@ describe("createPendingResumeSeries", () => {
     expect(mockCreateCalendarEvent).not.toHaveBeenCalled();
   });
 
+  it("stays a genuine no-op (error: null) when there's no upcoming occurrence, even if the meeting also has an unconfigured category", async () => {
+    mockCalendarIdsForMeeting.mockReturnValue({ AA: "cal-aa" }); // "Missing" deliberately absent
+
+    const resumeDate = tomorrow;
+    const meeting: MeetingWithPattern = {
+      ...buildMeeting({ isRecurring: true, calType: ["AA", "Missing"] }),
+      // endDate before resumeDate -- no occurrence left to pre-create, same as the test above,
+      // but combined with a category that's also unconfigured.
+      recurrencePattern: buildRecurrencePattern({
+        daysOfWeek: [etWeekday(resumeDate)],
+        endDate: yesterday,
+      }),
+    };
+
+    const result = await createPendingResumeSeries(meeting, "token-1", resumeDate);
+
+    // "No occurrence" must stay a genuine no-op -- it must not surface a misconfiguration error
+    // just because an unrelated category also happens to be unconfigured.
+    expect(result).toEqual({ resumeEventIds: {}, error: null });
+    // calendarIds is resolved unconditionally up front, before the recurring/one-time branch
+    // even runs -- "Missing" was still looked up, it's the *reporting* of it that's correctly
+    // suppressed here, not the lookup itself.
+    expect(mockCalendarIdsForMeeting).toHaveBeenCalledWith(["AA", "Missing"]);
+    expect(mockCreateCalendarEvent).not.toHaveBeenCalled();
+  });
+
   it("records an unconfigured-calendar error but still creates events for the categories that are configured", async () => {
     mockCalendarIdsForMeeting.mockReturnValue({ AA: "cal-aa" }); // "Other" deliberately missing
     mockCreateCalendarEvent.mockResolvedValue({ id: "evt-aa", error: null });
@@ -344,6 +394,31 @@ describe("createPendingResumeSeries", () => {
     expect(result).toEqual({
       resumeEventIds: { Other: "evt-other" },
       error: "Google rejected the AA event",
+    });
+  });
+
+  it("keeps the unconfigured-category error as the first error, not overwritten by a later create failure", async () => {
+    // Two independent failure sources: "Missing" is unconfigured (recorded before the create
+    // loop even starts), and the configured "AA" category's create call also fails. The
+    // unconfigured-category error must win -- it happened first.
+    mockCalendarIdsForMeeting.mockReturnValue({ AA: "cal-aa", Other: "cal-other" }); // "Missing" deliberately absent
+    mockCreateCalendarEvent.mockImplementation((_token: string, _meeting: unknown, calId: string) =>
+      calId === "cal-aa"
+        ? Promise.resolve({ id: null, error: "Google rejected the AA event" })
+        : Promise.resolve({ id: "evt-other", error: null }),
+    );
+
+    const resumeDate = tomorrow;
+    const meeting: MeetingWithPattern = {
+      ...buildMeeting({ isRecurring: true, calType: ["AA", "Missing", "Other"] }),
+      recurrencePattern: buildRecurrencePattern({ daysOfWeek: [etWeekday(resumeDate)] }),
+    };
+
+    const result = await createPendingResumeSeries(meeting, "token-1", resumeDate);
+
+    expect(result).toEqual({
+      resumeEventIds: { Other: "evt-other" },
+      error: 'Calendar for "Missing" is not configured.',
     });
   });
 
