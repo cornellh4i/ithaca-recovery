@@ -7,12 +7,13 @@ import { formatETDateString } from "../../../../../util/date/timeUtils";
 const getMeeting = async(request: NextRequest) => {
   try {
     // Intentionally public (see routeGuards.test.ts PUBLIC_ROUTES) -- backs the
-    // unauthenticated calendar's detail panel. Callers without a session get only the
-    // public-safe fields; a valid session (any role) gets the full record, same as before.
+    // unauthenticated calendar's detail panel. Callers without a session, or a USER-role
+    // session, get only the public-safe fields; ADMIN/SUPER_ADMIN sessions get the full
+    // record. This gate has to hold here, not just in the UI (BUG-022) -- see
+    // util/meetings/publicMeeting.ts.
     const session = await getAuth();
 
     const mid = request.nextUrl.pathname.split('/').pop() as string;
-    console.log("Requested meeting ID:", mid);
 
     const meeting = await prisma.meeting.findFirst({
       where: {
@@ -47,7 +48,8 @@ const getMeeting = async(request: NextRequest) => {
     // above already derive everything the UI needs from it, and the full history (including
     // internal fields like resumeEventIds) isn't meant to be public API surface.
     const { suspensions: _suspensions, ...meetingWithoutSuspensions } = meeting;
-    const body = session?.user?.role
+    const isAdminSession = session?.user?.role === "ADMIN" || session?.user?.role === "SUPER_ADMIN";
+    const body = isAdminSession
       ? {
           ...meetingWithoutSuspensions,
           resumesAt: relevantSuspension?.to ?? null,

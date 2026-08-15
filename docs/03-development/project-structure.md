@@ -219,7 +219,7 @@ PostgreSQL (Neon) via Prisma. Models:
 | `Meeting` | `mid` (unique), `title`, `calType String[]`, `description`, `creator`, `group`, `startDateTime`/`endDateTime` (`@db.Timestamptz`), `email`, `zoomRoom`, `zoomLink`, `zid`, `zoomPasscode`, `zoomInvitation`, `room`, `modeType`, `status` (default `"Active"`), `isRecurring`, `googleCalendarEventId`, `googleCalendarEventIds Json?` (per-category), `googleSyncStatus`, `googleSyncError`, `zoomCalendarEventId`, `zoomSyncStatus`, `zoomHost`, `attemptedZoomHost` (the pool host an explicit pick collided with, kept for conflict-badge bucketing), `zoomSyncError`, `deletedAt`, `updatedAt` |
 | `RecurrencePattern` | `mid` (unique, FK to Meeting), `type`, `startDate`, `endDate`, `numberOfOccurrences`, `daysOfWeek[]`, `firstDayOfWeek`, `interval`, `weekOfMonth`, `dayOfMonth`, `excludedDates DateTime[]` |
 | `SuspensionPeriod` | one row per suspend→resume cycle (never mutated once superseded) — `mid` (FK), `from`, `to?`, `resumeEventIds Json?` (pre-created post-resume GCal event IDs, held until reconciled), `promoted Boolean` |
-| `Admin` | `email` (unique), `name`, `role Role` (`SUPER_ADMIN \| ADMIN \| USER`), `googleId`, `refreshToken`, `tokenExpiresAt` |
+| `Admin` | `email` (unique), `name`, `role Role` (`SUPER_ADMIN \| ADMIN \| USER`), `googleId` |
 | `LeaseSettings` | singleton — `leaseStartDate`, `leaseEndDate`, `rooms Json` (`IRoomRate[]`), `agentFirstName/LastName/Title/Email/Phone/StreetAddress/City/State/Zip`, `emailTemplate` |
 | `MeetingExportSettings` | singleton — `fields String[]`, which optional columns the Export Meetings XLSX download includes (Meeting ID/Name are always included regardless) |
 | `User` | `name`, `uid` (unique) — unused legacy model |

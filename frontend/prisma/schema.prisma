@@ -14,13 +14,11 @@ enum Role {
 }
 
 model Admin {
-  id             String   @id @default(cuid())
-  email          String   @unique
-  name           String
-  role           Role
-  googleId       String?
-  refreshToken   String?
-  tokenExpiresAt Int?
+  id       String   @id @default(cuid())
+  email    String   @unique
+  name     String
+  role     Role
+  googleId String?
 }
 
 model Meeting {

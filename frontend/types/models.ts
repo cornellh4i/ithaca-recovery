@@ -6,8 +6,6 @@ interface IAdmin {
   email: string;
   role: Role;
   googleId?: string | null;
-  refreshToken?: string | null;
-  tokenExpiresAt?: number | null;
 }
 
 interface IMeeting {

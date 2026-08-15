@@ -14,7 +14,6 @@ const retrieveAdmins = async () => {
         email: true,
         role: true,
         googleId: true,
-        tokenExpiresAt: true,
       },
     });
 

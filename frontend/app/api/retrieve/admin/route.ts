@@ -19,7 +19,6 @@ const getAdminByEmail = async (request: NextRequest) => {
         email: true,
         role: true,
         googleId: true,
-        tokenExpiresAt: true,
       },
     });
     if (!user) {
