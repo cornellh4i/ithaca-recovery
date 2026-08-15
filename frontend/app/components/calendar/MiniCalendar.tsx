@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { DayPicker } from "react-day-picker";
 import "react-day-picker/dist/style.css";
 import styles from "./MiniCalendar.module.scss";
+import { formatETWeekdayShort, isSameETMonth } from "../../../util/date/timeUtils";
 
 type MiniCalendarProps = {
   selectedDate: Date
@@ -9,10 +10,10 @@ type MiniCalendarProps = {
 };
 
 const MiniCalendar: React.FC<MiniCalendarProps> = ({ selectedDate, onSelect }) => {
-  const [currentMonth, setCurrentMonth] = useState(new Date(selectedDate));  
+  const [currentMonth, setCurrentMonth] = useState(new Date(selectedDate));
 
   const isOutsideDay = (date: Date) => {
-    return date.getMonth() !== currentMonth.getMonth();
+    return !isSameETMonth(date, currentMonth);
   };
 
   const handleDateSelect = (date: Date | undefined) => {
@@ -38,8 +39,8 @@ const MiniCalendar: React.FC<MiniCalendarProps> = ({ selectedDate, onSelect }) =
         }}
         defaultMonth={currentMonth}
         formatters={{
-          formatWeekdayName: (date: Date) => 
-            date.toLocaleDateString("en-US", { weekday: "short" }).substring(0, 1),
+          formatWeekdayName: (date: Date) =>
+            formatETWeekdayShort(date).substring(0, 1),
         }}
         required
       />

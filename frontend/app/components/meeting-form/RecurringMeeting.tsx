@@ -10,7 +10,7 @@ import styles from "./RecurringMeeting.module.scss";
 
 import CheckButton from '../ui/buttons/CheckButton';
 import { IRecurrencePattern } from "../../../types/models";
-import { convertETToUTC, convertUTCToET } from "../../../util/date/timeUtils";
+import { convertETToUTC, convertUTCToET, formatETDateString, getETDayOfWeek } from "../../../util/date/timeUtils";
 
 
 interface RecurringMeetingFormProps {
@@ -78,12 +78,19 @@ function etMidnightUTC(datePickerString: string): Date {
 // Derives the dropdown options for monthly recurrence from the meeting's start date.
 // A 5th weekday is always the last, so we show "last" instead of "5th".
 function getMonthlyOptions(startDateStr: string): string[] {
-  const date = new Date(startDateStr);
+  // startDateStr is the DatePicker's raw "MM/DD/YYYY" value (see NewMeeting/EditMeeting's
+  // dateValue), not an ISO instant -- parse via etMidnightUTC (regex-based, same as
+  // toDatePickerString's round-trip above), not new Date(string), whose non-ISO MM/DD/YYYY
+  // parsing behavior isn't reliably specified across engines.
+  const date = etMidnightUTC(startDateStr);
   if (isNaN(date.getTime())) return [];
-  const dayOfMonth = date.getDate();
-  const weekdayName = weekdayNames[date.getDay()];
+  const [year, month, day] = formatETDateString(date).split('-').map(Number);
+  const dayOfMonth = day;
+  const weekdayName = weekdayNames[getETDayOfWeek(date)];
   const nth = Math.ceil(dayOfMonth / 7);
-  const daysInMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+  // Date.UTC(year, month, 0) is the last day of `month` (1-indexed here, so this is
+  // deliberately not month - 1) -- same proleptic-Gregorian-calculator use as weekDates.ts.
+  const daysInMonth = new Date(Date.UTC(year, month, 0)).getUTCDate();
   const isLast = dayOfMonth + 7 > daysInMonth;
 
   const options: string[] = [`Monthly on day ${dayOfMonth}`];
@@ -135,10 +142,12 @@ const RecurringMeetingForm: React.FC<RecurringMeetingFormProps> = ({
   useEffect(() => {
     if (isRecurring && recurrenceType === "weekly" && startDate) {
       try {
-        const date = new Date(startDate);
+        // startDate is the DatePicker's raw "MM/DD/YYYY" value -- see getMonthlyOptions'
+        // comment on why this goes through etMidnightUTC, not new Date(string).
+        const date = etMidnightUTC(startDate);
         if (!isNaN(date.getTime()) && selectedDays.length === 0) {
           // eslint-disable-next-line react-hooks/set-state-in-effect
-          setSelectedDays([days[date.getDay()].id]);
+          setSelectedDays([days[getETDayOfWeek(date)].id]);
         }
       } catch (error) {
         console.error("Error parsing date:", error);

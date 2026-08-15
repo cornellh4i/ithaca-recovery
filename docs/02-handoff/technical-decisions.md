@@ -54,6 +54,14 @@ Each section ends with a **Revisit if:** line — the condition under which this
 
 ---
 
+## Timezone: Always Fixed Eastern Time, Never the Viewer's Local Zone
+
+**Decision:** `Meeting.startDateTime`/`endDateTime` are stored as UTC instants (`@db.Timestamptz`, see above), but every display, calendar-day boundary, and recurrence calculation is done in fixed `America/New_York` — never the browser/runtime's local timezone. Ithaca Recovery is a physical-location calendar; a meeting's displayed time must not depend on where the viewer happens to be. All conversions go through the DST-safe `Intl.DateTimeFormat`-based helpers in `frontend/util/date/timeUtils.ts` (and `timeFormat.tsx` for compositions on top).
+
+**Enforcement:** this used to rely on every contributor remembering to route through those helpers instead of calling local-timezone-dependent `Date` methods (`getDate`/`getHours`/`toLocaleDateString` without an explicit `timeZone`/multi-arg `new Date(y, m, d)`) directly — which drifted in practice (three sibling calendar view components independently reimplemented the same "now" scroll-position math, one via the ET-safe path and the others via local getters). Now enforced two ways: a `no-restricted-syntax` ESLint rule (`frontend/config/eslint.config.mjs`) bans those patterns everywhere except `util/date/**` (where they're the legitimate low-level primitives), `tests/**`, and `scripts/**`; and `frontend/config/jest.config.ts`/`jest.component.config.ts` runs are pinned to `TZ=UTC` (mirroring `playwright.config.ts`'s existing `timezoneId: "UTC"`) so anything the lint rule can't catch still fails under a runtime zone that differs from Eastern.
+
+---
+
 ## Write-Time Conflict Race: Advisory Locks, Not a DB Constraint
 
 **Decision:** `write/meeting` and `update/meeting` wrap conflict checks and writes inside a single Prisma transaction, serialized by Postgres transaction-scoped advisory locks (`pg_advisory_xact_lock`) per resource (`frontend/util/meetings/resourceLocks.ts`).

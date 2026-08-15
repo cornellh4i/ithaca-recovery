@@ -98,6 +98,47 @@ const etDateFmt = new Intl.DateTimeFormat('en-CA', {
  */
 export const formatETDateString = (date: Date): string => etDateFmt.format(date);
 
+// Short weekday label ("Mon"), pinned ET -- callers apply their own case/substring
+// (e.g. WeekView uppercases it, MiniCalendar takes just the first letter).
+const etWeekdayShortFmt = new Intl.DateTimeFormat('en-US', {
+  timeZone: 'America/New_York', weekday: 'short',
+});
+
+/** ET short weekday label (e.g. "Mon") for a given instant. */
+export const formatETWeekdayShort = (date: Date): string => etWeekdayShortFmt.format(date);
+
+// Full weekday label ("Monday"), pinned ET -- e.g. for matching against a recurrence
+// pattern's daysOfWeek, which stores full names.
+const etWeekdayLongFmt = new Intl.DateTimeFormat('en-US', {
+  timeZone: 'America/New_York', weekday: 'long',
+});
+
+/** ET full weekday label (e.g. "Monday") for a given instant. */
+export const formatETWeekdayLong = (date: Date): string => etWeekdayLongFmt.format(date);
+
+// "August 14, 2026" -- pinned ET, for prose date display (e.g. suspension status text).
+const etLongDateFmt = new Intl.DateTimeFormat('en-US', {
+  timeZone: 'America/New_York', month: 'long', day: 'numeric', year: 'numeric',
+});
+
+/** ET long-form prose date (e.g. "August 14, 2026") for a given instant. */
+export const formatETLongDate = (date: Date): string => etLongDateFmt.format(date);
+
+/** ET day-of-month (1-31) for a given instant. */
+export const getETDayOfMonth = (date: Date): number => Number(formatETDateString(date).slice(-2));
+
+/** ET day of week (0 = Sunday .. 6 = Saturday) for a given instant. */
+export const getETDayOfWeek = (date: Date): number => {
+  const [year, month, day] = formatETDateString(date).split('-').map(Number);
+  // Date.UTC used purely as a proleptic-Gregorian calculator here (same construction as
+  // weekDates.ts) -- getUTCDay on a UTC-constructed probe is timezone-independent.
+  return new Date(Date.UTC(year, month - 1, day)).getUTCDay();
+};
+
+/** Whether two instants fall in the same ET calendar month (and year). */
+export const isSameETMonth = (a: Date, b: Date): boolean =>
+  formatETDateString(a).slice(0, 7) === formatETDateString(b).slice(0, 7);
+
 /**
  * Parses a DatePicker field's MM/DD/YYYY value into a Date, or null for an empty/unset value.
  * Shared by SuspendMeetingModal and ResumeMeetingModal, whose "Until"/"On" date fields both
@@ -169,4 +210,20 @@ export const getCurrentETMinutesSinceMidnight = (): number => {
   const hour = parseInt(parts.find(p => p.type === 'hour')?.value ?? '0', 10);
   const minute = parseInt(parts.find(p => p.type === 'minute')?.value ?? '0', 10);
   return hour * 60 + minute;
+};
+
+// Same en-GB/hour12:false reasoning as etTimeFmt above, plus seconds.
+const etTimeOfDayFmt = new Intl.DateTimeFormat('en-GB', {
+  timeZone: 'America/New_York', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
+});
+
+/**
+ * ET wall-clock hour/minute/second (24h) for a given instant -- for re-anchoring a
+ * known time-of-day onto a different ET calendar date (combine with convertETToUTC).
+ */
+export const getETTimeOfDay = (date: Date): { hour: number; minute: number; second: number } => {
+  const parts = etTimeOfDayFmt.formatToParts(date);
+  const get = (type: Intl.DateTimeFormatPartTypes) =>
+    parseInt(parts.find(p => p.type === type)?.value ?? '0', 10);
+  return { hour: get('hour') % 24, minute: get('minute'), second: get('second') };
 };

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import styles from "./TimePicker.module.scss";
+import { getCurrentETMinutesSinceMidnight } from "../../../../util/date/timeUtils";
 
 interface TimePickerProps {
   label: string | React.JSX.Element;
@@ -12,24 +13,24 @@ interface TimePickerProps {
   [key: string]: unknown;
 }
 
-// Utility function to add minutes to a given time
+// Utility function to add minutes to a given time. Pure clock arithmetic (no Date object --
+// a real Date's local getters/setters would be vulnerable to the runtime's own DST rules on
+// whatever day "new Date()" happens to land on, for no benefit since this is timezone-agnostic
+// HH:MM math to begin with).
 const addMinutes = (time: string, minutesToAdd: number): string => {
   const [hours, minutes] = time.split(':').map(Number);
-  const date = new Date();
-  date.setHours(hours, minutes, 0, 0);
-  date.setMinutes(date.getMinutes() + minutesToAdd);
-  const newHours = date.getHours().toString().padStart(2, '0');
-  const newMinutes = date.getMinutes().toString().padStart(2, '0');
+  const totalMinutes = (((hours * 60 + minutes + minutesToAdd) % 1440) + 1440) % 1440;
+  const newHours = Math.floor(totalMinutes / 60).toString().padStart(2, '0');
+  const newMinutes = (totalMinutes % 60).toString().padStart(2, '0');
   return `${newHours}:${newMinutes}`;
 };
 
-// Utility function to calculate the difference in minutes between two times
+// Utility function to calculate the difference in minutes between two times. Same
+// no-Date-needed reasoning as addMinutes above.
 const getTimeDifferenceInMinutes = (startTime: string, endTime: string): number => {
   const [startHours, startMinutes] = startTime.split(':').map(Number);
   const [endHours, endMinutes] = endTime.split(':').map(Number);
-  const startDate = new Date(1970, 0, 1, startHours, startMinutes);
-  const endDate = new Date(1970, 0, 1, endHours, endMinutes);
-  return (endDate.getTime() - startDate.getTime()) / (1000 * 60);
+  return (endHours * 60 + endMinutes) - (startHours * 60 + startMinutes);
 };
 
 const TimePicker = ({ label, value: propValue = '', disablePast, onChange, compact = false, ...props }: TimePickerProps) => {
@@ -66,9 +67,9 @@ const TimePicker = ({ label, value: propValue = '', disablePast, onChange, compa
   // hydration mismatch on the input's `min` attribute if computed inline instead.
   useEffect(() => {
     if (disablePast) {
-      const now = new Date();
-      const hours = now.getHours().toString().padStart(2, '0');
-      const minutes = now.getMinutes().toString().padStart(2, '0');
+      const minutesSinceMidnight = getCurrentETMinutesSinceMidnight();
+      const hours = Math.floor(minutesSinceMidnight / 60).toString().padStart(2, '0');
+      const minutes = (minutesSinceMidnight % 60).toString().padStart(2, '0');
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setMinTime(`${hours}:${minutes}`);
     }

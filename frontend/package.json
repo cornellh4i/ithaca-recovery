@@ -13,8 +13,8 @@
     "commitlint": "commitlint --config config/commitlint.config.mjs",
     "postinstall": "prisma generate",
     "typecheck": "node build-scripts/generate-docs-content.mjs && next typegen && tsc --noEmit -p .",
-    "test:unit": "jest --config config/jest.config.ts",
-    "test:component": "jest --config config/jest.component.config.ts",
+    "test:unit": "TZ=UTC jest --config config/jest.config.ts",
+    "test:component": "TZ=UTC jest --config config/jest.component.config.ts",
     "test:integration": "jest --config config/jest.integration.config.ts",
     "test:e2e": "playwright test --config config/playwright.config.ts",
     "test:all": "yarn lint && yarn lint:css && yarn typecheck && yarn test:unit && yarn test:component && yarn test:integration && yarn test:e2e"

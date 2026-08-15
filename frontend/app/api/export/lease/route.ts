@@ -47,7 +47,10 @@ function calculateBillableTime(start: Date, end: Date): number {
 }
 
 function formatLeaseDate(date: Date): string {
+  // Deliberately UTC, not ET -- lease dates are plain @db.Date calendar dates with no time
+  // component (unlike Meeting.startDateTime/endDateTime), so there's no ET wall-clock to derive.
   const day = date.getUTCDate();
+  // eslint-disable-next-line no-restricted-syntax -- explicit timeZone: "UTC" above, see comment
   const month = date.toLocaleString("en-US", { month: "short", timeZone: "UTC" });
   const year = date.getUTCFullYear().toString().slice(-2);
   return `${day}-${month}-${year}`;

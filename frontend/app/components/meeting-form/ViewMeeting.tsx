@@ -12,7 +12,12 @@ import Icon from '../ui/displays/Icon';
 
 import { IRecurrencePattern } from '../../../types/models';
 import { formatCompactTimeRange, formatMeetingDateLine } from "../../../util/date/timeFormat";
-import { formatETDateString } from "../../../util/date/timeUtils";
+import {
+  convertETToUTC,
+  formatETDateString,
+  formatETWeekdayLong,
+  getETTimeOfDay,
+} from "../../../util/date/timeUtils";
 import { retryMeetingSync } from "../../../services/syncMeeting";
 import { useToast } from "../shared/ToastProvider";
 import { formatSuspensionStatusText } from "../../../util/meetings/suspensionText";
@@ -328,15 +333,11 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
   const doesMeetingOccurOnDate = (date: Date): boolean => {
     if (!isRecurring || !recurrencePattern) {
       const meetingDate = new Date(startDateTime);
-      return (
-        meetingDate.getFullYear() === date.getFullYear() &&
-        meetingDate.getMonth() === date.getMonth() &&
-        meetingDate.getDate() === date.getDate()
-      );
+      return formatETDateString(meetingDate) === formatETDateString(date);
     }
 
     if (recurrencePattern.type === "weekly") {
-      const dayOfWeek = date.toLocaleDateString('en-US', { weekday: 'long' });
+      const dayOfWeek = formatETWeekdayLong(date);
       if (!(recurrencePattern.daysOfWeek ?? []).includes(dayOfWeek)) {
         return false;
       }
@@ -356,10 +357,15 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
   let displayEndDate = endDateTime;
 
   if (isRecurring && currentOccurrenceDate && doesMeetingOccurOnDate(currentOccurrenceDate)) {
-    const newStartDate = new Date(startDateTime);
-    newStartDate.setFullYear(currentOccurrenceDate.getFullYear());
-    newStartDate.setMonth(currentOccurrenceDate.getMonth());
-    newStartDate.setDate(currentOccurrenceDate.getDate());
+    // Keep startDateTime's ET time-of-day, but move it onto currentOccurrenceDate's ET
+    // calendar day -- via convertETToUTC (not local setFullYear/setMonth/setDate) so this
+    // is correct regardless of the viewer's own timezone.
+    const occurrenceDateStr = formatETDateString(currentOccurrenceDate);
+    const { hour, minute, second } = getETTimeOfDay(startDateTime);
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const newStartDate = new Date(
+      convertETToUTC(`${occurrenceDateStr}T${pad(hour)}:${pad(minute)}:${pad(second)}`)
+    );
 
     displayStartDate = newStartDate;
 

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { formatETDateString } from "../util/date/timeUtils";
+import { addDaysToDate } from "../util/date/weekDates";
 import { createCache } from "../util/common/simpleCache";
 import { IMeeting } from "../types/models";
 import { OverlapMeeting } from "../util/meetings/meetingOverlapLayout";
@@ -73,8 +74,7 @@ const fetchMeetingsByWeek = async (startDate: Date, endDate: Date): Promise<Week
 // for however long the real fetch takes (invisible before this component had any transition;
 // visible now that one draws the eye to the moment the new week "arrives").
 export const prefetchWeek = (weekStartDate: Date): void => {
-    const endDate = new Date(weekStartDate);
-    endDate.setDate(weekStartDate.getDate() + 6);
+    const endDate = addDaysToDate(weekStartDate, 6);
     fetchMeetingsByWeek(weekStartDate, endDate);
 };
 
@@ -135,8 +135,7 @@ export function useWeekMeetings(weekStartDate: Date, refreshTrigger: number = 0)
 
     const fetchWeekMeetings = useCallback(async (forceFetch = false) => {
         const startDate = weekStartDateRef.current;
-        const endDate = new Date(startDate);
-        endDate.setDate(startDate.getDate() + 6);
+        const endDate = addDaysToDate(startDate, 6);
 
         // Clear the entire cache so stale data on other weeks is also dropped.
         if (forceFetch) {
