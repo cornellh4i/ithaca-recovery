@@ -36,7 +36,9 @@ describe("ResumeMeetingModal", () => {
   it("calls onConfirm(null) for immediate resume", () => {
     const onConfirm = jest.fn();
     render(<ResumeMeetingModal isOpen {...baseProps} onConfirm={onConfirm} />);
-    fireEvent.click(screen.getByRole("button", { name: "Resume", exact: true }));
+    // getByRole's `name` option always does a full accessible-name match (no `exact` flag exists
+    // on ByRoleOptions -- that's a getByText-only option).
+    fireEvent.click(screen.getByRole("button", { name: "Resume" }));
     expect(onConfirm).toHaveBeenCalledWith(null);
   });
 });

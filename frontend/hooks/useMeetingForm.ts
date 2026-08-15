@@ -2,7 +2,7 @@ import { useCallback, useState } from 'react';
 import { IMeeting, IRecurrencePattern } from '../types/models';
 import { convertUTCToET, convertETToUTC, formatETDateString, getWeekDatesET, getCurrentETMinutesSinceMidnight } from '../util/date/timeUtils';
 import { roomToZoomRoom } from '../util/rooms/rooms';
-import { DESCRIPTION_MAX_LENGTH } from '../util/meetings/meetingValidation';
+import { DESCRIPTION_MAX_LENGTH, MAX_RECURRENCE_OCCURRENCES } from '../util/meetings/meetingValidation';
 
 // What the calendar is currently showing, used to seed a brand-new meeting's default
 // Date field -- see computeDefaultDate below.
@@ -16,7 +16,7 @@ export interface MeetingFormDefaultContext {
 
 export const CAL_TYPE_OPTIONS = ["AA", "Al-Anon", "Other"];
 export const CAL_TYPE_COLOR = "#CC3366";
-export { DESCRIPTION_MAX_LENGTH };
+export { DESCRIPTION_MAX_LENGTH, MAX_RECURRENCE_OCCURRENCES };
 
 // Field keys a validation error can be attributed to -- lets FormValidationBanner report a
 // live count of distinct fields needing fixing, not just a count of error messages (a single
@@ -252,6 +252,18 @@ export function useMeetingForm(initialMeeting?: IMeeting, defaultContext?: Meeti
 
         if (isRecurring && recurrencePattern === null) {
             errors.push({ fields: ["recurrence"], message: "Recurrence details are required for recurring meetings." });
+        } else if (
+            isRecurring &&
+            recurrencePattern?.numberOfOccurrences != null &&
+            recurrencePattern.numberOfOccurrences > MAX_RECURRENCE_OCCURRENCES
+        ) {
+            // Mirrors meetingValidation.ts's server-side cap -- without this, RecurringMeeting.tsx's
+            // own inline "occurrence(s)" message shows but doesn't block Create/Save, so submitting
+            // a value above the cap silently 400s on the server instead.
+            errors.push({
+                fields: ["recurrence"],
+                message: `Number of occurrences must be ${MAX_RECURRENCE_OCCURRENCES} or fewer.`,
+            });
         }
 
         return errors;

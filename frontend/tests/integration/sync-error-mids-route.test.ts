@@ -1,5 +1,5 @@
 import { randomUUID } from "crypto";
-import type { Meeting } from "@prisma/client";
+import type { Prisma } from "@prisma/client";
 
 jest.mock("../../services/auth", () => ({
   requireRole: jest.fn(),
@@ -12,7 +12,7 @@ import { GET } from "../../app/api/admin/sync-error-mids/route";
 
 const mockedRequireRole = requireRole as jest.Mock;
 
-function buildMeetingData(overrides: Partial<Meeting> = {}) {
+function buildMeetingData(overrides: Partial<Prisma.MeetingCreateInput> = {}) {
   return buildBaseMeetingData({
     title: "Sync Error Mids Meeting",
     modeType: "Hybrid",
