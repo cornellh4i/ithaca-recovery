@@ -36,14 +36,18 @@ test.describe("google calendar sync", () => {
     // explicit 'error' (not stay null forever) so a missing sync surfaces on Diagnostics
     // instead of looking healthy. Sync runs in the background after the response
     // (waitUntil), so poll rather than reading the DB once immediately after writeResponse.
+    //
+    // Asserting the exact message, not just the status, matters here: 7.8 (missing
+    // GOOGLE_CALENDAR_* config, but a real accessToken) also lands on 'error' -- the message is
+    // what actually distinguishes "never attempted, no token at all" from "attempted and failed".
     const prisma = getTestPrismaClient();
     await expect.poll(async () => {
       const created = await prisma.meeting.findFirst({ where: { title: "No Token Meeting" } });
-      return created?.googleSyncStatus;
-    }).toBe("error");
+      return created?.googleSyncError;
+    }).toBe("No Google Calendar access token available for this sync.");
 
     const created = await prisma.meeting.findFirst({ where: { title: "No Token Meeting" } });
-    expect(created?.googleSyncError).toBeTruthy();
+    expect(created?.googleSyncStatus).toBe("error");
   });
 
   test("7.8 creating a meeting with a session accessToken attempts a sync for every checked category", async ({ page, context }) => {
