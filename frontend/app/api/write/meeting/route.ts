@@ -76,7 +76,8 @@ async function syncNewMeeting(
   // where a poller could observe googleSyncStatus turn non-null before the zid/zoomHost write
   // landed. `undefined` here means "this run never touched this field," same as omitting it
   // from a Prisma update -- the single combined write below makes every field that *did* change
-  // visible atomically, in one row version.
+  // visible atomically, in one row version. googleSyncStatus itself is always assigned by one
+  // of the three branches below (zoomBlocking/accessToken/no-token), unlike the other two.
   let googleCalendarEventIds: Record<string, string> | undefined;
   let googleSyncStatus: string | undefined;
   let googleSyncError: string | null | undefined;
@@ -143,7 +144,9 @@ async function syncNewMeeting(
         googleCalendarEventIds, googleSyncStatus, googleSyncError,
       },
     });
-  } else if (googleSyncStatus !== undefined) {
+  } else {
+    // googleSyncStatus is always assigned by this point (see the accumulator comment above),
+    // so this write always has something to persist.
     await prisma.meeting.update({
       where: { mid },
       data: { googleCalendarEventIds, googleSyncStatus, googleSyncError },
