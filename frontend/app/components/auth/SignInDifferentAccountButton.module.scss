@@ -1,0 +1,18 @@
+@import '../../../styles/Variables.module';
+
+.button {
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: $radius-md;
+    background-color: $brand-pink-color;
+    font-size: 15px;
+    font-weight: 600;
+    color: $white-color;
+    cursor: pointer;
+
+    &:hover,
+    &:focus {
+        background-color: $brand-pink-secondary;
+    }
+}

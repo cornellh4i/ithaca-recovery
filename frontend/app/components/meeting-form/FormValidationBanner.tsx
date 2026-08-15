@@ -1,7 +1,7 @@
 import React, { useLayoutEffect, useRef } from "react";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import type { MeetingFormFieldError } from "../../../hooks/useMeetingForm";
-import styles from "../../../styles/components/meeting-form/FormValidationBanner.module.scss";
+import styles from "./FormValidationBanner.module.scss";
 
 interface FormValidationBannerProps {
   errors: MeetingFormFieldError[];

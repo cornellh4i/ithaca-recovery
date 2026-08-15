@@ -3,7 +3,7 @@
 import React from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion, type PanInfo } from "framer-motion";
-import styles from "../../../../styles/components/ui/overlays/MobileFullScreenSheet.module.scss";
+import styles from "./MobileFullScreenSheet.module.scss";
 
 // Distance/velocity a drag needs to clear before it counts as "swipe to dismiss" -- same
 // thresholds BottomSheet's own drag-to-dismiss uses, for a consistent feel across the app's

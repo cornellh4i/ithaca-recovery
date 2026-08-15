@@ -1,0 +1,72 @@
+@import '../../../../styles/Variables.module';
+
+.backdrop {
+    position: fixed;
+    inset: 0;
+    background-color: rgb(0 0 0 / 40%);
+    z-index: $z-index-modal;
+}
+
+.sheet {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: $z-index-modal;
+    background-color: #fff;
+    border-radius: 16px 16px 0 0;
+    box-shadow: 0 -4px 16px rgb(0 0 0 / 15%);
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    padding: 8px 20px calc(16px + env(safe-area-inset-bottom));
+    touch-action: none;
+
+    // Landscape phone -- see BottomSheet.tsx's isLandscapePhone. Overrides the bottom-anchored
+    // inset/rounded-top/80vh cap above with a full-screen panel; the slide-up motion (y:"100%"
+    // to 0) still works unchanged since it's a transform, independent of these static rules.
+    &.fullScreen {
+        inset: 0;
+        max-height: none;
+        border-radius: 0;
+        padding-top: calc(8px + env(safe-area-inset-top));
+
+        // A landscape phone's display cutout/rounded corners sit on the left and right edges,
+        // not just the top -- the base 20px side padding above isn't enough clearance there.
+        padding-left: calc(20px + env(safe-area-inset-left));
+        padding-right: calc(20px + env(safe-area-inset-right));
+    }
+}
+
+.grabber {
+    width: 36px;
+    height: 4px;
+    border-radius: 2px;
+    background-color: $light-grey-color;
+    margin: 0 auto 12px;
+}
+
+.title {
+    margin: 0 0 12px;
+    font-size: 16px;
+    font-weight: 600;
+    color: $black-color;
+}
+
+// Screen-reader-only -- for content that already renders its own visible header/title.
+.titleVisuallyHidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+}
+
+.content {
+    overflow-y: auto;
+    touch-action: pan-y;
+}

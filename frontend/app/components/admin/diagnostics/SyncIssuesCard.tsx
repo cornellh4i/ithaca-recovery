@@ -9,11 +9,11 @@ import EditMeetingSidebar from "../../meeting-form/EditMeeting";
 import { IMeeting } from "../../../../types/models";
 import { retryMeetingSync } from "../../../../services/syncMeeting";
 import { useToast } from "../../shared/ToastProvider";
-import styles from "../../../../styles/components/admin/DiagnosticsTab.module.scss";
+import styles from "./DiagnosticsTab.module.scss";
 // Reuses ConflictList's inline-edit-panel styling (accordion expand + card treatment) rather
 // than duplicating it -- same pattern, same visual language, this card just isn't grouped by
 // resource so it doesn't need ConflictList's own grouping/rendering logic.
-import editStyles from "../../../../styles/components/admin/ConflictList.module.scss";
+import editStyles from "./ConflictList.module.scss";
 
 interface SyncIssue {
   text: string;

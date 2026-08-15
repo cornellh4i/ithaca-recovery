@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import Icon from '../ui/displays/Icon';
-import styles from '../../../styles/components/meeting-form/ConflictOverrideModal.module.scss';
+import styles from './ConflictOverrideModal.module.scss';
 import { fieldLabel, formatOverlapSummary, formatMeetingSchedule, ConflictListRow } from '../../../util/meetings/conflictDisplay';
 
 interface ConflictOverrideModalProps {

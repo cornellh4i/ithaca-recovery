@@ -1,6 +1,6 @@
 import React from 'react';
 import Icon from '../ui/displays/Icon';
-import styles from '../../../styles/components/meeting-form/DeleteMeetingModal.module.scss';
+import styles from './DeleteMeetingModal.module.scss';
 
 interface DeleteMeetingModalProps {
   isOpen: boolean;

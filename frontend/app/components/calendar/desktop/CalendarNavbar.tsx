@@ -2,7 +2,7 @@ import React from 'react';
 import Dropdown from '../../ui/inputs/Dropdown';
 import CalendarHeader from '../shared/CalendarHeader';
 import Icon, { IconName } from '../../ui/displays/Icon';
-import styles from "../../../../styles/components/calendar/desktop/CalendarNavbar.module.scss";
+import styles from "./CalendarNavbar.module.scss";
 import {
   formatETDateString,
   convertETToUTC,

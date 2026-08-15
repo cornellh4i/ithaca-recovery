@@ -10,7 +10,7 @@ import { useToast } from "../../shared/ToastProvider";
 import { invalidateAllDayCache } from "../../calendar/desktop/DayView";
 import { invalidateAllWeekCache } from "../../../../hooks/useWeekMeetings";
 import { formatSuspensionStatusText } from "../../../../util/meetings/suspensionText";
-import styles from "../../../../styles/components/admin/DiagnosticsTab.module.scss";
+import styles from "./DiagnosticsTab.module.scss";
 
 interface SuspendedRow {
   mid: string;

@@ -9,7 +9,7 @@ import ProfileCard from "../auth/ProfileCard";
 import MobileAppNavigation from "./MobileAppNavigation";
 import { useIsPhone } from "../../../hooks/useIsPhone";
 import { useUserAvatar } from "../../../hooks/useUserAvatar";
-import styles from "../../../styles/components/navigation/AppNavigation.module.scss";
+import styles from "./AppNavigation.module.scss";
 
 const AppNavigation: React.FC = () => {
     const isPhone = useIsPhone();

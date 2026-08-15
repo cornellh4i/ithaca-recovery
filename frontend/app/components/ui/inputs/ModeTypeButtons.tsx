@@ -1,5 +1,5 @@
 import React from 'react';
-import styles from '../../../../styles/components/ui/inputs/ModeTypeButtons.module.scss';
+import styles from './ModeTypeButtons.module.scss';
 import { MODE_ICON_NAME } from '../../../../util/rooms/modeIcons';
 import Icon from '../displays/Icon';
 

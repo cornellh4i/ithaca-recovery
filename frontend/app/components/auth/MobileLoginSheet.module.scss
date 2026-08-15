@@ -1,0 +1,13 @@
+@import '../../../styles/Variables.module';
+
+.header {
+    display: flex;
+    align-items: center;
+    padding: 4px 8px;
+}
+
+.content {
+    display: flex;
+    justify-content: center;
+    padding: 24px 24px 40px;
+}

@@ -7,7 +7,7 @@ import type { DocEntry } from "../../../util/docs/loadDocs";
 import { useScrollNavHide } from "../../../hooks/useScrollNavHide";
 import { CheckIcon, ChevronDownIcon, CopyIcon, ExternalLinkIcon, TocToggleIcon } from "./DocsIcons";
 import TocList from "./DocsTocList";
-import styles from "../../../styles/components/docs/DocsShell.module.scss";
+import styles from "./DocsShell.module.scss";
 
 interface DocsArticleProps {
   activeDoc: DocEntry;

@@ -4,7 +4,7 @@ import React from "react";
 import MobileFullScreenSheet from "../ui/overlays/MobileFullScreenSheet";
 import LoginCard from "./LoginCard";
 import IconButton from "../ui/buttons/IconButton";
-import styles from "../../../styles/components/auth/MobileLoginSheet.module.scss";
+import styles from "./MobileLoginSheet.module.scss";
 
 interface MobileLoginSheetProps {
   isOpen: boolean;

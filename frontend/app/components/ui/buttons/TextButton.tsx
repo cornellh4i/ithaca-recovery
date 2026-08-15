@@ -1,5 +1,5 @@
 import React from "react";
-import styles from "../../../../styles/components/ui/buttons/TextButton.module.scss";
+import styles from "./TextButton.module.scss";
 
 interface ButtonProps {
   label: string;              // Text to display inside the button

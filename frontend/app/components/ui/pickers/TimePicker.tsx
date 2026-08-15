@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import styles from "../../../../styles/components/ui/pickers/TimePicker.module.scss";
+import styles from "./TimePicker.module.scss";
 
 interface TimePickerProps {
   label: string | React.JSX.Element;

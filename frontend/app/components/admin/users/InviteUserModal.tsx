@@ -7,7 +7,7 @@ import Modal from "../../ui/overlays/Modal";
 import RadioGroup from "../../ui/inputs/RadioGroup";
 import TextField from "../../ui/inputs/TextField";
 import { LABEL_TO_ROLE, ROLE_OPTIONS } from "../../../../util/roles";
-import styles from "../../../../styles/components/admin/UserModals.module.scss";
+import styles from "./UserModals.module.scss";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 

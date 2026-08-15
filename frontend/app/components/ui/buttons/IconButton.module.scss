@@ -1,0 +1,92 @@
+@import '../../../../styles/Variables.module';
+
+.iconButton {
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+
+    // Default currentColor for structural icons (Icon.tsx entries with no pinned `color`) that
+    // inherit rather than hardcode. Declared here (not on .iconWrap) so .filled's own `color:
+    // $white-color` below -- on this same element -- wins by normal source-order cascade;
+    // .iconWrap setting its own color directly would instead beat inheritance from .filled
+    // unconditionally, regardless of source order, since a direct declaration on an element
+    // always beats an inherited one.
+    // !important: MUI's own MuiIconButton-root/MuiButtonBase-root classes set their own
+    // same-specificity default `color` (rgba(0,0,0,.54)) on this same button element, which
+    // otherwise wins unpredictably depending on emotion's <style> injection order -- same
+    // class of problem as the width/height !importants below. .filled is also !important so
+    // it still wins over this rule on the same element (plain source order between two
+    // !important rules on one element still applies normally).
+    color: $medium-grey-color !important;
+}
+
+.default {
+    width: 48px;
+    height: 48px;
+}
+
+.compact {
+    width: 32px;
+    height: 32px;
+}
+
+.ghost {
+    background-color: transparent;
+
+    &:hover,
+    &:focus {
+        background-color: $grey-lightest-color;
+    }
+}
+
+.filled {
+    border-radius: 50%;
+
+    // Filled variant is always a solid/dark-colored circular background (both current
+    // usages pass a brand backgroundColor) -- white keeps the icon legible on any of them.
+    // !important to win over .iconButton's own !important default above (same element).
+    color: $white-color !important;
+
+    &:hover,
+    &:focus {
+        opacity: 0.85;
+    }
+}
+
+.outlined {
+    background-color: #fff;
+    border: 1px solid $grey-border-color;
+    border-radius: 50%;
+
+    &:hover,
+    &:focus {
+        background-color: $grey-lightest-color;
+    }
+}
+
+.iconWrap {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+
+    // !important on width/height: @mui/icons-material icons carry their own same-specificity
+    // .MuiSvgIcon-root class (width/height: 1em) -- without this, which one wins depends on
+    // emotion's runtime <style> injection order vs. this CSS module's, which is unreliable
+    // (same class of problem MobileAppNavigation.module.scss's .squareIcon/.filterActive
+    // solve the same way, and this file's own .color rules above solve for `color`).
+    img,
+    .icon {
+        width: 100% !important;
+        height: 100% !important;
+        display: block;
+    }
+}
+
+.compact .iconWrap {
+    width: 18px;
+    height: 18px;
+}

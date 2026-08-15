@@ -1,0 +1,69 @@
+@import '../../../styles/Variables.module';
+
+.backdrop {
+    position: fixed;
+    inset: 0;
+    background-color: rgb(0 0 0 / 40%);
+    z-index: $z-index-modal;
+}
+
+.drawer {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    z-index: $z-index-modal;
+    width: 260px;
+    max-width: 80vw;
+    background-color: #fff;
+    box-shadow: 4px 0 16px rgb(0 0 0 / 15%);
+    display: flex;
+    flex-direction: column;
+    padding: 8px 16px calc(16px + env(safe-area-inset-bottom));
+    overflow-y: auto;
+}
+
+.logoRow {
+    display: flex;
+    align-items: center;
+}
+
+.separator {
+    border: none;
+    border-top: 1px solid $grey-border-color;
+    margin: 8px 0 12px;
+    width: 100%;
+}
+
+.nav {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 12px 8px;
+    border-radius: 8px;
+    text-decoration: none;
+    background: none;
+    border: none;
+    font: inherit;
+    font-size: 16px;
+    color: $black-color;
+    text-align: left;
+    cursor: pointer;
+
+    &:hover,
+    &:focus {
+        background-color: $grey-lightest-color;
+    }
+
+    &.active {
+        color: $brand-pink-color;
+        background-color: $grey-lightest-color;
+        font-weight: 600;
+    }
+}

@@ -7,7 +7,7 @@ import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { AnimatePresence, motion } from "framer-motion";
 import Logo from "../ui/displays/Logo";
-import styles from "../../../styles/components/navigation/MobileAppSidebar.module.scss";
+import styles from "./MobileAppSidebar.module.scss";
 
 interface MobileAppSidebarProps {
   isOpen: boolean;

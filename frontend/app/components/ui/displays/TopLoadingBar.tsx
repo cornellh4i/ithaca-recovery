@@ -1,5 +1,5 @@
 import React from "react";
-import styles from "../../../../styles/components/ui/displays/TopLoadingBar.module.scss";
+import styles from "./TopLoadingBar.module.scss";
 
 interface TopLoadingBarProps {
   active: boolean;

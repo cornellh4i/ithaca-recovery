@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useLayoutEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import Link from 'next/link';
-import styles from '../../../styles/components/meeting-form/ViewMeeting.module.scss';
+import styles from './ViewMeeting.module.scss';
 import DeleteRecurringModal from './DeleteRecurringModal';
 import DeleteMeetingModal from './DeleteMeetingModal';
 import SuspendMeetingModal from './SuspendMeetingModal';

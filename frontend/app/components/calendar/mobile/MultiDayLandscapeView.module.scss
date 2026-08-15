@@ -1,0 +1,183 @@
+@import '../../../../styles/Variables.module';
+
+.outerContainer {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background-color: $white-color;
+  position: relative; // anchors TopLoadingBar's absolute positioning to this view's own bounds
+}
+
+// The only scroll container -- vertical (native) and horizontal (clipped, not scrolled: the
+// 3-page drag strip, 3x the viewport wide, is clipped here rather than at .stripWrapper.
+// clip-path there only clips *paint*, not layout -- the oversized strip would still count as
+// real scrollable width on every ancestor up to whichever one actually clips it, so it has to
+// be an overflow (not clip-path) at THIS level for the view to stay fixed-width horizontally.
+// It can't be .stripWrapper itself: overflow (any value but visible) makes an element a
+// "scroll container" per spec, and .dayHeader's own sticky positioning (module.scss) needs to
+// bind to this real scroller, not to a purely-horizontal clip sitting between it and here.
+.scrollArea {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden auto; // x, y
+  overscroll-behavior-x: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+// Holds the sticky-to-this-row time column alongside the horizontally-dragging day strip --
+// both need to scroll vertically together (see .scrollArea above), which is why this is a
+// plain flex row inside .scrollArea rather than a second, separately-scrolling container.
+.row {
+  display: flex;
+}
+
+// Never moves with .strip's horizontal drag (it's a flex sibling, not a descendant) -- shows
+// the same 24-hour range every day panel does, once, instead of repeating per panel.
+// padding-left (not .row's) so the safe-area gutter is part of THIS column's own painted white
+// box, not a separate unstyled gap in front of it -- that gap used to expose whatever a
+// dragged/settling day panel's content transformed underneath it, since nothing painted over
+// that region. 16px floor so there's still a gutter on a device/orientation without a notch
+// (env() resolves to 0 there).
+// position: relative + z-index so this still paints above the day panels' own content
+// (meeting cards z-index 10, .currentTimeIndicator 12) during that same transform -- but below
+// .dayHeader's own 15, so the actual visible day headers always read in front of this column,
+// never the reverse.
+.timeColumn {
+  position: relative;
+  z-index: 14;
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  padding-left: max(16px, env(safe-area-inset-left));
+  background-color: $white-color;
+}
+
+// Matches .dayHeader's own height so the hour labels below line up with the meeting grid,
+// not the day headers themselves -- same trick desktop WeekView's .timeHeader spacer uses.
+// Sticky (not just .dayHeader alone) so the top-left corner where the time column meets the
+// day headers stays visually paired as one pinned strip, matching .dayHeader's own stickiness
+// below.
+.timeSpacer {
+  position: sticky;
+  top: 0;
+  z-index: 15;
+  flex: 0 0 auto;
+  background-color: $white-color;
+}
+
+.hourLabel {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  padding: 0 4px;
+  box-sizing: border-box;
+  font-size: 9px;
+  color: $text-secondary-color;
+  font-variant-numeric: tabular-nums;
+
+  // Nudges the label up so its text sits beside the hour *line* (this row's top edge, drawn
+  // by DayColumn's own .hourMarker), not vertically centered in the row below it.
+  position: relative;
+  top: -5px;
+}
+
+// flex: 1 1 auto with min-width: 0 -- without the latter, a flex item defaults to refusing to
+// shrink below its content's natural width, and .strip's content is 3x this wrapper's own
+// width by design (the 3-page carousel). No overflow/clip here on purpose -- deliberately left
+// unclipped so .dayHeader's sticky positioning (below) binds past this to .scrollArea, the
+// real scroller, which is also where the actual horizontal clipping happens now (see its own
+// comment).
+.stripWrapper {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.strip {
+  display: flex;
+
+  // Promotes this to its own compositor layer ahead of the drag gesture, not on the first
+  // touch -- avoids a layout/paint hitch right as the drag starts, which reads as the drag
+  // "catching" instead of tracking the finger immediately.
+  will-change: transform;
+}
+
+// position: relative so .currentTimeIndicator (an absolutely-positioned sibling of its
+// .dayHeader/DayColumn children below) anchors here -- its own top offset already accounts
+// for .dayHeader's height, so it needs the whole panel as its containing block, not just
+// DayColumn's own (header-less) box.
+.dayPanel {
+  position: relative;
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid $grey-border-color;
+}
+
+// Sticky (top: 0, against .scrollArea -- see .stripWrapper's clip-path comment above for why
+// that doesn't block it) so this stays pinned right beneath the mobile appbar the same way
+// WeekStrip does in portrait, instead of scrolling away with the hour grid underneath it.
+// Still moves horizontally with .strip's own drag transform -- transform on an ancestor
+// doesn't affect sticky's vertical pinning, it just composites on top, so this tracks the day
+// panel below it left/right while staying put vertically.
+.dayHeader {
+  position: sticky;
+  top: 0;
+  z-index: 15;
+  height: 22px;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  font-size: 10px;
+  font-weight: 600;
+  color: $navy-color;
+  border-bottom: 1px solid $grey-border-color;
+  background-color: $white-color;
+  box-sizing: border-box;
+  font-variant-numeric: tabular-nums;
+
+  &.today {
+    color: $brand-pink-color;
+  }
+}
+
+.dayName {
+  color: $text-secondary-color;
+
+  .today & {
+    color: $brand-pink-color;
+  }
+}
+
+// Same convention as desktop WeekView's own .currentTimeIndicator -- z-index 12, above
+// DayColumn's meeting cards (10) and .clusterContainer (5).
+.currentTimeIndicator {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background-color: $brand-pink-color;
+  z-index: 12;
+  pointer-events: none;
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: -4px;
+    top: -4px;
+    width: 10px;
+    height: 10px;
+    background-color: $brand-pink-color;
+    border-radius: 50%;
+  }
+}

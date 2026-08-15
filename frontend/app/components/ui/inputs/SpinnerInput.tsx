@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import styles from "../../../../styles/components/ui/inputs/SpinnerInput.module.scss";
+import styles from "./SpinnerInput.module.scss";
 
 interface InputSpinnerProps {
   label?: string;

@@ -4,7 +4,7 @@ import React, { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion, type PanInfo } from "motion/react";
 import { useViewport } from "../../../../hooks/useViewport";
-import styles from "../../../../styles/components/ui/overlays/BottomSheet.module.scss";
+import styles from "./BottomSheet.module.scss";
 
 interface BottomSheetProps {
   isOpen: boolean;

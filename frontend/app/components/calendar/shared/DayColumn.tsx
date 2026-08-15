@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import BoxText from '../../ui/displays/BoxText';
 import OverlapMeetingsModal from './OverlapMeetingsModal';
-import styles from '../../../../styles/components/calendar/shared/DayColumn.module.scss';
+import styles from './DayColumn.module.scss';
 import { isZoomRoomMismatched } from '../../../../util/rooms/rooms';
 import { formatCompactTimeRange } from '../../../../util/date/timeFormat';
 import { formatETDateString } from '../../../../util/date/timeUtils';

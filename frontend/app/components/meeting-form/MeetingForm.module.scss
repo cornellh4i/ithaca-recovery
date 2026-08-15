@@ -1,0 +1,144 @@
+@import 'https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;600&display=swap';
+@import '../../../styles/Variables.module';
+
+// Original group-icon.svg was neutral grey -- this wraps the meeting-type-dropdown's icon,
+// which has no ambient color source of its own (a bare layout <span>, not inside a label
+// class like Dropdown's .DropdownIcon/.DropdownLabel).
+.meetingTypeIcon {
+  color: $medium-grey-color;
+}
+
+.newMeetingSidebar {
+  background-color: #fff;
+  width: 100%;
+  height: auto;
+  margin: 0 auto; // so the height is responsive to the atoms in it
+  border-radius: 0;
+
+  // Needed so the mobile breakpoint's padding below is included in that 100% width instead of
+  // adding to it -- without this the full-screen mobile form (MobileFullScreenSheet) overflows
+  // the viewport by exactly 2x that padding.
+  box-sizing: border-box;
+}
+
+.newMeetingSidebar .dummyComponent {
+  margin-bottom: 16px;
+}
+
+// Two-column layout for wider embedding contexts (e.g. an inline edit panel). Sequential
+// single-column fields (Date/Time, Room/Zoom Room) pair up on the same row for free; fields
+// that need the full row opt in via .fieldFullWidth.
+.newMeetingSidebar.wide {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 24px;
+
+  // No max-width -- fills whatever width the wrapping card (e.g. ConflictList's .editCard)
+  // gives it, rather than leaving a dead grey strip when that card is wider than 760px.
+  width: 100%;
+
+  // Let the wrapping card show through instead of this component's own white sidebar background.
+  background-color: transparent;
+}
+
+.newMeetingSidebar.wide .dummyComponent {
+  margin-bottom: 12px;
+}
+
+.newMeetingSidebar.wide .fieldFullWidth {
+  grid-column: 1 / -1;
+}
+
+// Date/Time atoms are intrinsically-sized (not width:100%), so at wide widths the default grid
+// behavior would spread them out with awkward gaps -- cluster them together instead, left-
+// aligned, rather than stretching to fill the row. (ModeTypeButtons handles its own full-width
+// segmented-control layout internally, so it doesn't need an override here.)
+.dateTimeRow {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+
+  // Each atom is its own bordered field-box now, so let them share the row evenly
+  // instead of hugging their own content width.
+  > * {
+    flex: 1;
+    min-width: 200px;
+  }
+}
+
+.createMeetingButton {
+  width: 100%;
+  height: auto;
+  background-color: $brand-pink-color;
+  color: #fff;
+  border: none;
+  font-family: 'Source Sans Pro', sans-serif;
+  font-weight: 600;
+  font-size: 18px;
+  line-height: 22.63px;
+  cursor: pointer;
+  padding: 10px 0;
+  text-align: center;
+  border-radius: 8px;
+}
+
+.meetingButtons {
+  width: 100%;
+  margin-bottom: 10px;
+}
+
+.fieldCaption {
+  display: block;
+  font-family: 'Source Sans Pro', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: $medium-grey-color;
+  margin-bottom: 6px;
+}
+
+.fieldSlot {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Responsive adjustments */
+@media (width <= 768px) {
+  .newMeetingSidebar {
+    width: 100%;
+    height: auto;
+    padding: 20px;
+  }
+}
+
+.meetingHeader {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  color: var(--dark-navy, #3A3E49);
+  font-family: "Source Sans Pro", sans-serif;
+  font-style: normal;
+  font-weight: 600;
+  background-color: transparent;
+  margin-bottom: 12px;
+
+  h3 {
+    margin: 0;
+  }
+}
+
+.iconButton {
+  width: auto;
+  height: 40px;
+
+  // Preserves the previous <CloseIcon sx={{color:'black'}}> exactly -- .meetingHeader's own
+  // ambient color is navy ($navy-color, #3A3E49), not black, so this can't just inherit.
+  // !important: MUI's own MuiIconButton-root class sets its own same-specificity default
+  // color (rgba(0,0,0,.54)) on this same button element, which otherwise wins unpredictably
+  // depending on emotion's <style> injection order (same class of bug already fixed for
+  // IconButton.module.scss's own .iconButton, verified there via getComputedStyle).
+  color: #000 !important;
+}

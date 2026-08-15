@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import styles from "../../../../styles/components/admin/CardHeader.module.scss";
+import styles from "./CardHeader.module.scss";
 
 interface CardHeaderAction {
   label: string;

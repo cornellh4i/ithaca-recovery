@@ -1,5 +1,5 @@
 import React from "react";
-import styles from "../../../../styles/components/ui/displays/StatusPill.module.scss";
+import styles from "./StatusPill.module.scss";
 
 export type StatusPillVariant = "success" | "warning" | "neutral" | "error";
 

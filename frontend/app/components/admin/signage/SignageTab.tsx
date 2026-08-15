@@ -12,7 +12,7 @@ import { ROOM_COLORS, ZOOM_ROOM_COLOR, CATEGORY_COLOR } from "../../../../util/r
 import FilterGroup, { FilterGroupItem } from "../../shared/FilterGroup";
 import Card from "../shared/Card";
 import CardHeader from "../shared/CardHeader";
-import styles from "../../../../styles/components/admin/SignageTab.module.scss";
+import styles from "./SignageTab.module.scss";
 
 const LOCATION_ROOMS = Object.keys(SIGNAGE_ROOM_SLUGS);
 const ZOOM_ROOMS = Object.keys(SIGNAGE_ZOOM_SLUGS);

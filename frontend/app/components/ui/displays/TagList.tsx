@@ -1,5 +1,5 @@
 import React, { useLayoutEffect, useRef, useState } from "react";
-import styles from '../../../../styles/components/ui/displays/TagList.module.scss';
+import styles from './TagList.module.scss';
 import { sortTags } from '../../../../util/filters/tagOrder';
 import { MODE_ICON_NAME } from '../../../../util/rooms/modeIcons';
 import Icon from './Icon';

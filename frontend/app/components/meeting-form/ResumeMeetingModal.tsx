@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import styles from '../../../styles/components/meeting-form/ResumeMeetingModal.module.scss';
+import styles from './ResumeMeetingModal.module.scss';
 import DatePicker from '../ui/pickers/DatePicker';
 import Icon from '../ui/displays/Icon';
 import { formatETDateString, parseMMDDYYYY } from '../../../util/date/timeUtils';

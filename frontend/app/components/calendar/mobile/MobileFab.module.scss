@@ -1,0 +1,8 @@
+@import '../../../../styles/Variables.module';
+
+.fabWrapper {
+    position: fixed;
+    right: 16px;
+    bottom: calc(16px + env(safe-area-inset-bottom));
+    z-index: $z-index-sticky;
+}

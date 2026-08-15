@@ -5,7 +5,7 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import type { ILeaseSettings, IRoomRate } from "../../../../types/models";
 import type { LeaseYearCycle } from "../../../../util/lease/leaseYearCycles";
-import styles from "../../../../styles/components/admin/ExportTab.module.scss";
+import styles from "./ExportTab.module.scss";
 
 interface LeaseConfigModalProps {
   initial: ILeaseSettings;

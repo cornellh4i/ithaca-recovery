@@ -9,7 +9,7 @@ import UsersTab from "./users/UsersTab";
 import ExportTab from "./export/ExportTab";
 import { useViewport } from "../../../hooks/useViewport";
 import { useToast } from "../shared/ToastProvider";
-import styles from "../../../styles/components/admin/AdminShell.module.scss";
+import styles from "./AdminShell.module.scss";
 
 interface AdminShellProps {
   role: Role;

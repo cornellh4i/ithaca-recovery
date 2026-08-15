@@ -10,7 +10,7 @@ import {
   formatOverlapSummary,
   formatMeetingSchedule,
 } from "../../../../util/meetings/conflictDisplay";
-import styles from "../../../../styles/components/admin/ConflictList.module.scss";
+import styles from "./ConflictList.module.scss";
 
 export type { ConflictRecurrenceSummary, ConflictMeetingSummary, ConflictListRow } from "../../../../util/meetings/conflictDisplay";
 export { fieldLabel, formatOverlapSummary, formatMeetingSchedule } from "../../../../util/meetings/conflictDisplay";

@@ -1,0 +1,152 @@
+@import '../../../../styles/Variables.module';
+
+.emptyState {
+  color: $medium-grey-color;
+  font-size: 14px;
+}
+
+.conflictGroup {
+  padding: 14px 0;
+  border-top: 1.5px solid #E5E5E5;
+
+  &:first-of-type {
+    border-top: none;
+    padding-top: 0;
+  }
+}
+
+.conflictMeta {
+  font-size: 15px;
+  font-weight: 600;
+  color: $black-color;
+}
+
+.conflictValue {
+  font-weight: 600;
+  color: $black-color;
+}
+
+.overlapSummary {
+  font-size: 13px;
+  color: $medium-grey-color;
+  margin-top: 2px;
+  margin-bottom: 10px;
+}
+
+// Groups every meeting sharing a resource (room/zoomRoom/zoomHost) into one visually distinct
+// surface, so a resource with 3+ overlapping meetings reads as a single conflict, not one box
+// per pairwise overlap.
+.conflictBox {
+  background: $grey-lightest-color;
+  border-radius: 8px;
+  padding: 4px 16px;
+}
+
+.conflictEntry {
+  border-top: 1px solid $grey-border-color;
+
+  &:first-of-type {
+    border-top: none;
+  }
+}
+
+.conflictRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 10px 0;
+
+  @media (width <= $breakpoint-phone) {
+    flex-direction: column;
+    gap: 8px;
+  }
+}
+
+// Accordion expand for the inline edit panel, animated via grid-template-rows so it doesn't
+// need a measured height -- editPanelInner's overflow:hidden clips content during the transition.
+.editPanel {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.2s ease;
+}
+
+.editPanelOpen {
+  grid-template-rows: 1fr;
+}
+
+.editPanelInner {
+  overflow: hidden;
+  min-height: 0;
+}
+
+.editPanelOpen .editPanelInner {
+  padding: 8px 0 12px;
+}
+
+// White card treatment so the expanded edit form reads as a distinct surface against
+// .conflictBox's grey background, rather than blending into it.
+.editCard {
+  background: $white-color;
+  border: 1.5px solid $grey-border-color;
+  border-radius: 8px;
+  padding: 16px 20px;
+}
+
+.editLoading {
+  padding: 16px 24px;
+  font-size: 13px;
+  color: $medium-grey-color;
+  background: $white-color;
+  border: 1.5px solid $grey-border-color;
+  border-radius: 8px;
+}
+
+.meetingTitle {
+  font-weight: 600;
+  font-size: 15px;
+  color: $black-color;
+}
+
+.meetingTags {
+  font-weight: 400;
+  color: $medium-grey-color;
+  font-size: 14px;
+}
+
+.meetingSchedule {
+  font-size: 13px;
+  color: $medium-grey-color;
+  margin-top: 2px;
+}
+
+// Solid white background, not transparent -- this button sits inside .conflictBox's grey
+// surface, and a transparent background would blend into it instead of reading as a
+// distinct, clickable control.
+.editButton {
+  flex-shrink: 0;
+  margin-left: 16px;
+  border: 1px solid $light-grey-color;
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 13px;
+  font-family: inherit;
+  color: $black-color;
+  background: $white-color;
+  cursor: pointer;
+  white-space: nowrap;
+
+  &:hover {
+    border-color: $medium-grey-color;
+  }
+
+  // Distinct fill (not #fff, not $grey-lightest-color) so the expanded state stays visually
+  // flagged against both the idle button and .conflictBox's own background.
+  &[aria-expanded="true"] {
+    border-color: $medium-grey-color;
+    background: $grey-border-color;
+  }
+
+  @media (width <= $breakpoint-phone) {
+    margin-left: 0;
+  }
+}

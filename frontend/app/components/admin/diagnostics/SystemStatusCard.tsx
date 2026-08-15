@@ -6,7 +6,7 @@ import MonitorHeartIcon from "@mui/icons-material/MonitorHeart";
 import Card from "../shared/Card";
 import TopLoadingBar from "../../ui/displays/TopLoadingBar";
 import DiagnosticsCardError from "./DiagnosticsCardError";
-import styles from "../../../../styles/components/admin/DiagnosticsTab.module.scss";
+import styles from "./DiagnosticsTab.module.scss";
 
 interface SystemStatusCardProps {
   email: string;

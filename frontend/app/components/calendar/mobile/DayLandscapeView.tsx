@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { motion, useAnimationControls, useDragControls, useReducedMotion, type PanInfo } from "framer-motion";
-import styles from "../../../../styles/components/calendar/mobile/DayLandscapeView.module.scss";
+import styles from "./DayLandscapeView.module.scss";
 import DailyViewRow from "../desktop/DailyViewRow";
 import { fetchMeetingsByDay, invalidateCache } from "../desktop/DayView";
 import { formatETDateString, getCurrentETMinutesSinceMidnight } from "../../../../util/date/timeUtils";

@@ -1,7 +1,7 @@
 // General component for EditMeeting and NewMeeting
 
 import React from 'react';
-import styles from "../../../styles/components/meeting-form/MeetingForm.module.scss";
+import styles from "./MeetingForm.module.scss";
 
 export interface MeetingFormProps {
   meetingTitleTextField: React.ReactElement;

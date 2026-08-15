@@ -3,7 +3,7 @@
 import React from "react";
 import PriorityHighIcon from "@mui/icons-material/PriorityHigh";
 import Modal from "../../ui/overlays/Modal";
-import styles from "../../../../styles/components/admin/UserModals.module.scss";
+import styles from "./UserModals.module.scss";
 
 interface RemoveUserModalProps {
   isOpen: boolean;

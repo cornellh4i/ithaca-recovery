@@ -21,7 +21,7 @@ import { ConflictListRow } from '../../../util/meetings/conflictDisplay';
 import { useToast } from '../shared/ToastProvider';
 import { pollMeetingSyncStatus, describeSyncFailure } from '../../../services/syncMeeting';
 
-import styles from '../../../styles/components/meeting-form/MeetingForm.module.scss';
+import styles from './MeetingForm.module.scss';
 
 interface EditMeetingSidebarProps {
   meeting: IMeeting;
