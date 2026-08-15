@@ -127,13 +127,21 @@ export const formatETLongDate = (date: Date): string => etLongDateFmt.format(dat
 /** ET day-of-month (1-31) for a given instant. */
 export const getETDayOfMonth = (date: Date): number => Number(formatETDateString(date).slice(-2));
 
-/** ET day of week (0 = Sunday .. 6 = Saturday) for a given instant. */
-export const getETDayOfWeek = (date: Date): number => {
-  const [year, month, day] = formatETDateString(date).split('-').map(Number);
-  // Date.UTC used purely as a proleptic-Gregorian calculator here (same construction as
-  // weekDates.ts) -- getUTCDay on a UTC-constructed probe is timezone-independent.
-  return new Date(Date.UTC(year, month - 1, day)).getUTCDay();
+/**
+ * ET "YYYY-MM-DD" calendar date as a UTC millisecond timestamp -- Date.UTC used purely as a
+ * proleptic-Gregorian calendar calculator (never a real timezone conversion), for calendar-day
+ * arithmetic (day-of-week, day differences) that only cares about relative calendar position.
+ * The single canonical implementation of this idiom -- getETDayOfWeek, getWeekDatesET below,
+ * and weekDates.ts's daysBetweenET all build on this instead of each re-deriving it.
+ */
+export const getETCalendarDateMs = (etDateStr: string): number => {
+  const [year, month, day] = etDateStr.split('-').map(Number);
+  return Date.UTC(year, month - 1, day);
 };
+
+/** ET day of week (0 = Sunday .. 6 = Saturday) for a given instant. */
+export const getETDayOfWeek = (date: Date): number =>
+  new Date(getETCalendarDateMs(formatETDateString(date))).getUTCDay();
 
 /**
  * Parses a DatePicker field's MM/DD/YYYY value into a Date, or null for an empty/unset value.
@@ -162,19 +170,14 @@ export const toETDateString = (dateParam: string): string =>
  * containing the given ET date string.
  */
 export const getWeekDatesET = (etDateStr: string): string[] => {
-  const [year, month, day] = etDateStr.split('-').map(Number);
-  const base = new Date(Date.UTC(year, month - 1, day));
-  const dow = base.getUTCDay();
-  return Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(Date.UTC(year, month - 1, day - dow + i));
-    return d.toISOString().slice(0, 10);
-  });
+  const dow = new Date(getETCalendarDateMs(etDateStr)).getUTCDay();
+  return Array.from({ length: 7 }, (_, i) => addDaysToETDateString(etDateStr, i - dow));
 };
 
 /**
  * Adds `days` calendar days to an ET "YYYY-MM-DD" string, returning a new ET date string.
- * Date.UTC is used purely as a proleptic-Gregorian calculator here (same construction as
- * getWeekDatesET above) -- the result is read back with toISOString(), never reinterpreted
+ * Date.UTC is used purely as a proleptic-Gregorian calculator here (same idiom as
+ * getETCalendarDateMs above) -- the result is read back with toISOString(), never reinterpreted
  * through a real timezone, so it stays correct regardless of DST or the runtime's local zone.
  */
 export const addDaysToETDateString = (etDateStr: string, days: number): string => {

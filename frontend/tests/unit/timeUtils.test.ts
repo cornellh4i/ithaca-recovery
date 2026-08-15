@@ -9,6 +9,7 @@ import {
   getETDayOfMonth,
   getETDayOfWeek,
   getETTimeOfDay,
+  getWeekDatesET,
 } from "../../util/date/timeUtils";
 
 describe("convertETToUTC / convertUTCToET round-trip", () => {
@@ -74,6 +75,24 @@ describe("getETDayOfWeek", () => {
     // 11:30 PM ET Wednesday is already Thursday (4) in UTC -- must still read 3 (Wed).
     const lateEveningUTC = new Date(convertETToUTC("2026-07-15T23:30:00"));
     expect(getETDayOfWeek(lateEveningUTC)).toBe(3);
+  });
+});
+
+describe("getWeekDatesET", () => {
+  it("returns the 7 ET calendar dates (Sunday-Saturday) for the week containing the given date", () => {
+    // 2026-07-30 is a Thursday; its week runs Sun 2026-07-26 through Sat 2026-08-01.
+    expect(getWeekDatesET("2026-07-30")).toEqual([
+      "2026-07-26", "2026-07-27", "2026-07-28", "2026-07-29",
+      "2026-07-30", "2026-07-31", "2026-08-01",
+    ]);
+  });
+
+  it("handles a month boundary correctly", () => {
+    // 2026-08-03 is a Monday; its week starts in the prior month.
+    expect(getWeekDatesET("2026-08-03")).toEqual([
+      "2026-08-02", "2026-08-03", "2026-08-04", "2026-08-05",
+      "2026-08-06", "2026-08-07", "2026-08-08",
+    ]);
   });
 });
 
