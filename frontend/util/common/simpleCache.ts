@@ -17,7 +17,12 @@ export function createCache<T>(): SimpleCache<T> {
     const getOrFetch = (key: string, fetcher: () => Promise<T>): Promise<T> => {
         if (!cache.has(key)) {
             const promise = fetcher();
-            promise.catch(() => cache.delete(key));
+            // Compare-and-delete: a stale invalidate()+refetch can swap in a newer promise
+            // under this key before this one settles, so an unconditional delete on rejection
+            // would evict the newer (possibly healthy) entry instead of this one.
+            promise.catch(() => {
+                if (cache.get(key) === promise) cache.delete(key);
+            });
             cache.set(key, promise);
         }
         return cache.get(key) as Promise<T>;
