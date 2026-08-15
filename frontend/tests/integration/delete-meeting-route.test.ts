@@ -48,6 +48,28 @@ async function waitFor<T>(fn: () => Promise<T | null | undefined>, timeoutMs = 2
   return null;
 }
 
+// For asserting an absence (no further deleteCalendarEvent call lands after the expected one)
+// rather than a value to poll for -- waitFor's "poll until non-null" shape doesn't apply there.
+// Polls until the count stops changing for a full quiet window instead of a single fixed sleep,
+// so a slow CI runner gets more time to surface a genuine extra call rather than the test
+// passing simply because a short guessed window happened to close before that call landed.
+async function waitForStableCallCount(getCount: () => number, quietMs = 50, timeoutMs = 2000): Promise<number> {
+  const start = Date.now();
+  let lastCount = getCount();
+  let quietSince = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    const count = getCount();
+    if (count !== lastCount) {
+      lastCount = count;
+      quietSince = Date.now();
+    } else if (Date.now() - quietSince >= quietMs) {
+      return count;
+    }
+  }
+  return lastCount;
+}
+
 test("deleting a meeting with a pending pre-created resume series tears that series down too, not just the live event", async () => {
   const { meeting } = await seedRecurringMeeting({
     status: "Suspended",
@@ -86,10 +108,10 @@ test("deleting a meeting with no pending resume series only tears down the live 
   expect(response.status).toBe(200);
 
   await waitFor(async () => (mockedDelete.mock.calls.length > 0 ? true : null));
-  // A short settle window after the first call -- asserting toHaveBeenCalledTimes(1)
-  // immediately upon seeing the first call would pass even if a second, unwanted call was
-  // about to land right after (syncDeleteAll's deletes are sequential, not concurrent).
-  await new Promise((resolve) => setTimeout(resolve, 50));
+  // A settle window after the first call -- asserting toHaveBeenCalledTimes(1) immediately upon
+  // seeing the first call would pass even if a second, unwanted call was about to land right
+  // after (syncDeleteAll's deletes are sequential, not concurrent).
+  await waitForStableCallCount(() => mockedDelete.mock.calls.length);
   expect(mockedDelete).toHaveBeenCalledTimes(1);
   expect(mockedDelete).toHaveBeenCalledWith("fake-token", "live-event-id", "fake-calendar-id");
 });
@@ -114,6 +136,6 @@ test("a promoted (already-live) suspension row isn't torn down a second time", a
   await waitFor(async () => (mockedDelete.mock.calls.length > 0 ? true : null));
   // Same settle window as above -- confirms the promoted row really isn't torn down a second
   // time, not just that it hadn't happened yet by the time the first call was observed.
-  await new Promise((resolve) => setTimeout(resolve, 50));
+  await waitForStableCallCount(() => mockedDelete.mock.calls.length);
   expect(mockedDelete).toHaveBeenCalledTimes(1);
 });

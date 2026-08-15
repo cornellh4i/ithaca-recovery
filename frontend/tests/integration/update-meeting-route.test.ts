@@ -197,13 +197,14 @@ test("a same-room time edit that now conflicts with another meeting on the same 
   const response = await PUT(request);
   expect(response.status).toBe(200);
 
-  // waitUntil has no real lifecycle hook outside Vercel, but the background
-  // function still runs to completion on its own — just give it time to finish.
-  await new Promise((resolve) => setTimeout(resolve, 400));
+  // Polls for the deferred sync job's terminal zoomSyncStatus rather than guessing how long it
+  // takes to finish -- zoomSyncStatus is only ever written once, at the end of that job.
+  const afterSync = await waitFor(async () => {
+    const row = await prisma.meeting.findUnique({ where: { mid: editedMid } });
+    return row?.zoomSyncStatus != null ? row : null;
+  });
 
   expect(mockedUpdateZoomMeeting).not.toHaveBeenCalled();
-
-  const afterSync = await prisma.meeting.findUnique({ where: { mid: editedMid } });
   expect(afterSync?.zid).toBe("zid-edited");
   expect(afterSync?.zoomHost).toBe(sharedHost);
   expect(afterSync?.zoomSyncStatus).toBe("error");
@@ -320,7 +321,12 @@ test("a newly resolved Zoom host is persisted synchronously when a meeting first
   const rightAfterResponse = await prisma.meeting.findUnique({ where: { mid } });
   expect(rightAfterResponse?.zoomHost).toBe("new-host@icr.test");
 
-  await new Promise((resolve) => setTimeout(resolve, SYNC_DELAY_MS + 100));
+  // Lets the deferred sync finish before the test (and its mocks) tear down, rather than
+  // guessing how long that takes.
+  await waitFor(async () => {
+    const row = await prisma.meeting.findUnique({ where: { mid } });
+    return row?.zoomSyncStatus != null ? row : null;
+  });
 });
 
 test("an exhausted Zoom host pool on update fails soft, synchronously, without touching the existing meeting fields", async () => {
@@ -349,12 +355,13 @@ test("an exhausted Zoom host pool on update fails soft, synchronously, without t
   expect(rightAfterResponse?.zoomSyncStatus).toBe("error");
   expect(rightAfterResponse?.zoomSyncError).toMatch(/pool exhausted/i);
 
-  await new Promise((resolve) => setTimeout(resolve, 100));
-
   // Direct regression test for Matt's confirmation, on the update path: a meeting that needs
   // Zoom but has no working Zoom meeting after this run must not have its calendars reconciled
   // with a missing link -- googleSyncStatus is 'pending', reconcileMeetingCalendars never ran.
-  const afterSync = await prisma.meeting.findUnique({ where: { mid } });
+  const afterSync = await waitFor(async () => {
+    const row = await prisma.meeting.findUnique({ where: { mid } });
+    return row?.googleSyncStatus != null ? row : null;
+  });
   expect(afterSync?.googleSyncStatus).toBe("pending");
   expect(mockedReconcileMeetingCalendars).not.toHaveBeenCalled();
 });
@@ -403,12 +410,15 @@ test("an explicit host reassignment tears down the old Zoom meeting and creates 
   const response = await PUT(request);
   expect(response.status).toBe(200);
 
-  await new Promise((resolve) => setTimeout(resolve, 100));
+  // Polls for the deferred sync job's terminal zoomSyncStatus rather than guessing how long it
+  // takes to finish -- zoomSyncStatus is only ever written once, at the end of that job.
+  const afterSync = await waitFor(async () => {
+    const row = await prisma.meeting.findUnique({ where: { mid } });
+    return row?.zoomSyncStatus != null ? row : null;
+  });
 
   expect(mockedDeleteZoomMeeting).toHaveBeenCalledWith("zid-original");
   expect(mockedUpdateZoomMeeting).not.toHaveBeenCalled();
-
-  const afterSync = await prisma.meeting.findUnique({ where: { mid } });
   expect(afterSync?.zid).toBe("zid-reassigned");
   expect(afterSync?.zoomHost).toBe("new-host@icr.test");
   expect(afterSync?.zoomSyncStatus).toBe("synced");

@@ -120,21 +120,17 @@ test("the response resolves before Google Calendar sync completes, which runs in
     body: JSON.stringify(payload),
   });
 
-  const start = Date.now();
   const response = await POST(request);
-  const elapsed = Date.now() - start;
 
   expect(response.status).toBe(201);
-  expect(elapsed).toBeLessThan(SYNC_DELAY_MS);
 
+  // The actual invariant this test is after: the response body/status lands before the
+  // background sync has had any chance to write back -- not how many milliseconds that took.
   const prisma = getTestPrismaClient();
   const rightAfterResponse = await prisma.meeting.findUnique({ where: { mid: payload.mid } });
   expect(rightAfterResponse?.googleSyncStatus).toBeNull();
 
-  // waitUntil has no real lifecycle hook outside Vercel, but the background
-  // function still runs to completion on its own — just give it time to finish.
-  await new Promise((resolve) => setTimeout(resolve, SYNC_DELAY_MS + 100));
-  const afterSync = await prisma.meeting.findUnique({ where: { mid: payload.mid } });
+  const afterSync = await waitForGoogleSyncStatus(payload.mid);
   expect(afterSync?.googleSyncStatus).toBe("synced");
 });
 
@@ -163,7 +159,9 @@ test("a resolved Zoom host is persisted synchronously, before the deferred sync 
   const rightAfterResponse = await prisma.meeting.findUnique({ where: { mid: payload.mid } });
   expect(rightAfterResponse?.zoomHost).toBe("host@icr.test");
 
-  await new Promise((resolve) => setTimeout(resolve, SYNC_DELAY_MS + 100));
+  // Lets the deferred sync finish before the test (and its mocks) tear down, rather than
+  // guessing how long that takes.
+  await waitForGoogleSyncStatus(payload.mid);
 });
 
 test("a malformed body returns 400 with validation issues instead of a raw 500", async () => {
@@ -211,11 +209,9 @@ test("an exhausted Zoom host pool fails soft: the meeting is still created", asy
   expect(rightAfterResponse?.zoomSyncStatus).toBe("error");
   expect(rightAfterResponse?.zoomSyncError).toMatch(/pool exhausted/i);
 
-  // waitUntil has no real lifecycle hook outside Vercel, but the background
-  // function still runs to completion on its own — just give it time to finish.
-  await new Promise((resolve) => setTimeout(resolve, 400));
-
-  const afterSync = await prisma.meeting.findUnique({ where: { mid: payload.mid } });
+  // Polls for the deferred sync job's terminal googleSyncStatus rather than guessing how long
+  // it takes to finish.
+  const afterSync = await waitForGoogleSyncStatus(payload.mid);
   expect(afterSync?.zid).toBeNull();
   expect(afterSync?.zoomHost).toBeNull();
   expect(afterSync?.zoomSyncStatus).toBe("error");
