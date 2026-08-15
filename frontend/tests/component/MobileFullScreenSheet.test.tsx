@@ -1,6 +1,7 @@
 import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
 import MobileFullScreenSheet from "../../app/components/ui/overlays/MobileFullScreenSheet";
+import Modal from "../../app/components/ui/overlays/Modal";
 
 describe("MobileFullScreenSheet", () => {
   it("renders nothing when isOpen is false", () => {
@@ -99,5 +100,36 @@ describe("MobileFullScreenSheet", () => {
     fireEvent.keyDown(document, { key: "Escape" });
 
     expect(trigger).toHaveFocus();
+  });
+
+  // A Modal (e.g. ConflictOverrideModal) can open on top of this sheet (e.g. New Meeting),
+  // opened later from a user action after the sheet is already up -- not simultaneously, which
+  // matters here: both portal to document.body as siblings, not ancestor/descendant, and both
+  // register their own Escape listener on `document` via the same useDialogBehavior hook, whose
+  // "topmost dialog" tracking is ordered by when each one's open-effect actually ran. A single
+  // Escape press must close only the nested modal, not this sheet (and the in-progress form).
+  it("does not close when Escape is pressed while a nested Modal is open on top of it", () => {
+    const onSheetClose = jest.fn();
+    const onModalClose = jest.fn();
+    const Harness: React.FC = () => {
+      const [modalOpen, setModalOpen] = React.useState(false);
+      return (
+        <MobileFullScreenSheet isOpen onClose={onSheetClose} ariaLabel="New Meeting">
+          <button onClick={() => setModalOpen(true)}>Trigger conflict</button>
+          <Modal isOpen={modalOpen} onClose={onModalClose} ariaLabel="Conflict">
+            <button>Override</button>
+          </Modal>
+        </MobileFullScreenSheet>
+      );
+    };
+    render(<Harness />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Trigger conflict" }));
+    expect(screen.getByRole("dialog", { name: "Conflict" })).toBeInTheDocument();
+
+    fireEvent.keyDown(document, { key: "Escape" });
+
+    expect(onModalClose).toHaveBeenCalledTimes(1);
+    expect(onSheetClose).not.toHaveBeenCalled();
   });
 });

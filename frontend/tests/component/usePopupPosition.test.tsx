@@ -64,21 +64,39 @@ describe("usePopupPosition", () => {
     render(<Harness anchorEl={el} />);
 
     const popup = screen.getByTestId("popup");
-    expect(popup.style.left).toBe("8px"); // rect.left (400) - POPUP_WIDTH (380) - ANCHOR_GAP (12), clamped to the 8px margin
+    // rect.left (400) - POPUP_WIDTH (380) - ANCHOR_GAP (12) = 8 -- already inside the margin
+    // clamp's bounds here (this case doesn't actually exercise the clamp; it's a coincidence
+    // of the numbers chosen that the flipped value already equals POPUP_MARGIN).
+    expect(popup.style.left).toBe("8px");
   });
 
-  it("clamps top so the popup never renders below the viewport", () => {
+  it("clamps top against the popup's real (post-mount) height so it never renders below the viewport", () => {
     Object.defineProperty(window, "innerWidth", { configurable: true, value: 1200 });
-    Object.defineProperty(window, "innerHeight", { configurable: true, value: 300 });
-    // An anchor positioned below the (short) viewport entirely -- even with the post-mount
-    // offsetHeight correction (0 in jsdom, which never lays anything out), clamping against
-    // innerHeight - POPUP_MARGIN must still pull this back on-screen.
-    const { el } = makeAnchor({ top: 400, left: 50, right: 150, bottom: 440 });
+    Object.defineProperty(window, "innerHeight", { configurable: true, value: 600 });
+    // jsdom never lays anything out, so offsetHeight is always 0 by default -- without this
+    // stub, the clamp below would pass regardless of whether the clamping math is actually
+    // correct (0 is trivially small enough to fit almost anywhere), which is exactly what made
+    // the previous version of this test not a real check. Stubbed on the prototype (not the
+    // specific popup node) because the corrected calculation reads offsetHeight from
+    // popupRef.current inside a useLayoutEffect that runs right after this element mounts --
+    // there's no render-time hook to attach a per-instance stub to first.
+    const originalOffsetHeight = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "offsetHeight");
+    Object.defineProperty(HTMLElement.prototype, "offsetHeight", { configurable: true, value: 400 });
 
-    render(<Harness anchorEl={el} />);
+    try {
+      // An anchor positioned below the (short) viewport entirely.
+      const { el } = makeAnchor({ top: 550, left: 50, right: 150, bottom: 590 });
 
-    const popup = screen.getByTestId("popup");
-    expect(Number(popup.style.top.replace("px", ""))).toBeLessThan(400);
+      render(<Harness anchorEl={el} />);
+
+      // top = clamp(rect.top, POPUP_MARGIN, innerHeight - popupHeight - POPUP_MARGIN)
+      //     = clamp(550, 8, 600 - 400 - 8) = 192
+      expect(screen.getByTestId("popup").style.top).toBe("192px");
+    } finally {
+      if (originalOffsetHeight) {
+        Object.defineProperty(HTMLElement.prototype, "offsetHeight", originalOffsetHeight);
+      }
+    }
   });
 
   it("recomputes position on window resize", () => {
