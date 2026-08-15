@@ -16,9 +16,9 @@ All workflows live in [`.github/workflows/`](https://github.com/cornellh4i/ithac
 ## Test suite — `test.yml`
 
 Runs on pushes to `main`/`master` and on every pull request (targeting any base branch), as
-separate jobs (`doc-freshness`, `lint`, `unit`, `component`, `integration`, `e2e`), so a slow or
-flaky e2e run doesn't hold up the fast unit-test signal. Full breakdown of what each job actually
-tests: [Testing §CI](testing/README.md#ci).
+separate jobs (`doc-freshness`, `lint`, `typecheck`, `unit`, `component`, `integration`, `e2e`), so
+a slow or flaky e2e run doesn't hold up the fast unit-test signal. Full breakdown of what each job
+actually tests: [Testing §CI](testing/README.md#ci).
 
 `CHECKPOINT_DISABLE: "1"` is set at the workflow level in `test.yml`'s `env`, so every job in this
 workflow (not other workflows) skips it — Prisma CLI otherwise pings `checkpoint.prisma.io` after
@@ -106,11 +106,12 @@ manual run, and both open a PR rather than pushing directly:
 
 ## Branch protection
 
-`master` requires a passing run of `title-lint`, `commitlint`, `lint`, `unit`, `integration`, and
-`e2e`, plus one approving review, before a PR can merge (repo Admins can bypass this — see
+`master` requires a passing run of `title-lint`, `commitlint`, `lint`, `typecheck`, `unit`,
+`component`, `integration`, and `e2e`, plus one approving review, before a PR can merge (repo
+Admins can bypass this — see
 [Deployment and Rollback §1](../02-handoff/deployment-and-rollback.md#1-review-and-test-before-merge)
-for the human-facing version of this rule). `component`, `doc-freshness`, and `CodeQL` all run on
-every PR but aren't part of that required set yet.
+for the human-facing version of this rule). `doc-freshness` and `CodeQL` run on every PR but aren't
+part of that required set.
 
 ## Where to go next
 

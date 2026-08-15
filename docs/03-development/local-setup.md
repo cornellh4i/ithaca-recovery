@@ -89,9 +89,9 @@ Either make a small edit (e.g. add a one line comment), or work on a small issue
 [*good first issue*s](https://github.com/cornellh4i/ithaca-recovery/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22).
 
 1. Make an edit.
-2. `yarn test:all` — runs lint, lint:css, unit, component, integration, and e2e in sequence
-   (`lint:css` covers any `.scss` file you touched too, no separate step needed). This is the same
-   set of tiers CI runs (see [Testing](testing/README.md)).
+2. `yarn test:all` — runs lint, lint:css, typecheck, unit, component, integration, and e2e in
+   sequence (`lint:css` covers any `.scss` file you touched too, no separate step needed). This is
+   the same set of tiers CI runs (see [Testing](testing/README.md)).
 3. `git diff` to see your change, then `git checkout -- <file>` to revert it if it was just practice.
 
 ## Where to go next

@@ -116,11 +116,12 @@ architecture and per-service setup (Postgres, Google OAuth, Google Calendar, Zoo
 ```bash
 yarn lint                # ESLint (part of test:all below)
 yarn lint:css             # stylelint — separate from yarn lint (part of test:all below)
+yarn typecheck           # tsc --noEmit — full cross-file type-checking (part of test:all below)
 yarn test:unit           # pure functions, seconds, no setup
 yarn test:component      # individual components in isolation, seconds, no setup
 yarn test:integration    # route handlers against an embedded Postgres instance
 yarn test:e2e            # full Playwright E2E suite (needs `yarn playwright install --with-deps chromium` once)
-yarn test:all            # lint + unit + component + integration + e2e, in that order
+yarn test:all            # lint + lint:css + typecheck + unit + component + integration + e2e, in that order
 ```
 
 See [`docs/03-development/testing/README.md`](docs/03-development/testing/README.md) for how the suite and CI work.
