@@ -174,6 +174,7 @@ Zoom sync runs the same mode-gated, resolve-before-publish way as `POST /api/wri
 ```
 
 **Response:** `200 OK` — created `IAdmin` object
+**Error:** `400 Bad Request` — request body fails schema validation (issues listed in the response); `409 Conflict` — an admin with this email already exists
 
 ---
 
@@ -205,7 +206,7 @@ Zoom sync runs the same mode-gated, resolve-before-publish way as `POST /api/wri
 ```
 
 **Response:** `200 OK` — updated `IAdmin`
-**Error:** `400 Bad Request` if it would leave zero Super Admins, `404 Not Found`
+**Error:** `400 Bad Request` — request body fails schema validation, or it would leave zero Super Admins; `404 Not Found`; `409 Conflict` — a concurrent change conflicted with this update, retry
 
 ---
 
@@ -218,7 +219,7 @@ Zoom sync runs the same mode-gated, resolve-before-publish way as `POST /api/wri
 ```
 
 **Response:** `200 OK` — deleted `IAdmin` object
-**Error:** `400 Bad Request` if it would leave zero Super Admins, `404 Not Found`
+**Error:** `400 Bad Request` — it would leave zero Super Admins; `404 Not Found`; `409 Conflict` — a concurrent change conflicted with this removal, retry
 
 ---
 

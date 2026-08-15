@@ -2,6 +2,7 @@ import { Prisma, Role } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { requireRole } from "../../../../services/auth";
 import { prisma } from "../../../../lib/prisma";
+import { adminRoleUpdateSchema } from "../../../../util/admin/adminValidation";
 
 // Promote/demote an admin's role. Blocks demoting the last remaining Super
 // Admin (including self-demotion) so Super Admins can't lock everyone out.
@@ -10,11 +11,11 @@ export const PUT = async (request: Request) => {
     const auth = await requireRole(Role.SUPER_ADMIN);
     if (auth instanceof Response) return auth;
 
-    const { email, role } = await request.json() as { email: string; role: Role };
-
-    if (role !== Role.SUPER_ADMIN && role !== Role.ADMIN && role !== Role.USER) {
-      return NextResponse.json({ error: "Invalid role" }, { status: 400 });
+    const parsed = adminRoleUpdateSchema.safeParse(await request.json());
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Invalid email or role", issues: parsed.error.issues }, { status: 400 });
     }
+    const { email, role } = parsed.data;
 
     // Serializable, not just read-committed: a plain count-then-update here would let two
     // concurrent demote requests both read "2 Super Admins left", both pass the check, and
@@ -23,13 +24,13 @@ export const PUT = async (request: Request) => {
     const updatedAdmin = await prisma.$transaction(async (tx) => {
       const target = await tx.admin.findUnique({ where: { email } });
       if (!target) {
-        throw new Response(JSON.stringify({ error: "Admin not found" }), { status: 404 });
+        throw NextResponse.json({ error: "Admin not found" }, { status: 404 });
       }
 
       if (target.role === Role.SUPER_ADMIN && role !== Role.SUPER_ADMIN) {
         const superAdminCount = await tx.admin.count({ where: { role: Role.SUPER_ADMIN } });
         if (superAdminCount <= 1) {
-          throw new Response(JSON.stringify({ error: "Cannot demote the last remaining Super Admin" }), { status: 400 });
+          throw NextResponse.json({ error: "Cannot demote the last remaining Super Admin" }, { status: 400 });
         }
       }
 

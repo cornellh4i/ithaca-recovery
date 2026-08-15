@@ -1,7 +1,8 @@
-import { Role } from "@prisma/client";
+import { Prisma, Role } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { requireRole } from "../../../../services/auth";
 import { prisma } from "../../../../lib/prisma";
+import { adminInviteSchema } from "../../../../util/admin/adminValidation";
 
 // Invite an admin by email; name is unknown until they sign in, so it's created
 // empty and filled from the Google profile on that person's first login (see
@@ -11,34 +12,27 @@ export const POST = async (request: Request) => {
     const auth = await requireRole(Role.SUPER_ADMIN);
     if (auth instanceof Response) return auth;
 
-    const { email, role } = await request.json() as { email: string; role?: Role };
-
-    if (!email) {
-      return NextResponse.json({ error: "email is required" }, { status: 400 });
+    const parsed = adminInviteSchema.safeParse(await request.json());
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Invalid email or role", issues: parsed.error.issues }, { status: 400 });
     }
-
-    const resolvedRole = role ?? Role.ADMIN;
-    if (resolvedRole !== Role.SUPER_ADMIN && resolvedRole !== Role.ADMIN && resolvedRole !== Role.USER) {
-      return NextResponse.json({ error: "Invalid role" }, { status: 400 });
-    }
+    const { email, role } = parsed.data;
 
     const createdUser = await prisma.admin.create({
       data: {
         email,
         name: "",
-        role: resolvedRole,
+        role: role ?? Role.ADMIN,
       },
       select: { name: true, email: true, role: true },
     });
 
     return NextResponse.json(createdUser);
   } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      return NextResponse.json({ error: "An admin with this email already exists." }, { status: 409 });
+    }
     console.error(error);
-    return new Response(JSON.stringify({ error: "Internal Server Error" }), {
-      status: 500,
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

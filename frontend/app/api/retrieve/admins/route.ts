@@ -1,5 +1,6 @@
 import { IAdmin } from "../../../../types/models";
 import { Role } from '@prisma/client';
+import { NextResponse } from "next/server";
 import { requireRole } from "../../../../services/auth";
 import { prisma } from "../../../../lib/prisma";
 
@@ -17,19 +18,10 @@ const retrieveAdmins = async () => {
       },
     });
 
-    return new Response(JSON.stringify(admins), {
-      status: 200,
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
+    return NextResponse.json(admins);
   } catch (error) {
-    return new Response(JSON.stringify({ error: `Error retrieving admins: ${error}` }), {
-      status: 500,
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
+    console.error(error);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }
 

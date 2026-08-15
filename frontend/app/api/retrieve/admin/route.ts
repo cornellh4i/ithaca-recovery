@@ -1,6 +1,6 @@
 import { IAdmin } from "../../../../types/models";
 import { Role } from '@prisma/client';
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { requireRole } from "../../../../services/auth";
 import { prisma } from "../../../../lib/prisma";
 
@@ -22,28 +22,14 @@ const getAdminByEmail = async (request: NextRequest) => {
       },
     });
     if (!user) {
-      return new Response(JSON.stringify({ error: `Admin not found` }), {
-        status: 404,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+      return NextResponse.json({ error: "Admin not found" }, { status: 404 });
     }
 
-    return new Response(JSON.stringify(user), {
-      status: 200,
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
+    return NextResponse.json(user);
   }
   catch (error) {
-    return new Response(JSON.stringify({ error: `Admin not found: ${error}` }), {
-      status: 500,
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
+    console.error(error);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }
 
