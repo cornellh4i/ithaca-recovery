@@ -26,49 +26,78 @@ export const convertUTCToET = (utcDateString: string): string => {
   return estDate;
 };
 
+// ET wall-clock reading (year/month/day/hour/minute/second) of a UTC instant, as plain
+// numbers -- shared by convertETToUTC's offset search below. hour % 24 guards against ICU
+// builds that render midnight as "24" under hour12: false.
+const getETPartsAt = (ms: number) => {
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'America/New_York',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
+  }).formatToParts(new Date(ms));
+  const get = (type: Intl.DateTimeFormatPartTypes) =>
+    parseInt(parts.find(p => p.type === type)?.value ?? '0');
+  return {
+    year: get('year'), month: get('month'), day: get('day'),
+    hour: get('hour') % 24, minute: get('minute'), second: get('second'),
+  };
+};
+
 /**
  * Converts an ET date string to UTC.
  * Handles DST automatically — works regardless of the host machine's local timezone.
  *
+ * DST edge cases (America/New_York only ever runs EDT, UTC-4, or EST, UTC-5):
+ * - Spring-forward gap (2nd Sunday of March, ~2:00-2:59 AM ET): that wall-clock time never
+ *   occurs (clocks jump 1:59:59 -> 3:00:00) -- throws rather than silently returning a UTC
+ *   instant that doesn't actually correspond to the requested local time.
+ * - Fall-back overlap (1st Sunday of November, ~1:00-1:59 AM ET): that wall-clock time occurs
+ *   twice. Resolves to the earlier (EDT) occurrence, matching Java's ZonedDateTime default for
+ *   an ambiguous local time -- there's no disambiguation parameter, since real callers only
+ *   ever pass meeting times, which are never scheduled in this 1-hour window.
+ *
  * @param etDateString - ET date string in "YYYY-MM-DDTHH:mm" or "YYYY-MM-DDTHH:mm:ss" format
  * @returns corresponding UTC date string in ISO 8601 format
+ * @throws if the date part isn't a valid calendar date, or the time falls in the DST
+ *   spring-forward gap
  */
 export const convertETToUTC = (etDateString: string): string => {
   const [datePart, timePart = '00:00:00'] = etDateString.split('T');
   const [year, month, day] = datePart.split('-').map(Number);
   const [hour = 0, minute = 0, second = 0] = timePart.split(':').map(Number);
 
-  // Create a UTC probe with the same numeric values as the ET input, then ask
-  // Intl what ET wall time that probe corresponds to.  The difference between
-  // the target ET time and the probe's ET time equals the ET→UTC offset at
-  // that moment — correcting for DST automatically.
-  const probe = new Date(Date.UTC(year, month - 1, day, hour, minute, second));
+  // Reject a calendar-invalid date (e.g. Feb 30) up front, rather than letting Date.UTC
+  // silently roll it into a different, valid date further down.
+  const calendarCheck = new Date(Date.UTC(year, month - 1, day));
+  if (
+    calendarCheck.getUTCFullYear() !== year ||
+    calendarCheck.getUTCMonth() !== month - 1 ||
+    calendarCheck.getUTCDate() !== day
+  ) {
+    throw new Error(`convertETToUTC: "${etDateString}" is not a valid calendar date`);
+  }
 
-  const etParts = new Intl.DateTimeFormat('en-US', {
-    timeZone: 'America/New_York',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false,
-  }).formatToParts(probe);
+  // Treat the target wall-clock values as if they were already UTC, then try both of
+  // America/New_York's possible offsets (EDT/UTC-4, EST/UTC-5) and keep whichever one reads
+  // back as the exact target ET wall time. Outside the two DST-transition windows, exactly one
+  // candidate round-trips.
+  const targetAsUTCMs = Date.UTC(year, month - 1, day, hour, minute, second);
+  const candidates = [4, 5].map(offsetHours => targetAsUTCMs + offsetHours * 3_600_000);
+  const valid = candidates.filter(ms => {
+    const p = getETPartsAt(ms);
+    return p.year === year && p.month === month && p.day === day
+      && p.hour === hour && p.minute === minute && p.second === second;
+  });
 
-  const get = (type: Intl.DateTimeFormatPartTypes) =>
-    parseInt(etParts.find(p => p.type === type)?.value ?? '0');
+  if (valid.length === 0) {
+    throw new Error(
+      `convertETToUTC: "${etDateString}" falls in the DST spring-forward gap and does not exist in America/New_York`,
+    );
+  }
 
-  // Use the full ET datetime (including day) from Intl so that day-boundary
-  // cases work correctly — e.g. UTC midnight = previous day 8 PM ET, and the
-  // hours-only diff would go negative without the date component.
-  const probeEtAsUTC = Date.UTC(
-    get('year'), get('month') - 1, get('day'),
-    get('hour') % 24, get('minute'), get('second'),
-  );
-  const targetEtAsUTC = Date.UTC(year, month - 1, day, hour, minute, second);
-  const diffMs = targetEtAsUTC - probeEtAsUTC;
-
-  return new Date(probe.getTime() + diffMs).toISOString();
+  // valid.length === 2 means the fall-back overlap applies -- Math.min picks the earlier (EDT)
+  // occurrence, per the documented rule above. valid.length === 1 just returns that instant.
+  return new Date(Math.min(...valid)).toISOString();
 };
 
 /**
@@ -157,19 +186,40 @@ export const parseMMDDYYYY = (value: string): Date | null => {
   if (!match) return null;
   const [, month, day, year] = match;
   const etDateStr = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
-  const parsed = new Date(convertETToUTC(`${etDateStr}T00:00:00`));
-  // Reject calendar-invalid input (e.g. "02/30/2026") that Date.UTC would otherwise silently
-  // normalize into a different valid date (March 2) instead of failing.
-  if (isNaN(parsed.getTime()) || formatETDateString(parsed) !== etDateStr) return null;
-  return parsed;
+  try {
+    // convertETToUTC itself now rejects a calendar-invalid date (e.g. "02/30/2026") --
+    // caught here and folded into this function's null-for-unparseable contract.
+    const parsed = new Date(convertETToUTC(`${etDateStr}T00:00:00`));
+    if (isNaN(parsed.getTime()) || formatETDateString(parsed) !== etDateStr) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
 };
 
 /**
  * Normalises a "startDate" request param (either a plain "YYYY-MM-DD" or a full
  * date/ISO string) into a "YYYY-MM-DD" ET calendar date string.
+ *
+ * @throws if `dateParam` is "YYYY-MM-DD"-shaped but not a real calendar date (e.g.
+ *   "2024-02-31"), or isn't "YYYY-MM-DD"-shaped and also isn't a parseable date string at all.
  */
-export const toETDateString = (dateParam: string): string =>
-  dateParam.match(/^\d{4}-\d{2}-\d{2}$/) ? dateParam : formatETDateString(new Date(dateParam));
+export const toETDateString = (dateParam: string): string => {
+  const match = dateParam.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return formatETDateString(new Date(dateParam));
+
+  const [, yearStr, monthStr, dayStr] = match;
+  const [year, month, day] = [Number(yearStr), Number(monthStr), Number(dayStr)];
+  const roundTripped = new Date(Date.UTC(year, month - 1, day));
+  if (
+    roundTripped.getUTCFullYear() !== year ||
+    roundTripped.getUTCMonth() !== month - 1 ||
+    roundTripped.getUTCDate() !== day
+  ) {
+    throw new Error(`toETDateString: "${dateParam}" is not a valid calendar date`);
+  }
+  return dateParam;
+};
 
 /**
  * Returns the 7 ET calendar date strings (Sunday through Saturday) for the week

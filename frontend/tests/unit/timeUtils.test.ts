@@ -11,6 +11,7 @@ import {
   getETTimeOfDay,
   getWeekDatesET,
   parseMMDDYYYY,
+  toETDateString,
 } from "../../util/date/timeUtils";
 
 describe("convertETToUTC / convertUTCToET round-trip", () => {
@@ -22,6 +23,51 @@ describe("convertETToUTC / convertUTCToET round-trip", () => {
   it("round-trips a winter (EST, UTC-5) date", () => {
     const utc = convertETToUTC("2026-01-15T14:00:00");
     expect(convertUTCToET(utc)).toContain("01/15/2026, 02:00:00 PM");
+  });
+});
+
+describe("convertETToUTC DST transitions", () => {
+  // Spring-forward: 2nd Sunday of March 2026 is March 8; clocks jump 1:59:59 -> 3:00:00 AM ET,
+  // so 2:00-2:59 AM ET doesn't exist that day.
+  it("throws for a time in the spring-forward gap", () => {
+    expect(() => convertETToUTC("2026-03-08T02:30:00")).toThrow(/spring-forward gap/);
+  });
+
+  it("throws for the first instant of the spring-forward gap", () => {
+    expect(() => convertETToUTC("2026-03-08T02:00:00")).toThrow(/spring-forward gap/);
+  });
+
+  it("throws for the last instant of the spring-forward gap", () => {
+    expect(() => convertETToUTC("2026-03-08T02:59:59")).toThrow(/spring-forward gap/);
+  });
+
+  it("still converts the times immediately surrounding the spring-forward gap", () => {
+    // 1:59:59 AM EST (UTC-5) and 3:00:00 AM EDT (UTC-4) are both real, unambiguous instants.
+    expect(convertETToUTC("2026-03-08T01:59:59")).toBe("2026-03-08T06:59:59.000Z");
+    expect(convertETToUTC("2026-03-08T03:00:00")).toBe("2026-03-08T07:00:00.000Z");
+  });
+
+  // Fall-back: 1st Sunday of November 2026 is November 1; clocks fall back 1:59:59 -> 1:00:00
+  // AM ET, so 1:00-1:59 AM ET occurs twice (once EDT, once EST).
+  it("resolves a fall-back-ambiguous time to the earlier (EDT) occurrence", () => {
+    // 1:30 AM EDT (UTC-4) is 05:30 UTC; the later 1:30 AM EST (UTC-5) occurrence would be
+    // 06:30 UTC -- convertETToUTC must deterministically pick the earlier one.
+    expect(convertETToUTC("2026-11-01T01:30:00")).toBe("2026-11-01T05:30:00.000Z");
+  });
+
+  it("resolves the first and last instants of the fall-back overlap to their earlier occurrence", () => {
+    expect(convertETToUTC("2026-11-01T01:00:00")).toBe("2026-11-01T05:00:00.000Z");
+    expect(convertETToUTC("2026-11-01T01:59:59")).toBe("2026-11-01T05:59:59.000Z");
+  });
+
+  it("still converts the times immediately surrounding the fall-back overlap unambiguously", () => {
+    expect(convertETToUTC("2026-11-01T00:59:59")).toBe("2026-11-01T04:59:59.000Z");
+    // 2:00 AM ET is already back to a single (EST) occurrence once the overlap hour ends.
+    expect(convertETToUTC("2026-11-01T02:00:00")).toBe("2026-11-01T07:00:00.000Z");
+  });
+
+  it("rejects a calendar-invalid date instead of silently rolling it over", () => {
+    expect(() => convertETToUTC("2026-02-30T00:00:00")).toThrow(/not a valid calendar date/);
   });
 });
 
@@ -139,5 +185,25 @@ describe("parseMMDDYYYY", () => {
   it("accepts Feb 29 on a leap year but rejects it on a non-leap year", () => {
     expect(formatETDateString(parseMMDDYYYY("02/29/2028")!)).toBe("2028-02-29");
     expect(parseMMDDYYYY("02/29/2026")).toBeNull();
+  });
+});
+
+describe("toETDateString", () => {
+  it("passes a plain YYYY-MM-DD string through unchanged", () => {
+    expect(toETDateString("2026-08-15")).toBe("2026-08-15");
+  });
+
+  it("normalises a full ISO string to its ET calendar date", () => {
+    expect(toETDateString(convertETToUTC("2026-08-15T23:30:00"))).toBe("2026-08-15");
+  });
+
+  // Date.UTC would otherwise silently normalize an invalid day/month into a different,
+  // valid date (e.g. Feb 31 -> Mar 3) instead of failing.
+  it("rejects a YYYY-MM-DD-shaped string that isn't a real calendar date", () => {
+    expect(() => toETDateString("2026-02-31")).toThrow(/not a valid calendar date/);
+  });
+
+  it("rejects an unparseable date string", () => {
+    expect(() => toETDateString("not-a-date")).toThrow();
   });
 });
