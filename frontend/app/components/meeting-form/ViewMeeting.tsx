@@ -15,15 +15,14 @@ import { formatCompactTimeRange, formatMeetingDateLine } from "../../../util/dat
 import {
   convertETToUTC,
   formatETDateString,
-  formatETWeekdayLong,
   getETTimeOfDay,
 } from "../../../util/date/timeUtils";
-import { daysBetweenET } from "../../../util/date/weekDates";
 import { retryMeetingSync } from "../../../services/syncMeeting";
 import { useToast } from "../shared/ToastProvider";
 import { formatSuspensionStatusText } from "../../../util/meetings/suspensionText";
 import { ROOM_COLORS, ZOOM_ROOM_COLOR } from "../../../util/rooms/filterColors";
 import { formatRecurrencePattern } from "../../../util/meetings/recurrenceDisplay";
+import { matchesRecurrencePattern } from "../../../util/meetings/recurrenceMatch";
 import { isZoomRoomMismatched } from "../../../util/rooms/rooms";
 import { linkify } from "../../../util/common/linkify";
 import { zoomHostLabel } from "../../../util/rooms/zoomHosts";
@@ -341,23 +340,27 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
       return formatETDateString(meetingDate) === formatETDateString(date);
     }
 
-    if (recurrencePattern.type === "weekly") {
-      const dayOfWeek = formatETWeekdayLong(date);
-      if (!(recurrencePattern.daysOfWeek ?? []).includes(dayOfWeek)) {
-        return false;
-      }
+    // Shared with the server (matchesRecurrencePattern lives in recurrenceMatch.ts, re-exported
+    // by the server-only meetingOccurrences.ts) so this popup can't disagree with what the
+    // calendar actually rendered as an occurrence -- see recurrenceMatch.ts's file header.
+    const etDateStr = formatETDateString(date);
+    const [etYear, etMonth, etDay] = etDateStr.split('-').map(Number);
+    const localDate = new Date(Date.UTC(etYear, etMonth - 1, etDay));
 
-      // ET calendar-day difference, not a raw instant diff -- date (the occurrence being
-      // checked) and startDateTime aren't anchored to the same time-of-day (occurrence dates
-      // are noon-ET-anchored, see weekDates.ts), so diffing getTime() directly and flooring by
-      // 24h can undercount by a day and miscompute diffWeeks for interval > 1 patterns.
-      const diffDays = Math.abs(daysBetweenET(startDateTime, date));
-      const diffWeeks = Math.floor(diffDays / 7);
-
-      return diffWeeks % recurrencePattern.interval === 0;
-    }
-
-    return true;
+    return matchesRecurrencePattern(
+      {
+        type: recurrencePattern.type,
+        startDate: recurrencePattern.startDate,
+        endDate: recurrencePattern.endDate ?? null,
+        interval: recurrencePattern.interval,
+        daysOfWeek: recurrencePattern.daysOfWeek ?? [],
+        weekOfMonth: recurrencePattern.weekOfMonth ?? null,
+        dayOfMonth: recurrencePattern.dayOfMonth ?? null,
+        excludedDates: recurrencePattern.excludedDates ?? [],
+      },
+      etDateStr,
+      localDate,
+    );
   };
 
   let displayStartDate = startDateTime;
