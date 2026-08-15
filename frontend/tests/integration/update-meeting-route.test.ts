@@ -603,7 +603,7 @@ test("a missing access token persists an error status instead of leaving googleS
   // test doesn't override the default startDateTime/endDateTime, so a same-named room here would
   // collide with that other file's meeting at the same default time window and fail this PUT
   // with an unrelated 409, not the googleSyncStatus assertion this test actually checks.
-  const { recurrencePattern: _rp, ...existingMeetingData } = buildMeetingPayload({ mid, room: "Update Route No Access Token Room" });
+  const existingMeetingData = toMeetingCreateInput(buildMeetingPayload({ mid, room: "Update Route No Access Token Room" }));
   await prisma.meeting.create({ data: existingMeetingData });
 
   const payload = buildMeetingPayload({ mid, room: "Update Route No Access Token Room", title: "Edited Title" });
