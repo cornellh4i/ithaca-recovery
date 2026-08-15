@@ -1,4 +1,4 @@
-import { marked, Renderer, type Tokens } from "marked";
+import { marked, Renderer, Lexer, Parser, TextRenderer, type Tokens } from "marked";
 
 export interface TocItem {
   level: number;
@@ -11,6 +11,15 @@ export function slugify(text: string): string {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "");
+}
+
+// Strips markdown syntax down to its rendered text (e.g. "[User Guide](url)" -> "User Guide"),
+// via marked's own TextRenderer -- reused for both the slug and the TOC label below, so a
+// heading written as a markdown link doesn't leave "[User Guide](url)"-style raw syntax in the
+// slug or in DocsTocList's sidebar (which renders TocItem.text as plain text, not HTML).
+const textRenderer = new TextRenderer();
+function headingPlainText(raw: string): string {
+  return Parser.parseInline(Lexer.lexInline(raw), { renderer: textRenderer });
 }
 
 const CALLOUT_LABELS: Record<string, string> = {
@@ -73,11 +82,12 @@ export function parseMarkdown(markdown: string): { html: string; toc: TocItem[] 
     // Repeated heading text (e.g. two "Overview" sections in one doc) would otherwise collide on
     // both the rendered element's id and the TOC's own slug -- a fragment link then always jumps
     // to the first match, and DocsTocList's `key={item.slug}` would collide too.
-    const baseSlug = slugify(text) || "section";
+    const plainText = headingPlainText(text);
+    const baseSlug = slugify(plainText) || "section";
     const count = slugCounts.get(baseSlug) ?? 0;
     slugCounts.set(baseSlug, count + 1);
     const slug = count === 0 ? baseSlug : `${baseSlug}-${count}`;
-    if (depth <= 2) toc.push({ level: depth, text, slug });
+    if (depth <= 2) toc.push({ level: depth, text: plainText, slug });
     // parseInline renders inline markdown within the heading (several docs headings wrap
     // route paths in backticks, e.g. `### `POST /api/write/meeting``) -- the raw token text
     // alone would leave those backticks showing instead of styled <code>.

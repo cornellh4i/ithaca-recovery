@@ -2,9 +2,9 @@
 
 Welcome to the documentation hub for the **Ithaca Recovery Management System**. For ease of navigation,
 this hub has been organized by its audience:
-- [User Guide](#user-guide-01-user-guide) for everyday users of the system;
-- [Handoff](#handoff-02-handoff) for the ICR leadership and this application maintainer; and
-- [Development](#development-03-development) for developer teams writing code for this app.
+- [User Guide](#user-guide) for everyday users of the system;
+- [Handoff](#handoff) for the ICR leadership and this application maintainer; and
+- [Development](#development) for developer teams writing code for this app.
 
 ## [User Guide](01-user-guide/)
 
