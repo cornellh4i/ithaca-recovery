@@ -79,13 +79,14 @@ need live credentials (real Zoom meetings getting created, real Google Calendar 
 ### Provisional tests
 
 A feature referenced in the manual script but not built yet gets a test locking in its *current*
-stub/absent behavior, tagged `[PROVISIONAL:<name>]` in `tests/e2e/provisional.spec.ts`, with a
-comment pointing at the exact stub line — so whoever ships the real feature finds the test
+stub/absent behavior, tagged `[PROVISIONAL:<name>]` in a `tests/e2e/provisional.spec.ts` file, with
+a comment pointing at the exact stub line — so whoever ships the real feature finds the test
 immediately and knows to rewrite it, rather than it silently asserting the old absence of behavior
-forever. `provisional.spec.ts` is currently an empty shell — every feature it originally covered
-has since been resolved (two shipped, one canceled entirely) — see
-[Technical Decisions](../../02-handoff/technical-decisions.md#testing-strategy-playwright-primary-jest-for-narrower-jobs)
-for the specifics.
+forever. There's no active `provisional.spec.ts` right now — every feature it once covered has
+since been resolved (two shipped, one canceled entirely), so the file was deleted rather than kept
+around as an empty shell; recreate it the next time a manual-script feature needs this treatment.
+See [Technical Decisions](../../02-handoff/technical-decisions.md#testing-strategy-playwright-primary-jest-for-narrower-jobs)
+for the resolved history.
 
 ## Running locally
 
