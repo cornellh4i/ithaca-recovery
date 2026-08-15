@@ -5,6 +5,7 @@ import {
   OVERLAP_HORIZON_YEARS,
   type ConflictCandidateMeeting,
 } from "../../util/meetings/resourceOverlap";
+import { convertETToUTC, formatETDateString } from "../../util/date/timeUtils";
 
 const utcDate = (y: number, m: number, d: number, h = 0, min = 0) =>
   new Date(Date.UTC(y, m - 1, d, h, min));
@@ -78,6 +79,37 @@ describe("expandOccurrences — recurring", () => {
     };
     const occurrences = expandOccurrences(boundedMeeting, utcDate(2026, 7, 1), utcDate(2026, 8, 1));
     expect(occurrences).toHaveLength(2);
+  });
+});
+
+describe("expandOccurrences — DST spring-forward gap", () => {
+  // Regression: a weekly Sunday meeting anchored at 2:30 AM ET lands, once a year, on a Sunday
+  // where 2:00-2:59 AM ET doesn't exist (the 2nd Sunday of March -- March 8, 2026). That single
+  // occurrence must be skipped, not throw all the way out and take every other occurrence (and,
+  // one level up, every other meeting in the same request) down with it.
+  it("skips the one occurrence that falls in the gap, keeping every other week's occurrence", () => {
+    const meeting = {
+      // Feb 1, 2026 is a Sunday -- the same weekday as the March 8 gap date, 7-day-aligned.
+      startDateTime: new Date(convertETToUTC("2026-02-01T02:30:00")),
+      endDateTime: new Date(convertETToUTC("2026-02-01T02:45:00")),
+      isRecurring: true,
+      recurrencePattern: {
+        type: "weekly",
+        startDate: utcDate(2026, 2, 1),
+        endDate: null,
+        interval: 1,
+        daysOfWeek: ["Sunday"],
+        weekOfMonth: null,
+        dayOfMonth: null,
+        excludedDates: [],
+      },
+    };
+
+    const occurrences = expandOccurrences(meeting, utcDate(2026, 3, 1), utcDate(2026, 3, 15, 23, 59));
+
+    // March 1, March 8 (gap -- skipped), March 15 would otherwise be 3 occurrences.
+    expect(occurrences).toHaveLength(2);
+    expect(occurrences.map((o) => formatETDateString(o.start))).toEqual(["2026-03-01", "2026-03-15"]);
   });
 });
 
