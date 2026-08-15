@@ -77,6 +77,18 @@ export const convertETToUTC = (etDateString: string): string => {
     throw new Error(`convertETToUTC: "${etDateString}" is not a valid calendar date`);
   }
 
+  // Reject an out-of-range time-of-day (e.g. "T24:00:00") up front too -- otherwise it falls
+  // through to the offset search below, which would report it as a spring-forward-gap time
+  // (zero candidates round-trip) even though it's really just a malformed time, not a real ET
+  // instant that happens to not exist.
+  if (
+    !Number.isInteger(hour) || hour < 0 || hour > 23 ||
+    !Number.isInteger(minute) || minute < 0 || minute > 59 ||
+    !Number.isInteger(second) || second < 0 || second > 59
+  ) {
+    throw new Error(`convertETToUTC: "${etDateString}" has an invalid time of day`);
+  }
+
   // Treat the target wall-clock values as if they were already UTC, then try both of
   // America/New_York's possible offsets (EDT/UTC-4, EST/UTC-5) and keep whichever one reads
   // back as the exact target ET wall time. Outside the two DST-transition windows, exactly one
@@ -192,8 +204,12 @@ export const parseMMDDYYYY = (value: string): Date | null => {
     const parsed = new Date(convertETToUTC(`${etDateStr}T00:00:00`));
     if (isNaN(parsed.getTime()) || formatETDateString(parsed) !== etDateStr) return null;
     return parsed;
-  } catch {
-    return null;
+  } catch (err) {
+    // Only convertETToUTC's own documented validation failures mean "this input was invalid" --
+    // every one of its throws is prefixed "convertETToUTC:". Anything else is unexpected and
+    // should propagate as a real bug rather than being silently swallowed as "null".
+    if (err instanceof Error && err.message.startsWith('convertETToUTC:')) return null;
+    throw err;
   }
 };
 

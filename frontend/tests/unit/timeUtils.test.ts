@@ -69,6 +69,16 @@ describe("convertETToUTC DST transitions", () => {
   it("rejects a calendar-invalid date instead of silently rolling it over", () => {
     expect(() => convertETToUTC("2026-02-30T00:00:00")).toThrow(/not a valid calendar date/);
   });
+
+  it("accepts Feb 29 on a leap year", () => {
+    expect(convertETToUTC("2024-02-29T12:00:00")).toBe("2024-02-29T17:00:00.000Z");
+  });
+
+  // An out-of-range time-of-day isn't a DST gap -- it must get its own distinct error, not be
+  // misreported as "falls in the spring-forward gap" just because it also fails to round-trip.
+  it("rejects an out-of-range hour with a distinct error from the DST-gap message", () => {
+    expect(() => convertETToUTC("2026-07-15T24:00:00")).toThrow(/invalid time of day/);
+  });
 });
 
 describe("getETDayBounds", () => {
@@ -195,6 +205,10 @@ describe("toETDateString", () => {
 
   it("normalises a full ISO string to its ET calendar date", () => {
     expect(toETDateString(convertETToUTC("2026-08-15T23:30:00"))).toBe("2026-08-15");
+  });
+
+  it("accepts a real leap-day date", () => {
+    expect(toETDateString("2024-02-29")).toBe("2024-02-29");
   });
 
   // Date.UTC would otherwise silently normalize an invalid day/month into a different,
