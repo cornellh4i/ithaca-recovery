@@ -1,5 +1,5 @@
 import React, { useLayoutEffect, useRef } from "react";
-import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
+import Icon from "../ui/displays/Icon";
 import type { MeetingFormFieldError } from "../../../hooks/useMeetingForm";
 import styles from "./FormValidationBanner.module.scss";
 
@@ -55,7 +55,7 @@ const FormValidationBanner: React.FC<FormValidationBannerProps> = ({ errors }) =
   return (
     <div className={styles.banner} ref={bannerRef} role="alert">
       <span className={styles.iconCircle}>
-        <ErrorOutlineIcon fontSize="small" />
+        <Icon name="error-outline" size={16} />
       </span>
       <div className={styles.body}>
         <p className={styles.title}>

@@ -6,7 +6,7 @@ import MeetingsFilter from '../shared/MeetingsFilter';
 import { MeetingFilters } from '../../../../util/filters/meetingFilters';
 import NewMeetingSidebar from '../../meeting-form/NewMeeting';
 import styles from './CalendarSidebar.module.scss';
-import AddIcon from '@mui/icons-material/Add';
+import Icon from '../../ui/displays/Icon';
 interface CalendarSidebarProps {
   filters: MeetingFilters;
   isNewMeetingOpen: boolean;
@@ -46,7 +46,7 @@ const CalendarSidebar: React.FC<CalendarSidebarProps> = ({
       ) : (
         <>
           {isAdmin && (
-            <TextButton label="New Meeting" onClick={handleOpenNewMeeting} icon={<AddIcon />} />
+            <TextButton label="New Meeting" onClick={handleOpenNewMeeting} icon={<Icon name="plus" />} />
           )}
           <div>
             <MiniCalendar selectedDate={selectedDate} onSelect={handleMiniCalendarSelect}/>

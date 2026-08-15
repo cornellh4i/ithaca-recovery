@@ -12,7 +12,7 @@ import RecurringMeetingForm from './RecurringMeeting';
 import ZoomHostField from './ZoomHostField';
 import ConflictOverrideModal from './ConflictOverrideModal';
 import FormValidationBanner from './FormValidationBanner';
-import IconButton from '@mui/material/IconButton';
+import IconButton from '../ui/buttons/IconButton';
 
 import { v4 as uuidv4 } from 'uuid';
 import { physicalRoomOptions, zoomRoomOptions } from "../../../util/rooms/rooms";
@@ -152,9 +152,12 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({
       <div>
         <div className={styles.meetingHeader}>
           <h3>New Meeting</h3>
-          <IconButton className={styles.iconButton} onClick={handleCloseNewMeeting}>
-            <Icon name="close" ariaLabel="Close" />
-          </IconButton>
+          <IconButton
+            name="close"
+            ariaLabel="Close"
+            onClick={handleCloseNewMeeting}
+            className={styles.iconButton}
+          />
         </div>
         <FormValidationBanner errors={liveValidationErrors} />
         <MeetingForm

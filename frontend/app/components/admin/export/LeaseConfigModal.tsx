@@ -1,8 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import Icon from "../../ui/displays/Icon";
 import Modal from "../../ui/overlays/Modal";
 import type { ILeaseSettings, IRoomRate } from "../../../../types/models";
 import type { LeaseYearCycle } from "../../../../util/lease/leaseYearCycles";
@@ -39,8 +38,9 @@ const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({ title, summary,
           <span className={styles.sectionLabel}>{title}</span>
           {!open && <span className={styles.collapsibleSummary}>{summary}</span>}
         </span>
-        <ExpandMoreIcon
-          fontSize="small"
+        <Icon
+          name="expand-more"
+          size={16}
           className={`${styles.collapsibleChevron} ${open ? styles.collapsibleChevronOpen : ""}`}
         />
       </button>
@@ -129,7 +129,7 @@ const LeaseConfigModal: React.FC<LeaseConfigModalProps> = ({ initial, cycles, on
                   onChange={() => selectCycle(cycle)}
                 />
                 <span className={styles.cycleRadioIcon}>
-                  {isSelected ? <CheckCircleIcon fontSize="small" /> : <span className={styles.cycleRadioEmpty} />}
+                  {isSelected ? <Icon name="check-circle" size={16} /> : <span className={styles.cycleRadioEmpty} />}
                 </span>
                 <span className={`${styles.cycleLabel} ${cycle.status === "current" ? styles.cycleLabelCurrent : ""}`}>
                   {cycle.label}

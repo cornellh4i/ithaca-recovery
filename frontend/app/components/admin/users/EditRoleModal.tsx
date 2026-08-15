@@ -2,7 +2,6 @@
 
 import React, { useLayoutEffect, useState } from "react";
 import type { Role } from "@prisma/client";
-import ManageAccountsIcon from "@mui/icons-material/ManageAccounts";
 import Icon from "../../ui/displays/Icon";
 import Modal from "../../ui/overlays/Modal";
 import RadioGroup from "../../ui/inputs/RadioGroup";
@@ -49,7 +48,7 @@ const EditRoleModal: React.FC<EditRoleModalProps> = ({
     >
       <div className={styles.header}>
         <span className={styles.iconCircle}>
-          <ManageAccountsIcon fontSize="small" />
+          <Icon name="manage-accounts" size={16} />
         </span>
         <h2 id="edit-role-modal-title" className={styles.title}>Change role</h2>
       </div>

@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import type { Role } from "@prisma/client";
-import MonitorHeartIcon from "@mui/icons-material/MonitorHeart";
+import Icon from "../../ui/displays/Icon";
 import Card from "../shared/Card";
 import TopLoadingBar from "../../ui/displays/TopLoadingBar";
 import DiagnosticsCardError from "./DiagnosticsCardError";
@@ -92,7 +92,7 @@ const SystemStatusCard: React.FC<SystemStatusCardProps> = ({ email, role }) => {
     <Card accent="systemStatus">
       <TopLoadingBar active={loading} />
       <div className={styles.panelHeader}>
-        <span className={styles.panelIconSystemStatus}><MonitorHeartIcon fontSize="small" /></span>
+        <Icon name="monitor-heart" className={`${styles.panelIcon} ${styles.panelIconSystemStatus}`} />
         System Status
       </div>
 

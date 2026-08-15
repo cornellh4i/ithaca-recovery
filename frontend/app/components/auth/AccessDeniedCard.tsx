@@ -1,4 +1,4 @@
-import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
+import Icon from "../ui/displays/Icon";
 import SignInDifferentAccountButton from "./SignInDifferentAccountButton";
 import styles from "./AccessDeniedCard.module.scss";
 
@@ -10,7 +10,7 @@ import styles from "./AccessDeniedCard.module.scss";
 const AccessDeniedCard: React.FC = () => (
   <div className={styles.card}>
     <div className={styles.iconBadge}>
-      <LockOutlinedIcon />
+      <Icon name="lock-outlined" />
     </div>
     <h1 className={styles.heading}>Access denied</h1>
     <p className={styles.description}>

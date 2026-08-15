@@ -1,8 +1,5 @@
 import React from "react";
-import CheckIcon from "@mui/icons-material/Check";
-import CloseIcon from "@mui/icons-material/Close";
-import WarningAmberIcon from "@mui/icons-material/WarningAmber";
-import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
+import Icon, { IconName } from "../ui/displays/Icon";
 import styles from "./Toast.module.scss";
 
 export type ToastVariant = "success" | "error" | "warning" | "info";
@@ -19,14 +16,14 @@ const VARIANT_CLASS: Record<ToastVariant, string> = {
   info: styles.info,
 };
 
-// Error reuses CloseIcon (an X) rather than a distinct "error" glyph -- same shape the
+// Error reuses the close glyph (an X) rather than a distinct "error" icon -- same shape the
 // dismiss button uses, but rendered in the variant's accent color at the opposite corner,
 // which is how the design reference distinguishes the two.
-const VARIANT_ICON: Record<ToastVariant, React.ElementType> = {
-  success: CheckIcon,
-  error: CloseIcon,
-  warning: WarningAmberIcon,
-  info: InfoOutlinedIcon,
+const VARIANT_ICON: Record<ToastVariant, IconName> = {
+  success: "check",
+  error: "close",
+  warning: "warning-amber",
+  info: "warning-circle",
 };
 
 export interface ToastProps {
@@ -38,7 +35,6 @@ export interface ToastProps {
 }
 
 const Toast: React.FC<ToastProps> = ({ variant, title, description, actions, onClose }) => {
-  const Icon = VARIANT_ICON[variant];
   return (
     <div
       className={`${styles.toast} ${VARIANT_CLASS[variant]}`}
@@ -46,7 +42,7 @@ const Toast: React.FC<ToastProps> = ({ variant, title, description, actions, onC
       aria-live={variant === "error" ? "assertive" : "polite"}
     >
       <span className={styles.icon}>
-        <Icon fontSize="small" />
+        <Icon name={VARIANT_ICON[variant]} size={16} />
       </span>
       <div className={styles.body}>
         <p className={styles.title}>{title}</p>
@@ -71,7 +67,7 @@ const Toast: React.FC<ToastProps> = ({ variant, title, description, actions, onC
         )}
       </div>
       <button className={styles.closeButton} aria-label="Dismiss" onClick={onClose}>
-        <CloseIcon fontSize="small" />
+        <Icon name="close" size={16} />
       </button>
     </div>
   );
