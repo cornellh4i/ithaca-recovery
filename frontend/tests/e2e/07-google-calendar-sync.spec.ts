@@ -16,7 +16,7 @@ import { Role } from "@prisma/client";
 // fails with zero real network calls.
 
 test.describe("google calendar sync", () => {
-  test("7.7 creating a meeting with no session accessToken never attempts a sync", async ({ adminPage }) => {
+  test("7.7 creating a meeting with no session accessToken never attempts a sync, but records it as an error", async ({ adminPage }) => {
     const { page } = adminPage;
     await page.goto("/");
     await page.getByText("New Meeting").click();
@@ -32,9 +32,22 @@ test.describe("google calendar sync", () => {
     await page.getByRole("button", { name: "Create Meeting" }).click();
     await writeResponse;
 
+    // A missing accessToken is never a silent no-op: googleSyncStatus must land on an
+    // explicit 'error' (not stay null forever) so a missing sync surfaces on Diagnostics
+    // instead of looking healthy. Sync runs in the background after the response
+    // (waitUntil), so poll rather than reading the DB once immediately after writeResponse.
+    //
+    // Asserting the exact message, not just the status, matters here: 7.8 (missing
+    // GOOGLE_CALENDAR_* config, but a real accessToken) also lands on 'error' -- the message is
+    // what actually distinguishes "never attempted, no token at all" from "attempted and failed".
     const prisma = getTestPrismaClient();
+    await expect.poll(async () => {
+      const created = await prisma.meeting.findFirst({ where: { title: "No Token Meeting" } });
+      return created?.googleSyncError;
+    }).toBe("No Google Calendar access token available for this sync.");
+
     const created = await prisma.meeting.findFirst({ where: { title: "No Token Meeting" } });
-    expect(created?.googleSyncStatus).toBeNull();
+    expect(created?.googleSyncStatus).toBe("error");
   });
 
   test("7.8 creating a meeting with a session accessToken attempts a sync for every checked category", async ({ page, context }) => {

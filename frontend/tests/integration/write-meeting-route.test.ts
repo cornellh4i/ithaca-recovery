@@ -9,7 +9,17 @@ import type { IMeeting } from "../../types/models";
 // doesn't change what actually happens — only silences that scope check for this test.
 jest.mock("next/server", () => ({
   ...jest.requireActual("next/server"),
-  after: () => {},
+  // Real Next.js after() accepts either an already-started promise or a lazy callback function
+  // -- this route's actual call site always passes the former (the sync promise is constructed
+  // eagerly and already running by the time after() is called), so a plain no-op mock happened
+  // to "work" here too, since discarding the reference doesn't stop an already-running promise.
+  // But that no-op wouldn't invoke a *callback* form, so it wouldn't have caught a regression if
+  // this route were ever restructured to pass after() a lazy `() => syncNewMeeting(...)`
+  // instead. Actually invoking a function argument (while leaving a promise argument alone,
+  // since it's already running and isn't callable) makes the mock verify both forms correctly.
+  after: (task: unknown) => {
+    if (typeof task === "function") void (task as () => unknown)();
+  },
 }));
 
 jest.mock("../../services/auth", () => ({
@@ -35,10 +45,12 @@ jest.mock("../../services/zoom", () => ({
   zoomRoomCalendarId: {},
 }));
 
+import { requireRole } from "../../services/auth";
 import { createCalendarEvent } from "../../services/googleCalendar";
 import { resolveZoomHost, createZoomMeeting } from "../../services/zoom";
 import { POST } from "../../app/api/write/meeting/route";
 
+const mockedRequireRole = requireRole as jest.Mock;
 const mockedCreateCalendarEvent = createCalendarEvent as jest.Mock;
 const mockedResolveZoomHost = resolveZoomHost as jest.Mock;
 const mockedCreateZoomMeeting = createZoomMeeting as jest.Mock;
@@ -628,4 +640,27 @@ test("a category with no configured calendar fails the meeting's sync, even if i
   // a false "synced" from only checking the categories that happened to resolve.
   expect(mockedCreateCalendarEvent).toHaveBeenCalledTimes(1);
   expect(afterSync?.googleSyncStatus).toBe("error");
+});
+
+test("a missing access token persists an error status instead of leaving googleSyncStatus null forever", async () => {
+  mockedRequireRole.mockResolvedValueOnce({ user: { role: "ADMIN" }, accessToken: undefined });
+
+  // Distinct room, and distinct from update-meeting-route.test.ts's own "no access token" test
+  // -- both files run against the same shared test-DB instance within one test run, and this
+  // test doesn't override the default startDateTime/endDateTime, so a same-named room here would
+  // collide with that other file's meeting at the same default time window and fail this POST
+  // with an unrelated 409, not the googleSyncStatus assertion this test actually checks.
+  const payload = buildMeetingPayload({ room: "Write Route No Access Token Room" });
+  const request = new Request("http://localhost/api/write/meeting", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+
+  const response = await POST(request);
+  expect(response.status).toBe(201);
+
+  const afterSync = await waitForGoogleSyncStatus(payload.mid);
+  expect(afterSync?.googleSyncStatus).toBe("error");
+  expect(afterSync?.googleSyncError).toBeTruthy();
+  expect(mockedCreateCalendarEvent).not.toHaveBeenCalled();
 });

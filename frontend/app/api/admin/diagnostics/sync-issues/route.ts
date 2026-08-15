@@ -5,6 +5,19 @@ import { prisma } from "../../../../../lib/prisma";
 
 const notDeleted = { deletedAt: null };
 
+// A meeting whose deferred sync job never even started (e.g. the request crashed before
+// `after()` ran) or crashed before writing any status leaves googleSyncStatus at its default
+// `null` forever, which nothing else here flags as a problem. Guarded by this staleness window
+// so a meeting that's mid-flight (its deferred job just hasn't reached its write yet) isn't
+// misreported as broken.
+//
+// Known limitation: `updatedAt` is used as the "last touched" signal because Meeting has no
+// dedicated createdAt/lastSyncAttemptAt field. Any unrelated edit (suspend/resume, promotion,
+// a plain field edit) bumps updatedAt too, which resets this staleness window -- a genuinely
+// stuck sync can be masked for a while by an unrelated later edit. A dedicated timestamp would
+// close this gap but is a bigger schema change than this fix warrants.
+const NEVER_ATTEMPTED_STALE_MS = 5 * 60 * 1000;
+
 // Diagnostics Sync Issues panel: meetings that failed to sync to Zoom or Google Calendar, or
 // are waiting on a Zoom host. Split out from the old combined /api/admin/diagnostics route so
 // retrying a sync issue only needs to refetch this panel, not the other four.
@@ -16,7 +29,7 @@ export const GET = async () => {
     const meetings = await prisma.meeting.findMany({
       where: notDeleted,
       select: {
-        mid: true, title: true, group: true, modeType: true, calType: true, room: true,
+        mid: true, title: true, group: true, modeType: true, calType: true, room: true, status: true,
         googleSyncStatus: true, zoomSyncStatus: true, zoomSyncError: true, updatedAt: true,
       },
     });
@@ -35,6 +48,19 @@ export const GET = async () => {
           issues.push({ text: "Waiting on a Zoom host to become available — calendars not yet published.", severity: "warning" });
         } else if (m.googleSyncStatus === "error") {
           issues.push({ text: "Google Calendar sync failed.", severity: "danger" });
+        } else if (
+          m.googleSyncStatus === null &&
+          m.calType.length > 0 &&
+          // syncNewMeeting/syncUpdatedMeeting (write/update routes) early-return for a
+          // Suspended meeting by design, without touching googleSyncStatus -- suspend/resume
+          // routes do write a (non-null) status in some cases, but a meeting created or last
+          // edited while already Suspended can go through its whole lifecycle without ever
+          // passing through one of those writes, leaving googleSyncStatus permanently null.
+          // That's expected for this status, not a stuck job.
+          m.status !== "Suspended" &&
+          Date.now() - (m.updatedAt?.getTime() ?? 0) > NEVER_ATTEMPTED_STALE_MS
+        ) {
+          issues.push({ text: "Google Calendar sync was never attempted for this meeting.", severity: "danger" });
         }
         if (needsZoom && m.zoomSyncStatus === "error") {
           issues.push({ text: m.zoomSyncError ? `Zoom sync failed: ${m.zoomSyncError}` : "Zoom sync failed.", severity: "danger" });

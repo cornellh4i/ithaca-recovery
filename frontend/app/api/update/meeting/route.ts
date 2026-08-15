@@ -166,22 +166,47 @@ async function syncUpdatedMeeting(
         googleSyncError: allSynced ? null : googleSyncError,
       },
     });
+  } else {
+    // No accessToken and not zoomBlocking -- without this branch googleSyncStatus is never
+    // touched by this run, leaving it at whatever it already was (often null) with nothing
+    // surfacing the failure to an admin.
+    await prisma.meeting.update({
+      where: { mid },
+      data: { googleSyncStatus: 'error', googleSyncError: "No Google Calendar access token available for this sync." },
+    });
   }
 
   if (zoomEnabled) {
-    // getZoomMeetingInvitation collapses every failure mode (missing scope, non-2xx, network
-    // error) to null, so a fetch failure here shouldn't overwrite an already-stored invitation
-    // for a Zoom meeting that's otherwise unchanged -- only a torn-down zid actually clears it.
-    const zoomInvitation = zid ? (await getZoomMeetingInvitation(zid)) ?? existingMeeting.zoomInvitation : null;
+    // Scoped to its own try/catch, separate from the outer after()'s .catch() in the route
+    // handler -- by this point the googleSyncStatus write above has unconditionally already
+    // happened (every branch of the if/else-if/else above writes it), so a throw here must
+    // never be allowed to reach that outer catch and overwrite an already-correct
+    // googleSyncStatus with 'error' while misattributing a Zoom-side failure as a Google one.
+    try {
+      // getZoomMeetingInvitation collapses every failure mode (missing scope, non-2xx, network
+      // error) to null, so a fetch failure here shouldn't overwrite an already-stored invitation
+      // for a Zoom meeting that's otherwise unchanged -- only a torn-down zid actually clears it.
+      const zoomInvitation = zid ? (await getZoomMeetingInvitation(zid)) ?? existingMeeting.zoomInvitation : null;
 
-    await prisma.meeting.update({
-      where: { mid },
-      data: {
-        zid, zoomLink, zoomPasscode, zoomInvitation, zoomHost, zoomCalendarEventId,
-        zoomSyncStatus: zoomSynced ? 'synced' : 'error',
-        zoomSyncError: zoomSynced ? null : zoomSyncError,
-      },
-    });
+      await prisma.meeting.update({
+        where: { mid },
+        data: {
+          zid, zoomLink, zoomPasscode, zoomInvitation, zoomHost, zoomCalendarEventId,
+          zoomSyncStatus: zoomSynced ? 'synced' : 'error',
+          zoomSyncError: zoomSynced ? null : zoomSyncError,
+        },
+      });
+    } catch (error) {
+      console.error("syncUpdatedMeeting: failed to persist the final Zoom sync status:", error);
+      try {
+        await prisma.meeting.update({
+          where: { mid },
+          data: { zoomSyncStatus: 'error', zoomSyncError: "Zoom sync status update failed unexpectedly." },
+        });
+      } catch (persistError) {
+        console.error("Failed to persist Zoom sync failure status:", persistError);
+      }
+    }
   }
 }
 
@@ -432,8 +457,33 @@ const updateMeeting = async (request: Request): Promise<Response> => {
       throw error;
     }
 
-    // GCal/Zoom sync runs after the response is sent — see syncUpdatedMeeting above.
-    after(syncUpdatedMeeting(mid, newMeeting, existingMeeting, auth.accessToken, resolvedHost, hostSyncError));
+    // GCal/Zoom sync runs after the response is sent — see syncUpdatedMeeting above. Caught here
+    // so a throw mid-sync (as opposed to a handled failure, which syncUpdatedMeeting already
+    // persists as an error status itself) doesn't vanish as a silent unhandled rejection,
+    // leaving the meeting's sync status at whatever it was before this run. Only reachable from
+    // a throw at-or-before syncUpdatedMeeting's googleSyncStatus write (its trailing Zoom-status
+    // write has its own local try/catch specifically so a Zoom-side failure there can't reach
+    // here and overwrite an already-correct googleSyncStatus) -- so marking googleSyncStatus
+    // 'error' here is always safe, and zoomSyncStatus is marked too since a crash this early
+    // means whatever Zoom-side state exists can't be trusted as accurate either.
+    after(
+      syncUpdatedMeeting(mid, newMeeting, existingMeeting, auth.accessToken, resolvedHost, hostSyncError)
+        .catch(async (error) => {
+          console.error("syncUpdatedMeeting threw:", error);
+          try {
+            await prisma.meeting.update({
+              where: { mid },
+              data: {
+                googleSyncStatus: 'error',
+                googleSyncError: "Sync job failed unexpectedly.",
+                ...(zoomEnabled ? { zoomSyncStatus: 'error' as const, zoomSyncError: "Sync job failed unexpectedly." } : {}),
+              },
+            });
+          } catch (persistError) {
+            console.error("Failed to persist sync failure status:", persistError);
+          }
+        }),
+    );
 
     return NextResponse.json(updatedMeeting);
   } catch (error) {

@@ -242,13 +242,13 @@ Room slugs match `zoomRoomOptions` in `frontend/util/rooms/rooms.ts`: `SERENITY_
 ### Key client code
 `frontend/services/zoom.ts` — `checkZoomReachable`, `checkZoomHostPool`, `resolveZoomHost(candidate, client, opts)`, `createZoomMeeting(meeting, hostEmail)`, `updateZoomMeeting(zid, meeting)`, `deleteZoomMeeting(zid)`, plus the `zoomRoomCalendarId` and `zoomHostPool` lookup values. Called directly from the meeting routes (`write`, `update`, `delete`, `update/meeting/sync`) — there's no separate `/api/zoom/*` HTTP surface.
 
-Every call first fetches a fresh token (posts to `https://zoom.us/oauth/token`, `grant_type=account_credentials`) — the token is short-lived and not cached.
+The access token (posts to `https://zoom.us/oauth/token`, `grant_type=account_credentials`) is cached module-level in `services/zoom.ts` for roughly the token's real `expires_in` minus a safety margin, instead of being fetched fresh on every call — a single meeting create alone makes 3+ Zoom calls, and Zoom rate-limits the token endpoint. A 401 from any Zoom API call evicts the cached token immediately, so a revoked credential self-heals on the next call instead of waiting out the cache window.
 
 ### Verifying it's working
 
 `GET /api/admin/diagnostics/system-status` checks three levels:
 
-- **`zoom.reachable`**: account-level token fetch succeeds.
+- **`zoom.reachable`**: account-level token fetch succeeds — this check always forces a fresh fetch, bypassing the cache above, so a revoked credential or real Zoom outage can't hide behind a still-valid cached token.
 - **`zoom.roomCalendars.<room>`**: each room's dedicated Google Calendar is reachable.
 - **`zoom.hostPool.<email>`**: each pooled host resolves (`ok`) to a real user on the account, and whether it's `licensed` — `false` flags a Basic-type host, which caps meetings at 40 minutes (a likely cause if meetings assigned to that host keep cutting off).
 

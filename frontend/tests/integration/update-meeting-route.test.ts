@@ -8,7 +8,17 @@ import type { IMeeting } from "../../types/models";
 // doesn't change what actually happens — only silences that scope check for this test.
 jest.mock("next/server", () => ({
   ...jest.requireActual("next/server"),
-  after: () => {},
+  // Real Next.js after() accepts either an already-started promise or a lazy callback function
+  // -- this route's actual call sites always pass the former (the sync promise is constructed
+  // eagerly and already running by the time after() is called), so a plain no-op mock happened
+  // to "work" here too, since discarding the reference doesn't stop an already-running promise.
+  // But that no-op wouldn't invoke a *callback* form, so it wouldn't have caught a regression if
+  // this route were ever restructured to pass after() a lazy `() => syncUpdatedMeeting(...)`
+  // instead. Actually invoking a function argument (while leaving a promise argument alone,
+  // since it's already running and isn't callable) makes the mock verify both forms correctly.
+  after: (task: unknown) => {
+    if (typeof task === "function") void (task as () => unknown)();
+  },
 }));
 
 jest.mock("../../services/auth", () => ({
@@ -41,9 +51,11 @@ jest.mock("../../services/zoom", () => ({
 import { getTestPrismaClient, disconnectTestPrismaClient } from "../factories/db";
 import { seedSuspensionPeriod } from "../factories/meeting";
 import { PUT } from "../../app/api/update/meeting/route";
+import { requireRole } from "../../services/auth";
 import { updateZoomMeeting, createZoomMeeting, deleteZoomMeeting, resolveZoomHost } from "../../services/zoom";
 import { reconcileMeetingCalendars, createCalendarEvent } from "../../services/googleCalendar";
 
+const mockedRequireRole = requireRole as jest.Mock;
 const mockedUpdateZoomMeeting = updateZoomMeeting as jest.Mock;
 const mockedCreateZoomMeeting = createZoomMeeting as jest.Mock;
 const mockedDeleteZoomMeeting = deleteZoomMeeting as jest.Mock;
@@ -589,4 +601,36 @@ test("editing a meeting whose scheduled resume date has already passed promotes 
 
   const suspension = await prisma.suspensionPeriod.findFirst({ where: { mid } });
   expect(suspension?.promoted).toBe(true);
+});
+
+test("a missing access token persists an error status instead of leaving googleSyncStatus unset", async () => {
+  mockedRequireRole.mockResolvedValueOnce({ user: { role: "ADMIN" }, accessToken: undefined });
+
+  const prisma = getTestPrismaClient();
+  const mid = `m-${randomUUID()}`;
+  // Distinct room, and distinct from write-meeting-route.test.ts's own "no access token" test
+  // -- both files run against the same shared test-DB instance within one test run, and this
+  // test doesn't override the default startDateTime/endDateTime, so a same-named room here would
+  // collide with that other file's meeting at the same default time window and fail this PUT
+  // with an unrelated 409, not the googleSyncStatus assertion this test actually checks.
+  const existingMeetingData = toMeetingCreateInput(buildMeetingPayload({ mid, room: "Update Route No Access Token Room" }));
+  await prisma.meeting.create({ data: existingMeetingData });
+
+  const payload = buildMeetingPayload({ mid, room: "Update Route No Access Token Room", title: "Edited Title" });
+  const request = new Request("http://localhost/api/update/meeting", {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+
+  const response = await PUT(request);
+  expect(response.status).toBe(200);
+
+  const afterSync = await waitFor(async () => {
+    const row = await prisma.meeting.findUnique({ where: { mid } });
+    return row?.googleSyncStatus != null ? row : null;
+  });
+
+  expect(afterSync?.googleSyncStatus).toBe("error");
+  expect(afterSync?.googleSyncError).toBeTruthy();
+  expect(mockedReconcileMeetingCalendars).not.toHaveBeenCalled();
 });

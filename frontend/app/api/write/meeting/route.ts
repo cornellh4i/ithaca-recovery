@@ -76,7 +76,8 @@ async function syncNewMeeting(
   // where a poller could observe googleSyncStatus turn non-null before the zid/zoomHost write
   // landed. `undefined` here means "this run never touched this field," same as omitting it
   // from a Prisma update -- the single combined write below makes every field that *did* change
-  // visible atomically, in one row version.
+  // visible atomically, in one row version. googleSyncStatus itself is always assigned by one
+  // of the three branches below (zoomBlocking/accessToken/no-token), unlike the other two.
   let googleCalendarEventIds: Record<string, string> | undefined;
   let googleSyncStatus: string | undefined;
   let googleSyncError: string | null | undefined;
@@ -107,6 +108,13 @@ async function syncNewMeeting(
     googleCalendarEventIds = eventIds;
     googleSyncStatus = synced ? 'synced' : 'error';
     googleSyncError = synced ? null : syncError;
+  } else {
+    // No accessToken and not zoomBlocking -- without this branch googleSyncStatus stays
+    // `undefined` forever (never assigned, never persisted), and for a non-Zoom meeting the
+    // write below is skipped entirely (see the `googleSyncStatus !== undefined` gate), leaving
+    // the row at googleSyncStatus: null indefinitely with nothing surfacing the failure.
+    googleSyncStatus = 'error';
+    googleSyncError = "No Google Calendar access token available for this sync.";
   }
 
   if (zoomEnabled) {
@@ -136,7 +144,9 @@ async function syncNewMeeting(
         googleCalendarEventIds, googleSyncStatus, googleSyncError,
       },
     });
-  } else if (googleSyncStatus !== undefined) {
+  } else {
+    // googleSyncStatus is always assigned by this point (see the accumulator comment above),
+    // so this write always has something to persist.
     await prisma.meeting.update({
       where: { mid },
       data: { googleCalendarEventIds, googleSyncStatus, googleSyncError },
@@ -337,8 +347,24 @@ const createMeeting = async (request: Request) => {
       ? { ...newMeeting, recurrencePattern: result.createdPattern }
       : newMeeting;
 
-    // GCal/Zoom sync runs after the response is sent — see syncNewMeeting above.
-    after(syncNewMeeting(newMeeting.mid, meetingData, isRecurring, auth.accessToken, resolvedHost, zoomSyncError));
+    // GCal/Zoom sync runs after the response is sent — see syncNewMeeting above. Caught here so
+    // a throw mid-sync (as opposed to a handled failure, which syncNewMeeting already persists
+    // as an error status itself) doesn't vanish as a silent unhandled rejection, leaving the
+    // meeting's sync status at whatever it was before this run.
+    after(
+      syncNewMeeting(newMeeting.mid, meetingData, isRecurring, auth.accessToken, resolvedHost, zoomSyncError)
+        .catch(async (error) => {
+          console.error("syncNewMeeting threw:", error);
+          try {
+            await prisma.meeting.update({
+              where: { mid: newMeeting.mid },
+              data: { googleSyncStatus: 'error', googleSyncError: "Sync job failed unexpectedly." },
+            });
+          } catch (persistError) {
+            console.error("Failed to persist sync failure status:", persistError);
+          }
+        }),
+    );
 
     return new Response(JSON.stringify(responseMeeting), {
       status: 201,
