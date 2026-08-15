@@ -342,7 +342,7 @@ export function useMeetingForm(initialMeeting?: IMeeting, defaultContext?: Meeti
         if (!startDateTimeUTC || !endDateTimeUTC) {
             // getValidationErrors above should have already caught this and blocked submit --
             // this is the same defensive fallback as the two early returns above.
-            console.error("Start/end time falls in the DST spring-forward gap and has no valid ET instant");
+            console.error("Start/end date or time is invalid and has no valid ET instant (calendar-invalid date or DST spring-forward gap)");
             return null;
         }
 

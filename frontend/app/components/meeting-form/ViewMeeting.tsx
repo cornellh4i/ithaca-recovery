@@ -389,6 +389,7 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
       // filters gap occurrences out before a date reaches this popup), guarded defensively so a
       // future caller can't crash here. Falls back to the meeting's own stored start/end.
       if (!isDstGapError(err)) throw err;
+      console.warn(`Could not re-anchor onto ${occurrenceDateStr}: ${err.message}`);
     }
   }
 
