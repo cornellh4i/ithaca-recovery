@@ -22,7 +22,7 @@ const RemoveUserModal: React.FC<RemoveUserModalProps> = ({ isOpen, email, onCanc
   >
     <div className={styles.header}>
       <span className={styles.iconCircleDanger}>
-        <Icon name="priority-high" size={16} />
+        <Icon name="priority-high" size={20} />
       </span>
       <h2 id="remove-user-modal-title" className={styles.title}>Remove this user?</h2>
     </div>

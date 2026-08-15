@@ -40,7 +40,7 @@ const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({ title, summary,
         </span>
         <Icon
           name="expand-more"
-          size={16}
+          size={20}
           className={`${styles.collapsibleChevron} ${open ? styles.collapsibleChevronOpen : ""}`}
         />
       </button>
@@ -129,7 +129,7 @@ const LeaseConfigModal: React.FC<LeaseConfigModalProps> = ({ initial, cycles, on
                   onChange={() => selectCycle(cycle)}
                 />
                 <span className={styles.cycleRadioIcon}>
-                  {isSelected ? <Icon name="check-circle" size={16} /> : <span className={styles.cycleRadioEmpty} />}
+                  {isSelected ? <Icon name="check-circle" size={20} /> : <span className={styles.cycleRadioEmpty} />}
                 </span>
                 <span className={`${styles.cycleLabel} ${cycle.status === "current" ? styles.cycleLabelCurrent : ""}`}>
                   {cycle.label}

@@ -55,7 +55,7 @@ const FormValidationBanner: React.FC<FormValidationBannerProps> = ({ errors }) =
   return (
     <div className={styles.banner} ref={bannerRef} role="alert">
       <span className={styles.iconCircle}>
-        <Icon name="error-outline" size={16} />
+        <Icon name="error-outline" size={20} />
       </span>
       <div className={styles.body}>
         <p className={styles.title}>

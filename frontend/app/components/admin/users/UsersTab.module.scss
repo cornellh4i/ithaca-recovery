@@ -31,6 +31,10 @@
   }
 }
 
+.searchIcon {
+  flex-shrink: 0;
+}
+
 .searchInput {
   border: none;
   outline: none;

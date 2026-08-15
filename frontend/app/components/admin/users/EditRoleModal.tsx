@@ -48,7 +48,7 @@ const EditRoleModal: React.FC<EditRoleModalProps> = ({
     >
       <div className={styles.header}>
         <span className={styles.iconCircle}>
-          <Icon name="manage-accounts" size={16} />
+          <Icon name="manage-accounts" size={20} />
         </span>
         <h2 id="edit-role-modal-title" className={styles.title}>Change role</h2>
       </div>

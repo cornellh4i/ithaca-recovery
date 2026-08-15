@@ -42,7 +42,7 @@ const Toast: React.FC<ToastProps> = ({ variant, title, description, actions, onC
       aria-live={variant === "error" ? "assertive" : "polite"}
     >
       <span className={styles.icon}>
-        <Icon name={VARIANT_ICON[variant]} size={16} />
+        <Icon name={VARIANT_ICON[variant]} size={20} />
       </span>
       <div className={styles.body}>
         <p className={styles.title}>{title}</p>
@@ -67,7 +67,7 @@ const Toast: React.FC<ToastProps> = ({ variant, title, description, actions, onC
         )}
       </div>
       <button className={styles.closeButton} aria-label="Dismiss" onClick={onClose}>
-        <Icon name="close" size={16} />
+        <Icon name="close" size={20} />
       </button>
     </div>
   );

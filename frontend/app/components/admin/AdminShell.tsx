@@ -72,7 +72,7 @@ const AdminShell: React.FC<AdminShellProps> = ({ role, email }) => {
                 disabled={locked}
               >
                 {tab.label}
-                {locked && <Icon name="lock" size={16} className={styles.lockIcon} />}
+                {locked && <Icon name="lock" size={20} className={styles.lockIcon} />}
               </button>
               {locked && <span className={styles.tooltip}>Requires super admin</span>}
             </span>

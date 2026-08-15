@@ -378,9 +378,9 @@ const UsersTab: React.FC = () => {
                             onClick={() => handleSort(key)}
                           >
                             {active && sortDir === "asc" ? (
-                              <Icon name="drop-up-arrow" size={16} />
+                              <Icon name="drop-up-arrow" size={20} />
                             ) : (
-                              <Icon name="drop-down-arrow" size={16} />
+                              <Icon name="drop-down-arrow" size={20} />
                             )}
                           </button>
                           {key === "role" && (
@@ -392,7 +392,7 @@ const UsersTab: React.FC = () => {
                                 aria-expanded={legendOpen}
                                 onClick={() => setLegendOpen((open) => !open)}
                               >
-                                <Icon name="warning-circle" size={16} />
+                                <Icon name="warning-circle" size={20} />
                               </button>
                               {legendOpen && legendPosition && createPortal(
                                 <div

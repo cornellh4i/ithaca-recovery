@@ -57,7 +57,7 @@ const InviteUserModal: React.FC<InviteUserModalProps> = ({ isOpen, inviting, onC
     >
       <div className={styles.header}>
         <span className={styles.iconCircle}>
-          <Icon name="person-add" size={16} />
+          <Icon name="person-add" size={20} />
         </span>
         <h2 id="invite-user-modal-title" className={styles.title}>Invite user</h2>
       </div>
