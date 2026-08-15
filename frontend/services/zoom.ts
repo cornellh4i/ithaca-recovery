@@ -33,15 +33,13 @@ let cachedZoomToken: { token: string; expiresAt: number } | null = null;
 const ZOOM_TOKEN_SAFETY_MARGIN_MS = 10 * 60 * 1000;
 const ZOOM_TOKEN_FALLBACK_TTL_MS = 50 * 60 * 1000; // used only if expires_in is ever missing
 
-// `forceRefresh` bypasses the cache and always hits the token endpoint -- used exclusively by
-// checkZoomReachable (the Diagnostics health check). Without it, a revoked credential or a real
-// Zoom outage would stay masked by a healthy-looking cached token for up to its full TTL, since
-// no other caller of this function has a reason to skip the cache.
-async function getZoomAccessToken(forceRefresh = false): Promise<string | null> {
-  if (!forceRefresh && cachedZoomToken && cachedZoomToken.expiresAt > Date.now()) {
-    return cachedZoomToken.token;
-  }
+// Shared by every concurrent non-forceRefresh cache miss -- without this, N calls that all see
+// a stale/empty cache before the first one's response lands would each fire their own redundant
+// request against Zoom's rate-limited token endpoint. Cleared in a `finally` once the request
+// settles, so the next genuine cache miss starts a fresh one rather than reusing a stale promise.
+let inFlightTokenRequest: Promise<string | null> | null = null;
 
+async function fetchZoomAccessToken(): Promise<string | null> {
   try {
     const clientId = process.env.ZOOM_CLIENT_ID;
     const clientSecret = process.env.ZOOM_CLIENT_SECRET;
@@ -70,6 +68,27 @@ async function getZoomAccessToken(forceRefresh = false): Promise<string | null> 
     console.error("Zoom getAccessToken error:", error);
     return null;
   }
+}
+
+// `forceRefresh` bypasses both the cache and the in-flight coalescing below, always firing its
+// own independent request -- used exclusively by checkZoomReachable (the Diagnostics health
+// check), which needs a genuine round trip every call, not a token shared with (or reused from)
+// an unrelated concurrent caller. Without forceRefresh, a revoked credential or a real Zoom
+// outage would stay masked by a healthy-looking cached token for up to its full TTL, since no
+// other caller of this function has a reason to skip the cache.
+async function getZoomAccessToken(forceRefresh = false): Promise<string | null> {
+  if (!forceRefresh && cachedZoomToken && cachedZoomToken.expiresAt > Date.now()) {
+    return cachedZoomToken.token;
+  }
+
+  if (forceRefresh) return fetchZoomAccessToken();
+
+  if (!inFlightTokenRequest) {
+    inFlightTokenRequest = fetchZoomAccessToken().finally(() => {
+      inFlightTokenRequest = null;
+    });
+  }
+  return inFlightTokenRequest;
 }
 
 // Called wherever a cached token is used against a non-token-endpoint Zoom API call -- a 401

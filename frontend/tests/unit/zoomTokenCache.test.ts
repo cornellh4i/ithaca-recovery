@@ -87,3 +87,18 @@ test("a 401 from a Zoom API call evicts the cached token so the next call re-fet
   await getZoomMeetingInvitation("zid-1"); // cache was evicted by the 401 above
   expect(tokenFetchCount()).toBe(2);
 });
+
+test("concurrent calls that all miss the cache share a single in-flight token request", async () => {
+  const { tokenFetchCount, invitationFetchCount } = mockFetch();
+
+  // All three start before any of them has a cached token to return -- without coalescing,
+  // each would independently see the cache empty and fire its own token request.
+  await Promise.all([
+    getZoomMeetingInvitation("zid-1"),
+    getZoomMeetingInvitation("zid-2"),
+    getZoomMeetingInvitation("zid-3"),
+  ]);
+
+  expect(tokenFetchCount()).toBe(1);
+  expect(invitationFetchCount()).toBe(3);
+});
