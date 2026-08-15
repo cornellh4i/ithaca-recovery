@@ -57,9 +57,8 @@ function buildMeeting(overrides: Partial<IMeeting> = {}): IMeeting {
 }
 
 // Mocks fetch to succeed on the token endpoint and record the JSON body sent to whichever Zoom
-// meetings-API call the test triggers. Token-fetch failure paths are covered separately below
-// with their own inline fetch mocks (a token-status knob here was never actually exercised by
-// any call site).
+// meetings-API call the test triggers. Token-fetch failure paths are covered separately below,
+// each with its own inline fetch mock.
 function mockFetchCapturingBody() {
   let capturedBody: Record<string, unknown> | undefined;
   const fetchMock = jest.fn((url: string, init?: RequestInit) => {

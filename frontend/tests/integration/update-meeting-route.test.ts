@@ -358,14 +358,14 @@ test("an exhausted Zoom host pool on update fails soft, synchronously, without t
   // Direct regression test for Matt's confirmation, on the update path: a meeting that needs
   // Zoom but has no working Zoom meeting after this run must not have its calendars reconciled
   // with a missing link -- googleSyncStatus is 'pending', reconcileMeetingCalendars never ran.
-  // Polls zoomSyncStatus, not googleSyncStatus -- for a zoom-enabled meeting the deferred job's
-  // zoomBlocking branch (which sets googleSyncStatus='pending') always runs and commits *before*
-  // its separate, later zoomEnabled block (which sets zoomSyncStatus). Waiting on googleSyncStatus
-  // alone can return as soon as the first write lands while the job is still mid-flight on the
-  // second -- waiting on zoomSyncStatus is what actually guarantees the whole job has finished.
+  // Polls googleSyncStatus -- for this pool-exhausted scenario, zoomSyncStatus is already
+  // written synchronously inside the PUT transaction itself (route.ts's needsNewHost +
+  // hostSyncError branch), matching rightAfterResponse's assertion above. googleSyncStatus
+  // starts null and is only ever written by the deferred sync job, making it the one field here
+  // that actually signals that job has finished.
   const afterSync = await waitFor(async () => {
     const row = await prisma.meeting.findUnique({ where: { mid } });
-    return row?.zoomSyncStatus != null ? row : null;
+    return row?.googleSyncStatus != null ? row : null;
   });
   expect(afterSync?.googleSyncStatus).toBe("pending");
   expect(mockedReconcileMeetingCalendars).not.toHaveBeenCalled();

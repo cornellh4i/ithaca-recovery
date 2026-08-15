@@ -51,11 +51,9 @@ async function waitFor<T>(fn: () => Promise<T | null | undefined>, timeoutMs = 2
 // For asserting an absence (no further deleteCalendarEvent call lands after the expected one)
 // rather than a value to poll for -- waitFor's "poll until non-null" shape doesn't apply there.
 // There's no real completion signal to wait on for a negative assertion, so this is still
-// fundamentally a timeout, not a true polling condition -- but 200ms is a real 4x margin over
-// the 50ms blind sleep it replaces (a call landing at, say, 120ms would be missed by that sleep
-// but not by this), and if a call *does* land inside the window, the quiet timer restarts, so an
-// unwanted call arriving late in the window still gets caught instead of the check having
-// already closed.
+// fundamentally a timeout, not a true polling condition. But the quiet timer restarts whenever
+// the count changes, so a call arriving late in the window still gets caught instead of the
+// check having already closed around it.
 async function waitForStableCallCount(getCount: () => number, quietMs = 200, timeoutMs = 2000): Promise<number> {
   const start = Date.now();
   let lastCount = getCount();
