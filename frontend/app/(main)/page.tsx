@@ -13,7 +13,6 @@ import MobileFab from "../components/calendar/mobile/MobileFab";
 import NewMeetingSidebar from "../components/meeting-form/NewMeeting";
 import EditMeetingSidebar from "../components/meeting-form/EditMeeting";
 
-import { convertUTCToET } from "../../util/date/timeUtils";
 import { IMeeting } from "../../types/models";
 import { useConflictMids } from "../../hooks/useConflictMids";
 import { useSyncErrorMids } from "../../hooks/useSyncErrorMids";
@@ -275,25 +274,6 @@ export default function HomePage() {
 
   const filters = selectedView === "Day" ? dayFilters : weekFilters;
   const setFilters = selectedView === "Day" ? setDayFilters : setWeekFilters;
-  const convertESTStringToDate = (estDateString: string): Date => {
-    // Extract date and time parts from the EST string (e.g., "04/09/2025, 06:00:00 AM")
-    const [datePart, timePart] = estDateString.split(', ');
-    const [month, day, year] = datePart.split('/');
-    const [hour, minute, second] = timePart.split(':');
-    const [seconds, period] = second.split(' '); // Extract AM/PM
-
-    // Convert hour from 12-hour format to 24-hour format
-    let hours = parseInt(hour);
-    if (period === 'PM' && hours !== 12) {
-      hours += 12;
-    } else if (period === 'AM' && hours === 12) {
-      hours = 0;
-    }
-
-    // Build a formatted ISO date string and create a Date object
-    const isoDateString = `${year}-${month}-${day}T${hours.toString().padStart(2, '0')}:${minute}:${seconds}`;
-    return new Date(isoDateString);
-  };
 
   // ViewMeeting's popup is anchored to the clicked box's on-screen position -- scrolling
   // either the sidebar or the calendar grid underneath it while it's open just fights that
@@ -364,21 +344,18 @@ export default function HomePage() {
           creator={selectedMeeting.creator}
           group={selectedMeeting.group}
 
-          startDateTime={convertESTStringToDate(
-            convertUTCToET(
-              selectedMeeting.startDateTime instanceof Date
-                ? selectedMeeting.startDateTime.toISOString()
-                : selectedMeeting.startDateTime
-            )
-          )}
+          /* ViewMeetingDetails formats for ET display internally (formatETDateString, etTimeFmt,
+             etc.) given a real UTC instant -- pass selectedMeeting's UTC value straight through,
+             not via an intermediate ET-formatted string. A "07/01/2026, 07:00:00 AM" string has
+             no timezone of its own; re-parsing it with `new Date(string)` resolves it in the
+             runtime's local timezone, not ET. */
+          startDateTime={selectedMeeting.startDateTime instanceof Date
+            ? selectedMeeting.startDateTime
+            : new Date(selectedMeeting.startDateTime)}
 
-          endDateTime={convertESTStringToDate(
-            convertUTCToET(
-              selectedMeeting.endDateTime instanceof Date
-                ? selectedMeeting.endDateTime.toISOString()
-                : selectedMeeting.endDateTime
-            )
-          )}
+          endDateTime={selectedMeeting.endDateTime instanceof Date
+            ? selectedMeeting.endDateTime
+            : new Date(selectedMeeting.endDateTime)}
 
           email={selectedMeeting.email}
 
