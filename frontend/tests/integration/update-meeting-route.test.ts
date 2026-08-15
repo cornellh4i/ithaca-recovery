@@ -8,7 +8,17 @@ import type { IMeeting } from "../../types/models";
 // doesn't change what actually happens — only silences that scope check for this test.
 jest.mock("next/server", () => ({
   ...jest.requireActual("next/server"),
-  after: () => {},
+  // Real Next.js after() accepts either an already-started promise or a lazy callback function
+  // -- this route's actual call sites always pass the former (the sync promise is constructed
+  // eagerly and already running by the time after() is called), so a plain no-op mock happened
+  // to "work" here too, since discarding the reference doesn't stop an already-running promise.
+  // But that no-op wouldn't invoke a *callback* form, so it wouldn't have caught a regression if
+  // this route were ever restructured to pass after() a lazy `() => syncUpdatedMeeting(...)`
+  // instead. Actually invoking a function argument (while leaving a promise argument alone,
+  // since it's already running and isn't callable) makes the mock verify both forms correctly.
+  after: (task: unknown) => {
+    if (typeof task === "function") void (task as () => unknown)();
+  },
 }));
 
 jest.mock("../../services/auth", () => ({
