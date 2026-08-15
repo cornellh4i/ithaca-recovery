@@ -12,11 +12,12 @@
     "lint:css:fix": "stylelint --config config/stylelint.config.mjs \"{styles,app}/**/*.scss\" --fix",
     "commitlint": "commitlint --config config/commitlint.config.mjs",
     "postinstall": "prisma generate",
+    "typecheck": "tsc --noEmit -p .",
     "test:unit": "jest --config config/jest.config.ts",
     "test:component": "jest --config config/jest.component.config.ts",
     "test:integration": "jest --config config/jest.integration.config.ts",
     "test:e2e": "playwright test --config config/playwright.config.ts",
-    "test:all": "yarn lint && yarn lint:css && yarn test:unit && yarn test:component && yarn test:integration && yarn test:e2e"
+    "test:all": "yarn lint && yarn lint:css && yarn typecheck && yarn test:unit && yarn test:component && yarn test:integration && yarn test:e2e"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
