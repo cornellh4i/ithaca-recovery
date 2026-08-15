@@ -56,10 +56,13 @@ const mockedResolveZoomHost = resolveZoomHost as jest.Mock;
 const mockedCreateZoomMeeting = createZoomMeeting as jest.Mock;
 
 // Polls for the deferred sync job's persisted terminal googleSyncStatus instead of guessing a
-// fixed delay -- race-prone under slower CI/database conditions, per CodeRabbit's review
-// of this file. Only safe to use for a meeting whose deferred job writes googleSyncStatus as its
-// last step (e.g. a non-Zoom-enabled meeting, where the calendar-sync update is the only
-// write left after the response returns).
+// fixed delay -- race-prone under slower CI/database conditions, per CodeRabbit's review of this
+// file. Safe for both non-Zoom and Zoom-enabled meetings here: syncNewMeeting always persists
+// googleSyncStatus and zoomSyncStatus (when zoomEnabled) together in one atomic
+// prisma.meeting.update call, so googleSyncStatus landing means zoomSyncStatus already has too.
+// This differs from update/meeting/route.ts's syncUpdatedMeeting, which can write the two fields
+// in separate, sequential updates -- polling either field there isn't interchangeable with the
+// other the way it is here.
 async function waitForGoogleSyncStatus(mid: string, timeoutMs = 2000) {
   const prisma = getTestPrismaClient();
   const start = Date.now();
