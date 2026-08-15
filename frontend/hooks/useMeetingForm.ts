@@ -68,6 +68,22 @@ function isoToPickerDate(isoDate: string): string {
     return `${month}/${day}/${year}`;
 }
 
+// Wraps convertETToUTC, returning null instead of throwing -- a DST spring-forward-gap time
+// (e.g. 2:30 AM on the 2nd Sunday of March) has no valid ET instant. Shared by
+// getValidationErrors (surfaces it as a normal field error) and buildMeetingPayload (a
+// defensive fallback so a bad time can't throw during render via ZoomHostField's getCandidate(),
+// which calls buildMeetingPayload directly, not just on submit).
+function tryConvertETToUTC(etDateStr: string, etTimeStr: string): Date | null {
+    try {
+        return new Date(convertETToUTC(`${etDateStr}T${etTimeStr}`));
+    } catch (err) {
+        // Only convertETToUTC's own documented validation failures (all prefixed "convertETToUTC:")
+        // mean "this input was invalid" -- anything else is unexpected and should propagate.
+        if (err instanceof Error && err.message.startsWith('convertETToUTC:')) return null;
+        throw err;
+    }
+}
+
 // "YYYY-MM-DD" -> the next calendar day's "YYYY-MM-DD". Uses Date.UTC purely as a calendar
 // calculator (not a timezone conversion) so month/year rollovers are handled for free.
 function addOneDayISO(isoDate: string): string {
@@ -227,7 +243,21 @@ export function useMeetingForm(initialMeeting?: IMeeting, defaultContext?: Meeti
         if (!date) errors.push({ fields: ["date"], message: "Date is required." });
 
         const [startTime, endTime] = time?.split(' - ') || [];
-        if (!startTime || !endTime) errors.push({ fields: ["time"], message: "Start and end time are required." });
+        if (!startTime || !endTime) {
+            errors.push({ fields: ["time"], message: "Start and end time are required." });
+        } else {
+            const isoDateValue = toISODate(date);
+            // A date/time combination that falls in the DST spring-forward gap (~2:00-2:59 AM
+            // ET on the 2nd Sunday of March) has no valid ET instant -- surfaced here as a
+            // normal, correctable validation error rather than buildMeetingPayload silently
+            // returning null (or, before this check existed, throwing) on submit.
+            if (isoDateValue && (!tryConvertETToUTC(isoDateValue, startTime) || !tryConvertETToUTC(isoDateValue, endTime))) {
+                errors.push({
+                    fields: ["date", "time"],
+                    message: "This time doesn't exist due to the daylight saving time change in March — please pick a different time.",
+                });
+            }
+        }
 
         if (!email.trim()) {
             errors.push({ fields: ["email"], message: "Email is required." });
@@ -286,8 +316,14 @@ export function useMeetingForm(initialMeeting?: IMeeting, defaultContext?: Meeti
             return null;
         }
 
-        const startDateTimeUTC = new Date(convertETToUTC(`${isoDateValue}T${startTime}`));
-        const endDateTimeUTC = new Date(convertETToUTC(`${isoDateValue}T${endTime}`));
+        const startDateTimeUTC = tryConvertETToUTC(isoDateValue, startTime);
+        const endDateTimeUTC = tryConvertETToUTC(isoDateValue, endTime);
+        if (!startDateTimeUTC || !endDateTimeUTC) {
+            // getValidationErrors above should have already caught this and blocked submit --
+            // this is the same defensive fallback as the two early returns above.
+            console.error("Start/end time falls in the DST spring-forward gap and has no valid ET instant");
+            return null;
+        }
 
         if (endDateTimeUTC <= startDateTimeUTC) {
             endDateTimeUTC.setUTCDate(endDateTimeUTC.getUTCDate() + 1);
