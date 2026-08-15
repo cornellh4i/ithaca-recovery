@@ -69,7 +69,7 @@ app/
 │   ├── navigation/               # App-wide site chrome (desktop + mobile variants)
 │   └── shared/                  # Cross-domain components (Toast/ToastProvider, FilterGroup)
 └── ClientLayout.tsx             # Client-side layout wrapper — mounts SessionProvider,
-                                  #   SidebarProvider, CalendarProvider, ToastProvider
+                                 #   SidebarProvider, CalendarProvider, ToastProvider
 ```
 
 ### Pages
