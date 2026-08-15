@@ -7458,9 +7458,9 @@ ws@^8.18.0:
   resolved "https://registry.yarnpkg.com/ws/-/ws-8.21.3.tgz#660b4faddb6a3e575c86e078126919961f4de4fc"
   integrity sha512-201TZ/kPWxoPr/OKWjquZR1SWKXcvxdH+e1xrx89b3YbmzLMFCLfnaG1HFIgWzJOEWZ7MvpK++odZufgYR50Rw==
 
-"xlsx@https://cdn.sheetjs.com/xlsx-latest/xlsx-latest.tgz":
+"xlsx@https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz":
   version "0.20.3"
-  resolved "https://cdn.sheetjs.com/xlsx-latest/xlsx-latest.tgz#992725af0bb69fa9733590fcb8ab4a57e10b929b"
+  resolved "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz#992725af0bb69fa9733590fcb8ab4a57e10b929b"
 
 xml-name-validator@^5.0.0:
   version "5.0.0"

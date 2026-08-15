@@ -45,7 +45,7 @@
     "swr": "^2.5.0",
     "uuid": "^14.0.1",
     "web-vitals": "^6.1.0",
-    "xlsx": "https://cdn.sheetjs.com/xlsx-latest/xlsx-latest.tgz",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
     "zod": "^4.4.3"
   },
   "devDependencies": {
