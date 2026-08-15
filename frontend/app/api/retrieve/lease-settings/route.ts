@@ -4,6 +4,7 @@ import { requireRole } from "../../../../services/auth";
 import { defaultLeaseSettings } from "../../../../util/lease/leaseDefaults";
 import { computeLeaseYearCycles } from "../../../../util/lease/leaseYearCycles";
 import type { IRoomRate } from "../../../../types/models";
+import { LEASE_SETTINGS_ID } from "../../../../util/settings/singletonIds";
 import { prisma } from "../../../../lib/prisma";
 
 export const GET = async () => {
@@ -12,7 +13,7 @@ export const GET = async () => {
     if (auth instanceof Response) return auth;
 
     const [settingsRow, meetingDateRange] = await Promise.all([
-      prisma.leaseSettings.findFirst(),
+      prisma.leaseSettings.findUnique({ where: { id: LEASE_SETTINGS_ID } }),
       prisma.meeting.aggregate({
         where: { deletedAt: null },
         _min: { startDateTime: true },

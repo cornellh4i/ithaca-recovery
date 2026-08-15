@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { Role } from "@prisma/client";
 import { requireRole } from "../../../../services/auth";
 import { ALL_MEETING_EXPORT_FIELD_KEYS, sanitizeMeetingExportFields } from "../../../../util/meetings/meetingExportFields";
+import { MEETING_EXPORT_SETTINGS_ID } from "../../../../util/settings/singletonIds";
 import { prisma } from "../../../../lib/prisma";
 
 export const GET = async () => {
@@ -10,7 +11,7 @@ export const GET = async () => {
     if (auth instanceof Response) return auth;
 
     const [settings, total] = await Promise.all([
-      prisma.meetingExportSettings.findFirst(),
+      prisma.meetingExportSettings.findUnique({ where: { id: MEETING_EXPORT_SETTINGS_ID } }),
       prisma.meeting.count({ where: { deletedAt: null } }),
     ]);
 

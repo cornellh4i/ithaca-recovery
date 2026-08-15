@@ -3,13 +3,10 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { Role } from "@prisma/client";
-import Groups3Icon from "@mui/icons-material/Groups3";
-import SearchIcon from "@mui/icons-material/Search";
-import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
-import ArrowDropUpIcon from "@mui/icons-material/ArrowDropUp";
-import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
+import Icon from "../../ui/displays/Icon";
 import type { IAdmin } from "../../../../types/models";
 import Card from "../shared/Card";
+import CardHeader from "../shared/CardHeader";
 import TopLoadingBar from "../../ui/displays/TopLoadingBar";
 import StatusPill, { type StatusPillVariant } from "../../ui/displays/StatusPill";
 import EditRoleModal from "./EditRoleModal";
@@ -342,25 +339,25 @@ const UsersTab: React.FC = () => {
     <div className={styles.container}>
       <Card>
         <TopLoadingBar active={loading} />
-        <div className={styles.headerRow}>
-          <div className={styles.panelHeader}>
-            <span className={styles.panelIconUsers}><Groups3Icon fontSize="small" /></span>
-            Users ({(admins ?? []).length})
-          </div>
-          <div className={styles.headerActions}>
-            <div className={styles.searchField}>
-              <SearchIcon fontSize="small" className={styles.searchIcon} />
-              <input
-                type="text"
-                placeholder="Search name or email"
-                aria-label="Search name or email"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className={styles.searchInput}
-              />
-            </div>
-            <button className={styles.inviteButton} onClick={() => setInviteOpen(true)}>Invite</button>
-          </div>
+        <CardHeader
+          icon={<Icon name="groups" size={16} />}
+          title={`Users (${(admins ?? []).length})`}
+          action={{
+            label: "Invite",
+            onClick: () => setInviteOpen(true),
+            ariaLabel: "Invite user",
+          }}
+        />
+        <div className={styles.searchField}>
+          <Icon name="search" size={16} className={styles.searchIcon} />
+          <input
+            type="text"
+            placeholder="Search name or email"
+            aria-label="Search name or email"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className={styles.searchInput}
+          />
         </div>
         {admins === null && !error && <div className={styles.emptyState}>Loading users…</div>}
         {error && <div className={styles.errorState}>{error}</div>}
@@ -381,9 +378,9 @@ const UsersTab: React.FC = () => {
                             onClick={() => handleSort(key)}
                           >
                             {active && sortDir === "asc" ? (
-                              <ArrowDropUpIcon fontSize="small" />
+                              <Icon name="drop-up-arrow" size={20} />
                             ) : (
-                              <ArrowDropDownIcon fontSize="small" />
+                              <Icon name="drop-down-arrow" size={20} />
                             )}
                           </button>
                           {key === "role" && (
@@ -395,7 +392,7 @@ const UsersTab: React.FC = () => {
                                 aria-expanded={legendOpen}
                                 onClick={() => setLegendOpen((open) => !open)}
                               >
-                                <InfoOutlinedIcon fontSize="small" />
+                                <Icon name="warning-circle" size={20} />
                               </button>
                               {legendOpen && legendPosition && createPortal(
                                 <div

@@ -14,6 +14,21 @@ afterAll(async () => {
   await disconnectTestPrismaClient();
 });
 
+// Cleanup runs even after a failed assertion, not just at the end of a passing test body --
+// LeaseSettings.id is now a fixed singleton PK (see schema.prisma), so a row left behind by a
+// failed test would otherwise make the next test's seedLeaseSettings() throw a P2002 unique
+// violation instead of that test's own real assertion failure.
+let seededGroups: string[] = [];
+
+afterEach(async () => {
+  const prisma = getTestPrismaClient();
+  if (seededGroups.length > 0) {
+    await prisma.meeting.deleteMany({ where: { group: { in: seededGroups } } });
+    seededGroups = [];
+  }
+  await prisma.leaseSettings.deleteMany();
+});
+
 // Parses a named CSV column for a row identified by its "Group Name" -- avoids pulling in a
 // full CSV parser for a handful of fields with no embedded commas.
 function columnValueFor(csv: string, groupName: string, column: string): string {
@@ -31,8 +46,6 @@ function rentChargeFor(csv: string, groupName: string): string {
 }
 
 test("calculateRentCharge: non-monthly room uses a flat 4 weeks/month, monthly room and Zoom Only return the flat rate", async () => {
-  const prisma = getTestPrismaClient();
-
   await seedLeaseSettings({
     rooms: [
       { room: "Serenity Room", rate: 15, unit: "hr" },
@@ -64,6 +77,7 @@ test("calculateRentCharge: non-monthly room uses a flat 4 weeks/month, monthly r
     room: "",
     modeType: "Remote",
   });
+  seededGroups.push("Hourly Group", "Monthly Group", "Remote Group");
 
   const response = await GET();
   expect(response.status).toBe(200);
@@ -72,17 +86,12 @@ test("calculateRentCharge: non-monthly room uses a flat 4 weeks/month, monthly r
   expect(rentChargeFor(csv, "Hourly Group")).toBe("$60.00");
   expect(rentChargeFor(csv, "Monthly Group")).toBe("$500.00");
   expect(rentChargeFor(csv, "Remote Group")).toBe("$25.00");
-
-  await prisma.meeting.deleteMany({ where: { group: { in: ["Hourly Group", "Monthly Group", "Remote Group"] } } });
-  await prisma.leaseSettings.deleteMany();
 });
 
 // formatTime() reads Meeting.startDateTime/endDateTime (real UTC instants) in ET, not UTC --
 // seedMeeting's default 6:00-7:00 PM ET start/end exercises this directly, since reading the
 // UTC hour instead would show a different time (4-5 hours off, DST-dependent).
 test("formatTime: Start/End Time columns show the meeting's ET wall-clock time, not its UTC hour", async () => {
-  const prisma = getTestPrismaClient();
-
   await seedLeaseSettings({ rooms: [{ room: "Serenity Room", rate: 15, unit: "hr" }] });
   await seedMeeting({
     title: "Time Group",
@@ -90,6 +99,7 @@ test("formatTime: Start/End Time columns show the meeting's ET wall-clock time, 
     room: "Serenity Room",
     modeType: "In Person",
   });
+  seededGroups.push("Time Group");
 
   const response = await GET();
   expect(response.status).toBe(200);
@@ -97,7 +107,4 @@ test("formatTime: Start/End Time columns show the meeting's ET wall-clock time, 
 
   expect(columnValueFor(csv, "Time Group", "Start Time")).toBe("6:00 PM");
   expect(columnValueFor(csv, "Time Group", "End Time")).toBe("7:00 PM");
-
-  await prisma.meeting.deleteMany({ where: { group: "Time Group" } });
-  await prisma.leaseSettings.deleteMany();
 });

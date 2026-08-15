@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import TvIcon from "@mui/icons-material/Tv";
+import Icon from "../../ui/displays/Icon";
 import {
   SIGNAGE_CAL_TYPES,
   SIGNAGE_MODE_TYPES,
@@ -103,7 +103,7 @@ const SignageTab: React.FC = () => {
   return (
     <div className={styles.container}>
       <Card>
-        <CardHeader icon={<TvIcon />} title="Generate Signage URL" />
+        <CardHeader icon={<Icon name="tv" />} title="Generate Signage URL" />
         <div className={styles.cardDesc}>
           Build a filtered link for digital signage display. Pick which locations, calendars, and
           meeting modes it should show, then copy the link into the signage device.

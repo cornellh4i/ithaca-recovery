@@ -12,7 +12,7 @@ import RecurringMeetingForm from './RecurringMeeting';
 import ZoomHostField from './ZoomHostField';
 import ConflictOverrideModal from './ConflictOverrideModal';
 import FormValidationBanner from './FormValidationBanner';
-import IconButton from '@mui/material/IconButton';
+import IconButton from '../ui/buttons/IconButton';
 
 import { IMeeting } from '../../../types/models'
 import { physicalRoomOptions, zoomRoomOptions } from "../../../util/rooms/rooms";
@@ -141,9 +141,12 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
       <div>
         <div className={styles.meetingHeader}>
           <h3>Edit Meeting</h3>
-          <IconButton className={styles.iconButton} onClick={onClose}>
-            <Icon name="close" ariaLabel="Close" />
-          </IconButton>
+          <IconButton
+            name="close"
+            ariaLabel="Close"
+            onClick={onClose}
+            className={styles.iconButton}
+          />
         </div>
         <FormValidationBanner errors={liveValidationErrors} />
         <MeetingForm

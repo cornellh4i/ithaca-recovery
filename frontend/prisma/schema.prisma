@@ -111,9 +111,11 @@ model User {
   uid  String @unique
 }
 
-// Singleton — one document holds the PandaDocs lease-export config for the whole app.
+// Singleton — one document holds the PandaDocs lease-export config for the whole app. `id`
+// defaults to a fixed constant (not cuid()) so upsert-by-id is the enforcement mechanism: the
+// primary key itself makes a second row impossible, without a separate unique column.
 model LeaseSettings {
-  id              String   @id @default(cuid())
+  id              String   @id @default("lease-settings")
   leaseStartDate  DateTime @db.Date
   leaseEndDate    DateTime @db.Date
   rooms           Json // { room: string; rate: number; unit: "hr" | "month" }[]
@@ -132,8 +134,9 @@ model LeaseSettings {
 
 // Singleton — which optional columns the Export Meetings (XLSX) download includes. Meeting ID
 // and Meeting Name are always exported regardless of this list, so they're never stored here.
+// `id` defaults to a fixed constant (not cuid()), same reasoning as LeaseSettings above.
 model MeetingExportSettings {
-  id        String   @id @default(cuid())
+  id        String   @id @default("meeting-export-settings")
   fields    String[] @default([])
   updatedAt DateTime @updatedAt
 }

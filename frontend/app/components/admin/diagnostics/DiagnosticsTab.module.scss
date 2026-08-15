@@ -263,17 +263,11 @@ $status-value-indent: $status-dot-gap + $status-label-width + 12px;
   color: $navy-color;
 }
 
-// System Status/Meeting Counts use real MUI icon components (MonitorHeart/EventAvailable)
-// rather than the mask-image treatment above -- an SVG React component already tints via
-// `color` (currentColor), so it doesn't need a background-color mask at all. Sized via the
-// icon's own fontSize prop, not width/height, to match how MUI icons scale internally.
 .panelIconSystemStatus {
-  display: inline-flex;
   color: $medium-grey-color;
 }
 
 .panelIconMeetingCounts {
-  display: inline-flex;
   color: $medium-grey-color;
 }
 

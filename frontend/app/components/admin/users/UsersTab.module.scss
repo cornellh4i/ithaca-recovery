@@ -8,65 +8,31 @@
   box-sizing: border-box;
 }
 
-.headerRow {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 16px;
-
-  // panelHeader + a fixed-width search field + Invite button no longer fit on one line once
-  // the card has shrunk down from desktop -- wrapping lets search+Invite drop to their own
-  // full-width row below the title instead of squeezing (or overflowing).
-  @media (width <= $breakpoint-tablet) {
-    flex-wrap: wrap;
-    row-gap: 12px;
-  }
-}
-
-// Matches DiagnosticsTab.module.scss's .panelHeader/.panelIconX pattern exactly, so the
-// Users card's header reads consistently with the Diagnostics panel cards.
-.panelHeader {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 16px;
-  font-weight: 600;
-  color: $black-color;
-}
-
-.panelIconUsers {
-  display: inline-flex;
-  color: $medium-grey-color;
-}
-
-.headerActions {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-
-  // Once .headerRow has wrapped, this becomes its own full-width row -- letting the search
-  // field (below) actually use that width via flex: 1 instead of staying pinned at 200px.
-  @media (width <= $breakpoint-tablet) {
-    width: 100%;
-  }
-}
-
+// Own full-width row below CardHeader (icon/title/Invite action) -- unlike the old inline
+// layout, it no longer needs to squeeze against the Invite button, so there's no tablet
+// breakpoint override to reflow it.
 .searchField {
   display: flex;
   align-items: center;
   gap: 6px;
   padding: 6px 10px;
+  margin-bottom: 16px;
   border: 1.5px solid $grey-border-color;
   border-radius: 8px;
   color: $medium-grey-color;
+  width: 200px;
 
   &:focus-within {
     border-color: $medium-grey-color;
   }
 
   @media (width <= $breakpoint-tablet) {
-    flex: 1;
+    width: 100%;
   }
+}
+
+.searchIcon {
+  flex-shrink: 0;
 }
 
 .searchInput {
@@ -75,31 +41,10 @@
   font-family: inherit;
   font-size: 14px;
   color: $black-color;
-  width: 200px;
+  width: 100%;
 
   &::placeholder {
     color: $medium-grey-color;
-  }
-
-  @media (width <= $breakpoint-tablet) {
-    width: 100%;
-  }
-}
-
-.inviteButton {
-  background: $brand-pink-color;
-  color: #fff;
-  border: none;
-  border-radius: 8px;
-  padding: 8px 18px;
-  font-family: inherit;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  white-space: nowrap;
-
-  &:hover {
-    background: $brand-pink-secondary;
   }
 }
 

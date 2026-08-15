@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import EventAvailableIcon from "@mui/icons-material/EventAvailable";
+import Icon from "../../ui/displays/Icon";
 import StatCounter from "../../ui/displays/StatCounter";
 import Card from "../shared/Card";
 import TopLoadingBar from "../../ui/displays/TopLoadingBar";
@@ -63,7 +63,7 @@ const MeetingCountsCard: React.FC = () => {
     <Card accent="meetingCounts">
       <TopLoadingBar active={loading} />
       <div className={styles.panelHeader}>
-        <span className={styles.panelIconMeetingCounts}><EventAvailableIcon fontSize="small" /></span>
+        <Icon name="event-available" className={`${styles.panelIcon} ${styles.panelIconMeetingCounts}`} />
         Meeting Counts
       </div>
       <div className={styles.countsRow}>
