@@ -77,11 +77,9 @@ test("calculateRentCharge: non-monthly room uses a flat 4 weeks/month, monthly r
   await prisma.leaseSettings.deleteMany();
 });
 
-// Regression test: formatTime() used to read Meeting.startDateTime/endDateTime (real UTC
-// instants) via getUTCHours()/getUTCMinutes(), showing the meeting's UTC clock time instead of
-// its actual ET wall-clock time -- off by 4-5 hours (DST-dependent). seedMeeting's default
-// 6:00-7:00 PM ET start/end already exercises this: the old buggy code would render these as
-// "10:00 PM"/"11:00 PM" (EDT) or "11:00 PM"/"12:00 AM" (EST) instead.
+// formatTime() reads Meeting.startDateTime/endDateTime (real UTC instants) in ET, not UTC --
+// seedMeeting's default 6:00-7:00 PM ET start/end exercises this directly, since reading the
+// UTC hour instead would show a different time (4-5 hours off, DST-dependent).
 test("formatTime: Start/End Time columns show the meeting's ET wall-clock time, not its UTC hour", async () => {
   const prisma = getTestPrismaClient();
 

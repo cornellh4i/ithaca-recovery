@@ -13,10 +13,9 @@ interface TimePickerProps {
   [key: string]: unknown;
 }
 
-// Utility function to add minutes to a given time. Pure clock arithmetic (no Date object --
-// a real Date's local getters/setters would be vulnerable to the runtime's own DST rules on
-// whatever day "new Date()" happens to land on, for no benefit since this is timezone-agnostic
-// HH:MM math to begin with).
+// Adds minutes to a "HH:MM" time, wrapping across midnight. Pure clock arithmetic -- a Date's
+// local getters/setters would be vulnerable to the runtime's own DST rules for no benefit,
+// since this is timezone-agnostic HH:MM math to begin with.
 const addMinutes = (time: string, minutesToAdd: number): string => {
   const [hours, minutes] = time.split(':').map(Number);
   const totalMinutes = (((hours * 60 + minutes + minutesToAdd) % 1440) + 1440) % 1440;
@@ -25,8 +24,7 @@ const addMinutes = (time: string, minutesToAdd: number): string => {
   return `${newHours}:${newMinutes}`;
 };
 
-// Utility function to calculate the difference in minutes between two times. Same
-// no-Date-needed reasoning as addMinutes above.
+// Difference in minutes between two "HH:MM" times. Same no-Date-needed reasoning as addMinutes.
 const getTimeDifferenceInMinutes = (startTime: string, endTime: string): number => {
   const [startHours, startMinutes] = startTime.split(':').map(Number);
   const [endHours, endMinutes] = endTime.split(':').map(Number);

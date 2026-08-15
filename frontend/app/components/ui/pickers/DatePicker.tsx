@@ -85,7 +85,7 @@ const DatePicker = ({ label, value: propValue = '', onChange, underlineOnFocus =
     // would highlight the wrong cell on a runtime whose local zone isn't ET.
 
     // If it's a formatted date (e.g., "January 1, 2023"). Single-arg new Date(string) isn't
-    // banned by the lint rule (only the multi-arg local-component form is) -- no disable needed.
+    // banned by the lint rule (only the multi-arg local-component form is).
     if (dateString.includes(",")) {
       return new Date(dateString);
     }

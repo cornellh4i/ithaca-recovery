@@ -13,9 +13,7 @@ describe("formatSuspensionStatusText", () => {
     );
   });
 
-  // Regression test: formatDate used to route straight through formatETLongDate
-  // (Intl.DateTimeFormat.format), which throws a RangeError on an invalid Date, unlike the
-  // .toLocaleDateString() it replaced (which degrades to the string "Invalid Date"). Neither
+  // formatDate's Intl.DateTimeFormat.format() throws a RangeError on an invalid Date; neither
   // suspendedSince nor resumesAt carries a parseability guarantee beyond a truthy check.
   it("does not throw for an unparseable date, and degrades to literal text instead", () => {
     expect(() => formatSuspensionStatusText("not-a-date", null, true)).not.toThrow();

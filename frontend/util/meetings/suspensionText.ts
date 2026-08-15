@@ -11,10 +11,9 @@ export function formatSuspensionStatusText(
   suspensionActive: boolean | undefined,
 ): string {
   // formatETLongDate, not the runtime's default timezone -- these dates are ET-day boundaries
-  // (see suspend/resume routes), and formatting with the runtime default (UTC on the server,
-  // whatever the browser is set to on the client) can shift the displayed date by a day.
-  // Guarded: unlike the old .toLocaleDateString() this replaced (which degrades to the string
-  // "Invalid Date"), Intl.DateTimeFormat.format() throws a RangeError on an invalid Date, and
+  // (see suspend/resume routes), and the runtime default (UTC on the server, whatever the
+  // browser is set to on the client) can shift the displayed date by a day.
+  // Guarded: Intl.DateTimeFormat.format() throws a RangeError on an invalid Date, and
   // suspendedSince/resumesAt carry no parseability guarantee beyond the truthy-checks below.
   const formatDate = (value: string | Date) => {
     const date = new Date(value);

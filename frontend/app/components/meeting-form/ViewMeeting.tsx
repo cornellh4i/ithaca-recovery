@@ -333,9 +333,8 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
 
   const doesMeetingOccurOnDate = (date: Date): boolean => {
     // date is currentOccurrenceDate, an optional prop with no upstream validity guarantee
-    // (only an existence check at the call site below). Unlike the local Date getters this
-    // logic used to run through -- which just evaluated NaN comparisons to false -- the
-    // ET-safe Intl.DateTimeFormat-based helpers below throw a RangeError on an invalid Date.
+    // beyond an existence check at the call site below -- guard first, since the ET-safe
+    // Intl.DateTimeFormat-based helpers below throw a RangeError on an invalid Date.
     if (isNaN(date.getTime())) return false;
     if (!isRecurring || !recurrencePattern) {
       const meetingDate = new Date(startDateTime);
@@ -365,9 +364,8 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
   let displayEndDate = endDateTime;
 
   if (isRecurring && currentOccurrenceDate && doesMeetingOccurOnDate(currentOccurrenceDate)) {
-    // Keep startDateTime's ET time-of-day, but move it onto currentOccurrenceDate's ET
-    // calendar day -- via convertETToUTC (not local setFullYear/setMonth/setDate) so this
-    // is correct regardless of the viewer's own timezone.
+    // Keeps startDateTime's ET time-of-day, moved onto currentOccurrenceDate's ET calendar
+    // day -- via convertETToUTC so this is correct regardless of the viewer's own timezone.
     const occurrenceDateStr = formatETDateString(currentOccurrenceDate);
     const { hour, minute, second } = getETTimeOfDay(startDateTime);
     // convertETToUTC's time-part parsing tolerates unpadded numbers, so no padStart needed.

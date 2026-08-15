@@ -12,13 +12,10 @@ const MiniCalendar: React.FC<MiniCalendarProps> = ({ selectedDate, onSelect }) =
   const [currentMonth, setCurrentMonth] = useState(new Date(selectedDate));
 
   // INVARIANT: date and currentMonth are both local-midnight-anchored Dates from react-day-
-  // picker's own internal (date-fns) calendar generation -- deliberately compared via local
-  // getters, not an ET reinterpretation. Both sides share the same local-semantics construction,
-  // so this is a self-consistent comparison regardless of the runtime's zone; reformatting
-  // either side through ET can push a month-boundary cell (e.g. day 1) across a month it didn't
-  // actually cross, while a same-shift non-boundary reference date doesn't -- a real bug, not a
-  // fix (this exact "fix" was tried and reverted once already in this codebase's history). Same
-  // reasoning as DatePicker.tsx's stringToDate/handleDateSelect adapter-boundary comments.
+  // picker's own (date-fns) calendar generation, not real ET instants -- compare them via local
+  // getters, not an ET reformat. Reformatting either side through ET can push a month-boundary
+  // cell (e.g. day 1) across a month it didn't actually cross, while a non-boundary reference
+  // date shifted by the same offset doesn't. Same reasoning as DatePicker.tsx's stringToDate.
   const isOutsideDay = (date: Date) => {
     // eslint-disable-next-line no-restricted-syntax -- see comment above
     return date.getMonth() !== currentMonth.getMonth();

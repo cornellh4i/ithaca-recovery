@@ -130,13 +130,9 @@ describe("ViewMeeting", () => {
   });
 
   describe("biweekly recurrence occurrence re-anchoring", () => {
-    // Regression test for doesMeetingOccurOnDate's weekly-recurrence interval check, which used
-    // to diff raw instants (Math.abs(date.getTime() - originalDate.getTime())) between a noon-ET-
-    // anchored occurrence date and the meeting's actual (non-noon) start time. That could
-    // undercount the day difference and miscompute diffWeeks for interval > 1 patterns, so a
-    // real biweekly occurrence would fail the "does this meeting occur on this date" check and
-    // the popup would fall back to showing the series' original start date instead of the
-    // clicked occurrence's.
+    // doesMeetingOccurOnDate diffs ET calendar days (daysBetweenET), not raw instants --
+    // date (noon-ET-anchored) and startDateTime aren't at the same time-of-day, so a raw
+    // getTime() diff can undercount and miscompute diffWeeks for interval > 1 patterns.
     const biweeklyProps = {
       ...baseProps,
       // Wednesday, July 15 2026, 6:00 PM ET (EDT, UTC-4).
@@ -164,12 +160,9 @@ describe("ViewMeeting", () => {
       expect(screen.queryByText(/July 15/)).not.toBeInTheDocument();
     });
 
-    // Regression test: doesMeetingOccurOnDate used to call formatETDateString/
-    // formatETWeekdayLong/daysBetweenET on `date` (currentOccurrenceDate) with no validity
-    // guard. currentOccurrenceDate is an optional prop with no upstream parseability guarantee
-    // beyond an existence check -- an invalid Date used to throw a RangeError there (unlike the
-    // local-getter comparisons this logic replaced, which just evaluated to false) and crash
-    // the whole popup instead of falling back to the series' own start date.
+    // currentOccurrenceDate is an optional prop with no upstream parseability guarantee beyond
+    // an existence check. doesMeetingOccurOnDate guards it before running any ET-safe helper
+    // on it, since those throw a RangeError on an invalid Date.
     it("does not crash on an invalid currentOccurrenceDate, and falls back to the series' start date", async () => {
       renderViewMeeting({ ...biweeklyProps, currentOccurrenceDate: new Date("not-a-date") });
       expect(await screen.findByText(/July 15/)).toBeInTheDocument();
