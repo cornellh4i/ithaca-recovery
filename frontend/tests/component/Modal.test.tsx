@@ -76,9 +76,10 @@ describe("Modal", () => {
 
   it("does not close on Escape or overlay click when preventClose is set", () => {
     const onClose = jest.fn();
-    const { container } = render(<Dialog isOpen onClose={onClose} preventClose />);
+    render(<Dialog isOpen onClose={onClose} preventClose />);
     fireEvent.keyDown(document, { key: "Escape" });
-    fireEvent.mouseDown(container.ownerDocument.body.querySelector("div")!);
+    const overlay = screen.getByRole("dialog").parentElement!;
+    fireEvent.mouseDown(overlay, { target: overlay });
     expect(onClose).not.toHaveBeenCalled();
   });
 
