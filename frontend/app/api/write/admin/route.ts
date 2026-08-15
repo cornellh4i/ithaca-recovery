@@ -28,6 +28,7 @@ export const POST = async (request: Request) => {
         name: "",
         role: resolvedRole,
       },
+      select: { name: true, email: true, role: true },
     });
 
     return NextResponse.json(createdUser);

@@ -33,7 +33,7 @@ export const PUT = async (request: Request) => {
         }
       }
 
-      return tx.admin.update({ where: { email }, data: { role } });
+      return tx.admin.update({ where: { email }, data: { role }, select: { name: true, email: true, role: true } });
     }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
 
     return NextResponse.json(updatedAdmin);

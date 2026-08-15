@@ -2,7 +2,7 @@
 
 All endpoints are Next.js Route Handlers under `frontend/app/api/`. Requests and responses use JSON unless noted otherwise.
 
-**Authentication:** NextAuth with Google OAuth (`frontend/app/api/auth/authConfig.ts`). Sign-in is invite-only — the `signIn` callback rejects any email not already present in the `Admin` table. The session JWT carries a `role` (`SUPER_ADMIN | ADMIN | USER`), refreshed from the DB on every request so role changes/removal take effect without waiting for the JWT to expire. Route guards call `requireRole(minRole)` (`frontend/services/auth.ts`), which returns a `401` if unauthenticated or `403` if the session's role is below `minRole`; each route below notes its required role. `GET /api/retrieve/meeting*` routes have no guard — meeting reads are public. An automated test (`frontend/tests/unit/routeGuards.test.ts`) statically verifies every route either has this guard or is explicitly allowlisted as public.
+**Authentication:** NextAuth with Google OAuth (`frontend/app/api/auth/authConfig.ts`). Sign-in is invite-only — the `signIn` callback rejects any email not already present in the `Admin` table. The session JWT carries a `role` (`SUPER_ADMIN | ADMIN | USER`), refreshed from the DB on every request so role changes/removal take effect without waiting for the JWT to expire. Route guards call `requireRole(minRole)` (`frontend/services/auth.ts`), which returns a `401` if unauthenticated or `403` if the session's role is below `minRole`; each route below notes its required role. `GET /api/retrieve/meeting/*` routes have no `requireRole` guard — meeting reads are public, though `[id]` shapes its response by role (see below) rather than gating access outright. An automated test (`frontend/tests/unit/routeGuards.test.ts`) statically verifies every route either has this guard or is explicitly allowlisted as public.
 
 ---
 
@@ -43,15 +43,8 @@ Once Zoom has resolved (or wasn't needed), sync publishes to Google Calendar per
 
 ---
 
-### `GET /api/retrieve/meeting`
-Retrieve all non-deleted meetings.
-
-**Response:** `200 OK` — `IMeeting[]`
-
----
-
 ### `GET /api/retrieve/meeting/[id]`
-Retrieve a single non-deleted meeting by `mid` in the URL path. An unauthenticated caller gets the `PublicMeeting`-shaped subset (see [Technical Decisions](../02-handoff/technical-decisions.md#admin-gated-mids-pattern-for-calendar-badges)); an authenticated caller of any role gets the full row plus `recurrencePattern` and derived suspension fields (`resumesAt`/`suspendedSince`/`suspensionActive`).
+Retrieve a single non-deleted meeting by `mid` in the URL path. An unauthenticated caller, or a `USER`-role session, gets the `PublicMeeting`-shaped subset (see [Technical Decisions](../02-handoff/technical-decisions.md#admin-gated-mids-pattern-for-calendar-badges)); an `ADMIN`/`SUPER_ADMIN` session gets the full row plus `recurrencePattern` and derived suspension fields (`resumesAt`/`suspendedSince`/`suspensionActive`).
 
 **Response:** `200 OK` — `IMeeting`
 **Error:** `404 Not Found`
@@ -87,17 +80,6 @@ Retrieve all meetings for an arbitrary date range (used by mobile's prev/current
 |---|---|---|
 | `startDate` | ISO 8601 | Range start (defaults to now if omitted) |
 | `endDate` | ISO 8601 | Range end (defaults to `startDate` if omitted) |
-
-**Response:** `200 OK` — `IMeeting[]`
-
----
-
-### `GET /api/retrieve/meeting/month`
-Retrieve all meetings for the calendar month of the provided date.
-
-| Param | Type | Description |
-|---|---|---|
-| `startDate` | ISO 8601 | Any date within the target month |
 
 **Response:** `200 OK` — `IMeeting[]`
 
@@ -509,8 +491,6 @@ interface IAdmin {
   email: string;
   role: "SUPER_ADMIN" | "ADMIN" | "USER";
   googleId?: string | null;
-  refreshToken?: string | null;
-  tokenExpiresAt?: number | null;
 }
 
 interface IRoomRate {

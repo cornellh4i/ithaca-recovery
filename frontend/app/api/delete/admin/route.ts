@@ -27,7 +27,7 @@ export const DELETE = async (request: Request) => {
         }
       }
 
-      return tx.admin.delete({ where: { email } });
+      return tx.admin.delete({ where: { email }, select: { name: true, email: true, role: true } });
     }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
 
     return NextResponse.json(deleteUser);

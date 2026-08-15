@@ -54,8 +54,6 @@ export const authOptions: NextAuthOptions = {
                         data: {
                             name: existing?.name ? undefined : (token.name ?? (profile as { name?: string })?.name ?? undefined),
                             googleId: account.providerAccountId,
-                            refreshToken: account.refresh_token ?? undefined,
-                            tokenExpiresAt: account.expires_at ?? undefined
                         },
                         select: { role: true },
                     });
