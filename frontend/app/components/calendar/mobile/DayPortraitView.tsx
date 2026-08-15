@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { motion, useAnimationControls, useDragControls, useReducedMotion, type PanInfo } from "framer-motion";
+import { motion, useAnimationControls, useDragControls, useReducedMotion, type PanInfo } from "motion/react";
 import WeekStrip from "./WeekStrip";
 import CalendarHeader from "../shared/CalendarHeader";
 import DayColumn from "../shared/DayColumn";
