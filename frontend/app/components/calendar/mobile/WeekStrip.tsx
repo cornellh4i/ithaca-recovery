@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useRef } from "react";
-import { motion, useReducedMotion, type PanInfo } from "framer-motion";
+import { motion, useReducedMotion, type PanInfo } from "motion/react";
 import { getFirstDayOfWeek, getDaysOfWeek, addDaysToDate } from "../../../../util/date/weekDates";
 import { formatETDateString } from "../../../../util/date/timeUtils";
 import { useCalendarContext } from "../../../context/CalendarProvider";

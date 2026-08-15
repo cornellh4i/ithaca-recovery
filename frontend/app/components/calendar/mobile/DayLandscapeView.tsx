@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { motion, useAnimationControls, useDragControls, useReducedMotion, type PanInfo } from "framer-motion";
+import { motion, useAnimationControls, useDragControls, useReducedMotion, type PanInfo } from "motion/react";
 import styles from "./DayLandscapeView.module.scss";
 import DailyViewRow from "../desktop/DailyViewRow";
 import { fetchMeetingsByDay, invalidateCache } from "../desktop/DayView";

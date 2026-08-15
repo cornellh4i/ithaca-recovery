@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useLayoutEffect, useState, useRef } from "react";
-import { motion, useReducedMotion } from "framer-motion";
+import { motion, useReducedMotion } from "motion/react";
 import styles from './DayView.module.scss';
 import BoxText from '../../ui/displays/BoxText';
 import DailyViewRow from "./DailyViewRow";

@@ -2,7 +2,7 @@
 
 import React from "react";
 import { createPortal } from "react-dom";
-import { AnimatePresence, motion, type PanInfo } from "framer-motion";
+import { AnimatePresence, motion, type PanInfo } from "motion/react";
 import styles from "./MobileFullScreenSheet.module.scss";
 
 // Distance/velocity a drag needs to clear before it counts as "swipe to dismiss" -- same
