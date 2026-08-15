@@ -73,13 +73,14 @@ that already has a working `GOOGLE_CLIENT_ID`/`_SECRET` and an admin account you
 ```bash
 yarn lint               # ESLint, seconds
 yarn lint:css           # stylelint, seconds — separate from `yarn lint`, .scss files only
+yarn typecheck          # tsc --noEmit, seconds — full cross-file type-checking
 yarn test:unit          # seconds, no setup beyond what you already have
 yarn test:component     # seconds, no setup
 yarn test:integration   # spins up its own embedded Postgres instance — separate from your Neon dev DB
 yarn test:e2e           # needs `yarn playwright install --with-deps chromium` once
 ```
 
-All six should pass on a clean clone with no further setup — the test suites don't use your
+All seven should pass on a clean clone with no further setup — the test suites don't use your
 `.env`'s `DATABASE_URL` at all (`integration`/`e2e` spin up their own embedded Postgres instances).
 If something fails here before you've changed any code, flag and investigate immediately.
 
