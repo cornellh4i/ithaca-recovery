@@ -144,17 +144,19 @@ export const getETDayOfWeek = (date: Date): number =>
   new Date(getETCalendarDateMs(formatETDateString(date))).getUTCDay();
 
 /**
- * Parses a DatePicker field's MM/DD/YYYY value into a Date, or null for an empty/unset value.
- * Shared by SuspendMeetingModal and ResumeMeetingModal, whose "Until"/"On" date fields both
- * need this exact parsing before comparing against an ET calendar day or converting to ISO.
+ * Parses a DatePicker field's MM/DD/YYYY value into a UTC Date at ET midnight for that day, or
+ * null for an empty/unparseable value. Tolerates unpadded month/day -- DatePicker's onChange
+ * can forward the user's raw typed text (e.g. "1/5/2026"), not just its zero-padded output.
  * Goes through convertETToUTC (same as getETDayBounds above) rather than `new Date(y, m, d)`,
  * which builds the date in the *browser's* local timezone -- for a user whose clock isn't on a
  * US zone (or is simply set to UTC), that can silently resolve to the previous ET calendar day.
+ * Shared by SuspendMeetingModal, ResumeMeetingModal, and RecurringMeeting's start/end date fields.
  */
 export const parseMMDDYYYY = (value: string): Date | null => {
-  if (!value) return null;
-  const [month, day, year] = value.split('/').map(Number);
-  const etDateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+  const match = value.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (!match) return null;
+  const [, month, day, year] = match;
+  const etDateStr = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
   return new Date(convertETToUTC(`${etDateStr}T00:00:00`));
 };
 
@@ -188,7 +190,9 @@ export const addDaysToETDateString = (etDateStr: string, days: number): string =
 /**
  * Number of days in the given month (1-indexed: 1 = January) of `year`, per the proleptic
  * Gregorian calendar -- Date.UTC(year, month, 0) is "day 0" of the following month, i.e. the
- * last day of `month` itself.
+ * last day of `month` itself. `month` isn't clamped to 1-12: Date.UTC normalizes any integer
+ * (e.g. 13 = January of `year + 1`), which addMonthsToETDateString below relies on for its own
+ * year-boundary math.
  */
 export const getDaysInMonth = (year: number, month: number): number =>
   new Date(Date.UTC(year, month, 0)).getUTCDate();

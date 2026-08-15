@@ -370,6 +370,9 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
     const { hour, minute, second } = getETTimeOfDay(startDateTime);
     // convertETToUTC's time-part parsing tolerates unpadded numbers, so no padStart needed.
     const newStartDate = new Date(convertETToUTC(`${occurrenceDateStr}T${hour}:${minute}:${second}`));
+    // Milliseconds have no timezone component -- getETTimeOfDay doesn't carry them, so restore
+    // directly from startDateTime rather than losing sub-second precision on the re-anchor.
+    newStartDate.setUTCMilliseconds(startDateTime.getUTCMilliseconds());
 
     displayStartDate = newStartDate;
 
