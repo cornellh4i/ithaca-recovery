@@ -315,7 +315,11 @@ export default function HomePage() {
       )}
       {isPhone && isAdmin && (
         <React.Fragment>
-          <MobileFullScreenSheet isOpen={isNewMeetingOpen}>
+          <MobileFullScreenSheet
+            isOpen={isNewMeetingOpen}
+            onClose={() => setIsNewMeetingOpen(false)}
+            ariaLabel="New Meeting"
+          >
             <NewMeetingSidebar
               setIsNewMeetingOpen={setIsNewMeetingOpen}
               triggerCalendarRefresh={triggerCalendarRefresh}
@@ -323,7 +327,11 @@ export default function HomePage() {
               selectedView={selectedView}
             />
           </MobileFullScreenSheet>
-          <MobileFullScreenSheet isOpen={showEditMeeting && !!selectedMeeting}>
+          <MobileFullScreenSheet
+            isOpen={showEditMeeting && !!selectedMeeting}
+            onClose={handleCloseEdit}
+            ariaLabel="Edit Meeting"
+          >
             {selectedMeeting && (
               <EditMeetingSidebar
                 meeting={selectedMeeting}
