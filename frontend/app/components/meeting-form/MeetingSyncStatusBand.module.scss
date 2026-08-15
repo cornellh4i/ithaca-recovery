@@ -1,0 +1,115 @@
+@import '../../../styles/Variables.module';
+
+// Status band -- sync-failure / conflict / suspension blocks, each independently conditional.
+.statusBand {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.syncFailureBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: $radius-lg;
+  background: $danger-bg-color;
+}
+
+.syncFailureHeader {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  color: $danger-color;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
+
+  img,
+  svg {
+    width: 16px !important;
+    height: 16px !important;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  span {
+    flex: 1;
+  }
+}
+
+.syncDetailsToggle {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  flex-shrink: 0;
+  color: $danger-color;
+
+  img,
+  svg {
+    width: 16px !important;
+    height: 16px !important;
+    margin: 0;
+  }
+}
+
+.syncDetailsList {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-left: 22px;
+  font-size: 12.5px;
+  font-weight: 400;
+  color: $danger-color;
+  line-height: 1.4;
+}
+
+.retryButton {
+  align-self: flex-start;
+  margin-left: 22px;
+  border: 1px solid $danger-color;
+  background: $white-color;
+  color: $danger-color;
+  border-radius: $radius-md;
+  padding: 4px 10px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+}
+
+.conflictBlock, .suspensionBlock {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: $radius-lg;
+  background: $warning-bg-color;
+  color: $warning-text-color;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
+
+  img,
+  svg {
+    width: 16px !important;
+    height: 16px !important;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+}
+
+.diagnosticsLink {
+  color: inherit;
+  text-decoration: underline;
+
+  &:hover {
+    opacity: 0.8;
+  }
+}
