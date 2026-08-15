@@ -92,10 +92,10 @@ test.describe("mobile meeting interactions", () => {
 
     await page.getByRole("button", { name: /more meetings at this time/ }).click();
 
-    // OverlapMeetingsModal has no role="dialog" and no drag grabber (unlike BottomSheet) --
-    // confirms it stayed a plain centered modal rather than getting swept into the bottom-
-    // sheet treatment.
-    const modal = page.locator('[class*="modalContent"]');
+    // OverlapMeetingsModal renders via the shared Modal primitive (role="dialog") but has no
+    // drag grabber (unlike BottomSheet) -- confirms it stayed a plain centered modal rather
+    // than getting swept into the bottom-sheet treatment.
+    const modal = page.getByRole("dialog");
     await expect(modal).toBeVisible();
     await expect(modal.locator('[class*="grabber"]')).toHaveCount(0);
   });

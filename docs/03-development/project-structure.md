@@ -95,6 +95,13 @@ We group components by what they do (domain/feature) rather than how they compos
 - `pickers/` — `DatePicker`, `TimePicker`
 - `displays/` — `BoxText`, `Icon`, `Logo`, `StatCounter`, `StatusPill`, `TagList`, `TopLoadingBar`
 
+`Modal` is the shared accessible dialog primitive — dialog semantics (`role="dialog"`,
+`aria-modal`), initial focus, Tab/Shift+Tab focus trapping, Escape dismissal, focus restoration,
+and portal-to-`document.body`. Every confirm/dialog-style modal in the app (delete/suspend/resume
+confirmations, conflict overrides, export configuration, the calendar's overlapping-meetings
+picker, admin user management) is built on it rather than hand-rolling overlay markup; new
+dialog-style modals should do the same.
+
 `Icon` is the name-based entry point (e.g. `<Icon name="warning" />`) for the app's icon set —
 most render as `@mui/icons-material` glyphs tinted via `currentColor` from ambient CSS; a couple
 of brand logos with no MUI equivalent (Google, Zoom) stay as local `public/svg/` assets.

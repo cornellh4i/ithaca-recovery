@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import Modal from "../../ui/overlays/Modal";
 import type { ILeaseSettings, IRoomRate } from "../../../../types/models";
 import type { LeaseYearCycle } from "../../../../util/lease/leaseYearCycles";
 import styles from "./ExportTab.module.scss";
@@ -92,9 +93,15 @@ const LeaseConfigModal: React.FC<LeaseConfigModalProps> = ({ initial, cycles, on
   const templateSummary = draft.emailTemplate.split("\n")[0]?.slice(0, 60) || "No message set";
 
   return (
-    <div className={styles.modalOverlay} onClick={onCancel}>
-      <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
-        <h3 className={styles.modalTitle}>Configure PandaDocs lease export</h3>
+    <Modal
+      isOpen
+      onClose={onCancel}
+      overlayClassName={styles.modalOverlay}
+      contentClassName={styles.modal}
+      labelledBy="lease-config-title"
+      preventClose={saving}
+    >
+        <h3 id="lease-config-title" className={styles.modalTitle}>Configure PandaDocs lease export</h3>
         <p className={styles.modalIntro}>
           These settings control the lease period, rates, rental agent contact, and email wording used when
           generating the export. Per-meeting details (group name, contact email, schedule) always come from the
@@ -256,8 +263,7 @@ const LeaseConfigModal: React.FC<LeaseConfigModalProps> = ({ initial, cycles, on
             {saving ? "Saving…" : "Save"}
           </button>
         </div>
-      </div>
-    </div>
+    </Modal>
   );
 };
 

@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import FilterGroup, { FilterGroupItem } from "../../shared/FilterGroup";
+import Modal from "../../ui/overlays/Modal";
 import { MEETING_EXPORT_FIELD_GROUPS, type MeetingExportFieldKey } from "../../../../util/meetings/meetingExportFields";
 import styles from "./ExportTab.module.scss";
 
@@ -47,31 +48,35 @@ const MeetingExportConfigModal: React.FC<MeetingExportConfigModalProps> = ({ ini
   };
 
   return (
-    <div className={styles.modalOverlay} onClick={onCancel}>
-      <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
-        <h3 className={styles.modalTitle}>Configure meeting export</h3>
-        <p className={styles.modalIntro}>
-          Meeting ID and Meeting Name are always included. Pick which other fields the export should have.
-        </p>
+    <Modal
+      isOpen
+      onClose={onCancel}
+      overlayClassName={styles.modalOverlay}
+      contentClassName={styles.modal}
+      labelledBy="export-config-title"
+    >
+      <h3 id="export-config-title" className={styles.modalTitle}>Configure meeting export</h3>
+      <p className={styles.modalIntro}>
+        Meeting ID and Meeting Name are always included. Pick which other fields the export should have.
+      </p>
 
-        <div className={styles.filterGrid}>
-          <FilterGroup title="MEETING" items={MEETING_FIELDS} checked={checked} onToggle={toggle} />
-          <div>
-            <FilterGroup title="SCHEDULE" items={SCHEDULE_FIELDS} checked={checked} onToggle={toggle} />
-            <div className={styles.stackedGroup}>
-              <FilterGroup title="CONTACT" items={CONTACT_FIELDS} checked={checked} onToggle={toggle} />
-            </div>
+      <div className={styles.filterGrid}>
+        <FilterGroup title="MEETING" items={MEETING_FIELDS} checked={checked} onToggle={toggle} />
+        <div>
+          <FilterGroup title="SCHEDULE" items={SCHEDULE_FIELDS} checked={checked} onToggle={toggle} />
+          <div className={styles.stackedGroup}>
+            <FilterGroup title="CONTACT" items={CONTACT_FIELDS} checked={checked} onToggle={toggle} />
           </div>
         </div>
-
-        <div className={styles.modalActions}>
-          <button className={styles.cancelButton} onClick={onCancel}>Cancel</button>
-          <button className={styles.saveButton} onClick={handleSave} disabled={saving}>
-            {saving ? "Saving…" : "Save"}
-          </button>
-        </div>
       </div>
-    </div>
+
+      <div className={styles.modalActions}>
+        <button className={styles.cancelButton} onClick={onCancel}>Cancel</button>
+        <button className={styles.saveButton} onClick={handleSave} disabled={saving}>
+          {saving ? "Saving…" : "Save"}
+        </button>
+      </div>
+    </Modal>
   );
 };
 

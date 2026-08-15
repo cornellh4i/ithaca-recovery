@@ -1,10 +1,10 @@
 import React from 'react';
-import { createPortal } from 'react-dom';
 import styles from './OverlapMeetingsModal.module.scss';
 import { formatCompactTimeRange } from '../../../../util/date/timeFormat';
 import { toPastelColor } from '../../../../util/common/color';
 import Icon from '../../ui/displays/Icon';
 import TagList from '../../ui/displays/TagList';
+import Modal from '../../ui/overlays/Modal';
 
 interface OverlapMeeting {
     id: string;
@@ -41,8 +41,6 @@ const OverlapMeetingsModal: React.FC<OverlapMeetingsModalProps> = ({
     onClose,
     onSelectMeeting,
 }) => {
-    if (!isOpen) return null;
-
     // Full range across every meeting shown (true, unclipped times where available) --
     // e.g. "9 - 11 AM" for meetings spanning 9-10, 9:30-10:30, and 10-11.
     const timeRangeLabel = meetings.reduce<{ start: string; end: string } | null>((range, meeting) => {
@@ -55,17 +53,22 @@ const OverlapMeetingsModal: React.FC<OverlapMeetingsModalProps> = ({
         };
     }, null);
 
-    // Portaled to document.body -- both Day and Week view render this from deep inside
-    // absolutely-positioned, z-indexed ancestors (e.g. DayView's .gridMeetingRow), each
-    // of which forms its own stacking context. Left in place, this modal's z-index would
-    // only be compared *within* that ancestor's context, so a sibling with a higher
-    // z-index at the parent level (e.g. the sticky room-label column) would still paint
-    // over it despite `position: fixed` and z-index: 1000 here.
-    return createPortal(
-        <div className={styles.modalOverlay} onClick={(e) => e.stopPropagation()}>
-            <div className={styles.modalContent}>
+    return (
+        // Both Day and Week view render this from deep inside absolutely-positioned, z-indexed
+        // ancestors (e.g. DayView's .gridMeetingRow) that are also each their own clickable cell
+        // -- Modal itself portals to document.body (see its own doc comment for why), which
+        // sidesteps the z-index-only-compared-within-ancestor-context problem this used to note,
+        // but a click anywhere in here still bubbles through the *React* tree (not the DOM tree)
+        // up to that cell's own click-to-create-a-meeting handler unless stopped here.
+        <Modal
+            isOpen={isOpen}
+            onClose={onClose}
+            overlayClassName={styles.modalOverlay}
+            labelledBy="overlap-meetings-title"
+        >
+            <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
                 <div className={styles.header}>
-                    <h2 className={styles.modalTitle}>
+                    <h2 id="overlap-meetings-title" className={styles.modalTitle}>
                         {meetings.length} Meeting{meetings.length === 1 ? '' : 's'}
                         {timeRangeLabel && ` (${formatCompactTimeRange(timeRangeLabel.start, timeRangeLabel.end)})`}
                     </h2>
@@ -129,8 +132,7 @@ const OverlapMeetingsModal: React.FC<OverlapMeetingsModalProps> = ({
                     })}
                 </div>
             </div>
-        </div>,
-        document.body,
+        </Modal>
     );
 };
 
