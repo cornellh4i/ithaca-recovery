@@ -68,9 +68,8 @@ app/
 │   ├── auth/                    # Sign-in/access-denied/profile UI — see Component Hierarchy below
 │   ├── navigation/               # App-wide site chrome (desktop + mobile variants)
 │   └── shared/                  # Cross-domain components (Toast/ToastProvider, FilterGroup)
-├── ClientLayout.tsx             # Client-side layout wrapper — mounts SessionProvider,
-│                                 #   SidebarProvider, CalendarProvider, ToastProvider
-└── ProviderWrapper.tsx          # Top-level provider composition
+└── ClientLayout.tsx             # Client-side layout wrapper — mounts SessionProvider,
+                                 #   SidebarProvider, CalendarProvider, ToastProvider
 ```
 
 ### Pages
