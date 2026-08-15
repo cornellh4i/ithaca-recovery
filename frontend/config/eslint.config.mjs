@@ -67,7 +67,7 @@ const eslintConfig = [
           // it's a false positive: add a one-line eslint-disable-next-line with a reason instead
           // of routing non-Date formatting through util/date/**.
           selector:
-            "CallExpression[callee.type='MemberExpression'][callee.property.name=/^(toLocaleDateString|toLocaleString|toLocaleTimeString)$/]",
+            "CallExpression[callee.type='MemberExpression'][callee.property.name=/^(toLocaleDateString|toLocaleString|toLocaleTimeString|toDateString|toTimeString)$/]",
           message:
             "Local-timezone Date formatting is banned outside util/date/** -- this app always displays fixed Eastern Time. Use the Intl.DateTimeFormat-based formatters in util/date/timeUtils.ts / util/date/timeFormat.tsx (all pinned timeZone: 'America/New_York') instead. (Not a Date -- e.g. Number.prototype.toLocaleString? This rule can't tell; add an eslint-disable-next-line with a reason.)",
         },
