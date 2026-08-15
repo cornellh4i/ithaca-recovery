@@ -62,6 +62,22 @@ describe("useRetrySync", () => {
     expect(screen.getByTestId("syncing")).toHaveTextContent("false");
   });
 
+  it("treats a null googleSyncStatus response as not-applicable, not an error", async () => {
+    // Mirrors zoomSyncStatus's existing null-for-a-meeting-that-doesn't-need-Zoom meaning --
+    // previously the stored status defaulted null to 'error' while the success check already
+    // treated null as fine, so this response fired onSyncSuccess/a success toast while
+    // MeetingSyncStatusBand simultaneously rendered "Failed to sync" from the stored 'error'.
+    mockRetry.mockResolvedValue({ googleSyncStatus: null, googleSyncError: null, zoomSyncStatus: null, zoomSyncError: null });
+    const onSyncSuccess = jest.fn();
+    renderHarness(onSyncSuccess);
+
+    fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+
+    await screen.findByText("Sync retried successfully.");
+    expect(onSyncSuccess).toHaveBeenCalledTimes(1);
+    expect(screen.getByTestId("google-status")).toHaveTextContent("null");
+  });
+
   it("does not call onSyncSuccess when one channel is still failing", async () => {
     mockRetry.mockResolvedValue({
       googleSyncStatus: "synced",

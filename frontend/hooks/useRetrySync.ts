@@ -43,7 +43,12 @@ export function useRetrySync({
     setSyncing(true);
     try {
       const data = await retryMeetingSync(mid);
-      setGoogleSyncStatus(data.googleSyncStatus ?? 'error');
+      // null means "not applicable" on both channels (mirrors zoomSyncStatus's existing
+      // null-for-a-meeting-that-doesn't-need-Zoom meaning) -- previously defaulted to 'error'
+      // here while the calendarOk check below already treated null as fine, so a null
+      // googleSyncStatus response fired onSyncSuccess/a success toast while
+      // MeetingSyncStatusBand simultaneously rendered "Failed to sync" from the stored 'error'.
+      setGoogleSyncStatus(data.googleSyncStatus ?? null);
       setGoogleSyncError(data.googleSyncError ?? null);
       setZoomSyncStatus(data.zoomSyncStatus ?? null);
       setZoomSyncError(data.zoomSyncError ?? null);
