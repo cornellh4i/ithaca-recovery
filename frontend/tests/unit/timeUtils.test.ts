@@ -111,7 +111,10 @@ describe("getETTimeOfDay", () => {
 
 describe("parseMMDDYYYY", () => {
   it("parses a zero-padded date to ET midnight", () => {
-    expect(formatETDateString(parseMMDDYYYY("08/15/2026")!)).toBe("2026-08-15");
+    const parsed = parseMMDDYYYY("08/15/2026");
+    expect(parsed).not.toBeNull();
+    expect(formatETDateString(parsed!)).toBe("2026-08-15");
+    expect(getETTimeOfDay(parsed!)).toEqual({ hour: 0, minute: 0, second: 0 });
   });
 
   it("tolerates unpadded month/day", () => {
