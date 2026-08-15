@@ -84,7 +84,11 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
         }
 
         if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
+          // See NewMeeting.tsx's identical branch for why -- surfaces the server's actual
+          // rejection reason (e.g. a meetingSchema refine()) instead of a bare status code.
+          const body = await response.json().catch(() => null);
+          const detail = body?.issues?.map((issue: { message: string }) => issue.message).join(' ') || body?.error;
+          throw new Error(detail || `HTTP error! status: ${response.status}`);
         }
 
         const meetingResponse = await response.json();
@@ -106,6 +110,10 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
         });
       } catch (error) {
         console.error('There was an error fetching the data:', error);
+        showToast({
+          variant: "error",
+          title: error instanceof Error ? error.message : "Could not update the meeting.",
+        });
       } finally {
         setIsSubmitting(false);
       }

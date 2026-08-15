@@ -91,7 +91,13 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({
         }
 
         if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
+          // A 400 here means a business-rule check on the server rejected the payload (e.g.
+          // meetingSchema's refine()s) despite passing client-side validation -- surface the
+          // server's actual reason instead of a bare status code, as a safety net for any rule
+          // the client form doesn't (yet) mirror.
+          const body = await response.json().catch(() => null);
+          const detail = body?.issues?.map((issue: { message: string }) => issue.message).join(' ') || body?.error;
+          throw new Error(detail || `HTTP error! status: ${response.status}`);
         }
 
         const meetingResponse = await response.json();
@@ -115,6 +121,10 @@ const NewMeetingSidebar: React.FC<NewMeetingSidebarProps> = ({
         });
       } catch (error) {
         console.error('There was an error fetching the data:', error);
+        showToast({
+          variant: "error",
+          title: error instanceof Error ? error.message : "Could not create the meeting.",
+        });
       } finally {
         setIsSubmitting(false);
       }
