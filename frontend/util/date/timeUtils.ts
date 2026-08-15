@@ -135,10 +135,6 @@ export const getETDayOfWeek = (date: Date): number => {
   return new Date(Date.UTC(year, month - 1, day)).getUTCDay();
 };
 
-/** Whether two instants fall in the same ET calendar month (and year). */
-export const isSameETMonth = (a: Date, b: Date): boolean =>
-  formatETDateString(a).slice(0, 7) === formatETDateString(b).slice(0, 7);
-
 /**
  * Parses a DatePicker field's MM/DD/YYYY value into a Date, or null for an empty/unset value.
  * Shared by SuspendMeetingModal and ResumeMeetingModal, whose "Until"/"On" date fields both

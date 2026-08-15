@@ -77,16 +77,19 @@ const DatePicker = ({ label, value: propValue = '', onChange, underlineOnFocus =
    * @returns dateString in Date form
    */
   const stringToDate = (dateString: string): Date => {
-    // If it's a formatted date (e.g., "January 1, 2023")
-    if (dateString.includes(",")) {
-      return new Date(dateString);
-    }
-
-    // If it's in MM/DD/YYYY format. Deliberately a local-midnight Date (not routed through
+    // Both branches below deliberately return a local-midnight Date (not routed through
     // convertETToUTC) -- this feeds MiniCalendar's underlying react-day-picker, which compares
     // `selected` against click-generated dates using its own local Date getters (see weekDates.ts's
     // toNoonETOnLocalCalendarDay). Matching that library's local semantics here is what's correct;
     // an ET-anchored instant would highlight the wrong cell on a runtime whose local zone isn't ET.
+
+    // If it's a formatted date (e.g., "January 1, 2023"). Single-arg new Date(string) isn't
+    // banned by the lint rule (only the multi-arg local-component form is) -- no disable needed.
+    if (dateString.includes(",")) {
+      return new Date(dateString);
+    }
+
+    // If it's in MM/DD/YYYY format
     const regex = /^(1[0-2]|0?[1-9])\/([1-2][0-9]|3[01]|0?[1-9])\/(\d{4})$/;
     if (regex.test(dateString)) {
       const [month, day, year] = dateString.split('/').map(Number);

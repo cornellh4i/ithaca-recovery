@@ -68,11 +68,14 @@ function toDatePickerString(date: Date | string | null | undefined): string {
 
 // Converts "MM/DD/YYYY" into a UTC Date at ET midnight for that day — matching how the
 // meeting's own start/end times are built, independent of the browser's local timezone.
+// Tolerates unpadded month/day (DatePicker's onChange can forward the user's raw typed
+// text, e.g. "1/5/2026", not just its zero-padded formatDate() output -- same leniency as
+// DatePicker's own isDateMMDDYYYY).
 function etMidnightUTC(datePickerString: string): Date {
-  const match = datePickerString.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  const match = datePickerString.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
   if (!match) return new Date(NaN);
   const [, month, day, year] = match;
-  return new Date(convertETToUTC(`${year}-${month}-${day}T00:00:00`));
+  return new Date(convertETToUTC(`${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T00:00:00`));
 }
 
 // Derives the dropdown options for monthly recurrence from the meeting's start date.
@@ -86,7 +89,10 @@ function getMonthlyOptions(startDateStr: string): string[] {
   if (isNaN(date.getTime())) return [];
   const [year, month, day] = formatETDateString(date).split('-').map(Number);
   const dayOfMonth = day;
-  const weekdayName = weekdayNames[getETDayOfWeek(date)];
+  // Date.UTC(year, month - 1, day).getUTCDay() -- same proleptic-Gregorian-calculator use as
+  // getETDayOfWeek itself, inlined here since year/month/day are already known (avoids a
+  // second formatETDateString(date) call for the same instant).
+  const weekdayName = weekdayNames[new Date(Date.UTC(year, month - 1, day)).getUTCDay()];
   const nth = Math.ceil(dayOfMonth / 7);
   // Date.UTC(year, month, 0) is the last day of `month` (1-indexed here, so this is
   // deliberately not month - 1) -- same proleptic-Gregorian-calculator use as weekDates.ts.

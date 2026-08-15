@@ -56,6 +56,12 @@ const eslintConfig = [
         },
         {
           selector:
+            "CallExpression[callee.type='MemberExpression'][callee.property.name=/^(setDate|setMonth|setFullYear|setHours|setMinutes|setSeconds|setMilliseconds)$/]",
+          message:
+            "Local-timezone Date setters are banned outside util/date/** -- same reasoning as the getters above (a setter mutates using the runtime's local timezone). Use convertETToUTC/getETTimeOfDay in util/date/timeUtils.ts to re-anchor a date instead.",
+        },
+        {
+          selector:
             "CallExpression[callee.type='MemberExpression'][callee.property.name=/^(toLocaleDateString|toLocaleString|toLocaleTimeString)$/]",
           message:
             "Local-timezone Date formatting is banned outside util/date/** -- this app always displays fixed Eastern Time. Use the Intl.DateTimeFormat-based formatters in util/date/timeUtils.ts / util/date/timeFormat.tsx (all pinned timeZone: 'America/New_York') instead.",

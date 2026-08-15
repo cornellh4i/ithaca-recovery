@@ -18,6 +18,7 @@ import {
   formatETWeekdayLong,
   getETTimeOfDay,
 } from "../../../util/date/timeUtils";
+import { daysBetweenET } from "../../../util/date/weekDates";
 import { retryMeetingSync } from "../../../services/syncMeeting";
 import { useToast } from "../shared/ToastProvider";
 import { formatSuspensionStatusText } from "../../../util/meetings/suspensionText";
@@ -342,9 +343,11 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
         return false;
       }
 
-      const originalDate = new Date(startDateTime);
-      const diffTime = Math.abs(date.getTime() - originalDate.getTime());
-      const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+      // ET calendar-day difference, not a raw instant diff -- date (the occurrence being
+      // checked) and startDateTime aren't anchored to the same time-of-day (occurrence dates
+      // are noon-ET-anchored, see weekDates.ts), so diffing getTime() directly and flooring by
+      // 24h can undercount by a day and miscompute diffWeeks for interval > 1 patterns.
+      const diffDays = Math.abs(daysBetweenET(startDateTime, date));
       const diffWeeks = Math.floor(diffDays / 7);
 
       return diffWeeks % recurrencePattern.interval === 0;
@@ -362,10 +365,8 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
     // is correct regardless of the viewer's own timezone.
     const occurrenceDateStr = formatETDateString(currentOccurrenceDate);
     const { hour, minute, second } = getETTimeOfDay(startDateTime);
-    const pad = (n: number) => String(n).padStart(2, '0');
-    const newStartDate = new Date(
-      convertETToUTC(`${occurrenceDateStr}T${pad(hour)}:${pad(minute)}:${pad(second)}`)
-    );
+    // convertETToUTC's time-part parsing tolerates unpadded numbers, so no padStart needed.
+    const newStartDate = new Date(convertETToUTC(`${occurrenceDateStr}T${hour}:${minute}:${second}`));
 
     displayStartDate = newStartDate;
 

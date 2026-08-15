@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import { DayPicker } from "react-day-picker";
 import "react-day-picker/dist/style.css";
 import styles from "./MiniCalendar.module.scss";
-import { formatETWeekdayShort, isSameETMonth } from "../../../util/date/timeUtils";
 
 type MiniCalendarProps = {
   selectedDate: Date
@@ -12,8 +11,16 @@ type MiniCalendarProps = {
 const MiniCalendar: React.FC<MiniCalendarProps> = ({ selectedDate, onSelect }) => {
   const [currentMonth, setCurrentMonth] = useState(new Date(selectedDate));
 
+  // date and currentMonth are both local-midnight-anchored Dates from react-day-picker's own
+  // internal (date-fns) calendar generation -- deliberately compared via local getters, not
+  // an ET reinterpretation. Both sides share the same local-semantics construction, so this is
+  // a self-consistent comparison regardless of the runtime's zone; reformatting either side
+  // through ET can push a month-boundary cell (e.g. day 1) across a month it didn't actually
+  // cross, while a same-shift non-boundary reference date doesn't -- a real bug, not a fix. Same
+  // reasoning as DatePicker.tsx's stringToDate/handleDateSelect adapter-boundary comments.
   const isOutsideDay = (date: Date) => {
-    return !isSameETMonth(date, currentMonth);
+    // eslint-disable-next-line no-restricted-syntax -- see comment above
+    return date.getMonth() !== currentMonth.getMonth();
   };
 
   const handleDateSelect = (date: Date | undefined) => {
@@ -39,8 +46,11 @@ const MiniCalendar: React.FC<MiniCalendarProps> = ({ selectedDate, onSelect }) =
         }}
         defaultMonth={currentMonth}
         formatters={{
+          // Same local-semantics reasoning as isOutsideDay above -- these are react-day-picker's
+          // own reference dates for the header row, not real ET instants.
           formatWeekdayName: (date: Date) =>
-            formatETWeekdayShort(date).substring(0, 1),
+            // eslint-disable-next-line no-restricted-syntax -- see comment above
+            date.toLocaleDateString("en-US", { weekday: "short" }).substring(0, 1),
         }}
         required
       />
