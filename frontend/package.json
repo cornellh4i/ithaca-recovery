@@ -12,7 +12,7 @@
     "lint:css:fix": "stylelint --config config/stylelint.config.mjs \"{styles,app}/**/*.scss\" --fix",
     "commitlint": "commitlint --config config/commitlint.config.mjs",
     "postinstall": "prisma generate",
-    "typecheck": "tsc --noEmit -p .",
+    "typecheck": "node build-scripts/generate-docs-content.mjs && next typegen && tsc --noEmit -p .",
     "test:unit": "jest --config config/jest.config.ts",
     "test:component": "jest --config config/jest.component.config.ts",
     "test:integration": "jest --config config/jest.integration.config.ts",
