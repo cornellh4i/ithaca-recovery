@@ -7,6 +7,7 @@ import {
   sanitizeMeetingExportFields,
   type MeetingExportFieldKey,
 } from "../../../../util/meetings/meetingExportFields";
+import { MEETING_EXPORT_SETTINGS_ID } from "../../../../util/settings/singletonIds";
 import { prisma } from "../../../../lib/prisma";
 
 const notDeleted = { deletedAt: null };
@@ -84,7 +85,7 @@ export const GET = async () => {
 
     const [meetings, settings] = await Promise.all([
       loadMeetings(),
-      prisma.meetingExportSettings.findFirst(),
+      prisma.meetingExportSettings.findUnique({ where: { id: MEETING_EXPORT_SETTINGS_ID } }),
     ]);
     const selectedFields = new Set(
       settings ? sanitizeMeetingExportFields(settings.fields) : ALL_MEETING_EXPORT_FIELD_KEYS,

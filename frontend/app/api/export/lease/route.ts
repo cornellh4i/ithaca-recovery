@@ -3,6 +3,7 @@ import { requireRole } from "../../../../services/auth";
 import { defaultLeaseSettings } from "../../../../util/lease/leaseDefaults";
 import { formatDayColumn } from "../../../../util/meetings/recurrenceDisplay";
 import type { ILeaseSettings, IRoomRate } from "../../../../types/models";
+import { LEASE_SETTINGS_ID } from "../../../../util/settings/singletonIds";
 import { prisma } from "../../../../lib/prisma";
 import { getETTimeOfDay } from "../../../../util/date/timeUtils";
 
@@ -81,7 +82,7 @@ export const GET = async () => {
     const auth = await requireRole(Role.SUPER_ADMIN);
     if (auth instanceof Response) return auth;
 
-    const stored = await prisma.leaseSettings.findFirst();
+    const stored = await prisma.leaseSettings.findUnique({ where: { id: LEASE_SETTINGS_ID } });
     const settings: ILeaseSettings = stored
       ? { ...stored, rooms: stored.rooms as unknown as IRoomRate[] }
       : defaultLeaseSettings();

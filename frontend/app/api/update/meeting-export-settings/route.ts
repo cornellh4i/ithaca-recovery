@@ -2,9 +2,12 @@ import { NextResponse } from "next/server";
 import { Role } from "@prisma/client";
 import { requireRole } from "../../../../services/auth";
 import { sanitizeMeetingExportFields } from "../../../../util/meetings/meetingExportFields";
+import { MEETING_EXPORT_SETTINGS_ID } from "../../../../util/settings/singletonIds";
 import { prisma } from "../../../../lib/prisma";
 
-// Singleton settings row — updates the existing row if one exists, else creates it.
+// Singleton settings row, enforced by upserting on the fixed id (see schema.prisma) rather
+// than a read-then-create -- that race could otherwise create two rows under concurrent
+// initial writes.
 export const PUT = async (request: Request) => {
   try {
     const auth = await requireRole(Role.SUPER_ADMIN);
@@ -18,10 +21,11 @@ export const PUT = async (request: Request) => {
     // (e.g. a stale client sending a since-removed key).
     const fields = sanitizeMeetingExportFields((body.fields as string[] | undefined) ?? []);
 
-    const existing = await prisma.meetingExportSettings.findFirst();
-    const saved = existing
-      ? await prisma.meetingExportSettings.update({ where: { id: existing.id }, data: { fields } })
-      : await prisma.meetingExportSettings.create({ data: { fields } });
+    const saved = await prisma.meetingExportSettings.upsert({
+      where: { id: MEETING_EXPORT_SETTINGS_ID },
+      update: { fields },
+      create: { id: MEETING_EXPORT_SETTINGS_ID, fields },
+    });
 
     return NextResponse.json({ fields: saved.fields });
   } catch (error) {
