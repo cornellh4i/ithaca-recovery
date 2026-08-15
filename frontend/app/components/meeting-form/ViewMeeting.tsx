@@ -16,6 +16,7 @@ import {
   convertETToUTC,
   formatETDateString,
   getETTimeOfDay,
+  isDstGapError,
 } from "../../../util/date/timeUtils";
 import { retryMeetingSync } from "../../../services/syncMeeting";
 import { useToast } from "../shared/ToastProvider";
@@ -371,16 +372,25 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
     // day -- via convertETToUTC so this is correct regardless of the viewer's own timezone.
     const occurrenceDateStr = formatETDateString(currentOccurrenceDate);
     const { hour, minute, second } = getETTimeOfDay(startDateTime);
-    // convertETToUTC's time-part parsing tolerates unpadded numbers, so no padStart needed.
-    const newStartDate = new Date(convertETToUTC(`${occurrenceDateStr}T${hour}:${minute}:${second}`));
-    // Milliseconds have no timezone component -- getETTimeOfDay doesn't carry them, so restore
-    // directly from startDateTime rather than losing sub-second precision on the re-anchor.
-    newStartDate.setUTCMilliseconds(startDateTime.getUTCMilliseconds());
+    try {
+      // convertETToUTC's time-part parsing tolerates unpadded numbers, so no padStart needed.
+      const newStartDate = new Date(convertETToUTC(`${occurrenceDateStr}T${hour}:${minute}:${second}`));
+      // Milliseconds have no timezone component -- getETTimeOfDay doesn't carry them, so restore
+      // directly from startDateTime rather than losing sub-second precision on the re-anchor.
+      newStartDate.setUTCMilliseconds(startDateTime.getUTCMilliseconds());
 
-    displayStartDate = newStartDate;
+      displayStartDate = newStartDate;
 
-    const duration = endDateTime.getTime() - startDateTime.getTime();
-    displayEndDate = new Date(displayStartDate.getTime() + duration);
+      const duration = endDateTime.getTime() - startDateTime.getTime();
+      displayEndDate = new Date(displayStartDate.getTime() + duration);
+    } catch (err) {
+      // currentOccurrenceDate re-anchored onto this meeting's time-of-day lands in the DST
+      // spring-forward gap -- not currently reachable in practice (getMeetingsForRange already
+      // filters gap occurrences out before a date reaches this popup), guarded defensively so a
+      // future caller can't crash here. Falls back to the meeting's own stored start/end.
+      if (!isDstGapError(err)) throw err;
+      console.warn(`Could not re-anchor onto ${occurrenceDateStr}: ${err.message}`);
+    }
   }
 
   // Suspend's effective start date is the clicked occurrence's date, clamped to never be

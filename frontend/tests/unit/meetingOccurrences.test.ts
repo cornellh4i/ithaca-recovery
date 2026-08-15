@@ -1,5 +1,5 @@
-import { matchesRecurrencePattern, adjustOccurrenceToDate } from "../../util/meetings/meetingOccurrences";
-import { convertETToUTC } from "../../util/date/timeUtils";
+import { matchesRecurrencePattern, adjustOccurrenceToDate, calculateEndDateFromOccurrences } from "../../util/meetings/meetingOccurrences";
+import { convertETToUTC, formatETDateString } from "../../util/date/timeUtils";
 
 // startDate/localDate are UTC-midnight-anchored representations of an ET
 // calendar date (not real UTC instants of the meeting's actual start time) —
@@ -119,5 +119,37 @@ describe("adjustOccurrenceToDate", () => {
     const { start, end } = adjustOccurrenceToDate(meeting, "2026-08-31");
     expect(start.toISOString()).toBe(new Date(convertETToUTC("2026-08-31T23:00:00")).toISOString());
     expect(end.toISOString()).toBe(new Date(convertETToUTC("2026-09-01T01:00:00")).toISOString());
+  });
+});
+
+describe("calculateEndDateFromOccurrences — monthly day-of-month clamping", () => {
+  // Regression: a "day 31" monthly pattern whose Nth occurrence lands in a shorter month (e.g.
+  // February) used to build an out-of-range calendar date string like "2026-02-31" -- which
+  // convertETToUTC now rejects instead of Date.UTC silently rolling it over to March 2/3.
+  // day must clamp to the target month's real last day (Feb 28 in 2026, a non-leap year).
+  it("clamps a day-31 pattern to February's real last day instead of throwing", () => {
+    const endDate = calculateEndDateFromOccurrences(
+      utcDate(2026, 1, 31), // series starts Jan 31, 2026
+      [],
+      2, // 2nd occurrence is one month later, landing in February
+      1,
+      "monthly",
+      null,
+      31,
+    );
+    expect(formatETDateString(endDate)).toBe("2026-02-28");
+  });
+
+  it("does not clamp when the target month actually has that many days", () => {
+    const endDate = calculateEndDateFromOccurrences(
+      utcDate(2026, 1, 31),
+      [],
+      1, // 1st occurrence stays in January, which has 31 days
+      1,
+      "monthly",
+      null,
+      31,
+    );
+    expect(formatETDateString(endDate)).toBe("2026-01-31");
   });
 });

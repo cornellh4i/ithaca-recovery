@@ -1,6 +1,6 @@
 import "server-only";
 import { Meeting, RecurrencePattern, SuspensionPeriod } from "@prisma/client";
-import { formatETDateString } from "../date/timeUtils";
+import { formatETDateString, isDstGapError } from "../date/timeUtils";
 import { isDateSuspended, adjustOccurrenceToDate, firstOccurrenceOnOrAfter } from "./meetingOccurrences";
 import { calendarIdsForMeeting, createCalendarEvent, deleteCalendarEvent } from "../../services/googleCalendar";
 import { IMeeting } from "../../types/models";
@@ -126,7 +126,20 @@ export async function createPendingResumeSeries(
     );
     if (!resumeDateStr) return { resumeEventIds: {}, error: null };
     recordUnconfiguredCat();
-    const { start, end } = adjustOccurrenceToDate(meeting, resumeDateStr);
+    // adjustOccurrenceToDate throws if the resume occurrence's ET start/end time lands in the
+    // DST spring-forward gap on this date (the one day/year that time doesn't exist) -- treated
+    // as nothing to pre-create rather than crashing the whole suspend/resume request. Any other
+    // error means a real bug and should propagate instead of being reported as this specific,
+    // admin-facing message.
+    let start: Date, end: Date;
+    try {
+      ({ start, end } = adjustOccurrenceToDate(meeting, resumeDateStr));
+    } catch (err) {
+      if (!isDstGapError(err)) throw err;
+      // googleSyncError is shown verbatim in the admin UI (ViewMeeting's sync-status line) --
+      // this is a reworded, admin-appropriate message, not convertETToUTC's internal one.
+      return { resumeEventIds: {}, error: "Could not compute the resume time — it falls in a DST transition gap." };
+    }
     const resumeMeeting = toCalendarMeeting(meeting, start, end);
     for (const [cat, calId] of Object.entries(calendarIds)) {
       const { id, error: createError } = await createCalendarEvent(accessToken, resumeMeeting, calId);

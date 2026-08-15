@@ -8,43 +8,26 @@ import { NextRequest } from 'next/server';
 // top out at MAX_DAYS (7), so a well-formed request never approaches this.
 const MAX_RANGE_DAYS = 31;
 
-// toETDateString passes a "YYYY-MM-DD"-shaped string through unvalidated (see its own
-// comment) -- a value like "2024-02-31" matches the shape but isn't a real calendar date.
-// Round-tripping through Date.UTC and comparing the parts back out catches that: an invalid
-// day/month rolls over onto a different date, so the parts no longer match what was given.
-const isValidCalendarDateString = (dateStr: string): boolean => {
-    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateStr);
-    if (!match) return false;
-    const [year, month, day] = [Number(match[1]), Number(match[2]), Number(match[3])];
-    const date = new Date(Date.UTC(year, month - 1, day));
-    return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day;
-};
-
 const retrieveRangeMeetings = async (request: NextRequest) => {
     try {
         const startParam = request.nextUrl.searchParams.get("startDate") ?? new Date().toISOString();
         const endParam = request.nextUrl.searchParams.get("endDate") ?? startParam;
 
-        // toETDateString throws (Intl.DateTimeFormat rejects an unparseable Date) for input
-        // that's neither "YYYY-MM-DD"-shaped nor a valid date string at all (e.g. "not-a-date")
-        // -- caught here so that's a 400 (bad request), not a 500 from the outer catch below.
+        // toETDateString throws for input that's neither "YYYY-MM-DD"-shaped nor a valid date
+        // string at all (e.g. "not-a-date"), and also for a "YYYY-MM-DD"-shaped string that
+        // isn't a real calendar date (e.g. "2024-02-31") -- caught here so that's a 400 (bad
+        // request), not a 500 from the outer catch below.
         let startEtDateStr: string, endEtDateStr: string;
         try {
             startEtDateStr = toETDateString(startParam);
             endEtDateStr = toETDateString(endParam);
         } catch {
-            return new Response(JSON.stringify({ error: "startDate/endDate must be valid dates" }), {
-                status: 400,
-                headers: { 'Content-Type': 'application/json' },
-            });
-        }
-
-        if (!isValidCalendarDateString(startEtDateStr) || !isValidCalendarDateString(endEtDateStr)) {
             return new Response(JSON.stringify({ error: "startDate/endDate must be valid calendar dates" }), {
                 status: 400,
                 headers: { 'Content-Type': 'application/json' },
             });
         }
+
         if (endEtDateStr < startEtDateStr) {
             return new Response(JSON.stringify({ error: "endDate must not precede startDate" }), {
                 status: 400,

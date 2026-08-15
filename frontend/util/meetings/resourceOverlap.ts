@@ -1,7 +1,7 @@
 import "server-only";
 import { Prisma } from "@prisma/client";
 import { prisma } from "../../lib/prisma";
-import { formatETDateString } from "../date/timeUtils";
+import { formatETDateString, isDstGapError } from "../date/timeUtils";
 import { matchesRecurrencePattern, adjustOccurrenceToDate, isDateSuspended } from "./meetingOccurrences";
 
 type SuspensionWindow = { from: Date; to: Date | null };
@@ -104,8 +104,18 @@ export function expandOccurrences(
 
     if (!matchesRecurrencePattern(pattern, etDateStr, localDate)) continue;
 
-    const { start, end } = adjustOccurrenceToDate(meeting, etDateStr);
-    occurrences.push({ start, end });
+    // adjustOccurrenceToDate throws when this occurrence's ET start/end time lands in the DST
+    // spring-forward gap on this particular date -- isolated per-occurrence so one unrenderable
+    // occurrence in a long expansion doesn't abort the whole conflict scan.
+    try {
+      const { start, end } = adjustOccurrenceToDate(meeting, etDateStr);
+      occurrences.push({ start, end });
+    } catch (err) {
+      // Only the DST spring-forward gap is expected here -- any other error means a real bug,
+      // which should surface, not get silently dropped alongside a merely-logged DST edge case.
+      if (!isDstGapError(err)) throw err;
+      console.warn(`Skipping occurrence on ${etDateStr}: ${err.message}`);
+    }
   }
 
   return occurrences;
