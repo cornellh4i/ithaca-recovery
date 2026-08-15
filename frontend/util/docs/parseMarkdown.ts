@@ -1,4 +1,4 @@
-import { marked, Renderer, Lexer, Parser, TextRenderer, type Tokens } from "marked";
+import { marked, Renderer, Parser, type Tokens } from "marked";
 
 export interface TocItem {
   level: number;
@@ -14,12 +14,14 @@ export function slugify(text: string): string {
 }
 
 // Strips markdown syntax down to its rendered text (e.g. "[User Guide](url)" -> "User Guide"),
-// via marked's own TextRenderer -- reused for both the slug and the TOC label below, so a
+// via marked's own Parser.textRenderer -- reused for both the slug and the TOC label below, so a
 // heading written as a markdown link doesn't leave "[User Guide](url)"-style raw syntax in the
-// slug or in DocsTocList's sidebar (which renders TocItem.text as plain text, not HTML).
-const textRenderer = new TextRenderer();
-function headingPlainText(raw: string): string {
-  return Parser.parseInline(Lexer.lexInline(raw), { renderer: textRenderer });
+// slug or in DocsTocList's sidebar (which renders TocItem.text as plain text, not HTML). Takes the
+// heading token's already-lexed `tokens` (not the raw source string) to avoid re-lexing the same
+// text a renderer.heading call already has tokens for.
+const plainTextParser = new Parser();
+function headingPlainText(tokens: Tokens.Heading["tokens"]): string {
+  return plainTextParser.parseInline(tokens, plainTextParser.textRenderer);
 }
 
 const CALLOUT_LABELS: Record<string, string> = {
@@ -78,11 +80,11 @@ export function parseMarkdown(markdown: string): { html: string; toc: TocItem[] 
     const bodyHtml = marked.parser(marked.lexer(body), { renderer });
     return `<div class="callout callout-${kind.toLowerCase()}"><p class="calloutLabel">${calloutIconSvg(kind)}${CALLOUT_LABELS[kind]}</p>${bodyHtml}</div>\n`;
   };
-  renderer.heading = ({ text, depth }: Tokens.Heading) => {
+  renderer.heading = ({ text, depth, tokens }: Tokens.Heading) => {
     // Repeated heading text (e.g. two "Overview" sections in one doc) would otherwise collide on
     // both the rendered element's id and the TOC's own slug -- a fragment link then always jumps
     // to the first match, and DocsTocList's `key={item.slug}` would collide too.
-    const plainText = headingPlainText(text);
+    const plainText = headingPlainText(tokens);
     const baseSlug = slugify(plainText) || "section";
     const count = slugCounts.get(baseSlug) ?? 0;
     slugCounts.set(baseSlug, count + 1);
