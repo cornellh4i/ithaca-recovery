@@ -1,5 +1,5 @@
 import "server-only";
-import { getETDayBounds, convertETToUTC, addDaysToETDateString } from "../date/timeUtils";
+import { getETDayBounds, convertETToUTC, addDaysToETDateString, getDaysInMonth, isDstGapError } from "../date/timeUtils";
 import { prisma } from "../../lib/prisma";
 import { PublicMeeting, toPublicMeeting } from "./publicMeeting";
 import { isDateSuspended, isAfterSeriesEnd, matchesRecurrencePattern, addOneETDay, adjustOccurrenceToDate } from "./recurrenceMatch";
@@ -151,7 +151,11 @@ export const getMeetingsForRange = async (
             try {
                 ({ start, end } = adjustOccurrenceToDate(meeting, etDateStr));
             } catch (err) {
-                console.warn(`Skipping occurrence of meeting ${meeting.id} on ${etDateStr}: ${err instanceof Error ? err.message : err}`);
+                // Only the DST spring-forward gap is expected here -- any other error means a
+                // real bug (e.g. malformed meeting data), which should surface, not get silently
+                // dropped from the calendar alongside a merely-console-logged DST edge case.
+                if (!isDstGapError(err)) throw err;
+                console.warn(`Skipping occurrence of meeting ${meeting.id} on ${etDateStr}: ${err.message}`);
                 continue;
             }
             // Only relevant on the lead-in day if it actually spills into the requested range --
@@ -220,8 +224,7 @@ export function calculateEndDateFromOccurrences(
         // on Feb 28/29 rather than building an out-of-range calendar date like "2026-02-31",
         // which convertETToUTC now rejects instead of silently rolling it into March.
         const toETDate = (day: number) => {
-            const daysInTargetMonth = new Date(Date.UTC(targetYear, targetMonth + 1, 0)).getUTCDate();
-            const clampedDay = Math.min(day, daysInTargetMonth);
+            const clampedDay = Math.min(day, getDaysInMonth(targetYear, targetMonth + 1));
             return new Date(convertETToUTC(
                 `${targetYear}-${String(targetMonth + 1).padStart(2, '0')}-${String(clampedDay).padStart(2, '0')}T23:59:59`
             ));
@@ -233,7 +236,7 @@ export function calculateEndDateFromOccurrences(
 
         if (weekOfMonth != null && daysOfWeek.length > 0) {
             const targetDay = dayNameToIndex[daysOfWeek[0]];
-            const daysInMonth = new Date(Date.UTC(targetYear, targetMonth + 1, 0)).getUTCDate();
+            const daysInMonth = getDaysInMonth(targetYear, targetMonth + 1);
 
             if (weekOfMonth === -1) {
                 for (let d = daysInMonth; d >= 1; d--) {

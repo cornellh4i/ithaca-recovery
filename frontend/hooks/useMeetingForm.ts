@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 import { IMeeting, IRecurrencePattern } from '../types/models';
-import { convertUTCToET, convertETToUTC, formatETDateString, getWeekDatesET, getCurrentETMinutesSinceMidnight } from '../util/date/timeUtils';
+import { convertUTCToET, convertETToUTC, formatETDateString, getWeekDatesET, getCurrentETMinutesSinceMidnight, isConvertETToUTCValidationError, isDstGapError } from '../util/date/timeUtils';
 import { roomToZoomRoom } from '../util/rooms/rooms';
 import { DESCRIPTION_MAX_LENGTH, MAX_RECURRENCE_OCCURRENCES } from '../util/meetings/meetingValidation';
 
@@ -68,20 +68,44 @@ function isoToPickerDate(isoDate: string): string {
     return `${month}/${day}/${year}`;
 }
 
-// Wraps convertETToUTC, returning null instead of throwing -- a DST spring-forward-gap time
-// (e.g. 2:30 AM on the 2nd Sunday of March) has no valid ET instant. Shared by
-// getValidationErrors (surfaces it as a normal field error) and buildMeetingPayload (a
-// defensive fallback so a bad time can't throw during render via ZoomHostField's getCandidate(),
-// which calls buildMeetingPayload directly, not just on submit).
+// Wraps convertETToUTC, returning null instead of throwing -- e.g. a DST spring-forward-gap
+// time (2:30 AM on the 2nd Sunday of March) has no valid ET instant, same as toISODate's own
+// string rearrangement not calendar-validating a typed "02/30/2026". Used by buildMeetingPayload
+// as a defensive fallback so a bad date/time can't throw during render via ZoomHostField's
+// getCandidate(), which calls buildMeetingPayload directly, not just on submit. getValidationErrors
+// below uses describeTimeValidationError instead, since it needs to know *which* failure this was
+// to show the right message -- this wrapper only needs "did it fail," not "why."
 function tryConvertETToUTC(etDateStr: string, etTimeStr: string): Date | null {
     try {
         return new Date(convertETToUTC(`${etDateStr}T${etTimeStr}`));
     } catch (err) {
-        // Only convertETToUTC's own documented validation failures (all prefixed "convertETToUTC:")
-        // mean "this input was invalid" -- anything else is unexpected and should propagate.
-        if (err instanceof Error && err.message.startsWith('convertETToUTC:')) return null;
+        // Only convertETToUTC's own documented validation failures mean "this input was invalid"
+        // -- anything else is unexpected and should propagate.
+        if (isConvertETToUTCValidationError(err)) return null;
         throw err;
     }
+}
+
+// Distinguishes convertETToUTC's failure modes so getValidationErrors can show a message that
+// actually matches what's wrong, instead of always blaming DST -- e.g. typing "02/30/2026" round-
+// trips through toISODate (plain string rearrangement, no calendar validation) and fails
+// convertETToUTC's calendar-date check, not its DST-gap one. Returns null if both times convert
+// cleanly.
+function describeTimeValidationError(etDateStr: string, startTime: string, endTime: string): string | null {
+    for (const etTimeStr of [startTime, endTime]) {
+        try {
+            convertETToUTC(`${etDateStr}T${etTimeStr}`);
+        } catch (err) {
+            if (isDstGapError(err)) {
+                return "This time doesn't exist due to the daylight saving time change in March — please pick a different time.";
+            }
+            if (isConvertETToUTCValidationError(err)) {
+                return "This isn't a valid date — please check the day and month.";
+            }
+            throw err;
+        }
+    }
+    return null;
 }
 
 // "YYYY-MM-DD" -> the next calendar day's "YYYY-MM-DD". Uses Date.UTC purely as a calendar
@@ -247,16 +271,13 @@ export function useMeetingForm(initialMeeting?: IMeeting, defaultContext?: Meeti
             errors.push({ fields: ["time"], message: "Start and end time are required." });
         } else {
             const isoDateValue = toISODate(date);
-            // A date/time combination that falls in the DST spring-forward gap (~2:00-2:59 AM
-            // ET on the 2nd Sunday of March) has no valid ET instant -- surfaced here as a
-            // normal, correctable validation error rather than buildMeetingPayload silently
-            // returning null (or, before this check existed, throwing) on submit.
-            if (isoDateValue && (!tryConvertETToUTC(isoDateValue, startTime) || !tryConvertETToUTC(isoDateValue, endTime))) {
-                errors.push({
-                    fields: ["date", "time"],
-                    message: "This time doesn't exist due to the daylight saving time change in March — please pick a different time.",
-                });
-            }
+            // Catches both an invalid calendar date (e.g. typed "02/30/2026" -- toISODate is
+            // plain string rearrangement, no calendar validation) and a DST spring-forward-gap
+            // time -- surfaced here as a normal, correctable validation error rather than
+            // buildMeetingPayload silently returning null (or, before this check existed,
+            // throwing) on submit.
+            const timeError = isoDateValue ? describeTimeValidationError(isoDateValue, startTime, endTime) : null;
+            if (timeError) errors.push({ fields: ["date", "time"], message: timeError });
         }
 
         if (!email.trim()) {

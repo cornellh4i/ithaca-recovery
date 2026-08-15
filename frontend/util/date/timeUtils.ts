@@ -113,6 +113,25 @@ export const convertETToUTC = (etDateString: string): string => {
 };
 
 /**
+ * True if `err` is one of convertETToUTC's own documented validation failures (calendar-invalid
+ * date, invalid time-of-day, or the DST spring-forward gap) -- every one of its throws is
+ * prefixed "convertETToUTC:". Callers use this to distinguish "this input was invalid" from an
+ * unrelated, unexpected error, which should propagate rather than being silently swallowed.
+ */
+export const isConvertETToUTCValidationError = (err: unknown): err is Error =>
+  err instanceof Error && err.message.startsWith('convertETToUTC:');
+
+/**
+ * True specifically for convertETToUTC's DST spring-forward-gap rejection -- narrower than
+ * isConvertETToUTCValidationError above, for callers (e.g. occurrence-expansion loops) that pass
+ * already-validated ET date/time components and should only ever hit this one failure mode; any
+ * other convertETToUTC validation failure there would mean a real bug upstream, not a DST edge
+ * case, and shouldn't be silently swallowed the same way.
+ */
+export const isDstGapError = (err: unknown): err is Error =>
+  isConvertETToUTCValidationError(err) && err.message.includes('spring-forward gap');
+
+/**
  * Returns the UTC start (midnight ET) and end (23:59:59.999 ET) for a given
  * ET calendar date.  Use this for day-boundary queries so DST is handled
  * correctly without hardcoded hour offsets.
@@ -206,9 +225,9 @@ export const parseMMDDYYYY = (value: string): Date | null => {
     return parsed;
   } catch (err) {
     // Only convertETToUTC's own documented validation failures mean "this input was invalid" --
-    // every one of its throws is prefixed "convertETToUTC:". Anything else is unexpected and
-    // should propagate as a real bug rather than being silently swallowed as "null".
-    if (err instanceof Error && err.message.startsWith('convertETToUTC:')) return null;
+    // anything else is unexpected and should propagate as a real bug rather than being silently
+    // swallowed as "null".
+    if (isConvertETToUTCValidationError(err)) return null;
     throw err;
   }
 };
