@@ -28,10 +28,19 @@ export const zoomHostPool: string[] = (process.env.ZOOM_HOSTS ?? "")
 // a burst of Zoom API calls (e.g. bulk meeting creation, each of which hits this 3+ times)
 // fires one token request instead of one per call -- Zoom rate-limits the token endpoint itself.
 let cachedZoomToken: { token: string; expiresAt: number } | null = null;
-const ZOOM_TOKEN_CACHE_MS = 50 * 60 * 1000; // 50min, margin under Zoom's ~60min expiry
+// Safety margin subtracted from Zoom's own `expires_in`, not a hardcoded assumption about
+// token lifetime -- covers clock drift and in-flight requests started just before expiry.
+const ZOOM_TOKEN_SAFETY_MARGIN_MS = 10 * 60 * 1000;
+const ZOOM_TOKEN_FALLBACK_TTL_MS = 50 * 60 * 1000; // used only if expires_in is ever missing
 
-async function getZoomAccessToken(): Promise<string | null> {
-  if (cachedZoomToken && cachedZoomToken.expiresAt > Date.now()) return cachedZoomToken.token;
+// `forceRefresh` bypasses the cache and always hits the token endpoint -- used exclusively by
+// checkZoomReachable (the Diagnostics health check). Without it, a revoked credential or a real
+// Zoom outage would stay masked by a healthy-looking cached token for up to its full TTL, since
+// no other caller of this function has a reason to skip the cache.
+async function getZoomAccessToken(forceRefresh = false): Promise<string | null> {
+  if (!forceRefresh && cachedZoomToken && cachedZoomToken.expiresAt > Date.now()) {
+    return cachedZoomToken.token;
+  }
 
   try {
     const clientId = process.env.ZOOM_CLIENT_ID;
@@ -51,7 +60,11 @@ async function getZoomAccessToken(): Promise<string | null> {
     if (!res.ok) return null;
     const data = await res.json();
     const token = data.access_token ?? null;
-    if (token) cachedZoomToken = { token, expiresAt: Date.now() + ZOOM_TOKEN_CACHE_MS };
+    if (token) {
+      const expiresInMs = typeof data.expires_in === "number" ? data.expires_in * 1000 : ZOOM_TOKEN_FALLBACK_TTL_MS;
+      const ttlMs = Math.max(expiresInMs - ZOOM_TOKEN_SAFETY_MARGIN_MS, 0);
+      cachedZoomToken = { token, expiresAt: Date.now() + ttlMs };
+    }
     return token;
   } catch (error) {
     console.error("Zoom getAccessToken error:", error);
@@ -59,8 +72,17 @@ async function getZoomAccessToken(): Promise<string | null> {
   }
 }
 
+// Called wherever a cached token is used against a non-token-endpoint Zoom API call -- a 401
+// there means the cached token was revoked/expired early (credential rotation, app
+// deactivated), not that the request itself was malformed. Evicting it here, rather than
+// waiting out the cache TTL, lets the next call self-heal with a fresh token instead of every
+// Zoom call failing silently for up to the rest of the cache window.
+function invalidateZoomTokenIfUnauthorized(res: Response): void {
+  if (res.status === 401) cachedZoomToken = null;
+}
+
 export async function checkZoomReachable(): Promise<boolean> {
-  return (await getZoomAccessToken()) !== null;
+  return (await getZoomAccessToken(true)) !== null;
 }
 
 // Per-host pool validity: confirms each ZOOM_HOSTS entry resolves to a real user on the
@@ -79,6 +101,7 @@ export async function checkZoomHostPool(): Promise<Record<string, { ok: boolean;
       const res = await fetch(`${ZOOM_BASE_API}/users/${encodeURIComponent(email)}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
+      invalidateZoomTokenIfUnauthorized(res);
       if (!res.ok) return [email, { ok: false, licensed: null }];
       const data = await res.json();
       return [email, { ok: true, licensed: data.type === 2 }];
@@ -164,6 +187,7 @@ export async function createZoomMeeting(meeting: IMeeting, hostEmail: string): P
       headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
       body: JSON.stringify(buildZoomMeetingBody(meeting)),
     });
+    invalidateZoomTokenIfUnauthorized(res);
     if (!res.ok) {
       console.error("Zoom createMeeting error:", await res.text());
       return null;
@@ -187,6 +211,7 @@ export async function getZoomMeetingInvitation(zid: string): Promise<string | nu
     const res = await fetch(`${ZOOM_BASE_API}/meetings/${zid}/invitation`, {
       headers: { Authorization: `Bearer ${token}` },
     });
+    invalidateZoomTokenIfUnauthorized(res);
     if (!res.ok) {
       console.error("Zoom getMeetingInvitation error:", await res.text());
       return null;
@@ -209,6 +234,7 @@ export async function updateZoomMeeting(zid: string, meeting: IMeeting): Promise
       headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
       body: JSON.stringify(buildZoomMeetingBody(meeting)),
     });
+    invalidateZoomTokenIfUnauthorized(res);
     if (!res.ok) console.error("Zoom updateMeeting error:", await res.text());
     return res.ok;
   } catch (error) {
@@ -226,6 +252,7 @@ export async function deleteZoomMeeting(zid: string): Promise<boolean> {
       method: "DELETE",
       headers: { Authorization: `Bearer ${token}` },
     });
+    invalidateZoomTokenIfUnauthorized(res);
     if (!res.ok) console.error("Zoom deleteMeeting error:", await res.text());
     return res.ok;
   } catch (error) {
