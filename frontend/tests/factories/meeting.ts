@@ -1,9 +1,13 @@
 import { randomUUID } from "crypto";
-import { Meeting, RecurrencePattern, SuspensionPeriod } from "@prisma/client";
+import { Meeting, Prisma, RecurrencePattern, SuspensionPeriod } from "@prisma/client";
 import { getTestPrismaClient } from "./db";
 import { convertETToUTC, formatETDateString } from "../../util/date/timeUtils";
 
-export async function seedMeeting(overrides: Partial<Meeting> = {}): Promise<Meeting> {
+// Overrides are typed against Prisma's *create* input, not the `Meeting`/`SuspensionPeriod`
+// model (query-result) types -- those disagree on nullable Json fields (the model type allows
+// plain `null`, Prisma's create input requires `Prisma.JsonNull` instead), which otherwise
+// makes every override object here fail to typecheck against `.create()`'s `data`.
+export async function seedMeeting(overrides: Partial<Prisma.MeetingCreateInput> = {}): Promise<Meeting> {
   const prisma = getTestPrismaClient();
   // Today's date in ET — used as the default day for seeded meetings so they
   // reliably show up in Day/Week view without hardcoded dates going stale.
@@ -29,7 +33,7 @@ export async function seedMeeting(overrides: Partial<Meeting> = {}): Promise<Mee
 }
 
 export async function seedRecurringMeeting(
-  overrides: Partial<Meeting> = {},
+  overrides: Partial<Prisma.MeetingCreateInput> = {},
   recurrenceOverrides: Partial<RecurrencePattern> = {},
 ): Promise<{ meeting: Meeting; recurrencePattern: RecurrencePattern }> {
   const prisma = getTestPrismaClient();
@@ -51,7 +55,10 @@ export async function seedRecurringMeeting(
 
 export async function seedSuspensionPeriod(
   mid: string,
-  overrides: Partial<SuspensionPeriod> = {},
+  // Unchecked variant, not the (default) relation-based one -- `mid` below is the scalar FK,
+  // and mixing it with the relation-based input's optional `meeting` field breaks Prisma's
+  // checked/unchecked discriminated union.
+  overrides: Partial<Prisma.SuspensionPeriodUncheckedCreateInput> = {},
 ): Promise<SuspensionPeriod> {
   const prisma = getTestPrismaClient();
   return prisma.suspensionPeriod.create({
@@ -64,7 +71,7 @@ export async function seedSuspensionPeriod(
   });
 }
 
-export async function seedSuspendedMeeting(overrides: Partial<Meeting> = {}): Promise<Meeting> {
+export async function seedSuspendedMeeting(overrides: Partial<Prisma.MeetingCreateInput> = {}): Promise<Meeting> {
   const meeting = await seedMeeting({ status: "Suspended", ...overrides });
   await seedSuspensionPeriod(meeting.mid);
   return meeting;
@@ -75,7 +82,7 @@ export async function seedSuspendedMeeting(overrides: Partial<Meeting> = {}): Pr
 // than inserting one at a time. Anchored to today (ET) rather than a fixed date
 // literal so fixtures don't silently drift outside a rolling conflict-detection
 // window months/years after being written.
-export function buildMeetingData(overrides: Partial<Meeting> = {}) {
+export function buildMeetingData(overrides: Partial<Prisma.MeetingCreateInput> = {}) {
   const etDate = formatETDateString(new Date());
   return {
     mid: `m-${randomUUID()}`,

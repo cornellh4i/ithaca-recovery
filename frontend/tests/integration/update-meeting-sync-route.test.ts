@@ -1,4 +1,4 @@
-import type { Meeting } from "@prisma/client";
+import type { Prisma } from "@prisma/client";
 
 jest.mock("../../services/auth", () => ({
   requireRole: jest.fn().mockResolvedValue({
@@ -36,7 +36,7 @@ const mockedCreateZoomMeeting = createZoomMeeting as jest.Mock;
 const mockedUpdateZoomMeeting = updateZoomMeeting as jest.Mock;
 const mockedReconcileMeetingCalendars = reconcileMeetingCalendars as jest.Mock;
 
-function buildMeetingData(overrides: Partial<Meeting> = {}) {
+function buildMeetingData(overrides: Partial<Prisma.MeetingCreateInput> = {}) {
   return buildBaseMeetingData({
     title: "Retry Sync Meeting",
     modeType: "Remote",
@@ -153,7 +153,7 @@ test("a retry reserves the resolved pool host before calling the Zoom API, and k
 // already exist" -- an already-synced meeting's zid persists across retries regardless of
 // whether this retry itself succeeds, so !zid alone can't tell the two cases apart.
 describe("retrying an already-synced meeting (existing zid)", () => {
-  function buildSyncedMeetingData(overrides: Partial<Meeting> = {}) {
+  function buildSyncedMeetingData(overrides: Partial<Prisma.MeetingCreateInput> = {}) {
     return buildMeetingData({
       title: "Already Synced Meeting",
       modeType: "Remote",

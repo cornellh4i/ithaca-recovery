@@ -1,5 +1,5 @@
 import { randomUUID } from "crypto";
-import type { Meeting } from "@prisma/client";
+import type { Prisma } from "@prisma/client";
 
 jest.mock("../../services/auth", () => ({
   requireRole: jest.fn().mockResolvedValue({
@@ -25,7 +25,7 @@ import { GET as getMeetingCounts } from "../../app/api/admin/diagnostics/meeting
 import { GET as getSyncIssues } from "../../app/api/admin/diagnostics/sync-issues/route";
 import { GET as getSuspended } from "../../app/api/admin/diagnostics/suspended/route";
 
-function buildMeetingData(overrides: Partial<Meeting> = {}) {
+function buildMeetingData(overrides: Partial<Prisma.MeetingCreateInput> = {}) {
   return buildBaseMeetingData({ title: "Diagnostics Count Meeting", ...overrides });
 }
 
