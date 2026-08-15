@@ -1,4 +1,5 @@
 import { randomUUID } from "crypto";
+import type { Prisma } from "@prisma/client";
 import type { IMeeting } from "../../types/models";
 
 // Next's after() throws when called outside a real request scope, which route handlers
@@ -80,6 +81,13 @@ function buildMeetingPayload(overrides: Partial<IMeeting> = {}): IMeeting {
   };
 }
 
+// Bridges an IMeeting wire payload into what `prisma.meeting.create()` accepts directly --
+// `recurrencePattern` is a related model, not a Meeting column, and Prisma's Json field typing
+// wants `undefined` for "not provided" rather than IMeeting's `null`.
+function toMeetingCreateInput({ recurrencePattern: _recurrencePattern, googleCalendarEventIds, ...rest }: IMeeting): Prisma.MeetingUncheckedCreateInput {
+  return { ...rest, googleCalendarEventIds: googleCalendarEventIds ?? undefined };
+}
+
 afterAll(async () => {
   await disconnectTestPrismaClient();
 });
@@ -132,7 +140,7 @@ test("a same-room time edit that now conflicts with another meeting on the same 
   // Occupies the shared host at the *new* time we're about to move the edited meeting into —
   // a different room, since this is a host conflict, not a room conflict.
   const busyMid = `m-${randomUUID()}`;
-  const { recurrencePattern: _rp1, ...busyMeetingData } = buildMeetingPayload({
+  const busyMeetingData = toMeetingCreateInput(buildMeetingPayload({
     mid: busyMid,
     modeType: "Hybrid",
     room: "Fellowship Room",
@@ -141,11 +149,11 @@ test("a same-room time edit that now conflicts with another meeting on the same 
     zoomHost: sharedHost,
     startDateTime: new Date("2026-09-01T20:00:00Z"),
     endDateTime: new Date("2026-09-01T21:00:00Z"),
-  });
+  }));
   await prisma.meeting.create({ data: busyMeetingData });
 
   const editedMid = `m-${randomUUID()}`;
-  const { recurrencePattern: _rp2, ...editedMeetingData } = buildMeetingPayload({
+  const editedMeetingData = toMeetingCreateInput(buildMeetingPayload({
     mid: editedMid,
     modeType: "Hybrid",
     room: "Serenity Room",
@@ -154,7 +162,7 @@ test("a same-room time edit that now conflicts with another meeting on the same 
     zoomHost: sharedHost,
     startDateTime: new Date("2026-09-01T15:00:00Z"),
     endDateTime: new Date("2026-09-01T16:00:00Z"),
-  });
+  }));
   await prisma.meeting.create({ data: editedMeetingData });
 
   // Same room/Zoom room/host as before — only the time moves, into busyMid's window.
@@ -196,15 +204,15 @@ test("editing a meeting into a room that's already booked is rejected with 409 +
   const end = new Date("2026-09-02T19:00:00Z");
 
   const busyMid = `m-${randomUUID()}`;
-  const { recurrencePattern: _rp1, ...busyMeetingData } = buildMeetingPayload({
+  const busyMeetingData = toMeetingCreateInput(buildMeetingPayload({
     mid: busyMid, room: "Fellowship Room", startDateTime: start, endDateTime: end,
-  });
+  }));
   await prisma.meeting.create({ data: busyMeetingData });
 
   const editedMid = `m-${randomUUID()}`;
-  const { recurrencePattern: _rp2, ...editedMeetingData } = buildMeetingPayload({
+  const editedMeetingData = toMeetingCreateInput(buildMeetingPayload({
     mid: editedMid, room: "Serenity Room", startDateTime: start, endDateTime: end,
-  });
+  }));
   const original = await prisma.meeting.create({ data: editedMeetingData });
 
   const payload = buildMeetingPayload({
@@ -235,15 +243,15 @@ test("confirmOverride: true bypasses the room conflict check and saves the edit 
   const end = new Date("2026-09-03T19:00:00Z");
 
   const busyMid = `m-${randomUUID()}`;
-  const { recurrencePattern: _rp1, ...busyMeetingData } = buildMeetingPayload({
+  const busyMeetingData = toMeetingCreateInput(buildMeetingPayload({
     mid: busyMid, room: "Fellowship Room", startDateTime: start, endDateTime: end,
-  });
+  }));
   await prisma.meeting.create({ data: busyMeetingData });
 
   const editedMid = `m-${randomUUID()}`;
-  const { recurrencePattern: _rp2, ...editedMeetingData } = buildMeetingPayload({
+  const editedMeetingData = toMeetingCreateInput(buildMeetingPayload({
     mid: editedMid, room: "Serenity Room", startDateTime: start, endDateTime: end,
-  });
+  }));
   await prisma.meeting.create({ data: editedMeetingData });
 
   const payload = {
@@ -282,7 +290,7 @@ test("a newly resolved Zoom host is persisted synchronously when a meeting first
   // Distinct room -- buildMeetingPayload's default ("Serenity Room") is shared by other tests
   // in this suite that also create real rows at its default date, and the room conflict check
   // would otherwise make this order-dependent on unrelated leftover data.
-  const { recurrencePattern: _rp, ...existingMeetingData } = buildMeetingPayload({ mid, modeType: "Hybrid", room: "Zoom Assign Room", zoomRoom: "" });
+  const existingMeetingData = toMeetingCreateInput(buildMeetingPayload({ mid, modeType: "Hybrid", room: "Zoom Assign Room", zoomRoom: "" }));
   await prisma.meeting.create({ data: existingMeetingData });
 
   const payload = buildMeetingPayload({ mid, modeType: "Hybrid", room: "Zoom Assign Room", zoomRoom: "Zoom Assign Room - Zoom" });
@@ -312,7 +320,7 @@ test("an exhausted Zoom host pool on update fails soft, synchronously, without t
   // Distinct room -- buildMeetingPayload's default ("Serenity Room") is shared by other tests
   // in this suite that also create real rows at its default date, and the room conflict check
   // would otherwise make this order-dependent on unrelated leftover data.
-  const { recurrencePattern: _rp, ...existingMeetingData } = buildMeetingPayload({ mid, modeType: "Hybrid", room: "Update Pool Exhaustion Room", zoomRoom: "" });
+  const existingMeetingData = toMeetingCreateInput(buildMeetingPayload({ mid, modeType: "Hybrid", room: "Update Pool Exhaustion Room", zoomRoom: "" }));
   await prisma.meeting.create({ data: existingMeetingData });
 
   const payload = buildMeetingPayload({ mid, modeType: "Hybrid", room: "Update Pool Exhaustion Room", zoomRoom: "Update Pool Exhaustion Room - Zoom" });
@@ -353,7 +361,7 @@ test("an explicit host reassignment tears down the old Zoom meeting and creates 
   // no longer bypassed for a manual host) conflict check order-dependent on those leftovers.
   const start = new Date("2026-10-01T15:00:00Z");
   const end = new Date("2026-10-01T16:00:00Z");
-  const { recurrencePattern: _rp, ...existingMeetingData } = buildMeetingPayload({
+  const existingMeetingData = toMeetingCreateInput(buildMeetingPayload({
     mid,
     modeType: "Hybrid",
     zoomRoom: "Serenity Room - Zoom",
@@ -362,7 +370,7 @@ test("an explicit host reassignment tears down the old Zoom meeting and creates 
     zoomCalendarEventId: "old-zoom-cal-event-id",
     startDateTime: start,
     endDateTime: end,
-  });
+  }));
   await prisma.meeting.create({ data: existingMeetingData });
 
   // Same room, same time -- only the manually-selected host changes.
@@ -402,17 +410,17 @@ test("an explicit host reassignment to an already-busy host is rejected with 409
   const busyHost = "busy-reassign-host@icr.test";
 
   const busyMid = `m-${randomUUID()}`;
-  const { recurrencePattern: _rpBusy, ...busyMeetingData } = buildMeetingPayload({
+  const busyMeetingData = toMeetingCreateInput(buildMeetingPayload({
     mid: busyMid, modeType: "Hybrid", room: "Fellowship Room", zoomRoom: "Fellowship Room - Zoom",
     zid: "zid-busy", zoomHost: busyHost, startDateTime: start, endDateTime: end,
-  });
+  }));
   await prisma.meeting.create({ data: busyMeetingData });
 
   const mid = `m-${randomUUID()}`;
-  const { recurrencePattern: _rp, ...existingMeetingData } = buildMeetingPayload({
+  const existingMeetingData = toMeetingCreateInput(buildMeetingPayload({
     mid, modeType: "Hybrid", room: "Serenity Room", zoomRoom: "Serenity Room - Zoom",
     zid: "zid-original", zoomHost: "old-host-2@icr.test", startDateTime: start, endDateTime: end,
-  });
+  }));
   await prisma.meeting.create({ data: existingMeetingData });
 
   const payload = buildMeetingPayload({
@@ -446,10 +454,10 @@ test("needsNewHost triggered by a missing zid (not an explicit host change) stil
   const sharedHost = "no-zid-recheck-host@icr.test";
 
   const busyMid = `m-${randomUUID()}`;
-  const { recurrencePattern: _rpBusy, ...busyMeetingData } = buildMeetingPayload({
+  const busyMeetingData = toMeetingCreateInput(buildMeetingPayload({
     mid: busyMid, modeType: "Hybrid", room: "Fellowship Room", zoomRoom: "Fellowship Room - Zoom",
     zid: "zid-busy-3", zoomHost: sharedHost, startDateTime: start, endDateTime: end,
-  });
+  }));
   await prisma.meeting.create({ data: busyMeetingData });
 
   // The meeting being edited already carries `sharedHost` (persisted from a prior write) but
@@ -459,10 +467,10 @@ test("needsNewHost triggered by a missing zid (not an explicit host change) stil
   // the blocking check's zoomHost bucket (gated on explicitHostChange) never examines it -- only
   // the resolution block's own re-check can catch this conflict.
   const mid = `m-${randomUUID()}`;
-  const { recurrencePattern: _rp, ...existingMeetingData } = buildMeetingPayload({
+  const existingMeetingData = toMeetingCreateInput(buildMeetingPayload({
     mid, modeType: "Hybrid", room: "Serenity Room", zoomRoom: "Serenity Room - Zoom",
     zid: null, zoomHost: sharedHost, startDateTime: start, endDateTime: end,
-  });
+  }));
   await prisma.meeting.create({ data: existingMeetingData });
 
   const payload = buildMeetingPayload({
@@ -494,17 +502,17 @@ test("confirmOverride: true bypasses the zoomHost reassignment block, tears down
   const busyHost = "busy-reassign-host-2@icr.test";
 
   const busyMid = `m-${randomUUID()}`;
-  const { recurrencePattern: _rpBusy, ...busyMeetingData } = buildMeetingPayload({
+  const busyMeetingData = toMeetingCreateInput(buildMeetingPayload({
     mid: busyMid, modeType: "Hybrid", room: "Fellowship Room", zoomRoom: "Fellowship Room - Zoom",
     zid: "zid-busy-2", zoomHost: busyHost, startDateTime: start, endDateTime: end,
-  });
+  }));
   await prisma.meeting.create({ data: busyMeetingData });
 
   const mid = `m-${randomUUID()}`;
-  const { recurrencePattern: _rp, ...existingMeetingData } = buildMeetingPayload({
+  const existingMeetingData = toMeetingCreateInput(buildMeetingPayload({
     mid, modeType: "Hybrid", room: "Serenity Room", zoomRoom: "Serenity Room - Zoom",
     zid: "zid-original-2", zoomHost: "old-host-3@icr.test", startDateTime: start, endDateTime: end,
-  });
+  }));
   await prisma.meeting.create({ data: existingMeetingData });
 
   const payload = {
@@ -548,11 +556,11 @@ test("editing a meeting whose scheduled resume date has already passed promotes 
   // Distinct room -- buildMeetingPayload's default ("Serenity Room") is shared by other tests
   // in this suite that also create real rows at its default date, and the room conflict check
   // would otherwise make this order-dependent on unrelated leftover data.
-  const { recurrencePattern: _rp, ...existingMeetingData } = buildMeetingPayload({
+  const existingMeetingData = toMeetingCreateInput(buildMeetingPayload({
     mid,
     room: "Resume Promotion Room",
     googleCalendarEventIds: { AA: "stale-pre-suspend-event-id" },
-  });
+  }));
   await prisma.meeting.create({ data: existingMeetingData });
   const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
   await seedSuspensionPeriod(mid, {

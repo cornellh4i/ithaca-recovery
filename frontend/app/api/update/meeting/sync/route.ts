@@ -30,6 +30,8 @@ const syncMeeting = async (request: Request): Promise<Response> => {
             return NextResponse.json({
                 googleSyncStatus: meeting.googleSyncStatus ?? null,
                 googleSyncError: meeting.googleSyncError ?? null,
+                zoomSyncStatus: meeting.zoomSyncStatus ?? null,
+                zoomSyncError: meeting.zoomSyncError ?? null,
             });
         }
 

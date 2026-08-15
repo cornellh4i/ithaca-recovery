@@ -37,7 +37,7 @@
   "include": [
     "app",
     "services",
-    "test",
+    "tests",
     ".next/types/**/*.ts",
     "types/*.d.ts",
     "*.d.ts",
