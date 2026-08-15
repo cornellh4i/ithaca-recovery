@@ -29,6 +29,21 @@ import MenuIcon from "@mui/icons-material/Menu";
 import FilterListIcon from "@mui/icons-material/FilterList";
 import TodayIcon from "@mui/icons-material/Today";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
+import ArrowDropUpIcon from "@mui/icons-material/ArrowDropUp";
+import TvIcon from "@mui/icons-material/Tv";
+import Groups3Icon from "@mui/icons-material/Groups3";
+import SearchIcon from "@mui/icons-material/Search";
+import ManageAccountsIcon from "@mui/icons-material/ManageAccounts";
+import PersonAddAltIcon from "@mui/icons-material/PersonAddAlt";
+import PriorityHighIcon from "@mui/icons-material/PriorityHigh";
+import MonitorHeartIcon from "@mui/icons-material/MonitorHeart";
+import EventAvailableIcon from "@mui/icons-material/EventAvailable";
+import BackupIcon from "@mui/icons-material/Backup";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
+import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
+import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import type { SvgIconComponent } from "@mui/icons-material";
 
 // Brand logos with no faithful @mui/icons-material equivalent (multi-color marks with no
@@ -86,6 +101,25 @@ const MUI_ICONS = {
     filter: FilterListIcon,
     calendar: TodayIcon,
     "drop-down-arrow": ArrowDropDownIcon,
+    "drop-up-arrow": ArrowDropUpIcon,
+    tv: TvIcon,
+    // Distinct from `group` (GroupIcon, a duo) -- this is the admin Users panel's
+    // three-person glyph.
+    groups: Groups3Icon,
+    search: SearchIcon,
+    "manage-accounts": ManageAccountsIcon,
+    "person-add": PersonAddAltIcon,
+    "priority-high": PriorityHighIcon,
+    "monitor-heart": MonitorHeartIcon,
+    "event-available": EventAvailableIcon,
+    backup: BackupIcon,
+    "expand-more": ExpandMoreIcon,
+    "check-circle": CheckCircleIcon,
+    "lock-outlined": LockOutlinedIcon,
+    "error-outline": ErrorOutlineIcon,
+    // Distinct outlined glyph from `warning` (WarningIcon, filled) -- see Toast's info/warning
+    // variants.
+    "warning-amber": WarningAmberIcon,
 } satisfies Record<string, SvgIconComponent>;
 
 export type IconName = keyof typeof LOCAL_ICONS | keyof typeof MUI_ICONS;

@@ -2,9 +2,12 @@ import { NextResponse } from "next/server";
 import { Role, Prisma } from "@prisma/client";
 import { requireRole } from "../../../../services/auth";
 import type { ILeaseSettings } from "../../../../types/models";
+import { LEASE_SETTINGS_ID } from "../../../../util/settings/singletonIds";
 import { prisma } from "../../../../lib/prisma";
 
-// Singleton settings document — updates the existing row if one exists, else creates it.
+// Singleton settings document, enforced by upserting on the fixed id (see schema.prisma)
+// rather than a read-then-create -- that race could otherwise create two rows under
+// concurrent initial writes.
 export const PUT = async (request: Request) => {
   try {
     const auth = await requireRole(Role.SUPER_ADMIN);
@@ -34,10 +37,11 @@ export const PUT = async (request: Request) => {
       emailTemplate: body.emailTemplate,
     };
 
-    const existing = await prisma.leaseSettings.findFirst();
-    const saved = existing
-      ? await prisma.leaseSettings.update({ where: { id: existing.id }, data })
-      : await prisma.leaseSettings.create({ data });
+    const saved = await prisma.leaseSettings.upsert({
+      where: { id: LEASE_SETTINGS_ID },
+      update: data,
+      create: { id: LEASE_SETTINGS_ID, ...data },
+    });
 
     return NextResponse.json(saved);
   } catch (error) {

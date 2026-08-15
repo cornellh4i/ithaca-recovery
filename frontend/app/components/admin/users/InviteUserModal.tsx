@@ -2,7 +2,7 @@
 
 import React, { useLayoutEffect, useState } from "react";
 import type { Role } from "@prisma/client";
-import PersonAddAltIcon from "@mui/icons-material/PersonAddAlt";
+import Icon from "../../ui/displays/Icon";
 import Modal from "../../ui/overlays/Modal";
 import RadioGroup from "../../ui/inputs/RadioGroup";
 import TextField from "../../ui/inputs/TextField";
@@ -57,7 +57,7 @@ const InviteUserModal: React.FC<InviteUserModalProps> = ({ isOpen, inviting, onC
     >
       <div className={styles.header}>
         <span className={styles.iconCircle}>
-          <PersonAddAltIcon fontSize="small" />
+          <Icon name="person-add" size={20} />
         </span>
         <h2 id="invite-user-modal-title" className={styles.title}>Invite user</h2>
       </div>

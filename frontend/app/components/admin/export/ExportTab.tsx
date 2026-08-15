@@ -1,8 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import BackupIcon from "@mui/icons-material/Backup";
-import DescriptionIcon from "@mui/icons-material/Description";
+import Icon from "../../ui/displays/Icon";
 import type { ILeaseSettings } from "../../../../types/models";
 import { ALL_MEETING_EXPORT_FIELD_KEYS, type MeetingExportFieldKey } from "../../../../util/meetings/meetingExportFields";
 import type { LeaseYearCycle } from "../../../../util/lease/leaseYearCycles";
@@ -181,7 +180,7 @@ const ExportTab: React.FC = () => {
       <div className={styles.grid}>
         <Card className={styles.exportCard}>
           <CardHeader
-            icon={<BackupIcon />}
+            icon={<Icon name="backup" />}
             title="Export Meetings (XLSX)"
             action={{
               label: "Configure",
@@ -211,7 +210,7 @@ const ExportTab: React.FC = () => {
 
         <Card className={styles.exportCard}>
           <CardHeader
-            icon={<DescriptionIcon />}
+            icon={<Icon name="description" />}
             title="Export PandaDocs Lease (CSV)"
             action={{
               label: "Configure",

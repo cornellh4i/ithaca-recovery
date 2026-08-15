@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import PriorityHighIcon from "@mui/icons-material/PriorityHigh";
+import Icon from "../../ui/displays/Icon";
 import Modal from "../../ui/overlays/Modal";
 import styles from "./UserModals.module.scss";
 
@@ -22,7 +22,7 @@ const RemoveUserModal: React.FC<RemoveUserModalProps> = ({ isOpen, email, onCanc
   >
     <div className={styles.header}>
       <span className={styles.iconCircleDanger}>
-        <PriorityHighIcon fontSize="small" />
+        <Icon name="priority-high" size={20} />
       </span>
       <h2 id="remove-user-modal-title" className={styles.title}>Remove this user?</h2>
     </div>

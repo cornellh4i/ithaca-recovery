@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import type { Role } from "@prisma/client";
-import LockIcon from "@mui/icons-material/Lock";
+import Icon from "../ui/displays/Icon";
 import DiagnosticsTab from "./diagnostics/DiagnosticsTab";
 import SignageTab from "./signage/SignageTab";
 import UsersTab from "./users/UsersTab";
@@ -72,7 +72,7 @@ const AdminShell: React.FC<AdminShellProps> = ({ role, email }) => {
                 disabled={locked}
               >
                 {tab.label}
-                {locked && <LockIcon fontSize="small" className={styles.lockIcon} />}
+                {locked && <Icon name="lock" size={20} className={styles.lockIcon} />}
               </button>
               {locked && <span className={styles.tooltip}>Requires super admin</span>}
             </span>
