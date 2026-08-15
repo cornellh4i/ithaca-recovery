@@ -89,10 +89,7 @@ function getMonthlyOptions(startDateStr: string): string[] {
   if (isNaN(date.getTime())) return [];
   const [year, month, day] = formatETDateString(date).split('-').map(Number);
   const dayOfMonth = day;
-  // Date.UTC(year, month - 1, day).getUTCDay() -- same proleptic-Gregorian-calculator use as
-  // getETDayOfWeek itself, inlined here since year/month/day are already known (avoids a
-  // second formatETDateString(date) call for the same instant).
-  const weekdayName = weekdayNames[new Date(Date.UTC(year, month - 1, day)).getUTCDay()];
+  const weekdayName = weekdayNames[getETDayOfWeek(date)];
   const nth = Math.ceil(dayOfMonth / 7);
   // Date.UTC(year, month, 0) is the last day of `month` (1-indexed here, so this is
   // deliberately not month - 1) -- same proleptic-Gregorian-calculator use as weekDates.ts.

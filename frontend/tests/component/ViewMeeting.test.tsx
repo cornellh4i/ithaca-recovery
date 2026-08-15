@@ -128,4 +128,40 @@ describe("ViewMeeting", () => {
       expect(screen.getByRole("button", { name: "Hide sync error details" })).toBeInTheDocument();
     });
   });
+
+  describe("biweekly recurrence occurrence re-anchoring", () => {
+    // Regression test for doesMeetingOccurOnDate's weekly-recurrence interval check, which used
+    // to diff raw instants (Math.abs(date.getTime() - originalDate.getTime())) between a noon-ET-
+    // anchored occurrence date and the meeting's actual (non-noon) start time. That could
+    // undercount the day difference and miscompute diffWeeks for interval > 1 patterns, so a
+    // real biweekly occurrence would fail the "does this meeting occur on this date" check and
+    // the popup would fall back to showing the series' original start date instead of the
+    // clicked occurrence's.
+    const biweeklyProps = {
+      ...baseProps,
+      // Wednesday, July 15 2026, 6:00 PM ET (EDT, UTC-4).
+      startDateTime: new Date("2026-07-15T22:00:00Z"),
+      endDateTime: new Date("2026-07-15T23:00:00Z"),
+      isRecurring: true,
+      recurrencePattern: {
+        type: "weekly",
+        startDate: new Date("2026-07-15T04:00:00Z"),
+        daysOfWeek: ["Wednesday"],
+        firstDayOfWeek: "Sunday",
+        interval: 2,
+      },
+      // Noon ET, Wednesday July 29 2026 -- exactly 2 ET calendar weeks after startDateTime,
+      // noon-anchored the same way weekDates.ts's getDaysOfWeek/getFirstDayOfWeek build
+      // occurrence dates in the real calendar views.
+      currentOccurrenceDate: new Date("2026-07-29T16:00:00Z"),
+      anchorEl: makeAnchorEl(),
+      isPhone: false,
+    };
+
+    it("shows the clicked occurrence's date, not the series' original start date", async () => {
+      renderViewMeeting(biweeklyProps);
+      expect(await screen.findByText(/July 29/)).toBeInTheDocument();
+      expect(screen.queryByText(/July 15/)).not.toBeInTheDocument();
+    });
+  });
 });

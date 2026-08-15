@@ -4,6 +4,7 @@ import { defaultLeaseSettings } from "../../../../util/lease/leaseDefaults";
 import { formatDayColumn } from "../../../../util/meetings/recurrenceDisplay";
 import type { ILeaseSettings, IRoomRate } from "../../../../types/models";
 import { prisma } from "../../../../lib/prisma";
+import { getETTimeOfDay } from "../../../../util/date/timeUtils";
 
 const notDeleted = { deletedAt: null };
 
@@ -33,11 +34,14 @@ function formatRoomDisplay(room: string, roomRate: IRoomRate): string {
   return `${room} ($${roomRate.rate}/${roomRate.unit})`;
 }
 
+// Meeting.startDateTime/endDateTime are real ET wall-clock instants (unlike the lease
+// @db.Date fields formatLeaseDate handles below), so this reads ET, not UTC -- getUTCHours
+// would show the meeting's UTC hour, off by 4-5 hours (DST-dependent) from what it's
+// actually scheduled for.
 function formatTime(date: Date): string {
-  let hours = date.getUTCHours();
-  const minutes = date.getUTCMinutes();
-  const ampm = hours >= 12 ? "PM" : "AM";
-  hours = hours % 12 || 12;
+  const { hour, minute: minutes } = getETTimeOfDay(date);
+  const ampm = hour >= 12 ? "PM" : "AM";
+  const hours = hour % 12 || 12;
   const minutesStr = minutes < 10 ? `0${minutes}` : `${minutes}`;
   return `${hours}:${minutesStr} ${ampm}`;
 }

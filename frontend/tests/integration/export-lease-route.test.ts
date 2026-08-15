@@ -14,16 +14,20 @@ afterAll(async () => {
   await disconnectTestPrismaClient();
 });
 
-// Parses the CSV's "Rent Charge" column for a row identified by its "Group Name" -- avoids
-// pulling in a full CSV parser for a handful of dollar-amount fields with no embedded commas.
-function rentChargeFor(csv: string, groupName: string): string {
+// Parses a named CSV column for a row identified by its "Group Name" -- avoids pulling in a
+// full CSV parser for a handful of fields with no embedded commas.
+function columnValueFor(csv: string, groupName: string, column: string): string {
   const lines = csv.trim().split("\n");
   const header = lines[0].split(",");
   const groupNameIndex = header.indexOf("Group Name");
-  const rentChargeIndex = header.indexOf("Rent Charge");
+  const columnIndex = header.indexOf(column);
   const row = lines.slice(1).find((line) => line.split(",")[groupNameIndex] === groupName);
   if (!row) throw new Error(`No CSV row found for group "${groupName}"`);
-  return row.split(",")[rentChargeIndex];
+  return row.split(",")[columnIndex];
+}
+
+function rentChargeFor(csv: string, groupName: string): string {
+  return columnValueFor(csv, groupName, "Rent Charge");
 }
 
 test("calculateRentCharge: non-monthly room uses a flat 4 weeks/month, monthly room and Zoom Only return the flat rate", async () => {
@@ -70,5 +74,32 @@ test("calculateRentCharge: non-monthly room uses a flat 4 weeks/month, monthly r
   expect(rentChargeFor(csv, "Remote Group")).toBe("$25.00");
 
   await prisma.meeting.deleteMany({ where: { group: { in: ["Hourly Group", "Monthly Group", "Remote Group"] } } });
+  await prisma.leaseSettings.deleteMany();
+});
+
+// Regression test: formatTime() used to read Meeting.startDateTime/endDateTime (real UTC
+// instants) via getUTCHours()/getUTCMinutes(), showing the meeting's UTC clock time instead of
+// its actual ET wall-clock time -- off by 4-5 hours (DST-dependent). seedMeeting's default
+// 6:00-7:00 PM ET start/end already exercises this: the old buggy code would render these as
+// "10:00 PM"/"11:00 PM" (EDT) or "11:00 PM"/"12:00 AM" (EST) instead.
+test("formatTime: Start/End Time columns show the meeting's ET wall-clock time, not its UTC hour", async () => {
+  const prisma = getTestPrismaClient();
+
+  await seedLeaseSettings({ rooms: [{ room: "Serenity Room", rate: 15, unit: "hr" }] });
+  await seedMeeting({
+    title: "Time Group",
+    group: "Time Group",
+    room: "Serenity Room",
+    modeType: "In Person",
+  });
+
+  const response = await GET();
+  expect(response.status).toBe(200);
+  const csv = await response.text();
+
+  expect(columnValueFor(csv, "Time Group", "Start Time")).toBe("6:00 PM");
+  expect(columnValueFor(csv, "Time Group", "End Time")).toBe("7:00 PM");
+
+  await prisma.meeting.deleteMany({ where: { group: "Time Group" } });
   await prisma.leaseSettings.deleteMany();
 });
