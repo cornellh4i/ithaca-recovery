@@ -107,6 +107,12 @@ const Modal: React.FC<ModalProps> = ({
   return createPortal(
     <div
       className={overlayClassName}
+      // Host components that portal themselves (e.g. ViewMeeting) may run their own
+      // outside-click-closes-me listener keyed off DOM containment. Once this modal is *also*
+      // portaled to document.body, it's a sibling of such a host, not a descendant, so a click
+      // anywhere in here would misread as "outside" without this hook -- mirrors the existing
+      // [data-datepicker-popup] / [data-user-menu-popup] escape-hatch convention.
+      data-modal-popup="true"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget && !preventClose) onClose();
       }}

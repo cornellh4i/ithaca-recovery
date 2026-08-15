@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import styles from './SuspendMeetingModal.module.scss';
 import DatePicker from '../ui/pickers/DatePicker';
 import Icon from '../ui/displays/Icon';
+import Modal from '../ui/overlays/Modal';
 import { formatETDateString, parseMMDDYYYY } from '../../../util/date/timeUtils';
 
 interface SuspendMeetingModalProps {
@@ -34,8 +35,6 @@ const SuspendMeetingModal: React.FC<SuspendMeetingModalProps> = ({
   // DatePicker's own value/onChange contract is MM/DD/YYYY (see DatePicker.tsx's doc comment).
   const [resumeDate, setResumeDate] = useState('');
 
-  if (!isOpen) return null;
-
   const minStr = formatETDateString(new Date(effectiveDate));
   const pickedDate = parseMMDDYYYY(resumeDate);
   const pickedStr = pickedDate ? formatETDateString(pickedDate) : null;
@@ -47,70 +46,74 @@ const SuspendMeetingModal: React.FC<SuspendMeetingModalProps> = ({
   };
 
   return (
-    <div className={styles.modalOverlay}>
-      <div className={styles.modalContent}>
-        <div className={styles.header}>
-          <span className={styles.iconCircle}>
-            <Icon name="pause" size={20} />
-          </span>
-          <h2 className={styles.title}>Suspend this meeting?</h2>
-        </div>
+    <Modal
+      isOpen={isOpen}
+      onClose={onCancel}
+      overlayClassName={styles.modalOverlay}
+      contentClassName={styles.modalContent}
+      labelledBy="suspend-meeting-title"
+    >
+      <div className={styles.header}>
+        <span className={styles.iconCircle}>
+          <Icon name="pause" size={20} />
+        </span>
+        <h2 id="suspend-meeting-title" className={styles.title}>Suspend this meeting?</h2>
+      </div>
 
-        <p className={styles.message}>
-          <strong>{title}</strong> will be paused and hidden from the calendar starting{' '}
-          <strong className={styles.effectiveDate}>{effectiveDateText}</strong>, until reactivated.
-          It can still be viewed and reactivated from the admin dashboard.
+      <p className={styles.message}>
+        <strong>{title}</strong> will be paused and hidden from the calendar starting{' '}
+        <strong className={styles.effectiveDate}>{effectiveDateText}</strong>, until reactivated.
+        It can still be viewed and reactivated from the admin dashboard.
+      </p>
+
+      {pastOccurrenceDateText && (
+        <p className={styles.pastNotice}>
+          {pastOccurrenceDateText} already happened, so suspending starts today instead.
         </p>
+      )}
 
-        {pastOccurrenceDateText && (
-          <p className={styles.pastNotice}>
-            {pastOccurrenceDateText} already happened, so suspending starts today instead.
-          </p>
-        )}
-
-        <div className={styles.resumeOptions}>
-          <label className={styles.radioRow}>
+      <div className={styles.resumeOptions}>
+        <label className={styles.radioRow}>
+          <input
+            type="radio"
+            name="resumeOption"
+            checked={resumeOption === 'indefinite'}
+            onChange={() => setResumeOption('indefinite')}
+          />
+          Indefinitely
+        </label>
+        <div className={styles.radioRow}>
+          <label className={styles.radioLabel}>
             <input
               type="radio"
               name="resumeOption"
-              checked={resumeOption === 'indefinite'}
-              onChange={() => setResumeOption('indefinite')}
+              checked={resumeOption === 'until'}
+              onChange={() => setResumeOption('until')}
             />
-            Indefinitely
+            <span className={styles.untilLabel}>Until</span>
           </label>
-          <div className={styles.radioRow}>
-            <label className={styles.radioLabel}>
-              <input
-                type="radio"
-                name="resumeOption"
-                checked={resumeOption === 'until'}
-                onChange={() => setResumeOption('until')}
-              />
-              <span className={styles.untilLabel}>Until</span>
-            </label>
-            {resumeOption === 'until' && (
-              <span className={styles.untilDatePicker}>
-                <DatePicker label="" value={resumeDate} onChange={setResumeDate} underlineOnFocus={false} compact />
-              </span>
-            )}
-          </div>
-          {resumeOption === 'until' && resumeDate && !isUntilDateValid && (
-            <p className={styles.dateError}>Must be after {effectiveDateText}.</p>
+          {resumeOption === 'until' && (
+            <span className={styles.untilDatePicker}>
+              <DatePicker label="" value={resumeDate} onChange={setResumeDate} underlineOnFocus={false} compact />
+            </span>
           )}
         </div>
-
-        <div className={styles.buttonContainer}>
-          <button className={styles.cancelButton} onClick={onCancel}>Cancel</button>
-          <button
-            className={styles.suspendButton}
-            onClick={handleConfirm}
-            disabled={resumeOption === 'until' && !isUntilDateValid}
-          >
-            Suspend
-          </button>
-        </div>
+        {resumeOption === 'until' && resumeDate && !isUntilDateValid && (
+          <p className={styles.dateError}>Must be after {effectiveDateText}.</p>
+        )}
       </div>
-    </div>
+
+      <div className={styles.buttonContainer}>
+        <button className={styles.cancelButton} onClick={onCancel}>Cancel</button>
+        <button
+          className={styles.suspendButton}
+          onClick={handleConfirm}
+          disabled={resumeOption === 'until' && !isUntilDateValid}
+        >
+          Suspend
+        </button>
+      </div>
+    </Modal>
   );
 };
 

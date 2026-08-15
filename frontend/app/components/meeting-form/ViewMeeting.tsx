@@ -250,6 +250,13 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
       // to document.body, so it's a DOM sibling of this popup, not a descendant -- without this
       // check, clicking a day on it reads as an outside click and closes the whole thing.
       if ((target as Element).closest?.('[data-datepicker-popup]')) return;
+      // Same escape hatch for the Delete/DeleteRecurring/Suspend/Resume modals below (see
+      // `modals`) -- they render via the shared Modal primitive, which portals to document.body
+      // in the same way, so a click on any of their buttons is also a DOM sibling of this popup,
+      // not a descendant. Without this, e.g. clicking DeleteMeetingModal's "Delete" button
+      // registers as an outside click and unmounts this whole popup (and the modal with it)
+      // before the button's own onClick can fire.
+      if ((target as Element).closest?.('[data-modal-popup]')) return;
       onBack();
     };
 
