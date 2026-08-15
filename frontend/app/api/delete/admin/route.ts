@@ -17,13 +17,13 @@ export const DELETE = async (request: Request) => {
     const deleteUser = await prisma.$transaction(async (tx) => {
       const target = await tx.admin.findUnique({ where: { email } });
       if (!target) {
-        throw new Response(JSON.stringify({ error: "Admin not found" }), { status: 404 });
+        throw NextResponse.json({ error: "Admin not found" }, { status: 404 });
       }
 
       if (target.role === Role.SUPER_ADMIN) {
         const superAdminCount = await tx.admin.count({ where: { role: Role.SUPER_ADMIN } });
         if (superAdminCount <= 1) {
-          throw new Response(JSON.stringify({ error: "Cannot remove the last remaining Super Admin" }), { status: 400 });
+          throw NextResponse.json({ error: "Cannot remove the last remaining Super Admin" }, { status: 400 });
         }
       }
 
@@ -37,12 +37,7 @@ export const DELETE = async (request: Request) => {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2034") {
       return NextResponse.json({ error: "Another change conflicted with this removal -- please retry." }, { status: 409 });
     }
-    console.error("Admin not found: ", error);
-    return new Response(JSON.stringify({ error: "Internal Server Error" }), {
-      status: 500,
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
+    console.error(error);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }
