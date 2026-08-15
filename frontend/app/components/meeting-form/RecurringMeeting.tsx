@@ -10,7 +10,7 @@ import styles from "./RecurringMeeting.module.scss";
 
 import CheckButton from '../ui/buttons/CheckButton';
 import { IRecurrencePattern } from "../../../types/models";
-import { convertETToUTC, convertUTCToET, formatETDateString, getETDayOfWeek } from "../../../util/date/timeUtils";
+import { convertETToUTC, convertUTCToET, formatETDateString, getDaysInMonth, getETDayOfWeek } from "../../../util/date/timeUtils";
 
 
 interface RecurringMeetingFormProps {
@@ -91,9 +91,7 @@ function getMonthlyOptions(startDateStr: string): string[] {
   const dayOfMonth = day;
   const weekdayName = weekdayNames[getETDayOfWeek(date)];
   const nth = Math.ceil(dayOfMonth / 7);
-  // Date.UTC(year, month, 0) is the last day of `month` (1-indexed here, so this is
-  // deliberately not month - 1) -- same proleptic-Gregorian-calculator use as weekDates.ts.
-  const daysInMonth = new Date(Date.UTC(year, month, 0)).getUTCDate();
+  const daysInMonth = getDaysInMonth(year, month);
   const isLast = dayOfMonth + 7 > daysInMonth;
 
   const options: string[] = [`Monthly on day ${dayOfMonth}`];

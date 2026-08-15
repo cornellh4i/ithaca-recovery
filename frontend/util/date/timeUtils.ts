@@ -183,13 +183,21 @@ export const addDaysToETDateString = (etDateStr: string, days: number): string =
 };
 
 /**
+ * Number of days in the given month (1-indexed: 1 = January) of `year`, per the proleptic
+ * Gregorian calendar -- Date.UTC(year, month, 0) is "day 0" of the following month, i.e. the
+ * last day of `month` itself.
+ */
+export const getDaysInMonth = (year: number, month: number): number =>
+  new Date(Date.UTC(year, month, 0)).getUTCDate();
+
+/**
  * Adds `months` calendar months to an ET "YYYY-MM-DD" string, clamping the day if the target
  * month is shorter (e.g. Jan 31 + 1 month -> Feb 28/29, not rolling into March).
  */
 export const addMonthsToETDateString = (etDateStr: string, months: number): string => {
   const [year, month, day] = etDateStr.split('-').map(Number);
   const targetMonthIndex = month - 1 + months;
-  const daysInTargetMonth = new Date(Date.UTC(year, targetMonthIndex + 1, 0)).getUTCDate();
+  const daysInTargetMonth = getDaysInMonth(year, targetMonthIndex + 1);
   return new Date(Date.UTC(year, targetMonthIndex, Math.min(day, daysInTargetMonth))).toISOString().slice(0, 10);
 };
 

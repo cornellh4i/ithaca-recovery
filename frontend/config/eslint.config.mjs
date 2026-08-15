@@ -61,10 +61,15 @@ const eslintConfig = [
             "Local-timezone Date setters are banned outside util/date/** -- same reasoning as the getters above (a setter mutates using the runtime's local timezone). Use convertETToUTC/getETTimeOfDay in util/date/timeUtils.ts to re-anchor a date instead.",
         },
         {
+          // This selector matches by method name only (no receiver-type check, which plain
+          // AST selectors can't do) -- toLocaleString is also Number.prototype's, so a genuine
+          // number/currency-formatting call gets flagged too. If that's what triggered this,
+          // it's a false positive: add a one-line eslint-disable-next-line with a reason instead
+          // of routing non-Date formatting through util/date/**.
           selector:
             "CallExpression[callee.type='MemberExpression'][callee.property.name=/^(toLocaleDateString|toLocaleString|toLocaleTimeString)$/]",
           message:
-            "Local-timezone Date formatting is banned outside util/date/** -- this app always displays fixed Eastern Time. Use the Intl.DateTimeFormat-based formatters in util/date/timeUtils.ts / util/date/timeFormat.tsx (all pinned timeZone: 'America/New_York') instead.",
+            "Local-timezone Date formatting is banned outside util/date/** -- this app always displays fixed Eastern Time. Use the Intl.DateTimeFormat-based formatters in util/date/timeUtils.ts / util/date/timeFormat.tsx (all pinned timeZone: 'America/New_York') instead. (Not a Date -- e.g. Number.prototype.toLocaleString? This rule can't tell; add an eslint-disable-next-line with a reason.)",
         },
         {
           selector: "NewExpression[callee.name='Date'][arguments.length>1]",

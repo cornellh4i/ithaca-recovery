@@ -332,6 +332,11 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
   };
 
   const doesMeetingOccurOnDate = (date: Date): boolean => {
+    // date is currentOccurrenceDate, an optional prop with no upstream validity guarantee
+    // (only an existence check at the call site below). Unlike the local Date getters this
+    // logic used to run through -- which just evaluated NaN comparisons to false -- the
+    // ET-safe Intl.DateTimeFormat-based helpers below throw a RangeError on an invalid Date.
+    if (isNaN(date.getTime())) return false;
     if (!isRecurring || !recurrencePattern) {
       const meetingDate = new Date(startDateTime);
       return formatETDateString(meetingDate) === formatETDateString(date);

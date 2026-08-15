@@ -77,11 +77,12 @@ const DatePicker = ({ label, value: propValue = '', onChange, underlineOnFocus =
    * @returns dateString in Date form
    */
   const stringToDate = (dateString: string): Date => {
-    // Both branches below deliberately return a local-midnight Date (not routed through
-    // convertETToUTC) -- this feeds MiniCalendar's underlying react-day-picker, which compares
-    // `selected` against click-generated dates using its own local Date getters (see weekDates.ts's
-    // toNoonETOnLocalCalendarDay). Matching that library's local semantics here is what's correct;
-    // an ET-anchored instant would highlight the wrong cell on a runtime whose local zone isn't ET.
+    // INVARIANT: both branches below deliberately return a local-midnight Date (not routed
+    // through convertETToUTC) -- this feeds MiniCalendar's underlying react-day-picker, which
+    // compares `selected` against click-generated dates using its own local Date getters (see
+    // weekDates.ts's toNoonETOnLocalCalendarDay, and MiniCalendar.tsx's own INVARIANT comment).
+    // Matching that library's local semantics here is what's correct; an ET-anchored instant
+    // would highlight the wrong cell on a runtime whose local zone isn't ET.
 
     // If it's a formatted date (e.g., "January 1, 2023"). Single-arg new Date(string) isn't
     // banned by the lint rule (only the multi-arg local-component form is) -- no disable needed.

@@ -163,5 +163,16 @@ describe("ViewMeeting", () => {
       expect(await screen.findByText(/July 29/)).toBeInTheDocument();
       expect(screen.queryByText(/July 15/)).not.toBeInTheDocument();
     });
+
+    // Regression test: doesMeetingOccurOnDate used to call formatETDateString/
+    // formatETWeekdayLong/daysBetweenET on `date` (currentOccurrenceDate) with no validity
+    // guard. currentOccurrenceDate is an optional prop with no upstream parseability guarantee
+    // beyond an existence check -- an invalid Date used to throw a RangeError there (unlike the
+    // local-getter comparisons this logic replaced, which just evaluated to false) and crash
+    // the whole popup instead of falling back to the series' own start date.
+    it("does not crash on an invalid currentOccurrenceDate, and falls back to the series' start date", async () => {
+      renderViewMeeting({ ...biweeklyProps, currentOccurrenceDate: new Date("not-a-date") });
+      expect(await screen.findByText(/July 15/)).toBeInTheDocument();
+    });
   });
 });
