@@ -263,11 +263,12 @@ substitute but wasn't used for the 2026-08-16 provisioning).
 Resulting values map to the `R2_ACCOUNT_ID` / `R2_ACCESS_KEY_ID` / `R2_SECRET_ACCESS_KEY` GitHub
 Actions secrets and the `R2_BUCKET` variable (see `credentials-and-integrations.md`).
 
-**TODO — not yet configured:** a Cloudflare billing/usage notification at a low storage/ops
-threshold. R2 has no hard spend cap; this notification is the intended early-warning signal for a
-compromised token spamming writes (egress is free, so it isn't a cost vector — see the backup
-feature plan's open questions). Set this in Dashboard → Notifications before considering R2 setup
-fully closed out.
+**Cloudflare usage notification — configured (2026-08-16):** a usage-based billing notification
+at a low threshold, set in Dashboard → Notifications on the account owning the R2 bucket. R2 has
+no hard spend cap; this notification is the early-warning signal for a compromised token spamming
+writes (egress is free, so it isn't a cost vector). If it ever needs re-creating: account-level
+Notifications → Add → Billing → the usage-based type, threshold well under the 10 GB / 1M-ops
+free tier, destination an org-monitored inbox.
 
 ---
 
@@ -429,9 +430,9 @@ Not yet performed. See §5. Blocks the workflow from running end-to-end (backups
 verified, and dumped to a scratch container, but the encryption step has no recipients configured
 until `AGE_PUBLIC_KEY_A`/`_B` exist).
 
-### Cloudflare usage notification — open
+### Cloudflare usage notification — done (2026-08-16)
 
-Not yet configured. See §3, last paragraph.
+Configured; see §3, last paragraph.
 
 ### Confirmed working / no action needed
 
