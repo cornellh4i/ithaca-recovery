@@ -35,8 +35,25 @@ const STORAGE_VAR_NAMES = [
 
 const GITHUB_VAR_NAMES = ["GITHUB_BACKUPS_PAT"] as const;
 
+/** True only if the value decodes as base64 -> JSON with the three fields getStorageConfig() reads. */
+function isDecodableGcsCredentials(raw: string): boolean {
+  try {
+    const decoded = JSON.parse(Buffer.from(raw, "base64").toString("utf8")) as Record<string, unknown>;
+    return typeof decoded.client_email === "string" && typeof decoded.private_key === "string" && typeof decoded.project_id === "string";
+  } catch {
+    return false;
+  }
+}
+
 function missingStorageVars(): string[] {
-  return STORAGE_VAR_NAMES.filter((name) => !process.env[name]);
+  return STORAGE_VAR_NAMES.filter((name) => {
+    const value = process.env[name];
+    if (!value) return true;
+    // A present-but-undecodable value must count as missing, not pass the presence check and
+    // 500 later inside getStorageConfig()'s JSON.parse.
+    if (name === "GCS_BACKUPS_CREDENTIALS") return !isDecodableGcsCredentials(value);
+    return false;
+  });
 }
 
 function missingGithubVars(): string[] {

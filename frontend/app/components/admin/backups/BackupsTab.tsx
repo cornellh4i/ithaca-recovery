@@ -28,6 +28,10 @@ import styles from "./BackupsTab.module.scss";
 // only real completion signal available.
 const POLL_INTERVAL_MS = 10_000;
 const POLL_TIMEOUT_MS = 90_000;
+// Mock activity fixtures never grow, so polling for "a new run appeared" would always spin the
+// full 90s window. The dispatch response's own `mode` tells us this up front -- skip polling
+// and clear the lock after a short delay that still lets the toast register as a real action.
+const MOCK_DISPATCH_SETTLE_MS = 600;
 
 type TabPhase = "loading" | "unconfigured" | "error" | "ready";
 
@@ -46,6 +50,9 @@ const BackupsTab: React.FC = () => {
   const [health, setHealth] = useState<BackupHealth | null>(null);
   const [activity, setActivity] = useState<ActivityEvent[]>([]);
   const [mode, setMode] = useState<BackupsDataMode | null>(null);
+  // Non-null only when GET /activity 503s independently of list/health -- GitHub credentials
+  // are not the tab's storage backbone, so this degrades just the activity card.
+  const [activityUnavailable, setActivityUnavailable] = useState<string[] | null>(null);
 
   // Single `now` anchor for this render tree's lifetime -- set only when data actually
   // arrives (never at render time), so "Expires in"/freshness/relative-age labels stay
@@ -59,6 +66,10 @@ const BackupsTab: React.FC = () => {
   const [creating, setCreating] = useState(false);
   const [lockedBy, setLockedBy] = useState<string | null>(null);
   const pollTimeoutRef = useRef<number | null>(null);
+  // Guards every setState after an in-flight fetch/poll tick resolves post-unmount -- clearing
+  // the pending timeout in the effect cleanup isn't enough because a tick that's already mid-
+  // flight when unmount happens can still re-arm the next timeout before it checks anything.
+  const cancelledRef = useRef(false);
 
   const { showToast } = useToast();
 
@@ -74,7 +85,11 @@ const BackupsTab: React.FC = () => {
   };
 
   /** Re-fetches all three read endpoints and replaces state in place -- used both for the
-   * initial load (wrapped with phase transitions) and for a post-dispatch refresh. */
+   * initial load (wrapped with phase transitions) and for a post-dispatch refresh.
+   *
+   * List and health share the same storage credentials as their backbone, so either 503ing
+   * degrades the whole tab. Activity's GitHub credentials are independent -- an activity-only
+   * 503 leaves list/health rendering and just degrades the Recent Activity card. */
   const fetchAll = async (): Promise<{ ok: true } | { ok: false; unconfigured: BackupsUnconfiguredResponse } | { ok: false; unconfigured: null }> => {
     const [rowsRes, healthRes, activityRes] = await Promise.all([
       fetch("/api/admin/backups"),
@@ -82,25 +97,41 @@ const BackupsTab: React.FC = () => {
       fetch("/api/admin/backups/activity"),
     ]);
 
-    const unconfiguredRes = [rowsRes, healthRes, activityRes].find((res) => res.status === 503);
-    if (unconfiguredRes) {
-      const body: BackupsUnconfiguredResponse = await unconfiguredRes.json();
-      return { ok: false, unconfigured: body };
+    const backboneUnconfigured = [rowsRes, healthRes].filter((res) => res.status === 503);
+    if (backboneUnconfigured.length > 0) {
+      const bodies: BackupsUnconfiguredResponse[] = await Promise.all(backboneUnconfigured.map((res) => res.json()));
+      return { ok: false, unconfigured: { configured: false, missing: Array.from(new Set(bodies.flatMap((b) => b.missing))) } };
     }
-    if (![rowsRes, healthRes, activityRes].every((res) => res.ok)) {
+    if (!rowsRes.ok || !healthRes.ok) {
       return { ok: false, unconfigured: null };
     }
 
-    const [rowsEnvelope, healthEnvelope, activityEnvelope]: [
-      BackupsEnvelope<BackupListResponse>,
-      BackupsEnvelope<BackupHealth>,
-      BackupsEnvelope<ActivityListResponse>,
-    ] = await Promise.all([rowsRes.json(), healthRes.json(), activityRes.json()]);
+    const [rowsEnvelope, healthEnvelope]: [BackupsEnvelope<BackupListResponse>, BackupsEnvelope<BackupHealth>] = await Promise.all([
+      rowsRes.json(),
+      healthRes.json(),
+    ]);
 
+    let activityEvents: ActivityEvent[] = [];
+    let activityMode: BackupsDataMode | null = null;
+    let activityMissing: string[] | null = null;
+    if (activityRes.status === 503) {
+      const body: BackupsUnconfiguredResponse = await activityRes.json();
+      activityMissing = body.missing;
+    } else if (activityRes.ok) {
+      const activityEnvelope: BackupsEnvelope<ActivityListResponse> = await activityRes.json();
+      activityEvents = activityEnvelope.data.events;
+      activityMode = activityEnvelope.mode;
+    } else {
+      return { ok: false, unconfigured: null };
+    }
+
+    if (cancelledRef.current) return { ok: true };
     setRows(rowsEnvelope.data.rows);
     setHealth(healthEnvelope.data);
-    setActivity(activityEnvelope.data.events);
-    setMode(rowsEnvelope.mode);
+    setActivity(activityEvents);
+    setActivityUnavailable(activityMissing);
+    // Badged when ANY of the three envelopes reports mock, not only the list one.
+    setMode(rowsEnvelope.mode === "mock" || healthEnvelope.mode === "mock" || activityMode === "mock" ? "mock" : "live");
     setNow(new Date());
     return { ok: true };
   };
@@ -109,6 +140,7 @@ const BackupsTab: React.FC = () => {
     setPhase("loading");
     try {
       const result = await fetchAll();
+      if (cancelledRef.current) return;
       if (!result.ok) {
         if (result.unconfigured) {
           setMissing(result.unconfigured.missing);
@@ -120,15 +152,18 @@ const BackupsTab: React.FC = () => {
       }
       setPhase("ready");
     } catch (err) {
+      if (cancelledRef.current) return;
       console.error("Error loading backups data:", err);
       setPhase("error");
     }
   };
 
   useEffect(() => {
+    cancelledRef.current = false;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     load();
     return () => {
+      cancelledRef.current = true;
       if (pollTimeoutRef.current) window.clearTimeout(pollTimeoutRef.current);
     };
   }, []);
@@ -144,13 +179,17 @@ const BackupsTab: React.FC = () => {
     const deadline = Date.now() + POLL_TIMEOUT_MS;
 
     const tick = async () => {
+      if (cancelledRef.current) return;
       try {
         const res = await fetch("/api/admin/backups/activity");
+        if (cancelledRef.current) return;
         if (res.ok) {
           const envelope: BackupsEnvelope<ActivityListResponse> = await res.json();
+          if (cancelledRef.current) return;
           const hasNewRun = envelope.data.events.some((event) => !baselineIds.has(event.id));
           if (hasNewRun) {
             await fetchAll();
+            if (cancelledRef.current) return;
             setCreating(false);
             setLockedBy(null);
             return;
@@ -160,6 +199,7 @@ const BackupsTab: React.FC = () => {
         console.error("Error polling backup activity:", err);
       }
 
+      if (cancelledRef.current) return;
       if (Date.now() >= deadline) {
         setCreating(false);
         setLockedBy(null);
@@ -191,6 +231,15 @@ const BackupsTab: React.FC = () => {
         variant: "info",
         title: "Backup dispatched — runs appear in Recent Activity",
       });
+      if (body.mode === "mock") {
+        // Mock activity fixtures never grow, so polling would always burn the full 90s window.
+        pollTimeoutRef.current = window.setTimeout(() => {
+          if (cancelledRef.current) return;
+          setCreating(false);
+          setLockedBy(null);
+        }, MOCK_DISPATCH_SETTLE_MS);
+        return;
+      }
       pollForNewActivity(baselineIds);
     } catch (err) {
       console.error("Error dispatching backup:", err);
@@ -279,7 +328,7 @@ const BackupsTab: React.FC = () => {
             latestAppVersion={latestAppVersion}
           />
           <RestoreRunbookCard selected={selectedRow} now={now} />
-          <RecentActivityCard events={activity} now={now} />
+          <RecentActivityCard events={activity} now={now} unavailable={activityUnavailable} />
         </>
       )}
     </div>

@@ -56,5 +56,9 @@ test.describe("backups tab", () => {
 
     await expect(backUpButton).toBeDisabled();
     await expect(page.getByText("Backup dispatched — runs appear in Recent Activity")).toBeVisible();
+
+    // Mock mode's dispatch response short-circuits the lock instead of polling the full 90s
+    // window -- mock activity fixtures never grow, so polling would never see a new run.
+    await expect(backUpButton).toBeEnabled({ timeout: 5000 });
   });
 });

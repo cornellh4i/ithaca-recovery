@@ -28,10 +28,14 @@ function jsonResponse(body: unknown, status = 200) {
 interface FetchMockOptions {
   /** When set, every GET (list/health/activity) 503s with this body instead of succeeding. */
   unconfigured?: BackupsUnconfiguredResponse;
+  /** When set, only GET /activity 503s with this body -- list/health still succeed. */
+  activityUnconfigured?: BackupsUnconfiguredResponse;
   /** Extra activity events layered onto the fixture once the activity endpoint has been hit
    * `newRunAfterCall` times -- simulates a run appearing partway through a Back Up Now poll. */
   newRunAfterCall?: number;
   downloadUrl?: string | null;
+  /** POST /api/admin/backups response mode -- defaults to "mock". */
+  dispatchMode?: "mock" | "live";
 }
 
 /** Routes a `global.fetch` mock by URL/method the same way the real `/api/admin/backups*`
@@ -58,13 +62,16 @@ function setupFetchMock(options: FetchMockOptions = {}) {
     }
     if (url === "/api/admin/backups" && init?.method === "POST") {
       return Promise.resolve(
-        jsonResponse({ mode: "mock", dispatched: true, triggeredBy: "admin@ithacarecovery.org" }),
+        jsonResponse({ mode: options.dispatchMode ?? "mock", dispatched: true, triggeredBy: "admin@ithacarecovery.org" }),
       );
     }
     if (url === "/api/admin/backups/health") {
       return Promise.resolve(jsonResponse({ mode: "mock", data: health }));
     }
     if (url === "/api/admin/backups/activity") {
+      if (options.activityUnconfigured) {
+        return Promise.resolve(jsonResponse(options.activityUnconfigured, 503));
+      }
       activityCallCount += 1;
       const events =
         options.newRunAfterCall && activityCallCount > options.newRunAfterCall
@@ -137,6 +144,37 @@ describe("BackupsTab", () => {
     expect(screen.getByText(/GCS_WORKING_CREDENTIALS, R2_ACCESS_KEY_ID/)).toBeInTheDocument();
     expect(screen.getByText("docs/02-handoff/backup-infra-setup.md")).toBeInTheDocument();
     expect(screen.queryByText("Backup Health")).not.toBeInTheDocument();
+  });
+
+  it("degrades only the activity card, not the whole tab, when only /activity 503s", async () => {
+    setupFetchMock({ activityUnconfigured: { configured: false, missing: ["GITHUB_BACKUPS_PAT"] } });
+    await renderTab();
+
+    expect(screen.getByText("Backup Health")).toBeInTheDocument();
+    expect(screen.getByText("Snapshots", { exact: true })).toBeInTheDocument();
+    expect(
+      screen.getByText(/GitHub credentials not configured — run history unavailable/),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/GITHUB_BACKUPS_PAT/)).toBeInTheDocument();
+    expect(screen.queryByText("Backup monitoring isn't configured in this environment")).not.toBeInTheDocument();
+  });
+
+  it("shows the mock badge when only the activity envelope (not list) reports mode 'mock'", async () => {
+    const fetchMock = jest.fn((url: string, init?: RequestInit) => {
+      if (url === "/api/admin/backups" && (!init || init.method === undefined)) {
+        return Promise.resolve(jsonResponse({ mode: "live", data: { rows, total: rows.length } }));
+      }
+      if (url === "/api/admin/backups/health") {
+        return Promise.resolve(jsonResponse({ mode: "live", data: health }));
+      }
+      if (url === "/api/admin/backups/activity") {
+        return Promise.resolve(jsonResponse({ mode: "mock", data: { events: activity } }));
+      }
+      return Promise.reject(new Error(`Unhandled fetch in test: ${url}`));
+    });
+    global.fetch = fetchMock as unknown as typeof fetch;
+    await renderTab();
+    expect(screen.getByText("Sample data — backup credentials not configured")).toBeInTheDocument();
   });
 
   it("shows the unverified row with the Unverified treatment (index 3 of the fixture)", async () => {
@@ -260,8 +298,8 @@ describe("BackupsTab", () => {
     ).toBeInTheDocument();
   });
 
-  it("dispatches POST on Back Up Now and clears the lock once a new run appears in a later poll", async () => {
-    const fetchMock = setupFetchMock({ newRunAfterCall: 2 });
+  it("dispatches POST on Back Up Now and clears the lock once a new run appears in a later poll (live mode)", async () => {
+    const fetchMock = setupFetchMock({ newRunAfterCall: 2, dispatchMode: "live" });
     await renderTab();
     const button = screen.getByRole("button", { name: "Back Up Now" });
     expect(button).not.toBeDisabled();
@@ -291,6 +329,26 @@ describe("BackupsTab", () => {
 
     // Second poll tick: the mock now injects a new run (call #3 > newRunAfterCall), so the
     // poll should detect it, refresh, and clear the lock.
+    await act(async () => {
+      await jest.advanceTimersByTimeAsync(POLL_INTERVAL_MS);
+    });
+    expect(button).not.toBeDisabled();
+  });
+
+  it("short-circuits the lock in mock mode instead of spinning the full poll window (activity fixtures never grow)", async () => {
+    setupFetchMock({ dispatchMode: "mock" });
+    await renderTab();
+    const button = screen.getByRole("button", { name: "Back Up Now" });
+
+    await act(async () => {
+      fireEvent.click(button);
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(button).toBeDisabled();
+
+    // A single poll interval's worth of time is nowhere near the 90s poll window, but mock
+    // mode's short settle delay has already cleared the lock without hitting /activity again.
     await act(async () => {
       await jest.advanceTimersByTimeAsync(POLL_INTERVAL_MS);
     });

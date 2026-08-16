@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { BackupListRow } from "../../../../types/backups";
+import { backupArtifactBaseName, type BackupListRow } from "../../../../types/backups";
 import { formatETDateString, formatETLongDateTime, formatETTime } from "../../../../util/date/timeUtils";
 import Card from "../shared/Card";
 import Icon from "../../ui/displays/Icon";
@@ -43,13 +43,13 @@ export default function RestoreRunbookCard({ selected, now }: RestoreRunbookCard
   const [copied, setCopied] = useState(false);
   const [copyFailed, setCopyFailed] = useState(false);
 
-  // `id` is already `backup-<yyyymmddThhmmssZ>` — the artifact filename is that plus the
-  // `.dump.age` extension (mirrors mockBackups.ts#artifactFileName without importing a
-  // fixture-only module into a real component). RESTORE_TARGET_URL is required (the script
-  // hard-requires a target) and the artifact path is local (./) since it must already be
-  // downloaded before this command can run.
+  // Mock fixtures already set `id` to `backup-<yyyymmddThhmmssZ>`, but real rows carry the
+  // sidecar's bare-timestamp `id` -- backupArtifactBaseName() normalizes either shape to the
+  // real artifact basename (see its INVARIANT comment in types/backups.ts). RESTORE_TARGET_URL
+  // is required (the script hard-requires a target) and the artifact path is local (./) since
+  // it must already be downloaded before this command can run.
   const command = selected
-    ? `AGE_IDENTITY_FILE=/path/to/key RESTORE_TARGET_URL=<neon-branch-url> ./frontend/scripts/restore-db.sh ./${selected.id}.dump.age`
+    ? `AGE_IDENTITY_FILE=/path/to/key RESTORE_TARGET_URL=<neon-branch-url> ./frontend/scripts/restore-db.sh ./${backupArtifactBaseName(selected.id)}.dump.age`
     : null;
   const createdLabel = selected ? formatCreatedLabel(selected.createdAt, now) : null;
 

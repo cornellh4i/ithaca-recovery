@@ -41,6 +41,17 @@ export interface BackupMeta {
   verifiedAt: string | null;
 }
 
+/**
+ * `backup-db.sh` writes the sidecar's own `id` field as the bare UTC timestamp (e.g.
+ * `20260816T143457Z`) but names the artifact files `backup-<id>.dump.age` /
+ * `backup-<id>.meta.json`. Mock fixtures instead set `id` to the already-prefixed
+ * `backup-<timestamp>` form. This normalizes either shape to the artifact basename (sans
+ * extension) so server storage code and client display code agree on the real filename.
+ */
+export function backupArtifactBaseName(id: string): string {
+  return id.startsWith("backup-") ? id : `backup-${id}`;
+}
+
 /** One of the three storage targets a backup artifact is replicated to. */
 export type BackupReplica = "gcs-working" | "gcs-archive" | "r2";
 

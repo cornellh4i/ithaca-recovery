@@ -1,12 +1,12 @@
 // Real listing/download-URL implementation for the Backups admin tab. Reads the same three
 // storage targets the backup-db.yml/upload-backup.sh workflow actually writes to (daily/,
-// monthly/, permanent/ prefixes; <id>.dump.age + <id>.meta.json objects), and computes the
-// per-row `replicas` field the sidecar itself can never honestly claim (see BackupMeta's
-// INVARIANT comment in types/backups.ts).
+// monthly/, permanent/ prefixes; backup-<id>.dump.age + backup-<id>.meta.json objects), and
+// computes the per-row `replicas` field the sidecar itself can never honestly claim (see
+// BackupMeta's INVARIANT comment in types/backups.ts).
 import { Storage } from "@google-cloud/storage";
 import { ListObjectsV2Command, S3Client } from "@aws-sdk/client-s3";
 import type { BackupListRow, BackupMeta, BackupReplica, BackupTier } from "../../types/backups";
-import { ALL_BACKUP_REPLICAS } from "../../types/backups";
+import { ALL_BACKUP_REPLICAS, backupArtifactBaseName } from "../../types/backups";
 import { getStorageConfig } from "./config";
 
 const TIERS: BackupTier[] = ["daily", "monthly", "permanent"];
@@ -45,7 +45,7 @@ function r2Client(): S3Client {
   });
 }
 
-/** Object keys (e.g. `daily/<id>.dump.age`) currently present in a GCS bucket. */
+/** Object keys (e.g. `daily/backup-<id>.dump.age`) currently present in a GCS bucket. */
 async function listGcsObjectKeys(storage: Storage, bucket: string): Promise<Set<string>> {
   const keys = new Set<string>();
   for (const tier of TIERS) {
@@ -72,30 +72,56 @@ async function listR2ObjectKeys(client: S3Client, bucket: string): Promise<Set<s
   return keys;
 }
 
+const SIDECAR_READ_CONCURRENCY = 10;
+
 async function readGcsMetaSidecars(storage: Storage, bucket: string, keys: Set<string>): Promise<BackupMeta[]> {
   const metaKeys = Array.from(keys).filter((k) => k.endsWith(".meta.json"));
   const metas: BackupMeta[] = [];
   let skipped = 0;
-  await Promise.all(
-    metaKeys.map(async (key) => {
-      try {
-        const [buf] = await storage.bucket(bucket).file(key).download();
-        metas.push(JSON.parse(buf.toString("utf8")) as BackupMeta);
-      } catch (error) {
-        skipped += 1;
-        console.error(`services/backups/storage: failed to parse sidecar ${key}`, error);
-      }
-    }),
-  );
+
+  // Chunked rather than one unbounded Promise.all -- an unbounded fan-out over every sidecar
+  // ever written risks GCS per-request concurrency limits as the bucket grows.
+  for (let i = 0; i < metaKeys.length; i += SIDECAR_READ_CONCURRENCY) {
+    const chunk = metaKeys.slice(i, i + SIDECAR_READ_CONCURRENCY);
+    await Promise.all(
+      chunk.map(async (key) => {
+        try {
+          const [buf] = await storage.bucket(bucket).file(key).download();
+          metas.push(JSON.parse(buf.toString("utf8")) as BackupMeta);
+        } catch (error) {
+          skipped += 1;
+          console.error(`services/backups/storage: failed to parse sidecar ${key}`, error);
+        }
+      }),
+    );
+  }
   if (skipped > 0) {
     console.error(`services/backups/storage: skipped ${skipped} unparseable sidecar(s) in listing`);
   }
   return metas;
 }
 
+/**
+ * Dedupes rows by `meta.id`. On the 1st of the month, upload-backup.sh uploads the same
+ * artifact to both daily/ and monthly/, so the working-bucket listing yields two sidecars for
+ * one backup. Keeps the monthly-tier copy on conflict -- same bytes, but the monthly copy
+ * outlives the daily one once GFS deletes the daily prefix's entry at the 21-day mark.
+ */
+function dedupeRowsById(rows: BackupListRow[]): BackupListRow[] {
+  const byId = new Map<string, BackupListRow>();
+  for (const row of rows) {
+    const existing = byId.get(row.id);
+    if (!existing || (existing.tier !== "monthly" && row.tier === "monthly")) {
+      byId.set(row.id, row);
+    }
+  }
+  return Array.from(byId.values());
+}
+
 interface CachedListing {
   expiresAt: number;
   rows: BackupListRow[];
+  workingKeys: Set<string>;
   archiveKeys: Set<string>;
   r2Keys: Set<string>;
 }
@@ -104,7 +130,7 @@ let cache: CachedListing | null = null;
 
 /** Object key an artifact is stored under within a bucket/target, given its tier. */
 function artifactKey(tier: BackupTier, id: string): string {
-  return `${tier}/${id}.dump.age`;
+  return `${tier}/${backupArtifactBaseName(id)}.dump.age`;
 }
 
 async function fetchListing(): Promise<CachedListing> {
@@ -120,7 +146,7 @@ async function fetchListing(): Promise<CachedListing> {
 
   const metas = await readGcsMetaSidecars(storage, config.gcsWorkingBucket, workingKeys);
 
-  const rows: BackupListRow[] = metas.map((meta) => {
+  const allRows: BackupListRow[] = metas.map((meta) => {
     // Tier comes from the sidecar's own field (the object's prefix at write time), never
     // re-derived from createdAt -- see BackupMeta's tier comment in types/backups.ts.
     const key = artifactKey(meta.tier, meta.id);
@@ -136,9 +162,10 @@ async function fetchListing(): Promise<CachedListing> {
     };
   });
 
+  const rows = dedupeRowsById(allRows);
   rows.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
-  return { expiresAt: Date.now() + CACHE_TTL_MS, rows, archiveKeys, r2Keys };
+  return { expiresAt: Date.now() + CACHE_TTL_MS, rows, workingKeys, archiveKeys, r2Keys };
 }
 
 /**
@@ -152,7 +179,10 @@ export async function listBackups(): Promise<{ rows: BackupListRow[]; archiveObj
     cache = await fetchListing();
   }
   const artifactSuffix = ".dump.age";
-  const workingObjectCount = cache.rows.filter((r) => r.replicas.includes("gcs-working")).length;
+  // Count `.dump.age` keys the same way across all three targets -- counting working-bucket
+  // *rows* instead would undercount whenever a sidecar fails to parse but the artifact object
+  // still exists, making the working total not comparable to the archive/R2 counts.
+  const workingObjectCount = Array.from(cache.workingKeys).filter((k) => k.endsWith(artifactSuffix)).length;
   const archiveObjectCount = Array.from(cache.archiveKeys).filter((k) => k.endsWith(artifactSuffix)).length;
   const r2ObjectCount = Array.from(cache.r2Keys).filter((k) => k.endsWith(artifactSuffix)).length;
   return { rows: cache.rows, archiveObjectCount, r2ObjectCount, workingObjectCount };

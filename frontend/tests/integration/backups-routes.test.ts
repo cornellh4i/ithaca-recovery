@@ -45,9 +45,13 @@ function clearBackupsEnv() {
   ALL_BACKUPS_VARS.forEach((name) => delete process.env[name]);
 }
 
+const VALID_GCS_CREDENTIALS = Buffer.from(
+  JSON.stringify({ client_email: "backup@icr.iam.gserviceaccount.com", private_key: "test-key", project_id: "icr-db-backups-prod" }),
+).toString("base64");
+
 function setLiveEnv() {
   STORAGE_VARS.forEach((name) => {
-    process.env[name] = name === "GCS_BACKUPS_CREDENTIALS" ? Buffer.from("{}").toString("base64") : "test-value";
+    process.env[name] = name === "GCS_BACKUPS_CREDENTIALS" ? VALID_GCS_CREDENTIALS : "test-value";
   });
   GITHUB_VARS.forEach((name) => {
     process.env[name] = "test-value";
@@ -82,6 +86,7 @@ const sampleRow: BackupListRow = {
 afterEach(() => {
   process.env = { ...originalEnv };
   jest.clearAllMocks();
+  jest.restoreAllMocks();
 });
 
 describe("GET /api/admin/backups", () => {
@@ -128,6 +133,18 @@ describe("GET /api/admin/backups", () => {
     expect(body.missing).toEqual(expect.arrayContaining(["GCS_BACKUPS_CREDENTIALS", "R2_BACKUPS_BUCKET"]));
   });
 
+  test("treats an undecodable GCS_BACKUPS_CREDENTIALS value as missing rather than 500ing", async () => {
+    mockedRequireRole.mockResolvedValue(superAdminSession);
+    setLiveEnv();
+    process.env.GCS_BACKUPS_CREDENTIALS = "not-valid-base64-json";
+    jest.replaceProperty(process, "env", { ...process.env, NODE_ENV: "production" });
+    const { GET } = await import("../../app/api/admin/backups/route");
+    const response = await GET();
+    const body = await response.json();
+    expect(response.status).toBe(503);
+    expect(body.missing).toContain("GCS_BACKUPS_CREDENTIALS");
+  });
+
   test("never leaks a raw upstream error into the response body", async () => {
     mockedRequireRole.mockResolvedValue(superAdminSession);
     setLiveEnv();
@@ -166,7 +183,7 @@ describe("POST /api/admin/backups", () => {
     expect(mockedDispatchBackup).not.toHaveBeenCalled();
   });
 
-  test("live mode dispatches with the default reason including the caller's email", async () => {
+  test("live mode dispatches with a default reason that omits the caller's email", async () => {
     mockedRequireRole.mockResolvedValue(superAdminSession);
     setLiveEnv();
     mockedDispatchBackup.mockResolvedValue(undefined);
@@ -176,7 +193,21 @@ describe("POST /api/admin/backups", () => {
     const body = await response.json();
     expect(response.status).toBe(200);
     expect(body).toEqual({ mode: "live", dispatched: true, triggeredBy: "root@icr.org" });
-    expect(mockedDispatchBackup).toHaveBeenCalledWith(expect.stringContaining("root@icr.org"));
+    // The sidecar/failure-issue body this reason lands in is unencrypted -- the email only
+    // belongs in the server-side console audit line, never the dispatched reason itself.
+    expect(mockedDispatchBackup).toHaveBeenCalledWith("Manual run from Admin → Backups");
+    expect(JSON.stringify(mockedDispatchBackup.mock.calls[0])).not.toMatch(/root@icr\.org/);
+  });
+
+  test("treats a whitespace-only reason as absent and falls back to the default", async () => {
+    mockedRequireRole.mockResolvedValue(superAdminSession);
+    setLiveEnv();
+    mockedDispatchBackup.mockResolvedValue(undefined);
+    const { POST } = await import("../../app/api/admin/backups/route");
+    const request = new Request("http://localhost/api/admin/backups", { method: "POST", body: JSON.stringify({ reason: "   " }) });
+    const response = await POST(request);
+    expect(response.status).toBe(200);
+    expect(mockedDispatchBackup).toHaveBeenCalledWith("Manual run from Admin → Backups");
   });
 });
 
@@ -261,6 +292,22 @@ describe("GET /api/admin/backups/[id]/download", () => {
     expect(mockedSignedDownloadUrl).not.toHaveBeenCalled();
   });
 
+  test("409s when the row's replicas don't include gcs-working (lifecycle-deleted or failed upload)", async () => {
+    mockedRequireRole.mockResolvedValue(superAdminSession);
+    setLiveEnv();
+    mockedListBackups.mockResolvedValue({
+      rows: [{ ...sampleRow, replicas: ["gcs-archive", "r2"] }],
+      workingObjectCount: 0,
+      archiveObjectCount: 1,
+      r2ObjectCount: 1,
+    });
+    const { GET } = await import("../../app/api/admin/backups/[id]/download/route");
+    const { NextRequest } = await import("next/server");
+    const response = await GET(new NextRequest(`http://localhost/api/admin/backups/${sampleRow.id}/download`));
+    expect(response.status).toBe(409);
+    expect(mockedSignedDownloadUrl).not.toHaveBeenCalled();
+  });
+
   test("known id returns a signed URL in live mode", async () => {
     mockedRequireRole.mockResolvedValue(superAdminSession);
     setLiveEnv();
@@ -282,6 +329,17 @@ describe("GET /api/admin/backups/[id]/download", () => {
     const { GET } = await import("../../app/api/admin/backups/[id]/download/route");
     const { NextRequest } = await import("next/server");
     const response = await GET(new NextRequest(`http://localhost/api/admin/backups/${knownId}/download`));
+    const body = await response.json();
+    expect(response.status).toBe(200);
+    expect(body).toEqual({ mode: "mock", url: null, expiresInSeconds: null });
+  });
+
+  test("mock mode skips id-vs-listing validation entirely -- an id from a stale cron slot still 200s", async () => {
+    mockedRequireRole.mockResolvedValue(superAdminSession);
+    clearBackupsEnv();
+    const { GET } = await import("../../app/api/admin/backups/[id]/download/route");
+    const { NextRequest } = await import("next/server");
+    const response = await GET(new NextRequest("http://localhost/api/admin/backups/backup-not-in-any-listing/download"));
     const body = await response.json();
     expect(response.status).toBe(200);
     expect(body).toEqual({ mode: "mock", url: null, expiresInSeconds: null });

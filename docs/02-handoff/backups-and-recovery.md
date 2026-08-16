@@ -232,8 +232,9 @@ The Backups admin tab (`/api/admin/backups*`, `SUPER_ADMIN`-only) reads its data
 same targets the backup workflow writes to — it has no database of its own:
 
 - **Snapshots / health totals** — a listing of `daily/`, `monthly/`, `permanent/` under the
-  GCS-working bucket, with each `<id>.meta.json` sidecar downloaded and parsed. Per-row replica
-  presence is computed by checking whether that row's `<tier>/<id>.dump.age` key also exists in the
+  GCS-working bucket, with each `backup-<id>.meta.json` sidecar downloaded and parsed. Per-row
+  replica presence is computed by checking whether that row's `<tier>/backup-<id>.dump.age` key
+  also exists in the
   GCS-archive and R2 listings. This full three-target listing is cached in-memory for 60 seconds —
   GCS/R2 free tiers meter listings as billable Class A operations, and an admin who leaves the tab
   open polling would otherwise burn through that quota for no reason.

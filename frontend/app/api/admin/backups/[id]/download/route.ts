@@ -3,7 +3,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireRole } from "../../../../../../services/auth";
 import { resolveStorageMode } from "../../../../../../services/backups/config";
 import { listBackups, signedDownloadUrl } from "../../../../../../services/backups/storage";
-import { generateMockBackupRows } from "../../../../../components/admin/backups/mockBackups";
 import type { BackupDownloadResponse, BackupsUnconfiguredResponse } from "../../../../../../types/backups";
 
 const DOWNLOAD_EXPIRY_SECONDS = 300;
@@ -24,10 +23,9 @@ export const GET = async (request: NextRequest) => {
   }
 
   if (storageMode.mode === "mock") {
-    const rows = generateMockBackupRows(new Date());
-    if (!rows.some((r) => r.id === id)) {
-      return NextResponse.json({ error: "Not Found" }, { status: 404 });
-    }
+    // Mock rows regenerate anchored to the current cron slot -- an id fetched just before a
+    // slot boundary would 404 against a listing generated just after it. Mock mode has no real
+    // artifact to validate against anyway, so skip id-vs-listing validation entirely.
     const body: BackupDownloadResponse = { mode: "mock", url: null, expiresInSeconds: null };
     return NextResponse.json(body);
   }
@@ -37,6 +35,14 @@ export const GET = async (request: NextRequest) => {
     const row = rows.find((r) => r.id === id);
     if (!row) {
       return NextResponse.json({ error: "Not Found" }, { status: 404 });
+    }
+    if (!row.replicas.includes("gcs-working")) {
+      // Lifecycle-deleted or the working-bucket upload failed -- signing against a bucket that
+      // doesn't hold this object would 404 downstream with no actionable message.
+      return NextResponse.json(
+        { error: "Backup artifact is no longer available in the working bucket (lifecycle-deleted or upload failed)." },
+        { status: 409 },
+      );
     }
 
     const url = await signedDownloadUrl(row.id, row.tier);

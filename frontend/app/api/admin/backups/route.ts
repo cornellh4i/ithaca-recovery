@@ -46,7 +46,11 @@ export const POST = async (request: Request) => {
       if (typeof body.reason !== "string" || body.reason.length > MAX_REASON_LENGTH) {
         return NextResponse.json({ error: `reason must be a string of at most ${MAX_REASON_LENGTH} characters` }, { status: 400 });
       }
-      reasonInput = body.reason;
+      // backup-db.yml declares `reason` required, so an empty/whitespace string would 422 the
+      // dispatch upstream -- treat it the same as an absent field and fall back to the default.
+      if (body.reason.trim().length > 0) {
+        reasonInput = body.reason;
+      }
     }
   } catch {
     return NextResponse.json({ error: "Malformed JSON body" }, { status: 400 });
@@ -59,7 +63,10 @@ export const POST = async (request: Request) => {
   }
 
   const callerEmail = auth.user?.email ?? "unknown";
-  const reason = reasonInput ?? `Manual from Admin → Backups by ${callerEmail}`;
+  // The sidecar this reason lands in (and any failure-issue body) is unencrypted -- keep the
+  // caller's email out of it and only in the server-side console audit line below.
+  const reason = reasonInput ?? "Manual run from Admin → Backups";
+  console.info(`backups/dispatch: ${callerEmail} triggered a manual backup run`);
 
   if (githubMode.mode === "mock") {
     const body: BackupDispatchResponse = { mode: "mock", dispatched: true, triggeredBy: callerEmail };
