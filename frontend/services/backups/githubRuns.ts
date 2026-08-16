@@ -6,6 +6,10 @@ import { getGithubConfig } from "./config";
 const WORKFLOW_FILE = "backup-db.yml";
 const GITHUB_API_BASE = "https://api.github.com";
 
+// Bounds each GitHub call so a slow upstream can't hold an admin request open until the
+// platform timeout -- same rationale as the diagnostics route's CHECK_TIMEOUT_MS.
+const GITHUB_TIMEOUT_MS = 8000;
+
 interface GithubRun {
   id: number;
   event: string;
@@ -37,6 +41,7 @@ export async function fetchRecentActivity(): Promise<ActivityEvent[]> {
   const { pat, repo } = getGithubConfig();
   const response = await fetch(`${GITHUB_API_BASE}/repos/${repo}/actions/workflows/${WORKFLOW_FILE}/runs?per_page=20`, {
     headers: authHeaders(pat),
+    signal: AbortSignal.timeout(GITHUB_TIMEOUT_MS),
   });
   if (!response.ok) {
     throw new Error(`GitHub Actions runs request failed with status ${response.status}`);
@@ -62,6 +67,7 @@ export async function dispatchBackup(reason: string): Promise<void> {
     method: "POST",
     headers: { ...authHeaders(pat), "Content-Type": "application/json" },
     body: JSON.stringify({ ref: "master", inputs: { reason } }),
+    signal: AbortSignal.timeout(GITHUB_TIMEOUT_MS),
   });
   if (response.status !== 204) {
     throw new Error(`GitHub Actions dispatch request failed with status ${response.status}`);

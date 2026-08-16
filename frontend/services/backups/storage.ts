@@ -74,6 +74,23 @@ async function listR2ObjectKeys(client: S3Client, bucket: string): Promise<Set<s
 
 const SIDECAR_READ_CONCURRENCY = 10;
 
+const VALID_TIERS: readonly string[] = ["daily", "monthly", "permanent"];
+
+// A sidecar that is valid JSON but missing the fields row assembly reads (id/tier/createdAt)
+// must be skipped like an unparseable one, or a single corrupt object 500s the whole listing.
+function isUsableSidecar(value: unknown): value is BackupMeta {
+  if (typeof value !== "object" || value === null) return false;
+  const meta = value as Record<string, unknown>;
+  return (
+    typeof meta.id === "string" &&
+    meta.id.length > 0 &&
+    typeof meta.tier === "string" &&
+    VALID_TIERS.includes(meta.tier) &&
+    typeof meta.createdAt === "string" &&
+    !Number.isNaN(new Date(meta.createdAt).getTime())
+  );
+}
+
 async function readGcsMetaSidecars(storage: Storage, bucket: string, keys: Set<string>): Promise<BackupMeta[]> {
   const metaKeys = Array.from(keys).filter((k) => k.endsWith(".meta.json"));
   const metas: BackupMeta[] = [];
@@ -87,7 +104,11 @@ async function readGcsMetaSidecars(storage: Storage, bucket: string, keys: Set<s
       chunk.map(async (key) => {
         try {
           const [buf] = await storage.bucket(bucket).file(key).download();
-          metas.push(JSON.parse(buf.toString("utf8")) as BackupMeta);
+          const parsed: unknown = JSON.parse(buf.toString("utf8"));
+          if (!isUsableSidecar(parsed)) {
+            throw new Error("sidecar JSON is missing id/tier/createdAt");
+          }
+          metas.push(parsed);
         } catch (error) {
           skipped += 1;
           console.error(`services/backups/storage: failed to parse sidecar ${key}`, error);

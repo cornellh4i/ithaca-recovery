@@ -39,7 +39,9 @@ const GITHUB_VAR_NAMES = ["GITHUB_BACKUPS_PAT"] as const;
 function isDecodableGcsCredentials(raw: string): boolean {
   try {
     const decoded = JSON.parse(Buffer.from(raw, "base64").toString("utf8")) as Record<string, unknown>;
-    return typeof decoded.client_email === "string" && typeof decoded.private_key === "string" && typeof decoded.project_id === "string";
+    return [decoded.client_email, decoded.private_key, decoded.project_id].every(
+      (field) => typeof field === "string" && field.trim().length > 0,
+    );
   } catch {
     return false;
   }

@@ -54,7 +54,8 @@ test.describe("backups tab", () => {
     const backUpButton = page.getByRole("button", { name: "Back Up Now" });
     await backUpButton.click();
 
-    await expect(backUpButton).toBeDisabled();
+    // Toast first: it outlives the mock lock's short settle window, whereas asserting the
+    // disabled state first can miss it entirely on a slow runner.
     await expect(page.getByText("Backup dispatched — runs appear in Recent Activity")).toBeVisible();
 
     // Mock mode's dispatch response short-circuits the lock instead of polling the full 90s

@@ -84,9 +84,11 @@ const sampleRow: BackupListRow = {
 };
 
 afterEach(() => {
-  process.env = { ...originalEnv };
-  jest.clearAllMocks();
+  // Restore first: jest.replaceProperty(process, "env", ...) reverts to the object captured at
+  // replacement time, so restoring after the reset would resurrect a mid-test env snapshot.
   jest.restoreAllMocks();
+  jest.clearAllMocks();
+  process.env = { ...originalEnv };
 });
 
 describe("GET /api/admin/backups", () => {
@@ -208,6 +210,16 @@ describe("POST /api/admin/backups", () => {
     const response = await POST(request);
     expect(response.status).toBe(200);
     expect(mockedDispatchBackup).toHaveBeenCalledWith("Manual run from Admin → Backups");
+  });
+
+  test("malformed JSON is a 400, not a dispatch with the default reason", async () => {
+    mockedRequireRole.mockResolvedValue(superAdminSession);
+    setLiveEnv();
+    const { POST } = await import("../../app/api/admin/backups/route");
+    const request = new Request("http://localhost/api/admin/backups", { method: "POST", body: "{not json" });
+    const response = await POST(request);
+    expect(response.status).toBe(400);
+    expect(mockedDispatchBackup).not.toHaveBeenCalled();
   });
 });
 

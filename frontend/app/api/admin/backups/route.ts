@@ -41,7 +41,7 @@ export const POST = async (request: Request) => {
 
   let reasonInput: string | undefined;
   try {
-    const body = (await request.json().catch(() => ({}))) as { reason?: unknown };
+    const body = (await request.json()) as { reason?: unknown };
     if (body.reason !== undefined) {
       if (typeof body.reason !== "string" || body.reason.length > MAX_REASON_LENGTH) {
         return NextResponse.json({ error: `reason must be a string of at most ${MAX_REASON_LENGTH} characters` }, { status: 400 });

@@ -252,6 +252,15 @@ const BackupsTab: React.FC = () => {
   const handleDownload = async (id: string) => {
     try {
       const res = await fetch(`/api/admin/backups/${id}/download`);
+      // 409 is a deliberate route answer (working-bucket copy lifecycle-deleted or never
+      // uploaded), not a transient failure -- the operator needs to know retrying won't help.
+      if (res.status === 409) {
+        showToast({
+          variant: "error",
+          title: "This snapshot is no longer in the working bucket — restore it from the archive or R2 copy instead",
+        });
+        return;
+      }
       if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
       const body: BackupDownloadResponse = await res.json();
       if (body.url) {
