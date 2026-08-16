@@ -119,6 +119,11 @@ A separate GCP project (project number `236481171441`), same production Google a
 test-user access for other student contributors. Its whole purpose is being a second, independent
 failure domain (separate billing/IAM/project) from the production project.
 
+Don't be misled by the GCP console: this project also appears when signed in as
+`ithacacommunityrecoverytest@gmail.com`, but only via the billing console (both backup projects
+bill to that account's billing account — see Open items). That is billing visibility, not
+ownership — the project's sole IAM owner is `dev@518icr.com`.
+
 ```sh
 gcloud projects create icr-backups-archive \
   --name="ICR Backups Archive"
