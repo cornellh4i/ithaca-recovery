@@ -58,7 +58,7 @@ trap cleanup EXIT
 
 pg_dump "$DATABASE_URL_UNPOOLED" \
   --format=custom \
-  --compress=zlib:6 \
+  --compress=gzip:6 \
   --no-owner \
   --no-privileges \
   --file="$dump_file"
