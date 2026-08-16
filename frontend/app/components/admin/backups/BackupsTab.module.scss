@@ -677,6 +677,122 @@
   }
 }
 
+/* ---------- Verified header legend (mirrors UsersTab.module.scss's role legend) ---------- */
+
+.thLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.legendAnchor {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.infoButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: $medium-grey-color;
+
+  &:hover {
+    color: $black-color;
+  }
+}
+
+// position: fixed, not absolute -- portaled to document.body (see SnapshotsCard.tsx), so it's
+// no longer a descendant of the scrollable .tableWrapper (which would otherwise clip it once
+// the table goes wider than the viewport). top/left/width come from an inline style computed
+// in JS from the icon's actual on-screen position, already clamped there to stay in-viewport.
+.legendPopover {
+  position: fixed;
+  background: #fff;
+  border: 1px solid $grey-border-color;
+  border-radius: $radius-sm;
+  box-shadow: 0 4px 12px rgb(0 0 0 / 15%);
+  padding: 14px 16px;
+  z-index: $z-index-dropdown;
+  box-sizing: border-box;
+  font-weight: 400;
+  text-transform: none;
+}
+
+.legendPopoverTitle {
+  font-size: 13px;
+  font-weight: 600;
+  color: $black-color;
+  margin-bottom: 10px;
+}
+
+.legendTable {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 10px 14px;
+  align-items: center;
+}
+
+.legendPillCell {
+  display: flex;
+}
+
+.legendDescCell {
+  font-size: 13px;
+  color: #555;
+  line-height: 1.4;
+  min-width: 0;
+  overflow-wrap: break-word;
+}
+
+/* ---------- Replica count hover tooltip (mirrors AdminShell.module.scss's locked-tab tooltip) ---------- */
+
+.replicaTooltipAnchor {
+  position: relative;
+  display: inline-flex;
+
+  &:hover .replicaTooltip,
+  &:focus-within .replicaTooltip {
+    opacity: 1;
+    visibility: visible;
+  }
+}
+
+.replicaTooltip {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-bottom: 6px;
+  padding: 6px 10px;
+  border-radius: 4px;
+  background-color: $black-color;
+  color: #fff;
+  font-size: 12px;
+  width: max-content;
+  max-width: 220px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.15s ease;
+  pointer-events: none;
+  z-index: $z-index-dropdown;
+}
+
+.replicaTooltipLinePresent {
+  color: #fff;
+}
+
+.replicaTooltipLineMissing {
+  color: $warning-text-color;
+}
+
 .expiresExpired {
   color: $danger-color;
 }

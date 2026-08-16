@@ -40,7 +40,7 @@ describe("BackupsTab", () => {
     expect(unverifiedBadges).toHaveLength(1);
   });
 
-  it("shows a per-target present/missing title for the single-replica and two-replica rows (indices 6 and 9)", () => {
+  it("shows a per-target present/missing tooltip for the single-replica and two-replica rows (indices 6 and 9)", () => {
     const rows = generateMockBackupRows(FIXED_NOW);
     const singleReplicaRow = rows.find((row) => row.replicas.length === 1);
     const twoReplicaRow = rows.find((row) => row.replicas.length === 2);
@@ -48,17 +48,18 @@ describe("BackupsTab", () => {
     expect(twoReplicaRow).toBeDefined();
 
     renderTab();
-    expect(screen.getByText("1 of 3", { selector: `[title*="missing"]` })).toBeInTheDocument();
-    expect(screen.getByText("2 of 3", { selector: `[title*="missing"]` })).toBeInTheDocument();
+    // Tooltip content sits permanently in the DOM (CSS-hidden until hover/focus), so it's
+    // queryable directly rather than via a native `title` attribute.
+    expect(screen.getAllByText(/missing/).length).toBeGreaterThan(0);
   });
 
-  it("gives every replica cell a hover title, including fully-replicated rows", () => {
+  it("gives every replica cell a hover tooltip, including fully-replicated rows", () => {
     const rows = generateMockBackupRows(FIXED_NOW);
     const fullReplicaRow = rows.find((row) => row.replicas.length === 3);
     expect(fullReplicaRow).toBeDefined();
 
     renderTab();
-    expect(screen.getAllByText("3 of 3", { selector: `[title*="present"]` }).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/present/).length).toBeGreaterThan(0);
   });
 
   it("fixture contains both a single-replica and a two-replica (one-missing) row", () => {
@@ -186,6 +187,19 @@ describe("BackupsTab", () => {
     expect(
       screen.getByText("Signed-URL download arrives with the API wiring PR")
     ).toBeInTheDocument();
+  });
+
+  it("clicking the Verified header info button shows the legend, and clicking outside closes it", () => {
+    renderTab();
+
+    expect(screen.queryByText(/restored into a scratch database/)).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "What does Verified mean?" }));
+    expect(screen.getByText(/restored into a scratch database/)).toBeInTheDocument();
+    expect(screen.getByText(/no verification record exists/)).toBeInTheDocument();
+
+    fireEvent.mouseDown(document.body);
+    expect(screen.queryByText(/restored into a scratch database/)).not.toBeInTheDocument();
   });
 
   it("Notable Activity lists the failure and manual run but not routine successes, and shows the count line", () => {

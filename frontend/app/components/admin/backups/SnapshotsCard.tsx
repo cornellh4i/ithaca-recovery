@@ -1,6 +1,7 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import Icon from "../../ui/displays/Icon";
 import Card from "../shared/Card";
 import CardHeader from "../shared/CardHeader";
@@ -80,12 +81,35 @@ const VERIFIED_TOOLTIP =
 const UNVERIFIED_TOOLTIP =
   "Unverified: no verification record exists — likely created outside the backup workflow. Prefer a Verified snapshot in an incident";
 
-/** Per-replica present/missing breakdown for the replica count's hover title -- every row gets
- * this, not just degraded ones, so "3 of 3" is still legible on hover as which three. */
-function replicaStatusTitle(row: BackupListRow): string {
-  return ALL_BACKUP_REPLICAS.map(
-    (r) => `${REPLICA_LABEL[r]}: ${row.replicas.includes(r) ? "present" : "missing"}`
-  ).join("\n");
+interface VerifiedLegendEntry {
+  icon: "check-circle" | "error-outline";
+  colorClass: string;
+  label: string;
+  description: string;
+}
+
+const VERIFIED_LEGEND: VerifiedLegendEntry[] = [
+  {
+    icon: "check-circle",
+    colorClass: "verifiedYes",
+    label: "Verified",
+    description: "restored into a scratch database and structurally checked during its backup run",
+  },
+  {
+    icon: "error-outline",
+    colorClass: "verifiedNo",
+    label: "Unverified",
+    description: "no verification record exists; likely created outside the backup workflow. Prefer a Verified snapshot in an incident",
+  },
+];
+
+/** Per-replica present/missing breakdown for the replica count's hover tooltip -- every row
+ * gets this, not just degraded ones, so "3 of 3" is still legible on hover as which three. */
+function replicaStatusList(row: BackupListRow): { label: string; present: boolean }[] {
+  return ALL_BACKUP_REPLICAS.map((r) => ({
+    label: REPLICA_LABEL[r],
+    present: row.replicas.includes(r),
+  }));
 }
 
 export function matchesFilter(row: BackupListRow, filter: BackupTierFilter): boolean {
@@ -160,11 +184,23 @@ const SnapshotRow: React.FC<SnapshotRowProps> = ({ row, selected, onSelect, onDo
         </span>
       </td>
       <td>
-        <span
-          className={`${styles.replicaCount} ${degraded ? styles.replicaCountDegraded : ""}`}
-          title={replicaStatusTitle(row)}
-        >
-          {replicaCount} of {ALL_BACKUP_REPLICAS.length}
+        <span className={styles.replicaTooltipAnchor}>
+          <span
+            className={`${styles.replicaCount} ${degraded ? styles.replicaCountDegraded : ""}`}
+            tabIndex={0}
+          >
+            {replicaCount} of {ALL_BACKUP_REPLICAS.length}
+          </span>
+          <span className={styles.replicaTooltip} role="tooltip">
+            {replicaStatusList(row).map(({ label, present }) => (
+              <span
+                key={label}
+                className={present ? styles.replicaTooltipLinePresent : styles.replicaTooltipLineMissing}
+              >
+                {label}: {present ? "present" : "missing"}
+              </span>
+            ))}
+          </span>
         </span>
       </td>
       <td className={styles.expiresCell}>
@@ -209,6 +245,46 @@ const SnapshotsCard: React.FC<SnapshotsCardProps> = ({
   now,
   latestAppVersion,
 }) => {
+  const [legendOpen, setLegendOpen] = useState(false);
+  const [legendPosition, setLegendPosition] = useState<{ top: number; left: number; width: number } | null>(null);
+  const infoButtonRef = useRef<HTMLButtonElement>(null);
+
+  // Same pattern as UsersTab.tsx's role legend: portaled to document.body so it renders above
+  // the table's own horizontal-scroll clipping, closed on outside click via its own data
+  // attribute (it's no longer a DOM descendant of the anchor once portaled).
+  useEffect(() => {
+    if (!legendOpen) return;
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest("[data-verified-legend]") && !target.closest("[data-verified-legend-popup]")) {
+        setLegendOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [legendOpen]);
+
+  useEffect(() => {
+    if (!legendOpen) return;
+
+    const updatePosition = () => {
+      const rect = infoButtonRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      const margin = 16;
+      const width = Math.min(320, window.innerWidth - margin * 2);
+      const left = Math.max(margin, Math.min(rect.right - width, window.innerWidth - width - margin));
+      setLegendPosition({ top: rect.bottom + 6, left, width });
+    };
+
+    updatePosition();
+    window.addEventListener("scroll", updatePosition, true);
+    window.addEventListener("resize", updatePosition);
+    return () => {
+      window.removeEventListener("scroll", updatePosition, true);
+      window.removeEventListener("resize", updatePosition);
+    };
+  }, [legendOpen]);
+
   const filteredRows = rows.filter((row) => matchesFilter(row, filter));
   const totalPages = Math.max(1, Math.ceil(filteredRows.length / PAGE_SIZE));
   const clampedPage = Math.min(page, totalPages - 1);
@@ -274,12 +350,47 @@ const SnapshotsCard: React.FC<SnapshotsCardProps> = ({
                   <th>Created</th>
                   <th>Tier</th>
                   <th>Size</th>
-                  <th title="Whether this artifact was restored into a scratch database and structurally checked during its backup run — hover a row's icon for detail">
-                    Verified
+                  <th>
+                    <span className={styles.thLabel}>
+                      Verified
+                      <div className={styles.legendAnchor} data-verified-legend>
+                        <button
+                          ref={infoButtonRef}
+                          type="button"
+                          className={styles.infoButton}
+                          aria-label="What does Verified mean?"
+                          aria-expanded={legendOpen}
+                          onClick={() => setLegendOpen((open) => !open)}
+                        >
+                          <Icon name="warning-circle" size={20} />
+                        </button>
+                        {legendOpen && legendPosition && createPortal(
+                          <div
+                            className={styles.legendPopover}
+                            style={{ top: legendPosition.top, left: legendPosition.left, width: legendPosition.width }}
+                            data-verified-legend-popup="true"
+                          >
+                            <div className={styles.legendPopoverTitle}>Verified</div>
+                            <div className={styles.legendTable}>
+                              {VERIFIED_LEGEND.map((entry) => (
+                                <React.Fragment key={entry.label}>
+                                  <div className={styles.legendPillCell}>
+                                    <span className={`${styles.verifiedIndicator} ${styles[entry.colorClass]}`}>
+                                      <Icon name={entry.icon} size={16} />
+                                      {entry.label}
+                                    </span>
+                                  </div>
+                                  <div className={styles.legendDescCell}>{entry.description}</div>
+                                </React.Fragment>
+                              ))}
+                            </div>
+                          </div>,
+                          document.body,
+                        )}
+                      </div>
+                    </span>
                   </th>
-                  <th title="How many of the three storage targets (GCS working, GCS archive, Cloudflare R2) hold this artifact — hover a row's count for the per-target breakdown">
-                    Replicas
-                  </th>
+                  <th>Replicas</th>
                   <th>Expires</th>
                   <th>Download</th>
                 </tr>
