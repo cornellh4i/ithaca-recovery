@@ -50,13 +50,32 @@ if [[ "$ARTIFACT_DAY" == "01" ]]; then
   TIERS+=("monthly")
 fi
 
+# Raw JSON-API insert instead of `gcloud storage cp`: cp stats the destination
+# object first, which needs storage.objects.get -- and the CI service accounts
+# are deliberately objectCreator-only (create, never read/overwrite). The API
+# upload is a pure objects.create. ifGenerationMatch=0 makes create-only explicit:
+# the write fails with 412 rather than overwriting if the object somehow exists.
+# No Object Lock params here: immutability for GCS targets is bucket-side
+# (lifecycle on working, retention policy on archive), not per-object.
+gcs_put() {
+  local bucket="$1" object="$2" file="$3" http_code
+  http_code="$(curl -sS -o /tmp/gcs-upload-response.json -w '%{http_code}' \
+    -X POST --data-binary @"$file" \
+    -H "Authorization: Bearer $(gcloud auth print-access-token)" \
+    -H "Content-Type: application/octet-stream" \
+    "https://storage.googleapis.com/upload/storage/v1/b/${bucket}/o?uploadType=media&ifGenerationMatch=0&name=$(printf '%s' "$object" | jq -sRr @uri)")"
+  if [[ "$http_code" != 2* ]]; then
+    echo "upload-backup: GCS upload of ${object} to ${bucket} failed (HTTP ${http_code}):" >&2
+    cat /tmp/gcs-upload-response.json >&2
+    return 1
+  fi
+}
+
 upload_gcs() {
   local bucket="$1" tier="$2"
-  # No Object Lock flags here: immutability for GCS targets is bucket-side
-  # (lifecycle on working, retention policy on archive), not per-object.
-  gcloud storage cp "$ARTIFACT_PATH" "gs://${bucket}/${tier}/${ARTIFACT_NAME}"
-  gcloud storage cp "$SHA256_PATH" "gs://${bucket}/${tier}/${SHA256_NAME}"
-  gcloud storage cp "$META_PATH" "gs://${bucket}/${tier}/${META_NAME}"
+  gcs_put "$bucket" "${tier}/${ARTIFACT_NAME}" "$ARTIFACT_PATH"
+  gcs_put "$bucket" "${tier}/${SHA256_NAME}" "$SHA256_PATH"
+  gcs_put "$bucket" "${tier}/${META_NAME}" "$META_PATH"
 }
 
 # Retention is enforced by the bucket's prefix-scoped Bucket Lock rules (daily/ 14d,
