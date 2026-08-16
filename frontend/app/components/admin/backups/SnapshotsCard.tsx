@@ -274,8 +274,12 @@ const SnapshotsCard: React.FC<SnapshotsCardProps> = ({
                   <th>Created</th>
                   <th>Tier</th>
                   <th>Size</th>
-                  <th>Verified</th>
-                  <th>Replicas</th>
+                  <th title="Whether this artifact was restored into a scratch database and structurally checked during its backup run — hover a row's icon for detail">
+                    Verified
+                  </th>
+                  <th title="How many of the three storage targets (GCS working, GCS archive, Cloudflare R2) hold this artifact — hover a row's count for the per-target breakdown">
+                    Replicas
+                  </th>
                   <th>Expires</th>
                   <th>Download</th>
                 </tr>
