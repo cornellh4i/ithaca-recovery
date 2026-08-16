@@ -3,16 +3,14 @@ set -euo pipefail
 
 # Dumps production Postgres, restores it into a scratch container to verify the dump is actually
 # restorable (not just "pg_dump exited 0"), then encrypts + checksums + emits meta.json. Called
-# once per workflow run by .github/workflows/backup-db.yml (B1); the three-way upload is a
-# separate script (upload-backup.sh, B3) so this one never needs cloud credentials.
+# once per workflow run by .github/workflows/backup-db.yml; the three-way upload is a
+# separate script (upload-backup.sh) so this one never needs cloud credentials.
 #
 # Required env vars:
 #   DATABASE_URL_UNPOOLED   Neon connection string with pooling off (pgbouncer breaks pg_dump's
-#                            session-level operations -- see plan's "Design decisions").
+#                            session-level operations).
 #   SCRATCH_DATABASE_URL     Connection string for the workflow's `services: postgres:18` scratch
 #                            container, e.g. postgresql://postgres:postgres@localhost:5432/scratch.
-#                            Owned by this script/B1's contract; cross-check with B1's service
-#                            definition and B9.
 #   AGE_PUBLIC_KEY_A         age recipient public key, Maintenance Lead custody.
 #   AGE_PUBLIC_KEY_B         age recipient public key, org-owned vault custody.
 #   BACKUP_SOURCE            "automatic" | "manual" -- passed straight into meta.json.
@@ -25,7 +23,7 @@ set -euo pipefail
 # Outputs (written to $PWD, consumed by upload-backup.sh):
 #   backup-<id>.dump.age   encrypted backup artifact
 #   backup-<id>.sha256     sha256 of the .age file, `sha256sum`-verifiable format
-#   backup-<id>.meta.json  unencrypted sidecar (schema: plan's "meta.json sidecar schema")
+#   backup-<id>.meta.json  unencrypted sidecar (schema mirrored by frontend/types/backups.ts)
 
 : "${DATABASE_URL_UNPOOLED:?missing}"
 : "${SCRATCH_DATABASE_URL:?missing}"
@@ -158,7 +156,7 @@ sha256_hex="$(cut -d ' ' -f1 "$sha_file")"
 
 verified_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 
-# Deliberately unencrypted (see plan's "Decryption requirements and key rotation") -- the admin UI
+# Deliberately unencrypted -- the admin UI
 # reads this to render the backup inventory without holding a private key. Never add anything here
 # that wouldn't be safe to publish.
 jq -n \
