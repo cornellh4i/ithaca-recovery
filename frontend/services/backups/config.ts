@@ -2,14 +2,9 @@
 // with zero credentials (mock mode) -- see the mode-resolution helpers below for what happens
 // when they're missing in each environment.
 
-export interface GcsCredentials {
-  clientEmail: string;
-  privateKey: string;
-  projectId: string;
-}
-
 export interface BackupsStorageConfig {
-  gcsCredentials: GcsCredentials;
+  gcpWifProvider: string;
+  gcpServiceAccount: string;
   gcsWorkingBucket: string;
   gcsArchiveBucket: string;
   r2AccountId: string;
@@ -24,7 +19,8 @@ export interface BackupsGithubConfig {
 }
 
 const STORAGE_VAR_NAMES = [
-  "GCS_BACKUPS_CREDENTIALS",
+  "GCP_BACKUPS_WIF_PROVIDER",
+  "GCP_BACKUPS_SERVICE_ACCOUNT",
   "GCS_WORKING_BUCKET",
   "GCS_ARCHIVE_BUCKET",
   "R2_ACCOUNT_ID",
@@ -35,25 +31,16 @@ const STORAGE_VAR_NAMES = [
 
 const GITHUB_VAR_NAMES = ["GITHUB_BACKUPS_PAT"] as const;
 
-/** True only if the value decodes as base64 -> JSON with the three fields getStorageConfig() reads. */
-function isDecodableGcsCredentials(raw: string): boolean {
-  try {
-    const decoded = JSON.parse(Buffer.from(raw, "base64").toString("utf8")) as Record<string, unknown>;
-    return [decoded.client_email, decoded.private_key, decoded.project_id].every(
-      (field) => typeof field === "string" && field.trim().length > 0,
-    );
-  } catch {
-    return false;
-  }
-}
+// Bare resource path, no `//iam.googleapis.com/` prefix (storage.ts adds it as the audience) --
+// the most likely paste error, which would otherwise pass the presence check and 500 at STS time
+// instead of 503ing with an actionable name.
+const WIF_PROVIDER_SHAPE = /^projects\/\d+\/locations\/[^/]+\/workloadIdentityPools\/[^/]+\/providers\/[^/]+$/;
 
 function missingStorageVars(): string[] {
   return STORAGE_VAR_NAMES.filter((name) => {
     const value = process.env[name];
     if (!value) return true;
-    // A present-but-undecodable value must count as missing, not pass the presence check and
-    // 500 later inside getStorageConfig()'s JSON.parse.
-    if (name === "GCS_BACKUPS_CREDENTIALS") return !isDecodableGcsCredentials(value);
+    if (name === "GCP_BACKUPS_WIF_PROVIDER") return !WIF_PROVIDER_SHAPE.test(value);
     return false;
   });
 }
@@ -101,17 +88,9 @@ export function resolveCombinedMode(): { mode: "live" } | { mode: "mock" } | { m
 }
 
 export function getStorageConfig(): BackupsStorageConfig {
-  const decoded = JSON.parse(Buffer.from(process.env.GCS_BACKUPS_CREDENTIALS as string, "base64").toString("utf8")) as {
-    client_email: string;
-    private_key: string;
-    project_id: string;
-  };
   return {
-    gcsCredentials: {
-      clientEmail: decoded.client_email,
-      privateKey: decoded.private_key,
-      projectId: decoded.project_id,
-    },
+    gcpWifProvider: process.env.GCP_BACKUPS_WIF_PROVIDER as string,
+    gcpServiceAccount: process.env.GCP_BACKUPS_SERVICE_ACCOUNT as string,
     gcsWorkingBucket: process.env.GCS_WORKING_BUCKET as string,
     gcsArchiveBucket: process.env.GCS_ARCHIVE_BUCKET as string,
     r2AccountId: process.env.R2_ACCOUNT_ID as string,

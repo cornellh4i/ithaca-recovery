@@ -7,6 +7,7 @@ import RestoreRunbookCard from "./RestoreRunbookCard";
 import RecentActivityCard from "./RecentActivityCard";
 import SolidButton from "../../ui/buttons/SolidButton";
 import DiagnosticsCardError from "../diagnostics/DiagnosticsCardError";
+import TopLoadingBar from "../../ui/displays/TopLoadingBar";
 import { useToast } from "../../shared/ToastProvider";
 import type {
   ActivityEvent,
@@ -44,6 +45,10 @@ type TabPhase = "loading" | "unconfigured" | "error" | "ready";
  */
 const BackupsTab: React.FC = () => {
   const [phase, setPhase] = useState<TabPhase>("loading");
+  // Background refetches (post-dispatch refresh, poll-completion fetchAll) sweep a TopLoadingBar
+  // over the rendered cards instead of blanking back to the initial "Loading backups…" state --
+  // same idiom as UsersTab's refetch-over-existing-rows.
+  const [refreshing, setRefreshing] = useState(false);
   const [missing, setMissing] = useState<string[]>([]);
 
   const [rows, setRows] = useState<BackupListRow[]>([]);
@@ -188,7 +193,12 @@ const BackupsTab: React.FC = () => {
           if (cancelledRef.current) return;
           const hasNewRun = envelope.data.events.some((event) => !baselineIds.has(event.id));
           if (hasNewRun) {
-            await fetchAll();
+            setRefreshing(true);
+            try {
+              await fetchAll();
+            } finally {
+              if (!cancelledRef.current) setRefreshing(false);
+            }
             if (cancelledRef.current) return;
             setCreating(false);
             setLockedBy(null);
@@ -307,6 +317,7 @@ const BackupsTab: React.FC = () => {
   // phase === "ready" -- now, health are guaranteed non-null by fetchAll's success path.
   return (
     <div className={styles.container}>
+      <TopLoadingBar active={refreshing} label="Loading backups" />
       {mode === "mock" && (
         <span className={styles.modeBadge}>Sample data — backup credentials not configured</span>
       )}
