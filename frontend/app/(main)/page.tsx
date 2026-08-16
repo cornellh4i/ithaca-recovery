@@ -10,7 +10,7 @@ import DayPortraitView from "../components/calendar/mobile/DayPortraitView";
 import DayLandscapeSwitcher from "../components/calendar/mobile/DayLandscapeSwitcher";
 import MobileFullScreenSheet from "../components/ui/overlays/MobileFullScreenSheet";
 import MobileFab from "../components/calendar/mobile/MobileFab";
-import NewMeetingSidebar from "../components/meeting-form/NewMeeting";
+import NewMeetingSidebar, { type NewMeetingSidebarHandle } from "../components/meeting-form/NewMeeting";
 import EditMeetingSidebar from "../components/meeting-form/EditMeeting";
 
 import { IMeeting } from "../../types/models";
@@ -91,6 +91,10 @@ export default function HomePage() {
   // phone) so mobile's full-screen New Meeting form and desktop's embedded sidebar form
   // share one source of truth.
   const [isNewMeetingOpen, setIsNewMeetingOpen] = useState(false);
+  // Lets the mobile sheet's Escape-to-close (MobileFullScreenSheet's onClose) trigger the same
+  // reset-then-close NewMeetingSidebar's own Cancel/X button uses, instead of a bare
+  // setIsNewMeetingOpen(false) that would skip resetForm().
+  const newMeetingRef = useRef<NewMeetingSidebarHandle>(null);
   const [lastClickedDate, setLastClickedDate] = useState<Date | null>(null);
   // The clicked meeting box, so the View Meeting popup can anchor itself beside it.
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
@@ -315,15 +319,35 @@ export default function HomePage() {
       )}
       {isPhone && isAdmin && (
         <React.Fragment>
-          <MobileFullScreenSheet isOpen={isNewMeetingOpen}>
+          <MobileFullScreenSheet
+            isOpen={isNewMeetingOpen}
+            onClose={() => {
+              // Routes through the same resetForm()-then-close path the in-form Cancel/X
+              // button uses (see NewMeetingSidebarHandle) rather than a bare
+              // setIsNewMeetingOpen(false) -- falls back to the bare close only if the ref
+              // somehow isn't attached yet (shouldn't happen: onClose only fires while the
+              // sheet, and therefore its child, is open).
+              if (newMeetingRef.current) {
+                newMeetingRef.current.requestClose();
+              } else {
+                setIsNewMeetingOpen(false);
+              }
+            }}
+            ariaLabel="New Meeting"
+          >
             <NewMeetingSidebar
+              ref={newMeetingRef}
               setIsNewMeetingOpen={setIsNewMeetingOpen}
               triggerCalendarRefresh={triggerCalendarRefresh}
               selectedDate={selectedDate}
               selectedView={selectedView}
             />
           </MobileFullScreenSheet>
-          <MobileFullScreenSheet isOpen={showEditMeeting && !!selectedMeeting}>
+          <MobileFullScreenSheet
+            isOpen={showEditMeeting && !!selectedMeeting}
+            onClose={handleCloseEdit}
+            ariaLabel="Edit Meeting"
+          >
             {selectedMeeting && (
               <EditMeetingSidebar
                 meeting={selectedMeeting}

@@ -9,7 +9,7 @@ All endpoints are Next.js Route Handlers under `frontend/app/api/`. Requests and
 ## Meetings
 
 ### `POST /api/write/meeting`
-**Requires:** `ADMIN`. Request body is validated against a `zod` schema (`frontend/util/meetings/meetingValidation.ts`) before anything else — malformed shapes/types get a `400` with the specific validation issues, never reach Prisma or the calendar services. Create a new meeting. If `recurrencePattern` is present, a `RecurrencePattern` record is created alongside it, with `endDate` calculated from `numberOfOccurrences` when not explicitly provided (weekly and monthly patterns both supported). The response is sent as soon as this DB write succeeds — Google Calendar/Zoom sync runs afterward via Next's `after()` (see Sync behavior below), so the response body's `googleSyncStatus`/`zoomSyncStatus` won't yet reflect that sync's outcome. Clients that need the real outcome poll `GET /api/retrieve/meeting/[id]` afterward (see `frontend/services/syncMeeting.ts#pollMeetingSyncStatus`).
+**Requires:** `ADMIN`. Request body is validated against a `zod` schema (`frontend/util/meetings/meetingValidation.ts`) before anything else — malformed shapes/types get a `400` with the specific validation issues, never reach Prisma or the calendar services. The schema also enforces business rules, not just shape/types: `endDateTime` must be after `startDateTime`, `calType` must be non-empty, a `Hybrid` meeting requires both `room` and `zoomRoom`, an `In Person` meeting requires `room`, and `recurrencePattern.numberOfOccurrences` (when present) is capped at `520` (10 years of weekly occurrences) — each violation surfaces as its own `400` validation issue, same as a shape/type failure. Create a new meeting. If `recurrencePattern` is present, a `RecurrencePattern` record is created alongside it, with `endDate` calculated from `numberOfOccurrences` when not explicitly provided (weekly and monthly patterns both supported). The response is sent as soon as this DB write succeeds — Google Calendar/Zoom sync runs afterward via Next's `after()` (see Sync behavior below), so the response body's `googleSyncStatus`/`zoomSyncStatus` won't yet reflect that sync's outcome. Clients that need the real outcome poll `GET /api/retrieve/meeting/[id]` afterward (see `frontend/services/syncMeeting.ts#pollMeetingSyncStatus`).
 
 Zoom is needed when `modeType` is `"Hybrid"` or `"Remote"` (not `"In Person"`). Zoom resolves/creates *before* the Google Calendar publish below, and if it can't get a working Zoom meeting this run (host pool exhausted, or the Zoom API call failed), **the Google Calendar publish is skipped entirely and `googleSyncStatus` is set to `"pending"`** rather than publishing the meeting with no Zoom link. A later `POST /api/update/meeting/sync` retry (below) picks this back up once a host becomes available, publishing both at once. See the Zoom section below for host selection.
 
@@ -326,7 +326,7 @@ sync-error badge.
 
 ## Lease Settings
 
-Singleton config for the PandaDoc lease export — lease period, per-room rates, rental agent contact, and email template — editable via the Export tab's settings modal.
+Singleton config for the PandaDoc lease export — lease period, per-room rates, rental agent contact, and email template — editable via the Export tab's settings modal. Enforced as a true singleton at the schema level: `LeaseSettings.id` defaults to a fixed constant rather than a random `cuid()`, and reads/writes are keyed on that constant (`upsert`/`findUnique`, not `findFirst()`) instead of relying on "there's only ever one row" as a convention. **Deployment requirement:** this enforcement depends on the migration that renames any pre-existing row's `id` onto the fixed constant — production must apply schema changes via `prisma migrate deploy` (already how the Vercel build runs it), never `prisma db push`, or an existing settings row would silently stop being found and a later save would create a duplicate under the new fixed id.
 
 ### `GET /api/retrieve/lease-settings`
 **Requires:** `SUPER_ADMIN`. Returns the stored settings, or a hardcoded default set (`frontend/util/lease/leaseDefaults.ts`) if none have been saved yet.
@@ -348,7 +348,7 @@ Singleton config for the PandaDoc lease export — lease period, per-room rates,
 ## Meeting Export Settings
 
 Singleton config for which optional columns the Export Meetings XLSX download includes — editable
-via the Export tab's field-selection modal (`MeetingExportConfigModal`).
+via the Export tab's field-selection modal (`MeetingExportConfigModal`). Enforced the same fixed-ID singleton way as Lease Settings above — see that section's deployment requirement, which applies here too.
 
 ### `GET /api/retrieve/meeting-export-settings`
 **Requires:** `SUPER_ADMIN`. Returns the stored field list, or an empty selection if none saved.

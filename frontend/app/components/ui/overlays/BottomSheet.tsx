@@ -4,6 +4,7 @@ import React, { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion, type PanInfo } from "motion/react";
 import { useViewport } from "../../../../hooks/useViewport";
+import { useDialogBehavior } from "../../../../hooks/useDialogBehavior";
 import styles from "./BottomSheet.module.scss";
 
 interface BottomSheetProps {
@@ -36,29 +37,26 @@ const BottomSheet: React.FC<BottomSheetProps> = ({
   const viewport = useViewport();
   const isLandscapePhone = viewport?.device === "phone" && viewport.orientation === "landscape";
 
+  // Focus/Tab-trap/Escape-to-close/focus-restoration -- shared with Modal/MobileFullScreenSheet
+  // via useDialogBehavior. initialFocusRef points at the sheet's own (tabIndex=-1) root rather
+  // than the default first-focusable-descendant, since that root is itself the draggable
+  // surface and content varies a lot across the sheet's different hosts (ViewMeeting, filters,
+  // account).
+  useDialogBehavior({ isOpen, onClose, contentRef: sheetRef, initialFocusRef: sheetRef });
+
+  // Body scroll-lock while open -- same overflow:hidden toggling idiom already used by
+  // CalendarSidebarShell/ViewMeeting for the same reason (nothing scrollable underneath should
+  // move while this is up). Independent of useDialogBehavior's own effects above.
   useEffect(() => {
     if (!isOpen) return;
 
-    const previouslyFocused = document.activeElement as HTMLElement | null;
-    sheetRef.current?.focus();
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
-    };
-    document.addEventListener("keydown", handleKeyDown);
-
-    // Body scroll-lock while open -- same overflow:hidden toggling idiom already used by
-    // CalendarSidebarShell/ViewMeeting for the same reason (nothing scrollable underneath
-    // should move while this is up).
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
 
     return () => {
-      document.removeEventListener("keydown", handleKeyDown);
       document.body.style.overflow = previousOverflow;
-      previouslyFocused?.focus();
     };
-  }, [isOpen, onClose]);
+  }, [isOpen]);
 
   const handleDragEnd = (_event: PointerEvent | MouseEvent | TouchEvent, info: PanInfo) => {
     if (info.offset.y > DISMISS_OFFSET_PX || info.velocity.y > DISMISS_VELOCITY) {

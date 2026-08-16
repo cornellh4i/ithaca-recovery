@@ -1,8 +1,9 @@
 "use client";
 
-import React from "react";
+import React, { useRef } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion, type PanInfo } from "motion/react";
+import { useDialogBehavior } from "../../../../hooks/useDialogBehavior";
 import styles from "./MobileFullScreenSheet.module.scss";
 
 // Distance/velocity a drag needs to clear before it counts as "swipe to dismiss" -- same
@@ -22,6 +23,13 @@ interface MobileFullScreenSheetProps {
   // (undefined) so New/Edit Meeting's scrollable form fields aren't affected by a gesture they
   // never asked for.
   onSwipeDismiss?: () => void;
+  // Escape-to-close and part of the dialog contract (see useDialogBehavior) -- independent of
+  // onSwipeDismiss (drag), which stays opt-in per caller. Optional since some hosts (e.g.
+  // New/Edit Meeting) only ever close via their own in-form Cancel/X button.
+  onClose?: () => void;
+  // Accessible name for the dialog -- no current caller has a heading with a stable id to
+  // point aria-labelledby at, so this mirrors Modal's own ariaLabel fallback path.
+  ariaLabel?: string;
 }
 
 // Full-screen slide wrapper for New/Edit Meeting and the mobile login sheet -- a simple,
@@ -33,7 +41,12 @@ const MobileFullScreenSheet: React.FC<MobileFullScreenSheetProps> = ({
   children,
   slideFrom = "bottom",
   onSwipeDismiss,
+  onClose,
+  ariaLabel,
 }) => {
+  const contentRef = useRef<HTMLDivElement>(null);
+  useDialogBehavior({ isOpen, onClose, contentRef });
+
   if (typeof document === "undefined") return null;
 
   const offscreen = slideFrom === "right" ? { x: "100%" } : { y: "100%" };
@@ -67,7 +80,11 @@ const MobileFullScreenSheet: React.FC<MobileFullScreenSheetProps> = ({
     <AnimatePresence>
       {isOpen && (
         <motion.div
+          ref={contentRef}
           className={styles.fullScreen}
+          role="dialog"
+          aria-modal="true"
+          aria-label={ariaLabel}
           initial={offscreen}
           animate={onscreen}
           exit={offscreen}

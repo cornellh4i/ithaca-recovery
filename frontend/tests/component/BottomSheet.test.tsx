@@ -98,6 +98,25 @@ describe("BottomSheet", () => {
     }
   });
 
+  it("traps Tab/Shift+Tab within the sheet's own content", () => {
+    render(
+      <BottomSheet isOpen onClose={jest.fn()} title="Filters">
+        <button>First field</button>
+        <button>Last field</button>
+      </BottomSheet>
+    );
+
+    const first = screen.getByRole("button", { name: "First field" });
+    const last = screen.getByRole("button", { name: "Last field" });
+
+    last.focus();
+    fireEvent.keyDown(document, { key: "Tab" });
+    expect(first).toHaveFocus();
+
+    fireEvent.keyDown(document, { key: "Tab", shiftKey: true });
+    expect(last).toHaveFocus();
+  });
+
   it("locks body scroll while open and restores it on close", () => {
     const previousOverflow = document.body.style.overflow;
     const { rerender } = render(
