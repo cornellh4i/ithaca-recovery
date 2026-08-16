@@ -2,12 +2,13 @@
 
 import React, { useState } from "react";
 import BackupHealthCard from "./BackupHealthCard";
-import SnapshotsCard from "./SnapshotsCard";
+import SnapshotsCard, { matchesFilter } from "./SnapshotsCard";
 import RestoreRunbookCard from "./RestoreRunbookCard";
 import RecentActivityCard from "./RecentActivityCard";
 import SolidButton from "../../ui/buttons/SolidButton";
 import { generateMockActivityEvents, generateMockBackupHealth, generateMockBackupRows } from "./mockBackups";
 import { useToast } from "../../shared/ToastProvider";
+import type { BackupTierFilter } from "../../../../types/backups";
 import styles from "./BackupsTab.module.scss";
 
 // Mock dispatch takes this long before the transient lock clears -- long enough to read the
@@ -36,6 +37,18 @@ const BackupsTab: React.FC = () => {
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [page, setPage] = useState(0);
+  const [filter, setFilter] = useState<BackupTierFilter>("all");
+
+  const handleFilterChange = (next: BackupTierFilter) => {
+    setFilter(next);
+    setPage(0);
+    // Prevents the Restore Runbook command box from pointing at a row that's now hidden
+    // behind the new filter -- an invisible selection is worse than none.
+    const selectedRow = rows.find((row) => row.id === selectedId);
+    if (selectedRow && !matchesFilter(selectedRow, next)) {
+      setSelectedId(null);
+    }
+  };
 
   // Mirrors the real `concurrency: db-backup` guard: Back Up Now is disabled while a run is
   // "in flight" so a double-click can't double-dispatch, same invariant the real
@@ -46,6 +59,9 @@ const BackupsTab: React.FC = () => {
   const { showToast } = useToast();
 
   const selectedRow = rows.find((row) => row.id === selectedId) ?? null;
+  // Rows are sorted newest-first by generateMockBackupRows -- the newest row's appVersion is
+  // the deployed app version the Snapshots subhead reports.
+  const latestAppVersion = rows[0]?.appVersion ?? "unknown";
 
   const handleBackUpNow = () => {
     if (lockedBy) return;
@@ -76,24 +92,30 @@ const BackupsTab: React.FC = () => {
 
   return (
     <div className={styles.container}>
-      <SolidButton
-        label="Back Up Now"
-        onClick={handleBackUpNow}
-        loading={creating}
-        disabled={!!lockedBy}
-      />
+      <div className={styles.tabHeaderRow}>
+        <SolidButton
+          label="Back Up Now"
+          onClick={handleBackUpNow}
+          loading={creating}
+          disabled={!!lockedBy}
+          className={styles.backUpNowButton}
+        />
+      </div>
 
       <BackupHealthCard health={health} now={now} />
       <SnapshotsCard
         rows={rows}
+        filter={filter}
+        onFilterChange={handleFilterChange}
         selectedId={selectedId}
         onSelect={(id) => setSelectedId((prev) => (prev === id ? null : id))}
         page={page}
         onPageChange={setPage}
         onDownload={handleDownload}
         now={now}
+        latestAppVersion={latestAppVersion}
       />
-      <RestoreRunbookCard selected={selectedRow} />
+      <RestoreRunbookCard selected={selectedRow} now={now} />
       <RecentActivityCard events={activity} now={now} />
     </div>
   );

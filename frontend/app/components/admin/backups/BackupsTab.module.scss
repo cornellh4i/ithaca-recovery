@@ -8,6 +8,22 @@
   box-sizing: border-box;
 }
 
+// Back Up Now, matching the admin area's small header-corner-button idiom (see UsersTab/
+// ExportTab's CardHeader) -- it isn't scoped to a single card, so this sits above the cards
+// instead of inside one. Left-aligned: the admin shell's active tab label already says
+// "Backups", so there's no title here to push it to the right of.
+.tabHeaderRow {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
+}
+
+.backUpNowButton {
+  padding: 6px 14px;
+  font-size: 13px;
+}
+
 .panelHeader {
   display: flex;
   align-items: center;
@@ -37,114 +53,7 @@
   font-size: 14px;
 }
 
-.errorState {
-  color: $danger-color;
-  font-size: 14px;
-}
-
-// A `backup-db.yml` run in progress (concurrency: db-backup) locks out a second dispatch --
-// shown across Backup Health and Snapshots so the constraint is visible wherever a write
-// action might otherwise be attempted.
-.lockedBanner {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: $info-bg-color;
-  color: $info-text-color;
-  border-radius: $radius-sm;
-  padding: 8px 12px;
-  font-size: 13px;
-  margin-bottom: 12px;
-}
-
 /* ---------- Backup Health card ---------- */
-
-.healthGrid {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.healthRow {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid $grey-lightest-color;
-
-  &:last-child {
-    padding-bottom: 0;
-    border-bottom: none;
-  }
-
-  @media (width <= $breakpoint-phone) {
-    flex-direction: column;
-    gap: 2px;
-  }
-}
-
-.healthLabel {
-  font-weight: 600;
-  color: $black-color;
-  font-size: 14px;
-}
-
-.healthValue {
-  color: #555;
-  font-size: 14px;
-  text-align: right;
-
-  @media (width <= $breakpoint-phone) {
-    text-align: left;
-  }
-}
-
-// Freshness pill on the "last successful backup" row -- ok (<26h), warn (>=26h), error (>=72h).
-.freshnessPill {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 3px 10px;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.freshnessOk {
-  background: $success-bg-color;
-  color: $success-text-color;
-}
-
-.freshnessWarn {
-  background: $warning-bg-color;
-  color: $warning-text-color;
-}
-
-.freshnessError {
-  background: $danger-bg-color;
-  color: $danger-color;
-}
-
-.replicaStatusList {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.replicaStatusRow {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  font-size: 13px;
-  color: #555;
-}
-
-.replicaStatusName {
-  font-family: 'Source Sans Pro', sans-serif;
-  color: $black-color;
-}
 
 // Storage-vs-free-tier headroom bar (Backup Health's totals row).
 .headroomBar {
@@ -218,16 +127,8 @@
   }
 }
 
-.row:hover {
-  background: $grey-lightest-color;
-}
-
 .rowSelected {
   background: $info-bg-color;
-}
-
-.checkboxCell {
-  width: 32px;
 }
 
 .dateCell {
@@ -235,19 +136,8 @@
   color: #555;
 }
 
-.sourceBadge {
-  font-size: 12px;
-  color: $medium-grey-color;
-}
-
 .sizeCell {
   color: #555;
-  white-space: nowrap;
-}
-
-.versionCell {
-  color: $medium-grey-color;
-  font-size: 13px;
   white-space: nowrap;
 }
 
@@ -303,49 +193,6 @@
 
 .verifiedNo {
   color: $warning-text-color;
-}
-
-// Replicas column -- three dots, one per storage target, in a fixed gcs-working / gcs-archive /
-// r2 order so a viewer can learn the column's meaning once and read every row the same way.
-.replicaDots {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.replicaDot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: $success-text-color;
-}
-
-.replicaDotMissing {
-  background: $light-grey-color;
-}
-
-.downloadButton {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background: #fff;
-  border: 1px solid $grey-border-color;
-  border-radius: 6px;
-  padding: 6px 12px;
-  color: $black-color;
-  font-size: 13px;
-  font-family: 'Source Sans Pro', sans-serif;
-  cursor: pointer;
-  white-space: nowrap;
-
-  &:hover:not(:disabled) {
-    border-color: $medium-grey-color;
-  }
-
-  &:disabled {
-    cursor: default;
-    opacity: 0.6;
-  }
 }
 
 .paginationBar {
@@ -418,49 +265,20 @@
   gap: 8px;
 }
 
-.runbookCommandBox {
-  position: relative;
-  background: $navy-color;
-  border-radius: $radius-sm;
-  padding: 12px 44px 12px 14px;
-}
-
-.runbookCommand {
-  font-family: Menlo, Monaco, monospace;
-  font-size: 13px;
-  color: #fff;
-  overflow-x: auto;
-  white-space: pre;
-  margin: 0;
-}
-
-.copyButton {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: rgb(255 255 255 / 10%);
-  border: 1px solid rgb(255 255 255 / 25%);
-  border-radius: $radius-sm;
-  color: #fff;
-  cursor: pointer;
-  padding: 4px 6px;
-
-  &:hover {
-    background: rgb(255 255 255 / 20%);
-  }
-}
-
-.copyButtonCopied {
-  background: $success-text-color;
-  border-color: $success-text-color;
-}
-
 .runbookNoSelection {
   color: $medium-grey-color;
   font-size: 14px;
+}
+
+// Inline text link, matching the .warningBannerAction / .clearSelectionButton idiom elsewhere
+// in this tab -- for an actual <a> rather than a button.
+.docsLink {
+  color: $link-color;
+  font-weight: 600;
+
+  &:hover {
+    text-decoration: underline;
+  }
 }
 
 /* ---------- Recent Activity card ---------- */
@@ -483,26 +301,6 @@
   }
 }
 
-.activityConclusionDot {
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  flex-shrink: 0;
-  margin-top: 5px;
-}
-
-.activityConclusionSuccess {
-  background: $success-text-color;
-}
-
-.activityConclusionFailure {
-  background: $danger-color;
-}
-
-.activityConclusionInProgress {
-  background: $warning-text-color;
-}
-
 .activityBody {
   flex: 1;
   min-width: 0;
@@ -520,9 +318,331 @@
   margin-top: 2px;
 }
 
-.activityTriggerBadge {
+/* =================================================================================
+ * Redesign (2026-08-16 design review) -- new classes below. Legacy classes above are
+ * kept alongside these until the compose pass removes whichever ones the rebuilt TSX
+ * stops referencing; nothing above was deleted in this pass. Every section reuses
+ * Variables.module tokens (warning/success/danger/info palettes, $radius-*,
+ * $grey-lightest-color/$grey-border-color) so the tab reads as native to this admin
+ * area rather than a new design language.
+ * ================================================================================= */
+
+/* ---------- Warning banner (top of tab) ---------- */
+
+/* Same shape as FormValidationBanner.module.scss's .banner/.iconCircle/.body/.title,
+ * recolored to the warning palette (that component is danger-only) and given a
+ * right-aligned text-link action slot. */
+
+.warningBanner {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 12px 16px;
+  border-radius: $radius-md;
+  background-color: $warning-bg-color;
+  font-family: 'Source Sans Pro', sans-serif;
+
+  @media (width <= $breakpoint-phone) {
+    flex-wrap: wrap;
+  }
+}
+
+.warningBannerIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background-color: #fff;
+  color: $warning-text-color;
+  flex-shrink: 0;
+
+  svg {
+    width: 16px !important;
+    height: 16px !important;
+  }
+}
+
+.warningBannerBody {
+  flex: 1;
+  min-width: 0;
+}
+
+.warningBannerTitle {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: $black-color;
+}
+
+.warningBannerText {
+  margin: 2px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #444;
+}
+
+.warningBannerAction {
+  flex-shrink: 0;
+  align-self: center;
+  background: none;
+  border: none;
+  padding: 0;
+  color: $link-color;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: 'Source Sans Pro', sans-serif;
+  cursor: pointer;
+  white-space: nowrap;
+
+  &:hover {
+    text-decoration: underline;
+  }
+
+  @media (width <= $breakpoint-phone) {
+    align-self: flex-start;
+    margin-left: 36px;
+  }
+}
+
+/* ---------- 3-up stat row ---------- */
+
+.statRow {
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+}
+
+.statCell {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 12px;
+  text-align: center;
+  border-left: 1px solid $grey-lightest-color;
+
+  &:first-child {
+    border-left: none;
+  }
+
+  @media (width <= $breakpoint-phone) {
+    padding: 4px 6px;
+  }
+}
+
+.statValue {
+  font-size: 24px;
+  font-weight: 700;
+  color: $black-color;
+  line-height: 1.2;
+}
+
+// Staleness signal for "Last successful backup" -- carries the freshness pill's old warn/error
+// meaning now that the pill itself is gone, without adding a second element back in.
+.statValueWarn {
+  color: $warning-text-color;
+}
+
+.statValueError {
+  color: $danger-color;
+}
+
+.statCaption {
+  font-size: 12px;
+  color: $medium-grey-color;
+}
+
+/* ---------- Replicas panel ---------- */
+
+.replicasPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.replicasHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.replicasLabel {
+  font-size: 12px;
+  font-weight: 700;
+  color: $medium-grey-color;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.replicasSummary {
+  font-size: 13px;
+  color: #555;
+  text-align: right;
+}
+
+.replicaTiles {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+
+  @media (width <= $breakpoint-phone) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.replicaTile {
+  border: 1px solid $grey-border-color;
+  border-radius: $radius-sm;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.replicaTileDot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.replicaTileDotOk {
+  background: $success-text-color;
+}
+
+.replicaTileDotStale {
+  background: $warning-text-color;
+}
+
+.replicaTileName {
+  font-weight: 600;
+  color: $black-color;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.replicaTileCaption {
+  font-size: 12px;
+  color: $medium-grey-color;
+}
+
+// Free-tier headroom bar, redesigned: labeled row above the bar (left label, right bold
+// remaining-of-total), and the fill now represents REMAINING capacity, not consumed --
+// mostly-full reads as healthy, matching the "headroom" framing in the row label.
+.headroomRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.headroomLabel {
+  font-size: 13px;
+  color: #555;
+}
+
+.headroomRemaining {
+  font-size: 13px;
+  font-weight: 700;
+  color: $black-color;
+  white-space: nowrap;
+}
+
+/* ---------- Snapshots card: header + filter chips ---------- */
+
+.filterChips {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.filterChip {
   display: inline-flex;
   align-items: center;
+  background: #fff;
+  border: 1px solid $grey-border-color;
+  border-radius: 999px;
+  padding: 4px 12px;
+  color: $black-color;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: 'Source Sans Pro', sans-serif;
+  cursor: pointer;
+  white-space: nowrap;
+
+  &:hover:not(:disabled) {
+    border-color: $medium-grey-color;
+  }
+}
+
+.filterChipActive {
+  background: $navy-color;
+  border-color: $navy-color;
+  color: #fff;
+}
+
+// Amber variant for the Unverified chip when its count > 0 -- draws the eye without
+// requiring it to also be the active chip.
+.filterChipAttention {
+  background: $warning-bg-color;
+  border-color: $warning-text-color;
+  color: $warning-text-color;
+}
+
+/* ---------- Snapshots card: table rows ---------- */
+
+.row {
+  cursor: pointer;
+
+  &:hover {
+    background: $grey-lightest-color;
+  }
+}
+
+// Quiet text-link button, discoverable + keyboard-focusable alternative to re-clicking the
+// selected row to unselect it.
+.clearSelectionButton {
+  margin-left: auto;
+  background: none;
+  border: none;
+  padding: 0;
+  color: $link-color;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: 'Source Sans Pro', sans-serif;
+  cursor: pointer;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.rowUnverified {
+  background: $warning-bg-color;
+
+  &:hover {
+    background: $warning-bg-color;
+  }
+}
+
+.radioCell {
+  width: 28px;
+}
+
+.sourceChip {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 6px;
   padding: 1px 8px;
   border-radius: 999px;
   font-size: 11px;
@@ -531,4 +651,273 @@
   color: $medium-grey-color;
   text-transform: uppercase;
   letter-spacing: 0.02em;
+}
+
+.replicaCount {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #555;
+
+  &::before {
+    content: '';
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: $success-text-color;
+  }
+}
+
+.replicaCountDegraded {
+  color: $warning-text-color;
+
+  &::before {
+    background: $warning-text-color;
+  }
+}
+
+/* ---------- Verified header legend (mirrors UsersTab.module.scss's role legend) ---------- */
+
+.thLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.legendAnchor {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.infoButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: $medium-grey-color;
+
+  &:hover {
+    color: $black-color;
+  }
+}
+
+// position: fixed, not absolute -- portaled to document.body (see SnapshotsCard.tsx), so it's
+// no longer a descendant of the scrollable .tableWrapper (which would otherwise clip it once
+// the table goes wider than the viewport). top/left/width come from an inline style computed
+// in JS from the icon's actual on-screen position, already clamped there to stay in-viewport.
+.legendPopover {
+  position: fixed;
+  background: #fff;
+  border: 1px solid $grey-border-color;
+  border-radius: $radius-sm;
+  box-shadow: 0 4px 12px rgb(0 0 0 / 15%);
+  padding: 14px 16px;
+  z-index: $z-index-dropdown;
+  box-sizing: border-box;
+  font-weight: 400;
+  text-transform: none;
+}
+
+.legendPopoverTitle {
+  font-size: 13px;
+  font-weight: 600;
+  color: $black-color;
+  margin-bottom: 10px;
+}
+
+.legendTable {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 10px 14px;
+  align-items: center;
+}
+
+.legendPillCell {
+  display: flex;
+}
+
+.legendDescCell {
+  font-size: 13px;
+  color: #555;
+  line-height: 1.4;
+  min-width: 0;
+  overflow-wrap: break-word;
+}
+
+/* ---------- Replica count hover tooltip (mirrors AdminShell.module.scss's locked-tab tooltip) ---------- */
+
+.replicaTooltipAnchor {
+  position: relative;
+  display: inline-flex;
+
+  &:hover .replicaTooltip,
+  &:focus-within .replicaTooltip {
+    opacity: 1;
+    visibility: visible;
+  }
+}
+
+.replicaTooltip {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-bottom: 6px;
+  padding: 6px 10px;
+  border-radius: 4px;
+  background-color: $black-color;
+  color: #fff;
+  font-size: 12px;
+  width: max-content;
+  max-width: 220px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.15s ease;
+  pointer-events: none;
+  z-index: $z-index-dropdown;
+}
+
+.replicaTooltipLinePresent {
+  color: #fff;
+}
+
+.replicaTooltipLineMissing {
+  color: $warning-text-color;
+}
+
+.expiresExpired {
+  color: $danger-color;
+}
+
+.downloadIconButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  background: #fff;
+  border: 1px solid $grey-border-color;
+  border-radius: 6px;
+  color: $black-color;
+  cursor: pointer;
+
+  svg {
+    width: 16px !important;
+    height: 16px !important;
+  }
+
+  &:hover:not(:disabled) {
+    border-color: $medium-grey-color;
+  }
+
+  &:disabled {
+    cursor: default;
+    opacity: 0.6;
+  }
+}
+
+/* ---------- Restore Runbook card: dark command box ---------- */
+
+.commandBox {
+  position: relative;
+  background: #14161B;
+  border-radius: $radius-sm;
+  padding: 30px 44px 14px 14px;
+}
+
+.commandBoxHeader {
+  position: absolute;
+  top: 10px;
+  left: 14px;
+  font-size: 10px;
+  font-weight: 700;
+  color: rgb(255 255 255 / 55%);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.commandBoxCode {
+  font-family: Menlo, Monaco, monospace;
+  font-size: 13px;
+  color: #F2F2F2;
+
+  /* Wrap, don't scroll: an operator mid-incident must see the whole command at
+     once -- a horizontally-scrolled tail is how a flag gets missed. */
+  white-space: pre-wrap;
+  word-break: break-all;
+  margin: 0;
+}
+
+.commandCopyButton {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgb(255 255 255 / 8%);
+  border: 1px solid rgb(255 255 255 / 20%);
+  border-radius: $radius-sm;
+  color: rgb(255 255 255 / 80%);
+  cursor: pointer;
+  padding: 4px 6px;
+
+  svg {
+    width: 14px !important;
+    height: 14px !important;
+  }
+
+  &:hover {
+    background: rgb(255 255 255 / 18%);
+    color: #fff;
+  }
+
+  &:focus-visible {
+    outline: 2px solid #fff;
+    outline-offset: 2px;
+  }
+}
+
+.commandCopyButtonCopied {
+  background: $success-text-color;
+  border-color: $success-text-color;
+  color: #fff;
+}
+
+/* ---------- Notable Activity card ---------- */
+
+.activityDot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 5px;
+  background: $success-text-color;
+}
+
+.activityDotFailure {
+  background: $danger-color;
+}
+
+.activityDotNeutral {
+  background: $medium-grey-color;
+}
+
+.activityTitleFailure {
+  color: $danger-color;
+}
+
+.activitySummaryLine {
+  font-size: 13px;
+  color: $medium-grey-color;
+  padding-top: 10px;
+  border-top: 1px solid $grey-lightest-color;
 }

@@ -15,9 +15,9 @@ test.describe("backups tab", () => {
     await page.getByTestId("admin-tab-backups").click();
 
     await expect(page.getByText("Backup Health")).toBeVisible();
-    await expect(page.getByText(/^Snapshots \(\d+\)$/)).toBeVisible();
+    await expect(page.getByText("Snapshots", { exact: true })).toBeVisible();
     await expect(page.getByText("Restore Runbook")).toBeVisible();
-    await expect(page.getByTestId("backups-recent-activity-panel").getByText("Recent Activity")).toBeVisible();
+    await expect(page.getByTestId("backups-recent-activity-panel").getByText("Notable Activity")).toBeVisible();
   });
 
   // Matches the shell's established superAdminOnly treatment (see 1.8: Users/Export):

@@ -4,7 +4,8 @@ import React from "react";
 import Icon from "../../ui/displays/Icon";
 import Card from "../shared/Card";
 import type { BackupHealth, BackupReplica } from "../../../../types/backups";
-import { convertUTCToET } from "../../../../util/date/timeUtils";
+import { formatETTime } from "../../../../util/date/timeUtils";
+import { formatBytes } from "../../../../util/format/bytes";
 import styles from "./BackupsTab.module.scss";
 
 interface BackupHealthCardProps {
@@ -14,51 +15,43 @@ interface BackupHealthCardProps {
 }
 
 const REPLICA_LABEL: Record<BackupReplica, string> = {
-  "gcs-working": "GCS (working)",
-  "gcs-archive": "GCS (archive)",
+  "gcs-working": "GCS working",
+  "gcs-archive": "GCS archive",
   r2: "Cloudflare R2",
 };
 
-const FRESHNESS_LABEL: Record<BackupHealth["freshness"], string> = {
-  ok: "Healthy",
-  warn: "Aging",
-  error: "Stale",
-};
-
-const freshnessPillClass: Record<BackupHealth["freshness"], string> = {
-  ok: styles.freshnessOk,
-  warn: styles.freshnessWarn,
-  error: styles.freshnessError,
-};
-
-// Coarse relative age ("3h ago", "2d ago") -- getTime() diffs against the passed-in `now`
+// Coarse relative age ("9m ago", "3h ago") -- getTime() diffs against the passed-in `now`
 // only, no Date.now() (would mismatch between server render and client hydration) and no
 // local-timezone Date accessors (banned by the repo's ESLint rule).
 const formatRelativeAge = (sinceIso: string, now: Date): string => {
   const diffMs = Math.max(0, now.getTime() - new Date(sinceIso).getTime());
-  const diffHours = Math.floor(diffMs / (60 * 60 * 1000));
-  if (diffHours < 1) return "just now";
+  const diffMinutes = Math.floor(diffMs / (60 * 1000));
+  if (diffMinutes < 60) return diffMinutes <= 0 ? "just now" : `${diffMinutes}m ago`;
+  const diffHours = Math.floor(diffMinutes / 60);
   if (diffHours < 24) return `${diffHours}h ago`;
   const diffDays = Math.floor(diffHours / 24);
   return `${diffDays}d ago`;
 };
 
-const formatBytes = (bytes: number): string => {
-  if (bytes === 0) return "0 B";
-  const units = ["B", "KB", "MB", "GB", "TB"];
-  const exp = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
-  const value = bytes / 1024 ** exp;
-  return `${value >= 10 || exp === 0 ? Math.round(value) : value.toFixed(1)} ${units[exp]}`;
+// Countdown to the next scheduled run ("in 5h 51m"; "in 12m" once under an hour).
+const formatCountdown = (untilIso: string, now: Date): string => {
+  const diffMs = Math.max(0, new Date(untilIso).getTime() - now.getTime());
+  const diffMinutes = Math.round(diffMs / (60 * 1000));
+  const hours = Math.floor(diffMinutes / 60);
+  const minutes = diffMinutes % 60;
+  if (hours === 0) return `in ${minutes}m`;
+  return `in ${hours}h ${minutes}m`;
 };
 
-// Headroom bar switches to warn/error fill once usage crosses these fractions of the free-tier
-// ceiling -- matches the freshness pill's own two-threshold shape for visual consistency.
-const HEADROOM_WARN_FRACTION = 0.7;
-const HEADROOM_ERROR_FRACTION = 0.9;
+// Headroom bar switches to warn/error fill once REMAINING capacity drops below these
+// fractions of the free-tier ceiling (i.e. usage crosses 70%/90%) -- matches the old
+// pill's two-threshold shape for visual consistency.
+const HEADROOM_WARN_USED_FRACTION = 0.7;
+const HEADROOM_ERROR_USED_FRACTION = 0.9;
 
-const headroomFillClass = (fraction: number): string => {
-  if (fraction >= HEADROOM_ERROR_FRACTION) return `${styles.headroomFill} ${styles.headroomFillError}`;
-  if (fraction >= HEADROOM_WARN_FRACTION) return `${styles.headroomFill} ${styles.headroomFillWarn}`;
+const headroomFillClass = (usedFraction: number): string => {
+  if (usedFraction >= HEADROOM_ERROR_USED_FRACTION) return `${styles.headroomFill} ${styles.headroomFillError}`;
+  if (usedFraction >= HEADROOM_WARN_USED_FRACTION) return `${styles.headroomFill} ${styles.headroomFillWarn}`;
   return styles.headroomFill;
 };
 
@@ -71,9 +64,16 @@ const BackupHealthCard: React.FC<BackupHealthCardProps> = ({ health, now }) => {
     health.freeTierLimits.gcsArchiveBytes,
     health.freeTierLimits.r2Bytes,
   );
-  const headroomFraction = tightestLimitBytes > 0
+  const usedFraction = tightestLimitBytes > 0
     ? Math.min(1, health.totals.totalSizeBytes / tightestLimitBytes)
     : 0;
+  const remainingFraction = 1 - usedFraction;
+  const remainingBytes = Math.max(0, tightestLimitBytes - health.totals.totalSizeBytes);
+
+  const latestCount = health.replicaStatus.filter((s) => s.hasLatest).length;
+  const replicasSummary = latestCount === health.replicaStatus.length
+    ? "All three hold the latest snapshot"
+    : `${latestCount} of ${health.replicaStatus.length} hold the latest snapshot`;
 
   return (
     <Card accent="systemStatus">
@@ -82,66 +82,90 @@ const BackupHealthCard: React.FC<BackupHealthCardProps> = ({ health, now }) => {
         Backup Health
       </div>
 
-      <div className={styles.healthGrid}>
-        <div className={styles.healthRow}>
-          <span className={styles.healthLabel}>Last successful backup</span>
-          <span className={styles.healthValue}>
-            {health.lastSuccessfulBackupAt ? (
-              <>
-                {formatRelativeAge(health.lastSuccessfulBackupAt, now)}
-                {" "}
-                <span className={`${styles.freshnessPill} ${freshnessPillClass[health.freshness]}`}>
-                  {FRESHNESS_LABEL[health.freshness]}
-                </span>
-              </>
-            ) : (
-              <span className={styles.emptyState}>No successful backup yet</span>
-            )}
-          </span>
+      {health.lastVerifiedRestoreAt === null && (
+        <div className={styles.warningBanner}>
+          <div className={styles.warningBannerIcon}>
+            <Icon name="warning-amber" />
+          </div>
+          <div className={styles.warningBannerBody}>
+            <p className={styles.warningBannerTitle}>No restore has ever been verified</p>
+            <p className={styles.warningBannerText}>
+              Backups are running, but an untested backup is an unproven one. The quarterly restore drill is pending.
+            </p>
+          </div>
+          <a
+            className={styles.warningBannerAction}
+            href="/docs/02-handoff/backups-and-recovery#verification-restore-drills"
+          >
+            Restore drill runbook
+          </a>
         </div>
+      )}
 
-        <div className={styles.healthRow}>
-          <span className={styles.healthLabel}>Last verified restore</span>
-          <span className={styles.healthValue}>
-            {health.lastVerifiedRestoreAt
-              ? `${formatRelativeAge(health.lastVerifiedRestoreAt, now)} (${convertUTCToET(health.lastVerifiedRestoreAt)} ET)`
-              : "Never — quarterly drill pending"}
-          </span>
+      <div className={styles.statRow}>
+        <div className={styles.statCell}>
+          <div
+            className={`${styles.statValue} ${
+              health.freshness === "error"
+                ? styles.statValueError
+                : health.freshness === "warn"
+                  ? styles.statValueWarn
+                  : ""
+            }`}
+          >
+            {health.lastSuccessfulBackupAt ? formatRelativeAge(health.lastSuccessfulBackupAt, now) : "None yet"}
+          </div>
+          <div className={styles.statCaption}>Last successful backup</div>
         </div>
-
-        <div className={styles.healthRow}>
-          <span className={styles.healthLabel}>Next scheduled run</span>
-          <span className={styles.healthValue}>{convertUTCToET(health.nextScheduledRunAt)} ET</span>
-        </div>
-
-        <div className={styles.healthRow}>
-          <span className={styles.healthLabel}>Replica status</span>
-          <div className={`${styles.healthValue} ${styles.replicaStatusList}`}>
-            {health.replicaStatus.map((status) => (
-              <div key={status.replica} className={styles.replicaStatusRow}>
-                <span className={styles.replicaStatusName}>{REPLICA_LABEL[status.replica]}</span>
-                <span>
-                  {status.hasLatest ? "Latest present" : "Missing latest"} · {status.objectCount} objects
-                </span>
-              </div>
-            ))}
+        <div className={styles.statCell}>
+          <div className={styles.statValue}>{formatCountdown(health.nextScheduledRunAt, now)}</div>
+          <div className={styles.statCaption}>
+            Next run · {formatETTime(new Date(health.nextScheduledRunAt))} ET
           </div>
         </div>
-
-        <div className={styles.healthRow}>
-          <span className={styles.healthLabel}>Storage vs. free tier</span>
-          <span className={styles.healthValue}>
-            {formatBytes(health.totals.totalSizeBytes)} · {health.totals.objectCount} objects
-          </span>
+        <div className={styles.statCell}>
+          <div className={styles.statValue}>{health.totals.objectCount}</div>
+          <div className={styles.statCaption}>Snapshots retained</div>
         </div>
       </div>
 
-      <div className={styles.headroomBar}>
-        <div className={headroomFillClass(headroomFraction)} style={{ width: `${headroomFraction * 100}%` }} />
-      </div>
-      <div className={styles.headroomCaption}>
-        {formatBytes(health.totals.totalSizeBytes)} of {formatBytes(tightestLimitBytes)} free-tier headroom used
-        (tightest of the three storage targets)
+      <div className={styles.replicasPanel}>
+        <div className={styles.replicasHeader}>
+          <span className={styles.replicasLabel}>REPLICAS</span>
+          <span className={styles.replicasSummary}>{replicasSummary}</span>
+        </div>
+
+        <div className={styles.replicaTiles}>
+          {health.replicaStatus.map((status) => (
+            <div key={status.replica} className={styles.replicaTile}>
+              <span className={styles.replicaTileName}>
+                <span
+                  className={`${styles.replicaTileDot} ${status.hasLatest ? styles.replicaTileDotOk : styles.replicaTileDotStale}`}
+                />
+                {REPLICA_LABEL[status.replica]}
+              </span>
+              <span className={styles.replicaTileCaption}>
+                {status.objectCount} objects · {status.hasLatest ? "current" : "stale"}
+              </span>
+            </div>
+          ))}
+        </div>
+
+        <div>
+          <div className={styles.headroomRow}>
+            <span className={styles.headroomLabel}>Free-tier headroom</span>
+            <span className={styles.headroomRemaining}>
+              {formatBytes(remainingBytes)} of {formatBytes(tightestLimitBytes)} left
+            </span>
+          </div>
+          <div className={styles.headroomBar}>
+            <div className={headroomFillClass(usedFraction)} style={{ width: `${remainingFraction * 100}%` }} />
+          </div>
+          <div className={styles.headroomCaption}>
+            {formatBytes(health.totals.totalSizeBytes)} used across {health.totals.objectCount} objects, measured
+            on the tightest of the three storage targets.
+          </div>
+        </div>
       </div>
     </Card>
   );

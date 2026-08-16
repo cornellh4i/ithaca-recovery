@@ -12,74 +12,97 @@ interface RecentActivityCardProps {
   now: Date;
 }
 
-const CONCLUSION_DOT_CLASS: Record<ActivityConclusion, string> = {
-  success: styles.activityConclusionSuccess,
-  failure: styles.activityConclusionFailure,
-  in_progress: styles.activityConclusionInProgress,
-};
-
 const CONCLUSION_LABEL: Record<ActivityConclusion, string> = {
   success: "succeeded",
   failure: "failed",
   in_progress: "in progress",
 };
 
+// Only the exceptional rows earn a place here: failures, manual runs, and in-flight runs.
+// Routine scheduled successes are summarized as a count instead (see activitySummaryLine).
+const isNotable = (event: ActivityEvent): boolean =>
+  event.conclusion === "failure" || event.trigger === "workflow_dispatch" || event.conclusion === "in_progress";
+
+/** Count of routine (non-manual, successful) runs -- the "N routine runs succeeded" summary line. */
+const countRoutineSuccesses = (events: ActivityEvent[]): number =>
+  events.filter((e) => e.trigger === "schedule" && e.conclusion === "success").length;
+
 // GitHub Actions run history IS the audit log for this feature (no separate audit table --
 // see the backups admin tab plan, Part 1). This card is purely presentational: F7 owns the
 // fetch and passes rows shaped like `GET .../actions/workflows/backup-db.yml/runs`.
-const RecentActivityCard: React.FC<RecentActivityCardProps> = ({ events, now }) => (
-  <Card data-testid="backups-recent-activity-panel">
-    <div className={styles.panelHeader}>
-      <Icon name="clock" className={styles.panelIcon} />
-      Recent Activity
-    </div>
-    {events.length === 0 ? (
-      <div className={styles.emptyState}>No backup runs recorded yet.</div>
-    ) : (
-      <ul className={styles.activityList}>
-        {events.map((event) => (
-          <li key={event.id} className={styles.activityRow}>
-            <span
-              className={`${styles.activityConclusionDot} ${CONCLUSION_DOT_CLASS[event.conclusion]}`}
-              aria-hidden="true"
-            />
-            <div className={styles.activityBody}>
-              <div className={styles.activityTitle}>
-                {activityTitle(event)}{" "}
-                <span className={styles.activityTriggerBadge}>{event.trigger === "schedule" ? "Scheduled" : "Manual"}</span>
-              </div>
-              <div className={styles.activityMeta}>
-                {event.actor} · {formatRelativeTime(event.startedAt, now)} · {formatDuration(event.durationSeconds)}
-                {" · "}
-                {CONCLUSION_LABEL[event.conclusion]}
-              </div>
-            </div>
-          </li>
-        ))}
-      </ul>
-    )}
-  </Card>
-);
+const RecentActivityCard: React.FC<RecentActivityCardProps> = ({ events, now }) => {
+  const notableEvents = events.filter(isNotable);
+  const routineSuccessCount = countRoutineSuccesses(events);
 
-// "Scheduled backup" for cron-triggered runs, "Manual backup — <reason>" for workflow_dispatch
-// runs that carried an operator-supplied reason (see BackupMeta.reason in types/backups.ts).
-const activityTitle = (event: ActivityEvent): string => {
-  const base = event.trigger === "schedule" ? "Scheduled backup" : "Manual backup";
-  return event.trigger === "workflow_dispatch" && event.reason ? `${base} — ${event.reason}` : base;
+  return (
+    <Card accent="syncIssues" data-testid="backups-recent-activity-panel">
+      <div className={styles.panelHeader}>
+        <Icon name="clock" className={styles.panelIcon} />
+        Notable Activity
+      </div>
+      <div className={styles.activitySummaryLine}>
+        Failures, manual runs, and runs in progress.
+        {routineSuccessCount > 0 && ` ${routineSuccessCount} routine scheduled successes not shown.`}
+      </div>
+      {/* TODO(backups-api): link to a full-history view once the API wiring lands. */}
+      {notableEvents.length === 0 ? (
+        <div className={styles.emptyState}>No failures, manual runs, or runs in progress recorded.</div>
+      ) : (
+        <ul className={styles.activityList}>
+          {notableEvents.map((event) => (
+            <li key={event.id} className={styles.activityRow}>
+              <span
+                className={`${styles.activityDot} ${event.conclusion === "failure" ? styles.activityDotFailure : styles.activityDotNeutral}`}
+                aria-hidden="true"
+              />
+              <div className={styles.activityBody}>
+                <div className={`${styles.activityTitle} ${event.conclusion === "failure" ? styles.activityTitleFailure : ""}`}>
+                  {activityTitle(event)}
+                </div>
+                <div className={styles.activityMeta}>{activityMeta(event, now)}</div>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Card>
+  );
 };
 
-// Coarse relative time (minutes/hours/days) -- getTime() diffs against the passed-in `now`
-// only, no Date.now() (would mismatch between server render and client hydration) and no
-// local-timezone Date accessors (banned by the repo's ESLint rule).
-const formatRelativeTime = (isoTimestamp: string, now: Date): string => {
-  const deltaMs = now.getTime() - new Date(isoTimestamp).getTime();
+const activityTitle = (event: ActivityEvent): string => {
+  if (event.conclusion === "in_progress") return "Backup in progress";
+  if (event.trigger === "workflow_dispatch") {
+    return event.reason ? `Manual backup — ${event.reason}` : "Manual backup";
+  }
+  return "Scheduled backup failed";
+};
+
+const activityMeta = (event: ActivityEvent, now: Date): string => {
+  const parts = [event.actor, formatRelativeOrAbsoluteTime(event.startedAt, now)];
+  if (event.conclusion !== "in_progress") {
+    parts.push(`ran ${formatDuration(event.durationSeconds)}`);
+  }
+  parts.push(CONCLUSION_LABEL[event.conclusion]);
+  return parts.join(" · ");
+};
+
+// Coarse relative time under 24h; absolute Eastern-time timestamp beyond that -- getTime()
+// diffs against the passed-in `now` only, no Date.now() (would mismatch between server render
+// and client hydration) and no local-timezone Date accessors (banned by the repo's ESLint rule).
+const formatRelativeOrAbsoluteTime = (isoTimestamp: string, now: Date): string => {
+  const startedAt = new Date(isoTimestamp);
+  const deltaMs = now.getTime() - startedAt.getTime();
   const deltaMinutes = Math.round(deltaMs / 60_000);
-  if (deltaMinutes < 1) return "just now";
-  if (deltaMinutes < 60) return `${deltaMinutes}m ago`;
+  if (deltaMinutes < 60) return deltaMinutes < 1 ? "just now" : `${deltaMinutes}m ago`;
   const deltaHours = Math.round(deltaMinutes / 60);
   if (deltaHours < 24) return `${deltaHours}h ago`;
-  const deltaDays = Math.round(deltaHours / 24);
-  return `${deltaDays}d ago`;
+  return `${new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/New_York",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(startedAt)} ET`;
 };
 
 const formatDuration = (durationSeconds: number): string => {
