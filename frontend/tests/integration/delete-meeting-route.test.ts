@@ -1,9 +1,16 @@
 import { getTestPrismaClient, disconnectTestPrismaClient } from "../factories/db";
 import { seedMeeting, seedRecurringMeeting, seedSuspensionPeriod } from "../factories/meeting";
 
+// The route always passes an already-started promise to after() (syncDeleteAll etc. are invoked
+// eagerly as part of constructing the argument, before after() ever sees it) -- capturing that
+// promise here gives tests a real completion signal to await (see drainAfterTasks below),
+// instead of inferring "the background sync must be done by now" from elapsed time.
+const mockCapturedAfterTasks: Promise<unknown>[] = [];
 jest.mock("next/server", () => ({
   ...jest.requireActual("next/server"),
-  after: () => {},
+  after: (task: unknown) => {
+    mockCapturedAfterTasks.push(Promise.resolve(task));
+  },
 }));
 
 jest.mock("../../services/auth", () => ({
@@ -36,39 +43,16 @@ afterAll(async () => {
 
 beforeEach(() => {
   mockedDelete.mockClear();
+  mockCapturedAfterTasks.length = 0;
 });
 
-async function waitFor<T>(fn: () => Promise<T | null | undefined>, timeoutMs = 2000): Promise<T | null> {
-  const start = Date.now();
-  while (Date.now() - start < timeoutMs) {
-    const result = await fn();
-    if (result != null) return result;
-    await new Promise((resolve) => setTimeout(resolve, 25));
-  }
-  return null;
-}
-
-// For asserting an absence (no further deleteCalendarEvent call lands after the expected one)
-// rather than a value to poll for -- waitFor's "poll until non-null" shape doesn't apply there.
-// There's no real completion signal to wait on for a negative assertion, so this is still
-// fundamentally a timeout, not a true polling condition. But the quiet timer restarts whenever
-// the count changes, so a call arriving late in the window still gets caught instead of the
-// check having already closed around it.
-async function waitForStableCallCount(getCount: () => number, quietMs = 200, timeoutMs = 2000): Promise<number> {
-  const start = Date.now();
-  let lastCount = getCount();
-  let quietSince = Date.now();
-  while (Date.now() - start < timeoutMs) {
-    await new Promise((resolve) => setTimeout(resolve, 10));
-    const count = getCount();
-    if (count !== lastCount) {
-      lastCount = count;
-      quietSince = Date.now();
-    } else if (Date.now() - quietSince >= quietMs) {
-      return count;
-    }
-  }
-  return lastCount;
+// Awaits every after()-deferred task captured by a DELETE call so far, then clears the list.
+// This is the actual condition these tests need -- "the background sync has fully finished,
+// including every sequential await inside it" -- not a guess at how long that takes; it works
+// equally well for a positive assertion (an event ID that should now exist) and a negative one
+// (asserting no further call landed), since either way nothing is left in flight once it resolves.
+async function drainAfterTasks(): Promise<void> {
+  await Promise.all(mockCapturedAfterTasks.splice(0, mockCapturedAfterTasks.length));
 }
 
 test("deleting a meeting with a pending pre-created resume series tears that series down too, not just the live event", async () => {
@@ -86,14 +70,14 @@ test("deleting a meeting with a pending pre-created resume series tears that ser
   const response = await DELETE(request);
   expect(response.status).toBe(200);
 
+  // deletedAt is written synchronously in the route, before after() is even called -- no wait
+  // needed for it.
   const prisma = getTestPrismaClient();
-  const deleted = await waitFor(async () => {
-    const m = await prisma.meeting.findUnique({ where: { mid: meeting.mid } });
-    return m?.deletedAt ? m : null;
-  });
+  const deleted = await prisma.meeting.findUnique({ where: { mid: meeting.mid } });
   expect(deleted?.deletedAt).not.toBeNull();
 
-  await waitFor(async () => (mockedDelete.mock.calls.length >= 2 ? true : null));
+  await drainAfterTasks();
+  expect(mockedDelete).toHaveBeenCalledTimes(2);
   expect(mockedDelete).toHaveBeenCalledWith("fake-token", "live-event-id", "fake-calendar-id");
   expect(mockedDelete).toHaveBeenCalledWith("fake-token", "pending-future-event-id", "fake-calendar-id");
 });
@@ -108,11 +92,11 @@ test("deleting a meeting with no pending resume series only tears down the live 
   const response = await DELETE(request);
   expect(response.status).toBe(200);
 
-  await waitFor(async () => (mockedDelete.mock.calls.length > 0 ? true : null));
-  // A settle window after the first call -- asserting toHaveBeenCalledTimes(1) immediately upon
-  // seeing the first call would pass even if a second, unwanted call was about to land right
-  // after (syncDeleteAll's deletes are sequential, not concurrent).
-  await waitForStableCallCount(() => mockedDelete.mock.calls.length);
+  // Awaiting the actual syncDeleteAll promise (not a settle-window guess) is what proves no
+  // further deleteCalendarEvent call is still in flight -- every sequential await inside it,
+  // including tearDownPendingResumeSeries and the Zoom-room calendar delete, has resolved by
+  // the time this returns.
+  await drainAfterTasks();
   expect(mockedDelete).toHaveBeenCalledTimes(1);
   expect(mockedDelete).toHaveBeenCalledWith("fake-token", "live-event-id", "fake-calendar-id");
 });
@@ -134,9 +118,8 @@ test("a promoted (already-live) suspension row isn't torn down a second time", a
   const response = await DELETE(request);
   expect(response.status).toBe(200);
 
-  await waitFor(async () => (mockedDelete.mock.calls.length > 0 ? true : null));
-  // Same settle window as above -- confirms the promoted row really isn't torn down a second
-  // time, not just that it hadn't happened yet by the time the first call was observed.
-  await waitForStableCallCount(() => mockedDelete.mock.calls.length);
+  // Same reasoning as above -- confirms the promoted row really isn't torn down a second time,
+  // not just that it hadn't happened yet by some guessed deadline.
+  await drainAfterTasks();
   expect(mockedDelete).toHaveBeenCalledTimes(1);
 });
