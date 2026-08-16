@@ -9,7 +9,7 @@ set -euo pipefail
 # Required env vars:
 #   DATABASE_URL_UNPOOLED   Neon connection string with pooling off (pgbouncer breaks pg_dump's
 #                            session-level operations -- see plan's "Design decisions").
-#   SCRATCH_DATABASE_URL     Connection string for the workflow's `services: postgres:17` scratch
+#   SCRATCH_DATABASE_URL     Connection string for the workflow's `services: postgres:18` scratch
 #                            container, e.g. postgresql://postgres:postgres@localhost:5432/scratch.
 #                            Owned by this script/B1's contract; cross-check with B1's service
 #                            definition and B9.
