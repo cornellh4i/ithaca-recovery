@@ -53,7 +53,18 @@ ZOOM_HOSTS="host1@icr.org,host2@icr.org,host3@icr.org,host4@icr.org,host5@icr.or
 | `GOOGLE_CALENDAR_ZOOM_<ROOM>` (×5) | Google Calendar ID for each Zoom-enabled room's own calendar |
 | `ZOOM_HOSTS` | Comma-separated pool of licensed Zoom user emails, shared across all rooms (see [Technical Decisions](../02-handoff/technical-decisions.md#zoom-integration)) |
 
-**Not yet in use** — `DATABASE_URL_UNPOOLED`, `GCP_WORKLOAD_IDENTITY_PROVIDER`,
-`GCP_SERVICE_ACCOUNT`, `GCS_BACKUP_BUCKET`, `AGE_PUBLIC_KEY` back the designed-but-not-yet-built
-backup workflow (GitHub Actions secrets/variables, not app env vars) — see
-[Backups and Recovery](../02-handoff/backups-and-recovery.md).
+**Not app env vars** — the backup workflow (`.github/workflows/backup-db.yml`) runs in GitHub
+Actions, not the Next.js app, so its credentials never appear in `frontend/`'s `.env` or Vercel:
+
+| Name | Kind | Purpose |
+|---|---|---|
+| `DATABASE_URL_UNPOOLED` | GH Actions secret | Neon direct/unpooled connection string — `pg_dump` breaks against the pooled `-pooler` host `DATABASE_URL` uses |
+| `R2_ACCOUNT_ID` / `R2_ACCESS_KEY_ID` / `R2_SECRET_ACCESS_KEY` | GH Actions secrets | Cloudflare R2 API token (Object Read & Write, scoped to the one bucket) |
+| `R2_BUCKET` | GH Actions variable | R2 bucket name (`icr-db-backup-r2`), Object Lock Governance mode |
+| `GCP_WORKLOAD_IDENTITY_PROVIDER` / `GCP_SERVICE_ACCOUNT` / `GCS_WORKING_BUCKET` | GH Actions variables | WIF auth + bucket name for the production-project GCS copy (`icr-db-backups-prod`) |
+| `GCP_ARCHIVE_WORKLOAD_IDENTITY_PROVIDER` / `GCP_ARCHIVE_SERVICE_ACCOUNT` / `GCS_ARCHIVE_BUCKET` | GH Actions variables | WIF auth + bucket name for the archive-project GCS copy (`icr-db-backups-archive`, a separate GCP project) |
+| `AGE_PUBLIC_KEY_A` / `AGE_PUBLIC_KEY_B` | GH Actions variables | Public `age` encryption keys — **pending**, key ceremony not yet performed |
+
+See [Credentials and Integrations](../02-handoff/credentials-and-integrations.md) for who controls
+each of these and [Backups and Recovery](../02-handoff/backups-and-recovery.md) for the full
+design.

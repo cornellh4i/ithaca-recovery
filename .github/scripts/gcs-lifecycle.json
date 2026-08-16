@@ -1,0 +1,12 @@
+{
+  "rule": [
+    {
+      "action": { "type": "Delete" },
+      "condition": { "age": 21, "matchesPrefix": ["daily/"] }
+    },
+    {
+      "action": { "type": "Delete" },
+      "condition": { "age": 407, "matchesPrefix": ["monthly/"] }
+    }
+  ]
+}
