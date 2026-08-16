@@ -1,0 +1,174 @@
+name: Database backup
+
+on:
+  schedule:
+    # 01:17/07:17/13:17/19:17 UTC -- matches Neon free tier's confirmed 6h PITR
+    # window, so no recovery gap anywhere exceeds 6h. Off-the-hour minute avoids
+    # the top-of-hour GitHub Actions scheduler pile-up.
+    - cron: "17 1,7,13,19 * * *"
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: "Why this manual run (e.g. 'dry run', 'pre-migration snapshot')"
+        required: true
+        type: string
+
+# One backup run at a time; never cancel one mid-upload -- a cancelled run could
+# leave a tier partially uploaded across targets with no record of what landed.
+concurrency:
+  group: db-backup
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  id-token: write # Workload Identity Federation -- no long-lived GCP key in CI
+  issues: write # failure path opens/updates the backup-failure Issue
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10 # bounds a pg_dump stuck behind a concurrent ACCESS EXCLUSIVE lock
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      SCRATCH_DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      # pg_dump/pg_restore must match the scratch container's major version (17);
+      # Ubuntu's default apt repo doesn't carry it, so pull from PGDG directly.
+      - name: Install postgresql-client-17 and age
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends curl ca-certificates gnupg age
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \
+            --fail https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(. /etc/os-release && echo "$VERSION_CODENAME")-pgdg main" \
+            | sudo tee /etc/apt/sources.list.d/pgdg.list
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends postgresql-client-17
+
+      - name: Dump, verify, encrypt
+        id: backup
+        run: |
+          APP_VERSION="$(node -p "require('./frontend/package.json').version")"
+          export APP_VERSION
+          .github/scripts/backup-db.sh
+        env:
+          DATABASE_URL_UNPOOLED: ${{ secrets.DATABASE_URL_UNPOOLED }}
+          AGE_PUBLIC_KEY_A: ${{ vars.AGE_PUBLIC_KEY_A }}
+          AGE_PUBLIC_KEY_B: ${{ vars.AGE_PUBLIC_KEY_B }}
+          BACKUP_SOURCE: ${{ github.event_name == 'workflow_dispatch' && 'manual' || 'automatic' }}
+          BACKUP_TRIGGERED_BY: ${{ github.event_name == 'workflow_dispatch' && github.actor || '' }}
+          BACKUP_REASON: ${{ inputs.reason || '' }}
+          GIT_SHA: ${{ github.sha }}
+
+      # First auth: production project's WIF, for the operational GCS-working copy.
+      - name: Authenticate to GCP (production)
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
+
+      - name: Upload to GCS (working)
+        id: upload_gcs_working
+        continue-on-error: true
+        run: .github/scripts/upload-backup.sh --target=gcs-working
+        env:
+          GCS_WORKING_BUCKET: ${{ vars.GCS_WORKING_BUCKET }}
+          ARTIFACT_PATH: ${{ steps.backup.outputs.artifact }}
+          SHA256_PATH: ${{ steps.backup.outputs.sha256 }}
+          META_PATH: ${{ steps.backup.outputs.meta }}
+
+      # gcloud's active credential is a per-job global set by this Action, not
+      # something bash can swap -- a second auth step replaces it for the
+      # independent archive project, which has its own WIF pool/provider/SA.
+      - name: Authenticate to GCP (archive)
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_ARCHIVE_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_ARCHIVE_SERVICE_ACCOUNT }}
+
+      - name: Upload to GCS (archive)
+        id: upload_gcs_archive
+        continue-on-error: true
+        run: .github/scripts/upload-backup.sh --target=gcs-archive
+        env:
+          GCS_ARCHIVE_BUCKET: ${{ vars.GCS_ARCHIVE_BUCKET }}
+          ARTIFACT_PATH: ${{ steps.backup.outputs.artifact }}
+          SHA256_PATH: ${{ steps.backup.outputs.sha256 }}
+          META_PATH: ${{ steps.backup.outputs.meta }}
+
+      # R2 uses static scoped API creds via the aws CLI -- no gcloud credential
+      # swap needed here.
+      - name: Upload to R2
+        id: upload_r2
+        continue-on-error: true
+        run: .github/scripts/upload-backup.sh --target=r2
+        env:
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET: ${{ vars.R2_BUCKET }}
+          ARTIFACT_PATH: ${{ steps.backup.outputs.artifact }}
+          SHA256_PATH: ${{ steps.backup.outputs.sha256 }}
+          META_PATH: ${{ steps.backup.outputs.meta }}
+
+      # Each upload step is continue-on-error so one target's outage never blocks
+      # the other two -- but the run must still fail (and fire the Issue below)
+      # if any target didn't get a copy.
+      - name: Require all three uploads to have succeeded
+        if: always()
+        run: |
+          status=0
+          for outcome in \
+            "gcs-working:${{ steps.upload_gcs_working.outcome }}" \
+            "gcs-archive:${{ steps.upload_gcs_archive.outcome }}" \
+            "r2:${{ steps.upload_r2.outcome }}"; do
+            target="${outcome%%:*}"
+            result="${outcome##*:}"
+            echo "$target: $result"
+            if [ "$result" != "success" ]; then
+              status=1
+            fi
+          done
+          exit "$status"
+
+      - name: Open or update failure issue
+        if: failure()
+        run: |
+          title="Backup run failed: ${{ github.run_id }}"
+          body="Workflow run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+          Triggered by: ${{ github.event_name }}
+          Reason (manual runs only): ${{ inputs.reason || 'n/a' }}
+
+          Step outcomes:
+          - backup-db.sh: ${{ steps.backup.outcome }}
+          - gcs-working upload: ${{ steps.upload_gcs_working.outcome }}
+          - gcs-archive upload: ${{ steps.upload_gcs_archive.outcome }}
+          - r2 upload: ${{ steps.upload_r2.outcome }}"
+
+          existing=$(gh issue list --repo "${{ github.repository }}" --state open \
+            --label backup-failure --json number --jq '.[0].number')
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" --repo "${{ github.repository }}" --body "$body"
+          else
+            gh issue create --repo "${{ github.repository }}" --title "$title" \
+              --body "$body" --label backup-failure
+          fi
+        env:
+          GH_TOKEN: ${{ github.token }}
