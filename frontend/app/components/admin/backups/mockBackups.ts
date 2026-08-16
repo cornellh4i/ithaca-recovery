@@ -216,7 +216,7 @@ export function nextScheduledRunAfter(now: Date): string {
   return candidate.toISOString();
 }
 
-const FREE_TIER_LIMITS = {
+export const FREE_TIER_LIMITS = {
   // GCS Standard free tier: 5 GB-months regional storage.
   gcsWorkingBytes: 5 * 1024 * 1024 * 1024,
   gcsArchiveBytes: 5 * 1024 * 1024 * 1024,

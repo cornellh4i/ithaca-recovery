@@ -6,11 +6,7 @@ export const adminTabs: { key: AdminTabKey; label: string; superAdminOnly: boole
   { key: "diagnostics", label: "Diagnostics", superAdminOnly: false },
   { key: "signage", label: "Signage", superAdminOnly: false },
   { key: "users", label: "Users", superAdminOnly: true },
-  // TODO(backups-api): drop the NODE_ENV guard once real API wiring lands -- this UI-only PR
-  // ships mock data only, so the tab stays dev-only until then.
-  ...(process.env.NODE_ENV !== "production"
-    ? [{ key: "backups" as const, label: "Backups", superAdminOnly: true }]
-    : []),
+  { key: "backups", label: "Backups", superAdminOnly: true },
   { key: "export", label: "Export", superAdminOnly: true },
 ];
 

@@ -921,3 +921,47 @@
   padding-top: 10px;
   border-top: 1px solid $grey-lightest-color;
 }
+
+/* ---------- Tab-level load states (loading / fetch error / unconfigured / mock badge) ---------- */
+
+.loadingState {
+  padding: 24px 0;
+  color: $medium-grey-color;
+  font-size: 14px;
+}
+
+// Same shape as DiagnosticsCardError's retry button (DiagnosticsTab.module.scss) --
+// duplicated locally rather than shared cross-module since this tab already owns its own
+// error surface (a single tab-wide fetch failure) instead of per-card errors.
+.retryButton {
+  flex-shrink: 0;
+  background: #fff;
+  border: 1px solid $grey-border-color;
+  border-radius: 6px;
+  padding: 6px 12px;
+  color: $black-color;
+  font-size: 13px;
+  font-family: 'Source Sans Pro', sans-serif;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    border-color: $medium-grey-color;
+  }
+
+  &:disabled {
+    cursor: default;
+    opacity: 0.6;
+  }
+}
+
+// Small unobtrusive note near the top when the routes are serving deterministic mock
+// fixtures (no backup credentials configured in this environment) -- deliberately quieter
+// than the unconfigured panel below, since mock mode is expected in dev/CI, not an error.
+.modeBadge {
+  align-self: flex-start;
+  font-size: 12px;
+  color: $medium-grey-color;
+  background: $grey-lightest-color;
+  border-radius: 999px;
+  padding: 4px 10px;
+}
