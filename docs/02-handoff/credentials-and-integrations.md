@@ -17,15 +17,13 @@ before it changes.
 Two Google accounts control nearly everything — all external services (Vercel, Neon,
 Cloudflare, GCP) are signed into via Google with one of them:
 
-- **Prod account** — `dev@518icr.com`: both GCP projects, the production OAuth app and
-  calendars, and the Cloudflare account.
-- **Dev account** — `ithacacommunityrecoverytest@gmail.com`: Vercel, Neon, the dev OAuth app
-  and dev calendars (and, as a stopgap, the billing account both GCP projects link to).
+- **Prod account** — `dev@518icr.com`: the production GCP project (`icr-management-system`) and
+  its GCS working bucket, the production OAuth app and calendars, and the Cloudflare account.
+- **Dev account** — `ithacacommunityrecoverytest@gmail.com`: Vercel, Neon, the dev OAuth app and
+  dev calendars, plus the archive GCP project (`icr-backups-archive`) and its GCS archive bucket
+  (and, as a stopgap, the billing account both GCP projects link to).
 - **Zoom account** — `zoom@518icr.com`: the Zoom Server-to-Server app and host licensing (same
   account for both environments).
-
-**Open question:** the Cloudflare account currently lives under the Prod account — decide
-whether that's desirable long-term or whether R2 should move to a dedicated/org account.
 
 ### Application (Vercel env vars)
 
@@ -44,11 +42,11 @@ whether that's desirable long-term or whether R2 should move to a dedicated/org 
 | Credential | Purpose | Where it lives | Controlled by | Coordination needed before changing |
 |---|---|---|---|---|
 | `DATABASE_URL_UNPOOLED` | PostgreSQL (Neon) connection string, **direct/unpooled** variant — backup workflow only, not used by the app itself (pgbouncer transaction-mode pooling breaks `pg_dump`'s session-level operations) | GitHub Actions secret | Dev account | Sourced fresh from the Neon dashboard with pooling toggled off, not derived from `DATABASE_URL`; see [Backups and Recovery](backups-and-recovery.md) |
-| `R2_ACCOUNT_ID` / `R2_ACCESS_KEY_ID` / `R2_SECRET_ACCESS_KEY` | Cloudflare R2 API token (Account-level, Object Read & Write, scoped to the one backup bucket, TTL forever — a deliberate exception: a scheduled expiry would silently break backup uploads when it lapses; compensating controls are the single-bucket scope and re-issuing the token at each semester role handoff or on suspected compromise) — third storage target for the backup workflow | GitHub Actions **secrets** | Prod account (Cloudflare — see open question above) | Rotating requires generating a new scoped token in the Cloudflare dashboard and updating all three GitHub secrets together (they're one token) |
+| `R2_ACCOUNT_ID` / `R2_ACCESS_KEY_ID` / `R2_SECRET_ACCESS_KEY` | Cloudflare R2 API token (Account-level, Object Read & Write, scoped to the one backup bucket, TTL forever — a deliberate exception: a scheduled expiry would silently break backup uploads when it lapses; compensating controls are the single-bucket scope and re-issuing the token at each semester role handoff or on suspected compromise) — third storage target for the backup workflow | GitHub Actions **secrets** | Prod account (Cloudflare) | Rotating requires generating a new scoped token in the Cloudflare dashboard and updating all three GitHub secrets together (they're one token) |
 | `R2_BUCKET` | Name of the R2 bucket (`icr-db-backup-r2`) backups upload to, Object Lock (Governance mode) enabled at creation | GitHub Actions **variable** | Prod account (Cloudflare) | Object Lock can't be enabled after bucket creation — a bucket rename requires provisioning a new bucket, not just updating this variable |
 | `GCP_WORKLOAD_IDENTITY_PROVIDER` / `GCP_SERVICE_ACCOUNT` | Backup workflow's auth into the **production** GCP project (Workload Identity Federation, no downloaded service-account key) — uploads to `GCS_WORKING_BUCKET` | GitHub Actions **variables** (non-secret by design — WIF federates trust, there's no long-lived key to protect) | Prod account | Locked to this exact repo via an attribute condition on the WIF provider; the SA holds `roles/storage.objectCreator` only (no delete, no overwrite) |
 | `GCS_WORKING_BUCKET` | Name of the production-project GCS bucket (`icr-db-backups-prod`) — the operational copy the admin UI lists/downloads from | GitHub Actions **variable** | Prod account | Bucket-level lifecycle rules (`daily/` 21d, `monthly/` 407d) are the only deletion path — renaming means re-provisioning lifecycle rules too |
-| `GCP_ARCHIVE_WORKLOAD_IDENTITY_PROVIDER` / `GCP_ARCHIVE_SERVICE_ACCOUNT` | Backup workflow's auth into the **archive** GCP project (`icr-backups-archive`) — a separate WIF pool/provider/binding, fully independent of the production-project one above (WIF trust is scoped per-project, not shared) | GitHub Actions **variables** | Prod account (distinct GCP project — deliberately not the Dev account, which has standing test-user access for other student contributors) | Rotating either pair only affects the archive upload leg; the production leg is untouched |
+| `GCP_ARCHIVE_WORKLOAD_IDENTITY_PROVIDER` / `GCP_ARCHIVE_SERVICE_ACCOUNT` | Backup workflow's auth into the **archive** GCP project (`icr-backups-archive`) — a separate WIF pool/provider/binding, fully independent of the production-project one above (WIF trust is scoped per-project, not shared) | GitHub Actions **variables** | Prod account (a separate GCP project, deliberately not the Dev account — that one is shared with rotating student contributors) | Rotating either pair only affects the archive upload leg; the production leg is untouched |
 | `GCS_ARCHIVE_BUCKET` | Name of the archive-project GCS bucket (`icr-db-backups-archive`) — pure redundancy + immutability copy, bucket-level retention policy (400 days, unlocked) | GitHub Actions **variable** | Prod account | Retention is bucket-level, not per-object — see [Backups and Recovery](backups-and-recovery.md) for why 400d covers both GFS tiers there |
 | `AGE_PUBLIC_KEY_A` / `AGE_PUBLIC_KEY_B` | Two `age` public keys each backup is encrypted to (`age -r A -r B`) — either private key alone decrypts (OR, not AND), so the archive survives one holder being unreachable | GitHub Actions **variables** — public keys are safe even if leaked (can only encrypt) | Key custody, not an account: **Key A** = the Maintenance Lead role's password manager; **Key B** = an org-owned vault outside the semesterly rotation (final holder still an open decision — see [Backup Infrastructure Setup](../03-development/backup-infra-setup.md)). Ceremony done 2026-08-16 | Both **private** keys are never put in GitHub, Vercel, or any CI system, in any form — including a GitHub "environment secret". See [Backups and Recovery](backups-and-recovery.md) for the full key-rotation and compromise procedure |
 
