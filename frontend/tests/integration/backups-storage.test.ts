@@ -34,12 +34,12 @@ jest.mock("@aws-sdk/client-s3", () => ({
 
 const STORAGE_VARS = {
   GCS_BACKUPS_CREDENTIALS: Buffer.from(JSON.stringify({ client_email: "a@b.com", private_key: "key", project_id: "p" })).toString("base64"),
-  GCS_BACKUPS_WORKING_BUCKET: WORKING_BUCKET,
-  GCS_BACKUPS_ARCHIVE_BUCKET: ARCHIVE_BUCKET,
-  R2_BACKUPS_ACCOUNT_ID: "acct",
-  R2_BACKUPS_ACCESS_KEY_ID: "key",
-  R2_BACKUPS_SECRET_ACCESS_KEY: "secret",
-  R2_BACKUPS_BUCKET: "icr-db-backup-r2",
+  GCS_WORKING_BUCKET: WORKING_BUCKET,
+  GCS_ARCHIVE_BUCKET: ARCHIVE_BUCKET,
+  R2_ACCOUNT_ID: "acct",
+  R2_ACCESS_KEY_ID: "key",
+  R2_SECRET_ACCESS_KEY: "secret",
+  R2_BUCKET: "icr-db-backup-r2",
 };
 
 const originalEnv = { ...process.env };

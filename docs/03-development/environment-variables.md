@@ -80,8 +80,8 @@ serving fixtures.
 | Variable | Purpose |
 |---|---|
 | `GCS_BACKUPS_CREDENTIALS` | Base64-encoded JSON key for a **read-only** GCS service account (list + get objects only — never the create-only CI identity used by the backup workflow itself) |
-| `GCS_BACKUPS_WORKING_BUCKET` / `GCS_BACKUPS_ARCHIVE_BUCKET` | GCS bucket names for the working and archive copies (`icr-db-backups-prod` / `icr-db-backups-archive`) |
-| `R2_BACKUPS_ACCOUNT_ID` / `R2_BACKUPS_ACCESS_KEY_ID` / `R2_BACKUPS_SECRET_ACCESS_KEY` / `R2_BACKUPS_BUCKET` | Read-scoped Cloudflare R2 API token + bucket name |
+| `GCS_WORKING_BUCKET` / `GCS_ARCHIVE_BUCKET` | GCS bucket names for the working and archive copies (`icr-db-backups-prod` / `icr-db-backups-archive`) |
+| `R2_ACCOUNT_ID` / `R2_ACCESS_KEY_ID` / `R2_SECRET_ACCESS_KEY` / `R2_BUCKET` | Read-scoped Cloudflare R2 API token + bucket name |
 | `GITHUB_BACKUPS_PAT` | Fine-grained GitHub PAT with Actions read+write on the repo (run history + manual dispatch) |
 | `GITHUB_BACKUPS_REPO` | `owner/name` the PAT targets; defaults to `cornellh4i/ithaca-recovery` |
 

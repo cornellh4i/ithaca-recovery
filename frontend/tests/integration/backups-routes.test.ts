@@ -29,12 +29,12 @@ const mockedDispatchBackup = dispatchBackup as jest.Mock;
 
 const STORAGE_VARS = [
   "GCS_BACKUPS_CREDENTIALS",
-  "GCS_BACKUPS_WORKING_BUCKET",
-  "GCS_BACKUPS_ARCHIVE_BUCKET",
-  "R2_BACKUPS_ACCOUNT_ID",
-  "R2_BACKUPS_ACCESS_KEY_ID",
-  "R2_BACKUPS_SECRET_ACCESS_KEY",
-  "R2_BACKUPS_BUCKET",
+  "GCS_WORKING_BUCKET",
+  "GCS_ARCHIVE_BUCKET",
+  "R2_ACCOUNT_ID",
+  "R2_ACCESS_KEY_ID",
+  "R2_SECRET_ACCESS_KEY",
+  "R2_BUCKET",
 ];
 const GITHUB_VARS = ["GITHUB_BACKUPS_PAT"];
 const ALL_BACKUPS_VARS = [...STORAGE_VARS, ...GITHUB_VARS];
@@ -130,7 +130,7 @@ describe("GET /api/admin/backups", () => {
     const body = await response.json();
     expect(response.status).toBe(503);
     expect(body.configured).toBe(false);
-    expect(body.missing).toEqual(expect.arrayContaining(["GCS_BACKUPS_CREDENTIALS", "R2_BACKUPS_BUCKET"]));
+    expect(body.missing).toEqual(expect.arrayContaining(["GCS_BACKUPS_CREDENTIALS", "R2_BUCKET"]));
   });
 
   test("treats an undecodable GCS_BACKUPS_CREDENTIALS value as missing rather than 500ing", async () => {

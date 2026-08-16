@@ -25,12 +25,12 @@ export interface BackupsGithubConfig {
 
 const STORAGE_VAR_NAMES = [
   "GCS_BACKUPS_CREDENTIALS",
-  "GCS_BACKUPS_WORKING_BUCKET",
-  "GCS_BACKUPS_ARCHIVE_BUCKET",
-  "R2_BACKUPS_ACCOUNT_ID",
-  "R2_BACKUPS_ACCESS_KEY_ID",
-  "R2_BACKUPS_SECRET_ACCESS_KEY",
-  "R2_BACKUPS_BUCKET",
+  "GCS_WORKING_BUCKET",
+  "GCS_ARCHIVE_BUCKET",
+  "R2_ACCOUNT_ID",
+  "R2_ACCESS_KEY_ID",
+  "R2_SECRET_ACCESS_KEY",
+  "R2_BUCKET",
 ] as const;
 
 const GITHUB_VAR_NAMES = ["GITHUB_BACKUPS_PAT"] as const;
@@ -110,12 +110,12 @@ export function getStorageConfig(): BackupsStorageConfig {
       privateKey: decoded.private_key,
       projectId: decoded.project_id,
     },
-    gcsWorkingBucket: process.env.GCS_BACKUPS_WORKING_BUCKET as string,
-    gcsArchiveBucket: process.env.GCS_BACKUPS_ARCHIVE_BUCKET as string,
-    r2AccountId: process.env.R2_BACKUPS_ACCOUNT_ID as string,
-    r2AccessKeyId: process.env.R2_BACKUPS_ACCESS_KEY_ID as string,
-    r2SecretAccessKey: process.env.R2_BACKUPS_SECRET_ACCESS_KEY as string,
-    r2Bucket: process.env.R2_BACKUPS_BUCKET as string,
+    gcsWorkingBucket: process.env.GCS_WORKING_BUCKET as string,
+    gcsArchiveBucket: process.env.GCS_ARCHIVE_BUCKET as string,
+    r2AccountId: process.env.R2_ACCOUNT_ID as string,
+    r2AccessKeyId: process.env.R2_ACCESS_KEY_ID as string,
+    r2SecretAccessKey: process.env.R2_SECRET_ACCESS_KEY as string,
+    r2Bucket: process.env.R2_BUCKET as string,
   };
 }
 
