@@ -91,12 +91,15 @@ for table in "${expected_tables[@]}"; do
   fi
 done
 
-# Admin/Meeting empty would mean a restore that "succeeded" onto essentially a blank database --
-# catches a dump taken against the wrong connection string or an empty branch.
+# An empty restored canary table only means corruption if the SOURCE has rows -- production
+# launched with zero meetings, so "empty" must be judged against the live table, not assumed.
+# Still catches the real failure (dump against the wrong/blank database) whenever the source
+# is populated; Admin can never legitimately be empty (the app is unusable without one).
 for table in Admin Meeting; do
   count="$(psql "$SCRATCH_DATABASE_URL" -tAc "SELECT count(*) FROM \"${table}\";")"
-  if [[ "$count" -eq 0 ]]; then
-    echo "backup-db: restored table \"${table}\" is empty" >&2
+  source_count="$(psql "$DATABASE_URL_UNPOOLED" -tAc "SELECT count(*) FROM \"${table}\";")"
+  if [[ "$count" -eq 0 && ( "$table" == "Admin" || "$source_count" -gt 0 ) ]]; then
+    echo "backup-db: restored table \"${table}\" is empty (source has ${source_count} rows)" >&2
     exit 1
   fi
 done
