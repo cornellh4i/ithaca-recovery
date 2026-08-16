@@ -22,7 +22,7 @@ environments rather than transferring them to ICR at this time.
 ## 3. Long-term H4I responsibility
 
 Maintenance is owned by a semesterly H4I team. The
-persistent role that carries continuity between teams is **Maintenance Lead**(see §4 and [Support Process](support-process.md)).
+persistent role that carries continuity between teams is **Maintenance Lead** (see §4 and [Support Process](support-process.md)).
 H4I will proactively communicate toward the end of each semester if the Maintenance Lead is
 changing for the next one, rather than ICR needing to ask.
 
@@ -33,7 +33,7 @@ What ICR gets, even though H4I remains the technical owner:
 - [ ] Admin/read-only access to production logs — not granted today; logs live in Vercel under
   H4I's account. Open decision: whether a Vercel "Viewer" invite for an ICR contact is worth the
   seat, versus the Maintenance Lead pulling logs on request via [Support Process](support-process.md)
-- [x] Read access to backups — the **Admin → Backups tab** 
+- [x] Backup evidence and encrypted downloads — the **Admin → Backups tab** 
   contains backup health, the full snapshot inventory with verification/replica evidence, and encrypted artifact
   downloads (see [Backups and Recovery](backups-and-recovery.md)). Downloads are `age`-encrypted;
   reading one requires a private key (key A: H4I Maintenance Lead; key B: ICR side, open question,
@@ -48,7 +48,7 @@ What ICR gets, even though H4I remains the technical owner:
 The current H4I president's term ends November 2026. The system and support process should not
 depend on any one person. Concretely:
 
-- The support process ([Support Process](support-process.md)) should continue to route through H4I's Maintainance Lead's email.
+- The support process ([Support Process](support-process.md)) should continue to route through H4I's Maintenance Lead's email.
 - Confirm with the incoming H4I that they have read this [Handoff](../02-handoff/) section.
 - Future ICR administrators should be able to operate the   application and request help without
   needing detailed technical knowledge. See the [User Guide](../01-user-guide/) for the
