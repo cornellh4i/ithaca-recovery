@@ -99,7 +99,15 @@ We group components by what they do (domain/feature) rather than how they compos
 and portal-to-`document.body`. Every confirm/dialog-style modal in the app (delete/suspend/resume
 confirmations, conflict overrides, export configuration, the calendar's overlapping-meetings
 picker, admin user management) is built on it rather than hand-rolling overlay markup; new
-dialog-style modals should do the same.
+dialog-style modals should do the same. `BottomSheet` and `MobileFullScreenSheet` (the mobile
+equivalents — New/Edit Meeting on phones, the mobile login sheet, and the various day-navigation/
+filter/account sheets) get the identical focus-trap/Escape/restoration behavior via the same
+shared `hooks/useDialogBehavior.ts` `Modal` itself is built on, not a separate implementation.
+That hook also maintains a module-scope stack of currently-open dialogs so only the topmost one
+responds to Escape — necessary because these dialogs portal as DOM siblings under
+`document.body`, not nested in the tree, so a `Modal` opened from inside an already-open
+`MobileFullScreenSheet` (e.g. a conflict-override dialog during New Meeting) can't rely on DOM
+containment to know it's the "inner" one.
 
 `Icon` is the name-based entry point (e.g. `<Icon name="warning" />`) for the app's icon set —
 most render as `@mui/icons-material` glyphs tinted via `currentColor` from ambient CSS; a couple
