@@ -307,7 +307,7 @@ const DayPortraitView: React.FC<DayPortraitViewProps> = ({
 
   return (
     <div className={styles.container}>
-      <TopLoadingBar active={isLoading} />
+      <TopLoadingBar active={isLoading} label="Loading meetings" />
       <WeekStrip />
       <CalendarHeader
         selectedDate={selectedDate}

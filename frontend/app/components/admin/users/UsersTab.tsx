@@ -338,7 +338,7 @@ const UsersTab: React.FC = () => {
   return (
     <div className={styles.container}>
       <Card>
-        <TopLoadingBar active={loading} />
+        <TopLoadingBar active={loading} label="Loading users" />
         <CardHeader
           icon={<Icon name="groups" size={16} />}
           title={`Users (${(admins ?? []).length})`}

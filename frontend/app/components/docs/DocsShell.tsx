@@ -294,7 +294,7 @@ const DocsShell: React.FC<DocsShellProps> = ({ docsMeta, children }) => {
 
   return (
     <div className={styles.page}>
-      <TopLoadingBar active={isNavigating} />
+      <TopLoadingBar active={isNavigating} label="Loading page" />
       {/* Single instance for the whole docs session -- pagefind-modal-trigger (in the sidebar
           below) and this connect automatically by sharing Pagefind's default "instance". Both
           live here, in the layout-rendered shell, specifically so they never remount -- see this

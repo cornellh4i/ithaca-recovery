@@ -35,12 +35,16 @@ const GITHUB_VAR_NAMES = ["GITHUB_BACKUPS_PAT"] as const;
 // the most likely paste error, which would otherwise pass the presence check and 500 at STS time
 // instead of 503ing with an actionable name.
 const WIF_PROVIDER_SHAPE = /^projects\/\d+\/locations\/[^/]+\/workloadIdentityPools\/[^/]+\/providers\/[^/]+$/;
+// A malformed SA email would build an invalid IAM impersonation URL and 500 at request time
+// instead of 503ing with an actionable name -- same rationale as the provider shape above.
+const SERVICE_ACCOUNT_SHAPE = /^[^@/\s]+@[^@/\s]+\.iam\.gserviceaccount\.com$/;
 
 function missingStorageVars(): string[] {
   return STORAGE_VAR_NAMES.filter((name) => {
     const value = process.env[name];
     if (!value) return true;
     if (name === "GCP_BACKUPS_WIF_PROVIDER") return !WIF_PROVIDER_SHAPE.test(value);
+    if (name === "GCP_BACKUPS_SERVICE_ACCOUNT") return !SERVICE_ACCOUNT_SHAPE.test(value);
     return false;
   });
 }

@@ -455,7 +455,7 @@ const DayLandscapeView: React.FC<DayLandscapeViewProps> = ({
 
   return (
     <div className={styles.outerContainer}>
-      <TopLoadingBar active={isLoading} />
+      <TopLoadingBar active={isLoading} label="Loading meetings" />
       <div
         className={styles.scrollArea}
         ref={scrollAreaRef}

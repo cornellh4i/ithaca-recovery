@@ -50,9 +50,10 @@ function setLiveEnv() {
   STORAGE_VARS.forEach((name) => {
     process.env[name] = "test-value";
   });
-  // The WIF provider var is shape-validated, not just presence-checked -- a bare "test-value"
+  // These two vars are shape-validated, not just presence-checked -- a bare "test-value"
   // would count as missing and keep every "live mode" test stuck in unconfigured.
   process.env.GCP_BACKUPS_WIF_PROVIDER = "projects/123/locations/global/workloadIdentityPools/pool/providers/provider";
+  process.env.GCP_BACKUPS_SERVICE_ACCOUNT = "backups-tab-reader@icr-management-system.iam.gserviceaccount.com";
   GITHUB_VARS.forEach((name) => {
     process.env[name] = "test-value";
   });
@@ -145,6 +146,18 @@ describe("GET /api/admin/backups", () => {
     const body = await response.json();
     expect(response.status).toBe(503);
     expect(body.missing).toContain("GCP_BACKUPS_WIF_PROVIDER");
+  });
+
+  test("treats a malformed GCP_BACKUPS_SERVICE_ACCOUNT as missing rather than 500ing", async () => {
+    mockedRequireRole.mockResolvedValue(superAdminSession);
+    setLiveEnv();
+    process.env.GCP_BACKUPS_SERVICE_ACCOUNT = "not-a-service-account";
+    jest.replaceProperty(process, "env", { ...process.env, NODE_ENV: "production" });
+    const { GET } = await import("../../app/api/admin/backups/route");
+    const response = await GET();
+    const body = await response.json();
+    expect(response.status).toBe(503);
+    expect(body.missing).toContain("GCP_BACKUPS_SERVICE_ACCOUNT");
   });
 
   test("treats a missing GCP_BACKUPS_WIF_PROVIDER as missing rather than 500ing", async () => {
