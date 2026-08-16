@@ -6,6 +6,7 @@ import Icon from "../../ui/displays/Icon";
 import Card from "../shared/Card";
 import TopLoadingBar from "../../ui/displays/TopLoadingBar";
 import DiagnosticsCardError from "./DiagnosticsCardError";
+import { formatETLongDateTime } from "../../../../util/date/timeUtils";
 import styles from "./DiagnosticsTab.module.scss";
 
 interface SystemStatusCardProps {
@@ -22,6 +23,7 @@ interface SystemStatusData {
     hostPool: Record<string, { ok: boolean; licensed: boolean | null }>;
   };
   session: { email: string | null; role: Role | null };
+  application: { version: string; deployedAt: string | null };
 }
 
 const roleLabel: Record<string, string> = {
@@ -164,6 +166,19 @@ const SystemStatusCard: React.FC<SystemStatusCardProps> = ({ email, role }) => {
           <span className={styles.statusValue}>{email}</span>
         </div>
         <div className={styles.statusDetail}>{roleLabel[role] ?? role}</div>
+      </div>
+
+      <div className={styles.statusBlock}>
+        <div className={styles.statusRow}>
+          <span className={`${styles.dot} ${styles.dotOk}`} />
+          <span className={styles.statusLabel}>Application</span>
+          <span className={styles.statusValue}>
+            v{data.application.version}
+            {data.application.deployedAt
+              ? ` · deployed ${formatETLongDateTime(new Date(data.application.deployedAt))}`
+              : ""}
+          </span>
+        </div>
       </div>
     </Card>
   );

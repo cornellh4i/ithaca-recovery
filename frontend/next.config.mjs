@@ -1,5 +1,11 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Stamped once at build time (not per-request) -- powers the Diagnostics Application row's
+  // "deployed {date}" display. Evaluated here in config, which only runs at build, so this is
+  // exempt from the local-timezone Date rule that applies to runtime app code.
+  env: {
+    NEXT_PUBLIC_BUILD_DATE: new Date().toISOString(),
+  },
   // Lets a phone on the same LAN connect to the dev server's HMR websocket -- Next.js blocks
   // cross-origin dev requests by default. Set DEV_LAN_ORIGIN in .env.local (gitignored) to your
   // machine's LAN IP; unset in prod/CI so this is a no-op there.
