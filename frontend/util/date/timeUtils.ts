@@ -184,6 +184,19 @@ const etLongDateFmt = new Intl.DateTimeFormat('en-US', {
 /** ET long-form prose date (e.g. "August 14, 2026") for a given instant. */
 export const formatETLongDate = (date: Date): string => etLongDateFmt.format(date);
 
+// "2:05 PM" -- pinned ET, for pairing with formatETLongDate where same-day rows would
+// otherwise render byte-identical (e.g. the Backups Snapshots table's Created column).
+const etProseTimeFmt = new Intl.DateTimeFormat('en-US', {
+  timeZone: 'America/New_York', hour: 'numeric', minute: '2-digit', hour12: true,
+});
+
+/** ET time-of-day (e.g. "2:05 PM") for a given instant. */
+export const formatETTime = (date: Date): string => etProseTimeFmt.format(date);
+
+/** ET long-form prose date + time (e.g. "August 14, 2026, 2:05 PM") for a given instant. */
+export const formatETLongDateTime = (date: Date): string =>
+  `${formatETLongDate(date)}, ${formatETTime(date)}`;
+
 /** ET day-of-month (1-31) for a given instant. */
 export const getETDayOfMonth = (date: Date): number => Number(formatETDateString(date).slice(-2));
 

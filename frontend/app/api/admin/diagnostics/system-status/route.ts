@@ -4,6 +4,7 @@ import { requireRole } from "../../../../../services/auth";
 import { calendarIdForCategory, checkCalendarReachable } from "../../../../../services/googleCalendar";
 import { checkZoomReachable, zoomRoomCalendarId, zoomHostPool, checkZoomHostPool } from "../../../../../services/zoom";
 import { prisma } from "../../../../../lib/prisma";
+import pkg from "../../../../../package.json";
 
 const CHECK_TIMEOUT_MS = 8000;
 
@@ -26,8 +27,8 @@ function withTimeout<T>(promise: Promise<T>, fallback: T, ms = CHECK_TIMEOUT_MS)
 
 // Built as an array first, in `ids`' own key order, then assembled into an object in one pass
 // -- object key order otherwise follows whichever check happens to resolve first, which varies
-// run to run (SystemStatusCard.tsx renders these via Object.entries(), so insertion order is
-// what determines on-screen row order).
+// run to run. SystemStatusCard.tsx's nested calendar/host-pool rows DO render via
+// Object.entries() over this map, so insertion order is what determines their on-screen order.
 async function reachableMap(ids: Record<string, string>, token: string | undefined): Promise<Record<string, boolean>> {
   const keys = Object.keys(ids);
   if (!token) return Object.fromEntries(keys.map((k) => [k, false]));
@@ -66,11 +67,20 @@ export const GET = async () => {
       googleCalendar: { categories: googleCalendarCategories },
       zoom: { reachable: zoomReachable, roomCalendars, hostPool },
       session: { email: auth.user?.email ?? null, role: auth.user?.role ?? null },
+      // Kept in the same shape/order as SystemStatusCard.tsx's hardcoded top-level rows
+      // (readability only -- those rows are fixed JSX, not driven by this object's key order;
+      // only the nested calendar/host-pool maps render via Object.entries()).
+      application: { version: pkg.version, deployedAt: process.env.NEXT_PUBLIC_BUILD_DATE ?? null },
     });
   } catch (error) {
     console.error("Error retrieving system status: ", error);
     return NextResponse.json(
-      { database: { ok: false, latencyMs: null }, error: "Error retrieving system status" },
+      {
+        database: { ok: false, latencyMs: null },
+        // Mirrors the success payload's key order/invariant above.
+        application: { version: pkg.version, deployedAt: process.env.NEXT_PUBLIC_BUILD_DATE ?? null },
+        error: "Error retrieving system status",
+      },
       { status: 500 },
     );
   }

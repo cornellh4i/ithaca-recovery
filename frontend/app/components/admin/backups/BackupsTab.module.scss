@@ -1,0 +1,534 @@
+@import '../../../../styles/Variables.module';
+
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.panelHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  color: $black-color;
+  margin-bottom: 4px;
+}
+
+.panelIcon {
+  display: inline-block;
+  flex-shrink: 0;
+  width: 18px !important;
+  height: 18px !important;
+  color: $medium-grey-color;
+}
+
+.panelSubhead {
+  font-size: 13px;
+  color: #555;
+  margin-bottom: 12px;
+}
+
+.emptyState {
+  color: $medium-grey-color;
+  font-size: 14px;
+}
+
+.errorState {
+  color: $danger-color;
+  font-size: 14px;
+}
+
+// A `backup-db.yml` run in progress (concurrency: db-backup) locks out a second dispatch --
+// shown across Backup Health and Snapshots so the constraint is visible wherever a write
+// action might otherwise be attempted.
+.lockedBanner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: $info-bg-color;
+  color: $info-text-color;
+  border-radius: $radius-sm;
+  padding: 8px 12px;
+  font-size: 13px;
+  margin-bottom: 12px;
+}
+
+/* ---------- Backup Health card ---------- */
+
+.healthGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.healthRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid $grey-lightest-color;
+
+  &:last-child {
+    padding-bottom: 0;
+    border-bottom: none;
+  }
+
+  @media (width <= $breakpoint-phone) {
+    flex-direction: column;
+    gap: 2px;
+  }
+}
+
+.healthLabel {
+  font-weight: 600;
+  color: $black-color;
+  font-size: 14px;
+}
+
+.healthValue {
+  color: #555;
+  font-size: 14px;
+  text-align: right;
+
+  @media (width <= $breakpoint-phone) {
+    text-align: left;
+  }
+}
+
+// Freshness pill on the "last successful backup" row -- ok (<26h), warn (>=26h), error (>=72h).
+.freshnessPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.freshnessOk {
+  background: $success-bg-color;
+  color: $success-text-color;
+}
+
+.freshnessWarn {
+  background: $warning-bg-color;
+  color: $warning-text-color;
+}
+
+.freshnessError {
+  background: $danger-bg-color;
+  color: $danger-color;
+}
+
+.replicaStatusList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.replicaStatusRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+  color: #555;
+}
+
+.replicaStatusName {
+  font-family: 'Source Sans Pro', sans-serif;
+  color: $black-color;
+}
+
+// Storage-vs-free-tier headroom bar (Backup Health's totals row).
+.headroomBar {
+  position: relative;
+  height: 6px;
+  border-radius: 999px;
+  background: $grey-lightest-color;
+  overflow: hidden;
+  margin-top: 4px;
+}
+
+.headroomFill {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: $success-text-color;
+}
+
+.headroomFillWarn {
+  background: $warning-text-color;
+}
+
+.headroomFillError {
+  background: $danger-color;
+}
+
+.headroomCaption {
+  font-size: 12px;
+  color: $medium-grey-color;
+  margin-top: 4px;
+}
+
+/* ---------- Snapshots card ---------- */
+
+.tableWrapper {
+  width: 100%;
+
+  @media (width <= $breakpoint-tablet) {
+    overflow-x: auto;
+  }
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+
+  @media (width <= $breakpoint-tablet) {
+    min-width: 760px;
+  }
+
+  th {
+    text-align: left;
+    font-size: 13px;
+    font-weight: 600;
+    color: $medium-grey-color;
+    border-bottom: 1.5px solid $border-divider-color;
+    padding: 0 8px 10px;
+    white-space: nowrap;
+  }
+
+  td {
+    padding: 10px 8px;
+    border-bottom: 1px solid $grey-lightest-color;
+    font-size: 14px;
+    color: $black-color;
+    vertical-align: middle;
+  }
+
+  tr:last-child td {
+    border-bottom: none;
+  }
+}
+
+.row:hover {
+  background: $grey-lightest-color;
+}
+
+.rowSelected {
+  background: $info-bg-color;
+}
+
+.checkboxCell {
+  width: 32px;
+}
+
+.dateCell {
+  white-space: nowrap;
+  color: #555;
+}
+
+.sourceBadge {
+  font-size: 12px;
+  color: $medium-grey-color;
+}
+
+.sizeCell {
+  color: #555;
+  white-space: nowrap;
+}
+
+.versionCell {
+  color: $medium-grey-color;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.expiresCell {
+  white-space: nowrap;
+  color: #555;
+}
+
+.expiresNever {
+  color: $medium-grey-color;
+  font-style: italic;
+}
+
+// Tier pill -- three GFS tiers only (daily/monthly/permanent), each its own hue so the
+// Snapshots table reads as GFS at a glance rather than a flat chronological list.
+.tierPill {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.tierDaily {
+  background: $info-bg-color;
+  color: $info-text-color;
+}
+
+.tierMonthly {
+  background: #EFE6FB;
+  color: #6A3FA0;
+}
+
+.tierPermanent {
+  background: $grey-lightest-color;
+  color: $navy-color;
+}
+
+// Verified indicator -- meta.json's `verified` boolean is free evidence of 3-2-1-1-0's
+// "0 errors"; an unverified row must read as visually distinct, not just an absent checkmark.
+.verifiedIndicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+}
+
+.verifiedYes {
+  color: $success-text-color;
+}
+
+.verifiedNo {
+  color: $warning-text-color;
+}
+
+// Replicas column -- three dots, one per storage target, in a fixed gcs-working / gcs-archive /
+// r2 order so a viewer can learn the column's meaning once and read every row the same way.
+.replicaDots {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.replicaDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: $success-text-color;
+}
+
+.replicaDotMissing {
+  background: $light-grey-color;
+}
+
+.downloadButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #fff;
+  border: 1px solid $grey-border-color;
+  border-radius: 6px;
+  padding: 6px 12px;
+  color: $black-color;
+  font-size: 13px;
+  font-family: 'Source Sans Pro', sans-serif;
+  cursor: pointer;
+  white-space: nowrap;
+
+  &:hover:not(:disabled) {
+    border-color: $medium-grey-color;
+  }
+
+  &:disabled {
+    cursor: default;
+    opacity: 0.6;
+  }
+}
+
+.paginationBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 14px;
+
+  @media (width <= $breakpoint-phone) {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+.paginationInfo {
+  font-size: 13px;
+  color: $medium-grey-color;
+}
+
+.paginationControls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pageButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 30px;
+  height: 30px;
+  background: #fff;
+  border: 1px solid $grey-border-color;
+  border-radius: 6px;
+  color: $black-color;
+  font-size: 13px;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    border-color: $medium-grey-color;
+  }
+
+  &:disabled {
+    cursor: default;
+    opacity: 0.5;
+  }
+}
+
+.pageButtonActive {
+  background: $navy-color;
+  border-color: $navy-color;
+  color: #fff;
+}
+
+/* ---------- Restore Runbook card ---------- */
+
+.runbookPrereqs {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 14px;
+  font-size: 13px;
+  color: #555;
+}
+
+.runbookPrereq {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.runbookCommandBox {
+  position: relative;
+  background: $navy-color;
+  border-radius: $radius-sm;
+  padding: 12px 44px 12px 14px;
+}
+
+.runbookCommand {
+  font-family: Menlo, Monaco, monospace;
+  font-size: 13px;
+  color: #fff;
+  overflow-x: auto;
+  white-space: pre;
+  margin: 0;
+}
+
+.copyButton {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgb(255 255 255 / 10%);
+  border: 1px solid rgb(255 255 255 / 25%);
+  border-radius: $radius-sm;
+  color: #fff;
+  cursor: pointer;
+  padding: 4px 6px;
+
+  &:hover {
+    background: rgb(255 255 255 / 20%);
+  }
+}
+
+.copyButtonCopied {
+  background: $success-text-color;
+  border-color: $success-text-color;
+}
+
+.runbookNoSelection {
+  color: $medium-grey-color;
+  font-size: 14px;
+}
+
+/* ---------- Recent Activity card ---------- */
+
+.activityList {
+  display: flex;
+  flex-direction: column;
+}
+
+.activityRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 0;
+  border-top: 1px solid $grey-lightest-color;
+
+  &:first-child {
+    border-top: none;
+    padding-top: 0;
+  }
+}
+
+.activityConclusionDot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 5px;
+}
+
+.activityConclusionSuccess {
+  background: $success-text-color;
+}
+
+.activityConclusionFailure {
+  background: $danger-color;
+}
+
+.activityConclusionInProgress {
+  background: $warning-text-color;
+}
+
+.activityBody {
+  flex: 1;
+  min-width: 0;
+}
+
+.activityTitle {
+  font-size: 14px;
+  color: $black-color;
+  font-weight: 600;
+}
+
+.activityMeta {
+  font-size: 12px;
+  color: $medium-grey-color;
+  margin-top: 2px;
+}
+
+.activityTriggerBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  background: $grey-lightest-color;
+  color: $medium-grey-color;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}

@@ -6,6 +6,7 @@ import Icon from "../ui/displays/Icon";
 import DiagnosticsTab from "./diagnostics/DiagnosticsTab";
 import SignageTab from "./signage/SignageTab";
 import UsersTab from "./users/UsersTab";
+import BackupsTab from "./backups/BackupsTab";
 import ExportTab from "./export/ExportTab";
 import { useViewport } from "../../../hooks/useViewport";
 import { useToast } from "../shared/ToastProvider";
@@ -16,12 +17,17 @@ interface AdminShellProps {
   email: string;
 }
 
-type TabKey = "diagnostics" | "signage" | "users" | "export";
+type TabKey = "diagnostics" | "signage" | "users" | "backups" | "export";
 
 const allTabs: { key: TabKey; label: string; superAdminOnly: boolean }[] = [
   { key: "diagnostics", label: "Diagnostics", superAdminOnly: false },
   { key: "signage", label: "Signage", superAdminOnly: false },
   { key: "users", label: "Users", superAdminOnly: true },
+  // TODO(backups-api): drop the NODE_ENV guard once real API wiring lands -- this UI-only PR
+  // ships mock data only, so the tab stays dev-only until then.
+  ...(process.env.NODE_ENV !== "production"
+    ? [{ key: "backups" as const, label: "Backups", superAdminOnly: true }]
+    : []),
   { key: "export", label: "Export", superAdminOnly: true },
 ];
 
@@ -83,6 +89,7 @@ const AdminShell: React.FC<AdminShellProps> = ({ role, email }) => {
         {effectiveTab === "diagnostics" && <DiagnosticsTab email={email} role={role} />}
         {effectiveTab === "signage" && <SignageTab />}
         {effectiveTab === "users" && isSuperAdmin && <UsersTab />}
+        {effectiveTab === "backups" && isSuperAdmin && <BackupsTab />}
         {effectiveTab === "export" && isSuperAdmin && <ExportTab />}
       </div>
     </div>

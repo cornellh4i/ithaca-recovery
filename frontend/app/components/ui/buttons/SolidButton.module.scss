@@ -1,0 +1,57 @@
+@import '../../../../styles/Variables.module';
+
+.solidButton {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 20px;
+    border: none;
+    border-radius: $radius-md;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s, opacity 0.2s;
+
+    &:disabled {
+        cursor: not-allowed;
+        opacity: 0.6;
+    }
+}
+
+.primary {
+    background-color: $brand-pink-color;
+    color: $white-color;
+
+    &:hover:not(:disabled) {
+        background-color: $brand-pink-secondary;
+    }
+}
+
+.danger {
+    background-color: $danger-color;
+    color: $white-color;
+
+    &:hover:not(:disabled) {
+        opacity: 0.85;
+    }
+}
+
+.label {
+    white-space: nowrap;
+}
+
+.spinner {
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgb(255 255 255 / 50%);
+    border-top-color: $white-color;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
