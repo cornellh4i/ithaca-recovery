@@ -6,7 +6,7 @@ import Icon from "../../ui/displays/Icon";
 import Card from "../shared/Card";
 import TopLoadingBar from "../../ui/displays/TopLoadingBar";
 import DiagnosticsCardError from "./DiagnosticsCardError";
-import { formatETLongDate } from "../../../../util/date/timeUtils";
+import { formatETLongDateTime } from "../../../../util/date/timeUtils";
 import styles from "./DiagnosticsTab.module.scss";
 
 interface SystemStatusCardProps {
@@ -175,7 +175,7 @@ const SystemStatusCard: React.FC<SystemStatusCardProps> = ({ email, role }) => {
           <span className={styles.statusValue}>
             v{data.application.version}
             {data.application.deployedAt
-              ? ` · deployed ${formatETLongDate(new Date(data.application.deployedAt))}`
+              ? ` · deployed ${formatETLongDateTime(new Date(data.application.deployedAt))}`
               : ""}
           </span>
         </div>

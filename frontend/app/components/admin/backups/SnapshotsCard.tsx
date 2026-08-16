@@ -50,7 +50,10 @@ function formatSize(bytes: number): string {
 /** "N days" / "today" / "N days ago" for an expiry instant, relative to `now`. */
 function formatExpiresIn(expiresAt: string, now: Date): string {
   const diffDays = Math.round((new Date(expiresAt).getTime() - now.getTime()) / DAY_MS);
-  if (diffDays <= 0) return "today";
+  // Deletion is a background sweep that can lag eligibility -- a past expiresAt is a
+  // real state ("eligible, not yet swept"), not the same as expiring today.
+  if (diffDays < 0) return "expired";
+  if (diffDays === 0) return "today";
   if (diffDays === 1) return "1 day";
   return `${diffDays} days`;
 }

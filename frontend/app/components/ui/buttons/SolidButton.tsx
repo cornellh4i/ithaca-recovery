@@ -38,7 +38,7 @@ const SolidButton: React.FC<SolidButtonProps> = ({
     return (
         <button
             type={type}
-            className={[styles.solidButton, variantClass, loading ? styles.loading : "", className]
+            className={[styles.solidButton, variantClass, className]
                 .filter(Boolean)
                 .join(" ")}
             onClick={handleClick}
