@@ -17,7 +17,7 @@ interface MobileLoginSheetProps {
 // user left it (nothing unmounted/refetched). onSwipeDismiss lets a rightward swipe (the same
 // direction this sheet slides back out to) trigger that same "back" path as the arrow button.
 const MobileLoginSheet: React.FC<MobileLoginSheetProps> = ({ isOpen, onBack }) => (
-  <MobileFullScreenSheet isOpen={isOpen} slideFrom="right" onSwipeDismiss={onBack}>
+  <MobileFullScreenSheet isOpen={isOpen} slideFrom="right" onSwipeDismiss={onBack} onClose={onBack} ariaLabel="Sign in">
     <div className={styles.header}>
       <IconButton name="back-arrow" ariaLabel="Back to calendar" variant="ghost" onClick={onBack} />
     </div>

@@ -4,8 +4,10 @@ import { PHONE_BREAKPOINT, TABLET_BREAKPOINT } from "../util/common/breakpoints"
 // useLayoutEffect on the client (flips viewport before the browser paints) but useEffect
 // during SSR, where useLayoutEffect would otherwise log "does nothing on the server" -- this
 // component tree is still server-rendered even though it's a client component (Next's hybrid
-// rendering), so that warning is real, not hypothetical. Same convention as useIsPhone had.
-const useIsomorphicLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : useEffect;
+// rendering), so that warning is real, not hypothetical. Exported so other client-rendered
+// hooks with the same SSR/CSR split (e.g. useDialogBehavior) share one definition instead of
+// each re-deriving the same ternary.
+export const useIsomorphicLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : useEffect;
 
 export type Device = "phone" | "tablet" | "desktop";
 export type Orientation = "portrait" | "landscape";
