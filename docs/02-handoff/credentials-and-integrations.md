@@ -62,8 +62,7 @@ those three accounts:
 
 - **`cornellh4i` GitHub org** — the repo, its Actions variables/secrets, and branch protection;
   the Maintenance Lead ([Support Process](support-process.md)) is the standing admin contact.
-- Vercel env vars are readable by anyone on the Vercel project — that's why the backup keys
-  there are read-only by design.
+- Vercel env vars are readable by anyone on the Vercel project.
 
 ## Process for rotating or changing a credential
 
