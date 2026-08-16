@@ -216,30 +216,16 @@ Current variants, positioning, and persistence rules are defined in `Toast.tsx`/
 
 ## Backups: 3 Storage Targets via GitHub Actions, Satisfying 3-2-1-1-0
 
-**Decision:** A GitHub Actions workflow dumps production Postgres 4×/day, verifies each dump by
-restoring it into a scratch container, `age`-encrypts it to two independent recipients, and
-uploads the same artifact to three storage targets: GCS in the production GCP project
-(`icr-db-backups-prod`), GCS in a separate archive project (`icr-db-backups-archive` — same
-Google account, its own project/IAM boundary), and Cloudflare R2 with Object Lock. Mechanics in
-[Backup Infra Setup](../03-development/backup-infra-setup.md); this entry records the why.
+**Decision:** A GitHub Actions workflow dumps production Postgres 4×/day, verifies each dump via scratch-container restore, `age`-encrypts it, and
+uploads to three storage targets: production GCS, archive GCS, and Cloudflare R2 with Object Lock. Details are documented in
+[Backup Infra Setup](../03-development/backup-infra-setup.md).
 
-**Why three targets:** this satisfies the *strict* reading of 3-2-1-1-0 — 3 copies **besides**
-production (Neon's own 6h PITR is not counted: it shares production's vendor/credential failure
-domain). The two GCS copies provide offsite + immutability across a project/IAM boundary, but
-both sit under one Google account — R2 is the genuinely different vendor that survives a
-Google-account-level compromise. Immutability comes from GCS-archive's bucket retention policy
-and R2's Object Lock; GCS-working is the operational copy admins list/download from.
+**Why three targets:** Implements a strict 3-2-1-1-0 backup strategy (excluding Neon's built-in 6h PITR). Two GCS buckets provide offsite immutability across project boundaries, while R2 provides vendor diversity against Google account-level compromises. Operational restores use the primary GCS bucket; archive GCS (retention policy) and R2 (Object Lock) handle immutability.
 
-**Why Governance, not Compliance, on R2's Object Lock:** Compliance can't be overridden by
-anyone until the retain-until date passes, so a fat-fingered date is permanently unfixable.
-Governance still blocks the write-only CI token while leaving the account owner a logged
-emergency override — the realistic failure mode for a rotating volunteer team.
+**Why Governance, not Compliance, on R2's Object Lock:** Governance blocks write-only CI deletion while retaining a logged emergency override for account owners, avoiding permanent lockouts from fat-fingered retention dates in a volunteer team.
 
-**Why the `age` private key stays out of CI entirely:** the repo is public with rotating student
-write access. CI's create-only IAM means a compromised token can only *write new* backups; a
-private key anywhere CI can reach (even an environment secret) would let the same compromise
-*read* up to 400 days of plaintext attendance data — the most sensitive data this project holds.
-Nothing in CI needs it: integrity is sha256 + CRC32C, restorability is the in-run scratch-restore
-check, and restore itself is a once-in-years human action.
+**Why the `age` private key stays out of CI entirely:** CI uses write-only IAM. Storing `age` private keys in CI—even as secrets—would allow a compromised public-repo pipeline to read 400 days of sensitive attendance data. Decryption is restricted to rare human-driven restores; CI verifies integrity via SHA256, CRC32C, and the in-run scratch restore.
 
-**Revisit if:** the production database grows past roughly 1 GB (the current design's headroom assumptions — GCS/R2 free-tier storage, GFS retention counts, `daily/` tier length — are budgeted against a ~33 MB DB and stop being comfortable margins well before any hard quota is hit); or ICR confirms an actual records-retention obligation on meeting/attendance data (there is none known today — the 400-day monthly tier is sized for realistic corruption-detection latency, not a compliance requirement, and a real obligation could demand a different retention shape entirely).
+**Revisit if:** 
+- **Database Size > 1GB**: Free-tier limits and retention counts assume a ~33 MB database.
+- **Compliance Mandates Change**: Current 400-day retention targets corruption detection, not formal record-retention requirements.
