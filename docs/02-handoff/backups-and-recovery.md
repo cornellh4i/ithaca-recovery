@@ -226,6 +226,33 @@ discoverability.
 - leave the plaintext dump on disk
 - skip step 6 because the outage feels urgent
 
+## Admin tab data sources
+
+The Backups admin tab (`/api/admin/backups*`, `SUPER_ADMIN`-only) reads its data directly from the
+same targets the backup workflow writes to — it has no database of its own:
+
+- **Snapshots / health totals** — a listing of `daily/`, `monthly/`, `permanent/` under the
+  GCS-working bucket, with each `backup-<id>.meta.json` sidecar downloaded and parsed. Per-row
+  replica presence is computed by checking whether that row's `<tier>/backup-<id>.dump.age` key
+  also exists in the
+  GCS-archive and R2 listings. This full three-target listing is cached in-memory for 60 seconds —
+  GCS/R2 free tiers meter listings as billable Class A operations, and an admin who leaves the tab
+  open polling would otherwise burn through that quota for no reason.
+- **Recent Activity** — the GitHub Actions REST API's run history for `backup-db.yml`. The API
+  doesn't expose `workflow_dispatch` inputs after the fact, so a manual run's `reason` is only ever
+  known at dispatch time, never recoverable from history.
+- **Back Up Now** — a `workflow_dispatch` POST to the same workflow; the response itself is the only
+  record of the reason typed.
+- **Downloads** — a 300-second V4 signed read URL against the GCS-working bucket. Every download is
+  logged server-side (`backups/download: <caller email> downloaded <id>`) as the audit trail for
+  who pulled which artifact and when — there's no separate audit-log table.
+
+Outside production, any of these calls falls back to the deterministic fixtures in
+`app/components/admin/backups/mockBackups.ts` if the corresponding env vars
+(`docs/03-development/environment-variables.md`) are unset — this is what lets dev and CI e2e
+exercise the tab with zero backup credentials. In production, missing vars make the affected route
+return `503` with the specific missing variable names instead of quietly serving fixtures.
+
 ## Related docs
 
 - [`backup-infra-setup.md`](backup-infra-setup.md) — operator checklist for provisioning the GCP

@@ -41,6 +41,17 @@ export interface BackupMeta {
   verifiedAt: string | null;
 }
 
+/**
+ * `backup-db.sh` writes the sidecar's own `id` field as the bare UTC timestamp (e.g.
+ * `20260816T143457Z`) but names the artifact files `backup-<id>.dump.age` /
+ * `backup-<id>.meta.json`. Mock fixtures instead set `id` to the already-prefixed
+ * `backup-<timestamp>` form. This normalizes either shape to the artifact basename (sans
+ * extension) so server storage code and client display code agree on the real filename.
+ */
+export function backupArtifactBaseName(id: string): string {
+  return id.startsWith("backup-") ? id : `backup-${id}`;
+}
+
 /** One of the three storage targets a backup artifact is replicated to. */
 export type BackupReplica = "gcs-working" | "gcs-archive" | "r2";
 
@@ -112,4 +123,40 @@ export interface ActivityEvent {
 
 export interface ActivityListResponse {
   events: ActivityEvent[];
+}
+
+/**
+ * Data-source mode every /api/admin/backups* route reports. "live" = real storage/GitHub
+ * listings; "mock" = deterministic fixtures served because backup credentials are absent
+ * outside production (dev + CI). In production, absent credentials are a 503, never mock.
+ */
+export type BackupsDataMode = "live" | "mock";
+
+/** Envelope every backups read route wraps its payload in, so the tab can badge mock mode. */
+export interface BackupsEnvelope<T> {
+  mode: BackupsDataMode;
+  data: T;
+}
+
+/** 503 body when backup credentials are missing in production. */
+export interface BackupsUnconfiguredResponse {
+  configured: false;
+  /** Names of the missing env vars, so the error is actionable from the tab itself. */
+  missing: string[];
+}
+
+/** Response of POST /api/admin/backups (workflow_dispatch). */
+export interface BackupDispatchResponse {
+  mode: BackupsDataMode;
+  dispatched: true;
+  /** Actor recorded for the optimistic client lock (the caller's own email). */
+  triggeredBy: string;
+}
+
+/** Response of GET /api/admin/backups/:id/download. Null url in mock mode. */
+export interface BackupDownloadResponse {
+  mode: BackupsDataMode;
+  url: string | null;
+  /** Seconds the signed URL stays valid (300 for live V4 URLs). */
+  expiresInSeconds: number | null;
 }

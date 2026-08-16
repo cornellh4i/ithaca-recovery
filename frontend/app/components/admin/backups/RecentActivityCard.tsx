@@ -10,6 +10,10 @@ interface RecentActivityCardProps {
   events: ActivityEvent[];
   /** Reference instant for relative-time labels -- passed in, never read from Date.now() here. */
   now: Date;
+  /** Missing GitHub env var names when GET /activity 503s independently of storage -- the rest
+   * of the tab still renders since GitHub credentials aren't the storage backbone. Null/absent
+   * when activity data loaded normally. */
+  unavailable?: string[] | null;
 }
 
 const CONCLUSION_LABEL: Record<ActivityConclusion, string> = {
@@ -30,7 +34,7 @@ const countRoutineSuccesses = (events: ActivityEvent[]): number =>
 // GitHub Actions run history IS the audit log for this feature (no separate audit table --
 // see the backups admin tab plan, Part 1). This card is purely presentational: F7 owns the
 // fetch and passes rows shaped like `GET .../actions/workflows/backup-db.yml/runs`.
-const RecentActivityCard: React.FC<RecentActivityCardProps> = ({ events, now }) => {
+const RecentActivityCard: React.FC<RecentActivityCardProps> = ({ events, now, unavailable }) => {
   const notableEvents = events.filter(isNotable);
   const routineSuccessCount = countRoutineSuccesses(events);
 
@@ -40,30 +44,38 @@ const RecentActivityCard: React.FC<RecentActivityCardProps> = ({ events, now }) 
         <Icon name="clock" className={styles.panelIcon} />
         Notable Activity
       </div>
-      <div className={styles.activitySummaryLine}>
-        Failures, manual runs, and runs in progress.
-        {routineSuccessCount > 0 && ` ${routineSuccessCount} routine scheduled successes not shown.`}
-      </div>
-      {/* TODO(backups-api): link to a full-history view once the API wiring lands. */}
-      {notableEvents.length === 0 ? (
-        <div className={styles.emptyState}>No failures, manual runs, or runs in progress recorded.</div>
+      {unavailable && unavailable.length > 0 ? (
+        <div className={styles.emptyState}>
+          GitHub credentials not configured — run history unavailable. Missing: {unavailable.join(", ")}.
+        </div>
       ) : (
-        <ul className={styles.activityList}>
-          {notableEvents.map((event) => (
-            <li key={event.id} className={styles.activityRow}>
-              <span
-                className={`${styles.activityDot} ${event.conclusion === "failure" ? styles.activityDotFailure : styles.activityDotNeutral}`}
-                aria-hidden="true"
-              />
-              <div className={styles.activityBody}>
-                <div className={`${styles.activityTitle} ${event.conclusion === "failure" ? styles.activityTitleFailure : ""}`}>
-                  {activityTitle(event)}
-                </div>
-                <div className={styles.activityMeta}>{activityMeta(event, now)}</div>
-              </div>
-            </li>
-          ))}
-        </ul>
+        <>
+          <div className={styles.activitySummaryLine}>
+            Failures, manual runs, and runs in progress.
+            {routineSuccessCount > 0 && ` ${routineSuccessCount} routine scheduled successes not shown.`}
+          </div>
+          {/* TODO(backups-api): link to a full-history view once the API wiring lands. */}
+          {notableEvents.length === 0 ? (
+            <div className={styles.emptyState}>No failures, manual runs, or runs in progress recorded.</div>
+          ) : (
+            <ul className={styles.activityList}>
+              {notableEvents.map((event) => (
+                <li key={event.id} className={styles.activityRow}>
+                  <span
+                    className={`${styles.activityDot} ${event.conclusion === "failure" ? styles.activityDotFailure : styles.activityDotNeutral}`}
+                    aria-hidden="true"
+                  />
+                  <div className={styles.activityBody}>
+                    <div className={`${styles.activityTitle} ${event.conclusion === "failure" ? styles.activityTitleFailure : ""}`}>
+                      {activityTitle(event)}
+                    </div>
+                    <div className={styles.activityMeta}>{activityMeta(event, now)}</div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </>
       )}
     </Card>
   );
