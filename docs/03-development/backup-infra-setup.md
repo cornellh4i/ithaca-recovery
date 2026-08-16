@@ -173,8 +173,12 @@ gcloud storage buckets update gs://icr-db-backups-archive \
 
 ⚠️ **Use the seconds form, not `--retention-period=400d`.** `gcloud` parses the `d` suffix as
 86400s but the rounding lands at ~399.25 days, not exactly 400 — seconds are the only unambiguous
-unit. `34560000s` = 400 days exactly. This period is deliberately **unlocked**, not `--lock`ed —
-full rationale in `.github/scripts/gcs-archive-retention.md`.
+unit. `34560000s` = 400 days exactly. This period is deliberately **unlocked**, not `--lock`ed:
+locking a GCS retention policy is irreversible — it can never be shortened or removed, even by
+the project owner, even to fix a misconfiguration. Unlocked still blocks every delete/overwrite
+(including by the create-only CI service account) until the period elapses; it only stops
+protecting against a project owner who deliberately edits the policy — the intended threshold,
+consistent with R2 running Governance rather than Compliance mode.
 
 ```sh
 gcloud storage buckets update gs://icr-db-backups-archive \
@@ -182,9 +186,18 @@ gcloud storage buckets update gs://icr-db-backups-archive \
 ```
 
 This archive bucket's applied lifecycle deletes **both** prefixes at 407 days (unlike the working
-bucket's 21d/407d split) — see `gcs-archive-retention.md` for why. If re-provisioning from
-scratch, either apply a second lifecycle file with the 407/407 rule, or edit
-`gcs-lifecycle.json`'s ages before applying to this bucket.
+bucket's 21d/407d split): GCS retention is bucket-level only — no per-prefix primitive — so the
+period is set to the longer tier, deliberately over-retaining archived dailies (~550 MB steady
+state, cheap by design). The 400d-retain / 407d-delete offset exists because a lifecycle delete
+against a still-retained object fails — deletion must land after retention lapses, never at the
+same age. If re-provisioning from scratch, either apply a second lifecycle file with the 407/407
+rule, or edit `gcs-lifecycle.json`'s ages before applying to this bucket.
+
+Neither bucket's lifecycle has a rule matching `permanent/` — deliberate, not an oversight: the
+absence of any delete-triggering rule is itself the safeguard for the never-expires tier
+(`gcs-lifecycle.json` must stay comment-free JSON, so this omission is documented here). GCS's
+default 7-day soft-delete is also active on both buckets — a bonus undo window on top of the
+retention math, not something the config opts into.
 
 ### 2.4 Separate service account and fully independent WIF
 
@@ -235,15 +248,21 @@ substitute).
 1. **Create the bucket with Object Lock enabled at creation.** ⚠️ Object Lock **cannot** be turned
    on for an existing bucket — if this step is missed, the only fix is deleting and recreating the
    bucket under a new name. Bucket name: `icr-db-backup-r2`.
-2. **Set Bucket Lock default retention: Governance mode.** Not Compliance — see
-   `.github/scripts/r2-retention.md` for why (the account owner needs an emergency override for
-   its own mistakes; the write-only CI token can't bypass either mode).
-3. **Add prefix-scoped lock rules** (per `r2-retention.md`):
+2. **Set Bucket Lock default retention: Governance mode.** Not Compliance: the write-only CI
+   token can't bypass either mode, but Governance keeps a logged emergency override for the
+   account owner's own mistakes — the realistic failure mode for a volunteer team. Bucket Lock is
+   available on the free tier; R2 doesn't implement the S3 per-object `x-amz-object-lock-*`
+   parameters, so uploads are plain objects and these bucket rules apply the lock by prefix.
+3. **Add prefix-scoped lock rules**:
    - `daily/` — retain 14 days
    - `monthly/` — retain 400 days
-   - `permanent/` — **no lock rule** (deliberate — see that doc)
-4. **Set lifecycle (delete) rules**, offset past the lock durations so a delete never races a
-   still-locked object:
+   - `permanent/` — **no lock rule**: an indefinite lock behaves like Compliance in practice —
+     a mistaken promotion into `permanent/` could never be fixed by anyone. The prefix is instead
+     protected by the create-only token (no delete permission) and the absence of any lifecycle
+     rule; promotion is always a manual copy, so nothing automated can populate it at scale.
+4. **Set lifecycle (delete) rules**, offset 7 days past the lock durations — R2 evaluates
+   lifecycle roughly daily, so a delete scheduled at exactly the retain-until age fails against
+   the still-locked object; the gap is a scheduling buffer, not extra retention:
    - `daily/` — delete at 21 days
    - `monthly/` — delete at 407 days
    - `permanent/` — no lifecycle rule
@@ -265,7 +284,8 @@ Actions secrets and the `R2_BUCKET` variable (see `credentials-and-integrations.
 **Cloudflare usage notification:** a usage-based billing notification at a low threshold, set in
 Dashboard → Notifications on the account owning the R2 bucket. R2 has no hard spend cap; this
 notification is the early-warning signal for a compromised token spamming writes (egress is free,
-so it isn't a cost vector). To re-create: account-level Notifications → Add → Billing → the
+so it isn't a cost vector). Steady state is ~550 MB (56 dailies + 13 monthlies at ~8 MB) against
+the 10 GB free tier — ~18x headroom. To re-create: account-level Notifications → Add → Billing → the
 usage-based type, threshold well under the 10 GB / 1M-ops free tier, destination an
 org-monitored inbox.
 
@@ -389,7 +409,7 @@ aws s3 cp \
 ```
 
 (repeat for the `.sha256` and `.meta.json` sidecars). No `--object-lock-mode` flag — `permanent/`
-is intentionally never locked (see `r2-retention.md`).
+is intentionally never locked (see §3's lock-rule rationale).
 
 ---
 
