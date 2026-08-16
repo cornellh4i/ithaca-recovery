@@ -35,7 +35,7 @@ const RecentActivityCard: React.FC<RecentActivityCardProps> = ({ events, now }) 
   const routineSuccessCount = countRoutineSuccesses(events);
 
   return (
-    <Card data-testid="backups-recent-activity-panel">
+    <Card accent="syncIssues" data-testid="backups-recent-activity-panel">
       <div className={styles.panelHeader}>
         <Icon name="clock" className={styles.panelIcon} />
         Notable Activity

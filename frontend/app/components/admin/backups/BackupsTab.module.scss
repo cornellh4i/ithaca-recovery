@@ -8,21 +8,15 @@
   box-sizing: border-box;
 }
 
-// Tab-level title + Back Up Now, matching the admin area's small header-corner-button idiom
-// (see UsersTab/ExportTab's CardHeader) -- Back Up Now isn't scoped to a single card, so this
-// sits above the cards instead of inside one.
+// Back Up Now, matching the admin area's small header-corner-button idiom (see UsersTab/
+// ExportTab's CardHeader) -- it isn't scoped to a single card, so this sits above the cards
+// instead of inside one. Left-aligned: the admin shell's active tab label already says
+// "Backups", so there's no title here to push it to the right of.
 .tabHeaderRow {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: 12px;
-}
-
-.tabHeaderTitle {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 700;
-  color: $black-color;
 }
 
 .backUpNowButton {
@@ -274,6 +268,17 @@
 .runbookNoSelection {
   color: $medium-grey-color;
   font-size: 14px;
+}
+
+// Inline text link, matching the .warningBannerAction / .clearSelectionButton idiom elsewhere
+// in this tab -- for an actual <a> rather than a button.
+.docsLink {
+  color: $link-color;
+  font-weight: 600;
+
+  &:hover {
+    text-decoration: underline;
+  }
 }
 
 /* ---------- Recent Activity card ---------- */

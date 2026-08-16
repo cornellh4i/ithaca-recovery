@@ -35,12 +35,12 @@ describe("BackupsTab", () => {
 
   it("shows the unverified row with the Unverified treatment (index 3 of the fixture)", () => {
     renderTab();
-    const unverifiedBadges = screen.getAllByText("⚠ Unverified");
+    const unverifiedBadges = screen.getAllByLabelText("Unverified");
     // The fixture guarantees exactly one unverified row among the dailies.
     expect(unverifiedBadges).toHaveLength(1);
   });
 
-  it("shows a 'Missing from' title for the single-replica and two-replica rows (indices 6 and 9)", () => {
+  it("shows a per-target present/missing title for the single-replica and two-replica rows (indices 6 and 9)", () => {
     const rows = generateMockBackupRows(FIXED_NOW);
     const singleReplicaRow = rows.find((row) => row.replicas.length === 1);
     const twoReplicaRow = rows.find((row) => row.replicas.length === 2);
@@ -48,8 +48,17 @@ describe("BackupsTab", () => {
     expect(twoReplicaRow).toBeDefined();
 
     renderTab();
-    expect(screen.getByText("1 of 3", { selector: `[title^="Missing from"]` })).toBeInTheDocument();
-    expect(screen.getByText("2 of 3", { selector: `[title^="Missing from"]` })).toBeInTheDocument();
+    expect(screen.getByText("1 of 3", { selector: `[title*="missing"]` })).toBeInTheDocument();
+    expect(screen.getByText("2 of 3", { selector: `[title*="missing"]` })).toBeInTheDocument();
+  });
+
+  it("gives every replica cell a hover title, including fully-replicated rows", () => {
+    const rows = generateMockBackupRows(FIXED_NOW);
+    const fullReplicaRow = rows.find((row) => row.replicas.length === 3);
+    expect(fullReplicaRow).toBeDefined();
+
+    renderTab();
+    expect(screen.getAllByText("3 of 3", { selector: `[title*="present"]` }).length).toBeGreaterThan(0);
   });
 
   it("fixture contains both a single-replica and a two-replica (one-missing) row", () => {
@@ -120,11 +129,11 @@ describe("BackupsTab", () => {
     renderTab();
 
     fireEvent.click(screen.getByRole("button", { name: `Unverified ${unverifiedCount}` }));
-    expect(screen.getAllByText("⚠ Unverified")).toHaveLength(unverifiedCount);
+    expect(screen.getAllByLabelText("Unverified")).toHaveLength(unverifiedCount);
 
     fireEvent.click(screen.getByRole("button", { name: `Monthly ${monthlyCount}` }));
     expect(screen.getAllByText("Monthly", { selector: "span" }).length).toBeGreaterThan(0);
-    expect(screen.queryByText("⚠ Unverified")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Unverified")).not.toBeInTheDocument();
   });
 
   it("changing the filter resets pagination back to page 1", () => {

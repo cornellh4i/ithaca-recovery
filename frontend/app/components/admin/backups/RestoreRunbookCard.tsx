@@ -69,7 +69,7 @@ export default function RestoreRunbookCard({ selected, now }: RestoreRunbookCard
   };
 
   return (
-    <Card>
+    <Card accent="suspended">
       <div className={styles.panelHeader}>Restore Runbook</div>
       <div className={styles.panelSubhead}>
         Restoring is a deliberate, out-of-band operation — never a button in this app.
@@ -92,7 +92,14 @@ export default function RestoreRunbookCard({ selected, now }: RestoreRunbookCard
       </ul>
 
       <div className={styles.panelSubhead}>
-        Full steps: docs/02-handoff/backups-and-recovery.md (break-glass runbook).
+        Full steps:{" "}
+        <a
+          className={styles.docsLink}
+          href="/docs/02-handoff/backups-and-recovery#the-break-glass-restore-runbook"
+        >
+          Backups and Recovery
+        </a>
+        .
       </div>
 
       {selected && command ? (

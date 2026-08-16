@@ -93,7 +93,10 @@ const BackupHealthCard: React.FC<BackupHealthCardProps> = ({ health, now }) => {
               Backups are running, but an untested backup is an unproven one. The quarterly restore drill is pending.
             </p>
           </div>
-          <a className={styles.warningBannerAction} href="/docs/02-handoff/backups-and-recovery">
+          <a
+            className={styles.warningBannerAction}
+            href="/docs/02-handoff/backups-and-recovery#verification-restore-drills"
+          >
             Restore drill runbook
           </a>
         </div>

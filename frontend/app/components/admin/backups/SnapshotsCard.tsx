@@ -75,9 +75,17 @@ function formatExpiresIn(expiresAt: string | null, now: Date): string {
   return `in ${diffMonths}mo`;
 }
 
-function missingReplicaTitle(row: BackupListRow): string {
-  const missing = ALL_BACKUP_REPLICAS.filter((r) => !row.replicas.includes(r));
-  return `Missing from ${missing.map((r) => REPLICA_LABEL[r]).join(", ")}`;
+const VERIFIED_TOOLTIP =
+  "Verified: restored into a scratch database and structurally checked during the backup run";
+const UNVERIFIED_TOOLTIP =
+  "Unverified: no verification record exists — likely created outside the backup workflow. Prefer a Verified snapshot in an incident";
+
+/** Per-replica present/missing breakdown for the replica count's hover title -- every row gets
+ * this, not just degraded ones, so "3 of 3" is still legible on hover as which three. */
+function replicaStatusTitle(row: BackupListRow): string {
+  return ALL_BACKUP_REPLICAS.map(
+    (r) => `${REPLICA_LABEL[r]}: ${row.replicas.includes(r) ? "present" : "missing"}`
+  ).join("\n");
 }
 
 export function matchesFilter(row: BackupListRow, filter: BackupTierFilter): boolean {
@@ -143,14 +151,18 @@ const SnapshotRow: React.FC<SnapshotRowProps> = ({ row, selected, onSelect, onDo
       </td>
       <td className={styles.sizeCell}>{formatBytes(row.sizeBytes)}</td>
       <td>
-        <span className={`${styles.verifiedIndicator} ${row.verified ? styles.verifiedYes : styles.verifiedNo}`}>
-          {row.verified ? "✓ Verified" : "⚠ Unverified"}
+        <span
+          className={`${styles.verifiedIndicator} ${row.verified ? styles.verifiedYes : styles.verifiedNo}`}
+          title={row.verified ? VERIFIED_TOOLTIP : UNVERIFIED_TOOLTIP}
+          aria-label={row.verified ? "Verified" : "Unverified"}
+        >
+          <Icon name={row.verified ? "check-circle" : "error-outline"} size={16} />
         </span>
       </td>
       <td>
         <span
           className={`${styles.replicaCount} ${degraded ? styles.replicaCountDegraded : ""}`}
-          title={degraded ? missingReplicaTitle(row) : undefined}
+          title={replicaStatusTitle(row)}
         >
           {replicaCount} of {ALL_BACKUP_REPLICAS.length}
         </span>
@@ -214,7 +226,7 @@ const SnapshotsCard: React.FC<SnapshotsCardProps> = ({
   };
 
   return (
-    <Card>
+    <Card accent="meetingCounts">
       <div className={styles.panelHeader}>
         <Icon name="backup" size={16} className={styles.panelIcon} />
         Snapshots

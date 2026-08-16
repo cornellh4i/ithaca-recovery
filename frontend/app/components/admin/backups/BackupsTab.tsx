@@ -93,7 +93,6 @@ const BackupsTab: React.FC = () => {
   return (
     <div className={styles.container}>
       <div className={styles.tabHeaderRow}>
-        <h2 className={styles.tabHeaderTitle}>Backups</h2>
         <SolidButton
           label="Back Up Now"
           onClick={handleBackUpNow}
