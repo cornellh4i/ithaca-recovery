@@ -36,8 +36,8 @@ What ICR gets, even though H4I remains the technical owner:
 - [x] Backup evidence and encrypted downloads — the **Admin → Backups tab** 
   contains backup health, the full snapshot inventory with verification/replica evidence, and encrypted artifact
   downloads (see [Backups and Recovery](backups-and-recovery.md)). Downloads are `age`-encrypted;
-  reading one requires a private key (key A: H4I Maintenance Lead; key B: ICR side, open question,
-  [Backup Infrastructure Setup](../03-development/backup-infra-setup.md))
+  reading one requires a private key (key A: H4I Maintenance Lead; key B: Matt Kaskela, ICR
+  President — see [Backups and Recovery](backups-and-recovery.md))
 - [x] Read access to production data — the **Admin → Export tab** produces full meeting exports
   (XLSX) on demand, usable by any ICR Super Admin without H4I involvement.
 - [x] A standing point of contact: the current H4I Maintenance Lead — see §3 above and

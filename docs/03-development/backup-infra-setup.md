@@ -316,8 +316,8 @@ machine, which would defeat the point of the OR-not-AND design (see
    age-keygen -o key-a.txt
    ```
    Output has both the public key (`# public key: age1…`) and the private key on one line.
-2. **Key B — an org-owned vault outside the student rotation** (ICR staff-side or a long-lived H4I
-   account — final holder still an open decision, see Open items below):
+2. **Key B — held by ICR: Matt Kaskela, President (Matt.Kaskela@518icr.com)**, outside the
+   semesterly student rotation:
    ```sh
    age-keygen -o key-b.txt
    ```
@@ -325,7 +325,7 @@ machine, which would defeat the point of the OR-not-AND design (see
    variables (the line starting `# public key:` in each file, or re-derive with
    `age-keygen -y key-a.txt`).
 4. **Move each private key into its holder's password manager** — never a synced notes app, repo,
-   or chat message. Key A → Maintenance Lead's entry. Key B → the org vault.
+   or chat message. Key A → the Maintenance Lead's entry. Key B → Matt Kaskela's.
 5. **Shred the plaintext files** once both keys are safely in a password manager:
    ```sh
    shred -u key-a.txt key-b.txt
@@ -340,11 +340,20 @@ machine, which would defeat the point of the OR-not-AND design (see
    ```
    A two-key design only ever tested with key A is a one-key design nobody's noticed yet.
 
-`AGE_PUBLIC_KEY_A`/`_B` are set as repo variables and the workflow runs green end-to-end. Private
-key A lives in the Maintenance Lead's password manager, private key B in the org vault (final
-holder still an open decision, see below).
+`AGE_PUBLIC_KEY_A`/`_B` are set as repo variables. Private key A is held by the H4I Maintenance
+Lead (Nathnael Tesfaw, nbt26@cornell.edu); private key B by Matt Kaskela, ICR President
+(Matt.Kaskela@518icr.com).
 
 ---
+
+### Key rotation and compromise
+
+Rotation is **not retroactive**: swapping an `AGE_PUBLIC_KEY_A`/`_B` repo variable only affects
+future backups — every existing artifact stays encrypted to the keys it was written with, so the
+outgoing private key must be kept until the last artifact encrypted to it ages out (~13 months
+for `monthly/`, forever for `permanent/`). On a suspected private-key leak: generate a new pair
+(`age-keygen`), update the matching repo variable, and keep in mind a leaked key alone reads
+nothing — the attacker also needs an artifact, which requires bucket access.
 
 ## 6. Manual `permanent/` promotion
 
@@ -484,5 +493,3 @@ Until those two vars are set and deployed, production's snapshot/health cards sh
   Then remove `dev@518icr.com`'s `roles/billing.user` grant on the test account's billing account
   (`017207-9146F6-F17BB6`) — that grant should not outlive the stopgap.
 
-- **Who holds `age` private key B** is a role, not yet a named individual/account — must be
-  confirmed with ICR before the holder is finalized.

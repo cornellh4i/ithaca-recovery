@@ -1,11 +1,11 @@
 # GCS-archive bucket-level retention
 
-Applies to `gs://icr-db-backups-archive` only (the new, second GCP project — pure redundancy
+Applies to `gs://icr-db-backups-archive` only (the archive GCP project — pure redundancy
 + immutability copy). `gs://icr-db-backups-prod` (the working bucket) carries no bucket-level
 retention; its immutability comes from create-only IAM instead — see
 `gcs-lifecycle.json`'s sibling note below.
 
-## Applied command (live since 2026-08-16)
+## Applied command
 
 ```sh
 gcloud storage buckets update gs://icr-db-backups-archive \
@@ -32,8 +32,7 @@ per-prefix retention primitive in GCS (unlike R2's Object Lock, which stamps a r
 on each object at upload time). The bucket holds both `daily/` and `monthly/` tiers, so the
 period is set to the *longer* tier (400 days). This deliberately over-retains daily-tier objects
 here by up to ~386 days relative to their working-bucket copy (which expires dailies at 21 days) —
-cheap at this data size (~550 MB steady state) and explicitly accepted in the backup feature plan's
-GFS section rather than treated as a bug.
+cheap at this data size (~550 MB steady state) and accepted by design, not a bug.
 
 ## Lifecycle (deletion) on this bucket
 
@@ -48,7 +47,7 @@ expires, never at the same age.
 Neither `gcs-lifecycle.json` (working bucket) nor this bucket's lifecycle config has a rule
 matching the `permanent/` prefix. This is deliberate, not an oversight: `permanent/` objects are
 meant to live forever, promoted by hand (a one-off `gcloud storage cp` into `permanent/`, never
-automated — see the backup feature plan's GFS section). A lifecycle rule matching `permanent/`
+automated). A lifecycle rule matching `permanent/`
 would risk an eventual accidental deletion of the one tier meant to never expire; the absence of
 any rule for that prefix is itself the safeguard. `gcs-lifecycle.json` is valid, comment-free JSON
 (as required by `gcloud storage buckets update --lifecycle-file`) precisely because this omission
@@ -57,7 +56,7 @@ is documented here rather than inline.
 ## Also active on both GCS buckets: default soft-delete
 
 GCS's default 7-day soft-delete policy is active on both `icr-db-backups-prod` and
-`icr-db-backups-archive` (confirmed live 2026-08-16) — a bonus safety net on top of the
+`icr-db-backups-archive` — a bonus safety net on top of the
 retention/lifecycle design above, not something either bucket's config had to opt into. It does
 not change the retention math above; it just gives a 7-day undo window on top of it for anything
 lifecycle deletes.
