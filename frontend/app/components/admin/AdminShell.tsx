@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import type { Role } from "@prisma/client";
 import Icon from "../ui/displays/Icon";
 import DiagnosticsTab from "./diagnostics/DiagnosticsTab";
@@ -10,31 +11,19 @@ import BackupsTab from "./backups/BackupsTab";
 import ExportTab from "./export/ExportTab";
 import { useViewport } from "../../../hooks/useViewport";
 import { useToast } from "../shared/ToastProvider";
+import { adminTabs, type AdminTabKey } from "./adminTabs";
 import styles from "./AdminShell.module.scss";
 
 interface AdminShellProps {
   role: Role;
   email: string;
+  activeTab: AdminTabKey;
 }
 
-type TabKey = "diagnostics" | "signage" | "users" | "backups" | "export";
-
-const allTabs: { key: TabKey; label: string; superAdminOnly: boolean }[] = [
-  { key: "diagnostics", label: "Diagnostics", superAdminOnly: false },
-  { key: "signage", label: "Signage", superAdminOnly: false },
-  { key: "users", label: "Users", superAdminOnly: true },
-  // TODO(backups-api): drop the NODE_ENV guard once real API wiring lands -- this UI-only PR
-  // ships mock data only, so the tab stays dev-only until then.
-  ...(process.env.NODE_ENV !== "production"
-    ? [{ key: "backups" as const, label: "Backups", superAdminOnly: true }]
-    : []),
-  { key: "export", label: "Export", superAdminOnly: true },
-];
-
-const AdminShell: React.FC<AdminShellProps> = ({ role, email }) => {
+const AdminShell: React.FC<AdminShellProps> = ({ role, email, activeTab }) => {
   const isSuperAdmin = role === "SUPER_ADMIN";
 
-  const [activeTab, setActiveTab] = useState<TabKey>("diagnostics");
+  const router = useRouter();
   const viewport = useViewport();
   const { showToast } = useToast();
 
@@ -60,21 +49,21 @@ const AdminShell: React.FC<AdminShellProps> = ({ role, email }) => {
   // Derived, not synced via effect: falls back to Diagnostics for render whenever the
   // stored activeTab is super-admin-only and the role no longer qualifies (e.g. a
   // real-time demotion), without an extra render/effect round-trip.
-  const activeTabInfo = allTabs.find((tab) => tab.key === activeTab);
-  const effectiveTab: TabKey = activeTabInfo?.superAdminOnly && !isSuperAdmin ? "diagnostics" : activeTab;
+  const activeTabInfo = adminTabs.find((tab) => tab.key === activeTab);
+  const effectiveTab: AdminTabKey = activeTabInfo?.superAdminOnly && !isSuperAdmin ? "diagnostics" : activeTab;
 
   return (
     <div className={styles.container}>
       <h1 className={styles.title}>Admin</h1>
       <div className={styles.tabRow}>
-        {allTabs.map((tab) => {
+        {adminTabs.map((tab) => {
           const locked = tab.superAdminOnly && !isSuperAdmin;
           return (
             <span key={tab.key} className={styles.tabWrapper}>
               <button
                 data-testid={`admin-tab-${tab.key}`}
                 className={`${styles.tab} ${effectiveTab === tab.key ? styles.tabActive : ""} ${locked ? styles.tabLocked : ""}`}
-                onClick={() => !locked && setActiveTab(tab.key)}
+                onClick={() => !locked && router.push(`/admin/${tab.key}`, { scroll: false })}
                 disabled={locked}
               >
                 {tab.label}

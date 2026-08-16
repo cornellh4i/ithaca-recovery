@@ -89,7 +89,7 @@ const MeetingSyncStatusBand: React.FC<MeetingSyncStatusBandProps> = ({
           <Icon name="warning" />
           <span>
             Conflicts with {conflictCount} other meeting{conflictCount === 1 ? '' : 's'} —{' '}
-            <Link href="/admin" className={styles.diagnosticsLink}>view the Admin Diagnostics page</Link> for more info.
+            <Link href="/admin/diagnostics" className={styles.diagnosticsLink}>view the Admin Diagnostics page</Link> for more info.
           </span>
         </div>
       )}

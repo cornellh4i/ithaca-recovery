@@ -16,6 +16,28 @@ test.describe("admin panel", () => {
     await expect(page.getByTestId("admin-tab-import")).toHaveCount(0);
   });
 
+  test("11.2b /admin redirects to the default tab and tab clicks update the URL", async ({ superAdminPage }) => {
+    const { page } = superAdminPage;
+    await page.goto("/admin");
+    await expect(page).toHaveURL(/\/admin\/diagnostics$/);
+
+    await page.getByTestId("admin-tab-users").click();
+    await expect(page).toHaveURL(/\/admin\/users$/);
+    await expect(page.getByRole("button", { name: "Invite" })).toBeVisible();
+  });
+
+  test("11.2c deep-linking /admin/export opens the Export tab directly", async ({ superAdminPage }) => {
+    const { page } = superAdminPage;
+    await page.goto("/admin/export");
+    await expect(page.getByRole("button", { name: "Export Meetings" })).toBeVisible();
+  });
+
+  test("11.2d an unknown tab slug redirects to the default tab", async ({ superAdminPage }) => {
+    const { page } = superAdminPage;
+    await page.goto("/admin/nonsense");
+    await expect(page).toHaveURL(/\/admin\/diagnostics$/);
+  });
+
   test("11.3 Diagnostics tab shows system status and meeting counts matching real data", async ({ superAdminPage }) => {
     const { page } = superAdminPage;
     await seedMeeting({ title: "Diag Meeting 1", calType: ["AA"] });
