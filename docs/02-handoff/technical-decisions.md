@@ -216,17 +216,29 @@ Current variants, positioning, and persistence rules are defined in `Toast.tsx`/
 
 ## Backups: 3 Storage Targets via GitHub Actions, Satisfying 3-2-1-1-0
 
-**Decision:** A GitHub Actions workflow dumps the production Postgres DB 4×/day, verifies it by restoring into a scratch container, `age`-encrypts it to two independent recipients, and uploads the same encrypted artifact to three independent storage targets — the production GCP project's GCS bucket (`icr-db-backups-prod`), a second, newly-created GCP project's GCS bucket (`icr-db-backups-archive` — same Google account, separate project/IAM boundary; billing is currently shared between the two projects, see the stopgap note in [Backup Infra Setup](../03-development/backup-infra-setup.md)), and a Cloudflare R2 bucket with Object Lock. Full design in [Backups and Recovery](backups-and-recovery.md); this entry records why three targets, not the mechanics.
+**Decision:** A GitHub Actions workflow dumps production Postgres 4×/day, verifies each dump by
+restoring it into a scratch container, `age`-encrypts it to two independent recipients, and
+uploads the same artifact to three storage targets: GCS in the production GCP project
+(`icr-db-backups-prod`), GCS in a separate archive project (`icr-db-backups-archive` — same
+Google account, its own project/IAM boundary), and Cloudflare R2 with Object Lock. Mechanics in
+[Backup Infra Setup](../03-development/backup-infra-setup.md); this entry records the why.
 
-**Which reading of 3-2-1-1-0 this satisfies:** the strict one — 3 copies *besides* production (not the more common reading of 3 copies *including* production). Neon's own 6h PITR is deliberately not counted as one of the three: it shares Neon's account/credential/vendor failure domain with production, so it protects against a different, narrower class of mistake (same-session errors caught within 6 hours), not an independent copy.
+**Why three targets:** this satisfies the *strict* reading of 3-2-1-1-0 — 3 copies **besides**
+production (Neon's own 6h PITR is not counted: it shares production's vendor/credential failure
+domain). The two GCS copies provide offsite + immutability across a project/IAM boundary, but
+both sit under one Google account — R2 is the genuinely different vendor that survives a
+Google-account-level compromise. Immutability comes from GCS-archive's bucket retention policy
+and R2's Object Lock; GCS-working is the operational copy admins list/download from.
 
-**Why three storage targets, not two:**
-- **2 distinct media/platforms** needs a genuinely different vendor, not just a different bucket — R2 (Cloudflare) is that. The two GCS copies (production project + new archive project) don't satisfy "2 platforms" on their own since they're the same underlying technology; they instead contribute the **1 offsite** and part of the **1 immutable** requirement via a separate project/IAM failure domain. That separation is real but bounded: both projects live under the same Google account (and currently share a billing account — see [Backup Infra Setup](../03-development/backup-infra-setup.md)), so a Google-account-level or billing compromise affects both GCS targets at once; R2 is the copy that survives that scenario.
-- **1 immutable** needs a copy that even a fully compromised write credential can't delete: GCS-archive's bucket-level retention policy and R2's Object Lock (Governance mode) both provide this; GCS-working does not (it's the operational copy admins list/download from, pruned only by lifecycle rules).
-- Net result: three copies across two vendors — a second GCP project (same Google account) plus a fully separate cloud vendor — one of which survives even a Google-account-level compromise, two of which are technically immutable.
+**Why Governance, not Compliance, on R2's Object Lock:** Compliance can't be overridden by
+anyone until the retain-until date passes, so a fat-fingered date is permanently unfixable.
+Governance still blocks the write-only CI token while leaving the account owner a logged
+emergency override — the realistic failure mode for a rotating volunteer team.
 
-**Why Governance mode, not Compliance mode, on R2's Object Lock:** Compliance mode can't be overridden by anyone — including the account owner — until the retain-until date passes, so a fat-fingered date becomes permanently unfixable. Governance blocks the same casual/malicious deletion (the write-only CI token still can't bypass it) while leaving the account owner a documented, logged emergency override for its own mistakes, which is the more realistic failure mode for a semesterly-rotating volunteer team than a targeted attack on the backup archive itself.
-
-**Why the `age` private key stays out of CI entirely, full stop:** the repo is public with a rotating student team holding write access. CI's IAM is create-only everywhere (no delete, no overwrite), so a compromised CI token today can only *write new* backups. Putting the private key in CI — even as a GitHub "environment secret," which is real encryption-at-rest but still reachable by a compromised workflow run — would let that same compromise *read* the full retention window (up to 400 days) of plaintext attendance data for a recovery center, the most sensitive data this project holds. Nothing the private key would enable in CI is actually needed there: integrity is covered by sha256 + GCS CRC32C, restorability by the in-run structural verification against the scratch-container restore. Restore itself is a once-in-years human action (see the break-glass runbook in [Backups and Recovery](backups-and-recovery.md)); automating it would save minutes at the cost of a permanent standing risk.
-
+**Why the `age` private key stays out of CI entirely:** the repo is public with rotating student
+write access. CI's create-only IAM means a compromised token can only *write new* backups; a
+private key anywhere CI can reach (even an environment secret) would let the same compromise
+*read* up to 400 days of plaintext attendance data — the most sensitive data this project holds.
+Nothing in CI needs it: integrity is sha256 + CRC32C, restorability is the in-run scratch-restore
+check, and restore itself is a once-in-years human action.
 **Revisit if:** the production database grows past roughly 1 GB (the current design's headroom assumptions — GCS/R2 free-tier storage, GFS retention counts, `daily/` tier length — are budgeted against a ~33 MB DB and stop being comfortable margins well before any hard quota is hit); or ICR confirms an actual records-retention obligation on meeting/attendance data (there is none known today — the 400-day monthly tier is sized for realistic corruption-detection latency, not a compliance requirement, and a real obligation could demand a different retention shape entirely).
