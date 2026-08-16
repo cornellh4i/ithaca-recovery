@@ -63,14 +63,16 @@ const mockedResolveZoomHost = resolveZoomHost as jest.Mock;
 const mockedReconcileMeetingCalendars = reconcileMeetingCalendars as jest.Mock;
 const mockedCreateCalendarEvent = createCalendarEvent as jest.Mock;
 
-async function waitFor<T>(fn: () => Promise<T | null | undefined>, timeoutMs = 2000): Promise<T | null> {
+async function waitFor<T>(fn: () => Promise<T | null | undefined>, timeoutMs = 2000): Promise<T> {
   const start = Date.now();
   while (Date.now() - start < timeoutMs) {
     const result = await fn();
     if (result != null) return result;
     await new Promise((resolve) => setTimeout(resolve, 25));
   }
-  return null;
+  // Throws instead of returning null -- a caller using the result un-checked would otherwise
+  // fail downstream with a confusing null-dereference instead of a clear "this never happened."
+  throw new Error(`waitFor: condition not met within ${timeoutMs}ms`);
 }
 
 function buildMeetingPayload(overrides: Partial<IMeeting> = {}): IMeeting {

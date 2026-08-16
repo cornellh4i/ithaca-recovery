@@ -71,7 +71,10 @@ async function waitForGoogleSyncStatus(mid: string, timeoutMs = 2000) {
     if (meeting?.googleSyncStatus != null) return meeting;
     await new Promise((resolve) => setTimeout(resolve, 25));
   }
-  return prisma.meeting.findUnique({ where: { mid } });
+  // Throws instead of silently returning whatever findUnique last saw (possibly a row with
+  // googleSyncStatus still null) -- a caller using that value un-checked would otherwise fail
+  // downstream with a confusing null-dereference instead of a clear "the sync never finished."
+  throw new Error(`waitForGoogleSyncStatus: googleSyncStatus for meeting ${mid} was still null after ${timeoutMs}ms`);
 }
 
 function buildMeetingPayload(overrides: Partial<IMeeting> = {}): IMeeting {
@@ -109,10 +112,14 @@ beforeEach(() => {
 });
 
 test("the response resolves before Google Calendar sync completes, which runs in the background", async () => {
-  const SYNC_DELAY_MS = 300;
-  mockedCreateCalendarEvent.mockImplementation(
-    () => new Promise((resolve) => setTimeout(() => resolve({ id: "fake-event-id", error: null }), SYNC_DELAY_MS)),
-  );
+  // Manually gated instead of a fixed timer -- resolved explicitly right after the
+  // response-ordering assertion below, so this test can't itself become timing-dependent (a
+  // fixed timer could in theory be outraced by a slow enough CI machine).
+  let resolveCreateCalendarEvent: (result: { id: string; error: null }) => void;
+  const createCalendarEventGate = new Promise<{ id: string; error: null }>((resolve) => {
+    resolveCreateCalendarEvent = resolve;
+  });
+  mockedCreateCalendarEvent.mockImplementation(() => createCalendarEventGate);
 
   // Distinct room -- buildMeetingPayload's default ("Serenity Room") is shared by other tests
   // in this suite; the room conflict check would otherwise make this order-dependent on
@@ -132,6 +139,9 @@ test("the response resolves before Google Calendar sync completes, which runs in
   const prisma = getTestPrismaClient();
   const rightAfterResponse = await prisma.meeting.findUnique({ where: { mid: payload.mid } });
   expect(rightAfterResponse?.googleSyncStatus).toBeNull();
+
+  // Only now let the deferred sync's Google Calendar call resolve.
+  resolveCreateCalendarEvent!({ id: "fake-event-id", error: null });
 
   const afterSync = await waitForGoogleSyncStatus(payload.mid);
   expect(afterSync?.googleSyncStatus).toBe("synced");
