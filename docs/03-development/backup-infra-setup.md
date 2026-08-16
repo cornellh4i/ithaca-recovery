@@ -1,17 +1,14 @@
 # Backup Infra Setup
 
-Operator checklist for the three storage targets behind the backup workflow (see
-[Backups and Recovery](../02-handoff/backups-and-recovery.md) for the design, [Credentials and
-Integrations](../02-handoff/credentials-and-integrations.md) for the resulting secret/variable inventory). This
-doc is both:
-
-- a **reproducible from-zero checklist** — every command needed to rebuild this infra if it's ever
-  lost or re-provisioned into new accounts, and
-- an **as-built record** of what actually exists today (provisioned 2026-08-16), including the
-  deviations and gotchas hit while building it.
+Reproducible from-zero checklist for the backup pipeline's cloud resources — every command needed
+to rebuild this infra if it's ever lost or re-provisioned into new accounts. See
+[Backups and Recovery](../02-handoff/backups-and-recovery.md) for the design and [Credentials and
+Integrations](../02-handoff/credentials-and-integrations.md) for the resulting secret/variable
+inventory.
 
 Run gcloud blocks 1 and 2 while authenticated as the production Google account
-(`…@518icr.com`); block 3 in the Cloudflare dashboard for the ICR/H4I-controlled account.
+(`dev@518icr.com`, which owns both backup GCP projects); block 3 in the Cloudflare dashboard for
+the production Cloudflare account (also owned by `dev@518icr.com`).
 
 ---
 
@@ -43,9 +40,8 @@ gcloud storage buckets create gs://icr-db-backups-prod \
 ```
 
 `us-east1` is one of the three regions covered by GCS's Always Free 5 GB-month allowance
-(`us-east1`/`us-west1`/`us-central1` — see the backup feature plan's budget table). Uniform
-bucket-level access + enforced public access prevention are both required for a bucket holding
-attendance data.
+(`us-east1`/`us-west1`/`us-central1`). Uniform bucket-level access + enforced public access
+prevention are both required for a bucket holding attendance data.
 
 ### 1.3 Apply lifecycle rules
 
@@ -58,6 +54,9 @@ gcloud storage buckets update gs://icr-db-backups-prod \
 deliberately has no rule — see that file's comment). This bucket carries **no bucket-level
 retention policy** — its immutability comes from the CI service account's create-only IAM instead
 (§1.4), unlike the archive bucket in block 2.
+
+GCS's default 7-day soft-delete is active on this bucket as a bonus safety net; it doesn't change
+the retention/lifecycle math above.
 
 ### 1.4 Create the service account, scoped to this bucket only
 
@@ -101,11 +100,11 @@ gcloud iam service-accounts add-iam-policy-binding \
   --member="principalSet://iam.googleapis.com/projects/152224493895/locations/global/workloadIdentityPools/github-actions/attribute.repository/cornellh4i/ithaca-recovery"
 ```
 
-This is the "double-binding" the plan refers to: the WIF provider (above) establishes *who* GitHub
-can prove itself as; this binding is the separate grant that lets that identity actually
-impersonate `icr-db-backup`. Both are required — either alone denies auth.
+This "double-binding" is required: the WIF provider (above) establishes *who* GitHub can prove
+itself as; this binding is the separate grant that lets that identity actually impersonate
+`icr-db-backup`. Both are required — either alone denies auth.
 
-Record the provider's full resource name for the `GCP_WORKLOAD_IDENTITY_PROVIDER` GitHub variable:
+The provider's full resource name, for the `GCP_WORKLOAD_IDENTITY_PROVIDER` GitHub variable:
 
 ```
 projects/152224493895/locations/global/workloadIdentityPools/github-actions/providers/github
@@ -115,24 +114,21 @@ projects/152224493895/locations/global/workloadIdentityPools/github-actions/prov
 
 ## 2. Archive project — `icr-backups-archive`
 
-A **new** GCP project, same production Google account (`…@518icr.com`) as block 1 — deliberately
-not the shared dev/test account, which has standing test-user access for other student
-contributors. Its whole purpose is being a second, independent failure domain (separate
-billing/IAM/project) from the production project.
+A separate GCP project (project number `236481171441`), same production Google account
+(`dev@518icr.com`) as block 1 — deliberately not the shared dev/test account, which has standing
+test-user access for other student contributors. Its whole purpose is being a second, independent
+failure domain (separate billing/IAM/project) from the production project.
 
 ```sh
 gcloud projects create icr-backups-archive \
   --name="ICR Backups Archive"
 ```
 
-Project number: `236481171441`.
-
 ⚠️ **A brand-new project's IAM propagation can lag ~1 minute.** `workload-identity-pools create`
 against a project created seconds earlier can fail with `PERMISSION_DENIED` even though the
-command and credentials are correct. Retry after ~60s rather than debugging permissions — this is
-what happened during the 2026-08-16 provisioning.
+command and credentials are correct. Retry after ~60s rather than debugging permissions.
 
-### 2.1 Billing — see the open item below before doing this on a fresh project
+### 2.1 Billing
 
 Confirm billing is linked before enabling APIs (billed services fail to enable on an unlinked
 project):
@@ -142,11 +138,12 @@ gcloud billing projects link icr-backups-archive \
   --billing-account=<BILLING_ACCOUNT_ID>
 ```
 
-⚠️ **As-built deviation — see "Billing stopgap" below.** As of 2026-08-16 this project (and the
-production project) is linked to `017207-9146F6-F17BB6`, owned by the shared test account, not
-dev@518icr.com's own account.
+Both `icr-management-system` and `icr-backups-archive` are billing-linked to
+`017207-9146F6-F17BB6`, owned by the shared test Google account
+(`ithacacommunityrecoverytest@gmail.com`), via a `roles/billing.user` grant to `dev@518icr.com` on
+that billing account. This is a stopgap — see "Billing stopgap" under Open items below.
 
-### 2.2 Enable APIs, create bucket, SA, WIF — same steps as block 1
+### 2.2 Enable APIs, create bucket — same steps as block 1
 
 ```sh
 gcloud config set project icr-backups-archive
@@ -164,6 +161,9 @@ gcloud storage buckets create gs://icr-db-backups-archive \
   --public-access-prevention=enforced
 ```
 
+GCS's default 7-day soft-delete is active on this bucket too, alongside the retention policy
+below.
+
 ### 2.3 Bucket-level retention (the one step that differs from block 1)
 
 ```sh
@@ -173,17 +173,17 @@ gcloud storage buckets update gs://icr-db-backups-archive \
 
 ⚠️ **Use the seconds form, not `--retention-period=400d`.** `gcloud` parses the `d` suffix as
 86400s but the rounding lands at ~399.25 days, not exactly 400 — seconds are the only unambiguous
-unit. `34560000s` = 400 days exactly. Full rationale (including why this is deliberately
-**unlocked**, not `--lock`) is in `.github/scripts/gcs-archive-retention.md`.
+unit. `34560000s` = 400 days exactly. This period is deliberately **unlocked**, not `--lock`ed —
+full rationale in `.github/scripts/gcs-archive-retention.md`.
 
 ```sh
 gcloud storage buckets update gs://icr-db-backups-archive \
   --lifecycle-file=.github/scripts/gcs-lifecycle.json
 ```
 
-Note: this archive bucket's actual applied lifecycle deletes **both** prefixes at 407 days
-(unlike the working bucket's 21d/407d split) — see `gcs-archive-retention.md` for why. If
-re-provisioning from scratch, either apply a second lifecycle file with the 407/407 rule, or edit
+This archive bucket's applied lifecycle deletes **both** prefixes at 407 days (unlike the working
+bucket's 21d/407d split) — see `gcs-archive-retention.md` for why. If re-provisioning from
+scratch, either apply a second lifecycle file with the 407/407 rule, or edit
 `gcs-lifecycle.json`'s ages before applying to this bucket.
 
 ### 2.4 Separate service account and fully independent WIF
@@ -219,7 +219,7 @@ block 1's — the same pool *name* (`github-actions`) exists in both projects, b
 unrelated resources with no cross-project trust between them. Compromising one project's WIF
 config does not grant access to the other.
 
-Record for `GCP_ARCHIVE_WORKLOAD_IDENTITY_PROVIDER`:
+For `GCP_ARCHIVE_WORKLOAD_IDENTITY_PROVIDER`:
 
 ```
 projects/236481171441/locations/global/workloadIdentityPools/github-actions/providers/github
@@ -229,8 +229,8 @@ projects/236481171441/locations/global/workloadIdentityPools/github-actions/prov
 
 ## 3. Cloudflare R2 — `icr-db-backup-r2`
 
-Done in the Cloudflare dashboard (R2 has no `gcloud`-equivalent CLI step here; `wrangler` could
-substitute but wasn't used for the 2026-08-16 provisioning).
+Done in the Cloudflare dashboard (R2 has no `gcloud`-equivalent CLI step here; `wrangler` can
+substitute).
 
 1. **Create the bucket with Object Lock enabled at creation.** ⚠️ Object Lock **cannot** be turned
    on for an existing bucket — if this step is missed, the only fix is deleting and recreating the
@@ -242,16 +242,15 @@ substitute but wasn't used for the 2026-08-16 provisioning).
    - `daily/` — retain 14 days
    - `monthly/` — retain 400 days
    - `permanent/` — **no lock rule** (deliberate — see that doc)
-4. **Set lifecycle (delete) rules**, offset past the lock durations so a delete never races a still
-   -locked object:
+4. **Set lifecycle (delete) rules**, offset past the lock durations so a delete never races a
+   still-locked object:
    - `daily/` — delete at 21 days
    - `monthly/` — delete at 407 days
    - `permanent/` — no lifecycle rule
 5. **Create an Account-level API token** (Dashboard → R2 → Manage API Tokens), not a User token:
    - Permission: **Object Read & Write**
    - Scope: this one bucket only (`icr-db-backup-r2`)
-   - TTL: forever (rotate only on suspected compromise, per
-     `credentials-and-integrations.md`)
+   - TTL: forever (rotate only on suspected compromise, per `credentials-and-integrations.md`)
    - **No IP filter** — GitHub-hosted runners have no stable IP range to allow-list.
 6. **Note the S3-compatible endpoint URL**:
    ```
@@ -263,12 +262,12 @@ substitute but wasn't used for the 2026-08-16 provisioning).
 Resulting values map to the `R2_ACCOUNT_ID` / `R2_ACCESS_KEY_ID` / `R2_SECRET_ACCESS_KEY` GitHub
 Actions secrets and the `R2_BUCKET` variable (see `credentials-and-integrations.md`).
 
-**Cloudflare usage notification — configured (2026-08-16):** a usage-based billing notification
-at a low threshold, set in Dashboard → Notifications on the account owning the R2 bucket. R2 has
-no hard spend cap; this notification is the early-warning signal for a compromised token spamming
-writes (egress is free, so it isn't a cost vector). If it ever needs re-creating: account-level
-Notifications → Add → Billing → the usage-based type, threshold well under the 10 GB / 1M-ops
-free tier, destination an org-monitored inbox.
+**Cloudflare usage notification:** a usage-based billing notification at a low threshold, set in
+Dashboard → Notifications on the account owning the R2 bucket. R2 has no hard spend cap; this
+notification is the early-warning signal for a compromised token spamming writes (egress is free,
+so it isn't a cost vector). To re-create: account-level Notifications → Add → Billing → the
+usage-based type, threshold well under the 10 GB / 1M-ops free tier, destination an
+org-monitored inbox.
 
 ---
 
@@ -284,9 +283,9 @@ reference of what's a secret vs. a variable:
   here, not in variables
 - **Variables:** `R2_BUCKET`, `GCP_WORKLOAD_IDENTITY_PROVIDER`,
   `GCP_SERVICE_ACCOUNT`, `GCS_WORKING_BUCKET`, `GCP_ARCHIVE_WORKLOAD_IDENTITY_PROVIDER`,
-  `GCP_ARCHIVE_SERVICE_ACCOUNT`, `GCS_ARCHIVE_BUCKET` (7 variables — WIF federates trust, so none
-  of these are secret-worthy on their own)
-- **Variables, pending the key ceremony (§5):** `AGE_PUBLIC_KEY_A`, `AGE_PUBLIC_KEY_B`
+  `GCP_ARCHIVE_SERVICE_ACCOUNT`, `GCS_ARCHIVE_BUCKET`, `AGE_PUBLIC_KEY_A`, `AGE_PUBLIC_KEY_B` (9
+  variables — WIF federates trust and `age` public keys can only encrypt, so none of these are
+  secret-worthy on their own)
 
 `DATABASE_URL_UNPOOLED` is sourced fresh from the Neon dashboard with pooling toggled off — not
 derived from the app's own `DATABASE_URL` secret, which is the pooled variant.
@@ -309,8 +308,8 @@ gh label create backup-failure \
 ## 5. `age` key ceremony
 
 Two independent key pairs, generated on two different people's machines — never both on one
-machine, which would defeat the point of the OR-not-AND design (see the backup feature plan's
-"Two `age` recipients" section).
+machine, which would defeat the point of the OR-not-AND design (see
+[Backups and Recovery](../02-handoff/backups-and-recovery.md#the-two-key-rule)).
 
 1. **Key A — the Maintenance Lead's machine:**
    ```sh
@@ -318,7 +317,7 @@ machine, which would defeat the point of the OR-not-AND design (see the backup f
    ```
    Output has both the public key (`# public key: age1…`) and the private key on one line.
 2. **Key B — an org-owned vault outside the student rotation** (ICR staff-side or a long-lived H4I
-   account — holder still an open decision as of 2026-08-16; see the plan's open questions):
+   account — final holder still an open decision, see Open items below):
    ```sh
    age-keygen -o key-b.txt
    ```
@@ -341,8 +340,9 @@ machine, which would defeat the point of the OR-not-AND design (see the backup f
    ```
    A two-key design only ever tested with key A is a one-key design nobody's noticed yet.
 
-**Status as of 2026-08-16: not yet performed.** `AGE_PUBLIC_KEY_A`/`_B` are unset; the backup
-workflow cannot run end-to-end until this ceremony completes.
+`AGE_PUBLIC_KEY_A`/`_B` are set as repo variables and the workflow runs green end-to-end. Private
+key A lives in the Maintenance Lead's password manager, private key B in the org vault (final
+holder still an open decision, see below).
 
 ---
 
@@ -397,79 +397,92 @@ see the break-glass runbook in `backups-and-recovery.md`):
 
 ---
 
-## As-built status (2026-08-16)
-
-Everything above was provisioned and verified live on 2026-08-16, with these open items:
-
-### Billing stopgap — open
-
-Both `icr-management-system` and `icr-backups-archive` are billing-linked to
-`017207-9146F6-F17BB6`, owned by the shared test Google account
-(`ithacacommunityrecoverytest@gmail.com`), via a `roles/billing.user` grant to `dev@518icr.com` on
-that billing account. This is a stopgap: dev@518icr.com's own billing account
-(`0134D0-99F9C6-BF6F48`) is currently **closed** (card declined 2026-08-16).
-
-Accepted as an **availability-only** risk — billing admins on the test account cannot read bucket
-data, and a billing unlink stops new writes but does not delete existing objects or waive their
-retention policies.
-
-**Follow-up, once the card issue is resolved:**
-
-```sh
-# after dev@518icr.com's billing account is reopened
-gcloud billing projects link icr-management-system \
-  --billing-account=0134D0-99F9C6-BF6F48
-gcloud billing projects link icr-backups-archive \
-  --billing-account=0134D0-99F9C6-BF6F48
-```
-
-Then remove `dev@518icr.com`'s `roles/billing.user` grant on the test account's billing account
-(`017207-9146F6-F17BB6`) — that grant should not outlive the stopgap.
-
-### `age` key ceremony — done 2026-08-16
-
-`AGE_PUBLIC_KEY_A`/`_B` are set as repo variables and the workflow runs green end-to-end.
-Private key A lives in the Maintenance Lead's password manager, private key B in the org vault
-(final holder still an open decision in the backup feature plan).
-
-### Backups admin tab: keyless GCS auth — done 2026-08-16 (PR #444)
+## 8. Backups admin tab: keyless GCS auth
 
 The Admin → Backups tab's server routes read GCS keylessly: Vercel OIDC → Workload Identity
 Federation, the same mechanism the backup workflow uses for GitHub Actions. No service-account
 key exists — the org's `iam.disableServiceAccountKeyCreation` policy stays fully enforced.
 
-As provisioned in `icr-management-system`:
+Provisioned in `icr-management-system`:
 
-- WIF pool `vercel-backups-pool`, provider `vercel`, trusting issuer
-  `https://oidc.vercel.com/icr-e15f76a6` (audience `https://vercel.com/icr-e15f76a6`), with an
-  attribute condition accepting **only**
-  `owner:icr-e15f76a6:project:ithaca-recovery:environment:production` — preview deploys and any
-  other project can't impersonate.
-- `backups-tab-reader@icr-management-system.iam.gserviceaccount.com`:
-  `roles/storage.objectViewer` on both GCS buckets, `roles/iam.workloadIdentityUser` for that
-  single principal, and `roles/iam.serviceAccountTokenCreator` on itself (keyless V4 signed
-  URLs go through IAM `signBlob`).
-- Vercel needs two **non-secret** Production env vars (nothing to rotate or leak):
-  `GCP_BACKUPS_WIF_PROVIDER=projects/152224493895/locations/global/workloadIdentityPools/vercel-backups-pool/providers/vercel`
-  and `GCP_BACKUPS_SERVICE_ACCOUNT=backups-tab-reader@icr-management-system.iam.gserviceaccount.com`,
-  plus OIDC federation enabled in the Vercel project settings (issuer mode Team).
+```sh
+gcloud iam workload-identity-pools create vercel-backups-pool \
+  --location=global \
+  --display-name="Vercel — Backups admin tab"
+
+gcloud iam workload-identity-pools providers create-oidc vercel \
+  --location=global \
+  --workload-identity-pool=vercel-backups-pool \
+  --display-name="Vercel OIDC" \
+  --issuer-uri="https://oidc.vercel.com/icr-e15f76a6" \
+  --allowed-audiences="https://vercel.com/icr-e15f76a6" \
+  --attribute-mapping="google.subject=assertion.sub" \
+  --attribute-condition="assertion.sub=='owner:icr-e15f76a6:project:ithaca-recovery:environment:production'"
+
+gcloud iam service-accounts create backups-tab-reader \
+  --display-name="Backups admin tab — read-only"
+
+gcloud storage buckets add-iam-policy-binding gs://icr-db-backups-prod \
+  --member="serviceAccount:backups-tab-reader@icr-management-system.iam.gserviceaccount.com" \
+  --role="roles/storage.objectViewer"
+
+gcloud storage buckets add-iam-policy-binding gs://icr-db-backups-archive \
+  --member="serviceAccount:backups-tab-reader@icr-management-system.iam.gserviceaccount.com" \
+  --role="roles/storage.objectViewer"
+
+gcloud iam service-accounts add-iam-policy-binding \
+  backups-tab-reader@icr-management-system.iam.gserviceaccount.com \
+  --role="roles/iam.workloadIdentityUser" \
+  --member="principalSet://iam.googleapis.com/projects/152224493895/locations/global/workloadIdentityPools/vercel-backups-pool/attribute.subject/owner:icr-e15f76a6:project:ithaca-recovery:environment:production"
+
+gcloud iam service-accounts add-iam-policy-binding \
+  backups-tab-reader@icr-management-system.iam.gserviceaccount.com \
+  --role="roles/iam.serviceAccountTokenCreator" \
+  --member="serviceAccount:backups-tab-reader@icr-management-system.iam.gserviceaccount.com"
+```
+
+The attribute condition accepts **only**
+`owner:icr-e15f76a6:project:ithaca-recovery:environment:production` — preview deploys and any
+other Vercel project can't impersonate. `backups-tab-reader` holds `roles/storage.objectViewer`
+on both GCS buckets (read-only — deliberately not the workflow's create-only identity; read and
+write stay separate identities), `roles/iam.workloadIdentityUser` for that single principal, and
+`roles/iam.serviceAccountTokenCreator` on itself (keyless V4 signed URLs go through IAM
+`signBlob`).
+
+Vercel needs two **non-secret** Production env vars (nothing to rotate or leak), plus OIDC
+federation enabled in the Vercel project settings (issuer mode Team):
+
+| Variable | Value |
+|---|---|
+| `GCP_BACKUPS_WIF_PROVIDER` | `projects/152224493895/locations/global/workloadIdentityPools/vercel-backups-pool/providers/vercel` |
+| `GCP_BACKUPS_SERVICE_ACCOUNT` | `backups-tab-reader@icr-management-system.iam.gserviceaccount.com` |
 
 Until those two vars are set and deployed, production's snapshot/health cards show the tab's
-"not configured" panel (Back Up Now and Recent Activity work — they only need
+"not configured" panel (Back Up Now and Recent Activity work regardless — they only need
 `GITHUB_BACKUPS_PAT`).
 
-### Cloudflare usage notification — done (2026-08-16)
+---
 
-Configured; see §3, last paragraph.
+## Open items
 
-### Confirmed working / no action needed
+- **Billing stopgap.** Both `icr-management-system` and `icr-backups-archive` are billing-linked
+  to `017207-9146F6-F17BB6`, owned by the shared test Google account
+  (`ithacacommunityrecoverytest@gmail.com`), via a `roles/billing.user` grant to `dev@518icr.com`
+  on that billing account. This is a stopgap: `dev@518icr.com`'s own billing account
+  (`0134D0-99F9C6-BF6F48`) is currently **closed** (card declined). Accepted as an
+  **availability-only** risk — billing admins on the test account cannot read bucket data, and a
+  billing unlink stops new writes but does not delete existing objects or waive their retention
+  policies. Once the card issue is resolved:
 
-- Both GCS buckets exist with the exact flags in §1.2/§2.2, lifecycle rules applied and matching
-  `gcs-lifecycle.json` (working) / the 407d-both-prefixes variant (archive).
-- Both service accounts hold `objectCreator` on their own bucket only — verified no project-level
-  roles are attached.
-- Both WIF pools/providers are repo-conditioned (`attribute-condition` present) and bound.
-- GCS's default 7-day soft-delete is active on both buckets — a bonus safety net neither bucket had
-  to opt into; doesn't change the retention/lifecycle math above.
-- All GitHub secrets and variables from §4.1 are set, `R2_BUCKET=icr-db-backup-r2`, except the two
-  pending `AGE_PUBLIC_KEY_*` variables noted above.
+  ```sh
+  gcloud billing projects link icr-management-system \
+    --billing-account=0134D0-99F9C6-BF6F48
+  gcloud billing projects link icr-backups-archive \
+    --billing-account=0134D0-99F9C6-BF6F48
+  ```
+
+  Then remove `dev@518icr.com`'s `roles/billing.user` grant on the test account's billing account
+  (`017207-9146F6-F17BB6`) — that grant should not outlive the stopgap.
+
+- **Who holds `age` private key B** is a role, not yet a named individual/account — must be
+  confirmed with ICR before the holder is finalized.
