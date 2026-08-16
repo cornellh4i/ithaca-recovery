@@ -149,26 +149,40 @@ jobs:
 
       - name: Open or update failure issue
         if: failure()
+        # REASON goes through env, never inline interpolation -- a workflow_dispatch
+        # input interpolated into script text is the canonical Actions injection vector.
         run: |
-          title="Backup run failed: ${{ github.run_id }}"
-          body="Workflow run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          title="Backup run failed: ${RUN_ID}"
+          body="$(cat <<EOF
+          Workflow run: ${SERVER_URL}/${REPO}/actions/runs/${RUN_ID}
 
-          Triggered by: ${{ github.event_name }}
-          Reason (manual runs only): ${{ inputs.reason || 'n/a' }}
+          Triggered by: ${EVENT_NAME}
+          Reason (manual runs only): ${REASON}
 
           Step outcomes:
-          - backup-db.sh: ${{ steps.backup.outcome }}
-          - gcs-working upload: ${{ steps.upload_gcs_working.outcome }}
-          - gcs-archive upload: ${{ steps.upload_gcs_archive.outcome }}
-          - r2 upload: ${{ steps.upload_r2.outcome }}"
+          - backup-db.sh: ${OUTCOME_BACKUP}
+          - gcs-working upload: ${OUTCOME_GCS_WORKING}
+          - gcs-archive upload: ${OUTCOME_GCS_ARCHIVE}
+          - r2 upload: ${OUTCOME_R2}
+          EOF
+          )"
 
-          existing=$(gh issue list --repo "${{ github.repository }}" --state open \
+          existing=$(gh issue list --repo "$REPO" --state open \
             --label backup-failure --json number --jq '.[0].number')
           if [ -n "$existing" ]; then
-            gh issue comment "$existing" --repo "${{ github.repository }}" --body "$body"
+            gh issue comment "$existing" --repo "$REPO" --body "$body"
           else
-            gh issue create --repo "${{ github.repository }}" --title "$title" \
+            gh issue create --repo "$REPO" --title "$title" \
               --body "$body" --label backup-failure
           fi
         env:
           GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          SERVER_URL: ${{ github.server_url }}
+          RUN_ID: ${{ github.run_id }}
+          EVENT_NAME: ${{ github.event_name }}
+          REASON: ${{ inputs.reason || 'n/a' }}
+          OUTCOME_BACKUP: ${{ steps.backup.outcome }}
+          OUTCOME_GCS_WORKING: ${{ steps.upload_gcs_working.outcome }}
+          OUTCOME_GCS_ARCHIVE: ${{ steps.upload_gcs_archive.outcome }}
+          OUTCOME_R2: ${{ steps.upload_r2.outcome }}

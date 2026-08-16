@@ -51,33 +51,28 @@ upload_gcs() {
   gcloud storage cp "$META_PATH" "gs://${bucket}/${tier}/${META_NAME}"
 }
 
+# Retention is enforced by the bucket's prefix-scoped Bucket Lock rules (daily/ 14d,
+# monthly/ 400d), not per-object headers — R2 doesn't implement the S3 per-object
+# x-amz-object-lock-* PutObject parameters.
 upload_r2() {
-  local tier="$1" retain_days="$2"
-  local retain_until
-  retain_until="$(date -u -d "+${retain_days} days" +%Y-%m-%dT%H:%M:%SZ)"
+  local tier="$1"
   local endpoint="https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
 
   aws s3api put-object \
     --endpoint-url "$endpoint" \
     --bucket "$R2_BUCKET" \
     --key "${tier}/${ARTIFACT_NAME}" \
-    --body "$ARTIFACT_PATH" \
-    --object-lock-mode GOVERNANCE \
-    --object-lock-retain-until-date "$retain_until"
+    --body "$ARTIFACT_PATH"
   aws s3api put-object \
     --endpoint-url "$endpoint" \
     --bucket "$R2_BUCKET" \
     --key "${tier}/${SHA256_NAME}" \
-    --body "$SHA256_PATH" \
-    --object-lock-mode GOVERNANCE \
-    --object-lock-retain-until-date "$retain_until"
+    --body "$SHA256_PATH"
   aws s3api put-object \
     --endpoint-url "$endpoint" \
     --bucket "$R2_BUCKET" \
     --key "${tier}/${META_NAME}" \
-    --body "$META_PATH" \
-    --object-lock-mode GOVERNANCE \
-    --object-lock-retain-until-date "$retain_until"
+    --body "$META_PATH"
 }
 
 case "$TARGET" in
@@ -100,14 +95,8 @@ case "$TARGET" in
     : "${R2_SECRET_ACCESS_KEY:?missing}"
     export AWS_ACCESS_KEY_ID="$R2_ACCESS_KEY_ID"
     export AWS_SECRET_ACCESS_KEY="$R2_SECRET_ACCESS_KEY"
-    # Retain-until set a few days shorter than the matching lifecycle-delete
-    # age (14d lock/21d delete, 400d lock/407d delete) so the delete never
-    # races a still-locked object — see plan's GFS section.
     for tier in "${TIERS[@]}"; do
-      case "$tier" in
-        daily) upload_r2 "$tier" 14 ;;
-        monthly) upload_r2 "$tier" 400 ;;
-      esac
+      upload_r2 "$tier"
     done
     ;;
 esac

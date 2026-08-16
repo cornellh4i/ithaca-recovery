@@ -100,11 +100,11 @@ pg_restore --no-owner --no-privileges --dbname="$TARGET_URL" "$DECRYPTED_FILE"
 
 echo
 echo "Post-restore row counts:"
-psql "$TARGET_URL" -Atc "
-  select relname, n_live_tup
-  from pg_stat_user_tables
-  order by relname;
-" | while IFS='|' read -r table_name row_count; do
+# Exact count(*) rather than pg_stat_user_tables.n_live_tup -- the runbook compares
+# these against the sidecar's rowCounts, and an estimate can mismatch a correct restore.
+psql "$TARGET_URL" -Atc "select relname from pg_stat_user_tables order by relname;" \
+  | while IFS= read -r table_name; do
+  row_count="$(psql "$TARGET_URL" -tAc "SELECT count(*) FROM \"${table_name}\";")"
   printf '  %-40s %s\n' "$table_name" "$row_count"
 done
 

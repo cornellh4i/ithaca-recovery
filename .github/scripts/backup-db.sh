@@ -34,7 +34,9 @@ set -euo pipefail
 : "${BACKUP_SOURCE:?missing}"
 : "${BACKUP_TRIGGERED_BY:=null}"
 : "${BACKUP_REASON:=null}"
-: "${PG_VERSION:=unknown}"
+# Recorded so a break-glass restore years later can check pg_restore compatibility
+# before trusting the artifact; queried live rather than trusted from an env var.
+PG_VERSION="$(psql "$DATABASE_URL_UNPOOLED" -tAc 'show server_version;' || echo unknown)"
 : "${APP_VERSION:=unknown}"
 : "${GIT_SHA:=unknown}"
 
@@ -190,9 +192,11 @@ jq -n \
     rowCounts: $rowCounts,
     verified: true,
     verificationMode: "structural",
-    verifiedAt: $verifiedAt,
-    replicas: ["gcs-working", "gcs-archive", "r2"]
+    verifiedAt: $verifiedAt
   }' >"$meta_file"
+# No "replicas" field: the sidecar is written before any upload runs, so it cannot
+# honestly claim where copies landed -- replica truth lives in the workflow's per-target
+# step outcomes (and, for the admin UI, per-target listings).
 
 echo "backup-db: wrote ${encrypted_file}, ${sha_file}, ${meta_file}"
 

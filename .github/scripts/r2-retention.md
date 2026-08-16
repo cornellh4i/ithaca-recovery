@@ -14,9 +14,9 @@ the more realistic failure mode for a volunteer team than a malicious actor.
 **Object Lock must be enabled at bucket creation — it cannot be turned on for an existing
 bucket.** `icr-db-backup-r2` was created with Object Lock enabled from the start.
 
-Per-object retain-until dates are stamped at upload time by `upload-backup.sh` (B3), via
-`aws s3api put-object --object-lock-mode GOVERNANCE --object-lock-retain-until-date=…` — this
-document records the *policy* those flags implement, not the upload mechanics.
+Retention is enforced entirely by the bucket's **prefix-scoped Bucket Lock rules** — R2 does not
+implement the S3 per-object `x-amz-object-lock-*` PutObject parameters, so `upload-backup.sh` (B3)
+uploads plain objects and the bucket rules below apply the lock automatically by prefix.
 
 ### Per-tier lock durations
 
