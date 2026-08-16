@@ -279,10 +279,12 @@ free tier, destination an org-monitored inbox.
 Set per the full table in [Credentials and Integrations](credentials-and-integrations.md). Quick
 reference of what's a secret vs. a variable:
 
-- **Secrets:** `DATABASE_URL_UNPOOLED`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`
-- **Variables:** `R2_ACCOUNT_ID`, `R2_BUCKET`, `GCP_WORKLOAD_IDENTITY_PROVIDER`,
+- **Secrets:** `DATABASE_URL_UNPOOLED`, `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`,
+  `R2_SECRET_ACCESS_KEY` — the workflow reads `R2_ACCOUNT_ID` from `secrets.`, so it must live
+  here, not in variables
+- **Variables:** `R2_BUCKET`, `GCP_WORKLOAD_IDENTITY_PROVIDER`,
   `GCP_SERVICE_ACCOUNT`, `GCS_WORKING_BUCKET`, `GCP_ARCHIVE_WORKLOAD_IDENTITY_PROVIDER`,
-  `GCP_ARCHIVE_SERVICE_ACCOUNT`, `GCS_ARCHIVE_BUCKET` (8 variables — WIF federates trust, so none
+  `GCP_ARCHIVE_SERVICE_ACCOUNT`, `GCS_ARCHIVE_BUCKET` (7 variables — WIF federates trust, so none
   of these are secret-worthy on their own)
 - **Variables, pending the key ceremony (§5):** `AGE_PUBLIC_KEY_A`, `AGE_PUBLIC_KEY_B`
 
@@ -356,24 +358,24 @@ never auto-deleted.
 
 ```sh
 gcloud storage cp \
-  gs://icr-db-backups-prod/monthly/20260801T071700Z.age \
-  gs://icr-db-backups-prod/permanent/20260801T071700Z.age
+  gs://icr-db-backups-prod/monthly/backup-20260801T071700Z.dump.age \
+  gs://icr-db-backups-prod/permanent/backup-20260801T071700Z.dump.age
 
 gcloud storage cp \
-  gs://icr-db-backups-prod/monthly/20260801T071700Z.age.sha256 \
-  gs://icr-db-backups-prod/permanent/20260801T071700Z.age.sha256
+  gs://icr-db-backups-prod/monthly/backup-20260801T071700Z.sha256 \
+  gs://icr-db-backups-prod/permanent/backup-20260801T071700Z.sha256
 
 gcloud storage cp \
-  gs://icr-db-backups-prod/monthly/20260801T071700Z.meta.json \
-  gs://icr-db-backups-prod/permanent/20260801T071700Z.meta.json
+  gs://icr-db-backups-prod/monthly/backup-20260801T071700Z.meta.json \
+  gs://icr-db-backups-prod/permanent/backup-20260801T071700Z.meta.json
 ```
 
 **R2:**
 
 ```sh
 aws s3 cp \
-  s3://icr-db-backup-r2/monthly/20260801T071700Z.age \
-  s3://icr-db-backup-r2/permanent/20260801T071700Z.age \
+  s3://icr-db-backup-r2/monthly/backup-20260801T071700Z.dump.age \
+  s3://icr-db-backup-r2/permanent/backup-20260801T071700Z.dump.age \
   --endpoint-url https://<R2_ACCOUNT_ID>.r2.cloudflarestorage.com
 ```
 

@@ -71,9 +71,13 @@ if [[ "$TARGET_IS_PRODUCTION" != true ]]; then
     *neon.tech*branch*|*-branch-*)
       ;;
     *)
-      echo "Target URL doesn't look like a Neon branch connection string. If this really" \
-           "is a scratch/branch target, no action needed — this check is advisory. If it's" \
-           "production, re-run with --target-is-production." >&2
+      # Hard refusal, not advisory -- the runbook promises production can only be
+      # restored with the explicit flag, so an unrecognized target must not proceed.
+      echo "Refusing: target URL doesn't look like a Neon branch connection string." \
+           "If it's production, re-run with --target-is-production. If it really is a" \
+           "scratch/branch target, use a branch-style URL or pass --target-is-production" \
+           "to accept the typed-host confirmation." >&2
+      exit 1
       ;;
   esac
 fi

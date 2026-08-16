@@ -63,7 +63,7 @@ ARTIFACT_STEM="${NEWEST_META%.meta.json}"
 ENCRYPTED_OBJECT="${ARTIFACT_STEM}.dump.age"
 SHA256_OBJECT="${ARTIFACT_STEM}.sha256"
 
-echo "Downloading $ARTIFACT_STEM.{age,sha256,meta.json}..."
+echo "Downloading $ARTIFACT_STEM.{dump.age,sha256,meta.json}..."
 gcloud storage cp "$ENCRYPTED_OBJECT" "$WORKDIR/backup.age"
 gcloud storage cp "$SHA256_OBJECT" "$WORKDIR/backup.sha256"
 gcloud storage cp "$NEWEST_META" "$WORKDIR/meta.json"
@@ -99,7 +99,10 @@ echo "Comparing row counts against meta.json's rowCounts (exact match expected â
 # and an exact-match PASS/FAIL must not depend on an approximation.
 RESTORED_COUNTS_JSON="{}"
 while IFS= read -r table; do
-  count="$(psql "$DRILL_TARGET_URL" -tAc "SELECT count(*) FROM \"${table}\";")"
+  # Table names come from the unencrypted (attacker-writable) sidecar â€” escape
+  # embedded double quotes so they can't break out of the SQL identifier.
+  quoted_table="${table//\"/\"\"}"
+  count="$(psql "$DRILL_TARGET_URL" -tAc "SELECT count(*) FROM \"${quoted_table}\";")"
   RESTORED_COUNTS_JSON="$(jq -n --argjson acc "$RESTORED_COUNTS_JSON" \
     --arg t "$table" --argjson c "$count" '$acc + {($t): $c}')"
 done < <(jq -r '.rowCounts | keys[]' "$WORKDIR/meta.json")

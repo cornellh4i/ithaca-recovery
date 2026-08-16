@@ -77,7 +77,12 @@ jobs:
           GIT_SHA: ${{ github.sha }}
 
       # First auth: production project's WIF, for the operational GCS-working copy.
+      # Auth steps are continue-on-error with their uploads gated on outcome, so one
+      # project's auth outage can't kill the job before the other targets upload --
+      # the skipped upload's non-success outcome still fails the aggregate gate below.
       - name: Authenticate to GCP (production)
+        id: auth_prod
+        continue-on-error: true
         uses: google-github-actions/auth@v2
         with:
           workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
@@ -85,6 +90,7 @@ jobs:
 
       - name: Upload to GCS (working)
         id: upload_gcs_working
+        if: ${{ steps.auth_prod.outcome == 'success' }}
         continue-on-error: true
         run: .github/scripts/upload-backup.sh --target=gcs-working
         env:
@@ -97,6 +103,8 @@ jobs:
       # something bash can swap -- a second auth step replaces it for the
       # independent archive project, which has its own WIF pool/provider/SA.
       - name: Authenticate to GCP (archive)
+        id: auth_archive
+        continue-on-error: true
         uses: google-github-actions/auth@v2
         with:
           workload_identity_provider: ${{ vars.GCP_ARCHIVE_WORKLOAD_IDENTITY_PROVIDER }}
@@ -104,6 +112,7 @@ jobs:
 
       - name: Upload to GCS (archive)
         id: upload_gcs_archive
+        if: ${{ steps.auth_archive.outcome == 'success' }}
         continue-on-error: true
         run: .github/scripts/upload-backup.sh --target=gcs-archive
         env:

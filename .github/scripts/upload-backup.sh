@@ -37,8 +37,16 @@ META_NAME="$(basename "$META_PATH")"
 # Same bytes go to daily/ always, plus monthly/ on the 1st — not a re-dump,
 # just an additional prefix, because lifecycle/Object-Lock rules key on
 # prefix+age, never metadata (see plan's GFS section).
+# Day-of-month comes from the artifact's own timestamp (backup-YYYYMMDD...), not
+# the upload wall clock — a run crossing midnight must agree with meta.json.tier,
+# which backup-db.sh derives from the same creation instant.
+ARTIFACT_DAY="$(basename "$ARTIFACT_PATH" | sed -E 's/^backup-[0-9]{6}([0-9]{2})T.*/\1/')"
+if [[ ! "$ARTIFACT_DAY" =~ ^[0-9]{2}$ ]]; then
+  echo "Cannot parse day-of-month from artifact name: $(basename "$ARTIFACT_PATH")" >&2
+  exit 1
+fi
 TIERS=("daily")
-if [[ "$(date -u +%d)" == "01" ]]; then
+if [[ "$ARTIFACT_DAY" == "01" ]]; then
   TIERS+=("monthly")
 fi
 
