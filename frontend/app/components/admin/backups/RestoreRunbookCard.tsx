@@ -2,12 +2,35 @@
 
 import { useState } from "react";
 import type { BackupListRow } from "../../../../types/backups";
+import { formatETDateString, formatETLongDateTime, formatETTime } from "../../../../util/date/timeUtils";
 import Card from "../shared/Card";
+import Icon from "../../ui/displays/Icon";
 import styles from "./BackupsTab.module.scss";
 
 export interface RestoreRunbookCardProps {
   /** The currently selected Snapshots row, or null when nothing is selected. */
   selected: BackupListRow | null;
+  /** Reference instant for the command box's created-label -- passed in, never read from Date.now() here. */
+  now: Date;
+}
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+const HOURS_48_MS = 48 * 60 * 60 * 1000;
+
+// Mirrors SnapshotsCard's Created-column label so the command box's header reads the same
+// way the row it was generated from does ("Today, 3:17 AM" etc.) -- kept local rather than
+// imported since SnapshotsCard doesn't export it and this is presentational-only.
+function formatCreatedLabel(createdAt: string, now: Date): string {
+  const created = new Date(createdAt);
+  const diffMs = now.getTime() - created.getTime();
+  if (diffMs >= 0 && diffMs < HOURS_48_MS) {
+    const createdDay = formatETDateString(created);
+    const nowDay = formatETDateString(now);
+    const yesterday = formatETDateString(new Date(now.getTime() - DAY_MS));
+    if (createdDay === nowDay) return `Today, ${formatETTime(created)}`;
+    if (createdDay === yesterday) return `Yesterday, ${formatETTime(created)}`;
+  }
+  return formatETLongDateTime(created);
 }
 
 /**
@@ -16,7 +39,7 @@ export interface RestoreRunbookCardProps {
  * route cannot decrypt an offline-key `.dump.age` artifact. This card only surfaces the
  * prerequisites and a copy-pasteable `restore-db.sh` invocation for a human to run out-of-band.
  */
-export default function RestoreRunbookCard({ selected }: RestoreRunbookCardProps) {
+export default function RestoreRunbookCard({ selected, now }: RestoreRunbookCardProps) {
   const [copied, setCopied] = useState(false);
   const [copyFailed, setCopyFailed] = useState(false);
 
@@ -28,6 +51,7 @@ export default function RestoreRunbookCard({ selected }: RestoreRunbookCardProps
   const command = selected
     ? `AGE_IDENTITY_FILE=/path/to/key RESTORE_TARGET_URL=<neon-branch-url> ./frontend/scripts/restore-db.sh ./${selected.id}.dump.age`
     : null;
+  const createdLabel = selected ? formatCreatedLabel(selected.createdAt, now) : null;
 
   const handleCopy = async () => {
     if (!command) return;
@@ -48,9 +72,10 @@ export default function RestoreRunbookCard({ selected }: RestoreRunbookCardProps
     <Card>
       <div className={styles.panelHeader}>Restore Runbook</div>
       <div className={styles.panelSubhead}>
-        Restoring is a deliberate, out-of-band operation — not a button in this app.
+        Restoring is a deliberate, out-of-band operation — never a button in this app.
       </div>
 
+      <div className={styles.panelSubhead}>BEFORE YOU START, YOU NEED</div>
       <ul className={styles.runbookPrereqs}>
         <li className={styles.runbookPrereq}>
           <span>1.</span>
@@ -71,16 +96,17 @@ export default function RestoreRunbookCard({ selected }: RestoreRunbookCardProps
       </div>
 
       {selected && command ? (
-        <div className={styles.runbookCommandBox}>
-          <pre className={styles.runbookCommand}>{command}</pre>
+        <div className={styles.commandBox}>
+          <div className={styles.commandBoxHeader}>Command for the selected snapshot · {createdLabel}</div>
+          <pre className={styles.commandBoxCode}>{command}</pre>
           <button
             type="button"
-            className={`${styles.copyButton} ${copied ? styles.copyButtonCopied : ""}`}
+            className={`${styles.commandCopyButton} ${copied ? styles.commandCopyButtonCopied : ""}`}
             onClick={handleCopy}
-            aria-label="Copy restore command"
+            aria-label="Copy command"
             title={copyFailed ? "Copy failed — select the text manually" : undefined}
           >
-            {copied ? "Copied" : copyFailed ? "Copy failed" : "Copy"}
+            <Icon name={copied ? "check" : "copy"} size="sm" />
           </button>
         </div>
       ) : (

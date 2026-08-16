@@ -44,6 +44,8 @@ import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import FileDownloadOutlinedIcon from "@mui/icons-material/FileDownloadOutlined";
 import type { SvgIconComponent } from "@mui/icons-material";
 
 // Brand logos with no faithful @mui/icons-material equivalent (multi-color marks with no
@@ -120,6 +122,8 @@ const MUI_ICONS = {
     // Distinct outlined glyph from `warning` (WarningIcon, filled) -- see Toast's info/warning
     // variants.
     "warning-amber": WarningAmberIcon,
+    copy: ContentCopyIcon,
+    download: FileDownloadOutlinedIcon,
 } satisfies Record<string, SvgIconComponent>;
 
 export type IconName = keyof typeof LOCAL_ICONS | keyof typeof MUI_ICONS;

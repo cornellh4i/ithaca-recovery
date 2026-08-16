@@ -7,6 +7,9 @@
 /** GFS retention tier. Only three tiers exist — no weekly, no yearly. */
 export type BackupTier = "daily" | "monthly" | "permanent";
 
+/** Snapshots table filter chip value — the three GFS tiers plus "all" and the "unverified" cross-cut. */
+export type BackupTierFilter = "all" | BackupTier | "unverified";
+
 /** How a backup run was triggered. */
 export type BackupSource = "automatic" | "manual";
 
