@@ -22,7 +22,8 @@ For ICR leadership and whoever maintains this application next. Assumes little t
 - [Ownership and Access](02-handoff/ownership-and-access.md) — who owns GitHub/Vercel/Neon, what access ICR has, long-term responsibility after the current team transitions
 - [Credentials and Integrations](02-handoff/credentials-and-integrations.md) — every credential the app depends on, who controls it, how changes are coordinated
 - [Deployment and Rollback](02-handoff/deployment-and-rollback.md) — how code changes go from PR to production, and how a bad deploy gets rolled back
-- [Backups and Recovery](02-handoff/backups-and-recovery.md) — how Postgres data is (planned to be) backed up and how to recover from data loss
+- [Backups and Recovery](02-handoff/backups-and-recovery.md) — how Postgres data is backed up (live since 2026-08-16) and how to recover from data loss
+- [Backup Infrastructure Setup](02-handoff/backup-infra-setup.md) — the as-built provisioning record for the backup pipeline's cloud resources (GCP projects, buckets, R2, Workload Identity Federation) and its open items
 - [Support Process](02-handoff/support-process.md) — how to report a problem, what to include, who responds, and how fast
 - [Contingency and Future Transfer](02-handoff/contingency-transfer.md) — how to transfer the whole system to ICR or another maintainer if Hack4Impact can no longer support it
 - [Technical Decisions](02-handoff/technical-decisions.md) — why the stack and architecture are built the way they are

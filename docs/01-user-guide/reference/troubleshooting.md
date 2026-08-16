@@ -21,5 +21,5 @@ the one you're checking in the Filters sidebar. Any open time blocks are availab
 
 ## Contact
 
-For technical issues with the platform: [Nathnael Tesfaw](mailto:nbt26@cornell.edu) (current H4I Maintenance lead) — expected response
-time `[TODO]`. See [Support Process](../../02-handoff/support-process.md).
+For technical issues with the platform: [Nathnael Tesfaw](mailto:nbt26@cornell.edu) (Fall 2026 H4I Maintenance lead) — expected response
+time 2-3 business days during school year, best effort during summer/winter break. See [Support Process](../../02-handoff/support-process.md).
