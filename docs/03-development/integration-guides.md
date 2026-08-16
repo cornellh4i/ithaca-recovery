@@ -194,7 +194,7 @@ Creates/updates/deletes a real Zoom meeting whenever a meeting has a `zoomRoom` 
 
 > [!NOTE]
 > An app named **ICR - H4I Application** is already configured under the
-> `ithacacommunityrecovery@gmail.com` Zoom account, and is shared by both dev and prod
+> `zoom@518icr.com` Zoom account, and is shared by both dev and prod
 > environments (same `ZOOM_ACCOUNT_ID`/`ZOOM_CLIENT_ID`/`ZOOM_CLIENT_SECRET` for both) — the steps
 > below are for reference or recreating it, not something you need to do for local setup.
 
@@ -207,7 +207,7 @@ Creates/updates/deletes a real Zoom meeting whenever a meeting has a `zoomRoom` 
 
 > [!NOTE]
 > Any account added to `ZOOM_HOSTS` must first be added as a **user** under the
-> `ithacacommunityrecovery@gmail.com` Zoom account (Zoom Admin → **User Management** → **Users**)
+> `zoom@518icr.com` Zoom account (Zoom Admin → **User Management** → **Users**)
 > — `createZoomMeeting` schedules under `POST /users/{host email}/meetings`. An email that isn't
 > a real user on that account fails outright, it isn't enough to just add it to the env var.
 
