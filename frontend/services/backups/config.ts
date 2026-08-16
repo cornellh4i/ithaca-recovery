@@ -28,8 +28,8 @@ const STORAGE_VAR_NAMES = [
   "GCS_WORKING_BUCKET",
   "GCS_ARCHIVE_BUCKET",
   "R2_ACCOUNT_ID",
-  "R2_ACCESS_KEY_ID",
-  "R2_SECRET_ACCESS_KEY",
+  "R2_ACCESS_KEY_ID_READ",
+  "R2_SECRET_ACCESS_KEY_READ",
   "R2_BUCKET",
 ] as const;
 
@@ -113,8 +113,8 @@ export function getStorageConfig(): BackupsStorageConfig {
     gcsWorkingBucket: process.env.GCS_WORKING_BUCKET as string,
     gcsArchiveBucket: process.env.GCS_ARCHIVE_BUCKET as string,
     r2AccountId: process.env.R2_ACCOUNT_ID as string,
-    r2AccessKeyId: process.env.R2_ACCESS_KEY_ID as string,
-    r2SecretAccessKey: process.env.R2_SECRET_ACCESS_KEY as string,
+    r2AccessKeyId: process.env.R2_ACCESS_KEY_ID_READ as string,
+    r2SecretAccessKey: process.env.R2_SECRET_ACCESS_KEY_READ as string,
     r2Bucket: process.env.R2_BUCKET as string,
   };
 }

@@ -136,12 +136,12 @@ describe("BackupsTab", () => {
   });
 
   it("shows the unconfigured panel on a 503 with a missing[] body", async () => {
-    setupFetchMock({ unconfigured: { configured: false, missing: ["GCS_WORKING_CREDENTIALS", "R2_ACCESS_KEY_ID"] } });
+    setupFetchMock({ unconfigured: { configured: false, missing: ["GCS_WORKING_CREDENTIALS", "R2_ACCESS_KEY_ID_READ"] } });
     await renderTab();
     expect(
       screen.getByText("Backup monitoring isn't configured in this environment"),
     ).toBeInTheDocument();
-    expect(screen.getByText(/GCS_WORKING_CREDENTIALS, R2_ACCESS_KEY_ID/)).toBeInTheDocument();
+    expect(screen.getByText(/GCS_WORKING_CREDENTIALS, R2_ACCESS_KEY_ID_READ/)).toBeInTheDocument();
     expect(screen.getByText("docs/02-handoff/backup-infra-setup.md")).toBeInTheDocument();
     expect(screen.queryByText("Backup Health")).not.toBeInTheDocument();
   });
