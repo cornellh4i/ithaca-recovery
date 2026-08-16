@@ -54,6 +54,7 @@ const MANIFEST = [
   { group: "Handoff", relPath: "02-handoff/credentials-and-integrations.md" },
   { group: "Handoff", relPath: "02-handoff/deployment-and-rollback.md" },
   { group: "Handoff", relPath: "02-handoff/backups-and-recovery.md" },
+  { group: "Handoff", relPath: "02-handoff/backup-infra-setup.md" },
   { group: "Handoff", relPath: "02-handoff/support-process.md" },
   { group: "Handoff", relPath: "02-handoff/contingency-transfer.md" },
   { group: "Handoff", relPath: "02-handoff/technical-decisions.md" },
@@ -69,6 +70,34 @@ const MANIFEST = [
 ];
 
 const TITLE_PATTERN = /^#\s+(.+)$/m;
+
+// The MANIFEST above is hand-maintained, so a newly added docs/**/*.md would otherwise just
+// silently never appear on /docs (which is how backup-infra-setup.md went missing). Failing the
+// build is deliberate: dev/build both run this script, so drift surfaces on the next `yarn dev`
+// instead of in production review. Asset folders hold images, not pages.
+function assertManifestCoversDocsTree() {
+  const manifested = new Set(MANIFEST.map(({ relPath }) => relPath));
+  const unmanifested = [];
+  const walk = (dir) => {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      if (entry.name === "assets") continue;
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        walk(full);
+      } else if (entry.name.endsWith(".md")) {
+        const relPath = path.relative(docsRoot, full).split(path.sep).join("/");
+        if (!manifested.has(relPath)) unmanifested.push(relPath);
+      }
+    }
+  };
+  walk(docsRoot);
+  if (unmanifested.length > 0) {
+    throw new Error(
+      `generate-docs-content: docs/ files missing from MANIFEST (add them with a group, mirroring docs/README.md's TOC): ${unmanifested.join(", ")}`,
+    );
+  }
+}
+assertManifestCoversDocsTree();
 
 // URL slug mirrors the file's own path under docs/ (e.g. "02-handoff/ownership-and-access.md"
 // -> "02-handoff/ownership-and-access"), so /docs/<slug> reads directly as "which file". A
