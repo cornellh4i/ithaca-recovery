@@ -30,7 +30,7 @@ jobs:
     timeout-minutes: 10 # bounds a pg_dump stuck behind a concurrent ACCESS EXCLUSIVE lock
     services:
       postgres:
-        image: postgres:17
+        image: postgres:18
         env:
           POSTGRES_PASSWORD: postgres
         ports:
@@ -49,7 +49,7 @@ jobs:
 
       # pg_dump/pg_restore must match the scratch container's major version (17);
       # Ubuntu's default apt repo doesn't carry it, so pull from PGDG directly.
-      - name: Install postgresql-client-17 and age
+      - name: Install postgresql-client-18 and age
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends curl ca-certificates gnupg age
@@ -59,11 +59,15 @@ jobs:
           echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(. /etc/os-release && echo "$VERSION_CODENAME")-pgdg main" \
             | sudo tee /etc/apt/sources.list.d/pgdg.list
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends postgresql-client-17
+          sudo apt-get install -y --no-install-recommends postgresql-client-18
 
       - name: Dump, verify, encrypt
         id: backup
         run: |
+          # Explicit PATH: the runner ships an older postgresql-client and Ubuntu's
+          # pg_wrapper picked it over the PGDG 18 install, causing a server-version
+          # mismatch abort (Neon runs Postgres 18).
+          export PATH="/usr/lib/postgresql/18/bin:$PATH"
           APP_VERSION="$(node -p "require('./frontend/package.json').version")"
           export APP_VERSION
           .github/scripts/backup-db.sh
