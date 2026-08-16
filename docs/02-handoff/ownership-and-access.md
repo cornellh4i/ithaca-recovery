@@ -33,16 +33,13 @@ What ICR gets, even though H4I remains the technical owner:
 - [ ] Admin/read-only access to production logs — not granted today; logs live in Vercel under
   H4I's account. Open decision: whether a Vercel "Viewer" invite for an ICR contact is worth the
   seat, versus the Maintenance Lead pulling logs on request via [Support Process](support-process.md)
-- [x] Read access to backups — the **Admin → Backups tab** (Super Admin role in the app): backup
-  health, the full snapshot inventory with verification/replica evidence, and encrypted artifact
-  downloads. See [Backups and Recovery](backups-and-recovery.md). Downloads are `age`-encrypted;
-  reading one requires a private key (key A: H4I Maintenance Lead's password manager; key B: org
-  vault — final ICR-side holder still an open decision in
+- [x] Read access to backups — the **Admin → Backups tab** 
+  contains backup health, the full snapshot inventory with verification/replica evidence, and encrypted artifact
+  downloads (see [Backups and Recovery](backups-and-recovery.md)). Downloads are `age`-encrypted;
+  reading one requires a private key (key A: H4I Maintenance Lead; key B: ICR side, open question,
   [Backup Infrastructure Setup](backup-infra-setup.md))
 - [x] Read access to production data — the **Admin → Export tab** produces full meeting exports
-  (XLSX) on demand, usable by any ICR Super Admin without H4I involvement. Direct database access
-  (a read-only Neon role) is deliberately not granted: the app UI + exports + encrypted backups
-  cover ICR's read needs without adding a credential to manage
+  (XLSX) on demand, usable by any ICR Super Admin without H4I involvement.
 - [x] A standing point of contact: the current H4I Maintenance Lead — see §3 above and
   [Support Process](support-process.md)
 
@@ -54,5 +51,5 @@ depend on any one person. Concretely:
 - The support process ([Support Process](support-process.md)) should continue to route through H4I's Maintainance Lead's email.
 - Confirm with the incoming H4I that they have read this [Handoff](../02-handoff/) section.
 - Future ICR administrators should be able to operate the   application and request help without
-  needing detailed technical knowledge — see the [User Guide](../01-user-guide/) for the
+  needing detailed technical knowledge. See the [User Guide](../01-user-guide/) for the
   non-technical operating guide.
