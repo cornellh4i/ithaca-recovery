@@ -30,9 +30,9 @@ changing for the next one, rather than ICR needing to ask.
 
 What ICR gets, even though H4I remains the technical owner:
 
-- [x] Production logs — decided (post-handoff meeting, 2026-08-16): ICR has no need for direct
-  log access, so no Vercel viewer seat is granted. Logs live in Vercel under H4I's account; the
-  Maintenance Lead pulls them on request via [Support Process](support-process.md)
+- [x] Production logs — ICR has no need for direct log access, so no Vercel viewer seat is
+  granted. Logs live in Vercel under H4I's account; the Maintenance Lead pulls them on request
+  via [Support Process](support-process.md)
 - [x] Backup evidence and encrypted downloads — the **Admin → Backups tab** 
   contains backup health, the full snapshot inventory with verification/replica evidence, and encrypted artifact
   downloads (see [Backups and Recovery](backups-and-recovery.md)). Downloads are `age`-encrypted;

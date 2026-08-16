@@ -59,9 +59,9 @@ Cloudflare, GCP) are signed into via Google with one of them:
 | `GITHUB_BACKUPS_PAT` | Fine-grained GitHub PAT (this repo only, Actions read+write) — powers the Backups tab's run history and Back Up Now dispatch | Vercel env vars | Whoever's GitHub account minted it (a repo admin) | Fine-grained PATs expire — renewal is a calendar item, not an incident; on expiry only Recent Activity/Back Up Now degrade, backups themselves keep running on cron |
 
 *`DATABASE_URL_UNPOOLED` and the backup-workflow rows above back the backup feature — see
-[Backups and Recovery](backups-and-recovery.md) for the shipped 3-2-1-1-0 design, GFS retention,
-and break-glass restore procedure. All are live as of 2026-08-16; the billing re-link follow-up
-is tracked in [Backup Infrastructure Setup](../03-development/backup-infra-setup.md).*
+[Backups and Recovery](backups-and-recovery.md) for the 3-2-1-1-0 design, GFS retention, and
+break-glass restore procedure. All are live; the billing re-link follow-up is tracked in
+[Backup Infrastructure Setup](../03-development/backup-infra-setup.md).*
 
 ## Who has access to what today
 

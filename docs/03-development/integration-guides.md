@@ -117,7 +117,7 @@ Two independent gates stand between a Google account and a working sign-in, and 
 1. Insert the first `Admin` row directly into the production database (e.g. `yarn prisma studio` pointed at the production `DATABASE_URL`, or Neon's own SQL editor in its dashboard) with `role: SUPER_ADMIN` and their email.
 2. Add that same email under the production Google Cloud project's **Google Auth Platform → Audience → Test users** — production is still External/unverified today until the User Type is switched to Internal.
 
-After that first sign-in, that person can invite everyone else through the normal Admin → Users flow — but each new admin's email still needs to be added to the Test users list too, until Internal User Type ships (see the project plan's Follow-up items).
+After that first sign-in, that person can invite everyone else through the normal Admin → Users flow — but each new admin's email still needs to be added to the Test users list too, until Internal User Type ships.
 
 ### How the auth flow works in code
 
@@ -213,7 +213,7 @@ Creates/updates/deletes a real Zoom meeting whenever a meeting has a `zoomRoom` 
 
 *Zoom licenses* act as a **shared host pool** (`ZOOM_HOSTS`, priority-ordered).
 
-- **Host Allocation**: `resolveZoomHost` (`frontend/services/zoom.ts` / `resourceOverlap.ts`) assigns the first available host with no time overlap. Resolution runs inside the meeting's write transaction with the whole pool locked (Postgres advisory locks, same mechanism as room/Zoom Room conflicts) — a concurrent request racing for the same last-free host correctly falls back to the next free one instead of double-booking it. Availability across the whole pool is checked with a single batched query (`zoomHost: { in: pool }`, bucketed in memory) rather than one query per host — measured ~3.7x faster than the old per-host loop on a 5-host pool (4.10ms → 1.11ms per resolution, worst case).
+- **Host Allocation**: `resolveZoomHost` (`frontend/services/zoom.ts` / `resourceOverlap.ts`) assigns the first available host with no time overlap. Resolution runs inside the meeting's write transaction with the whole pool locked (Postgres advisory locks, same mechanism as room/Zoom Room conflicts) — a concurrent request racing for the same last-free host correctly falls back to the next free one instead of double-booking it. Availability across the whole pool is checked with a single batched query (`zoomHost: { in: pool }`, bucketed in memory) rather than one query per host.
 
 - **API Integration**: Meetings schedule via `POST /users/{host_email}/meetings` using host emails directly.
 
@@ -222,12 +222,10 @@ Creates/updates/deletes a real Zoom meeting whenever a meeting has a `zoomRoom` 
 - **Host Persistence**: Existing meetings retain their host across edits unless the room changes, which triggers host re-resolution and recreates the Zoom meeting.
 
 > [!NOTE]
-> Auto-assignment (`resolveZoomHost`) used to run **before** the meeting's write transaction
-> opened, with only a manually-picked host covered by the write's advisory lock — a TOCTOU race
-> where two concurrent requests could both see the same last-free host as available and both
-> write it. Fixed: auto-assignment now locks and resolves the whole pool inside the same
-> transaction as everything else, the same mechanism room/Zoom Room/manual-pick already used.
-> See [issue #360](https://github.com/cornellh4i/ithaca-recovery/issues/360) for the writeup.
+> Auto-assignment must run inside the meeting's write transaction with the whole pool locked, not
+> just the manually-picked-host case — resolving before the transaction opens (or locking only a
+> manual pick) reopens a TOCTOU race where two concurrent requests can both see the same last-free
+> host as available and both write it.
 
 ### Per-room setup
 

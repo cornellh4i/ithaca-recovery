@@ -63,7 +63,7 @@ Actions, not the Next.js app, so its credentials never appear in `frontend/`'s `
 | `R2_BUCKET` | GH Actions variable | R2 bucket name (`icr-db-backup-r2`), Object Lock Governance mode |
 | `GCP_WORKLOAD_IDENTITY_PROVIDER` / `GCP_SERVICE_ACCOUNT` / `GCS_WORKING_BUCKET` | GH Actions variables | WIF auth + bucket name for the production-project GCS copy (`icr-db-backups-prod`) |
 | `GCP_ARCHIVE_WORKLOAD_IDENTITY_PROVIDER` / `GCP_ARCHIVE_SERVICE_ACCOUNT` / `GCS_ARCHIVE_BUCKET` | GH Actions variables | WIF auth + bucket name for the archive-project GCS copy (`icr-db-backups-archive`, a separate GCP project) |
-| `AGE_PUBLIC_KEY_A` / `AGE_PUBLIC_KEY_B` | GH Actions variables | Public `age` encryption keys — **pending**, key ceremony not yet performed |
+| `AGE_PUBLIC_KEY_A` / `AGE_PUBLIC_KEY_B` | GH Actions variables | Public `age` encryption keys |
 
 See [Credentials and Integrations](../02-handoff/credentials-and-integrations.md) for who controls
 each of these and [Backups and Recovery](../02-handoff/backups-and-recovery.md) for the full

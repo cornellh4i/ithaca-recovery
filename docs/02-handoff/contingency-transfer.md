@@ -22,9 +22,9 @@ arrangement. Think of this as "what to do if the arrangement in that doc breaks 
 
 ## Trigger conditions
 
-Decided (post-handoff meeting, 2026-08-16): the trigger is simply **H4I being no longer able to
-maintain the application** — there is no more specific threshold, and no precedent for this
-happening. In practice that call is made in the semester-end communication between H4I and ICR
+The trigger is simply **H4I being no longer able to maintain the application** — there is no
+more specific threshold, and no precedent for this happening. In practice that call is made in
+the semester-end communication between H4I and ICR
 (see [Ownership and Access](ownership-and-access.md) §5): if H4I cannot name a Maintenance Lead
 for the coming semester and doesn't expect to, this plan activates.
 
