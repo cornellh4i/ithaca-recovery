@@ -426,11 +426,28 @@ gcloud billing projects link icr-backups-archive \
 Then remove `dev@518icr.com`'s `roles/billing.user` grant on the test account's billing account
 (`017207-9146F6-F17BB6`) — that grant should not outlive the stopgap.
 
-### `age` key ceremony — open
+### `age` key ceremony — done 2026-08-16
 
-Not yet performed. See §5. Blocks the workflow from running end-to-end (backups can be dumped,
-verified, and dumped to a scratch container, but the encryption step has no recipients configured
-until `AGE_PUBLIC_KEY_A`/`_B` exist).
+`AGE_PUBLIC_KEY_A`/`_B` are set as repo variables and the workflow runs green end-to-end.
+Private key A lives in the Maintenance Lead's password manager, private key B in the org vault
+(final holder still an open decision in the backup feature plan).
+
+### Backups admin tab: `GCS_BACKUPS_CREDENTIALS` — open
+
+The Admin → Backups tab's server routes read the storage targets with their own credentials
+(see `docs/03-development/environment-variables.md`). As of 2026-08-16 every Vercel var for the
+tab is set **except `GCS_BACKUPS_CREDENTIALS`**: the read-only service account
+`backups-tab-reader@icr-management-system.iam.gserviceaccount.com` exists with
+`roles/storage.objectViewer` on both `gs://icr-db-backups-prod` and `gs://icr-db-backups-archive`,
+but the 518icr.com org enforces the `iam.disableServiceAccountKeyCreation` policy, so no JSON key
+has been minted yet.
+
+**To close:** temporarily override that constraint to Off on `icr-management-system`
+(IAM & Admin → Organization Policies; needs `roles/orgpolicy.policyAdmin`, grantable only at the
+org level), create a JSON key on the service account's Keys tab, set the constraint back to On,
+then `base64` the key file into Vercel as `GCS_BACKUPS_CREDENTIALS` and delete the local copy.
+Until then, production's Backups tab shows its "not configured" panel for the snapshot/health
+cards (Back Up Now and Recent Activity work — they only need `GITHUB_BACKUPS_PAT`).
 
 ### Cloudflare usage notification — done (2026-08-16)
 
