@@ -241,4 +241,5 @@ private key anywhere CI can reach (even an environment secret) would let the sam
 *read* up to 400 days of plaintext attendance data — the most sensitive data this project holds.
 Nothing in CI needs it: integrity is sha256 + CRC32C, restorability is the in-run scratch-restore
 check, and restore itself is a once-in-years human action.
+
 **Revisit if:** the production database grows past roughly 1 GB (the current design's headroom assumptions — GCS/R2 free-tier storage, GFS retention counts, `daily/` tier length — are budgeted against a ~33 MB DB and stop being comfortable margins well before any hard quota is hit); or ICR confirms an actual records-retention obligation on meeting/attendance data (there is none known today — the 400-day monthly tier is sized for realistic corruption-detection latency, not a compliance requirement, and a real obligation could demand a different retention shape entirely).
