@@ -51,7 +51,7 @@ const ConflictsCard: React.FC = () => {
   if (!conflicts) {
     return (
       <Card accent="conflicts" data-testid="diagnostics-conflicts-panel">
-        <TopLoadingBar active={loading} />
+        <TopLoadingBar active={loading} label="Loading conflicts" />
         Loading conflicts…
       </Card>
     );
@@ -59,7 +59,7 @@ const ConflictsCard: React.FC = () => {
 
   return (
     <Card accent="conflicts" data-testid="diagnostics-conflicts-panel">
-      <TopLoadingBar active={loading} />
+      <TopLoadingBar active={loading} label="Loading conflicts" />
       <div className={styles.panelHeader}>
         <Icon name="warning" className={`${styles.panelIcon} ${styles.panelIconConflicts}`} />
         Conflicts ({conflicts.length})

@@ -32,8 +32,18 @@ jest.mock("@aws-sdk/client-s3", () => ({
   ListObjectsV2Command: jest.fn().mockImplementation((input) => ({ input })),
 }));
 
+// No real STS/IAM calls in this suite -- fromJSON just needs to return something truthy that
+// Storage's mock constructor above never inspects.
+jest.mock("google-auth-library", () => ({
+  ExternalAccountClient: { fromJSON: jest.fn().mockReturnValue({}) },
+}));
+jest.mock("@vercel/functions/oidc", () => ({
+  getVercelOidcToken: jest.fn().mockResolvedValue("test-oidc-token"),
+}));
+
 const STORAGE_VARS = {
-  GCS_BACKUPS_CREDENTIALS: Buffer.from(JSON.stringify({ client_email: "a@b.com", private_key: "key", project_id: "p" })).toString("base64"),
+  GCP_BACKUPS_WIF_PROVIDER: "projects/123/locations/global/workloadIdentityPools/pool/providers/provider",
+  GCP_BACKUPS_SERVICE_ACCOUNT: "backups-tab-reader@icr-management-system.iam.gserviceaccount.com",
   GCS_WORKING_BUCKET: WORKING_BUCKET,
   GCS_ARCHIVE_BUCKET: ARCHIVE_BUCKET,
   R2_ACCOUNT_ID: "acct",
@@ -101,6 +111,39 @@ describe("listBackups against real-shaped keys", () => {
 
     await signedDownloadUrl(rows[0].id, rows[0].tier);
     expect(mockFile).toHaveBeenCalledWith(dumpKey);
+  });
+
+  test("builds the external-account config with the exact WIF/STS/impersonation shapes", async () => {
+    filesByBucketPrefix = {
+      [WORKING_BUCKET]: { "daily/": [], "monthly/": [], "permanent/": [] },
+      [ARCHIVE_BUCKET]: { "daily/": [], "monthly/": [], "permanent/": [] },
+    };
+    mockSend.mockResolvedValue({ Contents: [] });
+
+    const { ExternalAccountClient } = jest.requireMock("google-auth-library") as {
+      ExternalAccountClient: { fromJSON: jest.Mock };
+    };
+    const { getVercelOidcToken } = jest.requireMock("@vercel/functions/oidc") as {
+      getVercelOidcToken: jest.Mock;
+    };
+    const { listBackups } = await import("../../services/backups/storage");
+    await listBackups();
+
+    // These four strings only ever fail in production -- pin them here.
+    expect(ExternalAccountClient.fromJSON).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "external_account",
+        audience: `//iam.googleapis.com/${STORAGE_VARS.GCP_BACKUPS_WIF_PROVIDER}`,
+        subject_token_type: "urn:ietf:params:oauth:token-type:jwt",
+        token_url: "https://sts.googleapis.com/v1/token",
+        service_account_impersonation_url: `https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/${STORAGE_VARS.GCP_BACKUPS_SERVICE_ACCOUNT}:generateAccessToken`,
+      }),
+    );
+
+    // The supplier must delegate per call (a token captured at construction would go stale).
+    const supplier = ExternalAccountClient.fromJSON.mock.calls[0][0].subject_token_supplier;
+    await expect(supplier.getSubjectToken()).resolves.toBe("test-oidc-token");
+    expect(getVercelOidcToken).toHaveBeenCalled();
   });
 
   test("dedupes a 1st-of-month artifact uploaded to both daily/ and monthly/, keeping the monthly row", async () => {

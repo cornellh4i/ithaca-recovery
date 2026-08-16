@@ -117,7 +117,7 @@ const SuspendedCard: React.FC = () => {
   if (!suspendedMeetings) {
     return (
       <Card accent="suspended" data-testid="diagnostics-suspended-panel">
-        <TopLoadingBar active={loading} />
+        <TopLoadingBar active={loading} label="Loading suspended meetings" />
         Loading suspended meetings…
       </Card>
     );
@@ -126,7 +126,7 @@ const SuspendedCard: React.FC = () => {
   return (
     <>
       <Card accent="suspended" data-testid="diagnostics-suspended-panel">
-        <TopLoadingBar active={loading} />
+        <TopLoadingBar active={loading} label="Loading suspended meetings" />
         <div className={styles.panelHeader}>
           <Icon name="pause" className={`${styles.panelIcon} ${styles.panelIconSuspended}`} />
           Suspended ({total})

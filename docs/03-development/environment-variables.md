@@ -79,7 +79,8 @@ serving fixtures.
 
 | Variable | Purpose |
 |---|---|
-| `GCS_BACKUPS_CREDENTIALS` | Base64-encoded JSON key for a **read-only** GCS service account (list + get objects only — never the create-only CI identity used by the backup workflow itself) |
+| `GCP_BACKUPS_WIF_PROVIDER` | Full Workload Identity Federation provider resource name (`projects/<number>/locations/global/workloadIdentityPools/<pool>/providers/<provider>`) trusting Vercel's OIDC issuer — no downloadable key: org policy `iam.disableServiceAccountKeyCreation` forbids one |
+| `GCP_BACKUPS_SERVICE_ACCOUNT` | Email of the **read-only** GCS service account (list + get objects only — never the create-only CI identity used by the backup workflow itself) impersonated via WIF |
 | `GCS_WORKING_BUCKET` / `GCS_ARCHIVE_BUCKET` | GCS bucket names for the working and archive copies (`icr-db-backups-prod` / `icr-db-backups-archive`) |
 | `R2_ACCOUNT_ID` / `R2_ACCESS_KEY_ID_READ` / `R2_SECRET_ACCESS_KEY_READ` / `R2_BUCKET` | Read-scoped Cloudflare R2 API token + bucket name — a separate token from the workflow's write-scoped `R2_ACCESS_KEY_ID`/`R2_SECRET_ACCESS_KEY` GitHub secrets |
 | `GITHUB_BACKUPS_PAT` | Fine-grained GitHub PAT with Actions read+write on the repo (run history + manual dispatch) |

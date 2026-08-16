@@ -27,6 +27,8 @@
     "@mui/icons-material": "^7.3.11",
     "@mui/material": "^7.3.11",
     "@prisma/client": "6.19.3",
+    "@vercel/functions": "^3.9.3",
+    "google-auth-library": "^9.6.3",
     "googleapis": "^174.0.1",
     "marked": "^18.0.9",
     "motion": "^13.1.0",

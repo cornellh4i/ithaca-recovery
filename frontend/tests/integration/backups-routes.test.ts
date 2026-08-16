@@ -28,7 +28,8 @@ const mockedFetchRecentActivity = fetchRecentActivity as jest.Mock;
 const mockedDispatchBackup = dispatchBackup as jest.Mock;
 
 const STORAGE_VARS = [
-  "GCS_BACKUPS_CREDENTIALS",
+  "GCP_BACKUPS_WIF_PROVIDER",
+  "GCP_BACKUPS_SERVICE_ACCOUNT",
   "GCS_WORKING_BUCKET",
   "GCS_ARCHIVE_BUCKET",
   "R2_ACCOUNT_ID",
@@ -45,14 +46,14 @@ function clearBackupsEnv() {
   ALL_BACKUPS_VARS.forEach((name) => delete process.env[name]);
 }
 
-const VALID_GCS_CREDENTIALS = Buffer.from(
-  JSON.stringify({ client_email: "backup@icr.iam.gserviceaccount.com", private_key: "test-key", project_id: "icr-db-backups-prod" }),
-).toString("base64");
-
 function setLiveEnv() {
   STORAGE_VARS.forEach((name) => {
-    process.env[name] = name === "GCS_BACKUPS_CREDENTIALS" ? VALID_GCS_CREDENTIALS : "test-value";
+    process.env[name] = "test-value";
   });
+  // These two vars are shape-validated, not just presence-checked -- a bare "test-value"
+  // would count as missing and keep every "live mode" test stuck in unconfigured.
+  process.env.GCP_BACKUPS_WIF_PROVIDER = "projects/123/locations/global/workloadIdentityPools/pool/providers/provider";
+  process.env.GCP_BACKUPS_SERVICE_ACCOUNT = "backups-tab-reader@icr-management-system.iam.gserviceaccount.com";
   GITHUB_VARS.forEach((name) => {
     process.env[name] = "test-value";
   });
@@ -132,19 +133,43 @@ describe("GET /api/admin/backups", () => {
     const body = await response.json();
     expect(response.status).toBe(503);
     expect(body.configured).toBe(false);
-    expect(body.missing).toEqual(expect.arrayContaining(["GCS_BACKUPS_CREDENTIALS", "R2_BUCKET"]));
+    expect(body.missing).toEqual(expect.arrayContaining(["GCP_BACKUPS_WIF_PROVIDER", "R2_BUCKET"]));
   });
 
-  test("treats an undecodable GCS_BACKUPS_CREDENTIALS value as missing rather than 500ing", async () => {
+  test("treats a malformed GCP_BACKUPS_WIF_PROVIDER (e.g. pasted with the audience prefix) as missing", async () => {
     mockedRequireRole.mockResolvedValue(superAdminSession);
     setLiveEnv();
-    process.env.GCS_BACKUPS_CREDENTIALS = "not-valid-base64-json";
+    process.env.GCP_BACKUPS_WIF_PROVIDER = "//iam.googleapis.com/projects/123/locations/global/workloadIdentityPools/pool/providers/provider";
     jest.replaceProperty(process, "env", { ...process.env, NODE_ENV: "production" });
     const { GET } = await import("../../app/api/admin/backups/route");
     const response = await GET();
     const body = await response.json();
     expect(response.status).toBe(503);
-    expect(body.missing).toContain("GCS_BACKUPS_CREDENTIALS");
+    expect(body.missing).toContain("GCP_BACKUPS_WIF_PROVIDER");
+  });
+
+  test("treats a malformed GCP_BACKUPS_SERVICE_ACCOUNT as missing rather than 500ing", async () => {
+    mockedRequireRole.mockResolvedValue(superAdminSession);
+    setLiveEnv();
+    process.env.GCP_BACKUPS_SERVICE_ACCOUNT = "not-a-service-account";
+    jest.replaceProperty(process, "env", { ...process.env, NODE_ENV: "production" });
+    const { GET } = await import("../../app/api/admin/backups/route");
+    const response = await GET();
+    const body = await response.json();
+    expect(response.status).toBe(503);
+    expect(body.missing).toContain("GCP_BACKUPS_SERVICE_ACCOUNT");
+  });
+
+  test("treats a missing GCP_BACKUPS_WIF_PROVIDER as missing rather than 500ing", async () => {
+    mockedRequireRole.mockResolvedValue(superAdminSession);
+    setLiveEnv();
+    delete process.env.GCP_BACKUPS_WIF_PROVIDER;
+    jest.replaceProperty(process, "env", { ...process.env, NODE_ENV: "production" });
+    const { GET } = await import("../../app/api/admin/backups/route");
+    const response = await GET();
+    const body = await response.json();
+    expect(response.status).toBe(503);
+    expect(body.missing).toContain("GCP_BACKUPS_WIF_PROVIDER");
   });
 
   test("never leaks a raw upstream error into the response body", async () => {

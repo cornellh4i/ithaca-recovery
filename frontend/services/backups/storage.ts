@@ -4,10 +4,36 @@
 // computes the per-row `replicas` field the sidecar itself can never honestly claim (see
 // BackupMeta's INVARIANT comment in types/backups.ts).
 import { Storage } from "@google-cloud/storage";
+import { ExternalAccountClient } from "google-auth-library";
+import type { BaseExternalAccountClient } from "google-auth-library";
+import { getVercelOidcToken } from "@vercel/functions/oidc";
 import { ListObjectsV2Command, S3Client } from "@aws-sdk/client-s3";
 import type { BackupListRow, BackupMeta, BackupReplica, BackupTier } from "../../types/backups";
 import { ALL_BACKUP_REPLICAS, backupArtifactBaseName } from "../../types/backups";
 import { getStorageConfig } from "./config";
+
+// INVARIANT: keyless signing requires ONE physical copy of google-auth-library in
+// @google-cloud/storage's resolution path -- the direct dependency's range in package.json must
+// keep overlapping @google-cloud/storage's own, or yarn nests a second copy and an internal
+// `instanceof BaseExternalAccountClient` check fails at runtime only (no test catches it).
+//
+// GCP org policy `iam.disableServiceAccountKeyCreation` rules out a downloadable service-account
+// key entirely -- auth is Vercel OIDC -> GCP Workload Identity Federation instead. The WIF
+// provider trusts Vercel's OIDC issuer and exchanges the request's short-lived identity token for
+// an impersonated access token on GCP_BACKUPS_SERVICE_ACCOUNT; see this file's
+// `signedDownloadUrl` comment for the extra IAM role that impersonation needs for signing.
+function gcsAuthClient(provider: string, serviceAccount: string): BaseExternalAccountClient {
+  const client = ExternalAccountClient.fromJSON({
+    type: "external_account",
+    audience: `//iam.googleapis.com/${provider}`,
+    subject_token_type: "urn:ietf:params:oauth:token-type:jwt",
+    token_url: "https://sts.googleapis.com/v1/token",
+    service_account_impersonation_url: `https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/${serviceAccount}:generateAccessToken`,
+    subject_token_supplier: { getSubjectToken: () => getVercelOidcToken() },
+  });
+  if (!client) throw new Error("services/backups/storage: ExternalAccountClient.fromJSON returned null -- malformed WIF config");
+  return client;
+}
 
 const TIERS: BackupTier[] = ["daily", "monthly", "permanent"];
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -21,15 +47,25 @@ function computeExpiresAt(tier: BackupTier, createdAt: string): string | null {
   return new Date(new Date(createdAt).getTime() + days * DAY_MS).toISOString();
 }
 
+// Memoized per process, keyed on the two config values: rebuilding the ExternalAccountClient
+// per request would discard its internal STS/impersonated-token cache, paying the full
+// OIDC -> STS -> generateAccessToken exchange on every call instead of reusing a ~1h token.
+// The OIDC subject token itself stays fresh -- the supplier above is invoked per refresh, not
+// captured at construction.
+let cachedGcs: { provider: string; serviceAccount: string; storage: Storage } | null = null;
+
 function gcsClient(): Storage {
   const config = getStorageConfig();
-  return new Storage({
-    projectId: config.gcsCredentials.projectId,
-    credentials: {
-      client_email: config.gcsCredentials.clientEmail,
-      private_key: config.gcsCredentials.privateKey,
-    },
+  if (cachedGcs && cachedGcs.provider === config.gcpWifProvider && cachedGcs.serviceAccount === config.gcpServiceAccount) {
+    return cachedGcs.storage;
+  }
+  const storage = new Storage({
+    // The SA's own project doubles as the quota project for its STS exchanges.
+    projectId: config.gcpServiceAccount.split("@")[1]?.split(".")[0] ?? "icr-management-system",
+    authClient: gcsAuthClient(config.gcpWifProvider, config.gcpServiceAccount),
   });
+  cachedGcs = { provider: config.gcpWifProvider, serviceAccount: config.gcpServiceAccount, storage };
+  return storage;
 }
 
 function r2Client(): S3Client {
@@ -209,6 +245,10 @@ export async function listBackups(): Promise<{ rows: BackupListRow[]; archiveObj
   return { rows: cache.rows, archiveObjectCount, r2ObjectCount, workingObjectCount };
 }
 
+// With no private key on hand, google-auth-library signs the URL by calling IAM Credentials'
+// signBlob API through the impersonated access token -- GCP_BACKUPS_SERVICE_ACCOUNT must hold
+// roles/iam.serviceAccountTokenCreator on *itself* (not just the WIF pool's impersonation grant)
+// for that signBlob call to succeed.
 export async function signedDownloadUrl(id: string, tier: BackupTier): Promise<string> {
   const config = getStorageConfig();
   const storage = gcsClient();

@@ -67,7 +67,7 @@ const SystemStatusCard: React.FC<SystemStatusCardProps> = ({ email, role }) => {
   if (!data) {
     return (
       <Card accent="systemStatus">
-        <TopLoadingBar active={loading} />
+        <TopLoadingBar active={loading} label="Loading system status" />
         Loading system status…
       </Card>
     );
@@ -92,7 +92,7 @@ const SystemStatusCard: React.FC<SystemStatusCardProps> = ({ email, role }) => {
 
   return (
     <Card accent="systemStatus">
-      <TopLoadingBar active={loading} />
+      <TopLoadingBar active={loading} label="Loading system status" />
       <div className={styles.panelHeader}>
         <Icon name="monitor-heart" className={`${styles.panelIcon} ${styles.panelIconSystemStatus}`} />
         System Status

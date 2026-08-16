@@ -53,7 +53,7 @@ const MeetingCountsCard: React.FC = () => {
   if (!data) {
     return (
       <Card accent="meetingCounts">
-        <TopLoadingBar active={loading} />
+        <TopLoadingBar active={loading} label="Loading meeting counts" />
         Loading meeting counts…
       </Card>
     );
@@ -61,7 +61,7 @@ const MeetingCountsCard: React.FC = () => {
 
   return (
     <Card accent="meetingCounts">
-      <TopLoadingBar active={loading} />
+      <TopLoadingBar active={loading} label="Loading meeting counts" />
       <div className={styles.panelHeader}>
         <Icon name="event-available" className={`${styles.panelIcon} ${styles.panelIconMeetingCounts}`} />
         Meeting Counts

@@ -1,6 +1,7 @@
 @import '../../../../styles/Variables.module';
 
 .container {
+  position: relative; // anchors TopLoadingBar, which positions itself absolutely against this
   display: flex;
   flex-direction: column;
   gap: 20px;

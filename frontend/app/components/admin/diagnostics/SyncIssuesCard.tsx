@@ -153,7 +153,7 @@ const SyncIssuesCard: React.FC = () => {
   if (!syncIssues) {
     return (
       <Card accent="syncIssues" data-testid="diagnostics-sync-issues-panel">
-        <TopLoadingBar active={loading} />
+        <TopLoadingBar active={loading} label="Loading sync issues" />
         Loading sync issues…
       </Card>
     );
@@ -161,7 +161,7 @@ const SyncIssuesCard: React.FC = () => {
 
   return (
     <Card accent="syncIssues" data-testid="diagnostics-sync-issues-panel">
-      <TopLoadingBar active={loading} />
+      <TopLoadingBar active={loading} label="Loading sync issues" />
       <div className={styles.panelHeader}>
         <Icon name="sync-error" className={`${styles.panelIcon} ${styles.panelIconSyncIssues}`} />
         Sync Issues ({total})
