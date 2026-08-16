@@ -1,8 +1,8 @@
 # Backup Infra Setup
 
 Operator checklist for the three storage targets behind the backup workflow (see
-[Backups and Recovery](backups-and-recovery.md) for the design, [Credentials and
-Integrations](credentials-and-integrations.md) for the resulting secret/variable inventory). This
+[Backups and Recovery](../02-handoff/backups-and-recovery.md) for the design, [Credentials and
+Integrations](../02-handoff/credentials-and-integrations.md) for the resulting secret/variable inventory). This
 doc is both:
 
 - a **reproducible from-zero checklist** — every command needed to rebuild this infra if it's ever
@@ -276,7 +276,7 @@ free tier, destination an org-monitored inbox.
 
 ### 4.1 Secrets and variables
 
-Set per the full table in [Credentials and Integrations](credentials-and-integrations.md). Quick
+Set per the full table in [Credentials and Integrations](../02-handoff/credentials-and-integrations.md). Quick
 reference of what's a secret vs. a variable:
 
 - **Secrets:** `DATABASE_URL_UNPOOLED`, `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`,
@@ -432,22 +432,31 @@ Then remove `dev@518icr.com`'s `roles/billing.user` grant on the test account's 
 Private key A lives in the Maintenance Lead's password manager, private key B in the org vault
 (final holder still an open decision in the backup feature plan).
 
-### Backups admin tab: `GCS_BACKUPS_CREDENTIALS` — open
+### Backups admin tab: keyless GCS auth — done 2026-08-16 (PR #444)
 
-The Admin → Backups tab's server routes read the storage targets with their own credentials
-(see `docs/03-development/environment-variables.md`). As of 2026-08-16 every Vercel var for the
-tab is set **except `GCS_BACKUPS_CREDENTIALS`**: the read-only service account
-`backups-tab-reader@icr-management-system.iam.gserviceaccount.com` exists with
-`roles/storage.objectViewer` on both `gs://icr-db-backups-prod` and `gs://icr-db-backups-archive`,
-but the 518icr.com org enforces the `iam.disableServiceAccountKeyCreation` policy, so no JSON key
-has been minted yet.
+The Admin → Backups tab's server routes read GCS keylessly: Vercel OIDC → Workload Identity
+Federation, the same mechanism the backup workflow uses for GitHub Actions. No service-account
+key exists — the org's `iam.disableServiceAccountKeyCreation` policy stays fully enforced.
 
-**To close:** temporarily override that constraint to Off on `icr-management-system`
-(IAM & Admin → Organization Policies; needs `roles/orgpolicy.policyAdmin`, grantable only at the
-org level), create a JSON key on the service account's Keys tab, set the constraint back to On,
-then `base64` the key file into Vercel as `GCS_BACKUPS_CREDENTIALS` and delete the local copy.
-Until then, production's Backups tab shows its "not configured" panel for the snapshot/health
-cards (Back Up Now and Recent Activity work — they only need `GITHUB_BACKUPS_PAT`).
+As provisioned in `icr-management-system`:
+
+- WIF pool `vercel-backups-pool`, provider `vercel`, trusting issuer
+  `https://oidc.vercel.com/icr-e15f76a6` (audience `https://vercel.com/icr-e15f76a6`), with an
+  attribute condition accepting **only**
+  `owner:icr-e15f76a6:project:ithaca-recovery:environment:production` — preview deploys and any
+  other project can't impersonate.
+- `backups-tab-reader@icr-management-system.iam.gserviceaccount.com`:
+  `roles/storage.objectViewer` on both GCS buckets, `roles/iam.workloadIdentityUser` for that
+  single principal, and `roles/iam.serviceAccountTokenCreator` on itself (keyless V4 signed
+  URLs go through IAM `signBlob`).
+- Vercel needs two **non-secret** Production env vars (nothing to rotate or leak):
+  `GCP_BACKUPS_WIF_PROVIDER=projects/152224493895/locations/global/workloadIdentityPools/vercel-backups-pool/providers/vercel`
+  and `GCP_BACKUPS_SERVICE_ACCOUNT=backups-tab-reader@icr-management-system.iam.gserviceaccount.com`,
+  plus OIDC federation enabled in the Vercel project settings (issuer mode Team).
+
+Until those two vars are set and deployed, production's snapshot/health cards show the tab's
+"not configured" panel (Back Up Now and Recent Activity work — they only need
+`GITHUB_BACKUPS_PAT`).
 
 ### Cloudflare usage notification — done (2026-08-16)
 

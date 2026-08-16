@@ -15,6 +15,10 @@ For developers (current or future H4I teams) writing code against this app. Orga
 - **Why is it built this way?** [Technical Decisions](../02-handoff/technical-decisions.md)
   — every significant architecture decision and the reasoning behind it. Read this before
   proposing a change to the stack or a core pattern.
+- **How was the backup pipeline's cloud infrastructure provisioned?**
+  [Backup Infrastructure Setup](backup-infra-setup.md) — the as-built record (GCP projects,
+  buckets, R2, WIF) and its open items.
+- **How do I add or move a doc on the /docs page?** [Docs Site](docs-site.md).
 - **How does testing work? How do I run the suite?** [Testing](testing/README.md).
   Before a release, see [Manual Test Script](testing/manual-test-script-template.md)
   for what automation can't cover.

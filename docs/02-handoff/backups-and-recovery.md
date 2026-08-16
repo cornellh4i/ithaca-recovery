@@ -72,7 +72,7 @@ still-locked object fails, so the gap avoids noisy failures at every tier bounda
 
 `permanent/` promotion is manual, always — a two-line `gcloud storage cp` (or R2 equivalent) of an
 existing object into `permanent/` under its same filename, documented in
-[`backup-infra-setup.md`](backup-infra-setup.md) rather than automated, for the rare thing worth
+[`backup-infra-setup.md`](../03-development/backup-infra-setup.md) rather than automated, for the rare thing worth
 keeping forever.
 
 **What retention actually guards against is late-discovered corruption**, not disk failure — if
@@ -255,7 +255,7 @@ return `503` with the specific missing variable names instead of quietly serving
 
 ## Related docs
 
-- [`backup-infra-setup.md`](backup-infra-setup.md) — operator checklist for provisioning the GCP
+- [`backup-infra-setup.md`](../03-development/backup-infra-setup.md) — operator checklist for provisioning the GCP
   projects, R2 bucket, and `age` key ceremony.
 - [`credentials-and-integrations.md`](credentials-and-integrations.md) — the full set of secrets,
   variables, and key-custody locations.
