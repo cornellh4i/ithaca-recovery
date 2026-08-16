@@ -12,7 +12,7 @@ This is one of the "shouldn't depend on any one person" items — see
 ## 1. How to report a problem
 
 **ICR reports by email to the H4I Maintenance Lead** — currently
-**Nathnael Tesfaw &lt;nbt26@cornell.edu&gt;**. No GitHub account or technical
+**[Nathnael Tesfaw](mailto:nbt26@cornell.edu) (nbt26@cornell.edu)**. No GitHub account or technical
 framing needed; plain description plus the details in §2 below.
 
 The Maintenance Lead files each report as a GitHub issue (using the repo's Bug Report /
@@ -31,13 +31,7 @@ Before writing, a board member can also try the non-technical
 [Troubleshooting](../01-user-guide/reference/troubleshooting.md) checks — many display and sync
 questions resolve there.
 
-## 3. Who receives requests
-
-The current H4I Maintenance Lead: **Nathnael Tesfaw &lt;nbt26@cornell.edu&gt;**. The role (and
-this contact line) is re-confirmed each semester-end — the process routes to the *role*, not the
-person, so a new lead means updating this doc, nothing else.
-
-## 4. Response time expectations
+## 3. Response time expectations
 
 - **During the academic year:** first response within **2–3 business days**.
 - **Summer / winter break (between student teams):** **best-effort** — expect slower replies;
@@ -45,7 +39,7 @@ person, so a new lead means updating this doc, nothing else.
 - Mention clearly in the subject line if something is truly urgent (site down, signage blank,
   meetings not bookable) so it can be prioritized ahead of routine requests.
 
-## 5. Where this connects to other docs
+## 4. Where this connects to other docs
 
 - Non-technical troubleshooting a board member can try first:
   [Troubleshooting](../01-user-guide/reference/troubleshooting.md)
