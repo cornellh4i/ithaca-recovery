@@ -51,7 +51,7 @@ gcloud storage buckets update gs://icr-db-backups-prod \
 ```
 
 `gcs-lifecycle.json` deletes `daily/` at 21 days and `monthly/` at 407 days (`permanent/`
-deliberately has no rule — see that file's comment). This bucket carries **no bucket-level
+deliberately has no rule — the JSON must stay comment-free, so the omission is documented in §2.3). This bucket carries **no bucket-level
 retention policy** — its immutability comes from the CI service account's create-only IAM instead
 (§1.4), unlike the archive bucket in block 2.
 
@@ -118,11 +118,6 @@ A separate GCP project (project number `236481171441`), same production Google a
 (`dev@518icr.com`) as block 1 — deliberately not the shared dev/test account, which has standing
 test-user access for other student contributors. Its whole purpose is being a second, independent
 failure domain (separate billing/IAM/project) from the production project.
-
-Don't be misled by the GCP console: this project also appears when signed in as
-`ithacacommunityrecoverytest@gmail.com`, but only via the billing console (both backup projects
-bill to that account's billing account — see Open items). That is billing visibility, not
-ownership — the project's sole IAM owner is `dev@518icr.com`.
 
 ```sh
 gcloud projects create icr-backups-archive \
