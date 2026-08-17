@@ -43,7 +43,9 @@ const Dropdown: React.FC<DropdownProps> = ({
   const containerRef = React.useRef<HTMLDivElement>(null);
   const firstOptionRef = React.useRef<HTMLLIElement>(null);
 
-  const isOpen = activeDropdown === "element";
+  // isVisible is checked here too: the component returns null below when hidden, which would
+  // otherwise leave an unrenderable layer registered on the stack, swallowing Escape.
+  const isOpen = isVisible && activeDropdown === "element";
 
   // containerRef (not the list) is the layer root, so a click on the trigger button reads as
   // inside and is left to the button's own toggle instead of closing and immediately reopening.
