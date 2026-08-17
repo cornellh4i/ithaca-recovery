@@ -15,14 +15,23 @@ export const zoomRoomCalendarId: Record<string, string> = {
   "Children's Room @ 518 - Zoom": process.env.GOOGLE_CALENDAR_ZOOM_CHILDRENS_ROOM_518 ?? "",
 };
 
-// ICR's licensed Zoom users are a shared pool, not tied to any one room — each can host only
-// one meeting at a time, so which host a given meeting gets is resolved per-booking (see
-// resolveZoomHost below) rather than fixed by room. One env var, comma-separated, so adding
-// or removing a licensed seat doesn't require a code change.
+// ICR's licensed Zoom users are a shared pool, not tied to any one room — a licensed host can
+// run up to ZOOM_LICENSED_HOST_CAPACITY meetings at once (Zoom's own per-account rule), so
+// which host a given meeting gets is resolved per-booking (see resolveZoomHost below) rather
+// than fixed by room. One env var, comma-separated, so adding or removing a licensed seat
+// doesn't require a code change.
 export const zoomHostPool: string[] = (process.env.ZOOM_HOSTS ?? "")
   .split(",")
   .map((email) => email.trim())
   .filter(Boolean);
+
+// Zoom's concurrent-meeting caps are license-dependent: a licensed (Business) user can host 2
+// meetings simultaneously; a basic user only 1. Capacity is resolved per host from live license
+// status (getZoomHostCapacities below) rather than assumed — a blanket capacity of 2 would
+// silently double-book a host that ever downgrades to basic, and the failure would only surface
+// when the second Zoom call can't start (#446).
+export const ZOOM_LICENSED_HOST_CAPACITY = 2;
+const ZOOM_BASIC_HOST_CAPACITY = 1;
 
 // Zoom Server-to-Server OAuth tokens are valid ~1hr; cached module-level (not per-request) so
 // a burst of Zoom API calls (e.g. bulk meeting creation, each of which hits this 3+ times)
@@ -133,39 +142,90 @@ export async function checkZoomHostPool(): Promise<Record<string, { ok: boolean;
   return Object.fromEntries(entries);
 }
 
+// Per-host concurrent-meeting capacities, license-resolved with a 12h in-memory TTL cache.
+// The TTL is deliberately not the downgrade guard — meetings are booked days ahead, so the real
+// guard for already-booked meetings is Diagnostics' pool-health card; the cache just keeps warm
+// instances from re-asking Zoom on every write (serverless instance churn refreshes it sooner
+// than 12h in practice anyway). Fail-safe: unknown/unreachable license status → capacity 1,
+// which degrades to the pre-#446 behavior and can never overbook. An all-unknown result (e.g.
+// a transient token outage) is cached only briefly so one blip doesn't pin every host to
+// capacity 1 for a full window.
+const HOST_CAPACITY_TTL_MS = 12 * 60 * 60 * 1000;
+const HOST_CAPACITY_UNKNOWN_TTL_MS = 5 * 60 * 1000;
+let cachedHostCapacities: { capacities: Record<string, number>; expiresAt: number } | null = null;
+let inFlightCapacityRequest: Promise<Record<string, number>> | null = null;
+
+async function fetchZoomHostCapacities(): Promise<Record<string, number>> {
+  const pool = await checkZoomHostPool();
+  const capacities = Object.fromEntries(
+    zoomHostPool.map((host) => [
+      host,
+      pool[host]?.licensed === true ? ZOOM_LICENSED_HOST_CAPACITY : ZOOM_BASIC_HOST_CAPACITY,
+    ]),
+  );
+  const allUnknown = zoomHostPool.length > 0 && zoomHostPool.every((host) => pool[host]?.licensed == null);
+  const ttl = allUnknown ? HOST_CAPACITY_UNKNOWN_TTL_MS : HOST_CAPACITY_TTL_MS;
+  cachedHostCapacities = { capacities, expiresAt: Date.now() + ttl };
+  return capacities;
+}
+
+// MUST be called BEFORE entering a lockResourceClaims-guarded transaction — a Zoom API round
+// trip while pool advisory locks are held would extend lock hold time by an external call's
+// latency (see util/resourceLocks.ts's INVARIANT comment).
+export async function getZoomHostCapacities(): Promise<Record<string, number>> {
+  if (cachedHostCapacities && cachedHostCapacities.expiresAt > Date.now()) {
+    return cachedHostCapacities.capacities;
+  }
+  // Same in-flight coalescing as the token cache above -- concurrent cache misses share one
+  // checkZoomHostPool sweep instead of each firing pool-sized bursts of Zoom user lookups.
+  if (!inFlightCapacityRequest) {
+    inFlightCapacityRequest = fetchZoomHostCapacities().finally(() => {
+      inFlightCapacityRequest = null;
+    });
+  }
+  return inFlightCapacityRequest;
+}
+
 // Reports every pool host's availability against `candidate`, instead of stopping at the
 // first free one (contrast resolveZoomHost below) -- backs the Meeting Form's "Check host
 // availability" action, which needs to show a check/cross per host, not just resolve one.
-// Pool is small (<=5), so checking all of them in parallel is cheap.
+// Pool is small (<=5), so checking all of them in parallel is cheap. Capacity-aware: a
+// licensed host with one overlapping meeting still reports available (#446).
 export async function checkZoomHostPoolAvailability(
   candidate: OccurrenceInput,
   opts: { excludeMid?: string } = {},
 ): Promise<{ host: string; available: boolean }[]> {
+  const capacities = await getZoomHostCapacities();
   return Promise.all(zoomHostPool.map(async (host) => {
     const conflicts = await findResourceConflicts("zoomHost", host, candidate, prisma, {
       excludeMid: opts.excludeMid,
       includeSuspended: true,
+      capacity: capacities[host] ?? 1,
     });
     return { host, available: conflicts.length === 0 };
   }));
 }
 
-// Picks the first host in the pool (list order) with zero conflicts against `candidate`'s
+// Picks the first host in the pool (list order) with spare capacity against `candidate`'s
 // occurrences. Suspended meetings are included in the occupancy check (opts.excludeMid lets an
 // update re-check a meeting without conflicting against its own prior occurrences) — a
 // suspended meeting's Zoom meeting still exists, it's just not synced. `client` must be the same
 // `tx` a caller's `lockResourceClaims` call locked the whole `zoomHostPool` on (see
 // util/resourceLocks.ts's INVARIANT comment) -- resolving without holding those locks first
-// reopens the exact check-then-write race this function exists to close (see #360). Returns
-// null if every host is busy (pool exhausted).
+// reopens the exact check-then-write race this function exists to close (see #360), and the
+// capacity count widens that TOCTOU surface, so it must stay inside the lock too (#446).
+// `capacities` comes from getZoomHostCapacities, resolved by the caller BEFORE the transaction
+// (see its comment); omitted hosts fail safe to capacity 1. Returns null if every host is at
+// capacity (pool exhausted).
 export async function resolveZoomHost(
   candidate: OccurrenceInput,
   client: Prisma.TransactionClient,
-  opts: { excludeMid?: string } = {},
+  opts: { excludeMid?: string; capacities?: Record<string, number> } = {},
 ): Promise<string | null> {
   return findFirstFreePoolHost(zoomHostPool, candidate, client, {
     excludeMid: opts.excludeMid,
     includeSuspended: true,
+    capacities: opts.capacities,
   });
 }
 

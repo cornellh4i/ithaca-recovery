@@ -29,7 +29,8 @@ export interface ConflictListRow {
   value: string;
   // ISO strings -- Dates don't survive JSON as-is.
   overlap: { start: string; end: string };
-  meetings: [ConflictMeetingSummary, ConflictMeetingSummary];
+  // 2+ meetings -- capacity-1 resources produce pairs; an over-capacity Zoom host cluster is 3+.
+  meetings: ConflictMeetingSummary[];
 }
 
 export const fieldLabel = (field: "room" | "zoomRoom" | "zoomHost"): string => {

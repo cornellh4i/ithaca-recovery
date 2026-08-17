@@ -41,6 +41,10 @@ jest.mock("../../services/zoom", () => ({
   deleteZoomMeeting: jest.fn(),
   getZoomMeetingInvitation: jest.fn(),
   resolveZoomHost: jest.fn(),
+  // Per-host capacities are resolved before the locked transaction and threaded into the
+  // conflict checks; an empty map means every host fails safe to capacity 1, which is what most
+  // tests here assume. Tests covering licensed (capacity 2) hosts override it per-test.
+  getZoomHostCapacities: jest.fn().mockResolvedValue({}),
   // resolveZoomHost itself is mocked (its result is controlled per-test below), but the route
   // now locks every pool host via lockResourceClaims (the real implementation, not mocked)
   // before calling it -- needs real string values to lock, not the real env-derived pool.
@@ -157,8 +161,8 @@ test("a same-room time edit that now conflicts with another meeting on the same 
   const busyMeetingData = toMeetingCreateInput(buildMeetingPayload({
     mid: busyMid,
     modeType: "Hybrid",
-    room: "Fellowship Room",
-    zoomRoom: "Fellowship Room - Zoom",
+    room: "Update Route Fellowship Room",
+    zoomRoom: "Update Route Fellowship Room - Zoom",
     zid: "zid-busy",
     zoomHost: sharedHost,
     startDateTime: new Date("2026-09-01T20:00:00Z"),
@@ -220,7 +224,7 @@ test("editing a meeting into a room that's already booked is rejected with 409 +
 
   const busyMid = `m-${randomUUID()}`;
   const busyMeetingData = toMeetingCreateInput(buildMeetingPayload({
-    mid: busyMid, room: "Fellowship Room", startDateTime: start, endDateTime: end,
+    mid: busyMid, room: "Update Route Fellowship Room", startDateTime: start, endDateTime: end,
   }));
   await prisma.meeting.create({ data: busyMeetingData });
 
@@ -231,7 +235,7 @@ test("editing a meeting into a room that's already booked is rejected with 409 +
   const original = await prisma.meeting.create({ data: editedMeetingData });
 
   const payload = buildMeetingPayload({
-    mid: editedMid, room: "Fellowship Room", startDateTime: start, endDateTime: end,
+    mid: editedMid, room: "Update Route Fellowship Room", startDateTime: start, endDateTime: end,
   });
   const request = new Request("http://localhost/api/update/meeting", {
     method: "PUT",
@@ -242,7 +246,7 @@ test("editing a meeting into a room that's already booked is rejected with 409 +
   expect(response.status).toBe(409);
   const body = await response.json();
   expect(body.conflicts).toHaveLength(1);
-  expect(body.conflicts[0]).toMatchObject({ field: "room", value: "Fellowship Room" });
+  expect(body.conflicts[0]).toMatchObject({ field: "room", value: "Update Route Fellowship Room" });
   expect(body.conflicts[0].meetings.map((m: { mid: string }) => m.mid)).toContain(busyMid);
 
   // The room edit never landed -- still the pre-update value.
@@ -259,7 +263,7 @@ test("confirmOverride: true bypasses the room conflict check and saves the edit 
 
   const busyMid = `m-${randomUUID()}`;
   const busyMeetingData = toMeetingCreateInput(buildMeetingPayload({
-    mid: busyMid, room: "Fellowship Room", startDateTime: start, endDateTime: end,
+    mid: busyMid, room: "Update Route Fellowship Room", startDateTime: start, endDateTime: end,
   }));
   await prisma.meeting.create({ data: busyMeetingData });
 
@@ -270,7 +274,7 @@ test("confirmOverride: true bypasses the room conflict check and saves the edit 
   await prisma.meeting.create({ data: editedMeetingData });
 
   const payload = {
-    ...buildMeetingPayload({ mid: editedMid, room: "Fellowship Room", startDateTime: start, endDateTime: end }),
+    ...buildMeetingPayload({ mid: editedMid, room: "Update Route Fellowship Room", startDateTime: start, endDateTime: end }),
     confirmOverride: true,
   };
   const request = new Request("http://localhost/api/update/meeting", {
@@ -289,7 +293,7 @@ test("confirmOverride: true bypasses the room conflict check and saves the edit 
   });
 
   expect(updated?.googleSyncStatus).toBe("synced");
-  expect(updated?.room).toBe("Fellowship Room");
+  expect(updated?.room).toBe("Update Route Fellowship Room");
 });
 
 test("a newly resolved Zoom host is persisted synchronously when a meeting first gets a Zoom room", async () => {
@@ -440,7 +444,7 @@ test("an explicit host reassignment to an already-busy host is rejected with 409
 
   const busyMid = `m-${randomUUID()}`;
   const busyMeetingData = toMeetingCreateInput(buildMeetingPayload({
-    mid: busyMid, modeType: "Hybrid", room: "Fellowship Room", zoomRoom: "Fellowship Room - Zoom",
+    mid: busyMid, modeType: "Hybrid", room: "Update Route Fellowship Room", zoomRoom: "Update Route Fellowship Room - Zoom",
     zid: "zid-busy", zoomHost: busyHost, startDateTime: start, endDateTime: end,
   }));
   await prisma.meeting.create({ data: busyMeetingData });
@@ -484,7 +488,7 @@ test("needsNewHost triggered by a missing zid (not an explicit host change) stil
 
   const busyMid = `m-${randomUUID()}`;
   const busyMeetingData = toMeetingCreateInput(buildMeetingPayload({
-    mid: busyMid, modeType: "Hybrid", room: "Fellowship Room", zoomRoom: "Fellowship Room - Zoom",
+    mid: busyMid, modeType: "Hybrid", room: "Update Route Fellowship Room", zoomRoom: "Update Route Fellowship Room - Zoom",
     zid: "zid-busy-3", zoomHost: sharedHost, startDateTime: start, endDateTime: end,
   }));
   await prisma.meeting.create({ data: busyMeetingData });
@@ -532,7 +536,7 @@ test("confirmOverride: true bypasses the zoomHost reassignment block, tears down
 
   const busyMid = `m-${randomUUID()}`;
   const busyMeetingData = toMeetingCreateInput(buildMeetingPayload({
-    mid: busyMid, modeType: "Hybrid", room: "Fellowship Room", zoomRoom: "Fellowship Room - Zoom",
+    mid: busyMid, modeType: "Hybrid", room: "Update Route Fellowship Room", zoomRoom: "Update Route Fellowship Room - Zoom",
     zid: "zid-busy-2", zoomHost: busyHost, startDateTime: start, endDateTime: end,
   }));
   await prisma.meeting.create({ data: busyMeetingData });

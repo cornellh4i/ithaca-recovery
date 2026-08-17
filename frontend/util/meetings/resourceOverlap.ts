@@ -142,6 +142,65 @@ export function occurrencesOverlap(a: Occurrence[], b: Occurrence[]): boolean {
   return findOverlappingOccurrencePair(a, b) !== null;
 }
 
+// Capacity semantics are Zoom's own: a host with capacity k can run k meetings at once, so a
+// candidate fits unless k *other* meetings already cover some single instant inside one of the
+// candidate's occurrences. Overlap-anywhere-in-the-occurrence isn't enough — two existing
+// meetings at disjoint times inside one long candidate occurrence never exceed k=2 at any
+// instant, and rejecting that booking would be a false conflict.
+//
+// Returns the earliest instant-level over-capacity window (and who's active in it), or null if
+// the candidate fits everywhere. `otherMeetings` is one occurrence list per distinct meeting —
+// a single meeting's own back-to-back segments never count as two concurrent meetings.
+export function findOverCapacityWindow(
+  candidateOccurrences: Occurrence[],
+  otherMeetings: Occurrence[][],
+  capacity: number,
+): { window: Occurrence; meetingIndexes: number[]; candidateOccurrence: Occurrence } | null {
+  for (const cand of candidateOccurrences) {
+    const events: { time: number; delta: 1 | -1; idx: number }[] = [];
+    for (let m = 0; m < otherMeetings.length; m++) {
+      for (const occ of otherMeetings[m]) {
+        const start = occ.start > cand.start ? occ.start : cand.start;
+        const end = occ.end < cand.end ? occ.end : cand.end;
+        if (start < end) {
+          events.push({ time: start.getTime(), delta: 1, idx: m });
+          events.push({ time: end.getTime(), delta: -1, idx: m });
+        }
+      }
+    }
+    if (events.length === 0) continue;
+    // Ends sort before starts at the same timestamp so back-to-back intervals (end === start)
+    // never read as concurrent.
+    events.sort((a, b) => a.time - b.time || a.delta - b.delta);
+
+    // meetingIndex -> open segment count, so one meeting's overlapping segments (possible for
+    // a pathological pattern) still count as a single concurrent meeting.
+    const active = new Map<number, number>();
+    for (let e = 0; e < events.length; e++) {
+      const ev = events[e];
+      if (ev.delta === 1) {
+        active.set(ev.idx, (active.get(ev.idx) ?? 0) + 1);
+      } else {
+        const n = (active.get(ev.idx) ?? 0) - 1;
+        if (n <= 0) active.delete(ev.idx);
+        else active.set(ev.idx, n);
+      }
+      if (active.size >= capacity) {
+        const nextDistinct = events.find((later) => later.time > ev.time);
+        return {
+          window: {
+            start: new Date(ev.time),
+            end: new Date(nextDistinct ? nextDistinct.time : cand.end.getTime()),
+          },
+          meetingIndexes: [...active.keys()],
+          candidateOccurrence: cand,
+        };
+      }
+    }
+  }
+  return null;
+}
+
 // [rangeStart, rangeEnd) used by computeConflicts (the Diagnostics dashboard scan): from now
 // out to the horizon. Candidates and existing meetings alike are expected to be present/future
 // there — a meeting that already started in the past falling outside this window is
@@ -183,6 +242,10 @@ export type FindConflictsOptions = {
   // Suspended meetings still occupy their Zoom host (sync is skipped while suspended, not
   // torn down) but shouldn't nag admins on the room/zoomRoom conflicts panel. Default false.
   includeSuspended?: boolean;
+  // How many concurrent meetings the checked resource can carry (see findOverCapacityWindow's
+  // semantics). Defaults to 1 — rooms and Zoom rooms are physical spaces; only licensed Zoom
+  // hosts (capacity 2 per Zoom's own account rules, see services/zoom.ts) ever pass more.
+  capacity?: number;
 };
 
 // Finds every existing meeting occupying `field = value` whose occurrences overlap
@@ -231,9 +294,8 @@ export async function findResourceConflicts(
     ? meetingsRaw
     : meetingsRaw.filter((m) => !isDateSuspended(m.suspensions, todayStr));
 
-  const conflicts: { mid: string; title: string }[] = [];
-  for (const meeting of meetings) {
-    const occurrences = expandOccurrences(
+  const occurrenceLists = meetings.map((meeting) =>
+    expandOccurrences(
       {
         startDateTime: meeting.startDateTime,
         endDateTime: meeting.endDateTime,
@@ -242,27 +304,51 @@ export async function findResourceConflicts(
       },
       rangeStart,
       rangeEnd,
-    );
-    if (occurrencesOverlap(candidateOccurrences, occurrences)) {
-      conflicts.push({ mid: meeting.mid, title: meeting.title });
+    ),
+  );
+
+  // Capacity > 1 (a licensed Zoom host): the value is only unavailable when `capacity` other
+  // meetings share an instant inside a candidate occurrence — callers treat a non-empty return
+  // as "unavailable", so return the over-capacity window's members, or [] when the candidate
+  // still fits (#446).
+  const capacity = opts.capacity ?? 1;
+  if (capacity > 1) {
+    const over = findOverCapacityWindow(candidateOccurrences, occurrenceLists, capacity);
+    return over ? over.meetingIndexes.map((i) => ({ mid: meetings[i].mid, title: meetings[i].title })) : [];
+  }
+
+  const conflicts: { mid: string; title: string }[] = [];
+  for (let i = 0; i < meetings.length; i++) {
+    if (occurrencesOverlap(candidateOccurrences, occurrenceLists[i])) {
+      conflicts.push({ mid: meetings[i].mid, title: meetings[i].title });
     }
   }
 
   return conflicts;
 }
 
-// Picks the first host in `pool` (list order) with zero conflicts against `candidate`'s
+export type PoolHostOptions = FindConflictsOptions & {
+  // Per-host concurrent-meeting capacity (licensed hosts carry 2, basic 1 — resolved by
+  // services/zoom.ts's getZoomHostCapacities BEFORE the caller enters its locked transaction,
+  // so no external call ever runs while pool locks are held). Hosts missing from the map
+  // fail safe to capacity 1.
+  capacities?: Record<string, number>;
+};
+
+// Picks the first host in `pool` (list order) with spare capacity against `candidate`'s
 // occurrences -- the batched counterpart to calling findResourceConflicts once per pool host.
 // One query (`zoomHost: { in: pool }`) instead of up to `pool.length`, and the candidate's own
 // occurrences are expanded once and reused across every host, instead of once per query. `client`
 // must be the same `tx` a caller's `lockResourceClaims` call locked every pool host on (see
 // util/resourceLocks.ts) -- same reasoning as findResourceConflicts' own `client` param above.
-// Returns null if every host conflicts (pool exhausted).
+// The capacity check MUST stay inside that locked transaction: "count < capacity" is a wider
+// read-then-decide TOCTOU surface than the old binary busy check (#360/#446).
+// Returns null if every host is at capacity (pool exhausted).
 export async function findFirstFreePoolHost(
   pool: string[],
   candidate: OccurrenceInput,
   client: Prisma.TransactionClient,
-  opts: FindConflictsOptions = {},
+  opts: PoolHostOptions = {},
 ): Promise<string | null> {
   if (pool.length === 0) return null;
 
@@ -303,9 +389,10 @@ export async function findFirstFreePoolHost(
   }
 
   for (const host of pool) {
+    const capacity = opts.capacities?.[host] ?? 1;
     const hostMeetings = occupiedByHost.get(host) ?? [];
-    const conflicted = hostMeetings.some((meeting) => {
-      const occurrences = expandOccurrences(
+    const hostOccurrenceLists = hostMeetings.map((meeting) =>
+      expandOccurrences(
         {
           startDateTime: meeting.startDateTime,
           endDateTime: meeting.endDateTime,
@@ -314,10 +401,11 @@ export async function findFirstFreePoolHost(
         },
         rangeStart,
         rangeEnd,
-      );
-      return occurrencesOverlap(candidateOccurrences, occurrences);
-    });
-    if (!conflicted) return host;
+      ),
+    );
+    if (findOverCapacityWindow(candidateOccurrences, hostOccurrenceLists, capacity) === null) {
+      return host;
+    }
   }
 
   return null;
@@ -349,11 +437,14 @@ export type ConflictMeetingSummary = {
 export type ConflictRow = {
   field: "room" | "zoomRoom" | "zoomHost";
   value: string;
-  // The earliest window where the two meetings' occurrences actually intersect (not just
-  // either meeting's own start/end) — e.g. two meetings 7:00-8:00 and 7:30-8:30 overlap
+  // The earliest window where the listed meetings' occurrences actually intersect (not just
+  // any one meeting's own start/end) — e.g. two meetings 7:00-8:00 and 7:30-8:30 overlap
   // 7:30-8:00.
   overlap: { start: Date; end: Date };
-  meetings: [ConflictMeetingSummary, ConflictMeetingSummary];
+  // 2+ meetings. Capacity-1 resources (room/zoomRoom) still produce pairs; a capacity-2 Zoom
+  // host produces a row only when 3+ meetings share an instant — two meetings on one licensed
+  // host is healthy and is deliberately NOT a conflict (#446).
+  meetings: ConflictMeetingSummary[];
 };
 
 // Thrown from inside a lockResourceClaims-guarded prisma.$transaction callback to abort the
@@ -390,9 +481,17 @@ const toMeetingSummary = (meeting: ConflictCandidateMeeting, occurrence: Occurre
   occurrence: { start: occurrence.start, end: occurrence.end },
 });
 
+export type ComputeConflictsOptions = {
+  // Per-host concurrent-meeting capacity for the zoomHost buckets (licensed = 2, basic = 1;
+  // see services/zoom.ts's getZoomHostCapacities). Hosts missing from the map fail safe to
+  // capacity 1. room/zoomRoom are always capacity 1 — physical spaces.
+  zoomHostCapacities?: Record<string, number>;
+};
+
 // Pure/synchronous — groups a pre-fetched meeting list by room, zoomRoom, and zoomHost, and
-// pairwise-checks each bucket for overlaps. Kept DB-free (caller does the one Prisma query)
-// so this stays unit-testable without a database. Suspended meetings are excluded from the
+// checks each bucket for over-capacity overlaps (capacity 1 = plain pairwise overlap). Kept
+// DB-free (caller does the one Prisma query and resolves host capacities) so this stays
+// unit-testable without a database. Suspended meetings are excluded from the
 // room/zoomRoom checks: this feeds the Diagnostics conflicts panel, an admin scheduling tool
 // with no reason to flag a room/Zoom-room conflict for a meeting that isn't currently running.
 // zoomHost is the one exception -- a suspended meeting's Zoom sync is skipped, not torn down
@@ -401,6 +500,7 @@ const toMeetingSummary = (meeting: ConflictCandidateMeeting, occurrence: Occurre
 export function computeConflicts(
   meetings: ConflictCandidateMeeting[],
   horizonYears: number = OVERLAP_HORIZON_YEARS,
+  opts: ComputeConflictsOptions = {},
 ): ConflictRow[] {
   const [rangeStart, rangeEnd] = horizonRange(horizonYears);
   const todayStr = formatETDateString(new Date());
@@ -428,30 +528,96 @@ export function computeConflicts(
     }
 
     for (const [value, bucketMeetings] of buckets) {
+      const capacity = field === "zoomHost" ? (opts.zoomHostCapacities?.[value] ?? 1) : 1;
       const withOccurrences = bucketMeetings.map((meeting) => ({
         meeting,
         occurrences: expandOccurrences(meeting, rangeStart, rangeEnd),
       }));
 
-      for (let i = 0; i < withOccurrences.length; i++) {
-        for (let j = i + 1; j < withOccurrences.length; j++) {
-          const pair = findOverlappingOccurrencePair(withOccurrences[i].occurrences, withOccurrences[j].occurrences);
-          if (pair) {
-            conflicts.push({
-              field,
-              value,
-              overlap: {
-                start: pair.a.start > pair.b.start ? pair.a.start : pair.b.start,
-                end: pair.a.end < pair.b.end ? pair.a.end : pair.b.end,
-              },
-              meetings: [
-                toMeetingSummary(withOccurrences[i].meeting, pair.a),
-                toMeetingSummary(withOccurrences[j].meeting, pair.b),
-              ],
-            });
+      if (capacity <= 1) {
+        for (let i = 0; i < withOccurrences.length; i++) {
+          for (let j = i + 1; j < withOccurrences.length; j++) {
+            const pair = findOverlappingOccurrencePair(withOccurrences[i].occurrences, withOccurrences[j].occurrences);
+            if (pair) {
+              conflicts.push({
+                field,
+                value,
+                overlap: {
+                  start: pair.a.start > pair.b.start ? pair.a.start : pair.b.start,
+                  end: pair.a.end < pair.b.end ? pair.a.end : pair.b.end,
+                },
+                meetings: [
+                  toMeetingSummary(withOccurrences[i].meeting, pair.a),
+                  toMeetingSummary(withOccurrences[j].meeting, pair.b),
+                ],
+              });
+            }
           }
         }
+        continue;
       }
+
+      // capacity >= 2: over-capacity means MORE than `capacity` meetings sharing one instant —
+      // `capacity` concurrent meetings on a licensed host is healthy and must not be flagged.
+      // Rows group the way the calendar's own "+N" clusters do: one row per continuous
+      // transitive-overlap cluster (back-to-back occurrences don't chain), so a messy chain
+      // never spawns several near-identical rows. A row's meetings are the cluster members
+      // that participate in at least one over-capacity instant — a meeting merely chained
+      // onto the cluster but never concurrent at a peak isn't dragged in (moving it can't
+      // resolve anything). `overlap` is the cluster's earliest over-capacity window.
+      const events: { time: number; delta: 1 | -1; idx: number }[] = [];
+      withOccurrences.forEach(({ occurrences }, idx) => {
+        for (const occ of occurrences) {
+          events.push({ time: occ.start.getTime(), delta: 1, idx });
+          events.push({ time: occ.end.getTime(), delta: -1, idx });
+        }
+      });
+      events.sort((a, b) => a.time - b.time || a.delta - b.delta);
+
+      const active = new Map<number, number>();
+      let overMembers = new Set<number>();
+      let overWindow: { start: number; end: number } | null = null;
+      const closeCluster = () => {
+        if (overWindow && overMembers.size > 0) {
+          const windowStartMs = overWindow.start;
+          conflicts.push({
+            field,
+            value,
+            overlap: { start: new Date(overWindow.start), end: new Date(overWindow.end) },
+            meetings: [...overMembers].sort((a, b) => a - b).map((i) => {
+              // Each member's own occurrence covering the window start where possible; a member
+              // of a later peak in the same cluster falls back to its first occurrence.
+              const own = withOccurrences[i].occurrences.find(
+                (occ) => occ.start.getTime() <= windowStartMs && occ.end.getTime() > windowStartMs,
+              ) ?? withOccurrences[i].occurrences[0];
+              return toMeetingSummary(withOccurrences[i].meeting, own);
+            }),
+          });
+        }
+        overMembers = new Set();
+        overWindow = null;
+      };
+      for (let e = 0; e < events.length; e++) {
+        const ev = events[e];
+        if (ev.delta === 1) {
+          active.set(ev.idx, (active.get(ev.idx) ?? 0) + 1);
+        } else {
+          const n = (active.get(ev.idx) ?? 0) - 1;
+          if (n <= 0) active.delete(ev.idx);
+          else active.set(ev.idx, n);
+        }
+        if (active.size > capacity) {
+          for (const idx of active.keys()) overMembers.add(idx);
+          if (!overWindow) {
+            const nextDistinct = events.find((later) => later.time > ev.time);
+            overWindow = { start: ev.time, end: nextDistinct ? nextDistinct.time : ev.time };
+          }
+        }
+        // Cluster boundary: the sweep drained to zero (ends sort before starts, so a
+        // back-to-back handoff passes through zero here and correctly splits the chain).
+        if (active.size === 0) closeCluster();
+      }
+      closeCluster();
     }
   });
 
@@ -504,6 +670,67 @@ export async function findResourceConflictRows(
       suspensions: true,
     },
   });
+
+  const capacity = opts.capacity ?? 1;
+  if (capacity > 1) {
+    // Capacity-aware path (an explicitly-picked licensed Zoom host): the pick is only blocked
+    // when `capacity` other meetings already cover some instant of a candidate occurrence —
+    // sharing the host with capacity-1 others is healthy (#446). Emits a single N-way row
+    // (candidate + the meetings active in the earliest over-capacity window) instead of the
+    // capacity-1 path's one-pair-per-meeting rows.
+    const withOccurrences = meetings.map((meeting) => {
+      let occurrences = expandOccurrences(
+        {
+          startDateTime: meeting.startDateTime,
+          endDateTime: meeting.endDateTime,
+          isRecurring: meeting.isRecurring,
+          recurrencePattern: meeting.recurrencePattern,
+        },
+        rangeStart,
+        rangeEnd,
+      );
+      if (!opts.includeSuspended) {
+        occurrences = occurrences.filter((occ) => !isDateSuspended(meeting.suspensions, formatETDateString(occ.start)));
+      }
+      return { meeting, occurrences };
+    });
+
+    const over = findOverCapacityWindow(
+      candidateOccurrences,
+      withOccurrences.map((m) => m.occurrences),
+      capacity,
+    );
+    if (!over) return [];
+
+    const windowStartMs = over.window.start.getTime();
+    return [{
+      field,
+      value,
+      overlap: over.window,
+      meetings: [
+        toMeetingSummary(candidate, over.candidateOccurrence),
+        ...over.meetingIndexes.map((i) => {
+          const { meeting, occurrences } = withOccurrences[i];
+          const own = occurrences.find(
+            (occ) => occ.start.getTime() <= windowStartMs && occ.end.getTime() > windowStartMs,
+          ) ?? occurrences[0];
+          const summarySource: ConflictCandidateMeeting = {
+            mid: meeting.mid,
+            title: meeting.title,
+            room: field === "room" ? value : "",
+            zoomRoom: field === "zoomRoom" ? value : null,
+            zoomHost: field === "zoomHost" ? value : null,
+            calType: meeting.calType,
+            startDateTime: meeting.startDateTime,
+            endDateTime: meeting.endDateTime,
+            isRecurring: meeting.isRecurring,
+            recurrencePattern: meeting.recurrencePattern,
+          };
+          return toMeetingSummary(summarySource, own);
+        }),
+      ],
+    }];
+  }
 
   const rows: ConflictRow[] = [];
   for (const meeting of meetings) {

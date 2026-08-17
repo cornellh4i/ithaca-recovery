@@ -38,6 +38,10 @@ jest.mock("../../services/zoom", () => ({
   createZoomMeeting: jest.fn(),
   getZoomMeetingInvitation: jest.fn(),
   resolveZoomHost: jest.fn(),
+  // Per-host capacities are resolved before the locked transaction and threaded into the
+  // conflict checks; an empty map means every host fails safe to capacity 1, which is what most
+  // tests here assume. Tests covering licensed (capacity 2) hosts override it per-test.
+  getZoomHostCapacities: jest.fn().mockResolvedValue({}),
   // resolveZoomHost itself is mocked (its result is controlled per-test below), but the route
   // now locks every pool host via lockResourceClaims (the real implementation, not mocked)
   // before calling it -- needs real string values to lock, not the real env-derived pool.
@@ -47,13 +51,14 @@ jest.mock("../../services/zoom", () => ({
 
 import { requireRole } from "../../services/auth";
 import { createCalendarEvent } from "../../services/googleCalendar";
-import { resolveZoomHost, createZoomMeeting } from "../../services/zoom";
+import { resolveZoomHost, createZoomMeeting, getZoomHostCapacities } from "../../services/zoom";
 import { POST } from "../../app/api/write/meeting/route";
 
 const mockedRequireRole = requireRole as jest.Mock;
 const mockedCreateCalendarEvent = createCalendarEvent as jest.Mock;
 const mockedResolveZoomHost = resolveZoomHost as jest.Mock;
 const mockedCreateZoomMeeting = createZoomMeeting as jest.Mock;
+const mockedGetZoomHostCapacities = getZoomHostCapacities as jest.Mock;
 
 // Polls for the deferred sync job's persisted terminal googleSyncStatus instead of guessing a
 // fixed delay -- race-prone under slower CI/database conditions, per CodeRabbit's review of this
@@ -278,6 +283,76 @@ test("a manually-selected host that conflicts with another meeting is rejected w
   expect(mockedResolveZoomHost).not.toHaveBeenCalled();
   expect(mockedCreateZoomMeeting).not.toHaveBeenCalled();
   expect(mockedCreateCalendarEvent).not.toHaveBeenCalled();
+});
+
+test("a manually-selected licensed host that already runs one overlapping meeting is accepted, not blocked", async () => {
+  const prisma = getTestPrismaClient();
+  const start = new Date("2026-11-03T18:00:00Z");
+  const end = new Date("2026-11-03T19:00:00Z");
+  const licensedHost = "licensed-host@icr.test";
+  mockedGetZoomHostCapacities.mockResolvedValueOnce({ [licensedHost]: 2 });
+
+  await prisma.meeting.create({
+    data: {
+      mid: `m-${randomUUID()}`, title: "First On Licensed Host", modeType: "Hybrid", description: "", creator: "Creator", group: "Group",
+      startDateTime: start, endDateTime: end, email: "busy@test.icr", zoomRoom: "Capacity Room A - Zoom",
+      calType: ["AA"], status: "Active", room: "Capacity Room A", isRecurring: false,
+      zid: "zid-capacity-1", zoomHost: licensedHost,
+    },
+  });
+
+  const payload = buildMeetingPayload({
+    modeType: "Hybrid", room: "Capacity Room B", zoomRoom: "Capacity Room B - Zoom",
+    zoomHost: licensedHost, startDateTime: start, endDateTime: end,
+  });
+  const response = await POST(new Request("http://localhost/api/write/meeting", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  }));
+
+  expect(response.status).toBe(201);
+  const created = await prisma.meeting.findUnique({ where: { mid: payload.mid } });
+  expect(created?.zoomHost).toBe(licensedHost);
+  await waitForGoogleSyncStatus(payload.mid);
+});
+
+test("a manually-selected licensed host already at capacity 2 is rejected with a 409 listing every meeting in the window", async () => {
+  const prisma = getTestPrismaClient();
+  const start = new Date("2026-11-04T18:00:00Z");
+  const end = new Date("2026-11-04T19:00:00Z");
+  const licensedHost = "licensed-host-full@icr.test";
+  mockedGetZoomHostCapacities.mockResolvedValueOnce({ [licensedHost]: 2 });
+
+  const busyMids = [`m-${randomUUID()}`, `m-${randomUUID()}`];
+  for (const [i, mid] of busyMids.entries()) {
+    await prisma.meeting.create({
+      data: {
+        mid, title: `Licensed Host Meeting ${i}`, modeType: "Hybrid", description: "", creator: "Creator", group: "Group",
+        startDateTime: start, endDateTime: end, email: "busy@test.icr", zoomRoom: `Capacity Full Room ${i} - Zoom`,
+        calType: ["AA"], status: "Active", room: `Capacity Full Room ${i}`, isRecurring: false,
+        zid: `zid-capacity-full-${i}`, zoomHost: licensedHost,
+      },
+    });
+  }
+
+  const payload = buildMeetingPayload({
+    modeType: "Hybrid", room: "Capacity Full Room C", zoomRoom: "Capacity Full Room C - Zoom",
+    zoomHost: licensedHost, startDateTime: start, endDateTime: end,
+  });
+  const response = await POST(new Request("http://localhost/api/write/meeting", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  }));
+
+  expect(response.status).toBe(409);
+  const body = await response.json();
+  // One N-way row (the candidate plus both meetings already holding the host), not a row per pair.
+  expect(body.conflicts).toHaveLength(1);
+  expect(body.conflicts[0]).toMatchObject({ field: "zoomHost", value: licensedHost });
+  expect(body.conflicts[0].meetings.map((m: { mid: string }) => m.mid).sort()).toEqual(
+    [payload.mid, ...busyMids].sort(),
+  );
+  expect(await prisma.meeting.findUnique({ where: { mid: payload.mid } })).toBeNull();
 });
 
 test("confirmOverride: true bypasses the zoomHost conflict block, creates the meeting, but still defers its Zoom sync (Zoom itself can't double-book a host)", async () => {
