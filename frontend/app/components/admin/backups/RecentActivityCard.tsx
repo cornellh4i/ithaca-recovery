@@ -52,9 +52,16 @@ const RecentActivityCard: React.FC<RecentActivityCardProps> = ({ events, now, un
         <>
           <div className={styles.activitySummaryLine}>
             Failures, manual runs, and runs in progress.
-            {routineSuccessCount > 0 && ` ${routineSuccessCount} routine scheduled successes not shown.`}
+            {routineSuccessCount > 0 && ` ${routineSuccessCount} routine scheduled successes not shown.`}{" "}
+            <a
+              className={styles.docsLink}
+              href="https://github.com/cornellh4i/ithaca-recovery/actions/workflows/backup-db.yml"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Full history on GitHub
+            </a>
           </div>
-          {/* TODO(backups-api): link to a full-history view once the API wiring lands. */}
           {notableEvents.length === 0 ? (
             <div className={styles.emptyState}>No failures, manual runs, or runs in progress recorded.</div>
           ) : (
