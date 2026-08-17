@@ -145,8 +145,38 @@ const WeekView: React.FC<WeekViewProps> = ({
         // eslint-disable-next-line react-hooks/set-state-in-effect
         updateTimePosition();
         if (initialScrollDone === false) {
-            scrollToCurrentTime();
-            setInitialScrollDone(true);
+            const container = viewContainerRef.current;
+            if (container && container.scrollHeight > container.clientHeight) {
+                scrollToCurrentTime();
+                setInitialScrollDone(true);
+            } else if (container) {
+                // The container may not be scrollable yet: on /signage its bounded height
+                // arrives asynchronously from the page's recalcScale, after this mount-time
+                // effect -- scrolling now would silently no-op and the latch would mask it.
+                // Watch for the resize that makes it scrollable, scroll once, then latch
+                // (same retry idea as DayLandscapeView's width-measurement guard).
+                const observer = new ResizeObserver(() => {
+                    if (container.scrollHeight > container.clientHeight) {
+                        scrollToCurrentTime();
+                        setInitialScrollDone(true);
+                        observer.disconnect();
+                    }
+                });
+                observer.observe(container);
+                // The latch also gates the visibility flash-guard -- if the grid genuinely
+                // fits its container (nothing to ever scroll), the observer condition never
+                // holds, so latch anyway after a beat rather than staying hidden forever.
+                const fallbackId = window.setTimeout(() => {
+                    setInitialScrollDone(true);
+                    observer.disconnect();
+                }, 2000);
+                const intervalId = setInterval(updateTimePosition, 60000);
+                return () => {
+                    observer.disconnect();
+                    window.clearTimeout(fallbackId);
+                    clearInterval(intervalId);
+                };
+            }
         }
 
         const intervalId = setInterval(updateTimePosition, 60000);
