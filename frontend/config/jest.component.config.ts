@@ -19,6 +19,11 @@ const config: Config = {
   },
   moduleNameMapper: {
     "^server-only$": "<rootDir>/tests/mocks/server-only.js",
+    // marked ships ESM-first (its exports map has no CJS entry) and jest doesn't transform
+    // node_modules, so importing it under jsdom hits a raw `export` token. The UMD build is
+    // the same code in require-able form — scoped mapping rather than a global
+    // transformIgnorePatterns carve-out.
+    "^marked$": "<rootDir>/node_modules/marked/lib/marked.umd.js",
     "\\.module\\.scss$": "identity-obj-proxy",
     "\\.css$": "identity-obj-proxy",
     "\\.(png|jpe?g|gif|svg)$": "<rootDir>/tests/mocks/fileMock.js",

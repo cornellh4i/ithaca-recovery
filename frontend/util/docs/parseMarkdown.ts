@@ -66,10 +66,28 @@ function calloutIconSvg(kind: string): string {
 // natively).
 const CALLOUT_MARKER = /^\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]\s*\n?/i;
 
+// ContentCopy / Check path data, same MUI-lift idiom as CALLOUT_ICON_PATHS above (Icon.tsx maps
+// "copy"/"check" to the same two icons). Both are always in the button's markup; which one shows
+// is CSS keyed off data-copied, so the copy handler (util/docs/codeCopy.ts) only flips one
+// attribute instead of rewriting SVG.
+const COPY_ICON_SVG =
+  '<svg class="codeCopyIconCopy" viewBox="0 0 24 24" width="14" height="14" fill="currentColor" aria-hidden="true"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2m0 16H8V7h11z"/></svg>';
+const CHECK_ICON_SVG =
+  '<svg class="codeCopyIconCheck" viewBox="0 0 24 24" width="14" height="14" fill="currentColor" aria-hidden="true"><path d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>';
+
 export function parseMarkdown(markdown: string): { html: string; toc: TocItem[] } {
   const toc: TocItem[] = [];
   const slugCounts = new Map<string, number>();
   const renderer = new Renderer();
+  // Wraps every fenced/indented code block with a copy button, mirroring the Backups admin
+  // tab's command box. The button ships inside the HTML string (not as a React child) because
+  // this article renders via dangerouslySetInnerHTML — DocsArticle owns the one delegated click
+  // handler (util/docs/codeCopy.ts), so the buttons survive innerHTML re-assignments with no
+  // re-decoration pass.
+  const baseCode = Renderer.prototype.code;
+  renderer.code = function (token: Tokens.Code) {
+    return `<div class="codeBlock"><button type="button" class="codeCopyButton" aria-label="Copy code block">${COPY_ICON_SVG}${CHECK_ICON_SVG}</button>${baseCode.call(this, token)}</div>\n`;
+  };
   renderer.blockquote = ({ text, tokens }: Tokens.Blockquote) => {
     const match = text.match(CALLOUT_MARKER);
     if (!match) {

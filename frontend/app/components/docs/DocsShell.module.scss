@@ -537,6 +537,65 @@
     }
   }
 
+  // parseMarkdown wraps every code block for the copy button; the wrapper takes over the pre's
+  // own bottom margin so spacing is unchanged. Button styling mirrors the Backups admin tab's
+  // commandCopyButton — both sit on the same dark code background.
+  :global(.codeBlock) {
+    position: relative;
+    margin: 0 0 20px;
+
+    :global(pre) {
+      margin: 0;
+
+      // The button floats over the code's top-right corner; without this an unwrapped first
+      // line can run underneath it.
+      padding-right: 44px;
+    }
+  }
+
+  :global(.codeCopyButton) {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgb(255 255 255 / 8%);
+    border: 1px solid rgb(255 255 255 / 20%);
+    border-radius: $radius-sm;
+    color: rgb(255 255 255 / 80%);
+    cursor: pointer;
+    padding: 4px 6px;
+
+    :global(.codeCopyIconCheck) {
+      display: none;
+    }
+
+    &:hover {
+      background: rgb(255 255 255 / 18%);
+      color: #fff;
+    }
+
+    &:focus-visible {
+      outline: 2px solid #fff;
+      outline-offset: 2px;
+    }
+
+    &[data-copied="true"] {
+      background: $success-text-color;
+      border-color: $success-text-color;
+      color: #fff;
+
+      :global(.codeCopyIconCopy) {
+        display: none;
+      }
+
+      :global(.codeCopyIconCheck) {
+        display: block;
+      }
+    }
+  }
+
   :global(table) {
     border-collapse: collapse;
     width: 100%;
