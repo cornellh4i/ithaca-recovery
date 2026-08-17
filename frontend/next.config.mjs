@@ -31,6 +31,16 @@ const nextConfig = {
   // component can't return a non-HTML Response body anyway. :slug(.*) matches zero or more path
   // segments (including none, for the root doc's /docs.md), rewritten transparently -- the
   // browser's address bar still shows the clean /docs/<slug>.md URL, not /api/docs-raw.
+  // Handoff/development docs are noindexed via a response header rather than (only) meta
+  // robots: Next streams metadata for dynamic routes, so the meta tag can land after hydration
+  // (or never, if hydration trips) -- a header is crawler-equivalent and unconditional. The
+  // user guide stays indexable.
+  async headers() {
+    return ["/docs/02-handoff/:path*", "/docs/03-development/:path*"].map((source) => ({
+      source,
+      headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }],
+    }));
+  },
   async rewrites() {
     return [
       {
