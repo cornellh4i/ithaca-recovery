@@ -14,7 +14,7 @@ test.describe("edge cases", () => {
     await page.goto("/");
     await page.getByText("New Meeting").click();
     await page.getByPlaceholder("Meeting title").fill("Past Meeting");
-    await page.getByRole("button", { name: "In Person" }).click();
+    await page.getByRole("button", { name: "In Person", exact: true }).click();
 
     // A date in the past (still MM/DD/YYYY — matches the DatePicker's real contract).
     const pastInput = page.getByPlaceholder("MM/DD/YYYY");
@@ -48,7 +48,7 @@ test.describe("edge cases", () => {
     await page.goto("/");
     await page.getByText("New Meeting").click();
     await page.getByPlaceholder("Meeting title").fill("Rapid Click Meeting");
-    await page.getByRole("button", { name: "In Person" }).click();
+    await page.getByRole("button", { name: "In Person", exact: true }).click();
     const dateInput = page.getByPlaceholder("MM/DD/YYYY");
     await dateInput.fill("12/31/2026");
     await dateInput.blur();

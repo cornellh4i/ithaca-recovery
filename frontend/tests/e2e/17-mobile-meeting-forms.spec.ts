@@ -45,7 +45,7 @@ test.describe("mobile meeting interactions", () => {
     await expect(page.getByRole("heading", { name: "New Meeting" })).toBeVisible();
 
     await page.getByPlaceholder("Meeting title").fill("Mobile FAB Meeting");
-    await page.getByRole("button", { name: "In Person" }).click();
+    await page.getByRole("button", { name: "In Person", exact: true }).click();
     await fillDatePicker(page, todayMMDDYYYY());
     await fillTimeRange(page, "18:00", "19:00");
     await selectFromDropdown(page, "Select Room", "Serenity Room");

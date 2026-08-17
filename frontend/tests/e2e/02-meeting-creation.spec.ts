@@ -14,7 +14,7 @@ test.describe("meeting creation", () => {
     await expect(page.getByRole("heading", { name: "New Meeting" })).toBeVisible();
 
     await page.getByPlaceholder("Meeting title").fill("Full Flow Meeting");
-    await page.getByRole("button", { name: "In Person" }).click();
+    await page.getByRole("button", { name: "In Person", exact: true }).click();
     await fillDatePicker(page, todayMMDDYYYY());
     await fillTimeRange(page, "18:00", "19:00");
     await selectFromDropdown(page, "Select Room", "Serenity Room");
@@ -34,7 +34,7 @@ test.describe("meeting creation", () => {
     await page.goto("/");
     await page.getByText("New Meeting").click();
 
-    await page.getByRole("button", { name: "In Person" }).click();
+    await page.getByRole("button", { name: "In Person", exact: true }).click();
     await fillDatePicker(page, todayMMDDYYYY());
     await fillTimeRange(page, "18:00", "19:00");
     await selectFromDropdown(page, "Select Room", "Serenity Room");
@@ -60,7 +60,7 @@ test.describe("meeting creation", () => {
     await page.getByText("New Meeting").click();
 
     await page.getByPlaceholder("Meeting title").fill("Dual Category Meeting");
-    await page.getByRole("button", { name: "In Person" }).click();
+    await page.getByRole("button", { name: "In Person", exact: true }).click();
     await fillDatePicker(page, todayMMDDYYYY());
     await fillTimeRange(page, "20:00", "21:00");
     await selectFromDropdown(page, "Select Room", "Unity Room");
@@ -84,7 +84,7 @@ test.describe("meeting creation", () => {
     await page.goto("/");
     await page.getByText("New Meeting").click();
     await page.getByPlaceholder("Meeting title").fill("Conflicting Meeting");
-    await page.getByRole("button", { name: "In Person" }).click();
+    await page.getByRole("button", { name: "In Person", exact: true }).click();
     await fillDatePicker(page, todayMMDDYYYY());
     await fillTimeRange(page, "18:00", "19:00");
     await selectFromDropdown(page, "Select Room", "Seeds of Hope Room");
@@ -116,7 +116,7 @@ test.describe("meeting creation", () => {
     await page.goto("/");
     await page.getByText("New Meeting").click();
     await page.getByPlaceholder("Meeting title").fill("Unsaved Conflicting Meeting");
-    await page.getByRole("button", { name: "In Person" }).click();
+    await page.getByRole("button", { name: "In Person", exact: true }).click();
     await fillDatePicker(page, todayMMDDYYYY());
     await fillTimeRange(page, "18:00", "19:00");
     await selectFromDropdown(page, "Select Room", "Seeds of Hope Room");

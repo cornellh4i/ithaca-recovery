@@ -14,7 +14,7 @@ test.describe("recurring meetings", () => {
     await page.goto("/");
     await page.getByText("New Meeting").click();
     await page.getByPlaceholder("Meeting title").fill("Weekly Recurring Meeting");
-    await page.getByRole("button", { name: "In Person" }).click();
+    await page.getByRole("button", { name: "In Person", exact: true }).click();
 
     // Pick a Tuesday so the "On" day-button assertion below is unambiguous.
     const dateInput = page.getByPlaceholder("MM/DD/YYYY");
@@ -44,7 +44,7 @@ test.describe("recurring meetings", () => {
     await page.goto("/");
     await page.getByText("New Meeting").click();
     await page.getByPlaceholder("Meeting title").fill("Monthly Recurring Meeting");
-    await page.getByRole("button", { name: "In Person" }).click();
+    await page.getByRole("button", { name: "In Person", exact: true }).click();
 
     const dateInput = page.getByPlaceholder("MM/DD/YYYY");
     await dateInput.fill("08/11/2026"); // 2nd Tuesday of August 2026

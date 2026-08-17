@@ -3,6 +3,7 @@ import BoxText from '../../ui/displays/BoxText';
 import OverlapMeetingsPopover from '../shared/OverlapMeetingsPopover';
 import styles from './DailyViewRow.module.scss';
 import { isZoomRoomMismatched } from '../../../../util/rooms/rooms';
+import { buildMeetingChipAriaLabel } from '../../../../util/meetings/meetingChipPresentation';
 import { formatCompactTimeRange } from '../../../../util/date/timeFormat';
 import { formatETDateString } from '../../../../util/date/timeUtils';
 
@@ -209,6 +210,7 @@ const DailyViewRow: React.FC<DailyViewRowProps> = ({
               ? formatZoomRoomLabel(meeting.zoomRoom!)
               : undefined
           }
+          ariaLabel={buildMeetingChipAriaLabel(meeting)}
           syncError={syncErrorMids?.has(meeting.id)}
           hasConflict={conflictMids?.has(meeting.id)}
           selected={isSelected}

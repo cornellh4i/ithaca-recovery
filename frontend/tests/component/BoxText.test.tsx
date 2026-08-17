@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import BoxText from "../../app/components/ui/displays/BoxText";
 
 const baseProps = {
@@ -85,5 +85,44 @@ describe("BoxText", () => {
 
     expect(screen.getByText("In Person")).toBeInTheDocument();
     expect(screen.getByText("9-10AM")).toBeInTheDocument();
+  });
+
+  describe("Meeting Block accessibility", () => {
+    it("is a focusable button named by ariaLabel", () => {
+      render(<BoxText {...baseProps} ariaLabel="Weekly Check-in, 9 - 10 AM, Serenity Room, Hybrid" />);
+
+      const chip = screen.getByRole("button", { name: "Weekly Check-in, 9 - 10 AM, Serenity Room, Hybrid" });
+      expect(chip).toHaveAttribute("tabindex", "0");
+    });
+
+    it("activates on Enter with the meeting id", () => {
+      const onClick = jest.fn();
+      render(<BoxText {...baseProps} onClick={onClick} ariaLabel="Weekly Check-in" />);
+
+      fireEvent.keyDown(screen.getByRole("button", { name: "Weekly Check-in" }), { key: "Enter" });
+      expect(onClick).toHaveBeenCalledWith("meeting-1", expect.anything());
+    });
+
+    it("activates on Space", () => {
+      const onClick = jest.fn();
+      render(<BoxText {...baseProps} onClick={onClick} ariaLabel="Weekly Check-in" />);
+
+      fireEvent.keyDown(screen.getByRole("button", { name: "Weekly Check-in" }), { key: " " });
+      expect(onClick).toHaveBeenCalledWith("meeting-1", expect.anything());
+    });
+
+    it("does not activate on other keys", () => {
+      const onClick = jest.fn();
+      render(<BoxText {...baseProps} onClick={onClick} ariaLabel="Weekly Check-in" />);
+
+      fireEvent.keyDown(screen.getByRole("button", { name: "Weekly Check-in" }), { key: "Escape" });
+      expect(onClick).not.toHaveBeenCalled();
+    });
+
+    it("leaves Room Blocks as non-interactive labels", () => {
+      render(<BoxText {...baseProps} boxType="Room Block" title="Serenity Room" />);
+
+      expect(screen.queryByRole("button")).not.toBeInTheDocument();
+    });
   });
 });
