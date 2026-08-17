@@ -6,12 +6,12 @@
 |---|---|
 | Framework | Next.js 16 (App Router, full-stack TypeScript) |
 | UI | React 19 + Material-UI 7 |
-| Database | PostgreSQL (hosted on [Neon](https://neon.tech)) via Prisma ORM — see [Technical Decisions](../02-handoff/technical-decisions.md#database-postgresql-neon-prisma) for why (migrated from MongoDB 2026-08-06) |
+| Database | PostgreSQL (hosted on [Neon](https://neon.tech)) via Prisma ORM |
 | Authentication | NextAuth with Google OAuth 2.0 + OpenID Connect (`next-auth` 4) |
 | External APIs | Google Calendar API (`googleapis`), Zoom API (Server-to-Server OAuth, see [API Reference §Zoom](api-reference.md#zoom)) |
 | XLSX | `xlsx` (SheetJS) — meeting export |
 | Docs search | Pagefind (static-index search over `/docs`, see `app/(main)/docs/`) |
-| Testing | Playwright (E2E), Jest + `@swc/jest` (unit/component/integration), `embedded-postgres` (a real `postgres` binary run as a plain child process — no Docker, no network) — see [Testing](testing/README.md) |
+| Testing | Playwright (E2E), Jest + `@swc/jest` (unit/component/integration), `embedded-postgres` (with real `postgres` binary run as a plain child process) — see [Testing](testing/README.md) |
 
 ---
 

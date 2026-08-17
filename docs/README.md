@@ -22,8 +22,7 @@ For ICR leadership and whoever maintains this application next. Assumes little t
 - [Ownership and Access](02-handoff/ownership-and-access.md) — who owns GitHub/Vercel/Neon, what access ICR has, long-term responsibility after the current team transitions
 - [Credentials and Integrations](02-handoff/credentials-and-integrations.md) — every credential the app depends on, who controls it, how changes are coordinated
 - [Deployment and Rollback](02-handoff/deployment-and-rollback.md) — how code changes go from PR to production, and how a bad deploy gets rolled back
-- [Backups and Recovery](02-handoff/backups-and-recovery.md) — how Postgres data is backed up (live since 2026-08-16) and how to recover from data loss
-- [Backup Infrastructure Setup](02-handoff/backup-infra-setup.md) — the as-built provisioning record for the backup pipeline's cloud resources (GCP projects, buckets, R2, Workload Identity Federation) and its open items
+- [Backups and Recovery](02-handoff/backups-and-recovery.md) — how Postgres data is backed up and how to recover from data loss
 - [Support Process](02-handoff/support-process.md) — how to report a problem, what to include, who responds, and how fast
 - [Contingency and Future Transfer](02-handoff/contingency-transfer.md) — how to transfer the whole system to ICR or another maintainer if Hack4Impact can no longer support it
 - [Technical Decisions](02-handoff/technical-decisions.md) — why the stack and architecture are built the way they are
@@ -36,6 +35,9 @@ For developers (current or future H4I teams) writing code against this app — s
 - [Project Structure](03-development/project-structure.md) — tech stack, folder layout, data models, auth flow
 - [API Reference](03-development/api-reference.md) — every API route, request/response shapes
 - [Environment Variables](03-development/environment-variables.md) — every env var, what it's for
+- [Backup Infrastructure Setup](03-development/backup-infra-setup.md) — reproducible provisioning checklist for the backup pipeline's cloud resources (GCP projects, buckets, R2, Workload Identity Federation) and its open items
 - [Integration Guides](03-development/integration-guides.md) — step-by-step setup for every external service (Postgres, Google OAuth, Google Calendar, Zoom, PandaDoc, Vercel)
+- [CI/CD](03-development/ci-cd.md) — what runs automatically on pushes and PRs
+- [Docs Site](03-development/docs-site.md) — how docs/ becomes the in-app /docs page, and the checklist for adding or moving a doc
 - [Testing](03-development/testing/README.md) — how the automated test suite (lint/unit/component/integration/e2e) and CI work
 - [Manual Test Script](03-development/testing/manual-test-script-template.md) — manual pre-release checklist (for what CI can't cover)

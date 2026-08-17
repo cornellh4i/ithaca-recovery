@@ -7,11 +7,20 @@ interface DocsPageProps {
   params: Promise<{ slug?: string[] }>;
 }
 
+// Handoff and development docs stay publicly reachable (the repo is public anyway, and the
+// contingency audience may have no login) but are kept out of search indexes -- they name real
+// people/emails and the infra layout, which shouldn't be one web search away.
+const NOINDEX_SLUG_PREFIXES = ["02-handoff", "03-development"];
+
 export async function generateMetadata({ params }: DocsPageProps): Promise<Metadata> {
   const { slug } = await params;
-  const doc = findDocBySlug((slug ?? []).join("/"));
+  const routeSlug = (slug ?? []).join("/");
+  const doc = findDocBySlug(routeSlug);
   return {
     title: doc ? `${doc.title} | Resources | Ithaca Community Recovery` : "Resources | Ithaca Community Recovery",
+    ...(NOINDEX_SLUG_PREFIXES.some((prefix) => routeSlug.startsWith(prefix))
+      ? { robots: { index: false, follow: false } }
+      : {}),
   };
 }
 

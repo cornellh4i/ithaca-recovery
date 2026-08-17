@@ -31,8 +31,8 @@ cookie-refresh logic without a real dev server.
 in isolation (Jest + React Testing Library, `jsdom`), no server or database. Narrower than
 integration, faster than e2e — useful for a component with enough internal branching (conditional
 rendering, prop combinations) to be tedious to exercise fully through a real browser.
-Runs in CI as its own `component` job in `.github/workflows/test.yml` (added 2026-08-10, after a
-regression merged to `master` unnoticed while this tier was local-only — see the
+Runs in CI as its own `component` job in `.github/workflows/test.yml` — a component regression
+can otherwise merge to `master` unnoticed if this tier is only run locally (see the
 technical-decisions.md link above).
 
 **Integration** (`tests/integration/`, `yarn test:integration`) — a Next.js route handler talking
@@ -129,5 +129,5 @@ CodeQL, dependency-update automation, and more. See [CI/CD](../ci-cd.md) for the
 `tests/e2e/` only runs Chromium, and none of the automated tiers touch real Zoom/Google
 credentials. What's left — real OAuth login, live Zoom/Google Calendar behavior,
 cross-browser/responsive rendering, real-time behavior playing out over minutes — is covered by
-[Manual Test Script](manual-test-script-template.md), which has been trimmed down to
-just those cases plus the pre-release sign-off ritual.
+[Manual Test Script](manual-test-script-template.md), scoped to just those cases plus the
+pre-release sign-off ritual.

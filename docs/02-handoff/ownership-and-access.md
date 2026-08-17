@@ -1,4 +1,4 @@
-# Ownership and Access [STUB]
+# Ownership and Access
 
 Answers the handoff meeting items: *GitHub, Vercel, and Neon (Postgres) ownership*, *long-term H4I
 responsibility*, *ICR access and visibility*, and *post-November continuity*.
@@ -30,14 +30,14 @@ changing for the next one, rather than ICR needing to ask.
 
 What ICR gets, even though H4I remains the technical owner:
 
-- [ ] Admin/read-only access to production logs — not granted today; logs live in Vercel under
-  H4I's account. Open decision: whether a Vercel "Viewer" invite for an ICR contact is worth the
-  seat, versus the Maintenance Lead pulling logs on request via [Support Process](support-process.md)
+- [x] Production logs — ICR has no need for direct log access, so no Vercel viewer seat is
+  granted. Logs live in Vercel under H4I's account; the Maintenance Lead pulls them on request
+  via [Support Process](support-process.md)
 - [x] Backup evidence and encrypted downloads — the **Admin → Backups tab** 
   contains backup health, the full snapshot inventory with verification/replica evidence, and encrypted artifact
   downloads (see [Backups and Recovery](backups-and-recovery.md)). Downloads are `age`-encrypted;
-  reading one requires a private key (key A: H4I Maintenance Lead; key B: ICR side, open question,
-  [Backup Infrastructure Setup](backup-infra-setup.md))
+  reading one requires a private key (key A: H4I Maintenance Lead; key B: Matt Kaskela, ICR
+  President — see [Backups and Recovery](backups-and-recovery.md))
 - [x] Read access to production data — the **Admin → Export tab** produces full meeting exports
   (XLSX) on demand, usable by any ICR Super Admin without H4I involvement.
 - [x] A standing point of contact: the current H4I Maintenance Lead — see §3 above and

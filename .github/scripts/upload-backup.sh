@@ -3,8 +3,8 @@ set -euo pipefail
 
 # Uploads one backup run's artifact (+ sidecars) to a single storage target.
 # Called three times per run (once per target) by backup-db.yml, each after
-# the auth step for that target's credentials — see the plan's "two auth
-# steps" note for why gcs-working/gcs-archive can't share one invocation.
+# the auth step for that target's credentials — gcs-working and gcs-archive
+# authenticate against different GCP projects, so they can't share one invocation.
 
 usage() {
   echo "Usage: $0 --target=gcs-working|gcs-archive|r2" >&2
@@ -36,7 +36,7 @@ META_NAME="$(basename "$META_PATH")"
 
 # Same bytes go to daily/ always, plus monthly/ on the 1st — not a re-dump,
 # just an additional prefix, because lifecycle/Object-Lock rules key on
-# prefix+age, never metadata (see plan's GFS section).
+# prefix+age, never metadata.
 # Day-of-month comes from the artifact's own timestamp (backup-YYYYMMDD...), not
 # the upload wall clock — a run crossing midnight must agree with meta.json.tier,
 # which backup-db.sh derives from the same creation instant.

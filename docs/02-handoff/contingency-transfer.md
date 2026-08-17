@@ -1,4 +1,4 @@
-# Contingency and Future Transfer [STUB]
+# Contingency and Future Transfer
 
 Answers the handoff meeting item: *document how the codebase, production services, data,
 credentials, and domain integrations could be transferred to ICR or another maintainer if
@@ -22,9 +22,11 @@ arrangement. Think of this as "what to do if the arrangement in that doc breaks 
 
 ## Trigger conditions
 
-[TODO: decide what actually triggers this — e.g. "H4I has no active team for two consecutive
-semesters," or "ICR requests it explicitly." Vague/undefined triggers make this plan unusable when
-actually needed.]
+The trigger is simply **H4I being no longer able to maintain the application** — there is no
+more specific threshold, and no precedent for this happening. In practice that call is made in
+the semester-end communication between H4I and ICR
+(see [Ownership and Access](ownership-and-access.md) §5): if H4I cannot name a Maintenance Lead
+for the coming semester and doesn't expect to, this plan activates.
 
 ## Who ICR would need to find
 
@@ -33,8 +35,8 @@ If this scenario happens, ICR likely needs either:
    the [Development](../03-development/) docs are the onboarding doc set), or
 2. To decommission/replace the app entirely.
 
-[TODO: is there a standing H4I policy for this kind of handoff to a *different* student org or a
-paid contractor?]
+There is no standing H4I policy or precedent for handing off to a different student org or a paid
+contractor — if it comes to that, this doc and the transfer package below are the process.
 
 ## Minimum viable transfer package
 

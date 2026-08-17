@@ -53,7 +53,7 @@ written, reviewed, and rebuilt.
 
 This only rolls back the *application code* — it does not undo a database migration or any data
 written under the bad deploy. A rollback that needs the database restored to a prior state depends
-on [Backups and Recovery](backups-and-recovery.md), which isn't built yet.
+on [Backups and Recovery](backups-and-recovery.md).
 
 ## 4. Notifying ICR of significant changes
 
