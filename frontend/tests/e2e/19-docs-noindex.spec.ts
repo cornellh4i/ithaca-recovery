@@ -16,6 +16,15 @@ test.describe("docs robots headers", () => {
     expect(response?.headers()["x-robots-tag"]).toBe("noindex, nofollow");
   });
 
+  // Also the only e2e proving /docs renders at all -- the generated docs-content module is
+  // gitignored, and CI's fresh checkout serves 500s if the e2e server boots without generating
+  // it (the gap that hid exactly that bug).
+  test("a user-guide doc renders and is not noindexed", async ({ page }) => {
+    const response = await page.goto("/docs/01-user-guide/reference/troubleshooting");
+    expect(response?.status()).toBe(200);
+    expect(response?.headers()["x-robots-tag"]).toBeUndefined();
+  });
+
   // The negative case asserts against "/" rather than a user-guide doc page: the header rule
   // is path-scoped next.config, so any non-docs route proves it isn't applied globally -- and
   // "/" is compiled/exercised by every other spec, so this can't flake on the dev server's

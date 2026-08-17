@@ -1,4 +1,4 @@
-import { spawn, ChildProcess } from "child_process";
+import { spawn, execFileSync, ChildProcess } from "child_process";
 import path from "path";
 
 let serverProcess: ChildProcess | null = null;
@@ -10,6 +10,10 @@ let serverProcess: ChildProcess | null = null;
 // against a half-booted server.
 export async function startNextDevServer(env: Record<string, string>, port: number): Promise<void> {
   const frontendRoot = path.resolve(__dirname, "../../..");
+  // Spawning `next dev` directly skips the package.json dev script's docs-content generation
+  // step -- fine locally where the gitignored docsContent.generated.ts lingers from past runs,
+  // but on CI's fresh checkout every /docs route 500s without it. Generate before booting.
+  execFileSync("node", ["build-scripts/generate-docs-content.mjs"], { cwd: frontendRoot, stdio: "inherit" });
   serverProcess = spawn("npx", ["next", "dev", "-p", String(port)], {
     cwd: frontendRoot,
     env: { ...process.env, ...env },
