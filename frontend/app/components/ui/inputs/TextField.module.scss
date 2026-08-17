@@ -36,10 +36,15 @@
     }
 }
 
+// Always in the flow, empty or not -- an error line that mounts and unmounts pushes every
+// control below it down and back up again.
 .textfieldErrorText {
+    display: block;
+    min-height: 18px;
     margin-top: 4px;
     font-family: 'Source Sans Pro', sans-serif;
     font-size: 12px;
+    line-height: 18px;
     color: $danger-color;
 }
 

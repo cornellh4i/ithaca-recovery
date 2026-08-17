@@ -223,6 +223,15 @@ const DatePicker = ({ label, value: propValue = '', onChange, underlineOnFocus =
     }
   };
 
+  // This field only publishes what was typed on blur, so inside a <form> an Enter keypress
+  // would submit the stale committed date. Enter commits the typed text (and closes the
+  // calendar) instead of reaching the form's implicit submission.
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    handleBlur();
+  };
+
   const handleDateSelect = (date: Date) => {
   // date comes from MiniCalendar's underlying react-day-picker onSelect, which hands back a
   // local-midnight-anchored Date for whichever cell was clicked -- normalize via the same
@@ -241,9 +250,11 @@ const DatePicker = ({ label, value: propValue = '', onChange, underlineOnFocus =
 
   return (
     <div className={`${styles['date-picker-wrapper']} ${compact ? styles.compact : ''} ${isFocused && underlineOnFocus ? styles['underline'] : ''}`} ref={datePickerRef}>
-      <label className={styles['date-picker-label']}>
+      {/* Decorative only -- the field's real name comes from the caller's own <label> (see
+          TextField.tsx's inline icon for the same reasoning). */}
+      <span className={styles['date-picker-label']} aria-hidden="true">
         {typeof label === 'string' ? <span>{label}</span> : label}
-      </label>
+      </span>
       <div className={styles['date-picker-input-container']}>
         <input
           type="text"
@@ -251,6 +262,7 @@ const DatePicker = ({ label, value: propValue = '', onChange, underlineOnFocus =
           onChange={handleChange}
           onFocus={handleFocus}
           onBlur={handleBlur}
+          onKeyDown={handleKeyDown}
           placeholder="MM/DD/YYYY"
           className={styles['date-picker-input']}
           {...props}

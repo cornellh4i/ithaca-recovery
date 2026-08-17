@@ -11,6 +11,7 @@ import LabeledCheckbox from '../ui/inputs/CheckBox';
 import RecurringMeetingForm from './RecurringMeeting';
 import ZoomHostField from './ZoomHostField';
 import ConflictOverrideModal from './ConflictOverrideModal';
+import DiscardChangesModal from './DiscardChangesModal';
 import FormValidationBanner from './FormValidationBanner';
 import IconButton from '../ui/buttons/IconButton';
 
@@ -55,6 +56,9 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
       liveValidationErrors,
       markFieldTouched,
       getFieldError,
+      timeRangeError,
+      isOvernight,
+      isDirty,
     } = useMeetingForm(meeting);
 
     const { showToast } = useToast();
@@ -65,6 +69,17 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
     // Narrow Main Calendar sidebar gets ~80%-scaled field fonts; the "wide" embed (e.g.
     // Diagnostics Conflicts panel) has room to spare and keeps full size.
     const compact = layout === "sidebar";
+    const [isDiscardPromptOpen, setIsDiscardPromptOpen] = useState(false);
+
+    // Both user-driven close paths (Cancel, the X) go through here, so neither can silently
+    // drop in-progress edits.
+    const requestClose = () => {
+      if (isDirty) {
+        setIsDiscardPromptOpen(true);
+        return;
+      }
+      onClose();
+    };
 
     const submitMeeting = async (payload: IMeeting, confirmOverride: boolean) => {
       setIsSubmitting(true);
@@ -144,7 +159,7 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
           <IconButton
             name="close"
             ariaLabel="Close"
-            onClick={onClose}
+            onClick={requestClose}
             className={styles.iconButton}
           />
         </div>
@@ -248,6 +263,7 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
           }
           emailTextField={<TextField
             input="Email"
+            type="email"
             label={<Icon name="mail" size={28} ariaLabel="Mail Icon" />}
             value={inputEmailValue}
             onChange={setEmailValue}
@@ -267,9 +283,21 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
             compact={compact}
           />}
           handleMeetingSubmit={updateMeeting}
+          onCancel={requestClose}
           buttonText={isSubmitting ? "Updating…" : "Update Meeting"}
           isSubmitting={isSubmitting}
           layout={layout}
+          timeError={timeRangeError ?? undefined}
+          timeNote={isOvernight ? "Ends the next day." : undefined}
+        />
+        <DiscardChangesModal
+          isOpen={isDiscardPromptOpen}
+          subject="edits to this meeting"
+          onKeepEditing={() => setIsDiscardPromptOpen(false)}
+          onDiscard={() => {
+            setIsDiscardPromptOpen(false);
+            onClose();
+          }}
         />
         <ConflictOverrideModal
           isOpen={!!conflictState}
