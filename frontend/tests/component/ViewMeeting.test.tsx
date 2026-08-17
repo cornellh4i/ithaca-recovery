@@ -60,7 +60,9 @@ describe("ViewMeeting", () => {
     renderViewMeeting({ ...baseProps, anchorEl: makeAnchorEl(), isPhone: false });
     expect(await screen.findByText("Serenity Group")).toBeInTheDocument();
     const dialog = screen.getByRole("dialog", { name: "Serenity Group" });
-    expect(dialog).toHaveAttribute("aria-modal", "true");
+    // Deliberately not aria-modal: focus isn't trapped and the page behind stays interactive,
+    // so announcing it as modal would misdescribe it to screen readers.
+    expect(dialog).not.toHaveAttribute("aria-modal");
   });
 
   describe("desktop dismissal", () => {

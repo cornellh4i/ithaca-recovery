@@ -593,7 +593,6 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
       className={styles.popupAnchor}
       style={{ top: popupPosition.top, left: popupPosition.left, width: POPUP_WIDTH }}
       role="dialog"
-      aria-modal="true"
       aria-labelledby={titleId}
     >
       {content}
