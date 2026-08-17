@@ -55,27 +55,40 @@ const OverlapMeetingsPopover: React.FC<OverlapMeetingsPopoverProps> = ({
 
     // Anchors beside the pill: to its right by default, flipped to its left when the panel
     // would run off the viewport's right edge, and clamped vertically to stay fully on
-    // screen. Measured after render (panel height depends on row count).
+    // screen. Measured after render (panel height depends on row count), and re-measured on
+    // window resize and when the panel's own height changes while open (e.g. an admin's live
+    // conflictMids adding a warning line). Scroll needs no listener -- the full-viewport
+    // overlay blocks scrolling underneath while the popover is open.
     useLayoutEffect(() => {
         const panelEl = panelRef.current?.parentElement;
         if (!isOpen || !anchorEl || !panelEl) {
             setPosition(null);
             return;
         }
-        const anchorRect = anchorEl.getBoundingClientRect();
-        const panelHeight = panelEl.offsetHeight;
+        const reposition = () => {
+            const anchorRect = anchorEl.getBoundingClientRect();
+            const panelHeight = panelEl.offsetHeight;
 
-        let left = anchorRect.right + ANCHOR_GAP;
-        if (left + PANEL_WIDTH > window.innerWidth - ANCHOR_GAP) {
-            left = anchorRect.left - ANCHOR_GAP - PANEL_WIDTH;
-        }
-        left = Math.max(left, ANCHOR_GAP);
+            let left = anchorRect.right + ANCHOR_GAP;
+            if (left + PANEL_WIDTH > window.innerWidth - ANCHOR_GAP) {
+                left = anchorRect.left - ANCHOR_GAP - PANEL_WIDTH;
+            }
+            left = Math.max(left, ANCHOR_GAP);
 
-        let top = anchorRect.top;
-        top = Math.min(top, window.innerHeight - ANCHOR_GAP - panelHeight);
-        top = Math.max(top, ANCHOR_GAP);
+            let top = anchorRect.top;
+            top = Math.min(top, window.innerHeight - ANCHOR_GAP - panelHeight);
+            top = Math.max(top, ANCHOR_GAP);
 
-        setPosition({ top, left });
+            setPosition({ top, left });
+        };
+        reposition();
+        window.addEventListener('resize', reposition);
+        const observer = new ResizeObserver(reposition);
+        observer.observe(panelEl);
+        return () => {
+            window.removeEventListener('resize', reposition);
+            observer.disconnect();
+        };
     }, [isOpen, anchorEl, meetings]);
 
     // Full range across every meeting shown (true, unclipped times where available) --
@@ -149,12 +162,20 @@ const OverlapMeetingsPopover: React.FC<OverlapMeetingsPopoverProps> = ({
                         return (
                             <div
                                 key={meeting.id}
+                                role="button"
+                                tabIndex={0}
                                 className={styles.row}
                                 style={{
                                     borderLeftColor: meeting.primaryColor,
                                     backgroundColor: meeting.primaryColor ? toPastelColor(meeting.primaryColor) : undefined,
                                 }}
                                 onClick={() => onSelectMeeting(meeting.id)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' || e.key === ' ') {
+                                        e.preventDefault();
+                                        onSelectMeeting(meeting.id);
+                                    }
+                                }}
                             >
                                 {hasSyncError && (
                                     <span role="img" aria-label="Sync failed" title="Sync failed" className={styles.syncError}>

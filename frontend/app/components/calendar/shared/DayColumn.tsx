@@ -121,6 +121,23 @@ const DayColumn: React.FC<DayColumnProps> = ({
         }
     }, [selectedMeetingID, setAnchorEl]);
 
+    // Filters and data refreshes update `meetings` without remounting this component (date
+    // changes do remount it via keyed wrappers) -- if the cluster the popover was opened for
+    // is no longer rendered, close it instead of showing stale rows off a detached anchor.
+    useEffect(() => {
+        if (!overlapPopoverMeetings) return;
+        const openIds = new Set(overlapPopoverMeetings.map(m => m.id));
+        const clusterStillPresent = meetings.some(m =>
+            m.isOverflowIndicator &&
+            (m.overflowMeetings ?? []).length === openIds.size &&
+            (m.overflowMeetings ?? []).every(om => openIds.has(om.id)),
+        );
+        if (!clusterStillPresent) {
+            setOverlapPopoverMeetings(null);
+            setOverlapAnchorEl(null);
+        }
+    }, [meetings, overlapPopoverMeetings]);
+
     // Undefined selectedOccurrenceDate (no click has happened yet, e.g. a deep link) falls back
     // to matching on id alone, same as before this column-scoping existed.
     const isOccurrenceDateMatch = !selectedOccurrenceDate || formatETDateString(columnDate) === formatETDateString(selectedOccurrenceDate);
@@ -271,14 +288,20 @@ const DayColumn: React.FC<DayColumnProps> = ({
                                 title={`${meeting.overflowCount} more meeting${meeting.overflowCount === 1 ? '' : 's'} at this time — click to see all meetings`}
                                 onClick={(e) => {
                                     e.stopPropagation(); // Prevent column click handler from firing
-                                    setOverlapPopoverMeetings(meeting.overflowMeetings ?? []);
+                                    // primaryColor fallback matches renderMeetingCard's -- without it,
+                                    // color-less overflow meetings render as generic grey popover rows.
+                                    setOverlapPopoverMeetings(
+                                        (meeting.overflowMeetings ?? []).map(m => ({ ...m, primaryColor: m.primaryColor ?? roomColor }))
+                                    );
                                     setOverlapAnchorEl(e.currentTarget);
                                 }}
                                 onKeyDown={(e) => {
                                     if (e.key === 'Enter' || e.key === ' ') {
                                         e.preventDefault();
                                         e.stopPropagation();
-                                        setOverlapPopoverMeetings(meeting.overflowMeetings ?? []);
+                                        setOverlapPopoverMeetings(
+                                            (meeting.overflowMeetings ?? []).map(m => ({ ...m, primaryColor: m.primaryColor ?? roomColor }))
+                                        );
                                         setOverlapAnchorEl(e.currentTarget);
                                     }
                                 }}

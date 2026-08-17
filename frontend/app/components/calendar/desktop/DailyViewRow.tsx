@@ -125,6 +125,23 @@ const DailyViewRow: React.FC<DailyViewRowProps> = ({
     }
   }, [selectedMeetingID, setAnchorEl]);
 
+  // Filters and data refreshes update `meetings` without remounting this component (date
+  // changes do remount it via keyed wrappers) -- if the cluster the popover was opened for
+  // is no longer rendered, close it instead of showing stale rows off a detached anchor.
+  useEffect(() => {
+    if (!overlapPopoverMeetings) return;
+    const openIds = new Set(overlapPopoverMeetings.map(m => m.id));
+    const clusterStillPresent = meetings.some(m =>
+      m.isOverflowIndicator &&
+      (m.overflowMeetings ?? []).length === openIds.size &&
+      (m.overflowMeetings ?? []).every(om => openIds.has(om.id)),
+    );
+    if (!clusterStillPresent) {
+      setOverlapPopoverMeetings(null);
+      setOverlapAnchorEl(null);
+    }
+  }, [meetings, overlapPopoverMeetings]);
+
   // Undefined selectedOccurrenceDate (no click has happened yet, e.g. a deep link) falls back
   // to matching on id alone, same as before this row-scoping existed.
   const isOccurrenceDateMatch = !selectedOccurrenceDate || formatETDateString(columnDate) === formatETDateString(selectedOccurrenceDate);

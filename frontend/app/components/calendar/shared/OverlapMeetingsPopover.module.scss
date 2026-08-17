@@ -74,6 +74,11 @@
     // Darkens the pastel fill without defining a second hover color per room.
     box-shadow: inset 0 0 0 999px rgb(0 0 0 / 5%);
   }
+
+  &:focus-visible {
+    outline: 2px solid $brand-pink-color;
+    outline-offset: 1px;
+  }
 }
 
 // Same top-right corner-badge convention as BoxText.module.scss's .syncError, so the same
