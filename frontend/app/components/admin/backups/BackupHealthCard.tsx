@@ -14,6 +14,11 @@ interface BackupHealthCardProps {
   now: Date;
 }
 
+// Quarterly cadence is ~91 days; 100 gives a ~9-day grace window before the banner nags an
+// operator who's about to run the drill anyway.
+const DRILL_STALE_DAYS = 100;
+const DRILL_STALE_MS = DRILL_STALE_DAYS * 24 * 60 * 60 * 1000;
+
 const REPLICA_LABEL: Record<BackupReplica, string> = {
   "gcs-working": "GCS working",
   "gcs-archive": "GCS archive",
@@ -31,6 +36,14 @@ const formatRelativeAge = (sinceIso: string, now: Date): string => {
   if (diffHours < 24) return `${diffHours}h ago`;
   const diffDays = Math.floor(diffHours / 24);
   return `${diffDays}d ago`;
+};
+
+// "3 months ago" for the stale-drill banner -- coarser than formatRelativeAge's
+// minutes/hours/days since a drill's staleness is only meaningful in month-scale terms.
+const formatMonthsAgo = (sinceIso: string, now: Date): string => {
+  const diffMs = Math.max(0, now.getTime() - new Date(sinceIso).getTime());
+  const months = Math.max(1, Math.round(diffMs / (30 * 24 * 60 * 60 * 1000)));
+  return `${months} month${months === 1 ? "" : "s"} ago`;
 };
 
 // Countdown to the next scheduled run ("in 5h 51m"; "in 12m" once under an hour).
@@ -75,6 +88,11 @@ const BackupHealthCard: React.FC<BackupHealthCardProps> = ({ health, now }) => {
     ? "All three hold the latest snapshot"
     : `${latestCount} of ${health.replicaStatus.length} hold the latest snapshot`;
 
+  const drillAgeMs = health.lastVerifiedRestoreAt
+    ? now.getTime() - new Date(health.lastVerifiedRestoreAt).getTime()
+    : null;
+  const drillIsStale = drillAgeMs !== null && drillAgeMs >= DRILL_STALE_MS;
+
   return (
     <Card accent="systemStatus">
       <div className={styles.panelHeader}>
@@ -91,6 +109,25 @@ const BackupHealthCard: React.FC<BackupHealthCardProps> = ({ health, now }) => {
             <p className={styles.warningBannerTitle}>No restore has ever been verified</p>
             <p className={styles.warningBannerText}>
               Backups are running, but an untested backup is an unproven one. The quarterly restore drill is pending.
+            </p>
+          </div>
+          <a
+            className={styles.warningBannerAction}
+            href="/docs/02-handoff/backups-and-recovery#verification-restore-drills"
+          >
+            Restore drill runbook
+          </a>
+        </div>
+      )}
+
+      {drillIsStale && health.lastVerifiedRestoreAt !== null && (
+        <div className={styles.warningBanner}>
+          <div className={styles.warningBannerIcon}>
+            <Icon name="warning-amber" />
+          </div>
+          <div className={styles.warningBannerBody}>
+            <p className={styles.warningBannerTitle}>
+              Last verified restore was {formatMonthsAgo(health.lastVerifiedRestoreAt, now)} — run the quarterly drill
             </p>
           </div>
           <a
@@ -126,6 +163,15 @@ const BackupHealthCard: React.FC<BackupHealthCardProps> = ({ health, now }) => {
         <div className={styles.statCell}>
           <div className={styles.statValue}>{health.totals.objectCount}</div>
           <div className={styles.statCaption}>Snapshots retained</div>
+        </div>
+        <div className={styles.statCell}>
+          <div className={`${styles.statValue} ${drillIsStale ? styles.statValueWarn : ""}`}>
+            {health.lastVerifiedRestoreAt ? formatRelativeAge(health.lastVerifiedRestoreAt, now) : "Never"}
+          </div>
+          <div className={styles.statCaption}>
+            Last verified restore
+            {health.lastVerifiedRestoreAt && health.lastVerifiedRestoreKey ? ` · key ${health.lastVerifiedRestoreKey}` : ""}
+          </div>
         </div>
       </div>
 

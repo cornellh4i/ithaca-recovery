@@ -5,13 +5,26 @@ import type { BackupMeta } from "../../types/backups";
 
 let filesByBucketPrefix: Record<string, Record<string, string[]>> = {};
 let metaByKey: Record<string, BackupMeta> = {};
+// Working-bucket drill-verified.json content -- raw string so malformed-JSON cases can be
+// exercised, `undefined` means "not found" (404), matching a real never-drilled bucket.
+let markerContent: string | undefined;
 
 const WORKING_BUCKET = "icr-db-backups-prod";
 const ARCHIVE_BUCKET = "icr-db-backups-archive";
+const DRILL_MARKER_KEY = "drill-verified.json";
 
 const mockGetSignedUrl = jest.fn().mockResolvedValue(["https://storage.googleapis.com/signed-url-example"]);
 const mockFile = jest.fn((key: string) => ({
-  download: () => Promise.resolve([Buffer.from(JSON.stringify(metaByKey[key]))]),
+  download: () => {
+    if (key === DRILL_MARKER_KEY) {
+      if (markerContent === undefined) {
+        const notFound = Object.assign(new Error("not found"), { code: 404 });
+        return Promise.reject(notFound);
+      }
+      return Promise.resolve([Buffer.from(markerContent)]);
+    }
+    return Promise.resolve([Buffer.from(JSON.stringify(metaByKey[key]))]);
+  },
   getSignedUrl: mockGetSignedUrl,
 }));
 const mockBucket = jest.fn((bucketName: string) => ({
@@ -83,6 +96,7 @@ beforeEach(() => {
   mockSend.mockResolvedValue({ Contents: [] });
   filesByBucketPrefix = {};
   metaByKey = {};
+  markerContent = undefined;
 });
 
 afterEach(() => {
@@ -169,5 +183,59 @@ describe("listBackups against real-shaped keys", () => {
     const matching = rows.filter((r) => r.id === "20260815T011700Z");
     expect(matching).toHaveLength(1);
     expect(matching[0].tier).toBe("monthly");
+  });
+});
+
+describe("listBackups: drill-verified.json marker", () => {
+  beforeEach(() => {
+    filesByBucketPrefix = {
+      [WORKING_BUCKET]: { "daily/": [], "monthly/": [], "permanent/": [] },
+      [ARCHIVE_BUCKET]: { "daily/": [], "monthly/": [], "permanent/": [] },
+    };
+  });
+
+  test("absent marker resolves to null", async () => {
+    markerContent = undefined;
+    const { listBackups } = await import("../../services/backups/storage");
+    const { drillMarker } = await listBackups();
+    expect(drillMarker).toBeNull();
+  });
+
+  test("present, well-formed marker resolves to its parsed contents", async () => {
+    markerContent = JSON.stringify({
+      verifiedAt: "2026-08-01T07:17:00.000Z",
+      artifactId: "20260801T071700Z",
+      keyUsed: "A",
+    });
+    const { listBackups } = await import("../../services/backups/storage");
+    const { drillMarker } = await listBackups();
+    expect(drillMarker).toEqual({
+      verifiedAt: "2026-08-01T07:17:00.000Z",
+      artifactId: "20260801T071700Z",
+      keyUsed: "A",
+    });
+  });
+
+  test("malformed JSON is treated as absent, with one server log line", async () => {
+    const errorSpy = jest.spyOn(console, "error").mockImplementation(() => undefined);
+    markerContent = "{not json";
+    const { listBackups } = await import("../../services/backups/storage");
+    const { drillMarker } = await listBackups();
+    expect(drillMarker).toBeNull();
+    expect(errorSpy).toHaveBeenCalledWith(
+      expect.stringContaining("failed to read drill-verified.json"),
+      expect.anything(),
+    );
+    errorSpy.mockRestore();
+  });
+
+  test("wrong-shape JSON (missing keyUsed) is treated as absent, with one server log line", async () => {
+    const errorSpy = jest.spyOn(console, "error").mockImplementation(() => undefined);
+    markerContent = JSON.stringify({ verifiedAt: "2026-08-01T07:17:00.000Z", artifactId: "20260801T071700Z" });
+    const { listBackups } = await import("../../services/backups/storage");
+    const { drillMarker } = await listBackups();
+    expect(drillMarker).toBeNull();
+    expect(errorSpy).toHaveBeenCalledTimes(1);
+    errorSpy.mockRestore();
   });
 });

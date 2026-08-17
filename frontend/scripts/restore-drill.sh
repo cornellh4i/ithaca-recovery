@@ -9,12 +9,20 @@
 # Env:
 #   AGE_IDENTITY_FILE   path to an `age` private key file (holder A or B; either suffices)
 #   DRILL_TARGET_URL    unpooled connection string for a scratch DB (new/reset each drill)
+#   DRILL_KEY_USED      which physical key AGE_IDENTITY_FILE is (A or B) -- the script can't
+#                        derive this from the key file itself, so it must be told
 #   GCS_BUCKET           bucket to pull the monthly/ artifact from (default: icr-db-backups-prod)
 set -euo pipefail
 
 : "${AGE_IDENTITY_FILE:?missing}"
 : "${DRILL_TARGET_URL:?missing}"
+: "${DRILL_KEY_USED:?missing (set to A or B -- whichever physical key AGE_IDENTITY_FILE is)}"
 GCS_BUCKET="${GCS_BUCKET:-icr-db-backups-prod}"
+
+if [[ "$DRILL_KEY_USED" != "A" && "$DRILL_KEY_USED" != "B" ]]; then
+  echo "DRILL_KEY_USED must be exactly 'A' or 'B', got: $DRILL_KEY_USED" >&2
+  exit 1
+fi
 
 if [[ ! -f "$AGE_IDENTITY_FILE" ]]; then
   echo "age identity file not found: $AGE_IDENTITY_FILE" >&2
@@ -127,6 +135,31 @@ Result:   PASS
 Tables:   $(jq '.rowCounts | length' "$WORKDIR/meta.json") checked, 0 mismatches
 ===================================
 EOF
+
+  # Final step, reachable only once every check above has passed. Writes the
+  # drill-verified.json marker the Backups admin tab reads (no key material, no operator
+  # PII — see docs/03-development/backup-infra-setup.md's marker-contract section) and
+  # uploads it with the operator's own gcloud credentials, since the drill itself only holds
+  # read access to the working bucket.
+  ARTIFACT_ID="$(basename "$ARTIFACT_STEM")"
+  ARTIFACT_ID="${ARTIFACT_ID#backup-}"
+  # Written to the invoking directory, not $WORKDIR -- the EXIT trap deletes $WORKDIR before
+  # the operator can read the printed fallback path below.
+  MARKER_FILE="./drill-verified.json"
+  jq -n \
+    --arg verifiedAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+    --arg artifactId "$ARTIFACT_ID" \
+    --arg keyUsed "$DRILL_KEY_USED" \
+    '{verifiedAt: $verifiedAt, artifactId: $artifactId, keyUsed: $keyUsed}' > "$MARKER_FILE"
+
+  if command -v gcloud >/dev/null 2>&1; then
+    echo "Uploading drill-verified.json to gs://$GCS_BUCKET/..."
+    gcloud storage cp "$MARKER_FILE" "gs://$GCS_BUCKET/drill-verified.json"
+  else
+    echo "gcloud not found -- skipping marker upload (the drill itself still passed)." >&2
+    echo "Run this by hand once gcloud is available:" >&2
+    echo "  gcloud storage cp $MARKER_FILE gs://$GCS_BUCKET/drill-verified.json" >&2
+  fi
 else
   cat <<EOF
 

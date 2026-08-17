@@ -42,6 +42,8 @@ function formatCreatedLabel(createdAt: string, now: Date): string {
 export default function RestoreRunbookCard({ selected, now }: RestoreRunbookCardProps) {
   const [copied, setCopied] = useState(false);
   const [copyFailed, setCopyFailed] = useState(false);
+  const [drillCopied, setDrillCopied] = useState(false);
+  const [drillCopyFailed, setDrillCopyFailed] = useState(false);
 
   // Mock fixtures already set `id` to `backup-<yyyymmddThhmmssZ>`, but real rows carry the
   // sidecar's bare-timestamp `id` -- backupArtifactBaseName() normalizes either shape to the
@@ -52,6 +54,13 @@ export default function RestoreRunbookCard({ selected, now }: RestoreRunbookCard
     ? `AGE_IDENTITY_FILE=/path/to/key RESTORE_TARGET_URL=<neon-branch-url> ./frontend/scripts/restore-db.sh ./${backupArtifactBaseName(selected.id)}.dump.age`
     : null;
   const createdLabel = selected ? formatCreatedLabel(selected.createdAt, now) : null;
+
+  // Drill key letter isn't derivable from anything client-side (the operator picks whichever
+  // physical key they hold) -- <A|B> is a literal placeholder the operator fills in, same idiom
+  // as the /path/to/key and <neon-branch-url> placeholders above.
+  const drillCommand = selected
+    ? `DRILL_KEY_USED=<A|B> AGE_IDENTITY_FILE=/path/to/key ./frontend/scripts/restore-drill.sh ./${backupArtifactBaseName(selected.id)}.dump.age`
+    : null;
 
   const handleCopy = async () => {
     if (!command) return;
@@ -65,6 +74,19 @@ export default function RestoreRunbookCard({ selected, now }: RestoreRunbookCard
       // context -- keep the button un-flipped and tell the operator to select the text by hand.
       setCopied(false);
       setCopyFailed(true);
+    }
+  };
+
+  const handleDrillCopy = async () => {
+    if (!drillCommand) return;
+    try {
+      await navigator.clipboard.writeText(drillCommand);
+      setDrillCopyFailed(false);
+      setDrillCopied(true);
+      window.setTimeout(() => setDrillCopied(false), 2000);
+    } catch {
+      setDrillCopied(false);
+      setDrillCopyFailed(true);
     }
   };
 
@@ -118,6 +140,36 @@ export default function RestoreRunbookCard({ selected, now }: RestoreRunbookCard
         </div>
       ) : (
         <div className={styles.runbookNoSelection}>Select a snapshot above to generate its restore command.</div>
+      )}
+
+      <div className={styles.panelSubhead}>QUARTERLY DRILL</div>
+      <ul className={styles.runbookPrereqs}>
+        <li className={styles.runbookPrereq}>
+          <span>1.</span>
+          <span>An <code>age</code> private key (holder A or B).</span>
+        </li>
+        <li className={styles.runbookPrereq}>
+          <span>2.</span>
+          <span>A scratch Postgres database, unpooled — same rule as the restore command above.</span>
+        </li>
+      </ul>
+
+      {selected && drillCommand ? (
+        <div className={styles.commandBox}>
+          <div className={styles.commandBoxHeader}>Drill command for the selected snapshot · {createdLabel}</div>
+          <pre className={styles.commandBoxCode}>{drillCommand}</pre>
+          <button
+            type="button"
+            className={`${styles.commandCopyButton} ${drillCopied ? styles.commandCopyButtonCopied : ""}`}
+            onClick={handleDrillCopy}
+            aria-label="Copy drill command"
+            title={drillCopyFailed ? "Copy failed — select the text manually" : undefined}
+          >
+            <Icon name={drillCopied ? "check" : "copy"} size="sm" />
+          </button>
+        </div>
+      ) : (
+        <div className={styles.runbookNoSelection}>Select a snapshot above to generate its drill command.</div>
       )}
     </Card>
   );

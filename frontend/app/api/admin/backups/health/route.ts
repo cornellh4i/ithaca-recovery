@@ -25,7 +25,7 @@ export const GET = async () => {
   }
 
   try {
-    const { rows, workingObjectCount, archiveObjectCount, r2ObjectCount } = await listBackups();
+    const { rows, workingObjectCount, archiveObjectCount, r2ObjectCount, drillMarker } = await listBackups();
     const latest = rows[0];
     const lastSuccessfulBackupAt = latest ? latest.createdAt : null;
 
@@ -48,9 +48,8 @@ export const GET = async () => {
     const health: BackupHealth = {
       lastSuccessfulBackupAt,
       freshness: lastSuccessfulBackupAt ? freshnessFor(lastSuccessfulBackupAt, now) : "error",
-      // No quarterly restore drill has run against production yet -- see
-      // docs/02-handoff/backups-and-recovery.md's "Verification: restore drills" section.
-      lastVerifiedRestoreAt: null,
+      lastVerifiedRestoreAt: drillMarker ? drillMarker.verifiedAt : null,
+      lastVerifiedRestoreKey: drillMarker ? drillMarker.keyUsed : null,
       nextScheduledRunAt: nextScheduledRunAfter(now),
       replicaStatus,
       totals,

@@ -436,7 +436,36 @@ see the break-glass runbook in `backups-and-recovery.md`):
 
 ---
 
-## 8. Backups admin tab: keyless GCS auth
+## 8. Restore drill verification marker
+
+`restore-drill.sh`'s final step (reachable only once decrypt, scratch restore, and the exact
+`count(*)` match have all passed) writes `drill-verified.json` to the working bucket root
+(`gs://icr-db-backups-prod/drill-verified.json`, not under `daily/`/`monthly/`/`permanent/`) and
+uploads it with the operator's own `gcloud storage cp` — the drill only ever holds read access to
+the bucket, so this is a deliberately separate, manually-authenticated write:
+
+```json
+{
+  "verifiedAt": "2026-08-16T14:34:57Z",
+  "artifactId": "20260801T071700Z",
+  "keyUsed": "A"
+}
+```
+
+No key material and no operator PII — `keyUsed` is the key *letter* (A or B), not an identity.
+The Backups admin tab's storage layer reads this object in the same cached listing pass as the
+sidecars (one extra `objects.get`, same 60s TTL); absent (no drill has run yet), malformed, or
+wrong-shape objects are all treated as "never verified" rather than erroring the listing.
+
+Since `restore-drill.sh` runs on an operator's own machine (never CI — see §7), it can't infer
+which physical key `AGE_IDENTITY_FILE` points at. `DRILL_KEY_USED=A|B` is a required env var,
+validated to exactly one of those two values, so the marker's `keyUsed` field is always accurate.
+If `gcloud` isn't installed, the script still passes — it prints the exact `gcloud storage cp`
+command for the operator to run by hand as a separate concluding step.
+
+---
+
+## 9. Backups admin tab: keyless GCS auth
 
 The Admin → Backups tab's server routes read GCS keylessly: Vercel OIDC → Workload Identity
 Federation, the same mechanism the backup workflow uses for GitHub Actions. No service-account
