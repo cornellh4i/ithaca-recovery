@@ -11,6 +11,7 @@ import { defaultRooms } from "../../../../util/rooms/rooms";
 import { layoutOverlappingMeetings, OverlapMeeting } from "../../../../util/meetings/meetingOverlapLayout";
 import { dateEnterMotion, type SwipeDirection } from "../../../../util/date/dateTransition";
 import { addDaysToDate } from "../../../../util/date/weekDates";
+import TopLoadingBar from "../../ui/displays/TopLoadingBar";
 
 type Meeting = OverlapMeeting;
 
@@ -229,6 +230,10 @@ const DayView: React.FC<DayViewProps> = ({
   // have actually caught up to what's requested; otherwise it can animate in the *previous*
   // day's still-cached meetings under the new date's heading for however long the fetch takes.
   const [meetingsDate, setMeetingsDate] = useState<Date>(selectedDate);
+  // Mirrors WeekView's isLoading (from useWeekMeetings) -- DayView's own fetchMeetingsByDay
+  // has no such flag, so this view previously showed an empty grid with no indication a
+  // fetch was even in flight while paging dates or refreshing.
+  const [isLoading, setIsLoading] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   // Guards against out-of-order responses: rapid date/filter changes can fire overlapping
   // fetches, and without this a slower-but-stale response can overwrite a newer one.
@@ -269,11 +274,13 @@ const DayView: React.FC<DayViewProps> = ({
 
     const requestId = ++fetchRequestIdRef.current;
     const requestDate = selectedDateRef.current;
+    setIsLoading(true);
     const data = await fetchMeetingsByDay(requestDate);
     if (requestId === fetchRequestIdRef.current) {
       setMeetings(data);
       setMeetingsDate(requestDate);
       updateTimePosition();
+      setIsLoading(false);
     }
   }, [updateTimePosition]);
 
@@ -342,6 +349,7 @@ const DayView: React.FC<DayViewProps> = ({
 
   return (
     <div className={styles.outerContainer}>
+      <TopLoadingBar active={isLoading} label="Loading meetings" />
       <div
         ref={scrollContainerRef}
         className={styles.viewContainer}
