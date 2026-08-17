@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState, useTransition
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { TABLET_BREAKPOINT } from "../../../util/common/breakpoints";
+import { attachDialogCloseShim } from "../../../util/docs/dialogCloseShim";
 import type { DocMeta } from "../../../util/docs/loadDocs";
 import { usePagefindComponentUI } from "../../../hooks/usePagefindComponentUI";
 import TopLoadingBar from "../ui/displays/TopLoadingBar";
@@ -56,20 +57,69 @@ function docHref(slug: string): string {
 }
 
 // DocsShell is rendered from docs/layout.tsx, not from [[...slug]]/page.tsx -- layouts survive
-// a dynamic-segment change, pages don't. This is deliberate: pagefind-modal and
-// pagefind-modal-trigger below pair themselves up via generated IDs (aria-controls on the
-// trigger's button, matched against the modal dialog's own id) the first time each connects to
-// the DOM, and that pairing does not survive being torn down and recreated -- a second mount
-// within the same document leaves the trigger pointing at a dialog id that no longer exists, so
-// clicking it silently does nothing (no console error). Rendering both from a layout instead of
-// the page means they mount exactly once per docs session (only a real page load, i.e. a fresh
-// document, resets that), regardless of how many times the reader navigates between docs. See
+// a dynamic-segment change, pages don't, so doc-to-doc navigation never remounts the trigger.
+// <pagefind-modal> itself deliberately does NOT live here: leaving /docs entirely and returning
+// client-side unmounts and remounts this shell within the same document, while
+// pagefind-component-ui.js's module singleton persists -- a freshly-created modal desyncs from
+// the singleton's pairing state and the trigger opens nothing, silently (GitHub #477). The
+// modal is mounted once per real page load from app/(main)/layout.tsx instead (see the comment
+// there); fresh <pagefind-modal-trigger> elements pair correctly against that live modal. See
 // DocsArticle.tsx for the per-doc content (article + TOC) that's supposed to remount each time.
+
+// Guards Pagefind's modal against Chromium builds that never fire the dialog `close` event --
+// the second half of GitHub #477 (the first half is the modal remount desync fixed by mounting
+// it in app/(main)/layout.tsx). See util/docs/dialogCloseShim.ts for the mechanism.
+function usePagefindDialogCloseShim(): void {
+  useEffect(() => {
+    let cleanupDialog: (() => void) | null = null;
+
+    const attachToDialog = (dialog: HTMLDialogElement) => {
+      // Survives DocsShell remounts: the modal (and this dialog) live for the whole (main)
+      // session, so a previous shell's shim may already be watching.
+      if (dialog.dataset.closeShim === "true") return;
+      dialog.dataset.closeShim = "true";
+
+      const detach = attachDialogCloseShim(dialog);
+      cleanupDialog = () => {
+        detach();
+        delete dialog.dataset.closeShim;
+      };
+    };
+
+    // The dialog only exists once pagefind-component-ui.js has loaded and upgraded
+    // <pagefind-modal> (lazily injected -- see usePagefindComponentUI), so watch for it
+    // rather than assuming it's there on mount.
+    const modal = document.querySelector("pagefind-modal");
+    if (!modal) return;
+    const existing = modal.querySelector("dialog");
+    let upgradeObserver: MutationObserver | null = null;
+    if (existing) {
+      attachToDialog(existing);
+    } else {
+      upgradeObserver = new MutationObserver(() => {
+        const dialog = modal.querySelector("dialog");
+        if (dialog) {
+          upgradeObserver?.disconnect();
+          upgradeObserver = null;
+          attachToDialog(dialog);
+        }
+      });
+      upgradeObserver.observe(modal, { childList: true, subtree: true });
+    }
+
+    return () => {
+      upgradeObserver?.disconnect();
+      cleanupDialog?.();
+    };
+  }, []);
+}
+
 const DocsShell: React.FC<DocsShellProps> = ({ docsMeta, children }) => {
   const router = useRouter();
   const pathname = usePathname();
   const [isNavigating, startNavigation] = useTransition();
   usePagefindComponentUI();
+  usePagefindDialogCloseShim();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   // null means "not yet measured" (no window on the server, client hasn't measured yet) --
   // same three-state convention useIsPhone()/useViewport() use elsewhere in this app. Rendering
@@ -295,11 +345,6 @@ const DocsShell: React.FC<DocsShellProps> = ({ docsMeta, children }) => {
   return (
     <div className={styles.page}>
       <TopLoadingBar active={isNavigating} label="Loading page" />
-      {/* Single instance for the whole docs session -- pagefind-modal-trigger (in the sidebar
-          below) and this connect automatically by sharing Pagefind's default "instance". Both
-          live here, in the layout-rendered shell, specifically so they never remount -- see this
-          component's own comment above. */}
-      <pagefind-modal reset-on-close="true" />
       <div ref={compactBarRef} className={`${styles.compactBar} ${compact ? styles.isCompact : ""}`}>
         {/* Panel-toggle + breadcrumb animate out together as search opens, freeing the whole bar
             (not just the breadcrumb's own space) for the searchbox -- see .compactBarChrome. */}
