@@ -395,7 +395,17 @@ export async function findFirstFreePoolHost(
 
   const [rangeStart, rangeEnd] = candidateHorizonRange(OVERLAP_HORIZON_YEARS);
   const candidateOccurrences = expandOccurrences(candidate, rangeStart, rangeEnd);
-  if (candidateOccurrences.length === 0) return pool[0];
+  if (candidateOccurrences.length === 0) {
+    // Nothing to overlap with, but the tiered ordering below still applies -- returning
+    // pool[0] unconditionally could hand a basic host (and its silent 40-minute cap) to a
+    // meeting whose occurrences merely fall outside the horizon window.
+    const first = pool
+      .map((host, poolIndex) => ({ host, poolIndex, capacity: opts.capacities?.[host] ?? 1 }))
+      .sort((a, b) =>
+        (a.capacity >= 2 ? 0 : 1) - (b.capacity >= 2 ? 0 : 1) || a.poolIndex - b.poolIndex,
+      )[0];
+    return first?.host ?? null;
+  }
 
   const where: Prisma.MeetingWhereInput = {
     AND: [

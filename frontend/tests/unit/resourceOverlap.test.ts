@@ -468,6 +468,21 @@ describe("findFirstFreePoolHost — per-host capacities", () => {
     expect(host).toBe(pool[0]);
   });
 
+  it("prefers a licensed host even when the candidate expands to no occurrences", async () => {
+    // A candidate outside the horizon window expands to nothing -- the licensed-first
+    // ordering must still hold rather than defaulting to whatever host is first in the pool.
+    const farFuture = {
+      startDateTime: utcDate(2035, 7, 6, 19, 0),
+      endDateTime: utcDate(2035, 7, 6, 20, 0),
+      isRecurring: false,
+      recurrencePattern: null,
+    };
+    const host = await findFirstFreePoolHost(["basic@icr.test", "licensed@icr.test"], farFuture, stubClient([]), {
+      capacities: { "basic@icr.test": 1, "licensed@icr.test": 2 },
+    });
+    expect(host).toBe("licensed@icr.test");
+  });
+
   it("moves on once a capacity-2 host already has two concurrent meetings", async () => {
     const host = await findFirstFreePoolHost(
       pool,

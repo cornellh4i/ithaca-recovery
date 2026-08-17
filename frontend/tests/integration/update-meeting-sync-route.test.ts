@@ -17,6 +17,7 @@ jest.mock("../../services/zoom", () => ({
   createZoomMeeting: jest.fn(),
   updateZoomMeeting: jest.fn(),
   getZoomMeetingInvitation: jest.fn(),
+  getZoomHostCapacities: jest.fn().mockResolvedValue({}),
   resolveZoomHost: jest.fn(),
   // resolveZoomHost itself is mocked (its result is controlled per-test below), but the route
   // now locks every pool host via lockResourceClaims (the real implementation, not mocked)
