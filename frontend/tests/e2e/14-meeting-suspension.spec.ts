@@ -1,5 +1,5 @@
 import { test, expect } from "./support/fixtures";
-import { seedMeeting } from "../factories/meeting";
+import { seedMeeting, seedSuspendedMeeting } from "../factories/meeting";
 import { getTestPrismaClient } from "../factories/db";
 import type { Page } from "@playwright/test";
 
@@ -129,5 +129,25 @@ test.describe("meeting suspension", () => {
     await expect(page.getByText(/permanently removed/)).toBeVisible();
     // No "Suspend instead" nudge -- suspending again would just 409 against the pending one.
     await expect(page.getByText(/Not sure\?/)).toHaveCount(0);
+  });
+
+  test("14.6 the Resume 'On' datepicker popup renders above the modal and is clickable", async ({ adminPage }) => {
+    const { page } = adminPage;
+    await seedSuspendedMeeting({ title: "Datepicker Layering" });
+    await page.goto("/admin");
+
+    const suspendedPanel = page.getByTestId("diagnostics-suspended-panel");
+    await suspendedPanel.getByRole("button", { name: "Resume" }).click();
+    const resumeModal = page.getByTestId("resume-meeting-modal");
+    await resumeModal.getByText("On", { exact: true }).click();
+    await resumeModal.locator('input[placeholder="MM/DD/YYYY"]').click();
+
+    // The popup portals to document.body as the modal overlay's SIBLING -- clicking a day cell
+    // (not just asserting DOM presence) is what proves it stacks above the overlay, since the
+    // z-index regression left it present but painted underneath and unclickable.
+    const popup = page.locator('[data-datepicker-popup="true"]');
+    await expect(popup).toBeVisible();
+    await popup.getByRole("button", { name: /15/ }).first().click();
+    await expect(resumeModal.locator('input[placeholder="MM/DD/YYYY"]')).toHaveValue(/\d{2}\/15\/\d{4}/);
   });
 });
