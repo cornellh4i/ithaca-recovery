@@ -15,8 +15,6 @@ const fetchMeetingsByRange = async (startDate: Date, endDate: Date): Promise<Wee
     const cacheKey = `${formattedStart}-${formattedEnd}`;
 
     return rangeMeetingCache.getOrFetch(cacheKey, async () => {
-        console.log("[useRangeMeetings] Fetching meetings for range:", cacheKey);
-
         try {
             const response = await fetch(`/api/retrieve/meeting/range?startDate=${formattedStart}&endDate=${formattedEnd}`);
             // A failed response's body is { error: ... }, not a meeting array -- mapping it
@@ -25,7 +23,6 @@ const fetchMeetingsByRange = async (startDate: Date, endDate: Date): Promise<Wee
             // range as if it were a real, successful result for the rest of the session.
             if (!response.ok) throw new Error(`Range request failed with status ${response.status}`);
             const data = await response.json();
-            console.log("[useRangeMeetings] Raw API response for", cacheKey, ":", data);
             return mapRawMeetingsToWeekMeetings(data);
         } catch (error) {
             console.error("[useRangeMeetings] Error fetching meetings for", cacheKey, ":", error instanceof Error ? error.message : String(error));

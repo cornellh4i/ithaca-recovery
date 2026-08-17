@@ -37,7 +37,6 @@ export const fetchMeetingsByDay = async (date: Date): Promise<Room[]> => {
     try {
       const response = await fetch(`/api/retrieve/meeting/day?startDate=${formattedDate}`);
       const data: IMeeting[] = await response.json();
-      console.log("[DayView] Raw API response for", formattedDate, ":", data);
 
       // ET day boundaries, not local-timezone midnight — the backend selected meetings
       // using ET day bounds, so clipping must line up with the same boundaries.
@@ -317,7 +316,6 @@ const DayView: React.FC<DayViewProps> = ({
 
   useEffect(() => {
     if (refreshTrigger > 0) {
-      console.log("Refreshing calendar due to trigger change:", refreshTrigger);
       // dayMeetingCache.clear() (inside fetchData(true)) wipes the prefetched neighbors too --
       // re-warm them once the visible day's own force-fetch has landed, or the next arrow click
       // within the 30s auto-refresh window would slide in stale content again.
@@ -368,7 +366,7 @@ const DayView: React.FC<DayViewProps> = ({
                 primaryColor={room.primaryColor}
                 meetingId={room.meetings[0]?.id || ""}
                 // onClick={() => handleMeetingChange(room.meetings[0]?.id || "")}
-                onClick={() => console.log(`Clicked on room: ${room.name}`)}
+                onClick={() => {}}
               />
             </div>
           ))}
