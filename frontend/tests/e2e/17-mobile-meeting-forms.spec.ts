@@ -68,7 +68,8 @@ test.describe("mobile meeting interactions", () => {
     await page.getByText("Mobile Edit Meeting", { exact: true }).click();
     await expect(page.getByRole("dialog", { name: "Mobile Edit Meeting" })).toBeVisible();
     await page.getByRole("button", { name: "Meeting options" }).click();
-    await page.getByRole("button", { name: "Edit" }).click();
+    // exact: the "Mobile Edit Meeting" chip's accessible name also contains "Edit".
+    await page.getByRole("button", { name: "Edit", exact: true }).click();
 
     await expect(page.getByPlaceholder("Meeting title")).toHaveValue("Mobile Edit Meeting");
     // ViewMeeting's bottom sheet is gone -- Edit fully replaces it, not stacked on top.

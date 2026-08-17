@@ -54,7 +54,9 @@ test.describe("digital signage", () => {
     await expect(page.getByText("Week View Signage Meeting")).toBeVisible();
     // The navbar's own view dropdown must read "Week", not the "Day" it would show if it were
     // still tracking view as disconnected local state defaulting to "Day".
-    await expect(page.getByRole("button", { name: "Week" })).toBeVisible();
+    // exact: substring matching would also hit any meeting chip whose accessible name
+    // contains "Week" (chip names are "<title>, <time>, <room>, <mode>").
+    await expect(page.getByRole("button", { name: "Week", exact: true })).toBeVisible();
   });
 
   // Regression test for #348: the auto-fit scale calculation used to be gated on a plain
