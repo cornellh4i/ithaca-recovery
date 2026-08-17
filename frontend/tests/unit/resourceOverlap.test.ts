@@ -591,6 +591,60 @@ describe("computeConflicts — capacity-aware Zoom hosts", () => {
     expect(conflicts[0].meetings.map((m) => m.mid).sort()).toEqual(["m1", "m2", "m3"]);
   });
 
+  it("merges a continuous overlap chain with two separate peaks into one row", () => {
+    // One transitive-overlap cluster (m2 bridges 13-20) with two distinct over-capacity
+    // peaks: {m1,m2,m3} at 14-15 and {m2,m4,m5} at 18-19 — grouped like the calendar's own
+    // "+N" cluster rather than one row per concurrent set.
+    const conflicts = computeConflicts(
+      [
+        onHost("m1", "Room A", 13, 15),
+        onHost("m2", "Room B", 13, 20),
+        onHost("m3", "Room C", 14, 16),
+        onHost("m4", "Room D", 17, 19),
+        onHost("m5", "Room E", 18, 20),
+      ],
+      undefined,
+      { zoomHostCapacities: capacities },
+    );
+
+    expect(conflicts).toHaveLength(1);
+    expect(conflicts[0].meetings.map((m) => m.mid).sort()).toEqual(["m1", "m2", "m3", "m4", "m5"]);
+  });
+
+  it("excludes a chained meeting that is never concurrent at an over-capacity instant", () => {
+    // m0 (11-13:30) chains onto the cluster through m2 but only ever overlaps one other
+    // meeting at a time — it can't help resolve the 14-15 peak, so it stays off the row.
+    const conflicts = computeConflicts(
+      [
+        onHost("m0", "Room Z", 11, 13.5),
+        onHost("m1", "Room A", 13, 15),
+        onHost("m2", "Room B", 14, 16),
+        onHost("m3", "Room C", 14, 15),
+      ],
+      undefined,
+      { zoomHostCapacities: capacities },
+    );
+
+    expect(conflicts).toHaveLength(1);
+    expect(conflicts[0].meetings.map((m) => m.mid).sort()).toEqual(["m1", "m2", "m3"]);
+  });
+
+  it("splits back-to-back over-capacity groups into separate rows", () => {
+    // 13-14 and 14-15 trios touch at 14:00 but never overlap — two clusters, two rows.
+    const conflicts = computeConflicts(
+      [
+        onHost("a1", "Room A", 13, 14), onHost("a2", "Room B", 13, 14), onHost("a3", "Room C", 13, 14),
+        onHost("b1", "Room D", 14, 15), onHost("b2", "Room E", 14, 15), onHost("b3", "Room F", 14, 15),
+      ],
+      undefined,
+      { zoomHostCapacities: capacities },
+    );
+
+    expect(conflicts).toHaveLength(2);
+    const sets = conflicts.map((row) => row.meetings.map((m) => m.mid).sort().join(","));
+    expect(sets.sort()).toEqual(["a1,a2,a3", "b1,b2,b3"]);
+  });
+
   it("counts a suspended meeting against the host's capacity", () => {
     // A suspended meeting's Zoom sync is skipped, not torn down, so its host slot is still taken.
     const suspended = { ...onHost("m1", "Room A", 19, 20), suspensions: suspendedIndefinitely };

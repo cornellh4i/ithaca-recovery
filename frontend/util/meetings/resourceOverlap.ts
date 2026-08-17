@@ -559,8 +559,12 @@ export function computeConflicts(
 
       // capacity >= 2: over-capacity means MORE than `capacity` meetings sharing one instant —
       // `capacity` concurrent meetings on a licensed host is healthy and must not be flagged.
-      // Instant-level sweep over every occurrence in the bucket; one row per distinct set of
-      // concurrently-active meetings, at the earliest window that set exceeds capacity.
+      // Rows group the way the calendar's own "+N" clusters do: one row per continuous
+      // transitive-overlap cluster (back-to-back occurrences don't chain), so a messy chain
+      // never spawns several near-identical rows. A row's meetings are the cluster members
+      // that participate in at least one over-capacity instant — a meeting merely chained
+      // onto the cluster but never concurrent at a peak isn't dragged in (moving it can't
+      // resolve anything). `overlap` is the cluster's earliest over-capacity window.
       const events: { time: number; delta: 1 | -1; idx: number }[] = [];
       withOccurrences.forEach(({ occurrences }, idx) => {
         for (const occ of occurrences) {
@@ -571,7 +575,28 @@ export function computeConflicts(
       events.sort((a, b) => a.time - b.time || a.delta - b.delta);
 
       const active = new Map<number, number>();
-      const seenSets = new Set<string>();
+      let overMembers = new Set<number>();
+      let overWindow: { start: number; end: number } | null = null;
+      const closeCluster = () => {
+        if (overWindow && overMembers.size > 0) {
+          const windowStartMs = overWindow.start;
+          conflicts.push({
+            field,
+            value,
+            overlap: { start: new Date(overWindow.start), end: new Date(overWindow.end) },
+            meetings: [...overMembers].sort((a, b) => a - b).map((i) => {
+              // Each member's own occurrence covering the window start where possible; a member
+              // of a later peak in the same cluster falls back to its first occurrence.
+              const own = withOccurrences[i].occurrences.find(
+                (occ) => occ.start.getTime() <= windowStartMs && occ.end.getTime() > windowStartMs,
+              ) ?? withOccurrences[i].occurrences[0];
+              return toMeetingSummary(withOccurrences[i].meeting, own);
+            }),
+          });
+        }
+        overMembers = new Set();
+        overWindow = null;
+      };
       for (let e = 0; e < events.length; e++) {
         const ev = events[e];
         if (ev.delta === 1) {
@@ -581,29 +606,18 @@ export function computeConflicts(
           if (n <= 0) active.delete(ev.idx);
           else active.set(ev.idx, n);
         }
-        if (active.size <= capacity) continue;
-
-        const indexes = [...active.keys()].sort((a, b) => a - b);
-        const setKey = indexes.map((i) => withOccurrences[i].meeting.mid).join("|");
-        if (seenSets.has(setKey)) continue;
-        seenSets.add(setKey);
-
-        const windowStart = new Date(ev.time);
-        const nextDistinct = events.find((later) => later.time > ev.time);
-        const windowEnd = nextDistinct ? new Date(nextDistinct.time) : windowStart;
-        conflicts.push({
-          field,
-          value,
-          overlap: { start: windowStart, end: windowEnd },
-          meetings: indexes.map((i) => {
-            // Each member's own occurrence covering the window start (must exist — it's active).
-            const own = withOccurrences[i].occurrences.find(
-              (occ) => occ.start.getTime() <= ev.time && occ.end.getTime() > ev.time,
-            ) ?? withOccurrences[i].occurrences[0];
-            return toMeetingSummary(withOccurrences[i].meeting, own);
-          }),
-        });
+        if (active.size > capacity) {
+          for (const idx of active.keys()) overMembers.add(idx);
+          if (!overWindow) {
+            const nextDistinct = events.find((later) => later.time > ev.time);
+            overWindow = { start: ev.time, end: nextDistinct ? nextDistinct.time : ev.time };
+          }
+        }
+        // Cluster boundary: the sweep drained to zero (ends sort before starts, so a
+        // back-to-back handoff passes through zero here and correctly splits the chain).
+        if (active.size === 0) closeCluster();
       }
+      closeCluster();
     }
   });
 
