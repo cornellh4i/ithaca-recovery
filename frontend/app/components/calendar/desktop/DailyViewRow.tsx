@@ -111,7 +111,6 @@ const DailyViewRow: React.FC<DailyViewRowProps> = ({
   const pendingPopoverAnchorRef = useRef(false);
 
   const handleBoxClick = (meetingId: string, el: HTMLElement) => {
-    console.log(`Meeting ${meetingId} clicked`);
     setSelectedMeetingID(meetingId);
     setSelectedNewMeeting(false);
     setAnchorEl(el);

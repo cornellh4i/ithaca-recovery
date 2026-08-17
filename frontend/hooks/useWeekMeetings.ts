@@ -51,12 +51,9 @@ const fetchMeetingsByWeek = async (startDate: Date, endDate: Date): Promise<Week
     const cacheKey = `${formattedStart}-${formattedEnd}`;
 
     return weekMeetingCache.getOrFetch(cacheKey, async () => {
-        console.log("[useWeekMeetings] Fetching meetings for week:", cacheKey);
-
         try {
             const response = await fetch(`/api/retrieve/meeting/week?startDate=${formattedStart}&endDate=${formattedEnd}`);
             const data = await response.json();
-            console.log("[useWeekMeetings] Raw API response for", cacheKey, ":", data);
             return mapRawMeetingsToWeekMeetings(data);
         } catch (error) {
             // error objects don't serialize over CDP -- log the message directly so it's
@@ -168,7 +165,6 @@ export function useWeekMeetings(weekStartDate: Date, refreshTrigger: number = 0)
 
     useEffect(() => {
         if (refreshTrigger > 0) {
-            console.log("Refetching week meetings due to trigger change:", refreshTrigger);
             fetchWeekMeetings(true); // Force fetch (invalidate cache)
         }
     }, [refreshTrigger, fetchWeekMeetings]);

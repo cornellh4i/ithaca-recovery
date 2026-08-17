@@ -183,7 +183,6 @@ const CalendarSidebarShell: React.FC<CalendarSidebarShellProps> = ({
             meeting={selectedMeeting}
             onClose={onCloseEdit}
             onUpdateSuccess={() => {
-              console.log("Meeting updated!");
               triggerCalendarRefresh();
             }}
           />
