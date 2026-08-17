@@ -8,12 +8,12 @@ import { test, expect } from "./support/fixtures";
 test.describe("docs robots headers", () => {
   test("a handoff doc responds with a noindex X-Robots-Tag header", async ({ page }) => {
     const response = await page.goto("/docs/02-handoff/support-process");
-    expect(response?.headers()["x-robots-tag"]).toMatch(/noindex/);
+    expect(response?.headers()["x-robots-tag"]).toBe("noindex, nofollow");
   });
 
   test("a development doc responds with a noindex X-Robots-Tag header", async ({ page }) => {
     const response = await page.goto("/docs/03-development/docs-site");
-    expect(response?.headers()["x-robots-tag"]).toMatch(/noindex/);
+    expect(response?.headers()["x-robots-tag"]).toBe("noindex, nofollow");
   });
 
   // The negative case asserts against "/" rather than a user-guide doc page: the header rule
