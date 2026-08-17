@@ -1,4 +1,52 @@
-import { buildMeetingChipAriaLabel } from "../../util/meetings/meetingChipPresentation";
+import {
+  buildMeetingChipAriaLabel,
+  getMeetingChipPresentation,
+} from "../../util/meetings/meetingChipPresentation";
+import { createDefaultFilters } from "../../util/filters/meetingFilters";
+import { ROOM_COLORS, ZOOM_ROOM_COLOR, REMOTE_COLOR } from "../../util/rooms/filterColors";
+
+const hybridMeeting = {
+  tags: ["Hybrid", "AA"],
+  room: "Serenity Room",
+  zoomRoom: "Serenity Room - Zoom",
+};
+
+describe("getMeetingChipPresentation", () => {
+  it("keeps the physical room color and name while the physical room filter is checked", () => {
+    const filters = createDefaultFilters(true);
+
+    expect(getMeetingChipPresentation(hybridMeeting, filters)).toEqual({
+      primaryColor: ROOM_COLORS["Serenity Room"],
+      room: "Serenity Room",
+    });
+  });
+
+  it("presents as the Zoom room (grey, no physical room) when only the Zoom room filter keeps it visible", () => {
+    const filters = { ...createDefaultFilters(true), SerenityRoom: false };
+
+    expect(getMeetingChipPresentation(hybridMeeting, filters)).toEqual({
+      primaryColor: ZOOM_ROOM_COLOR,
+      room: undefined,
+    });
+  });
+
+  it("keeps the physical presentation when only the Zoom room filter is unchecked", () => {
+    const filters = { ...createDefaultFilters(true), SerenityRoomZoom: false };
+
+    expect(getMeetingChipPresentation(hybridMeeting, filters)).toEqual({
+      primaryColor: ROOM_COLORS["Serenity Room"],
+      room: "Serenity Room",
+    });
+  });
+
+  it("leaves Remote meetings on the Remote color regardless of room filters", () => {
+    const filters = { ...createDefaultFilters(true), SerenityRoom: false };
+
+    expect(
+      getMeetingChipPresentation({ tags: ["Remote", "AA"], room: "Remote", zoomRoom: null }, filters),
+    ).toEqual({ primaryColor: REMOTE_COLOR, room: "Remote" });
+  });
+});
 
 describe("buildMeetingChipAriaLabel", () => {
   it("composes title, time range, room, and mode", () => {

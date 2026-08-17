@@ -67,6 +67,31 @@ interface DateRoomTagMeeting {
     zoomRoom?: string | null;
 }
 
+export interface RoomFilterVisibility {
+    viaPhysicalRoom: boolean;
+    viaZoomRoom: boolean;
+}
+
+/**
+ * Which of a meeting's room resources currently pass the room filters. A Hybrid meeting
+ * occupies both its physical room and its Zoom room, so it can be visible through either
+ * (see filterMeetingsForDate); a Remote meeting is gated on the virtual "Remote" room key,
+ * reported as viaPhysicalRoom. Per-day views (Week, mobile day columns) use this to render
+ * a meeting surviving only via its Zoom room in the Zoom styling Day view would show.
+ */
+export const getRoomFilterVisibility = (
+    meeting: Pick<DateRoomTagMeeting, 'tags' | 'room' | 'zoomRoom'>,
+    filters: MeetingFilters,
+): RoomFilterVisibility => {
+    if (meeting.tags.includes('Remote')) {
+        return { viaPhysicalRoom: passesRoomFilter('Remote', filters), viaZoomRoom: false };
+    }
+    return {
+        viaPhysicalRoom: passesRoomFilter(meeting.room, filters),
+        viaZoomRoom: !!meeting.zoomRoom && passesRoomFilter(meeting.zoomRoom, filters),
+    };
+};
+
 /**
  * Filters a flat meeting list down to the ones visible on `date`, given the current room/tag
  * filters -- the exact date+room+tag matching WeekView.getMeetingsForDay uses per-day,
@@ -85,11 +110,8 @@ export const filterMeetingsForDate = <T extends DateRoomTagMeeting>(
     return meetings.filter(meeting => {
         const matchesDate = meeting.date === formattedDate;
 
-        const isRemote = meeting.tags.includes('Remote');
-        const isRoomIncluded = isRemote
-            ? passesRoomFilter('Remote', filters)
-            : passesRoomFilter(meeting.room, filters) ||
-                (!!meeting.zoomRoom && passesRoomFilter(meeting.zoomRoom, filters));
+        const { viaPhysicalRoom, viaZoomRoom } = getRoomFilterVisibility(meeting, filters);
+        const isRoomIncluded = viaPhysicalRoom || viaZoomRoom;
 
         return matchesDate && isRoomIncluded && passesTagFilters(meeting.tags, filters);
     });
