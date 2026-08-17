@@ -8,7 +8,12 @@ const config: Config = {
   rootDir: "..",
   testMatch: ["<rootDir>/tests/unit/**/*.test.ts"],
   transform: { "^.+\\.tsx?$": "@swc/jest" },
-  moduleNameMapper: { "^server-only$": "<rootDir>/tests/mocks/server-only.js" },
+  moduleNameMapper: {
+    "^server-only$": "<rootDir>/tests/mocks/server-only.js",
+    // Same mapping as jest.component.config.ts: marked is ESM-only and jest doesn't
+    // transform node_modules — the UMD build is the require-able form of the same code.
+    "^marked$": "<rootDir>/node_modules/marked/lib/marked.umd.js",
+  },
 };
 
 export default config;

@@ -7,6 +7,7 @@ import type { DocEntry } from "../../../util/docs/loadDocs";
 import { useScrollNavHide } from "../../../hooks/useScrollNavHide";
 import { CheckIcon, ChevronDownIcon, CopyIcon, ExternalLinkIcon, TocToggleIcon } from "./DocsIcons";
 import TocList from "./DocsTocList";
+import { handleCodeCopyClick } from "../../../util/docs/codeCopy";
 import styles from "./DocsShell.module.scss";
 
 interface DocsArticleProps {
@@ -257,6 +258,9 @@ const DocsArticle: React.FC<DocsArticleProps> = ({ activeDoc }) => {
           ref={articleRef}
           className={styles.article}
           onScroll={handleArticleScroll}
+          // Delegated: the copy buttons live inside dangerouslySetInnerHTML content, so a
+          // per-button listener would be lost on every innerHTML re-assignment.
+          onClick={handleCodeCopyClick}
           dangerouslySetInnerHTML={articleHtml}
         />
 
