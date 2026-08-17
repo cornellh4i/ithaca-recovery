@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
+import React, { useState, useId, useLayoutEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import styles from './ViewMeeting.module.scss';
 import DeleteRecurringModal from './DeleteRecurringModal';
@@ -28,6 +28,7 @@ import { MODE_ICON_NAME } from "../../../util/rooms/modeIcons";
 import { useZoomHostPool } from "../../../hooks/useZoomHostPool";
 import { usePopupPosition, POPUP_WIDTH } from "../../../hooks/usePopupPosition";
 import { useRetrySync } from "../../../hooks/useRetrySync";
+import { useDismissibleLayer } from "../../../hooks/useDismissibleLayer";
 
 // Extracts ET wall-clock time as "HH:MM" (24hr), which is what formatCompactTimeRange expects.
 const etTimeFmt = new Intl.DateTimeFormat('en-GB', {
@@ -176,6 +177,8 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
   const zoomHostPool = useZoomHostPool();
 
   const kebabRef = useRef<HTMLDivElement>(null);
+  const kebabFirstItemRef = useRef<HTMLButtonElement>(null);
+  const titleId = useId();
   // Ref *callback* rather than a plain useRef -- it fires exactly once when the paragraph
   // actually mounts (the portal renders nothing until popupPosition is set, so a plain ref
   // wouldn't be attached yet on the render where we'd otherwise want to measure it), and,
@@ -183,53 +186,26 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
   const [descNode, setDescNode] = useState<HTMLParagraphElement | null>(null);
   const { popupRef, popupPosition } = usePopupPosition(anchorEl);
 
-  // Closes the whole popup on an outside click -- clicks on the anchor box itself are left
-  // alone since that box's own onClick already handles re-selecting/toggling it. Desktop
-  // only: popupRef is never attached on phone (that branch renders inside BottomSheet, not
-  // the ref={popupRef} div below), so popupRef.current would always be null there --
-  // treating *every* click, including ones inside the sheet's own kebab menu, as "outside"
-  // and closing it immediately. BottomSheet already has its own correct backdrop-click-to-
-  // close handling for the phone case, so this effect simply doesn't need to run there.
-  useEffect(() => {
-    if (isPhone) return;
+  // Desktop only: popupRef is never attached on phone (that branch renders inside BottomSheet,
+  // not the ref={popupRef} div below), so every click -- including ones inside the sheet itself
+  // -- would read as "outside". BottomSheet provides its own dialog/dismissal behavior there.
+  useDismissibleLayer({
+    isOpen: !isPhone && !!anchorEl && !!popupPosition,
+    onDismiss: onBack,
+    contentRef: popupRef,
+    // Clicks on the anchor box are left alone -- that box's own onClick already handles
+    // re-selecting/toggling it.
+    ignoreEl: anchorEl,
+  });
 
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as Node;
-      if (popupRef.current?.contains(target)) return;
-      if (anchorEl?.contains(target)) return;
-      // DatePicker's own calendar popup (e.g. SuspendMeetingModal's "Until" field) is portaled
-      // to document.body, so it's a DOM sibling of this popup, not a descendant -- without this
-      // check, clicking a day on it reads as an outside click and closes the whole thing.
-      if ((target as Element).closest?.('[data-datepicker-popup]')) return;
-      // Same escape hatch for the Delete/DeleteRecurring/Suspend/Resume modals below (see
-      // `modals`) -- they render via the shared Modal primitive, which portals to document.body
-      // in the same way, so a click on any of their buttons is also a DOM sibling of this popup,
-      // not a descendant. Without this, e.g. clicking DeleteMeetingModal's "Delete" button
-      // registers as an outside click and unmounts this whole popup (and the modal with it)
-      // before the button's own onClick can fire.
-      if ((target as Element).closest?.('[data-modal-popup]')) return;
-      onBack();
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-    // popupRef is a stable ref object (from usePopupPosition) -- included for exhaustive-deps,
-    // not because it ever changes.
-  }, [anchorEl, onBack, isPhone, popupRef]);
-
-  // Closes just the kebab dropdown on an outside click, independent of the popup-level one above.
-  useEffect(() => {
-    if (!kebabOpen) return;
-
-    const handleClickOutside = (event: MouseEvent) => {
-      if (!kebabRef.current?.contains(event.target as Node)) {
-        setKebabOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [kebabOpen]);
+  // A layer of its own, stacked above the popup: the first Escape closes just this menu, and an
+  // outside click inside the popup body closes the menu without dismissing the popup too.
+  useDismissibleLayer({
+    isOpen: kebabOpen,
+    onDismiss: () => setKebabOpen(false),
+    contentRef: kebabRef,
+    initialFocusRef: kebabFirstItemRef,
+  });
 
   // Measures whether the (clamped) description overflows 3 lines, so the "Show more" toggle
   // only appears when there's actually more to show. Runs once against descNode's initial
@@ -392,7 +368,7 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
         <button className={styles.backButton} onClick={onBack}>
           <Icon name="back-arrow" ariaLabel="Back" />
         </button>
-        <h1>{title}</h1>
+        <h1 id={titleId}>{title}</h1>
         <span
           className={styles.settingLabel}
           style={{ backgroundColor: primaryColor, borderColor: primaryColor }}
@@ -413,7 +389,7 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
             </button>
             {kebabOpen && (
               <div className={styles.optionsMenu}>
-                <button onClick={() => { setKebabOpen(false); onEdit(); }}>Edit</button>
+                <button ref={kebabFirstItemRef} onClick={() => { setKebabOpen(false); onEdit(); }}>Edit</button>
                 {isSuspended ? (
                   <button className={styles.suspendOption} onClick={handleResumeClick}>Reactivate</button>
                 ) : hasPendingSuspension ? (
@@ -616,6 +592,9 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
       ref={popupRef}
       className={styles.popupAnchor}
       style={{ top: popupPosition.top, left: popupPosition.left, width: POPUP_WIDTH }}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby={titleId}
     >
       {content}
       {modals}

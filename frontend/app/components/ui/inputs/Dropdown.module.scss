@@ -156,6 +156,18 @@
     border-color: $brand-pink-color; /* Pink border when dropdown is active */
 }
 
+// Keyboard focus keeps the same brand-pink treatment the open state uses -- otherwise closing
+// the list (Escape, or picking an option) drops the trigger back to the browser's default blue
+// ring while it still holds focus.
+.DropdownButton:focus {
+    outline: none;
+}
+
+.DropdownButton:focus-visible {
+    border-color: $brand-pink-color;
+    box-shadow: inset 0 0 0 1px $brand-pink-color;
+}
+
 .locationList {
     position: absolute;
     top: 100%;
@@ -195,6 +207,16 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+
+// Options take focus when the list opens, so they need the same brand ring as the trigger
+// rather than the browser default.
+.dropdownItem:focus {
+    outline: none;
+}
+
+.dropdownItem:focus-visible {
+    box-shadow: inset 0 0 0 2px $brand-pink-color;
 }
 
 .dropdownItem:hover {
