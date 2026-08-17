@@ -4,9 +4,7 @@ reviews:
     "<type>(<optional scope>): <description>", type one of
     build|chore|ci|docs|feat|fix|perf|refactor|revert|style|test, lowercase, no trailing period.
   auto_review:
-    # Dependency bumps from these bots are already gated by CI + the auto-merge
-    # policy in dependabot.yml/dependabot-auto-merge.yml -- a CodeRabbit review
-    # adds no signal there and just generates noise. Comment `@coderabbitai review`
-    # on a specific PR to force one anyway.
-    ignore_usernames:
-      - "dependabot[bot]"
+    # Reviews are on-demand only: comment `@coderabbitai review` on a PR that
+    # needs one. Keeps the free-tier rate-limit budget for reviews that are
+    # actually requested.
+    enabled: false
