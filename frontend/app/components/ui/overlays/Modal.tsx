@@ -10,6 +10,12 @@ interface ModalProps {
   children: React.ReactNode;
   overlayClassName?: string;
   contentClassName?: string;
+  // Inline styles for the dialog element itself -- for callers that position the dialog
+  // dynamically (e.g. OverlapMeetingsPopover anchoring beside a clicked element). Positioning
+  // must land on this element, not a child: the dialog div is what assistive tech and tests
+  // resolve as the dialog, and a zero-size static wrapper around a fixed-position child reads
+  // as hidden.
+  contentStyle?: React.CSSProperties;
   // The id of the element (usually the dialog's own heading) that names it for assistive
   // tech. Falls back to ariaLabel when the dialog has no such element to point at.
   labelledBy?: string;
@@ -30,6 +36,7 @@ const Modal: React.FC<ModalProps> = ({
   children,
   overlayClassName,
   contentClassName,
+  contentStyle,
   labelledBy,
   ariaLabel,
   preventClose = false,
@@ -55,6 +62,7 @@ const Modal: React.FC<ModalProps> = ({
       <div
         ref={contentRef}
         className={contentClassName}
+        style={contentStyle}
         role="dialog"
         aria-modal="true"
         aria-labelledby={labelledBy}

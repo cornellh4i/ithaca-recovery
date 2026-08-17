@@ -57,12 +57,13 @@ const OverlapMeetingsPopover: React.FC<OverlapMeetingsPopoverProps> = ({
     // would run off the viewport's right edge, and clamped vertically to stay fully on
     // screen. Measured after render (panel height depends on row count).
     useLayoutEffect(() => {
-        if (!isOpen || !anchorEl || !panelRef.current) {
+        const panelEl = panelRef.current?.parentElement;
+        if (!isOpen || !anchorEl || !panelEl) {
             setPosition(null);
             return;
         }
         const anchorRect = anchorEl.getBoundingClientRect();
-        const panelHeight = panelRef.current.offsetHeight;
+        const panelHeight = panelEl.offsetHeight;
 
         let left = anchorRect.right + ANCHOR_GAP;
         if (left + PANEL_WIDTH > window.innerWidth - ANCHOR_GAP) {
@@ -107,16 +108,15 @@ const OverlapMeetingsPopover: React.FC<OverlapMeetingsPopoverProps> = ({
             isOpen={isOpen}
             onClose={onClose}
             overlayClassName={styles.overlay}
+            contentClassName={styles.panel}
+            // Hidden on the first paint of an open: the panel renders once unpositioned so
+            // useLayoutEffect can measure its height, then appears at the anchored spot. The
+            // position lands on Modal's own dialog element -- a fixed-position child inside a
+            // zero-size static dialog wrapper would read as hidden to assistive tech and tests.
+            contentStyle={position ? { top: position.top, left: position.left } : { visibility: 'hidden', top: 0, left: 0 }}
             labelledBy="overlap-meetings-title"
         >
-            <div
-                ref={panelRef}
-                className={styles.panel}
-                // Hidden on the first paint of an open: the panel renders once unpositioned so
-                // useLayoutEffect can measure its height, then appears at the anchored spot.
-                style={position ? { top: position.top, left: position.left } : { visibility: 'hidden', top: 0, left: 0 }}
-                onClick={(e) => e.stopPropagation()}
-            >
+            <div ref={panelRef} onClick={(e) => e.stopPropagation()}>
                 <div className={styles.header}>
                     <div>
                         <h2 id="overlap-meetings-title" className={styles.title}>
