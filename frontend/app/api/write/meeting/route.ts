@@ -228,7 +228,10 @@ const createMeeting = async (request: Request) => {
     // License-dependent per-host capacities, resolved BEFORE the locked transaction below — a
     // Zoom API round trip while pool advisory locks are held would extend lock hold time by an
     // external call's latency (cached 12h, so this is usually a no-op; see services/zoom.ts).
-    const hostCapacities = zoomEnabled ? await getZoomHostCapacities() : {};
+    // Loaded unconditionally: the blocking conflict check below runs for an explicit zoomHost
+    // even when zoomEnabled is false (a Suspended meeting), and it must use the same per-host
+    // capacity an Active meeting would get.
+    const hostCapacities = await getZoomHostCapacities();
 
     let result: { createdMeeting: Meeting; createdPattern: Awaited<ReturnType<typeof prisma.recurrencePattern.create>> | null };
     try {
