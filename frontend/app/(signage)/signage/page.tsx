@@ -75,6 +75,13 @@ function SignageContent() {
   // actually attaches. Storing it in state makes attachment itself a dependency change.
   const [contentEl, setContentEl] = useState<HTMLDivElement | null>(null);
   const [scale, setScale] = useState(1);
+  // Week's internal scroll-to-current-time needs a flex-column ancestor with a *bounded*
+  // height (see WeekView.module.scss's .outerContainer comment) -- contentEl is otherwise a
+  // plain unbounded block, so WeekView's own overflow:auto container never actually overflows
+  // and its scrollTop assignment silently no-ops. Only set for Week: Day's height-based scale
+  // branch below depends on contentEl growing to its full natural (unbounded) height so
+  // contentEl.scrollHeight reflects real, unclipped content size.
+  const [weekContentHeight, setWeekContentHeight] = useState<number | undefined>(undefined);
 
   // Scale the whole page (header + calendar) together as one unit.
   // Day's timeline runs horizontally, so it scales to fit height.
@@ -86,7 +93,12 @@ function SignageContent() {
       if (view === "Day") {
         if (contentEl.scrollHeight > 0) setScale(window.innerHeight / contentEl.scrollHeight);
       } else if (contentEl.scrollWidth > 0) {
-        setScale(window.innerWidth / contentEl.scrollWidth);
+        // scrollWidth reflects the natural (horizontally unclipped) width of contentEl's
+        // descendants regardless of contentEl's own height -- bounding that height below
+        // doesn't feed back into this measurement.
+        const newScale = window.innerWidth / contentEl.scrollWidth;
+        setScale(newScale);
+        if (newScale > 0) setWeekContentHeight(window.innerHeight / newScale);
       }
     };
 
@@ -138,13 +150,23 @@ function SignageContent() {
   }
 
   return (
-    <div style={{ height: "100vh", overflow: view === "Day" ? "hidden" : "auto" }}>
+    // The page wrapper must never be the scroller: WeekView owns its own vertical scroll
+    // (scroll-to-current-time targets its internal container) and Day's timeline scrolls
+    // horizontally within contentEl, so page-level overflow stays hidden for both views.
+    <div style={{ height: "100vh", overflow: "hidden" }}>
       <div
         ref={setContentEl}
         style={{
           transform: `scale(${scale})`,
           transformOrigin: "top left",
           width: `${100 / scale}%`,
+          // Bounding contentEl to a flex column with an explicit height gives WeekView's
+          // .outerContainer (flex: 1 1 auto; min-height: 0) a real ancestor to resolve
+          // against, mirroring the main app's .primaryCalendar (page.module.scss). Day is
+          // left unbounded (height: auto) -- see recalcScale's comment above.
+          ...(view === "Week"
+            ? { display: "flex", flexDirection: "column" as const, height: weekContentHeight }
+            : undefined),
         }}
       >
         <div className={navbarStyles.navbar}>

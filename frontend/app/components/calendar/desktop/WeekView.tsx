@@ -145,8 +145,44 @@ const WeekView: React.FC<WeekViewProps> = ({
         // eslint-disable-next-line react-hooks/set-state-in-effect
         updateTimePosition();
         if (initialScrollDone === false) {
-            scrollToCurrentTime();
-            setInitialScrollDone(true);
+            const container = viewContainerRef.current;
+            if (container && container.scrollHeight > container.clientHeight) {
+                scrollToCurrentTime();
+                setInitialScrollDone(true);
+            } else if (container) {
+                // The container may not be scrollable yet: on /signage its bounded height
+                // arrives asynchronously from the page's recalcScale, after this mount-time
+                // effect -- scrolling now would silently no-op and the latch would mask it.
+                // Watch for the resize that makes it scrollable, scroll once, then latch
+                // (same retry idea as DayLandscapeView's width-measurement guard).
+                const observer = new ResizeObserver(() => {
+                    if (container.scrollHeight > container.clientHeight) {
+                        scrollToCurrentTime();
+                        setInitialScrollDone(true);
+                        observer.disconnect();
+                    }
+                });
+                observer.observe(container);
+                // The latch also gates the visibility flash-guard -- if the grid genuinely
+                // fits its container (nothing to ever scroll), the observer condition never
+                // holds, so latch anyway after a beat rather than staying hidden forever.
+                // Flips only the latch (visibility guard) -- the observer stays connected so a
+                // bounded height arriving later than the fallback still gets its one scroll;
+                // the observer disconnects itself on success and cleanup covers the rest.
+                const fallbackId = window.setTimeout(() => {
+                    setInitialScrollDone(true);
+                }, 2000);
+                const intervalId = setInterval(updateTimePosition, 60000);
+                return () => {
+                    observer.disconnect();
+                    window.clearTimeout(fallbackId);
+                    clearInterval(intervalId);
+                };
+            } else {
+                // Null ref can't scroll anyway -- latch so the visibility guard never wedges
+                // the grid invisible.
+                setInitialScrollDone(true);
+            }
         }
 
         const intervalId = setInterval(updateTimePosition, 60000);
@@ -194,6 +230,7 @@ const WeekView: React.FC<WeekViewProps> = ({
             <div
                 className={styles.viewContainer}
                 ref={viewContainerRef}
+                data-testid="week-view-scroll-container"
                 style={{
                     ...(scrollLocked ? { overflow: 'hidden' } : undefined),
                     visibility: initialScrollDone ? 'visible' : 'hidden',

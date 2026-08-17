@@ -6,6 +6,7 @@
   flex-direction: column;
   width: 100%;
   font-family: 'Source Sans Pro', sans-serif;
+  position: relative; // anchors TopLoadingBar's absolute positioning to this view's own bounds
 
   // Fills whatever's left under CalendarNavbar in .primaryCalendar (page.module.scss), not
   // this element's full containing-block height -- `height: 100%` resolved against
