@@ -133,4 +133,52 @@ test.describe("meeting creation", () => {
     const created = await prisma.meeting.findFirst({ where: { title: "Unsaved Conflicting Meeting" } });
     expect(created).toBeNull();
   });
+
+  // An end time *earlier* than the start is a valid overnight meeting (buildMeetingPayload
+  // rolls the end onto the next day); an end identical to the start is the one case that
+  // silently becomes a 24-hour meeting, so it's the one the form rejects.
+  test("2.8 an end time identical to the start blocks submission, an overnight range doesn't", async ({ adminPage }) => {
+    const { page } = adminPage;
+    await page.goto("/");
+    await page.getByText("New Meeting").click();
+
+    await page.getByPlaceholder("Meeting title").fill("Zero Length Meeting");
+    await page.getByRole("button", { name: "In Person" }).click();
+    await fillDatePicker(page, todayMMDDYYYY());
+    await selectFromDropdown(page, "Select Room", "Serenity Room");
+    await toggleCalType(page, "AA");
+    await page.getByPlaceholder("Email").fill("zerolength@test.icr");
+
+    await fillTimeRange(page, "18:00", "18:00");
+    await expect(page.getByText(/End time must differ from the start time/)).toBeVisible();
+
+    await page.getByRole("button", { name: "Create Meeting" }).click();
+    await expect(page.getByText("Fix 1 field before saving")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "New Meeting" })).toBeVisible();
+
+    // An overnight range clears the error and is accepted.
+    await fillTimeRange(page, "23:00", "01:00");
+    await expect(page.getByText(/End time must differ from the start time/)).toHaveCount(0);
+    await expect(page.getByText("Ends the next day.")).toBeVisible();
+
+    await page.getByRole("button", { name: "Create Meeting" }).click();
+    await expect(page.getByText("Meeting created successfully")).toBeVisible();
+  });
+
+  test("2.9 closing the form with unsaved changes asks before discarding", async ({ adminPage }) => {
+    const { page } = adminPage;
+    await page.goto("/");
+    await page.getByText("New Meeting").click();
+    await page.getByPlaceholder("Meeting title").fill("Half Filled Meeting");
+
+    await page.getByRole("button", { name: "Cancel" }).click();
+    await expect(page.getByText("Discard unsaved changes?")).toBeVisible();
+
+    await page.getByRole("button", { name: "Keep editing" }).click();
+    await expect(page.getByPlaceholder("Meeting title")).toHaveValue("Half Filled Meeting");
+
+    await page.getByRole("button", { name: "Cancel" }).click();
+    await page.getByRole("button", { name: "Discard" }).click();
+    await expect(page.getByRole("heading", { name: "New Meeting" })).toHaveCount(0);
+  });
 });

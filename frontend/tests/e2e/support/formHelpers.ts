@@ -11,12 +11,11 @@ export async function fillDatePicker(page: Page, mmddyyyy: string): Promise<void
   await input.blur();
 }
 
-// Fills the two native `<input type="time">` fields (start, end) — they have no
-// distinguishing attributes, so they're addressed by position.
+// Fills the two native `<input type="time">` fields, each named by its own aria-label
+// (a single <label> can't name both halves of the range).
 export async function fillTimeRange(page: Page, startHHMM: string, endHHMM: string): Promise<void> {
-  const timeInputs = page.locator('input[type="time"]');
-  await timeInputs.nth(0).fill(startHHMM);
-  await timeInputs.nth(1).fill(endHHMM);
+  await page.getByLabel("Start time").fill(startHHMM);
+  await page.getByLabel("End time").fill(endHHMM);
 }
 
 // Opens one of the ui/inputs/Dropdown.tsx menus by its placeholder button text

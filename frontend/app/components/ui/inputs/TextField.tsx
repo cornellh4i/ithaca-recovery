@@ -107,7 +107,8 @@ const TextField: React.FC<TextFieldProps> = ({
           />
         )}
       </div>
-      {error && <span className={styles.textfieldErrorText}>{error}</span>}
+      {/* Rendered unconditionally so its height stays reserved -- see the class's own note. */}
+      <span className={styles.textfieldErrorText} role={error ? "alert" : undefined}>{error ?? ""}</span>
     </div>
   );
 };

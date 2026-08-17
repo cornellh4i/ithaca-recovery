@@ -67,6 +67,12 @@
   }
 }
 
+.formActions {
+  display: flex;
+  gap: 12px;
+  align-items: stretch;
+}
+
 .createMeetingButton {
   width: 100%;
   height: auto;
@@ -81,6 +87,43 @@
   padding: 10px 0;
   text-align: center;
   border-radius: 8px;
+}
+
+// Secondary pairing for .createMeetingButton, matching the outlined "Cancel" the confirm
+// modals in this folder use (DeleteMeetingModal.module.scss's .cancelButton).
+.cancelMeetingButton {
+  flex: 0 0 auto;
+  background-color: #fff;
+  color: $medium-grey-color;
+  border: 1px solid $grey-border-color;
+  font-family: 'Source Sans Pro', sans-serif;
+  font-weight: 600;
+  font-size: 18px;
+  line-height: 22.63px;
+  cursor: pointer;
+  padding: 10px 20px;
+  text-align: center;
+  border-radius: 8px;
+
+  &:hover:not(:disabled) {
+    background-color: #F7F7F7;
+  }
+}
+
+// Always in the flow, empty or not -- an error line that mounts and unmounts pushes every
+// control below it down and back up again.
+.fieldMessage {
+  display: block;
+  min-height: 18px;
+  margin-top: 4px;
+  font-family: 'Source Sans Pro', sans-serif;
+  font-size: 12px;
+  line-height: 18px;
+  color: $medium-grey-color;
+}
+
+.fieldMessageError {
+  color: $danger-color;
 }
 
 .meetingButtons {

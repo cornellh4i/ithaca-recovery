@@ -2,7 +2,12 @@ import { useCallback, useState } from 'react';
 import { IMeeting, IRecurrencePattern } from '../types/models';
 import { convertUTCToET, convertETToUTC, formatETDateString, getWeekDatesET, getCurrentETMinutesSinceMidnight, isConvertETToUTCValidationError, isDstGapError } from '../util/date/timeUtils';
 import { roomToZoomRoom } from '../util/rooms/rooms';
-import { DESCRIPTION_MAX_LENGTH, MAX_RECURRENCE_OCCURRENCES } from '../util/meetings/meetingValidation';
+import {
+    DESCRIPTION_MAX_LENGTH,
+    MAX_RECURRENCE_OCCURRENCES,
+    isOvernightTimeRange,
+    validateTimeRange,
+} from '../util/meetings/meetingValidation';
 
 // What the calendar is currently showing, used to seed a brand-new meeting's default
 // Date field -- see computeDefaultDate below.
@@ -161,6 +166,16 @@ function computeDefaultTime(): { time: string; rolledToNextDay: boolean } {
     };
 }
 
+// Comparable stringification of everything the form collects outside the recurrence
+// sub-form, for the unsaved-changes guard. calTypes is order-insensitive (the checkboxes
+// append in click order), so unchecking and rechecking a category isn't an "edit".
+function snapshotFields(values: {
+    title: string; mode: string; date: string; time: string; email: string;
+    description: string; room: string; calTypes: string[]; zoomRoom: string; zoomHost: string;
+}): string {
+    return JSON.stringify({ ...values, calTypes: [...values.calTypes].sort() });
+}
+
 export function useMeetingForm(initialMeeting?: IMeeting, defaultContext?: MeetingFormDefaultContext) {
     const [title, setTitle] = useState(initialMeeting?.title ?? "");
     const [mode, setMode] = useState<string>(initialMeeting?.modeType ?? "Hybrid");
@@ -211,6 +226,19 @@ export function useMeetingForm(initialMeeting?: IMeeting, defaultContext?: Meeti
         setTouchedFields((prev) => (prev.has(field) ? prev : new Set(prev).add(field)));
     }, []);
 
+    // Recurrence is tracked for dirtiness by comparing against RecurringMeeting.tsx's *first*
+    // report rather than against initialMeeting.recurrencePattern: that child rebuilds the
+    // pattern object from its own state on mount, so the rebuilt shape can differ from the
+    // stored one field-for-field while describing the same recurrence.
+    const [recurrenceBaseline, setRecurrenceBaseline] = useState<string | null>(null);
+    const [recurrenceSignature, setRecurrenceSignature] = useState<string | null>(null);
+    // Baseline for the unsaved-changes guard, seeded from the values the form opened with
+    // rather than re-derived from initialMeeting -- a brand-new form's computed date/time
+    // defaults count as untouched too.
+    const [fieldBaseline, setFieldBaseline] = useState(() =>
+        snapshotFields({ title, mode, date, time, email, description, room, calTypes, zoomRoom, zoomHost })
+    );
+
     // Must be stable: RecurringMeeting.tsx's effect depends on this callback, and an
     // unstable reference here caused an infinite render loop.
     const handleRecurringMeetingChange = useCallback((data: {
@@ -219,6 +247,9 @@ export function useMeetingForm(initialMeeting?: IMeeting, defaultContext?: Meeti
     }) => {
         setIsRecurring(data.isRecurring);
         setRecurrencePattern(data.recurrencePattern);
+        const signature = JSON.stringify(data);
+        setRecurrenceBaseline((previous) => previous ?? signature);
+        setRecurrenceSignature(signature);
     }, []);
 
     const handleRoomChange = (value: string) => {
@@ -243,21 +274,38 @@ export function useMeetingForm(initialMeeting?: IMeeting, defaultContext?: Meeti
     };
 
     const resetForm = () => {
-        setTitle("");
-        setMode("Hybrid");
         const resetTimeInfo = computeDefaultTime();
-        setDate(computeDefaultDate(defaultContext, resetTimeInfo.rolledToNextDay));
-        setTime(resetTimeInfo.time);
-        setEmail("");
-        setDescription("");
-        setRoom("");
-        setCalTypes([]);
-        setZoomRoom("");
-        setZoomHost("");
+        const resetValues = {
+            title: "",
+            mode: "Hybrid",
+            date: computeDefaultDate(defaultContext, resetTimeInfo.rolledToNextDay),
+            time: resetTimeInfo.time,
+            email: "",
+            description: "",
+            room: "",
+            calTypes: [] as string[],
+            zoomRoom: "",
+            zoomHost: "",
+        };
+        setTitle(resetValues.title);
+        setMode(resetValues.mode);
+        setDate(resetValues.date);
+        setTime(resetValues.time);
+        setEmail(resetValues.email);
+        setDescription(resetValues.description);
+        setRoom(resetValues.room);
+        setCalTypes(resetValues.calTypes);
+        setZoomRoom(resetValues.zoomRoom);
+        setZoomHost(resetValues.zoomHost);
         setIsRecurring(false);
         setRecurrencePattern(null);
         setSubmitAttempted(false);
         setTouchedFields(new Set());
+        // A reset form reads as untouched again -- rebaseline rather than leaving the values
+        // it opened with as the comparison point.
+        setFieldBaseline(snapshotFields(resetValues));
+        setRecurrenceBaseline(null);
+        setRecurrenceSignature(null);
     };
 
     const getValidationErrors = (): MeetingFormFieldError[] => {
@@ -278,6 +326,9 @@ export function useMeetingForm(initialMeeting?: IMeeting, defaultContext?: Meeti
             // throwing) on submit.
             const timeError = isoDateValue ? describeTimeValidationError(isoDateValue, startTime, endTime) : null;
             if (timeError) errors.push({ fields: ["date", "time"], message: timeError });
+
+            const rangeError = validateTimeRange(startTime, endTime);
+            if (rangeError) errors.push({ fields: ["time"], message: rangeError });
         }
 
         if (!email.trim()) {
@@ -380,6 +431,18 @@ export function useMeetingForm(initialMeeting?: IMeeting, defaultContext?: Meeti
     // mean listing every field it reads as a dependency array.
     const liveValidationErrors = submitAttempted ? getValidationErrors() : [];
 
+    const [currentStartTime, currentEndTime] = time?.split(' - ') || [];
+    // Not gated on touchedFields like getFieldError is: both times always hold a value (the
+    // form seeds defaults), so there's no "hasn't been reached yet" state to protect here.
+    const timeRangeError =
+        currentStartTime && currentEndTime ? validateTimeRange(currentStartTime, currentEndTime) : null;
+    const isOvernight =
+        !!currentStartTime && !!currentEndTime && isOvernightTimeRange(currentStartTime, currentEndTime);
+
+    const isDirty =
+        snapshotFields({ title, mode, date, time, email, description, room, calTypes, zoomRoom, zoomHost }) !== fieldBaseline ||
+        (recurrenceSignature !== null && recurrenceSignature !== recurrenceBaseline);
+
     // Independent of submitAttempted -- a field can show its own inline error the moment
     // it's been touched, even before any submit attempt (e.g. blurring an empty title on
     // the very first pass through the form).
@@ -410,6 +473,9 @@ export function useMeetingForm(initialMeeting?: IMeeting, defaultContext?: Meeti
         buildMeetingPayload,
         submitAttempted, setSubmitAttempted,
         liveValidationErrors,
+        timeRangeError,
+        isOvernight,
+        isDirty,
         markFieldTouched,
         getFieldError,
     };

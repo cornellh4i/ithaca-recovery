@@ -20,8 +20,16 @@ export interface MeetingFormProps {
   emailTextField: React.ReactElement;
   descriptionTextField: React.ReactElement;
   handleMeetingSubmit: () => Promise<void>;
+  // Discards the form -- the caller owns the unsaved-changes confirmation, since only it
+  // knows what closing the panel means in its host (sidebar, mobile sheet, inline card).
+  onCancel: () => void;
   buttonText: string
   isSubmitting?: boolean
+  // Cross-field start/end error, and the non-error note shown for an accepted overnight
+  // range. Rendered in one always-present line under the time row so that showing or
+  // clearing either can't shift every control below it.
+  timeError?: string;
+  timeNote?: string;
   // "wide" is a two-column layout for wider embedding contexts (e.g. an inline edit panel),
   // vs. the default single-column "sidebar" layout used in the Main Calendar sidebar.
   layout?: "sidebar" | "wide";
@@ -83,13 +91,27 @@ export const MeetingForm: React.FC<MeetingFormProps> = ({
   emailTextField,
   descriptionTextField,
   handleMeetingSubmit,
+  onCancel,
   buttonText,
   isSubmitting = false,
   layout = "sidebar",
+  timeError,
+  timeNote,
 }) => {
   const containerClassName = `${styles.newMeetingSidebar} ${layout === "wide" ? styles.wide : ""}`.trim();
   const uid = useId();
   const fieldId = (name: string) => `${uid}-${name}`;
+
+  // Always rendered (never conditionally mounted) so its height stays reserved whether or
+  // not there's currently something to say.
+  const timeMessage = (
+    <span
+      className={`${styles.fieldMessage} ${timeError ? styles.fieldMessageError : ""}`.trim()}
+      role={timeError ? "alert" : undefined}
+    >
+      {timeError ?? timeNote ?? " "}
+    </span>
+  );
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -101,8 +123,10 @@ export const MeetingForm: React.FC<MeetingFormProps> = ({
     const target = event.target as HTMLElement;
     // A textarea's Enter is a newline and never submits natively; an open Dropdown's Enter
     // picks the focused option (see ui/inputs/Dropdown.tsx). Everything else keeps the
-    // browser's own implicit submission from a text field.
-    if (target.closest('[role="listbox"], [aria-expanded="true"]')) {
+    // browser's own implicit submission from a text field. Deliberately not keyed off the
+    // trigger's aria-expanded: preventing default there would also swallow the Enter that
+    // closes the dropdown, and that trigger is a type="button" that can't submit anyway.
+    if (target.closest('[role="listbox"]')) {
       event.preventDefault();
     }
   };
@@ -136,7 +160,10 @@ export const MeetingForm: React.FC<MeetingFormProps> = ({
             <Field caption="Date" htmlFor={fieldId("date")} required>
               {withFieldProps(DatePicker, { id: fieldId("date"), required: true, "aria-required": true })}
             </Field>
-            <Field caption="Time" asGroup required>{TimePicker}</Field>
+            <Field caption="Time" asGroup required>
+              {TimePicker}
+              {timeMessage}
+            </Field>
           </div>
         ) : (
           <>
@@ -145,6 +172,7 @@ export const MeetingForm: React.FC<MeetingFormProps> = ({
             </Field>
             <Field caption="Time" asGroup required className={styles.dummyComponent}>
               {TimePicker}
+              {timeMessage}
             </Field>
           </>
         )}
@@ -184,13 +212,23 @@ export const MeetingForm: React.FC<MeetingFormProps> = ({
         >
           {withFieldProps(descriptionTextField, { id: fieldId("description") })}
         </Field>
-        <button
-          type="submit"
-          className={`${styles.createMeetingButton} ${styles.fieldFullWidth}`}
-          disabled={isSubmitting}
-        >
-          {buttonText}
-        </button>
+        <div className={`${styles.formActions} ${styles.fieldFullWidth}`}>
+          <button
+            type="button"
+            className={styles.cancelMeetingButton}
+            onClick={onCancel}
+            disabled={isSubmitting}
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            className={styles.createMeetingButton}
+            disabled={isSubmitting}
+          >
+            {buttonText}
+          </button>
+        </div>
       </form>
   );
 };

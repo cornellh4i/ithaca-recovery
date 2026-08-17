@@ -12,6 +12,48 @@ export const DESCRIPTION_MAX_LENGTH = 1024;
 // RecurringMeeting.tsx's SpinnerInput) so the UI can't submit a value this schema will reject.
 export const MAX_RECURRENCE_OCCURRENCES = 520;
 
+// INVARIANT: the meeting form collects one date plus a start and end wall-clock time, and an
+// end time earlier in the day than the start means the meeting runs past midnight onto the
+// next day -- hooks/useMeetingForm.ts's buildMeetingPayload rolls the end date forward for
+// exactly that case, and the calendar renders the result clipped per day (see
+// hooks/useWeekMeetings.ts). So end < start is valid input, not an error.
+//
+// An end *equal* to the start is the one unrepresentable case: the same roll-forward turns it
+// into a silent 24-hour meeting. There's no server-side backstop for it (by the time
+// meetingSchema sees the payload the end has already been rolled forward, so endDateTime >
+// startDateTime holds), which is why this rule is enforced on the form.
+export const SAME_START_AND_END_TIME_ERROR =
+  "End time must differ from the start time. To run past midnight, pick an end time earlier in the day.";
+
+const HH_MM = /^(\d{1,2}):(\d{2})$/;
+
+function toMinutes(time: string): number | null {
+  const match = time.match(HH_MM);
+  if (!match) return null;
+  const [, hours, minutes] = match;
+  return Number(hours) * 60 + Number(minutes);
+}
+
+/**
+ * Cross-field rule for the meeting form's start/end wall-clock times ("HH:MM" each).
+ * Returns null when the pair is acceptable — including an overnight pair — or when either
+ * value is unparseable, which the form's own "start and end time are required" rule covers.
+ */
+export function validateTimeRange(startTime: string, endTime: string): string | null {
+  const start = toMinutes(startTime);
+  const end = toMinutes(endTime);
+  if (start === null || end === null) return null;
+  return start === end ? SAME_START_AND_END_TIME_ERROR : null;
+}
+
+/** Whether an accepted start/end pair ("HH:MM") describes a meeting that runs past midnight. */
+export function isOvernightTimeRange(startTime: string, endTime: string): boolean {
+  const start = toMinutes(startTime);
+  const end = toMinutes(endTime);
+  if (start === null || end === null) return false;
+  return end < start;
+}
+
 // Shared by write/meeting and update/meeting — both expect the full IMeeting shape
 // (update is a full replace, not a partial patch). Validates shape/types, plus the business
 // rules hooks/useMeetingForm.ts's getValidationErrors enforces client-side (end > start, at

@@ -11,6 +11,7 @@ import LabeledCheckbox from '../ui/inputs/CheckBox';
 import RecurringMeetingForm from './RecurringMeeting';
 import ZoomHostField from './ZoomHostField';
 import ConflictOverrideModal from './ConflictOverrideModal';
+import DiscardChangesModal from './DiscardChangesModal';
 import FormValidationBanner from './FormValidationBanner';
 import IconButton from '../ui/buttons/IconButton';
 
@@ -68,6 +69,9 @@ const NewMeetingSidebar = React.forwardRef<NewMeetingSidebarHandle, NewMeetingSi
       liveValidationErrors,
       markFieldTouched,
       getFieldError,
+      timeRangeError,
+      isOvernight,
+      isDirty,
     } = useMeetingForm(undefined, { selectedDate, selectedView });
 
     const { showToast } = useToast();
@@ -76,12 +80,24 @@ const NewMeetingSidebar = React.forwardRef<NewMeetingSidebarHandle, NewMeetingSi
     // the form, it just pauses submission until the modal's Cancel or "Save anyway".
     const [conflictState, setConflictState] = useState<{ payload: IMeeting; conflicts: ConflictListRow[] } | null>(null);
 
+    const [isDiscardPromptOpen, setIsDiscardPromptOpen] = useState(false);
+
     const handleCloseNewMeeting = () => {
       resetForm();
       setIsNewMeetingOpen(false);
     };
 
-    useImperativeHandle(ref, () => ({ requestClose: handleCloseNewMeeting }));
+    // Every close path the user can trigger (Cancel, the X, the mobile sheet's Escape) goes
+    // through here, so none of them can silently drop a half-filled form.
+    const requestCloseNewMeeting = () => {
+      if (isDirty) {
+        setIsDiscardPromptOpen(true);
+        return;
+      }
+      handleCloseNewMeeting();
+    };
+
+    useImperativeHandle(ref, () => ({ requestClose: requestCloseNewMeeting }));
 
     const submitMeeting = async (payload: IMeeting, confirmOverride: boolean) => {
       setIsSubmitting(true);
@@ -165,7 +181,7 @@ const NewMeetingSidebar = React.forwardRef<NewMeetingSidebarHandle, NewMeetingSi
           <IconButton
             name="close"
             ariaLabel="Close"
-            onClick={handleCloseNewMeeting}
+            onClick={requestCloseNewMeeting}
             className={styles.iconButton}
           />
         </div>
@@ -285,8 +301,20 @@ const NewMeetingSidebar = React.forwardRef<NewMeetingSidebarHandle, NewMeetingSi
             compact
           />}
           handleMeetingSubmit={createMeeting}
+          onCancel={requestCloseNewMeeting}
           buttonText={isSubmitting ? "Creating…" : "Create Meeting"}
           isSubmitting={isSubmitting}
+          timeError={timeRangeError ?? undefined}
+          timeNote={isOvernight ? "Ends the next day." : undefined}
+        />
+        <DiscardChangesModal
+          isOpen={isDiscardPromptOpen}
+          subject="new meeting"
+          onKeepEditing={() => setIsDiscardPromptOpen(false)}
+          onDiscard={() => {
+            setIsDiscardPromptOpen(false);
+            handleCloseNewMeeting();
+          }}
         />
         <ConflictOverrideModal
           isOpen={!!conflictState}
