@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import Icon from "../displays/Icon";
 import styles from "./Dropdown.module.scss";
+import { useDismissibleLayer } from "../../../../hooks/useDismissibleLayer";
 
 interface DropdownProps {
   label: string | React.ReactNode;
@@ -39,7 +40,21 @@ const Dropdown: React.FC<DropdownProps> = ({
   const [selectedElement, setselectedElement] = useState<string | null>(value ?? null);
 
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
-  const buttonRef = React.useRef<HTMLButtonElement>(null);
+  const containerRef = React.useRef<HTMLDivElement>(null);
+  const firstOptionRef = React.useRef<HTMLLIElement>(null);
+
+  // isVisible is checked here too: the component returns null below when hidden, which would
+  // otherwise leave an unrenderable layer registered on the stack, swallowing Escape.
+  const isOpen = isVisible && activeDropdown === "element";
+
+  // containerRef (not the list) is the layer root, so a click on the trigger button reads as
+  // inside and is left to the button's own toggle instead of closing and immediately reopening.
+  useDismissibleLayer({
+    isOpen,
+    onDismiss: () => setActiveDropdown(null),
+    contentRef: containerRef,
+    initialFocusRef: firstOptionRef,
+  });
 
   React.useEffect(() => {
     // Intentionally mount-only: notifies the parent once with the initial value. Call
@@ -77,13 +92,11 @@ const Dropdown: React.FC<DropdownProps> = ({
   };
 
   const handleOptionKeyDown = (e: React.KeyboardEvent<HTMLLIElement>, element: string) => {
+    // Escape is handled by useDismissibleLayer (topmost layer only), which also restores focus
+    // to the trigger button on close.
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
       handleElementClick(element);
-      buttonRef.current?.focus();
-    } else if (e.key === 'Escape') {
-      setActiveDropdown(null);
-      buttonRef.current?.focus();
     }
   };
 
@@ -95,18 +108,17 @@ const Dropdown: React.FC<DropdownProps> = ({
 
   return (
     <div className={`${styles.dropdown} ${compact ? styles.compact : ''}`}>
-      <div className={styles.DropdownContainer}>
+      <div className={styles.DropdownContainer} ref={containerRef}>
         {isStringLabel && (
           <label className={styles.DropdownLabel}>
             <span>{label}</span>
           </label>
         )}
         <button
-          ref={buttonRef}
-          className={`${styles.DropdownButton} ${activeDropdown === "element" ? styles.activeDropdown : ''}`}
+          className={`${styles.DropdownButton} ${isOpen ? styles.activeDropdown : ''}`}
           onClick={() => handleDropdownToggle("element")}
           aria-haspopup="listbox"
-          aria-expanded={activeDropdown === "element"}
+          aria-expanded={isOpen}
           aria-label={ariaLabel}
         >
           <span className={styles.DropdownButtonContent}>
@@ -117,7 +129,7 @@ const Dropdown: React.FC<DropdownProps> = ({
           </span>
           <Icon name="drop-down-arrow" className={styles.dropdownArrow} />
         </button>
-        {activeDropdown === "element" && (
+        {isOpen && (
           <ul
             className={`${styles.elementList} ${!isStringLabel ? styles.elementListFullWidth : ''}`}
             role="listbox"
@@ -126,6 +138,7 @@ const Dropdown: React.FC<DropdownProps> = ({
             {elements.map((element, index) => (
               <li
                 key={index}
+                ref={index === 0 ? firstOptionRef : undefined}
                 role="option"
                 aria-selected={selectedElement === element}
                 tabIndex={0}

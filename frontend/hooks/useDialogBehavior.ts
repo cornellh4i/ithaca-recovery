@@ -1,24 +1,8 @@
 import { useEffect, useRef, type RefObject } from "react";
 import { useIsomorphicLayoutEffect } from "./useViewport";
+import { LAYER_FOCUSABLE_SELECTOR, useLayerStack } from "./useDismissibleLayer";
 
-export const DIALOG_FOCUSABLE_SELECTOR =
-  'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
-
-// Module-scope stack of currently-open dialogs (by hook-instance id), topmost/most-recently-
-// opened last. A dialog opened *inside* another (e.g. ConflictOverrideModal opened from within
-// New Meeting's MobileFullScreenSheet) is a DOM sibling of its host under document.body, not a
-// descendant -- both dialogs' Escape listeners are separate handlers on the same `document`
-// node, so DOM containment/event.stopPropagation can't distinguish "inner" from "outer" (every
-// listener on a node fires regardless of another same-node listener's propagation state). Only
-// the topmost dialog on this stack responds to Escape, so closing the inner modal doesn't also
-// discard the form underneath it.
-//
-// Ordering is by open-effect commit order, not real DOM/visual nesting (there is none to read,
-// per above) -- correct for every actual call site here, since a nested dialog (e.g.
-// ConflictOverrideModal) only ever opens in response to a user action *after* its host is
-// already open and mounted, never in the same commit as its host.
-let nextDialogId = 0;
-const openDialogStack: number[] = [];
+export const DIALOG_FOCUSABLE_SELECTOR = LAYER_FOCUSABLE_SELECTOR;
 
 export interface UseDialogBehaviorOptions {
   isOpen: boolean;
@@ -40,6 +24,8 @@ export interface UseDialogBehaviorOptions {
 // focus restoration on close -- extracted from Modal.tsx so BottomSheet and
 // MobileFullScreenSheet (which can't just wrap Modal: both need their own portal/overlay
 // structure for drag-to-dismiss via motion/react) can provide the same dialog semantics.
+// Registers on the same layer stack as useDismissibleLayer, so Escape ordering is consistent
+// between dialogs and non-dialog layers (menus, dropdowns, the ViewMeeting popup).
 export function useDialogBehavior({
   isOpen,
   onClose,
@@ -61,24 +47,10 @@ export function useDialogBehavior({
     preventCloseRef.current = preventClose;
   });
 
-  // Lazily assigns a stable id the first time this hook instance runs -- mutating a ref during
-  // render like this is safe (and the idiomatic lazy-init pattern) since it's idempotent after
-  // the first call, unlike mutating state.
-  const dialogIdRef = useRef<number | null>(null);
-  if (dialogIdRef.current === null) dialogIdRef.current = nextDialogId++;
-
-  // Registers this dialog on the shared open-stack for as long as it's open (see the stack's
-  // own comment above) -- independent of the focus-management effect below, which cares about
-  // *this* dialog's own focus regardless of nesting.
-  useEffect(() => {
-    if (!isOpen) return;
-    const id = dialogIdRef.current as number;
-    openDialogStack.push(id);
-    return () => {
-      const index = openDialogStack.indexOf(id);
-      if (index !== -1) openDialogStack.splice(index, 1);
-    };
-  }, [isOpen]);
+  // Registers this dialog on the shared layer stack for as long as it's open -- independent of
+  // the focus-management effect below, which cares about *this* dialog's own focus regardless
+  // of nesting.
+  const layer = useLayerStack(isOpen, contentRef);
 
   // Capture-and-autofocus / restore-on-unmount, deps on isOpen only -- must run exactly once
   // per open/close transition, not on every re-render a parent causes while open.
@@ -105,10 +77,9 @@ export function useDialogBehavior({
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
-        // Only the topmost (most-recently-opened) dialog closes on Escape -- see the stack's
-        // own comment above for why DOM containment/stopPropagation can't do this instead.
-        const isTopmost = openDialogStack[openDialogStack.length - 1] === dialogIdRef.current;
-        if (isTopmost && !preventCloseRef.current) onCloseRef.current?.();
+        // Only the topmost (most-recently-opened) layer closes on Escape -- see useLayerStack's
+        // own comment for why DOM containment/stopPropagation can't do this instead.
+        if (layer.isTopmost() && !preventCloseRef.current) onCloseRef.current?.();
         return;
       }
       if (event.key !== "Tab") return;
@@ -129,5 +100,5 @@ export function useDialogBehavior({
 
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, contentRef]);
+  }, [isOpen, contentRef, layer]);
 }

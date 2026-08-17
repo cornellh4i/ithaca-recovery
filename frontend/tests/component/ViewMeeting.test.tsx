@@ -56,10 +56,73 @@ describe("ViewMeeting", () => {
     await waitFor(() => expect(screen.queryByText("Serenity Group")).not.toBeInTheDocument());
   });
 
-  it("desktop: renders the meeting title once an anchorEl is present, outside any dialog role", async () => {
+  it("desktop: renders the meeting title once an anchorEl is present, inside a named dialog", async () => {
     renderViewMeeting({ ...baseProps, anchorEl: makeAnchorEl(), isPhone: false });
     expect(await screen.findByText("Serenity Group")).toBeInTheDocument();
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    const dialog = screen.getByRole("dialog", { name: "Serenity Group" });
+    // Deliberately not aria-modal: focus isn't trapped and the page behind stays interactive,
+    // so announcing it as modal would misdescribe it to screen readers.
+    expect(dialog).not.toHaveAttribute("aria-modal");
+  });
+
+  describe("desktop dismissal", () => {
+    const openPopup = async () => {
+      const anchorEl = makeAnchorEl();
+      const onBack = jest.fn();
+      renderViewMeeting({ ...baseProps, anchorEl, isPhone: false, onBack });
+      await screen.findByText("Serenity Group");
+      return { anchorEl, onBack };
+    };
+
+    it("closes on Escape", async () => {
+      const { onBack } = await openPopup();
+      fireEvent.keyDown(document, { key: "Escape" });
+      expect(onBack).toHaveBeenCalledTimes(1);
+    });
+
+    it("closes on an outside click, but not on a click on its own anchor", async () => {
+      const { anchorEl, onBack } = await openPopup();
+      fireEvent.mouseDown(anchorEl);
+      expect(onBack).not.toHaveBeenCalled();
+
+      fireEvent.mouseDown(document.body);
+      expect(onBack).toHaveBeenCalledTimes(1);
+    });
+
+    it("closes the kebab menu first on Escape, and the popup only on the second press", async () => {
+      const { onBack } = await openPopup();
+      fireEvent.click(screen.getByRole("button", { name: "Meeting options" }));
+      expect(screen.getByRole("button", { name: "Edit" })).toHaveFocus();
+
+      fireEvent.keyDown(document, { key: "Escape" });
+      expect(screen.queryByRole("button", { name: "Edit" })).not.toBeInTheDocument();
+      expect(onBack).not.toHaveBeenCalled();
+
+      fireEvent.keyDown(document, { key: "Escape" });
+      expect(onBack).toHaveBeenCalledTimes(1);
+    });
+
+    it("closes only the kebab menu when the click lands elsewhere inside the popup", async () => {
+      const { onBack } = await openPopup();
+      fireEvent.click(screen.getByRole("button", { name: "Meeting options" }));
+
+      fireEvent.mouseDown(screen.getByRole("heading", { level: 1, name: "Serenity Group" }));
+      expect(screen.queryByRole("button", { name: "Edit" })).not.toBeInTheDocument();
+      expect(onBack).not.toHaveBeenCalled();
+    });
+
+    it("does not close on a click inside a modal it opened", async () => {
+      const { onBack } = await openPopup();
+      fireEvent.click(screen.getByRole("button", { name: "Meeting options" }));
+      fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+
+      // The modal portals to document.body as a DOM *sibling* of this popup, so containment
+      // alone would misread a click on its buttons as an outside click.
+      const dialogs = screen.getAllByRole("dialog");
+      const modal = dialogs[dialogs.length - 1];
+      fireEvent.mouseDown(modal);
+      expect(onBack).not.toHaveBeenCalled();
+    });
   });
 
   it("mobile: renders inside a bottom sheet even with no anchorEl", async () => {
