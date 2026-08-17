@@ -111,6 +111,14 @@ export default function RestoreRunbookCard({ selected, now }: RestoreRunbookCard
           <span>3.</span>
           <span>A scratch Neon branch connection string, unpooled — the script refuses <code>-pooler</code> URLs.</span>
         </li>
+        <li className={styles.runbookPrereq}>
+          <span>4.</span>
+          <span>
+            Confirmation that no one else is mid-restore — one operator at a time, coordinated
+            through the Maintenance Lead. There is no technical lock; two concurrent restores
+            against the same target would interleave destructively.
+          </span>
+        </li>
       </ul>
 
       <div className={styles.panelSubhead}>
