@@ -194,6 +194,7 @@ const WeekView: React.FC<WeekViewProps> = ({
             <div
                 className={styles.viewContainer}
                 ref={viewContainerRef}
+                data-testid="week-view-scroll-container"
                 style={{
                     ...(scrollLocked ? { overflow: 'hidden' } : undefined),
                     visibility: initialScrollDone ? 'visible' : 'hidden',
