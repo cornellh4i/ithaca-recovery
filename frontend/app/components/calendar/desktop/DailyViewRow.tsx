@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import BoxText from '../../ui/displays/BoxText';
-import OverlapMeetingsModal from '../shared/OverlapMeetingsModal';
+import OverlapMeetingsPopover from '../shared/OverlapMeetingsPopover';
 import styles from './DailyViewRow.module.scss';
 import { isZoomRoomMismatched } from '../../../../util/rooms/rooms';
 import { formatCompactTimeRange } from '../../../../util/date/timeFormat';
@@ -95,20 +95,20 @@ const DailyViewRow: React.FC<DailyViewRowProps> = ({
   };
   const MEETING_SLOT_HEIGHT = rowHeight;
   const LANE_HEIGHT = (MEETING_SLOT_HEIGHT - LANE_GAP) / 2;
-  const [overlapModalMeetings, setOverlapModalMeetings] = useState<Meeting[] | null>(null);
-  // The "+N" pill that opened the modal -- kept as a fallback popup anchor, since the
-  // modal's own row is unmounted the instant it closes and getBoundingClientRect() on a
+  const [overlapPopoverMeetings, setOverlapPopoverMeetings] = useState<Meeting[] | null>(null);
+  // The "+N" pill that opened the popover -- kept as a fallback popup anchor, since the
+  // popover's own row is unmounted the instant it closes and getBoundingClientRect() on a
   // detached node would anchor the popup nowhere useful. Superseded by the selected
   // meeting's own card (see selectedCardRef below) once that card renders, since the pill
   // sits in a fixed corner of the row and can be far from where the card actually is.
   const [overlapAnchorEl, setOverlapAnchorEl] = useState<HTMLElement | null>(null);
 
   // DOM node of whichever card currently has isSelected===true (normal or promoted).
-  // Selecting a meeting from the overflow modal re-anchors ViewMeeting to this once it
-  // mounts/updates, since the modal-open pill is a poor stand-in for the card's position.
+  // Selecting a meeting from the overflow popover re-anchors ViewMeeting to this once it
+  // mounts/updates, since the popover-open pill is a poor stand-in for the card's position.
   const selectedCardRef = useRef<HTMLDivElement | null>(null);
-  // Set right before a modal-driven selection, so the effect below knows to re-anchor.
-  const pendingModalAnchorRef = useRef(false);
+  // Set right before a popover-driven selection, so the effect below knows to re-anchor.
+  const pendingPopoverAnchorRef = useRef(false);
 
   const handleBoxClick = (meetingId: string, el: HTMLElement) => {
     console.log(`Meeting ${meetingId} clicked`);
@@ -119,18 +119,35 @@ const DailyViewRow: React.FC<DailyViewRowProps> = ({
   };
 
   useEffect(() => {
-    if (pendingModalAnchorRef.current && selectedCardRef.current) {
+    if (pendingPopoverAnchorRef.current && selectedCardRef.current) {
       setAnchorEl(selectedCardRef.current);
-      pendingModalAnchorRef.current = false;
+      pendingPopoverAnchorRef.current = false;
     }
   }, [selectedMeetingID, setAnchorEl]);
+
+  // Filters and data refreshes update `meetings` without remounting this component (date
+  // changes do remount it via keyed wrappers) -- if the cluster the popover was opened for
+  // is no longer rendered, close it instead of showing stale rows off a detached anchor.
+  useEffect(() => {
+    if (!overlapPopoverMeetings) return;
+    const openIds = new Set(overlapPopoverMeetings.map(m => m.id));
+    const clusterStillPresent = meetings.some(m =>
+      m.isOverflowIndicator &&
+      (m.overflowMeetings ?? []).length === openIds.size &&
+      (m.overflowMeetings ?? []).every(om => openIds.has(om.id)),
+    );
+    if (!clusterStillPresent) {
+      setOverlapPopoverMeetings(null);
+      setOverlapAnchorEl(null);
+    }
+  }, [meetings, overlapPopoverMeetings]);
 
   // Undefined selectedOccurrenceDate (no click has happened yet, e.g. a deep link) falls back
   // to matching on id alone, same as before this row-scoping existed.
   const isOccurrenceDateMatch = !selectedOccurrenceDate || formatETDateString(columnDate) === formatETDateString(selectedOccurrenceDate);
 
   // Renders a single meeting's card. `forceSelected` is used to promote a folded
-  // "+N" meeting (picked via the overflow modal) onto the stack even though it has
+  // "+N" meeting (picked via the overflow popover) onto the stack even though it has
   // no lane of its own -- same full-row/shadow treatment as selecting one of the two
   // already-shown stacked meetings.
   const renderMeetingCard = (meeting: Meeting, key: React.Key, forceSelected = false) => {
@@ -268,7 +285,7 @@ const DailyViewRow: React.FC<DailyViewRowProps> = ({
                 title={`${meeting.overflowCount} more meeting${meeting.overflowCount === 1 ? '' : 's'} at this time — click to see all meetings`}
                 onClick={(e) => {
                   e.stopPropagation(); // Prevent row click handler from firing
-                  setOverlapModalMeetings(
+                  setOverlapPopoverMeetings(
                     (meeting.overflowMeetings ?? []).map(m => ({ ...m, primaryColor: roomColor }))
                   );
                   setOverlapAnchorEl(e.currentTarget);
@@ -277,7 +294,7 @@ const DailyViewRow: React.FC<DailyViewRowProps> = ({
                   if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault();
                     e.stopPropagation();
-                    setOverlapModalMeetings(
+                    setOverlapPopoverMeetings(
                       (meeting.overflowMeetings ?? []).map(m => ({ ...m, primaryColor: roomColor }))
                     );
                     setOverlapAnchorEl(e.currentTarget);
@@ -295,16 +312,17 @@ const DailyViewRow: React.FC<DailyViewRowProps> = ({
         {promotedMeeting && renderMeetingCard(promotedMeeting, `promoted-${promotedMeeting.id}`, true)}
       </div>
 
-      <OverlapMeetingsModal
-        isOpen={overlapModalMeetings !== null}
-        meetings={overlapModalMeetings ?? []}
+      <OverlapMeetingsPopover
+        isOpen={overlapPopoverMeetings !== null}
+        meetings={overlapPopoverMeetings ?? []}
+        anchorEl={overlapAnchorEl}
         conflictMids={conflictMids}
         syncErrorMids={syncErrorMids}
-        onClose={() => setOverlapModalMeetings(null)}
+        onClose={() => setOverlapPopoverMeetings(null)}
         onSelectMeeting={(meetingId) => {
-          pendingModalAnchorRef.current = true;
+          pendingPopoverAnchorRef.current = true;
           if (overlapAnchorEl) handleBoxClick(meetingId, overlapAnchorEl);
-          setOverlapModalMeetings(null);
+          setOverlapPopoverMeetings(null);
         }}
       />
     </div>
