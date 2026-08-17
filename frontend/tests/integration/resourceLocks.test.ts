@@ -212,13 +212,25 @@ test("auto-assignment locks the whole pool, so a second transaction sees the fir
 });
 
 describe("findFirstFreePoolHost — licensed (capacity 2) hosts", () => {
-  it("returns the same host again for a second overlapping candidate", async () => {
+  it("spreads a second overlapping candidate onto the idle host (least-loaded, #471)", async () => {
     const prisma = getTestPrismaClient();
     const window = testWindow(300);
     const pool = ["cap2-test-host-1@icr.test", "cap2-test-host-2@icr.test"];
     const capacities = Object.fromEntries(pool.map((host) => [host, 2]));
     await seedMeeting({ zoomHost: pool[0], modeType: "Remote", room: "", ...window });
 
+    const host = await findFirstFreePoolHost(pool, window, prisma, { includeSuspended: true, capacities });
+    expect(host).toBe(pool[1]);
+  });
+
+  it("returns the same host again once every licensed host carries one meeting", async () => {
+    const prisma = getTestPrismaClient();
+    const window = testWindow(305);
+    const pool = ["cap2-test-host-7@icr.test", "cap2-test-host-8@icr.test"];
+    const capacities = Object.fromEntries(pool.map((host) => [host, 2]));
+    await Promise.all(pool.map((zoomHost) => seedMeeting({ zoomHost, modeType: "Remote", room: "", ...window })));
+
+    // Both hosts at peak 1 -- the tie breaks by pool order, doubling up on the first host.
     const host = await findFirstFreePoolHost(pool, window, prisma, { includeSuspended: true, capacities });
     expect(host).toBe(pool[0]);
   });

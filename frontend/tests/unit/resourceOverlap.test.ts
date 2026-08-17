@@ -437,11 +437,50 @@ describe("findFirstFreePoolHost — per-host capacities", () => {
     endDateTime: utcDate(2026, 7, 6, endHour, 0),
   });
 
-  it("keeps a capacity-2 host for a second overlapping meeting instead of moving on", async () => {
+  it("spreads a second overlapping meeting onto the idle licensed host (least-loaded)", async () => {
     const host = await findFirstFreePoolHost(pool, candidate, stubClient([onHost(pool[0], 19, 20)]), {
       capacities: { [pool[0]]: 2, [pool[1]]: 2 },
     });
+    expect(host).toBe(pool[1]);
+  });
+
+  it("stacks onto a loaded licensed host rather than falling back to an idle basic host", async () => {
+    const host = await findFirstFreePoolHost(pool, candidate, stubClient([onHost(pool[0], 19, 20)]), {
+      capacities: { [pool[0]]: 2, [pool[1]]: 1 },
+    });
     expect(host).toBe(pool[0]);
+  });
+
+  it("uses a basic host only once every licensed host is at capacity", async () => {
+    const host = await findFirstFreePoolHost(
+      pool,
+      candidate,
+      stubClient([onHost(pool[0], 19, 20), onHost(pool[0], 18, 21)]),
+      { capacities: { [pool[0]]: 2, [pool[1]]: 1 } },
+    );
+    expect(host).toBe(pool[1]);
+  });
+
+  it("breaks least-loaded ties by pool list order", async () => {
+    const host = await findFirstFreePoolHost(pool, candidate, stubClient([]), {
+      capacities: { [pool[0]]: 2, [pool[1]]: 2 },
+    });
+    expect(host).toBe(pool[0]);
+  });
+
+  it("prefers a licensed host even when the candidate expands to no occurrences", async () => {
+    // A candidate outside the horizon window expands to nothing -- the licensed-first
+    // ordering must still hold rather than defaulting to whatever host is first in the pool.
+    const farFuture = {
+      startDateTime: utcDate(2035, 7, 6, 19, 0),
+      endDateTime: utcDate(2035, 7, 6, 20, 0),
+      isRecurring: false,
+      recurrencePattern: null,
+    };
+    const host = await findFirstFreePoolHost(["basic@icr.test", "licensed@icr.test"], farFuture, stubClient([]), {
+      capacities: { "basic@icr.test": 1, "licensed@icr.test": 2 },
+    });
+    expect(host).toBe("licensed@icr.test");
   });
 
   it("moves on once a capacity-2 host already has two concurrent meetings", async () => {

@@ -327,6 +327,42 @@ export async function findResourceConflicts(
   return conflicts;
 }
 
+// The largest number of `otherMeetings` covering any single instant inside any of the
+// candidate's occurrences — the load figure behind both host assignment (spare capacity =
+// capacity minus this) and the Meeting Form's per-host free-slot display. Same instant-level
+// semantics as findOverCapacityWindow above; 0 when nothing overlaps.
+export function maxConcurrentDuring(
+  candidateOccurrences: Occurrence[],
+  otherMeetings: Occurrence[][],
+): number {
+  let max = 0;
+  for (const cand of candidateOccurrences) {
+    const events: { time: number; delta: 1 | -1; idx: number }[] = [];
+    for (let m = 0; m < otherMeetings.length; m++) {
+      for (const occ of otherMeetings[m]) {
+        const start = occ.start > cand.start ? occ.start : cand.start;
+        const end = occ.end < cand.end ? occ.end : cand.end;
+        if (start < end) {
+          events.push({ time: start.getTime(), delta: 1, idx: m });
+          events.push({ time: end.getTime(), delta: -1, idx: m });
+        }
+      }
+    }
+    events.sort((a, b) => a.time - b.time || a.delta - b.delta);
+    const active = new Map<number, number>();
+    for (const ev of events) {
+      if (ev.delta === 1) active.set(ev.idx, (active.get(ev.idx) ?? 0) + 1);
+      else {
+        const n = (active.get(ev.idx) ?? 0) - 1;
+        if (n <= 0) active.delete(ev.idx);
+        else active.set(ev.idx, n);
+      }
+      if (active.size > max) max = active.size;
+    }
+  }
+  return max;
+}
+
 export type PoolHostOptions = FindConflictsOptions & {
   // Per-host concurrent-meeting capacity (licensed hosts carry 2, basic 1 — resolved by
   // services/zoom.ts's getZoomHostCapacities BEFORE the caller enters its locked transaction,
@@ -335,9 +371,14 @@ export type PoolHostOptions = FindConflictsOptions & {
   capacities?: Record<string, number>;
 };
 
-// Picks the first host in `pool` (list order) with spare capacity against `candidate`'s
-// occurrences -- the batched counterpart to calling findResourceConflicts once per pool host.
-// One query (`zoomHost: { in: pool }`) instead of up to `pool.length`, and the candidate's own
+// Picks a host with spare capacity against `candidate`'s occurrences, ordered as tiered
+// least-connections (#471): licensed hosts (capacity >= 2) strictly before basic ones — a
+// basic host silently caps meetings at 40 minutes (see services/zoom.ts's checkZoomHostPool),
+// so it's a last resort, never an equal peer — then fewest concurrent meetings at the
+// candidate's peak within the tier (spreading shrinks the blast radius of a host outage or
+// downgrade), then pool list order as a deterministic tie-break (list order stays an admin
+// lever). The batched counterpart to calling findResourceConflicts once per pool host: one
+// query (`zoomHost: { in: pool }`) instead of up to `pool.length`, and the candidate's own
 // occurrences are expanded once and reused across every host, instead of once per query. `client`
 // must be the same `tx` a caller's `lockResourceClaims` call locked every pool host on (see
 // util/resourceLocks.ts) -- same reasoning as findResourceConflicts' own `client` param above.
@@ -354,7 +395,17 @@ export async function findFirstFreePoolHost(
 
   const [rangeStart, rangeEnd] = candidateHorizonRange(OVERLAP_HORIZON_YEARS);
   const candidateOccurrences = expandOccurrences(candidate, rangeStart, rangeEnd);
-  if (candidateOccurrences.length === 0) return pool[0];
+  if (candidateOccurrences.length === 0) {
+    // Nothing to overlap with, but the tiered ordering below still applies -- returning
+    // pool[0] unconditionally could hand a basic host (and its silent 40-minute cap) to a
+    // meeting whose occurrences merely fall outside the horizon window.
+    const first = pool
+      .map((host, poolIndex) => ({ host, poolIndex, capacity: opts.capacities?.[host] ?? 1 }))
+      .sort((a, b) =>
+        (a.capacity >= 2 ? 0 : 1) - (b.capacity >= 2 ? 0 : 1) || a.poolIndex - b.poolIndex,
+      )[0];
+    return first?.host ?? null;
+  }
 
   const where: Prisma.MeetingWhereInput = {
     AND: [
@@ -388,27 +439,33 @@ export async function findFirstFreePoolHost(
     else occupiedByHost.set(meeting.zoomHost, [meeting]);
   }
 
-  for (const host of pool) {
-    const capacity = opts.capacities?.[host] ?? 1;
-    const hostMeetings = occupiedByHost.get(host) ?? [];
-    const hostOccurrenceLists = hostMeetings.map((meeting) =>
-      expandOccurrences(
-        {
-          startDateTime: meeting.startDateTime,
-          endDateTime: meeting.endDateTime,
-          isRecurring: meeting.isRecurring,
-          recurrencePattern: meeting.recurrencePattern,
-        },
-        rangeStart,
-        rangeEnd,
-      ),
+  const ranked = pool
+    .map((host, poolIndex) => {
+      const capacity = opts.capacities?.[host] ?? 1;
+      const hostOccurrenceLists = (occupiedByHost.get(host) ?? []).map((meeting) =>
+        expandOccurrences(
+          {
+            startDateTime: meeting.startDateTime,
+            endDateTime: meeting.endDateTime,
+            isRecurring: meeting.isRecurring,
+            recurrencePattern: meeting.recurrencePattern,
+          },
+          rangeStart,
+          rangeEnd,
+        ),
+      );
+      const peak = maxConcurrentDuring(candidateOccurrences, hostOccurrenceLists);
+      return { host, poolIndex, capacity, peak };
+    })
+    .filter(({ peak, capacity }) => peak < capacity)
+    .sort((a, b) =>
+      // Licensed tier (capacity >= 2) first, then least-loaded, then pool order.
+      (a.capacity >= 2 ? 0 : 1) - (b.capacity >= 2 ? 0 : 1) ||
+      a.peak - b.peak ||
+      a.poolIndex - b.poolIndex,
     );
-    if (findOverCapacityWindow(candidateOccurrences, hostOccurrenceLists, capacity) === null) {
-      return host;
-    }
-  }
 
-  return null;
+  return ranked[0]?.host ?? null;
 }
 
 // The display-relevant subset of a meeting's recurrence pattern (no Date fields — those

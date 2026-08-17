@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { requireRole } from "../../../../../services/auth";
 import { IMeeting } from "../../../../../types/models";
 import { createCalendarEvent, updateCalendarEvent, reconcileMeetingCalendars } from "../../../../../services/googleCalendar";
-import { createZoomMeeting, updateZoomMeeting, getZoomMeetingInvitation, resolveZoomHost, zoomHostPool, zoomRoomCalendarId } from "../../../../../services/zoom";
+import { createZoomMeeting, getZoomHostCapacities, updateZoomMeeting, getZoomMeetingInvitation, resolveZoomHost, zoomHostPool, zoomRoomCalendarId } from "../../../../../services/zoom";
 import { lockResourceClaims } from "../../../../../util/meetings/resourceLocks";
 import { prisma } from "../../../../../lib/prisma";
 
@@ -80,9 +80,12 @@ const syncMeeting = async (request: Request): Promise<Response> => {
                 // afterward, outside the lock -- a Postgres advisory lock can't stay held across
                 // a network call the way it can across another DB query (see write/meeting and
                 // update/meeting's transactions, which don't make external calls either).
+                // Resolved BEFORE the locked transaction, same as write/update -- a Zoom API
+                // round trip while pool locks are held would extend lock hold time (cached 12h).
+                const hostCapacities = await getZoomHostCapacities();
                 const host = await prisma.$transaction(async (tx) => {
                     await lockResourceClaims(tx, zoomHostPool.map((h) => ({ type: "zoomHost" as const, value: h })));
-                    const resolved = await resolveZoomHost(meetingForCalendar, tx, { excludeMid: mid });
+                    const resolved = await resolveZoomHost(meetingForCalendar, tx, { excludeMid: mid, capacities: hostCapacities });
                     if (resolved) {
                         await tx.meeting.update({ where: { mid }, data: { zoomHost: resolved } });
                     }
