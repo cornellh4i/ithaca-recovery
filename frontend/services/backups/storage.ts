@@ -134,8 +134,11 @@ async function readDrillMarker(storage: Storage, bucket: string): Promise<DrillV
     return parsed;
   } catch (error) {
     // Absent object (never drilled yet) is the overwhelmingly common case and not worth a
-    // log line -- only a present-but-corrupt marker is worth flagging.
-    const isNotFound = typeof error === "object" && error !== null && "code" in error && (error as { code: unknown }).code === 404;
+    // log line -- only a present-but-corrupt marker is worth flagging. The GCS client library
+    // has been observed surfacing 404s as a numeric error.code, a string error.code, or a
+    // numeric error.status depending on transport path, so all three are checked.
+    const errObj = typeof error === "object" && error !== null ? (error as { code?: unknown; status?: unknown }) : null;
+    const isNotFound = errObj !== null && (errObj.code === 404 || errObj.code === "404" || errObj.status === 404);
     if (!isNotFound) {
       console.error("services/backups/storage: failed to read drill-verified.json", error);
     }

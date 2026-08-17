@@ -143,21 +143,24 @@ EOF
   # read access to the working bucket.
   ARTIFACT_ID="$(basename "$ARTIFACT_STEM")"
   ARTIFACT_ID="${ARTIFACT_ID#backup-}"
-  # Written to the invoking directory, not $WORKDIR -- the EXIT trap deletes $WORKDIR before
-  # the operator can read the printed fallback path below.
-  MARKER_FILE="./drill-verified.json"
-  jq -n \
+  # Absolute path, written to the invoking directory (not $WORKDIR, which the EXIT trap
+  # deletes) -- both the jq write and the printed fallback command below need a path that's
+  # still valid after $WORKDIR is gone.
+  MARKER_FILE="$(pwd)/drill-verified.json"
+
+  # A PASSED drill must exit 0 even if this bookkeeping step fails -- under set -euo pipefail,
+  # a failed jq write or gcloud upload would otherwise make a passing drill exit non-zero and
+  # look like a failure to anything checking the exit code.
+  if ! jq -n \
     --arg verifiedAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
     --arg artifactId "$ARTIFACT_ID" \
     --arg keyUsed "$DRILL_KEY_USED" \
-    '{verifiedAt: $verifiedAt, artifactId: $artifactId, keyUsed: $keyUsed}' > "$MARKER_FILE"
-
-  if command -v gcloud >/dev/null 2>&1; then
-    echo "Uploading drill-verified.json to gs://$GCS_BUCKET/..."
-    gcloud storage cp "$MARKER_FILE" "gs://$GCS_BUCKET/drill-verified.json"
-  else
-    echo "gcloud not found -- skipping marker upload (the drill itself still passed)." >&2
-    echo "Run this by hand once gcloud is available:" >&2
+    '{verifiedAt: $verifiedAt, artifactId: $artifactId, keyUsed: $keyUsed}' > "$MARKER_FILE"; then
+    echo "Marker write failed -- the drill still passed. Run by hand:" >&2
+    echo "  jq -n --arg verifiedAt \"\$(date -u +%Y-%m-%dT%H:%M:%SZ)\" --arg artifactId $ARTIFACT_ID" \
+      "--arg keyUsed $DRILL_KEY_USED '{verifiedAt: \$verifiedAt, artifactId: \$artifactId, keyUsed: \$keyUsed}' > $MARKER_FILE" >&2
+  elif ! gcloud storage cp "$MARKER_FILE" "gs://$GCS_BUCKET/drill-verified.json"; then
+    echo "Marker upload failed -- the drill still passed. Run by hand:" >&2
     echo "  gcloud storage cp $MARKER_FILE gs://$GCS_BUCKET/drill-verified.json" >&2
   fi
 else

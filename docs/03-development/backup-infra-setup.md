@@ -460,8 +460,10 @@ wrong-shape objects are all treated as "never verified" rather than erroring the
 Since `restore-drill.sh` runs on an operator's own machine (never CI — see §7), it can't infer
 which physical key `AGE_IDENTITY_FILE` points at. `DRILL_KEY_USED=A|B` is a required env var,
 validated to exactly one of those two values, so the marker's `keyUsed` field is always accurate.
-If `gcloud` isn't installed, the script still passes — it prints the exact `gcloud storage cp`
-command for the operator to run by hand as a separate concluding step.
+A failed marker write or upload (network blip, stale `gcloud` auth, etc.) never fails the drill
+itself — the PASS/FAIL result is already printed by that point. The script instead prints the
+exact command (`jq -n ...` or `gcloud storage cp ...`) for the operator to run by hand as a
+separate concluding step.
 
 ---
 

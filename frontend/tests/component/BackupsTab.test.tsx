@@ -256,27 +256,25 @@ describe("BackupsTab", () => {
     expect(screen.getByRole("button", { name: "Copy command" })).toBeInTheDocument();
   });
 
-  it("hides the drill command box without a selection", async () => {
+  it("renders the drill command without a snapshot selection", async () => {
     setupFetchMock();
     await renderTab();
-    expect(
-      screen.getByText("Select a snapshot above to generate its drill command."),
-    ).toBeInTheDocument();
+
+    // restore-drill.sh self-selects the newest monthly/ sidecar (no positional argument),
+    // so unlike the restore command, the drill command box needs no Snapshots-row selection.
+    expect(screen.getByText(/DRILL_KEY_USED=<A\|B>/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Copy drill command" })).toBeInTheDocument();
   });
 
-  it("selecting a snapshot renders its drill command with a copy button", async () => {
+  it("the drill command carries all three required placeholders and no artifact path", async () => {
     setupFetchMock();
     await renderTab();
-    const firstRow = rows[0];
-    const radios = screen.getAllByRole("radio");
-    fireEvent.click(radios[0]);
 
-    expect(
-      screen.queryByText("Select a snapshot above to generate its drill command."),
-    ).not.toBeInTheDocument();
-    const drillBox = screen.getByText(new RegExp(`DRILL_KEY_USED=<A\\|B>.*${firstRow.id}\\.dump\\.age`));
+    const drillBox = screen.getByText(
+      /DRILL_KEY_USED=<A\|B>.*DRILL_TARGET_URL=<unpooled-scratch-url>.*AGE_IDENTITY_FILE=\/path\/to\/key.*restore-drill\.sh/,
+    );
     expect(drillBox).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Copy drill command" })).toBeInTheDocument();
+    expect(drillBox.textContent).not.toMatch(/\.dump\.age/);
   });
 
   it("the Snapshots filter chips filter the table (Unverified, then Monthly)", async () => {
@@ -494,7 +492,11 @@ describe("BackupsTab", () => {
 
 describe("BackupHealthCard warning banner", () => {
   it("renders the no-verified-restore banner when lastVerifiedRestoreAt is null", () => {
-    const bannerHealth = { ...generateMockBackupHealth(FIXED_NOW, rows), lastVerifiedRestoreAt: null };
+    const bannerHealth = {
+      ...generateMockBackupHealth(FIXED_NOW, rows),
+      lastVerifiedRestoreAt: null,
+      lastVerifiedRestoreKey: null,
+    };
     render(<BackupHealthCard health={bannerHealth} now={FIXED_NOW} />);
     expect(screen.getByText("No restore has ever been verified")).toBeInTheDocument();
   });
@@ -508,11 +510,12 @@ describe("BackupHealthCard warning banner", () => {
     expect(screen.queryByText("No restore has ever been verified")).not.toBeInTheDocument();
   });
 
-  it("shows the three-stat row: last backup, next run, snapshots retained", () => {
+  it("shows the four-stat row: last backup, next run, snapshots retained, last verified restore", () => {
     render(<BackupHealthCard health={health} now={FIXED_NOW} />);
     expect(screen.getByText("Last successful backup")).toBeInTheDocument();
     expect(screen.getByText(/^Next run/)).toBeInTheDocument();
     expect(screen.getByText("Snapshots retained")).toBeInTheDocument();
+    expect(screen.getAllByText(/^Last verified restore/).length).toBeGreaterThan(0);
   });
 
   it("summarizes replicas as 'All three hold the latest snapshot' when every replica is current", () => {

@@ -55,12 +55,13 @@ export default function RestoreRunbookCard({ selected, now }: RestoreRunbookCard
     : null;
   const createdLabel = selected ? formatCreatedLabel(selected.createdAt, now) : null;
 
-  // Drill key letter isn't derivable from anything client-side (the operator picks whichever
-  // physical key they hold) -- <A|B> is a literal placeholder the operator fills in, same idiom
-  // as the /path/to/key and <neon-branch-url> placeholders above.
-  const drillCommand = selected
-    ? `DRILL_KEY_USED=<A|B> AGE_IDENTITY_FILE=/path/to/key ./frontend/scripts/restore-drill.sh ./${backupArtifactBaseName(selected.id)}.dump.age`
-    : null;
+  // restore-drill.sh takes no positional argument -- it self-selects the newest monthly/
+  // sidecar in the bucket -- so unlike the restore command above, this one is snapshot-
+  // independent and doesn't gate on `selected`. DRILL_KEY_USED/DRILL_TARGET_URL are literal
+  // placeholders the operator fills in, same idiom as /path/to/key above.
+  const drillCommand =
+    "DRILL_KEY_USED=<A|B> DRILL_TARGET_URL=<unpooled-scratch-url> AGE_IDENTITY_FILE=/path/to/key" +
+    " ./frontend/scripts/restore-drill.sh";
 
   const handleCopy = async () => {
     if (!command) return;
@@ -151,6 +152,10 @@ export default function RestoreRunbookCard({ selected, now }: RestoreRunbookCard
       )}
 
       <div className={styles.panelSubhead}>QUARTERLY DRILL</div>
+      <div className={styles.panelSubhead}>
+        Drills the newest monthly snapshot — restore-drill.sh always self-selects it, so there is
+        nothing to select above.
+      </div>
       <ul className={styles.runbookPrereqs}>
         <li className={styles.runbookPrereq}>
           <span>1.</span>
@@ -162,23 +167,19 @@ export default function RestoreRunbookCard({ selected, now }: RestoreRunbookCard
         </li>
       </ul>
 
-      {selected && drillCommand ? (
-        <div className={styles.commandBox}>
-          <div className={styles.commandBoxHeader}>Drill command for the selected snapshot · {createdLabel}</div>
-          <pre className={styles.commandBoxCode}>{drillCommand}</pre>
-          <button
-            type="button"
-            className={`${styles.commandCopyButton} ${drillCopied ? styles.commandCopyButtonCopied : ""}`}
-            onClick={handleDrillCopy}
-            aria-label="Copy drill command"
-            title={drillCopyFailed ? "Copy failed — select the text manually" : undefined}
-          >
-            <Icon name={drillCopied ? "check" : "copy"} size="sm" />
-          </button>
-        </div>
-      ) : (
-        <div className={styles.runbookNoSelection}>Select a snapshot above to generate its drill command.</div>
-      )}
+      <div className={styles.commandBox}>
+        <div className={styles.commandBoxHeader}>Quarterly drill command</div>
+        <pre className={styles.commandBoxCode}>{drillCommand}</pre>
+        <button
+          type="button"
+          className={`${styles.commandCopyButton} ${drillCopied ? styles.commandCopyButtonCopied : ""}`}
+          onClick={handleDrillCopy}
+          aria-label="Copy drill command"
+          title={drillCopyFailed ? "Copy failed — select the text manually" : undefined}
+        >
+          <Icon name={drillCopied ? "check" : "copy"} size="sm" />
+        </button>
+      </div>
     </Card>
   );
 }
