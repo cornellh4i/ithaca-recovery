@@ -19,7 +19,7 @@ test.describe("zoom integration", () => {
     const { page } = adminPage;
     await page.goto("/");
     await page.getByText("New Meeting").click();
-    await page.getByRole("button", { name: "Hybrid" }).click();
+    await page.getByRole("button", { name: "Hybrid", exact: true }).click();
     await selectFromDropdown(page, "Select Room", "Serenity Room");
 
     await expect(page.getByRole("button", { name: "Serenity Room - Zoom" })).toBeVisible();
@@ -51,7 +51,7 @@ test.describe("zoom integration", () => {
     await page.goto("/");
     await page.getByText("New Meeting").click();
     await page.getByPlaceholder("Meeting title").fill("Zoom Sync Attempt");
-    await page.getByRole("button", { name: "Hybrid" }).click();
+    await page.getByRole("button", { name: "Hybrid", exact: true }).click();
     await fillDatePicker(page, todayMMDDYYYY());
     await fillTimeRange(page, "18:00", "19:00");
     await selectFromDropdown(page, "Select Room", "Serenity Room");
@@ -124,7 +124,7 @@ test.describe("zoom integration", () => {
     const { page } = adminPage;
     await page.goto("/");
     await page.getByText("New Meeting").click();
-    await page.getByRole("button", { name: "Remote" }).click();
+    await page.getByRole("button", { name: "Remote", exact: true }).click();
 
     await expect(page.getByRole("button", { name: "Select Room" })).not.toBeVisible();
     await expect(page.getByRole("button", { name: "Select Zoom Room" })).not.toBeVisible();
@@ -137,7 +137,7 @@ test.describe("zoom integration", () => {
     const { page } = adminPage;
     await page.goto("/");
     await page.getByText("New Meeting").click();
-    await page.getByRole("button", { name: "In Person" }).click();
+    await page.getByRole("button", { name: "In Person", exact: true }).click();
 
     await expect(page.getByRole("button", { name: "Select Room" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Select Zoom Room" })).not.toBeVisible();

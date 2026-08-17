@@ -21,7 +21,7 @@ test.describe("google calendar sync", () => {
     await page.goto("/");
     await page.getByText("New Meeting").click();
     await page.getByPlaceholder("Meeting title").fill("No Token Meeting");
-    await page.getByRole("button", { name: "In Person" }).click();
+    await page.getByRole("button", { name: "In Person", exact: true }).click();
     await fillDatePicker(page, todayMMDDYYYY());
     await fillTimeRange(page, "18:00", "19:00");
     await selectFromDropdown(page, "Select Room", "Serenity Room");
@@ -57,7 +57,7 @@ test.describe("google calendar sync", () => {
     await page.goto("/");
     await page.getByText("New Meeting").click();
     await page.getByPlaceholder("Meeting title").fill("Dual Calendar Meeting");
-    await page.getByRole("button", { name: "In Person" }).click();
+    await page.getByRole("button", { name: "In Person", exact: true }).click();
     await fillDatePicker(page, todayMMDDYYYY());
     await fillTimeRange(page, "18:00", "19:00");
     await selectFromDropdown(page, "Select Room", "Serenity Room");

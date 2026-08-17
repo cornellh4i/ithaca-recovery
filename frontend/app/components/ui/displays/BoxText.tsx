@@ -51,7 +51,12 @@ interface BoxProps {
   // there's no vertical room for anything else. `hideTags`'s mode-icon-in-title treatment
   // applies at this tier automatically, regardless of whether `hideTags` itself was passed.
   tier?: 'full' | 'compact' | 'subcompact';
-  onClick: (meetingId: string, e: React.MouseEvent<HTMLDivElement, MouseEvent>) => void;
+  // Accessible name for Meeting Blocks (see util/meetings/meetingChipPresentation's
+  // buildMeetingChipAriaLabel) -- without it, the button name is the box's flattened text.
+  ariaLabel?: string;
+  // Keyboard activation (Enter/Space) passes the KeyboardEvent through the same callback --
+  // callers only use currentTarget/stopPropagation, which both event types carry.
+  onClick: (meetingId: string, e: React.MouseEvent<HTMLDivElement> | React.KeyboardEvent<HTMLDivElement>) => void;
   [key: string]: unknown;
 };
 
@@ -70,6 +75,7 @@ const BoxText: React.FC<BoxProps> = ({
   zoomTag,
   hideTags = false,
   tier,
+  ariaLabel,
   selected = false,
   onClick
 }) => {
@@ -120,6 +126,21 @@ const BoxText: React.FC<BoxProps> = ({
       className={`${styles.box} ${boxType === 'Meeting Block' ? styles.meeting : styles.room} ${fillHeight ? styles.fillHeight : ''} ${isCompact ? styles.compact : ''} ${isSubcompact ? styles.tierSubcompact : ''} ${selected ? styles.selected : ''}`}
       style={{ backgroundColor: bgColor, borderLeft: `${borderLeftWidth}px solid ${primaryColor}`, position: 'relative' }}
       onClick={(e) => onClick(meetingId, e)}
+      // A real <button> can't be used here: the chip's content is flow content (headings,
+      // paragraphs) and its absolutely-positioned wrappers style it as a block -- so it gets
+      // button semantics + Enter/Space activation instead (matching the "+N" overflow pill).
+      // Room Blocks are non-interactive labels and stay plain divs.
+      {...(boxType === 'Meeting Block' ? {
+        role: 'button',
+        tabIndex: 0,
+        'aria-label': ariaLabel,
+        onKeyDown: (e: React.KeyboardEvent<HTMLDivElement>) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            onClick(meetingId, e);
+          }
+        },
+      } : undefined)}
     >
       {syncError && (
         <span role="img" aria-label="Sync failed" title="Sync failed" className={styles.syncError}>

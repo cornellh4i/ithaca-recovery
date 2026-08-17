@@ -3,7 +3,8 @@ import { motion, useReducedMotion } from "motion/react";
 import styles from './WeekView.module.scss';
 import DayColumn from "../shared/DayColumn";
 import { filterMeetingsForDate, MeetingFilters } from "../../../../util/filters/meetingFilters";
-import { ROOM_COLORS, ZOOM_ROOM_COLOR, REMOTE_COLOR } from "../../../../util/rooms/filterColors";
+import { getMeetingChipPresentation } from "../../../../util/meetings/meetingChipPresentation";
+import { ZOOM_ROOM_COLOR } from "../../../../util/rooms/filterColors";
 import {
     formatETDateString,
     formatETWeekdayShort,
@@ -213,12 +214,12 @@ const WeekView: React.FC<WeekViewProps> = ({
         return layoutOverlappingMeetings(filterMeetingsForDate(allMeetings, date, filters));
     };
 
-    // Get room color for a meeting (physical rooms have distinct colors; Zoom rooms are all
-    // gray; Remote -- no physical or Zoom room at all -- gets its own distinct color).
-    const getRoomColor = (meeting: Meeting) => {
-        if (meeting.tags.includes('Remote')) return REMOTE_COLOR;
-        return ROOM_COLORS[meeting.room] ?? ZOOM_ROOM_COLOR;
-    };
+    // Chip color + displayed room, filter-aware -- a Hybrid meeting surviving only via its
+    // Zoom room presents as that Zoom room (grey, Zoom room name), matching Day view.
+    const presentMeeting = <T extends Meeting>(meeting: T) => ({
+        ...meeting,
+        ...getMeetingChipPresentation(meeting, filters),
+    });
 
     // Check if a date is the current date
     const isCurrentDate = (date: Date): boolean =>
@@ -291,14 +292,10 @@ const WeekView: React.FC<WeekViewProps> = ({
                                 {customHeader}
 
                                 <DayColumn
-                                    roomColor={ZOOM_ROOM_COLOR} // Unused fallback: every meeting sets primaryColor via getRoomColor
+                                    roomColor={ZOOM_ROOM_COLOR} // Unused fallback: every meeting sets primaryColor via presentMeeting
                                     meetings={dayMeetings.map(meeting => ({
-                                        ...meeting,
-                                        primaryColor: getRoomColor(meeting),
-                                        overflowMeetings: meeting.overflowMeetings?.map(m => ({
-                                            ...m,
-                                            primaryColor: getRoomColor(m)
-                                        })),
+                                        ...presentMeeting(meeting),
+                                        overflowMeetings: meeting.overflowMeetings?.map(presentMeeting),
                                     }))}
                                     selectedMeetingID={selectedMeetingID}
                                     setSelectedMeetingID={setSelectedMeetingID}

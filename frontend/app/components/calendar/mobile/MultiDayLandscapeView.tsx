@@ -3,7 +3,8 @@ import { motion, useAnimationControls, useDragControls, type PanInfo } from "mot
 import styles from "./MultiDayLandscapeView.module.scss";
 import DayColumn from "../shared/DayColumn";
 import { filterMeetingsForDate, MeetingFilters } from "../../../../util/filters/meetingFilters";
-import { ROOM_COLORS, ZOOM_ROOM_COLOR, REMOTE_COLOR } from "../../../../util/rooms/filterColors";
+import { ZOOM_ROOM_COLOR } from "../../../../util/rooms/filterColors";
+import { getMeetingChipPresentation } from "../../../../util/meetings/meetingChipPresentation";
 import { formatETDateString, formatETWeekdayShort, getCurrentETMinutesSinceMidnight } from "../../../../util/date/timeUtils";
 import { layoutOverlappingMeetings, OverlapMeeting } from "../../../../util/meetings/meetingOverlapLayout";
 import { addDaysToDate, daysBetweenET } from "../../../../util/date/weekDates";
@@ -135,18 +136,19 @@ const MultiDayLandscapeView: React.FC<MultiDayLandscapeViewProps> = ({
     return Array.from(merged.values());
   }, [rangeA, rangeB, rangeC]);
 
-  const getRoomColor = (meeting: Meeting) => {
-    if (meeting.tags.includes("Remote")) return REMOTE_COLOR;
-    return ROOM_COLORS[meeting.room] ?? ZOOM_ROOM_COLOR;
-  };
-
   const meetingsForDate = useCallback(
-    (date: Date) =>
-      layoutOverlappingMeetings(filterMeetingsForDate(allMeetings, date, filters)).map((meeting) => ({
+    (date: Date) => {
+      // Chip color + displayed room, filter-aware -- a Hybrid meeting surviving only via its
+      // Zoom room presents as that Zoom room (grey, Zoom room name), matching Day view.
+      const presentMeeting = <T extends Meeting>(meeting: T) => ({
         ...meeting,
-        primaryColor: getRoomColor(meeting),
-        overflowMeetings: meeting.overflowMeetings?.map((m) => ({ ...m, primaryColor: getRoomColor(m) })),
-      })),
+        ...getMeetingChipPresentation(meeting, filters),
+      });
+      return layoutOverlappingMeetings(filterMeetingsForDate(allMeetings, date, filters)).map((meeting) => ({
+        ...presentMeeting(meeting),
+        overflowMeetings: meeting.overflowMeetings?.map(presentMeeting),
+      }));
+    },
     [allMeetings, filters]
   );
 
@@ -274,7 +276,7 @@ const MultiDayLandscapeView: React.FC<MultiDayLandscapeViewProps> = ({
           <span className={styles.dayName}>{formatDayName(date)}</span> {formatDateNumber(date)}
         </div>
         <DayColumn
-          roomColor={ZOOM_ROOM_COLOR} // Unused fallback: every meeting sets primaryColor via getRoomColor
+          roomColor={ZOOM_ROOM_COLOR} // Unused fallback: every meeting sets primaryColor via presentMeeting
           meetings={dayMeetings}
           selectedMeetingID={selectedMeetingID}
           setSelectedMeetingID={setSelectedMeetingID}

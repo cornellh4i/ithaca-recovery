@@ -4,7 +4,8 @@ import WeekStrip from "./WeekStrip";
 import CalendarHeader from "../shared/CalendarHeader";
 import DayColumn from "../shared/DayColumn";
 import { filterMeetingsForDate, MeetingFilters } from "../../../../util/filters/meetingFilters";
-import { ROOM_COLORS, ZOOM_ROOM_COLOR, REMOTE_COLOR } from "../../../../util/rooms/filterColors";
+import { ZOOM_ROOM_COLOR } from "../../../../util/rooms/filterColors";
+import { getMeetingChipPresentation } from "../../../../util/meetings/meetingChipPresentation";
 import { formatETDateString, getCurrentETMinutesSinceMidnight } from "../../../../util/date/timeUtils";
 import { layoutOverlappingMeetings, OverlapMeeting } from "../../../../util/meetings/meetingOverlapLayout";
 import { getFirstDayOfWeek, addDaysToDate } from "../../../../util/date/weekDates";
@@ -107,18 +108,18 @@ const DayPortraitView: React.FC<DayPortraitViewProps> = ({
     return Array.from(merged.values());
   }, [prevWeekMeetings, nextWeekMeetings]);
 
-  const getRoomColor = (meeting: Meeting) => {
-    if (meeting.tags.includes("Remote")) return REMOTE_COLOR;
-    return ROOM_COLORS[meeting.room] ?? ZOOM_ROOM_COLOR;
-  };
-
   const computeDayMeetings = useCallback(
     (all: Meeting[], date: Date) => {
+      // Chip color + displayed room, filter-aware -- a Hybrid meeting surviving only via its
+      // Zoom room presents as that Zoom room (grey, Zoom room name), matching Day view.
+      const presentMeeting = <T extends Meeting>(meeting: T) => ({
+        ...meeting,
+        ...getMeetingChipPresentation(meeting, filters),
+      });
       const filtered = filterMeetingsForDate(all, date, filters);
       return layoutOverlappingMeetings(filtered, MOBILE_MAX_VISIBLE_OVERLAP).map((meeting) => ({
-        ...meeting,
-        primaryColor: getRoomColor(meeting),
-        overflowMeetings: meeting.overflowMeetings?.map((m) => ({ ...m, primaryColor: getRoomColor(m) })),
+        ...presentMeeting(meeting),
+        overflowMeetings: meeting.overflowMeetings?.map(presentMeeting),
       }));
     },
     [filters]
@@ -280,7 +281,7 @@ const DayPortraitView: React.FC<DayPortraitViewProps> = ({
           {...dateEnterMotion(transitionDirection, "x", 24, { alreadyAnimatedByCaller: transitionAlreadyAnimatedByCaller, reducedMotion })}
         >
           <DayColumn
-            roomColor={ZOOM_ROOM_COLOR} // Unused fallback: every meeting sets primaryColor via getRoomColor
+            roomColor={ZOOM_ROOM_COLOR} // Unused fallback: every meeting sets primaryColor via presentMeeting
             meetings={meetings}
             selectedMeetingID={selectedMeetingID}
             setSelectedMeetingID={setSelectedMeetingID}
