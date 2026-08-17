@@ -49,8 +49,8 @@ describe("POST /api/retrieve/zoom-host-availability", () => {
 
   it("delegates to checkZoomHostPoolAvailability and returns its result", async () => {
     mockedCheckAvailability.mockResolvedValue([
-      { host: "host1@icr.test", available: true },
-      { host: "host2@icr.test", available: false },
+      { host: "host1@icr.test", freeSlots: 1, capacity: 2 },
+      { host: "host2@icr.test", freeSlots: 0, capacity: 1 },
     ]);
 
     const response = await checkAvailability(request({
@@ -65,8 +65,8 @@ describe("POST /api/retrieve/zoom-host-availability", () => {
     const body = await response.json();
     expect(body).toEqual({
       hosts: [
-        { host: "host1@icr.test", available: true },
-        { host: "host2@icr.test", available: false },
+        { host: "host1@icr.test", freeSlots: 1, capacity: 2 },
+        { host: "host2@icr.test", freeSlots: 0, capacity: 1 },
       ],
     });
 

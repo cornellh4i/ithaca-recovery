@@ -1,7 +1,7 @@
 import "server-only";
 import { Prisma } from "@prisma/client";
 import { IMeeting } from "../types/models";
-import { findResourceConflicts, findFirstFreePoolHost, OccurrenceInput } from "../util/meetings/resourceOverlap";
+import { findResourceConflicts, findFirstFreePoolHost, getPoolHostLoads, OccurrenceInput } from "../util/meetings/resourceOverlap";
 import { prisma } from "../lib/prisma";
 
 const ZOOM_BASE_API = process.env.NEXT_PUBLIC_ZOOM_BASE_API ?? "https://api.zoom.us/v2";
@@ -186,24 +186,24 @@ export async function getZoomHostCapacities(): Promise<Record<string, number>> {
   return inFlightCapacityRequest;
 }
 
-// Reports every pool host's availability against `candidate`, instead of stopping at the
-// first free one (contrast resolveZoomHost below) -- backs the Meeting Form's "Check host
-// availability" action, which needs to show a check/cross per host, not just resolve one.
-// Pool is small (<=5), so checking all of them in parallel is cheap. Capacity-aware: a
-// licensed host with one overlapping meeting still reports available (#446).
+// Reports every pool host's remaining capacity against `candidate`, instead of stopping at
+// the first free one (contrast resolveZoomHost below) -- backs the Meeting Form's per-host
+// "1/2"-style free-slot display (#472), which needs a count per host, not just one resolution.
+// freeSlots reflects the candidate's WORST occurrence (peak concurrency across all of them) —
+// what assignment would actually see — and 0 means the host is at capacity for this schedule.
 export async function checkZoomHostPoolAvailability(
   candidate: OccurrenceInput,
   opts: { excludeMid?: string } = {},
-): Promise<{ host: string; available: boolean }[]> {
+): Promise<{ host: string; freeSlots: number; capacity: number }[]> {
   const capacities = await getZoomHostCapacities();
-  return Promise.all(zoomHostPool.map(async (host) => {
-    const conflicts = await findResourceConflicts("zoomHost", host, candidate, prisma, {
-      excludeMid: opts.excludeMid,
-      includeSuspended: true,
-      capacity: capacities[host] ?? 1,
-    });
-    return { host, available: conflicts.length === 0 };
-  }));
+  const loads = await getPoolHostLoads(zoomHostPool, candidate, prisma, {
+    excludeMid: opts.excludeMid,
+    includeSuspended: true,
+  });
+  return loads.map(({ host, peak }) => {
+    const capacity = capacities[host] ?? 1;
+    return { host, capacity, freeSlots: Math.max(0, capacity - peak) };
+  });
 }
 
 // Picks a host with spare capacity for `candidate`, ordered as tiered least-connections --
