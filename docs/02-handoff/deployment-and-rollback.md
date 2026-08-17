@@ -57,10 +57,9 @@ on [Backups and Recovery](backups-and-recovery.md).
 
 ## 4. Notifying ICR of significant changes
 
-Today: manual release notes are written, but there's no defined channel or process beyond that —
-no criteria for what's "significant" enough to notify ICR about, and no guarantee it happens
-consistently rather than depending on one person remembering to write them.
+Release notes are written manually and sent to ICR **by email** (the Maintenance Lead owns this —
+see [Support Process](support-process.md) for the contact chain).
 
-[TODO: decide and document — what counts as "significant" (new feature? workflow change? nothing
-routine), and what channel/process notifies ICR, so it doesn't depend on one person remembering —
-see [Ownership and Access](ownership-and-access.md) §5 on post-November continuity.]
+A change is **significant** if it is a new feature, or in any way impacts the end-user experience
+significantly — routine fixes, refactors, dependency bumps, and docs changes don't warrant a
+notice. When in doubt, a one-line email costs nothing.
