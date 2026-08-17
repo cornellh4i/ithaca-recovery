@@ -445,6 +445,28 @@ describe("BackupsTab", () => {
     expect(screen.getByText(/^Manual backup/)).toBeInTheDocument();
     expect(panel).toHaveTextContent(/\d+ routine scheduled successes not shown\./);
   });
+
+  it("shows four per-card loading shells with progress bars while fetching", () => {
+    // Never-resolving fetch keeps the tab in its loading phase.
+    global.fetch = jest.fn().mockReturnValue(new Promise(() => {}));
+    render(
+      <ToastProvider>
+        <BackupsTab />
+      </ToastProvider>,
+    );
+    expect(screen.getAllByRole("progressbar")).toHaveLength(4);
+    expect(screen.getByText("Loading snapshots…")).toBeInTheDocument();
+  });
+
+  it("attributes manual runs to the Backups tab, not the PAT owner's GitHub login", async () => {
+    setupFetchMock();
+    await renderTab();
+    const panel = screen.getByTestId("backups-recent-activity-panel");
+
+    // GitHub attributes every PAT dispatch to the PAT owner regardless of which admin clicked,
+    // so the login would misname the actor on every manual run.
+    expect(panel).toHaveTextContent("via Backups tab");
+  });
 });
 
 describe("BackupHealthCard warning banner", () => {

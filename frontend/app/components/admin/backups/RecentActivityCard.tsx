@@ -90,7 +90,11 @@ const activityTitle = (event: ActivityEvent): string => {
 };
 
 const activityMeta = (event: ActivityEvent, now: Date): string => {
-  const parts = [event.actor, formatRelativeOrAbsoluteTime(event.startedAt, now)];
+  // Manual runs dispatch through the tab's shared PAT, so GitHub attributes every one to the
+  // PAT owner's account regardless of which admin clicked -- showing that login would misname
+  // the actor. Per-click attribution lives in the server logs, not the runs API.
+  const attribution = event.trigger === "workflow_dispatch" ? "via Backups tab" : event.actor;
+  const parts = [attribution, formatRelativeOrAbsoluteTime(event.startedAt, now)];
   if (event.conclusion !== "in_progress") {
     parts.push(`ran ${formatDuration(event.durationSeconds)}`);
   }
