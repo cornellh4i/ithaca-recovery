@@ -150,10 +150,9 @@ function SignageContent() {
   }
 
   return (
-    // Always hidden -- the page itself must never be the scroller (that was the bug: with
-    // Week's overflow:auto here, the page silently absorbed the scroll WeekView's own
-    // scrollToCurrentTime meant to perform). Day never needed page-level scroll either
-    // (its own timeline scrolls horizontally within contentEl).
+    // The page wrapper must never be the scroller: WeekView owns its own vertical scroll
+    // (scroll-to-current-time targets its internal container) and Day's timeline scrolls
+    // horizontally within contentEl, so page-level overflow stays hidden for both views.
     <div style={{ height: "100vh", overflow: "hidden" }}>
       <div
         ref={setContentEl}

@@ -23,9 +23,8 @@ const renderView = (selectedDate: Date) =>
   );
 
 describe("DayView loading bar", () => {
-  // Regression coverage for #448's bundled scope addition: DayView previously had no isLoading
-  // flag at all (unlike WeekView's, which already renders TopLoadingBar via useWeekMeetings),
-  // so it showed an empty grid with no indication a fetch was in flight.
+  // The loading bar is the only signal a fetch is in flight -- without it the grid reads as
+  // an empty day (regression guard for #448's bundled scope addition).
   it("shows the loading bar while the day's meetings are being fetched, hides it once resolved", async () => {
     let resolveFetch!: (value: { ok: true; json: () => Promise<unknown[]> }) => void;
     global.fetch = jest.fn().mockReturnValue(

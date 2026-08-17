@@ -166,9 +166,11 @@ const WeekView: React.FC<WeekViewProps> = ({
                 // The latch also gates the visibility flash-guard -- if the grid genuinely
                 // fits its container (nothing to ever scroll), the observer condition never
                 // holds, so latch anyway after a beat rather than staying hidden forever.
+                // Flips only the latch (visibility guard) -- the observer stays connected so a
+                // bounded height arriving later than the fallback still gets its one scroll;
+                // the observer disconnects itself on success and cleanup covers the rest.
                 const fallbackId = window.setTimeout(() => {
                     setInitialScrollDone(true);
-                    observer.disconnect();
                 }, 2000);
                 const intervalId = setInterval(updateTimePosition, 60000);
                 return () => {
@@ -176,6 +178,10 @@ const WeekView: React.FC<WeekViewProps> = ({
                     window.clearTimeout(fallbackId);
                     clearInterval(intervalId);
                 };
+            } else {
+                // Null ref can't scroll anyway -- latch so the visibility guard never wedges
+                // the grid invisible.
+                setInitialScrollDone(true);
             }
         }
 

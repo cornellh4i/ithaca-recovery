@@ -230,9 +230,9 @@ const DayView: React.FC<DayViewProps> = ({
   // have actually caught up to what's requested; otherwise it can animate in the *previous*
   // day's still-cached meetings under the new date's heading for however long the fetch takes.
   const [meetingsDate, setMeetingsDate] = useState<Date>(selectedDate);
-  // Mirrors WeekView's isLoading (from useWeekMeetings) -- DayView's own fetchMeetingsByDay
-  // has no such flag, so this view previously showed an empty grid with no indication a
-  // fetch was even in flight while paging dates or refreshing.
+  // Mirrors WeekView's isLoading (from useWeekMeetings) -- fetchMeetingsByDay exposes no flag
+  // of its own, and without one the grid reads as empty while a page/refresh fetch is in
+  // flight.
   const [isLoading, setIsLoading] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   // Guards against out-of-order responses: rapid date/filter changes can fire overlapping
