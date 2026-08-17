@@ -12,6 +12,15 @@
 | "Export Lease CSV" fails with no meetings to export | Confirm at least one non-deleted meeting exists (suspended meetings still count) |
 | Page behaves unexpectedly | Hard refresh: Ctrl+Shift+R (Windows) or Cmd+Shift+R (Mac). Or try a different browser |
 
+## Backups tab
+
+| Problem | What to try |
+|---|---|
+| Warning banner: "No restore has ever been verified" or "Last verified restore was N months ago" | Not an emergency — it means the quarterly restore drill is pending or overdue. See [Check Backups and Run One](../how-to/check-backups-and-run-one.md) |
+| "Backup monitoring isn't configured in this environment" panel | Backup credentials aren't set up for this environment. Contact the H4I Maintenance Lead — nothing to fix from the UI |
+| A backup run failed | A GitHub issue opens automatically to notify the H4I team — nothing else needed from you beyond reporting it per [Support Process](../../02-handoff/support-process.md) if it's urgent |
+| "Back Up Now" button is disabled/greyed out | A backup is already running — only one can run at a time. Wait for it to finish, then try again |
+
 ## Common scenarios
 
 **"I accidentally deleted a meeting."** Deleted meetings can't be recovered ([learn why](../explanation/why-some-actions-cant-be-undone.md)) and must be recreated manually. For recurring series, ensure you select **This event** instead of **All events** if you only intend to cancel a single occurrence.

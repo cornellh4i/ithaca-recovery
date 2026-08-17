@@ -40,6 +40,10 @@
 1. "Export Meetings" → full XLSX backup
 2. "Export Lease CSV" → PandaDoc Bulk Send, once per year in early July
 
+**Check backups / run one** *(Admin → Backups, Super Admin only)*
+1. Backup Health card shows last backup, next run, and restore-drill status
+2. "Back Up Now" triggers an extra backup — appears in activity within ~1 minute
+
 ---
 
 **Key contacts**
