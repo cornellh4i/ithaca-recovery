@@ -16,7 +16,10 @@ const ModeButtons: React.FC<ModeButtonsProps> = ({ selectedMode, onModeSelect, c
 
   return (
     <div className={styles.meetingButtons}>
+      {/* Explicit type on all three: these render inside the meeting <form>, where a
+          typeless button would default to submitting it. */}
       <button
+        type="button"
         className={buttonClassName("Hybrid")}
         onClick={() => onModeSelect("Hybrid")}
       >
@@ -24,6 +27,7 @@ const ModeButtons: React.FC<ModeButtonsProps> = ({ selectedMode, onModeSelect, c
         Hybrid
       </button>
       <button
+        type="button"
         className={buttonClassName("In Person")}
         onClick={() => onModeSelect("In Person")}
       >
@@ -31,6 +35,7 @@ const ModeButtons: React.FC<ModeButtonsProps> = ({ selectedMode, onModeSelect, c
         In Person
       </button>
       <button
+        type="button"
         className={buttonClassName("Remote")}
         onClick={() => onModeSelect("Remote")}
       >

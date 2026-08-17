@@ -104,6 +104,18 @@
   flex-direction: column;
 }
 
+.requiredMark {
+  color: $danger-color;
+  margin-left: 2px;
+}
+
+.requiredLegend {
+  margin: 0 0 12px;
+  font-family: 'Source Sans Pro', sans-serif;
+  font-size: 11px;
+  color: $medium-grey-color;
+}
+
 /* Responsive adjustments */
 @media (width <= 768px) {
   .newMeetingSidebar {

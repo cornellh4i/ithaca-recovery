@@ -107,11 +107,14 @@ const TimePicker = ({ label, value: propValue = '', disablePast, onChange, compa
 
   return (
     <div className={`${styles['time-picker-wrapper']} ${compact ? styles.compact : ''}`}>
-      <label className={styles['time-picker-label']}>
+      {/* Decorative only -- a <label> can name one control, and this field is two (see
+          TextField.tsx's inline icon for the same reasoning). Each input names itself. */}
+      <span className={styles['time-picker-label']} aria-hidden="true">
         {typeof label === 'string' ? <span>{label}</span> : label}
-      </label>
+      </span>
       <input
         type="time"
+        aria-label="Start time"
         value={startTime}
         min={disablePast ? minTime : undefined}
         onChange={handleStartTimeChange}
@@ -122,6 +125,7 @@ const TimePicker = ({ label, value: propValue = '', disablePast, onChange, compa
       <span className={styles['time-range-separator']}> - </span>
       <input
         type="time"
+        aria-label="End time"
         value={endTime}
         onChange={handleEndTimeChange}
         onBlur={handleBlur}

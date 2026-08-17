@@ -115,6 +115,9 @@ const Dropdown: React.FC<DropdownProps> = ({
           </label>
         )}
         <button
+          // Explicit: this trigger renders inside the meeting <form>, where a typeless
+          // button would default to submitting it.
+          type="button"
           className={`${styles.DropdownButton} ${isOpen ? styles.activeDropdown : ''}`}
           onClick={() => handleDropdownToggle("element")}
           aria-haspopup="listbox"

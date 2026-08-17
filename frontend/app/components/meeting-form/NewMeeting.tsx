@@ -265,6 +265,7 @@ const NewMeetingSidebar = React.forwardRef<NewMeetingSidebarHandle, NewMeetingSi
           }
           emailTextField={<TextField
             input="Email"
+            type="email"
             label={<Icon name="mail" size={28} ariaLabel="Mail Icon" />}
             value={inputEmailValue}
             onChange={setEmailValue}

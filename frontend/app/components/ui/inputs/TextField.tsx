@@ -69,12 +69,16 @@ const TextField: React.FC<TextFieldProps> = ({
     <div className={styles.textfieldwrapper}>
       <div className={`${styles.textfieldcontainer} ${error ? styles.textfieldContainerError : ''}`}>
         {label && (
-          <label
+          // Decorative only: this is the field's inline icon, not its name -- the real
+          // <label> lives with the caller (e.g. MeetingForm's field caption), so exposing
+          // this too would append "Mail Icon" to the control's accessible name.
+          <span
             className={styles.textfieldlabel}
             style={{ fontSize: labelFontSize }}
+            aria-hidden="true"
           >
             {typeof label === "string" ? <span>{label}</span> : label}
-          </label>
+          </span>
         )}
         {multiline ? (
           <textarea
