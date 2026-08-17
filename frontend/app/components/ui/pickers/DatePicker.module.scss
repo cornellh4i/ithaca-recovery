@@ -74,7 +74,13 @@
 // longer a DOM descendant of it.
 .calendar-popup {
   position: fixed;
-  z-index: 2000; // High z-index to ensure visibility above any other page content
+
+  // Must beat the confirm modals' overlays (Suspend/Resume/Delete/DeleteRecurring, all
+  // z-index: 2001) -- this popup portals to document.body as their SIBLING, so stacking is
+  // decided purely by these numbers, and any modal embedding a DatePicker would otherwise
+  // paint over its own calendar. Extend this chain (don't guess) if a higher modal tier is
+  // ever added.
+  z-index: 2002;
   background-color: white;
   box-shadow: 0 4px 12px rgb(0 0 0 / 15%);
   border-radius: 4px;
