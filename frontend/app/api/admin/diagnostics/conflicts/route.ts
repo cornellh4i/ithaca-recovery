@@ -2,6 +2,7 @@ import { Role } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { requireRole } from "../../../../../services/auth";
 import { computeConflicts } from "../../../../../util/meetings/resourceOverlap";
+import { getZoomHostCapacities } from "../../../../../services/zoom";
 import { prisma } from "../../../../../lib/prisma";
 
 const notDeleted = { deletedAt: null };
@@ -23,7 +24,9 @@ export const GET = async () => {
       },
     });
 
-    return NextResponse.json({ conflicts: computeConflicts(meetings) });
+    return NextResponse.json({
+      conflicts: computeConflicts(meetings, undefined, { zoomHostCapacities: await getZoomHostCapacities() }),
+    });
   } catch (error) {
     console.error("Error retrieving conflicts: ", error);
     return NextResponse.json({ error: "Error retrieving conflicts" }, { status: 500 });

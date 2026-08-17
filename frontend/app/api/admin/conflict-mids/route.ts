@@ -2,6 +2,7 @@ import { Role } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { requireRole } from "../../../../services/auth";
 import { computeConflicts } from "../../../../util/meetings/resourceOverlap";
+import { getZoomHostCapacities } from "../../../../services/zoom";
 import { prisma } from "../../../../lib/prisma";
 
 const notDeleted = { deletedAt: null };
@@ -40,17 +41,21 @@ export const GET = async () => {
     },
   });
 
-  const conflicts = computeConflicts(meetings);
+  const conflicts = computeConflicts(meetings, undefined, {
+    zoomHostCapacities: await getZoomHostCapacities(),
+  });
   // Per-mid set of the *other* mids it conflicts with, deduped across rows -- a meeting can
   // appear in more than one conflict row (e.g. both a room conflict and a separate zoomHost
-  // conflict), so this is a union, not a raw row count.
+  // conflict), so this is a union, not a raw row count. Rows are 2+ meetings (an over-capacity
+  // Zoom host cluster is 3+); every member conflicts with every other member of its row.
   const conflictingWith = new Map<string, Set<string>>();
   conflicts.forEach((row) => {
-    const [a, b] = row.meetings;
-    if (!conflictingWith.has(a.mid)) conflictingWith.set(a.mid, new Set());
-    if (!conflictingWith.has(b.mid)) conflictingWith.set(b.mid, new Set());
-    conflictingWith.get(a.mid)!.add(b.mid);
-    conflictingWith.get(b.mid)!.add(a.mid);
+    for (const m of row.meetings) {
+      if (!conflictingWith.has(m.mid)) conflictingWith.set(m.mid, new Set());
+      for (const other of row.meetings) {
+        if (other.mid !== m.mid) conflictingWith.get(m.mid)!.add(other.mid);
+      }
+    }
   });
 
   const result = Array.from(conflictingWith.keys());

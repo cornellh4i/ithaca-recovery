@@ -3,7 +3,7 @@ import { NextResponse, after } from "next/server";
 import { requireRole } from "../../../../services/auth";
 import { IMeeting } from "../../../../types/models";
 import { createCalendarEvent, updateCalendarEvent, deleteCalendarEvent, reconcileMeetingCalendars } from "../../../../services/googleCalendar";
-import { createZoomMeeting, updateZoomMeeting, deleteZoomMeeting, getZoomMeetingInvitation, resolveZoomHost, zoomHostPool, zoomRoomCalendarId } from "../../../../services/zoom";
+import { createZoomMeeting, updateZoomMeeting, deleteZoomMeeting, getZoomHostCapacities, getZoomMeetingInvitation, resolveZoomHost, zoomHostPool, zoomRoomCalendarId } from "../../../../services/zoom";
 import { findResourceConflicts, findResourceConflictRows, ConflictRow, ResourceConflictAbort } from "../../../../util/meetings/resourceOverlap";
 import { lockResourceClaims, ResourceClaim } from "../../../../util/meetings/resourceLocks";
 import { meetingSchema } from "../../../../util/meetings/meetingValidation";
@@ -83,7 +83,11 @@ async function syncUpdatedMeeting(
     // silently double-book a host that's fine for the old time but busy at the new one.
     if (zid) {
       const timeConflicts = zoomHost
-        ? await findResourceConflicts("zoomHost", zoomHost, newMeeting, prisma, { excludeMid: mid, includeSuspended: true })
+        ? await findResourceConflicts("zoomHost", zoomHost, newMeeting, prisma, {
+            excludeMid: mid,
+            includeSuspended: true,
+            capacity: (await getZoomHostCapacities())[zoomHost] ?? 1,
+          })
         : [];
       if (timeConflicts.length > 0) {
         zoomSynced = false;
@@ -303,6 +307,11 @@ const updateMeeting = async (request: Request): Promise<Response> => {
     let resolvedHost: string | null = null;
     let hostSyncError: string | null = null;
 
+    // License-dependent per-host capacities, resolved BEFORE the locked transaction below — a
+    // Zoom API round trip while pool advisory locks are held would extend lock hold time by an
+    // external call's latency (cached 12h, so this is usually a no-op; see services/zoom.ts).
+    const hostCapacities = await getZoomHostCapacities();
+
     // Everything from the conflict check through the Meeting(+RecurrencePattern) write runs
     // inside one transaction, guarded by a single lockResourceClaims call -- this closes the
     // check-then-write race (two concurrent requests could both pass the conflict check before
@@ -346,7 +355,8 @@ const updateMeeting = async (request: Request): Promise<Response> => {
           }
           if (explicitHostChange && newMeeting.zoomHost) {
             conflictRows.push(...await findResourceConflictRows(
-              "zoomHost", newMeeting.zoomHost, candidate, tx, { excludeMid: mid, includeSuspended: true },
+              "zoomHost", newMeeting.zoomHost, candidate, tx,
+              { excludeMid: mid, includeSuspended: true, capacity: hostCapacities[newMeeting.zoomHost] ?? 1 },
             ));
           }
           if (conflictRows.length > 0) {
@@ -375,7 +385,8 @@ const updateMeeting = async (request: Request): Promise<Response> => {
             const conflicts = alreadyCheckedClean
               ? []
               : await findResourceConflicts(
-                  "zoomHost", newMeeting.zoomHost, candidate, tx, { excludeMid: mid, includeSuspended: true },
+                  "zoomHost", newMeeting.zoomHost, candidate, tx,
+                  { excludeMid: mid, includeSuspended: true, capacity: hostCapacities[newMeeting.zoomHost] ?? 1 },
                 );
             if (conflicts.length === 0) {
               resolvedHost = newMeeting.zoomHost;
@@ -384,7 +395,7 @@ const updateMeeting = async (request: Request): Promise<Response> => {
               attemptedZoomHost = newMeeting.zoomHost;
             }
           } else {
-            const poolResolvedHost = await resolveZoomHost(candidate, tx, { excludeMid: mid });
+            const poolResolvedHost = await resolveZoomHost(candidate, tx, { excludeMid: mid, capacities: hostCapacities });
             resolvedHost = poolResolvedHost;
             hostSyncError = poolResolvedHost
               ? null

@@ -3,7 +3,7 @@ import { Meeting, Prisma, Role } from "@prisma/client";
 import { NextResponse, after } from "next/server";
 import { requireRole } from "../../../../services/auth";
 import { createCalendarEvent, calendarIdsForMeeting } from "../../../../services/googleCalendar";
-import { createZoomMeeting, getZoomMeetingInvitation, resolveZoomHost, zoomHostPool, zoomRoomCalendarId } from "../../../../services/zoom";
+import { createZoomMeeting, getZoomHostCapacities, getZoomMeetingInvitation, resolveZoomHost, zoomHostPool, zoomRoomCalendarId } from "../../../../services/zoom";
 import { findResourceConflicts, findResourceConflictRows, ConflictRow, ResourceConflictAbort } from "../../../../util/meetings/resourceOverlap";
 import { lockResourceClaims, ResourceClaim } from "../../../../util/meetings/resourceLocks";
 import { meetingSchema } from "../../../../util/meetings/meetingValidation";
@@ -225,6 +225,11 @@ const createMeeting = async (request: Request) => {
     // the same reason: every concurrent auto-assign request now holds a pooled connection for its
     // full lock wait, so a burst of them can exhaust Prisma's default 2s connection-acquisition
     // budget before a queued request even starts waiting on the lock itself.
+    // License-dependent per-host capacities, resolved BEFORE the locked transaction below — a
+    // Zoom API round trip while pool advisory locks are held would extend lock hold time by an
+    // external call's latency (cached 12h, so this is usually a no-op; see services/zoom.ts).
+    const hostCapacities = zoomEnabled ? await getZoomHostCapacities() : {};
+
     let result: { createdMeeting: Meeting; createdPattern: Awaited<ReturnType<typeof prisma.recurrencePattern.create>> | null };
     try {
       result = await prisma.$transaction(async (tx) => {
@@ -258,7 +263,8 @@ const createMeeting = async (request: Request) => {
           }
           if (meetingData.zoomHost) {
             zoomHostConflictRows = await findResourceConflictRows(
-              "zoomHost", meetingData.zoomHost, candidate, tx, { excludeMid: meetingData.mid, includeSuspended: true },
+              "zoomHost", meetingData.zoomHost, candidate, tx,
+              { excludeMid: meetingData.mid, includeSuspended: true, capacity: hostCapacities[meetingData.zoomHost] ?? 1 },
             );
             conflictRows.push(...zoomHostConflictRows);
           }
@@ -279,7 +285,8 @@ const createMeeting = async (request: Request) => {
             // the block entirely) needs a fresh check here.
             const conflicts = confirmOverride
               ? await findResourceConflicts(
-                  "zoomHost", meetingData.zoomHost, candidate, tx, { excludeMid: meetingData.mid, includeSuspended: true },
+                  "zoomHost", meetingData.zoomHost, candidate, tx,
+                  { excludeMid: meetingData.mid, includeSuspended: true, capacity: hostCapacities[meetingData.zoomHost] ?? 1 },
                 )
               : [];
             if (conflicts.length === 0 && zoomHostConflictRows.length === 0) {
@@ -289,7 +296,7 @@ const createMeeting = async (request: Request) => {
               attemptedZoomHost = meetingData.zoomHost;
             }
           } else {
-            const poolResolvedHost = await resolveZoomHost(candidate, tx, { excludeMid: meetingData.mid });
+            const poolResolvedHost = await resolveZoomHost(candidate, tx, { excludeMid: meetingData.mid, capacities: hostCapacities });
             resolvedHost = poolResolvedHost;
             zoomSyncError = poolResolvedHost
               ? null
