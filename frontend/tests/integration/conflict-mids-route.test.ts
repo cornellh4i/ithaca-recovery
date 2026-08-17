@@ -5,7 +5,14 @@ jest.mock("../../services/auth", () => ({
   requireRole: jest.fn(),
 }));
 
+// The route resolves live per-host Zoom capacities; mocked so a test can make a host licensed
+// (capacity 2) without a Zoom account behind it. Default: every host fails safe to capacity 1.
+jest.mock("../../services/zoom", () => ({
+  getZoomHostCapacities: jest.fn().mockResolvedValue({}),
+}));
+
 import { requireRole } from "../../services/auth";
+import { getZoomHostCapacities } from "../../services/zoom";
 import { getTestPrismaClient, disconnectTestPrismaClient } from "../factories/db";
 import { buildMeetingData as buildBaseMeetingData } from "../factories/meeting";
 import { GET } from "../../app/api/admin/conflict-mids/route";
@@ -96,4 +103,55 @@ test("returns the mids of meetings sharing a busy Zoom host at overlapping times
 
   expect(body.mids).toEqual(expect.arrayContaining([midA, midB]));
   expect(body.mids).not.toContain(midUnrelated);
+});
+
+test("a licensed host carrying two concurrent meetings produces no badge, and all three mids once a third joins", async () => {
+  const prisma = getTestPrismaClient();
+  const licensedHost = `licensed-conflict-host-${randomUUID()}@icr.test`;
+  (getZoomHostCapacities as jest.Mock).mockResolvedValue({ [licensedHost]: 2 });
+
+  const overlapStart = new Date(Date.now() + 60 * 60 * 1000);
+  const overlapEnd = new Date(overlapStart.getTime() + 60 * 60 * 1000);
+  // Distinct rooms/Zoom rooms throughout -- this is about the host bucket, and a shared room
+  // would badge these meetings for a different reason entirely.
+  const mids = [`m-${randomUUID()}`, `m-${randomUUID()}`, `m-${randomUUID()}`];
+  const seedOnHost = (mid: string, index: number) =>
+    prisma.meeting.create({
+      data: buildMeetingData({
+        mid,
+        title: `Licensed Host Meeting ${index}`,
+        room: `Capacity Badge Room ${index} ${mid}`,
+        zoomRoom: `Capacity Badge Room ${index} ${mid} - Zoom`,
+        zoomHost: licensedHost,
+        startDateTime: overlapStart,
+        endDateTime: overlapEnd,
+      }),
+    });
+
+  // The route memoizes its result for 15s in module scope, so each GET here runs against a
+  // clock pushed past the previous response's cache window instead of replaying it.
+  const realNow = Date.now.bind(Date);
+  let clockOffsetMs = 0;
+  const nowSpy = jest.spyOn(Date, "now").mockImplementation(() => realNow() + clockOffsetMs);
+  const getUncached = async () => {
+    clockOffsetMs += 20_000;
+    return (await GET()).json();
+  };
+
+  try {
+    await seedOnHost(mids[0], 0);
+    await seedOnHost(mids[1], 1);
+
+    const healthy = await getUncached();
+    expect(healthy.mids).not.toContain(mids[0]);
+    expect(healthy.mids).not.toContain(mids[1]);
+
+    await seedOnHost(mids[2], 2);
+
+    // The route unions every meeting in an over-capacity row, so all three get badged.
+    const overCapacity = await getUncached();
+    expect(overCapacity.mids).toEqual(expect.arrayContaining(mids));
+  } finally {
+    nowSpy.mockRestore();
+  }
 });

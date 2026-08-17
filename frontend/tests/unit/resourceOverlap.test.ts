@@ -1,9 +1,14 @@
+import type { Prisma } from "@prisma/client";
 import {
   expandOccurrences,
   occurrencesOverlap,
   computeConflicts,
+  findOverCapacityWindow,
+  findFirstFreePoolHost,
+  findResourceConflictRows,
   OVERLAP_HORIZON_YEARS,
   type ConflictCandidateMeeting,
+  type Occurrence,
 } from "../../util/meetings/resourceOverlap";
 import { convertETToUTC, formatETDateString } from "../../util/date/timeUtils";
 
@@ -324,5 +329,327 @@ describe("computeConflicts", () => {
       },
     };
     expect(computeConflicts([recurringMeeting, farFutureConflict])).toEqual([]);
+  });
+});
+
+describe("findOverCapacityWindow", () => {
+  const occ = (startHour: number, endHour: number, day = 6): Occurrence => ({
+    start: utcDate(2026, 7, day, startHour, 0),
+    end: utcDate(2026, 7, day, endHour, 0),
+  });
+
+  it("flags the window where `capacity` other meetings share one instant, listing both of them", () => {
+    const candidate = [occ(19, 20)];
+    const over = findOverCapacityWindow(candidate, [[occ(18, 20)], [occ(19, 21)]], 2);
+
+    expect(over).not.toBeNull();
+    expect(over?.meetingIndexes.sort()).toEqual([0, 1]);
+    expect(over?.candidateOccurrence).toEqual(candidate[0]);
+    expect(over?.window.start.toISOString()).toBe(utcDate(2026, 7, 6, 19, 0).toISOString());
+  });
+
+  it("returns null for two other meetings at disjoint times inside one long candidate occurrence", () => {
+    // The instant-level distinction: both overlap the candidate, but never each other, so a
+    // capacity-2 host is never asked to run more than one of them at a time.
+    const candidate = [occ(9, 21)];
+    expect(findOverCapacityWindow(candidate, [[occ(10, 11)], [occ(12, 13)]], 2)).toBeNull();
+  });
+
+  it("does not treat back-to-back other meetings as concurrent", () => {
+    const candidate = [occ(9, 21)];
+    expect(findOverCapacityWindow(candidate, [[occ(10, 11)], [occ(11, 12)]], 2)).toBeNull();
+  });
+
+  it("counts one meeting's own two overlapping segments as a single concurrent meeting", () => {
+    const candidate = [occ(9, 21)];
+    const oneMeetingTwoSegments = [occ(10, 12), occ(11, 13)];
+    expect(findOverCapacityWindow(candidate, [oneMeetingTwoSegments], 2)).toBeNull();
+    // A second, genuinely distinct meeting during those segments does exceed capacity 2.
+    const over = findOverCapacityWindow(candidate, [oneMeetingTwoSegments, [occ(11, 12)]], 2);
+    expect(over?.meetingIndexes.sort()).toEqual([0, 1]);
+  });
+
+  it("is plain overlap detection at capacity 1", () => {
+    const candidate = [occ(19, 20)];
+    expect(findOverCapacityWindow(candidate, [[occ(19, 21)]], 1)).not.toBeNull();
+    expect(findOverCapacityWindow(candidate, [[occ(20, 21)]], 1)).toBeNull();
+    expect(findOverCapacityWindow(candidate, [], 1)).toBeNull();
+  });
+
+  it("returns null when no other meeting touches the candidate at all", () => {
+    expect(findOverCapacityWindow([occ(19, 20)], [[occ(19, 20, 13)], [occ(19, 20, 20)]], 2)).toBeNull();
+  });
+});
+
+// Rows as the two DB-backed helpers select them -- the stub client below ignores the `where`
+// clause, so each test passes exactly the rows its query would have returned.
+type StubRow = {
+  mid?: string;
+  title?: string;
+  calType?: string[];
+  zoomHost?: string | null;
+  startDateTime: Date;
+  endDateTime: Date;
+  isRecurring?: boolean;
+  recurrencePattern?: typeof weeklyMondayPattern | null;
+  suspensions?: { from: Date; to: Date | null }[];
+};
+
+const stubClient = (rows: StubRow[]) =>
+  ({
+    meeting: {
+      findMany: async () =>
+        rows.map((row, i) => ({
+          mid: row.mid ?? `stub-${i}`,
+          title: row.title ?? `Stub ${i}`,
+          calType: row.calType ?? ["AA"],
+          zoomHost: row.zoomHost ?? null,
+          isRecurring: row.isRecurring ?? false,
+          recurrencePattern: row.recurrencePattern ?? null,
+          suspensions: row.suspensions ?? [],
+          startDateTime: row.startDateTime,
+          endDateTime: row.endDateTime,
+        })),
+    },
+  }) as unknown as Prisma.TransactionClient;
+
+describe("findFirstFreePoolHost — per-host capacities", () => {
+  // Both helpers below anchor their horizon window to Date.now(); pinned so the July 2026
+  // fixtures stay inside it.
+  beforeAll(() => {
+    jest.useFakeTimers();
+    jest.setSystemTime(utcDate(2026, 7, 1));
+  });
+  afterAll(() => {
+    jest.useRealTimers();
+  });
+
+  const pool = ["licensed@icr.test", "basic@icr.test"];
+  const candidate = {
+    startDateTime: utcDate(2026, 7, 6, 19, 0),
+    endDateTime: utcDate(2026, 7, 6, 20, 0),
+    isRecurring: false,
+    recurrencePattern: null,
+  };
+  const onHost = (host: string, startHour: number, endHour: number): StubRow => ({
+    zoomHost: host,
+    startDateTime: utcDate(2026, 7, 6, startHour, 0),
+    endDateTime: utcDate(2026, 7, 6, endHour, 0),
+  });
+
+  it("keeps a capacity-2 host for a second overlapping meeting instead of moving on", async () => {
+    const host = await findFirstFreePoolHost(pool, candidate, stubClient([onHost(pool[0], 19, 20)]), {
+      capacities: { [pool[0]]: 2, [pool[1]]: 2 },
+    });
+    expect(host).toBe(pool[0]);
+  });
+
+  it("moves on once a capacity-2 host already has two concurrent meetings", async () => {
+    const host = await findFirstFreePoolHost(
+      pool,
+      candidate,
+      stubClient([onHost(pool[0], 19, 20), onHost(pool[0], 18, 21)]),
+      { capacities: { [pool[0]]: 2, [pool[1]]: 2 } },
+    );
+    expect(host).toBe(pool[1]);
+  });
+
+  it("returns null when every capacity-2 host is carrying two concurrent meetings", async () => {
+    const host = await findFirstFreePoolHost(
+      pool,
+      candidate,
+      stubClient([
+        onHost(pool[0], 19, 20), onHost(pool[0], 18, 21),
+        onHost(pool[1], 19, 20), onHost(pool[1], 18, 21),
+      ]),
+      { capacities: { [pool[0]]: 2, [pool[1]]: 2 } },
+    );
+    expect(host).toBeNull();
+  });
+
+  it("fails safe to capacity 1 for a host missing from the capacities map", async () => {
+    const host = await findFirstFreePoolHost(pool, candidate, stubClient([onHost(pool[0], 19, 20)]), {
+      capacities: { [pool[1]]: 2 },
+    });
+    expect(host).toBe(pool[1]);
+  });
+});
+
+describe("findResourceConflictRows — capacity 2", () => {
+  beforeAll(() => {
+    jest.useFakeTimers();
+    jest.setSystemTime(utcDate(2026, 7, 1));
+  });
+  afterAll(() => {
+    jest.useRealTimers();
+  });
+
+  const host = "licensed@icr.test";
+  const candidate: ConflictCandidateMeeting = {
+    mid: "cand",
+    title: "Candidate",
+    room: "",
+    zoomRoom: null,
+    zoomHost: host,
+    calType: ["AA"],
+    startDateTime: utcDate(2026, 7, 6, 19, 0),
+    endDateTime: utcDate(2026, 7, 6, 20, 0),
+    isRecurring: false,
+    recurrencePattern: null,
+  };
+  const existing = (mid: string, startHour: number, endHour: number): StubRow => ({
+    mid,
+    title: mid,
+    zoomHost: host,
+    startDateTime: utcDate(2026, 7, 6, startHour, 0),
+    endDateTime: utcDate(2026, 7, 6, endHour, 0),
+  });
+
+  it("returns no rows when the candidate is only the second meeting on the host", async () => {
+    const rows = await findResourceConflictRows("zoomHost", host, candidate, stubClient([existing("m1", 19, 20)]), {
+      includeSuspended: true,
+      capacity: 2,
+    });
+    expect(rows).toEqual([]);
+  });
+
+  it("emits one N-way row (candidate plus both active meetings) when the candidate would be the third", async () => {
+    const rows = await findResourceConflictRows(
+      "zoomHost",
+      host,
+      candidate,
+      stubClient([existing("m1", 19, 20), existing("m2", 18, 21)]),
+      { includeSuspended: true, capacity: 2 },
+    );
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ field: "zoomHost", value: host });
+    expect(rows[0].meetings).toHaveLength(3);
+    expect(rows[0].meetings.map((m) => m.mid).sort()).toEqual(["cand", "m1", "m2"]);
+    expect(rows[0].overlap.start.toISOString()).toBe(utcDate(2026, 7, 6, 19, 0).toISOString());
+  });
+
+  it("still emits one row per existing meeting at capacity 1", async () => {
+    const rows = await findResourceConflictRows(
+      "zoomHost",
+      host,
+      candidate,
+      stubClient([existing("m1", 19, 20), existing("m2", 18, 21)]),
+      { includeSuspended: true },
+    );
+    expect(rows).toHaveLength(2);
+    rows.forEach((row) => expect(row.meetings).toHaveLength(2));
+  });
+});
+
+describe("computeConflicts — capacity-aware Zoom hosts", () => {
+  beforeAll(() => {
+    jest.useFakeTimers();
+    jest.setSystemTime(utcDate(2026, 7, 1));
+  });
+  afterAll(() => {
+    jest.useRealTimers();
+  });
+
+  const host = "licensed@icr.test";
+  const capacities = { [host]: 2 };
+
+  // Distinct rooms throughout -- these fixtures are about the zoomHost bucket, and a shared room
+  // would add its own (capacity-1) rows on top.
+  const onHost = (mid: string, room: string, startHour: number, endHour: number, day = 6): ConflictCandidateMeeting => ({
+    mid,
+    title: mid,
+    room,
+    zoomRoom: null,
+    zoomHost: host,
+    status: "Active",
+    startDateTime: utcDate(2026, 7, day, startHour, 0),
+    endDateTime: utcDate(2026, 7, day, endHour, 0),
+    isRecurring: false,
+    recurrencePattern: null,
+  });
+
+  it("does not flag two concurrent meetings on a capacity-2 host", () => {
+    const conflicts = computeConflicts(
+      [onHost("m1", "Room A", 19, 20), onHost("m2", "Room B", 19, 20)],
+      undefined,
+      { zoomHostCapacities: capacities },
+    );
+    expect(conflicts).toEqual([]);
+  });
+
+  it("flags one N-way row listing all three meetings once a third shares the instant", () => {
+    const conflicts = computeConflicts(
+      [onHost("m1", "Room A", 19, 20), onHost("m2", "Room B", 19, 20), onHost("m3", "Room C", 19, 20)],
+      undefined,
+      { zoomHostCapacities: capacities },
+    );
+
+    expect(conflicts).toHaveLength(1);
+    expect(conflicts[0].field).toBe("zoomHost");
+    expect(conflicts[0].value).toBe(host);
+    expect(conflicts[0].meetings.map((m) => m.mid).sort()).toEqual(["m1", "m2", "m3"]);
+  });
+
+  it("counts a suspended meeting against the host's capacity", () => {
+    // A suspended meeting's Zoom sync is skipped, not torn down, so its host slot is still taken.
+    const suspended = { ...onHost("m1", "Room A", 19, 20), suspensions: suspendedIndefinitely };
+    const conflicts = computeConflicts(
+      [suspended, onHost("m2", "Room B", 19, 20), onHost("m3", "Room C", 19, 20)],
+      undefined,
+      { zoomHostCapacities: capacities },
+    );
+
+    expect(conflicts).toHaveLength(1);
+    expect(conflicts[0].meetings.map((m) => m.mid).sort()).toEqual(["m1", "m2", "m3"]);
+  });
+
+  it("still flags a pair of meetings sharing a room while their capacity-2 host stays healthy", () => {
+    const conflicts = computeConflicts(
+      [onHost("m1", "Shared Room", 19, 20), onHost("m2", "Shared Room", 19, 21)],
+      undefined,
+      { zoomHostCapacities: capacities },
+    );
+
+    expect(conflicts).toHaveLength(1);
+    expect(conflicts[0].field).toBe("room");
+    expect(conflicts[0].meetings.map((m) => m.mid).sort()).toEqual(["m1", "m2"]);
+  });
+
+  it("keeps capacity 1 for a host absent from the capacities map", () => {
+    const otherHost = "basic@icr.test";
+    const meetings = [
+      { ...onHost("m1", "Room A", 19, 20), zoomHost: otherHost },
+      { ...onHost("m2", "Room B", 19, 20), zoomHost: otherHost },
+    ];
+    const conflicts = computeConflicts(meetings, undefined, { zoomHostCapacities: capacities });
+
+    expect(conflicts).toHaveLength(1);
+    expect(conflicts[0].field).toBe("zoomHost");
+    expect(conflicts[0].value).toBe(otherHost);
+  });
+
+  it("evaluates capacity per occurrence, flagging only the week a third series member lands in", () => {
+    const everyWeek: ConflictCandidateMeeting = {
+      ...onHost("weekly-1", "Room A", 19, 20),
+      isRecurring: true,
+      recurrencePattern: weeklyMondayPattern,
+    };
+    const everyOtherWeek: ConflictCandidateMeeting = {
+      ...onHost("weekly-2", "Room B", 19, 20),
+      isRecurring: true,
+      recurrencePattern: { ...weeklyMondayPattern, interval: 2 },
+    };
+    // July 20 2026 is one of everyOtherWeek's Mondays (July 6 + 14 days); July 13 is not, so
+    // that week has only two concurrent meetings and must stay unflagged.
+    const oneOffOnJuly20 = onHost("one-off", "Room C", 19, 20, 20);
+
+    const conflicts = computeConflicts([everyWeek, everyOtherWeek, oneOffOnJuly20], undefined, {
+      zoomHostCapacities: capacities,
+    });
+
+    expect(conflicts).toHaveLength(1);
+    expect(conflicts[0].meetings.map((m) => m.mid).sort()).toEqual(["one-off", "weekly-1", "weekly-2"]);
+    expect(conflicts[0].overlap.start.toISOString()).toBe(utcDate(2026, 7, 20, 19, 0).toISOString());
   });
 });

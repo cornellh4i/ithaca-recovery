@@ -210,3 +210,72 @@ test("auto-assignment locks the whole pool, so a second transaction sees the fir
   expect(secondHost).not.toBeNull();
   expect(secondHost).not.toBe(firstHost);
 });
+
+describe("findFirstFreePoolHost — licensed (capacity 2) hosts", () => {
+  it("returns the same host again for a second overlapping candidate", async () => {
+    const prisma = getTestPrismaClient();
+    const window = testWindow(300);
+    const pool = ["cap2-test-host-1@icr.test", "cap2-test-host-2@icr.test"];
+    const capacities = Object.fromEntries(pool.map((host) => [host, 2]));
+    await seedMeeting({ zoomHost: pool[0], modeType: "Remote", room: "", ...window });
+
+    const host = await findFirstFreePoolHost(pool, window, prisma, { includeSuspended: true, capacities });
+    expect(host).toBe(pool[0]);
+  });
+
+  it("moves to the next host only once the first is carrying two concurrent meetings", async () => {
+    const prisma = getTestPrismaClient();
+    const window = testWindow(310);
+    const pool = ["cap2-test-host-3@icr.test", "cap2-test-host-4@icr.test"];
+    const capacities = Object.fromEntries(pool.map((host) => [host, 2]));
+    await seedMeeting({ zoomHost: pool[0], modeType: "Remote", room: "", ...window });
+    await seedMeeting({ zoomHost: pool[0], modeType: "Remote", room: "", ...window });
+
+    const host = await findFirstFreePoolHost(pool, window, prisma, { includeSuspended: true, capacities });
+    expect(host).toBe(pool[1]);
+  });
+
+  it("exhausts the pool only after two meetings per host, not one", async () => {
+    const prisma = getTestPrismaClient();
+    const window = testWindow(320);
+    const pool = ["cap2-test-host-5@icr.test", "cap2-test-host-6@icr.test"];
+    const capacities = Object.fromEntries(pool.map((host) => [host, 2]));
+    await Promise.all(pool.map((zoomHost) => seedMeeting({ zoomHost, modeType: "Remote", room: "", ...window })));
+
+    // One meeting each -- every host still has a free slot.
+    expect(await findFirstFreePoolHost(pool, window, prisma, { includeSuspended: true, capacities })).toBe(pool[0]);
+
+    await Promise.all(pool.map((zoomHost) => seedMeeting({ zoomHost, modeType: "Remote", room: "", ...window })));
+    expect(await findFirstFreePoolHost(pool, window, prisma, { includeSuspended: true, capacities })).toBeNull();
+  });
+});
+
+// The capacity-2 counterpart of the #360 regression test above: "fewer than capacity meetings so
+// far" is a wider read-then-decide window than the old binary busy check, so three requests
+// racing for one licensed host must still land exactly two of them (#446). Advisory locks make
+// the interleaving deterministic here without the manual gating the tests above need -- each
+// transaction blocks on the pool lock until the previous one has committed its reservation.
+test("three concurrent requests for one capacity-2 host land exactly two, and the third sees an exhausted pool", async () => {
+  const prisma = getTestPrismaClient();
+  const pool = ["cap2-race-host@icr.test"];
+  const capacities = { [pool[0]]: 2 };
+  const window = testWindow(330);
+
+  const attemptBooking = () =>
+    prisma.$transaction(async (tx) => {
+      await lockResourceClaims(tx, pool.map((value) => ({ type: "zoomHost" as const, value })));
+      const host = await findFirstFreePoolHost(pool, window, tx, { includeSuspended: true, capacities });
+      // Committed inside the locked transaction, exactly as the write/update routes persist their
+      // reservation -- committing outside it would let the next transaction read a stale count.
+      if (host) await tx.meeting.create({ data: buildMeetingData({ zoomHost: host, modeType: "Remote", room: "", ...window }) });
+      return host;
+    });
+
+  const results = await Promise.all([attemptBooking(), attemptBooking(), attemptBooking()]);
+
+  expect(results.filter((host) => host === pool[0])).toHaveLength(2);
+  expect(results.filter((host) => host === null)).toHaveLength(1);
+
+  const booked = await prisma.meeting.count({ where: { zoomHost: pool[0], deletedAt: null } });
+  expect(booked).toBe(2);
+});
