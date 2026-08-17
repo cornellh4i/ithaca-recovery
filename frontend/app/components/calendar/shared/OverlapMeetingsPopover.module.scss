@@ -1,0 +1,130 @@
+@import 'https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;600&display=swap';
+@import '../../../../styles/Variables.module';
+
+// Transparent full-viewport layer: keeps Modal's outside-click/Escape dismissal without a
+// scrim -- a two-to-five item disambiguation shouldn't black out the week behind it.
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+}
+
+.panel {
+  position: fixed;
+  width: 272px;
+  max-width: calc(100vw - 16px);
+  background-color: white;
+  border: 1px solid $grey-border-color;
+  border-radius: $radius-lg;
+  box-shadow: 0 4px 12px rgb(0 0 0 / 15%);
+  padding: 13px 14px 14px;
+  font-family: 'Source Sans Pro', sans-serif;
+  color: $black-color;
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.subtitle {
+  margin: 1px 0 0;
+  font-size: 12px;
+  font-weight: 400;
+  color: $medium-grey-color;
+}
+
+.closeButton {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 15px;
+  color: $medium-grey-color;
+  line-height: 1;
+  padding: 2px 0 2px 4px;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin-top: 11px;
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+// Same treatment as the grid's meeting blocks (BoxText): room color lightened 70% as the
+// fill with the full-strength color as the left accent -- not a solid fill.
+.row {
+  position: relative;
+  border-left: 6px solid $light-grey-color;
+  border-radius: 6px;
+  padding: 9px 11px 9px 9px;
+  cursor: pointer;
+
+  &:hover {
+    // Darkens the pastel fill without defining a second hover color per room.
+    box-shadow: inset 0 0 0 999px rgb(0 0 0 / 5%);
+  }
+}
+
+// Same top-right corner-badge convention as BoxText.module.scss's .syncError, so the same
+// meeting reads identically as a calendar card or a row here. Conflicts get a text line
+// instead (see .conflictLine) -- a row has room to say what's wrong.
+.syncError {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  line-height: 1;
+  color: $danger-color;
+
+  img,
+  svg {
+    // !important: @mui/icons-material icons carry their own same-specificity
+    // .MuiSvgIcon-root class (width/height: 1em) that otherwise wins unpredictably
+    // depending on emotion's <style> injection order.
+    width: 14px !important;
+    height: 14px !important;
+    display: block;
+  }
+}
+
+.rowTitle {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rowMeta {
+  margin: 1px 0 0;
+  font-size: 12px;
+  font-weight: 400;
+  color: $navy-color;
+}
+
+.conflictLine {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 2px 0 0;
+  font-size: 11px;
+  font-weight: 600;
+  color: $warning-text-color;
+}
+
+.conflictIcon {
+  // !important: same @mui/icons-material specificity clash as .syncError above.
+  width: 12px !important;
+  height: 12px !important;
+}

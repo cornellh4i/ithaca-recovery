@@ -9,13 +9,13 @@ browsing without an admin account never sees any of it — not "hidden," just ne
 **Screenshot freshness:** the app's icon set was migrated from custom SVG assets to
 `@mui/icons-material` glyphs. The mode-icon screenshot below was recaptured against the new
 icons; every other screenshot on this page (conflict, sync-failure, suspend, diagnostics-panel,
-overlap-modal) still shows the pre-migration glyphs and needs re-capturing by an admin — the
+overlap-popover) still shows the pre-migration glyphs and needs re-capturing by an admin — the
 icons themselves are correct, just these specific images are stale.
 
 | Icon | Meaning | Where you'll see it |
 |---|---|---|
 | Co-present (mode tag) | Meeting is **Hybrid** | Mode picker, calendar tags, detail panel |
-| Amber triangle | Room/Zoom room/Zoom host **conflict** | Calendar block (top-left), detail panel, overlap modal |
+| Amber triangle | Room/Zoom room/Zoom host **conflict** | Calendar block (top-left), detail panel, overlap popover |
 | "+N" pill (block corner) | Cluster hides N more **overlapping** meetings | Day/Week view, when 2+ meetings share a slot |
 | Red broken-ring + "!" | Google Calendar/Zoom **sync failed** | Calendar block (top-right), detail panel |
 | Pause (⏸) | Meeting is **suspended** | Suspend dialog, Admin Diagnostics |
@@ -76,10 +76,13 @@ that one meeting's own detail panel instead, same as clicking any other block. I
 enough meetings that nothing folds, there's no pill and no list to open; each meeting is just its
 own block.
 
-![A dialog listing 3 overlapping meetings, two of them marked with the conflict warning icon](../assets/icon-legend-overlap-meetings-modal.png)
+![A popover listing 3 overlapping meetings, two of them marked with a double-booked warning line](../assets/icon-legend-overlap-meetings-modal.png)
 
-Each meeting in the list carries its own conflict or sync-error icon if it has one — clustering
-together doesn't mean they share a status.
+The pill opens a compact popover anchored beside the cluster — the surrounding week stays
+visible behind it. Its title is the cluster's time window, with the meeting count underneath.
+Each row carries its own "Double-booked in …" warning line or sync-error icon if it has one —
+clustering together doesn't mean they share a status. (Screenshot above predates the popover
+redesign and needs re-capturing by an admin.)
 
 Don't confuse this with the unrelated "+N" that can appear **inside** a calendar block's tag row:
 that one summarizes tags that didn't fit the card (e.g. `AA +2`), not folded meetings. The cluster

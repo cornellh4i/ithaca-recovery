@@ -121,7 +121,7 @@ sits directly in `calendar/`, alongside three subfolders, not a flat list:
 - `mobile/` — `DayLandscapeSwitcher`, `DayLandscapeView`, `DayPortraitView`, `MobileFab`,
   `MultiDayLandscapeView`, `WeekStrip`
 - `shared/` — `CalendarHeader`, `DayColumn` (the day-to-meetings column mapping, reused by both
-  desktop and mobile layouts), `MeetingsFilter`, `OverlapMeetingsModal`
+  desktop and mobile layouts), `MeetingsFilter`, `OverlapMeetingsPopover`
 
 **`meeting-form/`** — `NewMeeting`, `EditMeeting`, `MeetingForm`, `ViewMeeting`,
 `FormValidationBanner` (live "Fix N fields" banner), `RecurringMeeting`, `ZoomHostField`,

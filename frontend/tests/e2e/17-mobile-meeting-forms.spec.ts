@@ -75,7 +75,7 @@ test.describe("mobile meeting interactions", () => {
     await expect(page.getByRole("dialog", { name: "Mobile Edit Meeting" })).not.toBeVisible();
   });
 
-  test("17.4 an overlapping-meetings '+N' popup still renders as a centered modal, not a sheet", async ({ adminPage }) => {
+  test("17.4 an overlapping-meetings '+N' popup renders as an anchored popover, not a sheet", async ({ adminPage }) => {
     const { page } = adminPage;
     // formatETDateString/convertETToUTC (not new Date().toISOString()) -- the suite runs
     // with timezoneId: "UTC" (config/playwright.config.ts), so a plain UTC date slice can
@@ -92,11 +92,11 @@ test.describe("mobile meeting interactions", () => {
 
     await page.getByRole("button", { name: /more meetings at this time/ }).click();
 
-    // OverlapMeetingsModal renders via the shared Modal primitive (role="dialog") but has no
-    // drag grabber (unlike BottomSheet) -- confirms it stayed a plain centered modal rather
-    // than getting swept into the bottom-sheet treatment.
-    const modal = page.getByRole("dialog");
-    await expect(modal).toBeVisible();
-    await expect(modal.locator('[class*="grabber"]')).toHaveCount(0);
+    // OverlapMeetingsPopover renders via the shared Modal primitive (role="dialog") but has
+    // no drag grabber (unlike BottomSheet) -- confirms it stayed a popover rather than
+    // getting swept into the bottom-sheet treatment.
+    const popover = page.getByRole("dialog");
+    await expect(popover).toBeVisible();
+    await expect(popover.locator('[class*="grabber"]')).toHaveCount(0);
   });
 });
