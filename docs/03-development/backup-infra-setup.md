@@ -430,9 +430,11 @@ see the break-glass runbook in `backups-and-recovery.md`):
 
 - [`age`](https://github.com/FiloSottile/age) — decrypt
 - `postgresql-client` (provides `pg_restore`) — matching or newer major version than the source
-  Postgres (17)
+  Postgres (18 — what Neon runs and `backup-db.yml` pins for `pg_dump`)
 - `gcloud` (Google Cloud CLI) — fetch from GCS
 - `jq` — parse `meta.json` sidecars
+- `sha256sum` — `restore-drill.sh` calls it by that name; stock macOS only ships `shasum`, so
+  install coreutils (`brew install coreutils`) there
 
 ---
 
@@ -530,6 +532,88 @@ federation enabled in the Vercel project settings (issuer mode Team):
 Until those two vars are set and deployed, production's snapshot/health cards show the tab's
 "not configured" panel (Back Up Now and Recent Activity work regardless — they only need
 `GITHUB_BACKUPS_PAT`).
+
+---
+
+## 10. Running the drill and the restore
+
+Both procedures run through their scripts — never the underlying `age`/`pg_restore` commands by
+hand. The scripts' refusals *are* the procedure: they reject pooled (`-pooler`) connection
+strings that break `pg_restore`, refuse target databases that don't look like scratch/branch
+targets, gate the one irreversible step behind an explicit flag plus a typed confirmation, and do
+the exact-`count(*)` verification that makes a result trustworthy. Prerequisites: §7, plus
+`gcloud` authenticated as an account that can read the working bucket.
+
+### 10.1 Quarterly drill — `frontend/scripts/restore-drill.sh`
+
+Pulls the newest `monthly/` artifact, verifies its sha256, decrypts it, restores it into a
+scratch database, and diffs restored row counts against the sidecar `meta.json` — then uploads
+the `drill-verified.json` marker the Backups admin tab reads (§8). From `frontend/`:
+
+```sh
+AGE_IDENTITY_FILE=~/keys/age-key-a.txt \
+DRILL_KEY_USED=A \
+DRILL_TARGET_URL='postgresql://user:pass@ep-xxx.us-east-2.aws.neon.tech/icr_drill_scratch' \
+./scripts/restore-drill.sh
+```
+
+- `DRILL_TARGET_URL` must be **unpooled** and its database name must contain
+  `drill`/`scratch`/`test` — the drill runs `pg_restore --clean`, which drops every table in the
+  target first. A differently-named scratch DB needs the explicit
+  `DRILL_CONFIRM_DBNAME=<dbname>` override.
+- `DRILL_KEY_USED` is whichever physical key `AGE_IDENTITY_FILE` is (`A` or `B`) — the script
+  can't derive it, and it lands in the marker's `keyUsed` field. **Alternate keys between
+  drills**: a two-key design only ever tested with key A is a one-key design nobody's noticed.
+- `GCS_BUCKET` overrides the default `icr-db-backups-prod`.
+
+A passing run ends in a dated block meant to be pasted verbatim into the handoff log:
+
+```
+=== Restore Drill — 2026-08-17 ===
+Artifact: gs://icr-db-backups-prod/monthly/backup-20260801T071700Z
+Result:   PASS
+Tables:   12 checked, 0 mismatches
+===================================
+```
+
+The marker upload happens automatically after a PASS; if that bookkeeping step fails (network
+blip, stale `gcloud` auth), the drill still passed — the script prints the exact `jq`/`gcloud
+storage cp` commands to run by hand. On FAIL: a sha256 mismatch means fetch the same artifact
+from a different replica (§3's R2 copy) before trusting it; count mismatches are listed
+per-table in the output.
+
+### 10.2 Break-glass restore — `frontend/scripts/restore-db.sh`
+
+Unlike the drill, artifact selection is deliberate and by hand. Pick, download, and check the
+artifact first:
+
+```sh
+gcloud storage ls gs://icr-db-backups-prod/daily/        # or monthly/, permanent/
+gcloud storage cp gs://icr-db-backups-prod/daily/backup-<stamp>.dump.age .
+gcloud storage cp gs://icr-db-backups-prod/daily/backup-<stamp>.sha256 .
+gcloud storage cp gs://icr-db-backups-prod/daily/backup-<stamp>.meta.json .
+sha256sum backup-<stamp>.dump.age   # must equal the first field of the .sha256 file
+# (macOS without coreutils: shasum -a 256 backup-<stamp>.dump.age)
+```
+
+(If GCS is what failed, fetch the same three objects from R2 with the `aws s3 cp` form in §6,
+direction reversed, or from the archive bucket.)
+
+Then restore into a **fresh Neon branch** — never the primary:
+
+```sh
+AGE_IDENTITY_FILE=~/keys/age-key-b.txt \
+./scripts/restore-db.sh backup-<stamp>.dump.age \
+  --target 'postgresql://user:pass@ep-xxx-branch-yyy.us-east-2.aws.neon.tech/neondb'
+```
+
+The script prints exact per-table row counts after restoring — compare them against the
+`.meta.json` sidecar's `rowCounts` before going any further. Restoring **over production** is
+the runbook's one irreversible step and requires both `--target-is-production` and re-typing the
+target host at the interactive prompt; everything before that flag is a dry run by construction.
+The surrounding decision steps — when to restore, who coordinates, and the post-restore
+write-up — live in the break-glass runbook in
+[Backups and Recovery](../02-handoff/backups-and-recovery.md).
 
 ---
 
