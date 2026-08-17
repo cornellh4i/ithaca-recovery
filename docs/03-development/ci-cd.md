@@ -44,15 +44,15 @@ configured in `frontend/config/commitlint.config.mjs` (extends
 
 Not a GitHub Actions workflow — a separate GitHub App, configured via
 [`.coderabbit.yaml`](https://github.com/cornellh4i/ithaca-recovery/blob/master/.coderabbit.yaml)
-at the repo root. Auto-reviews PRs based on the repo's default branch (`master`) with inline
-comments and a summary, except PRs opened by `dependabot[bot]` (already gated by CI + the
-auto-merge policy below — a review there is just noise). It also suggests a
+at the repo root. Reviews are **on-demand only** (`auto_review.enabled: false`): comment
+`@coderabbitai review` on a PR that needs one — every PR, stacked or not. This keeps the
+free-tier rate-limit budget for reviews that are actually requested. It still suggests a
 Conventional-Commits-compliant title on open, mirroring the same rules
 `commitlint.yml`/`pr-title-lint.yml` enforce.
 
 > [!NOTE]
-> A PR stacked on top of another PR (base branch isn't `master`) needs a manual
-> `@coderabbitai review` comment on that PR to trigger one.
+> The free tier rate-limits reviews; a bounced request needs a fresh `@coderabbitai review`
+> comment after the quoted wait — the bounced one never retries itself.
 
 ## Security scanning — `codeql.yml`
 
