@@ -61,13 +61,19 @@ non-technical maintainer should attempt. If you suspect data loss or corruption:
 
 ## Verification: restore drills
 
-Backups are periodically test-restored to prove they actually work, not just that they exist.
+Backups are periodically test-restored to prove they actually work, not just that they exist. An
+operator runs this quarterly, restoring the newest monthly backup into a scratch database. The
+Backups admin tab's Backup Health card shows when this last happened and which key holder ran it.
+
 Mechanics: [Backup Infrastructure Setup](../03-development/backup-infra-setup.md).
 
 ## The break-glass restore runbook
 
 Restoring a backup deliberately requires a human with a private key — no automated system can do
 it on its own. This keeps our data safe even if the app or its cloud accounts were compromised.
+
+One operator at a time: restores are coordinated through the Maintenance Lead so two people never
+run one concurrently — there is no technical lock preventing it.
 
 At a high level, an operator:
 

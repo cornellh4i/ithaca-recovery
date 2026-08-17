@@ -8,7 +8,7 @@ import { ExternalAccountClient } from "google-auth-library";
 import type { BaseExternalAccountClient } from "google-auth-library";
 import { getVercelOidcToken } from "@vercel/functions/oidc";
 import { ListObjectsV2Command, S3Client } from "@aws-sdk/client-s3";
-import type { BackupListRow, BackupMeta, BackupReplica, BackupTier } from "../../types/backups";
+import type { BackupListRow, BackupMeta, BackupReplica, BackupTier, DrillVerifiedMarker } from "../../types/backups";
 import { ALL_BACKUP_REPLICAS, backupArtifactBaseName } from "../../types/backups";
 import { getStorageConfig } from "./config";
 
@@ -108,6 +108,44 @@ async function listR2ObjectKeys(client: S3Client, bucket: string): Promise<Set<s
   return keys;
 }
 
+const DRILL_MARKER_KEY = "drill-verified.json";
+
+// A marker that's valid JSON but missing/mistyped a field must be treated as absent, not
+// thrown -- a corrupt marker must never 500 the whole listing over a health-card nicety.
+function isUsableDrillMarker(value: unknown): value is DrillVerifiedMarker {
+  if (typeof value !== "object" || value === null) return false;
+  const marker = value as Record<string, unknown>;
+  return (
+    typeof marker.verifiedAt === "string" &&
+    !Number.isNaN(new Date(marker.verifiedAt).getTime()) &&
+    typeof marker.artifactId === "string" &&
+    marker.artifactId.length > 0 &&
+    (marker.keyUsed === "A" || marker.keyUsed === "B")
+  );
+}
+
+async function readDrillMarker(storage: Storage, bucket: string): Promise<DrillVerifiedMarker | null> {
+  try {
+    const [buf] = await storage.bucket(bucket).file(DRILL_MARKER_KEY).download();
+    const parsed: unknown = JSON.parse(buf.toString("utf8"));
+    if (!isUsableDrillMarker(parsed)) {
+      throw new Error("marker JSON is missing verifiedAt/artifactId/keyUsed");
+    }
+    return parsed;
+  } catch (error) {
+    // Absent object (never drilled yet) is the overwhelmingly common case and not worth a
+    // log line -- only a present-but-corrupt marker is worth flagging. The GCS client library
+    // has been observed surfacing 404s as a numeric error.code, a string error.code, or a
+    // numeric error.status depending on transport path, so all three are checked.
+    const errObj = typeof error === "object" && error !== null ? (error as { code?: unknown; status?: unknown }) : null;
+    const isNotFound = errObj !== null && (errObj.code === 404 || errObj.code === "404" || errObj.status === 404);
+    if (!isNotFound) {
+      console.error("services/backups/storage: failed to read drill-verified.json", error);
+    }
+    return null;
+  }
+}
+
 const SIDECAR_READ_CONCURRENCY = 10;
 
 const VALID_TIERS: readonly string[] = ["daily", "monthly", "permanent"];
@@ -181,6 +219,7 @@ interface CachedListing {
   workingKeys: Set<string>;
   archiveKeys: Set<string>;
   r2Keys: Set<string>;
+  drillMarker: DrillVerifiedMarker | null;
 }
 
 let cache: CachedListing | null = null;
@@ -195,10 +234,11 @@ async function fetchListing(): Promise<CachedListing> {
   const storage = gcsClient();
   const s3 = r2Client();
 
-  const [workingKeys, archiveKeys, r2Keys] = await Promise.all([
+  const [workingKeys, archiveKeys, r2Keys, drillMarker] = await Promise.all([
     listGcsObjectKeys(storage, config.gcsWorkingBucket),
     listGcsObjectKeys(storage, config.gcsArchiveBucket),
     listR2ObjectKeys(s3, config.r2Bucket),
+    readDrillMarker(storage, config.gcsWorkingBucket),
   ]);
 
   const metas = await readGcsMetaSidecars(storage, config.gcsWorkingBucket, workingKeys);
@@ -222,7 +262,7 @@ async function fetchListing(): Promise<CachedListing> {
   const rows = dedupeRowsById(allRows);
   rows.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
-  return { expiresAt: Date.now() + CACHE_TTL_MS, rows, workingKeys, archiveKeys, r2Keys };
+  return { expiresAt: Date.now() + CACHE_TTL_MS, rows, workingKeys, archiveKeys, r2Keys, drillMarker };
 }
 
 /**
@@ -231,7 +271,13 @@ async function fetchListing(): Promise<CachedListing> {
  * second round of API calls -- GCS/R2 free tiers meter listing as billable Class A ops, so an
  * idly refreshing admin tab must not re-list on every request.
  */
-export async function listBackups(): Promise<{ rows: BackupListRow[]; archiveObjectCount: number; r2ObjectCount: number; workingObjectCount: number }> {
+export async function listBackups(): Promise<{
+  rows: BackupListRow[];
+  archiveObjectCount: number;
+  r2ObjectCount: number;
+  workingObjectCount: number;
+  drillMarker: DrillVerifiedMarker | null;
+}> {
   if (!cache || cache.expiresAt <= Date.now()) {
     cache = await fetchListing();
   }
@@ -242,7 +288,7 @@ export async function listBackups(): Promise<{ rows: BackupListRow[]; archiveObj
   const workingObjectCount = Array.from(cache.workingKeys).filter((k) => k.endsWith(artifactSuffix)).length;
   const archiveObjectCount = Array.from(cache.archiveKeys).filter((k) => k.endsWith(artifactSuffix)).length;
   const r2ObjectCount = Array.from(cache.r2Keys).filter((k) => k.endsWith(artifactSuffix)).length;
-  return { rows: cache.rows, archiveObjectCount, r2ObjectCount, workingObjectCount };
+  return { rows: cache.rows, archiveObjectCount, r2ObjectCount, workingObjectCount, drillMarker: cache.drillMarker };
 }
 
 // With no private key on hand, google-auth-library signs the URL by calling IAM Credentials'

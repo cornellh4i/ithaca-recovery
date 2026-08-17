@@ -69,6 +69,19 @@ export interface BackupListRow extends BackupMeta {
   expiresAt: string | null;
 }
 
+/**
+ * Shape of `drill-verified.json`, written to the working bucket root by
+ * `restore-drill.sh`'s final step once every check (decrypt, scratch restore, exact
+ * count(*) match) has passed. No key material or operator PII — only the artifact it
+ * verified, when, and which key holder ran it.
+ */
+export interface DrillVerifiedMarker {
+  verifiedAt: string;
+  /** Bare timestamp id (see {@link backupArtifactBaseName}), not the `backup-` prefixed form. */
+  artifactId: string;
+  keyUsed: "A" | "B";
+}
+
 export interface BackupListResponse {
   rows: BackupListRow[];
   total: number;
@@ -90,6 +103,8 @@ export interface BackupHealth {
   freshness: BackupFreshness;
   /** Null until a quarterly restore drill has actually run once. */
   lastVerifiedRestoreAt: string | null;
+  /** Which `age` key holder ran the most recent verified drill; null alongside a null date. */
+  lastVerifiedRestoreKey: "A" | "B" | null;
   /** Next cron fire time, derived from `17 1,7,13,19 * * *` (UTC). */
   nextScheduledRunAt: string;
   replicaStatus: BackupReplicaStatus[];

@@ -247,8 +247,10 @@ export function generateMockBackupHealth(now: Date, rows: BackupListRow[] = gene
   return {
     lastSuccessfulBackupAt,
     freshness: lastSuccessfulBackupAt ? freshnessFor(lastSuccessfulBackupAt, now) : "error",
-    // No quarterly restore drill has run yet — deliberately null, not a fixture bug.
-    lastVerifiedRestoreAt: null,
+    // 120 days ago -- past DRILL_STALE_DAYS (100), so dev/mock mode renders the stale-warning
+    // state by default rather than the misleadingly-happy "just verified" one.
+    lastVerifiedRestoreAt: new Date(now.getTime() - 120 * DAY_MS).toISOString(),
+    lastVerifiedRestoreKey: "A",
     nextScheduledRunAt: nextScheduledRunAfter(now),
     replicaStatus,
     totals,

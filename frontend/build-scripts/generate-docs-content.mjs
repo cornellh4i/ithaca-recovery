@@ -38,6 +38,7 @@ const MANIFEST = [
   { group: "User Guide", relPath: "01-user-guide/how-to/set-up-a-recurring-meeting.md" },
   { group: "User Guide", relPath: "01-user-guide/how-to/navigate-and-filter-the-calendar.md" },
   { group: "User Guide", relPath: "01-user-guide/how-to/export-data.md" },
+  { group: "User Guide", relPath: "01-user-guide/how-to/check-backups-and-run-one.md" },
   { group: "User Guide", relPath: "01-user-guide/how-to/use-digital-signage.md" },
   { group: "User Guide", relPath: "01-user-guide/how-to/manage-admin-users.md" },
   { group: "User Guide", relPath: "01-user-guide/how-to/retry-a-failed-sync.md" },

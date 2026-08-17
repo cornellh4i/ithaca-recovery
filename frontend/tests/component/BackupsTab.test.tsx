@@ -226,9 +226,9 @@ describe("BackupsTab", () => {
     const radios = screen.getAllByRole("radio");
     fireEvent.click(radios[0]);
 
-    const commandBox = screen.getByText(new RegExp(`${firstRow.id}\\.dump\\.age`));
+    const commandBox = screen.getByText(new RegExp(`restore-db\\.sh.*${firstRow.id}\\.dump\\.age`));
     expect(commandBox).toBeInTheDocument();
-    expect(screen.getByText(/command for the selected snapshot/i)).toBeInTheDocument();
+    expect(screen.getByText(/^command for the selected snapshot/i)).toBeInTheDocument();
   });
 
   it("clicking a selected row again unselects it", async () => {
@@ -254,6 +254,27 @@ describe("BackupsTab", () => {
     fireEvent.click(radios[0]);
 
     expect(screen.getByRole("button", { name: "Copy command" })).toBeInTheDocument();
+  });
+
+  it("renders the drill command without a snapshot selection", async () => {
+    setupFetchMock();
+    await renderTab();
+
+    // restore-drill.sh self-selects the newest monthly/ sidecar (no positional argument),
+    // so unlike the restore command, the drill command box needs no Snapshots-row selection.
+    expect(screen.getByText(/DRILL_KEY_USED=<A\|B>/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Copy drill command" })).toBeInTheDocument();
+  });
+
+  it("the drill command carries all three required placeholders and no artifact path", async () => {
+    setupFetchMock();
+    await renderTab();
+
+    const drillBox = screen.getByText(
+      /DRILL_KEY_USED=<A\|B>.*DRILL_TARGET_URL=<unpooled-scratch-url>.*AGE_IDENTITY_FILE=\/path\/to\/key.*restore-drill\.sh/,
+    );
+    expect(drillBox).toBeInTheDocument();
+    expect(drillBox.textContent).not.toMatch(/\.dump\.age/);
   });
 
   it("the Snapshots filter chips filter the table (Unverified, then Monthly)", async () => {
@@ -471,7 +492,11 @@ describe("BackupsTab", () => {
 
 describe("BackupHealthCard warning banner", () => {
   it("renders the no-verified-restore banner when lastVerifiedRestoreAt is null", () => {
-    const bannerHealth = { ...generateMockBackupHealth(FIXED_NOW, rows), lastVerifiedRestoreAt: null };
+    const bannerHealth = {
+      ...generateMockBackupHealth(FIXED_NOW, rows),
+      lastVerifiedRestoreAt: null,
+      lastVerifiedRestoreKey: null,
+    };
     render(<BackupHealthCard health={bannerHealth} now={FIXED_NOW} />);
     expect(screen.getByText("No restore has ever been verified")).toBeInTheDocument();
   });
@@ -485,11 +510,12 @@ describe("BackupHealthCard warning banner", () => {
     expect(screen.queryByText("No restore has ever been verified")).not.toBeInTheDocument();
   });
 
-  it("shows the three-stat row: last backup, next run, snapshots retained", () => {
+  it("shows the four-stat row: last backup, next run, snapshots retained, last verified restore", () => {
     render(<BackupHealthCard health={health} now={FIXED_NOW} />);
     expect(screen.getByText("Last successful backup")).toBeInTheDocument();
     expect(screen.getByText(/^Next run/)).toBeInTheDocument();
     expect(screen.getByText("Snapshots retained")).toBeInTheDocument();
+    expect(screen.getAllByText(/^Last verified restore/).length).toBeGreaterThan(0);
   });
 
   it("summarizes replicas as 'All three hold the latest snapshot' when every replica is current", () => {
@@ -502,5 +528,37 @@ describe("BackupHealthCard warning banner", () => {
     degradedHealth.replicaStatus[0].hasLatest = false;
     render(<BackupHealthCard health={degradedHealth} now={FIXED_NOW} />);
     expect(screen.getByText("2 of 3 hold the latest snapshot")).toBeInTheDocument();
+  });
+
+  it("fresh (< 100 days): shows no banner, and the stat shows date + key letter", () => {
+    const freshHealth = {
+      ...generateMockBackupHealth(FIXED_NOW, rows),
+      lastVerifiedRestoreAt: new Date(FIXED_NOW.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+      lastVerifiedRestoreKey: "A" as const,
+    };
+    render(<BackupHealthCard health={freshHealth} now={FIXED_NOW} />);
+    expect(screen.queryByText("No restore has ever been verified")).not.toBeInTheDocument();
+    expect(screen.queryByText(/run the quarterly drill/)).not.toBeInTheDocument();
+    expect(screen.getByText(/Last verified restore/)).toBeInTheDocument();
+    expect(screen.getByText(/key A/)).toBeInTheDocument();
+  });
+
+  it("stale (>= 100 days): shows the stale-warning banner with a months-ago count", () => {
+    const staleHealth = {
+      ...generateMockBackupHealth(FIXED_NOW, rows),
+      lastVerifiedRestoreAt: new Date(FIXED_NOW.getTime() - 120 * 24 * 60 * 60 * 1000).toISOString(),
+      lastVerifiedRestoreKey: "B" as const,
+    };
+    render(<BackupHealthCard health={staleHealth} now={FIXED_NOW} />);
+    expect(screen.queryByText("No restore has ever been verified")).not.toBeInTheDocument();
+    expect(screen.getByText(/Last verified restore was .* months? ago — run the quarterly drill/)).toBeInTheDocument();
+  });
+
+  it("never verified: shows the never-verified banner, not the stale-warning banner", () => {
+    const neverHealth = { ...generateMockBackupHealth(FIXED_NOW, rows), lastVerifiedRestoreAt: null, lastVerifiedRestoreKey: null };
+    render(<BackupHealthCard health={neverHealth} now={FIXED_NOW} />);
+    expect(screen.getByText("No restore has ever been verified")).toBeInTheDocument();
+    expect(screen.queryByText(/run the quarterly drill/)).not.toBeInTheDocument();
+    expect(screen.getByText("Never")).toBeInTheDocument();
   });
 });

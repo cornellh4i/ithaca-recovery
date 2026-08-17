@@ -42,6 +42,8 @@ function formatCreatedLabel(createdAt: string, now: Date): string {
 export default function RestoreRunbookCard({ selected, now }: RestoreRunbookCardProps) {
   const [copied, setCopied] = useState(false);
   const [copyFailed, setCopyFailed] = useState(false);
+  const [drillCopied, setDrillCopied] = useState(false);
+  const [drillCopyFailed, setDrillCopyFailed] = useState(false);
 
   // Mock fixtures already set `id` to `backup-<yyyymmddThhmmssZ>`, but real rows carry the
   // sidecar's bare-timestamp `id` -- backupArtifactBaseName() normalizes either shape to the
@@ -52,6 +54,14 @@ export default function RestoreRunbookCard({ selected, now }: RestoreRunbookCard
     ? `AGE_IDENTITY_FILE=/path/to/key RESTORE_TARGET_URL=<neon-branch-url> ./frontend/scripts/restore-db.sh ./${backupArtifactBaseName(selected.id)}.dump.age`
     : null;
   const createdLabel = selected ? formatCreatedLabel(selected.createdAt, now) : null;
+
+  // restore-drill.sh takes no positional argument -- it self-selects the newest monthly/
+  // sidecar in the bucket -- so unlike the restore command above, this one is snapshot-
+  // independent and doesn't gate on `selected`. DRILL_KEY_USED/DRILL_TARGET_URL are literal
+  // placeholders the operator fills in, same idiom as /path/to/key above.
+  const drillCommand =
+    "DRILL_KEY_USED=<A|B> DRILL_TARGET_URL=<unpooled-scratch-url> AGE_IDENTITY_FILE=/path/to/key" +
+    " ./frontend/scripts/restore-drill.sh";
 
   const handleCopy = async () => {
     if (!command) return;
@@ -65,6 +75,19 @@ export default function RestoreRunbookCard({ selected, now }: RestoreRunbookCard
       // context -- keep the button un-flipped and tell the operator to select the text by hand.
       setCopied(false);
       setCopyFailed(true);
+    }
+  };
+
+  const handleDrillCopy = async () => {
+    if (!drillCommand) return;
+    try {
+      await navigator.clipboard.writeText(drillCommand);
+      setDrillCopyFailed(false);
+      setDrillCopied(true);
+      window.setTimeout(() => setDrillCopied(false), 2000);
+    } catch {
+      setDrillCopied(false);
+      setDrillCopyFailed(true);
     }
   };
 
@@ -88,6 +111,14 @@ export default function RestoreRunbookCard({ selected, now }: RestoreRunbookCard
         <li className={styles.runbookPrereq}>
           <span>3.</span>
           <span>A scratch Neon branch connection string, unpooled — the script refuses <code>-pooler</code> URLs.</span>
+        </li>
+        <li className={styles.runbookPrereq}>
+          <span>4.</span>
+          <span>
+            Confirmation that no one else is mid-restore — one operator at a time, coordinated
+            through the Maintenance Lead. There is no technical lock; two concurrent restores
+            against the same target would interleave destructively.
+          </span>
         </li>
       </ul>
 
@@ -119,6 +150,36 @@ export default function RestoreRunbookCard({ selected, now }: RestoreRunbookCard
       ) : (
         <div className={styles.runbookNoSelection}>Select a snapshot above to generate its restore command.</div>
       )}
+
+      <div className={styles.panelSubhead}>QUARTERLY DRILL</div>
+      <div className={styles.panelSubhead}>
+        Drills the newest monthly snapshot — restore-drill.sh always self-selects it, so there is
+        nothing to select above.
+      </div>
+      <ul className={styles.runbookPrereqs}>
+        <li className={styles.runbookPrereq}>
+          <span>1.</span>
+          <span>An <code>age</code> private key (holder A or B).</span>
+        </li>
+        <li className={styles.runbookPrereq}>
+          <span>2.</span>
+          <span>A scratch Postgres database, unpooled — same rule as the restore command above.</span>
+        </li>
+      </ul>
+
+      <div className={styles.commandBox}>
+        <div className={styles.commandBoxHeader}>Quarterly drill command</div>
+        <pre className={styles.commandBoxCode}>{drillCommand}</pre>
+        <button
+          type="button"
+          className={`${styles.commandCopyButton} ${drillCopied ? styles.commandCopyButtonCopied : ""}`}
+          onClick={handleDrillCopy}
+          aria-label="Copy drill command"
+          title={drillCopyFailed ? "Copy failed — select the text manually" : undefined}
+        >
+          <Icon name={drillCopied ? "check" : "copy"} size="sm" />
+        </button>
+      </div>
     </Card>
   );
 }

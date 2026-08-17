@@ -279,6 +279,42 @@ describe("GET /api/admin/backups/health", () => {
     expect(body.configured).toBe(false);
     expect(body.missing.length).toBeGreaterThan(0);
   });
+
+  test("live mode reports lastVerifiedRestoreAt/Key as null when no drill has ever run", async () => {
+    mockedRequireRole.mockResolvedValue(superAdminSession);
+    setLiveEnv();
+    mockedListBackups.mockResolvedValue({
+      rows: [sampleRow],
+      workingObjectCount: 1,
+      archiveObjectCount: 1,
+      r2ObjectCount: 1,
+      drillMarker: null,
+    });
+    const { GET } = await import("../../app/api/admin/backups/health/route");
+    const response = await GET();
+    const body = await response.json();
+    expect(response.status).toBe(200);
+    expect(body.data.lastVerifiedRestoreAt).toBeNull();
+    expect(body.data.lastVerifiedRestoreKey).toBeNull();
+  });
+
+  test("live mode flows the drill marker's verifiedAt/keyUsed through to lastVerifiedRestoreAt/Key", async () => {
+    mockedRequireRole.mockResolvedValue(superAdminSession);
+    setLiveEnv();
+    mockedListBackups.mockResolvedValue({
+      rows: [sampleRow],
+      workingObjectCount: 1,
+      archiveObjectCount: 1,
+      r2ObjectCount: 1,
+      drillMarker: { verifiedAt: "2026-08-01T07:17:00.000Z", artifactId: "20260801T071700Z", keyUsed: "B" },
+    });
+    const { GET } = await import("../../app/api/admin/backups/health/route");
+    const response = await GET();
+    const body = await response.json();
+    expect(response.status).toBe(200);
+    expect(body.data.lastVerifiedRestoreAt).toBe("2026-08-01T07:17:00.000Z");
+    expect(body.data.lastVerifiedRestoreKey).toBe("B");
+  });
 });
 
 describe("GET /api/admin/backups/activity", () => {

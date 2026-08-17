@@ -9,12 +9,20 @@
 # Env:
 #   AGE_IDENTITY_FILE   path to an `age` private key file (holder A or B; either suffices)
 #   DRILL_TARGET_URL    unpooled connection string for a scratch DB (new/reset each drill)
+#   DRILL_KEY_USED      which physical key AGE_IDENTITY_FILE is (A or B) -- the script can't
+#                        derive this from the key file itself, so it must be told
 #   GCS_BUCKET           bucket to pull the monthly/ artifact from (default: icr-db-backups-prod)
 set -euo pipefail
 
 : "${AGE_IDENTITY_FILE:?missing}"
 : "${DRILL_TARGET_URL:?missing}"
+: "${DRILL_KEY_USED:?missing (set to A or B -- whichever physical key AGE_IDENTITY_FILE is)}"
 GCS_BUCKET="${GCS_BUCKET:-icr-db-backups-prod}"
+
+if [[ "$DRILL_KEY_USED" != "A" && "$DRILL_KEY_USED" != "B" ]]; then
+  echo "DRILL_KEY_USED must be exactly 'A' or 'B', got: $DRILL_KEY_USED" >&2
+  exit 1
+fi
 
 if [[ ! -f "$AGE_IDENTITY_FILE" ]]; then
   echo "age identity file not found: $AGE_IDENTITY_FILE" >&2
@@ -127,6 +135,34 @@ Result:   PASS
 Tables:   $(jq '.rowCounts | length' "$WORKDIR/meta.json") checked, 0 mismatches
 ===================================
 EOF
+
+  # Final step, reachable only once every check above has passed. Writes the
+  # drill-verified.json marker the Backups admin tab reads (no key material, no operator
+  # PII — see docs/03-development/backup-infra-setup.md's marker-contract section) and
+  # uploads it with the operator's own gcloud credentials, since the drill itself only holds
+  # read access to the working bucket.
+  ARTIFACT_ID="$(basename "$ARTIFACT_STEM")"
+  ARTIFACT_ID="${ARTIFACT_ID#backup-}"
+  # Absolute path, written to the invoking directory (not $WORKDIR, which the EXIT trap
+  # deletes) -- both the jq write and the printed fallback command below need a path that's
+  # still valid after $WORKDIR is gone.
+  MARKER_FILE="$(pwd)/drill-verified.json"
+
+  # A PASSED drill must exit 0 even if this bookkeeping step fails -- under set -euo pipefail,
+  # a failed jq write or gcloud upload would otherwise make a passing drill exit non-zero and
+  # look like a failure to anything checking the exit code.
+  if ! jq -n \
+    --arg verifiedAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+    --arg artifactId "$ARTIFACT_ID" \
+    --arg keyUsed "$DRILL_KEY_USED" \
+    '{verifiedAt: $verifiedAt, artifactId: $artifactId, keyUsed: $keyUsed}' > "$MARKER_FILE"; then
+    echo "Marker write failed -- the drill still passed. Run by hand:" >&2
+    echo "  jq -n --arg verifiedAt \"\$(date -u +%Y-%m-%dT%H:%M:%SZ)\" --arg artifactId $ARTIFACT_ID" \
+      "--arg keyUsed $DRILL_KEY_USED '{verifiedAt: \$verifiedAt, artifactId: \$artifactId, keyUsed: \$keyUsed}' > $MARKER_FILE" >&2
+  elif ! gcloud storage cp "$MARKER_FILE" "gs://$GCS_BUCKET/drill-verified.json"; then
+    echo "Marker upload failed -- the drill still passed. Run by hand:" >&2
+    echo "  gcloud storage cp $MARKER_FILE gs://$GCS_BUCKET/drill-verified.json" >&2
+  fi
 else
   cat <<EOF
 

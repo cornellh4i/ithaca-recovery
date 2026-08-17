@@ -11,6 +11,7 @@ For ICR board members using the platform day to day. Organized by what you need 
   - [Suspend and Resume a Meeting](how-to/suspend-and-resume-a-meeting.md)
   - [Navigate and Filter the Calendar](how-to/navigate-and-filter-the-calendar.md)
   - [Export Data](how-to/export-data.md)
+  - [Check Backups and Run One](how-to/check-backups-and-run-one.md)
   - [Manage Admin Users](how-to/manage-admin-users.md)
   - [Use Digital Signage](how-to/use-digital-signage.md)
   - [Retry a Failed Sync](how-to/retry-a-failed-sync.md)
