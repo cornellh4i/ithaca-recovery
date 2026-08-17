@@ -33,4 +33,6 @@ Key behaviors:
    (`01-user-guide/`, `02-handoff/`, or `03-development/`).
 4. When *moving* across sections, fix the doc's own relative links and any other doc linking to
    it (`grep -rn '<name>.md' docs/`).
-5. `yarn dev` (or `node build-scripts/generate-docs-content.mjs` from `frontend/`) to verify.
+5. `yarn dev` (or `node build-scripts/generate-docs-content.mjs` from `frontend/`) to verify —
+   the drift guard and content snapshot both run there. Only the Pagefind search index is
+   build-only; run `yarn build` if you specifically need to verify search.
