@@ -206,8 +206,9 @@ export async function checkZoomHostPoolAvailability(
   }));
 }
 
-// Picks the first host in the pool (list order) with spare capacity against `candidate`'s
-// occurrences. Suspended meetings are included in the occupancy check (opts.excludeMid lets an
+// Picks a host with spare capacity for `candidate`, ordered as tiered least-connections --
+// licensed before basic, least-loaded within the tier, pool list order as tie-break (see
+// findFirstFreePoolHost, #471). Suspended meetings are included in the occupancy check (opts.excludeMid lets an
 // update re-check a meeting without conflicting against its own prior occurrences) — a
 // suspended meeting's Zoom meeting still exists, it's just not synced. `client` must be the same
 // `tx` a caller's `lockResourceClaims` call locked the whole `zoomHostPool` on (see
