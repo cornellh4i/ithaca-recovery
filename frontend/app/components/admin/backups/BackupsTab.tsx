@@ -7,6 +7,7 @@ import RestoreRunbookCard from "./RestoreRunbookCard";
 import RecentActivityCard from "./RecentActivityCard";
 import SolidButton from "../../ui/buttons/SolidButton";
 import DiagnosticsCardError from "../diagnostics/DiagnosticsCardError";
+import Card from "../shared/Card";
 import TopLoadingBar from "../../ui/displays/TopLoadingBar";
 import { useToast } from "../../shared/ToastProvider";
 import type {
@@ -287,8 +288,30 @@ const BackupsTab: React.FC = () => {
     }
   };
 
+  // Per-card loading shells, mirroring the Diagnostics cards' own Card + TopLoadingBar idiom --
+  // one accent-matched skeleton per card rather than a bare tab-level line, so the tab's layout
+  // doesn't jump when data lands.
   if (phase === "loading") {
-    return <div className={styles.loadingState}>Loading backups…</div>;
+    return (
+      <div className={styles.container}>
+        <Card accent="systemStatus">
+          <TopLoadingBar active label="Loading backup health" />
+          Loading backup health…
+        </Card>
+        <Card accent="meetingCounts">
+          <TopLoadingBar active label="Loading snapshots" />
+          Loading snapshots…
+        </Card>
+        <Card accent="suspended">
+          <TopLoadingBar active label="Loading restore runbook" />
+          Loading restore runbook…
+        </Card>
+        <Card accent="syncIssues">
+          <TopLoadingBar active label="Loading activity" />
+          Loading activity…
+        </Card>
+      </div>
+    );
   }
 
   if (phase === "error") {

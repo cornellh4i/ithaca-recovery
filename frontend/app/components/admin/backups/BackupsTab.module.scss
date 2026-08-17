@@ -925,12 +925,6 @@
 
 /* ---------- Tab-level load states (loading / fetch error / unconfigured / mock badge) ---------- */
 
-.loadingState {
-  padding: 24px 0;
-  color: $medium-grey-color;
-  font-size: 14px;
-}
-
 // Same shape as DiagnosticsCardError's retry button (DiagnosticsTab.module.scss) --
 // duplicated locally rather than shared cross-module since this tab already owns its own
 // error surface (a single tab-wide fetch failure) instead of per-card errors.
