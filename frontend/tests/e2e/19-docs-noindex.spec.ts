@@ -18,7 +18,9 @@ test.describe("docs robots headers", () => {
 
   test("a user-guide doc is not noindexed", async ({ page }) => {
     const response = await page.goto("/docs/01-user-guide/reference/troubleshooting");
-    await expect(page.locator("h1").first()).toBeVisible();
+    // Header presence/absence is a property of the response itself -- no DOM readiness
+    // guard needed, and CI's slow hydration made one flaky.
+    expect(response?.ok()).toBe(true);
     expect(response?.headers()["x-robots-tag"]).toBeUndefined();
   });
 });
