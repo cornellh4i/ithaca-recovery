@@ -393,19 +393,38 @@ export async function findFirstFreePoolHost(
 ): Promise<string | null> {
   if (pool.length === 0) return null;
 
+  const loads = await getPoolHostLoads(pool, candidate, client, opts);
+  const ranked = loads
+    .map((load, poolIndex) => ({ ...load, poolIndex, capacity: opts.capacities?.[load.host] ?? 1 }))
+    .filter(({ peak, capacity }) => peak < capacity)
+    .sort((a, b) =>
+      // Licensed tier (capacity >= 2) first, then least-loaded, then pool order.
+      (a.capacity >= 2 ? 0 : 1) - (b.capacity >= 2 ? 0 : 1) ||
+      a.peak - b.peak ||
+      a.poolIndex - b.poolIndex,
+    );
+
+  return ranked[0]?.host ?? null;
+}
+
+// Per-host peak concurrency against `candidate`, in pool order — the shared load figure
+// behind findFirstFreePoolHost's ranking above and the Meeting Form's per-host free-slot
+// display (services/zoom.ts's checkZoomHostPoolAvailability). One batched query for the whole
+// pool; `client` follows the same required-explicitly rule as findResourceConflicts above.
+export async function getPoolHostLoads(
+  pool: string[],
+  candidate: OccurrenceInput,
+  client: Prisma.TransactionClient,
+  opts: FindConflictsOptions = {},
+): Promise<{ host: string; peak: number }[]> {
+  if (pool.length === 0) return [];
+
   const [rangeStart, rangeEnd] = candidateHorizonRange(OVERLAP_HORIZON_YEARS);
   const candidateOccurrences = expandOccurrences(candidate, rangeStart, rangeEnd);
-  if (candidateOccurrences.length === 0) {
-    // Nothing to overlap with, but the tiered ordering below still applies -- returning
-    // pool[0] unconditionally could hand a basic host (and its silent 40-minute cap) to a
-    // meeting whose occurrences merely fall outside the horizon window.
-    const first = pool
-      .map((host, poolIndex) => ({ host, poolIndex, capacity: opts.capacities?.[host] ?? 1 }))
-      .sort((a, b) =>
-        (a.capacity >= 2 ? 0 : 1) - (b.capacity >= 2 ? 0 : 1) || a.poolIndex - b.poolIndex,
-      )[0];
-    return first?.host ?? null;
-  }
+  // Zero peaks, not an early host pick -- findFirstFreePoolHost's tiered ranking still runs
+  // over these, so a candidate whose occurrences fall outside the horizon window gets a
+  // licensed host first rather than whatever host is first in the pool.
+  if (candidateOccurrences.length === 0) return pool.map((host) => ({ host, peak: 0 }));
 
   const where: Prisma.MeetingWhereInput = {
     AND: [
@@ -439,33 +458,21 @@ export async function findFirstFreePoolHost(
     else occupiedByHost.set(meeting.zoomHost, [meeting]);
   }
 
-  const ranked = pool
-    .map((host, poolIndex) => {
-      const capacity = opts.capacities?.[host] ?? 1;
-      const hostOccurrenceLists = (occupiedByHost.get(host) ?? []).map((meeting) =>
-        expandOccurrences(
-          {
-            startDateTime: meeting.startDateTime,
-            endDateTime: meeting.endDateTime,
-            isRecurring: meeting.isRecurring,
-            recurrencePattern: meeting.recurrencePattern,
-          },
-          rangeStart,
-          rangeEnd,
-        ),
-      );
-      const peak = maxConcurrentDuring(candidateOccurrences, hostOccurrenceLists);
-      return { host, poolIndex, capacity, peak };
-    })
-    .filter(({ peak, capacity }) => peak < capacity)
-    .sort((a, b) =>
-      // Licensed tier (capacity >= 2) first, then least-loaded, then pool order.
-      (a.capacity >= 2 ? 0 : 1) - (b.capacity >= 2 ? 0 : 1) ||
-      a.peak - b.peak ||
-      a.poolIndex - b.poolIndex,
+  return pool.map((host) => {
+    const hostOccurrenceLists = (occupiedByHost.get(host) ?? []).map((meeting) =>
+      expandOccurrences(
+        {
+          startDateTime: meeting.startDateTime,
+          endDateTime: meeting.endDateTime,
+          isRecurring: meeting.isRecurring,
+          recurrencePattern: meeting.recurrencePattern,
+        },
+        rangeStart,
+        rangeEnd,
+      ),
     );
-
-  return ranked[0]?.host ?? null;
+    return { host, peak: maxConcurrentDuring(candidateOccurrences, hostOccurrenceLists) };
+  });
 }
 
 // The display-relevant subset of a meeting's recurrence pattern (no Date fields — those

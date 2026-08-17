@@ -37,6 +37,6 @@ ICR uses a shared pool of licensed Zoom accounts across all rooms rather than de
 Leaving **Zoom Host** on "Automatic assignment" picks the **least-busy licensed host with spare capacity** (a licensed host can carry two concurrent meetings; a basic host is only used as a last resort) (see [Meeting Fields and Modes](../reference/meeting-fields-and-modes.md)). Note that pool hosts are fixed by system administrators and cannot be managed in the UI.
 
 - **All hosts busy:** If no host is free, the meeting still saves, but Zoom sync fails with a "no host available" error (see [Retry a Failed Sync](../how-to/retry-a-failed-sync.md)). Consequently, the meeting will also not sync to Google.
-- **Manual selection:** The dropdown displays live availability (✓ or ✕) for each host. Hand-picking is primarily useful for troubleshooting.
+- **Manual selection:** The dropdown displays each host's remaining capacity for the selected time as a badge — e.g. **1/2** in green (one of two slots free) or **0/2** in red (at capacity). Hand-picking is primarily useful for troubleshooting.
 - **Sync retry behavior:** Retrying a failed initial sync re-checks the pool and may assign a different host. Retrying a meeting that already has a Zoom link reuses the existing host.
 - **Host visibility:** The specific assigned host is intentionally hidden once synced—the UI simply shows "Synced."

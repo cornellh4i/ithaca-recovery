@@ -65,7 +65,10 @@ export const ZoomHostField: React.FC<ZoomHostFieldProps> = ({
   getCandidate,
 }) => {
   const hosts = useZoomHostPool();
-  const [availability, setAvailability] = useState<Record<string, boolean> | null>(null);
+  // Per-host remaining capacity from the most recent check -- freeSlots reflects the
+  // candidate's worst occurrence (what auto-assignment would actually see), capacity the
+  // host's license tier (2 licensed / 1 basic). Null until a check resolves.
+  const [availability, setAvailability] = useState<Record<string, { freeSlots: number; capacity: number }> | null>(null);
   // 'checking' while the request is in flight; 'done'/'noHostAvailable' once it resolves.
   // 'done' clears itself after DONE_DISPLAY_MS; 'noHostAvailable' has no timer -- it stays up
   // until the debounce effect below clears it on the next date/time/recurrence change.
@@ -127,11 +130,11 @@ export const ZoomHostField: React.FC<ZoomHostFieldProps> = ({
       });
       if (!res.ok) return;
       const data = await res.json();
-      const next: Record<string, boolean> = {};
+      const next: Record<string, { freeSlots: number; capacity: number }> = {};
       let anyAvailable = false;
-      (data.hosts ?? []).forEach((h: { host: string; available: boolean }) => {
-        next[h.host] = h.available;
-        if (h.available) anyAvailable = true;
+      (data.hosts ?? []).forEach((h: { host: string; freeSlots: number; capacity: number }) => {
+        next[h.host] = { freeSlots: h.freeSlots, capacity: h.capacity };
+        if (h.freeSlots > 0) anyAvailable = true;
       });
       if (checkId === checkIdRef.current && isMountedRef.current) {
         setAvailability(next);
@@ -195,22 +198,29 @@ export const ZoomHostField: React.FC<ZoomHostFieldProps> = ({
     if (email) onZoomHostChange(email);
   };
 
-  // Right-aligned check/cross next to each host's label, reflecting the most recent
-  // automatic availability check -- no icon at all until a check has actually resolved
-  // (availability starts/resets to null) or for the Automatic option (never has a per-host
-  // result).
+  // Right-aligned "1/2"-style remaining-capacity badge next to each host's label, reflecting
+  // the most recent automatic availability check (#472) -- green with slots free, red at
+  // capacity. No badge at all until a check has actually resolved (availability starts/resets
+  // to null) or for the Automatic option (never has a per-host result).
   const renderElement = (label: string): React.ReactNode => {
     const email = labelToEmail[label];
-    const available = email ? availability?.[email] : undefined;
+    const slots = email ? availability?.[email] : undefined;
     return (
       <span className={styles.hostOption}>
         <span className={styles.hostLabel}>{label}</span>
-        {available !== undefined && (available ? <CheckIcon /> : <CrossIcon />)}
+        {slots !== undefined && (
+          <span
+            className={`${styles.slotBadge} ${slots.freeSlots > 0 ? styles.slotBadgeFree : styles.slotBadgeFull}`}
+            aria-label={slots.freeSlots > 0 ? `${slots.freeSlots} of ${slots.capacity} slots free` : 'At capacity'}
+          >
+            {slots.freeSlots}/{slots.capacity}
+          </span>
+        )}
       </span>
     );
   };
 
-  const selectedIsBusy = !!zoomHost && availability?.[zoomHost] === false;
+  const selectedIsBusy = !!zoomHost && availability?.[zoomHost]?.freeSlots === 0;
 
   return (
     <div className={styles.zoomHostField}>

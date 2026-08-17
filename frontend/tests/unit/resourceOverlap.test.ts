@@ -6,6 +6,7 @@ import {
   findOverCapacityWindow,
   findFirstFreePoolHost,
   findResourceConflictRows,
+  getPoolHostLoads,
   OVERLAP_HORIZON_YEARS,
   type ConflictCandidateMeeting,
   type Occurrence,
@@ -511,6 +512,68 @@ describe("findFirstFreePoolHost — per-host capacities", () => {
       capacities: { [pool[1]]: 2 },
     });
     expect(host).toBe(pool[1]);
+  });
+});
+
+describe("getPoolHostLoads", () => {
+  beforeAll(() => {
+    jest.useFakeTimers();
+    jest.setSystemTime(utcDate(2026, 7, 1));
+  });
+  afterAll(() => {
+    jest.useRealTimers();
+  });
+
+  const pool = ["host-a@icr.test", "host-b@icr.test"];
+  const onHost = (host: string, startHour: number, endHour: number, day = 6): StubRow => ({
+    zoomHost: host,
+    startDateTime: utcDate(2026, 7, day, startHour, 0),
+    endDateTime: utcDate(2026, 7, day, endHour, 0),
+  });
+
+  it("reports each host's peak concurrency during the candidate, in pool order", async () => {
+    const candidate = {
+      startDateTime: utcDate(2026, 7, 6, 19, 0),
+      endDateTime: utcDate(2026, 7, 6, 21, 0),
+      isRecurring: false,
+      recurrencePattern: null,
+    };
+    const loads = await getPoolHostLoads(
+      pool,
+      candidate,
+      stubClient([
+        onHost(pool[0], 19, 20), onHost(pool[0], 19, 20),
+        // Disjoint inside the candidate -- host-b's peak is 1, not 2.
+        onHost(pool[1], 19, 20), onHost(pool[1], 20, 21),
+      ]),
+      { includeSuspended: true },
+    );
+    expect(loads).toEqual([
+      { host: pool[0], peak: 2 },
+      { host: pool[1], peak: 1 },
+    ]);
+  });
+
+  it("uses the candidate's worst occurrence, not the first", async () => {
+    // Weekly Thursday candidate (Jul 9, 16, 23, 30 2026 ET); host-a only collides on the
+    // second week -- the peak must still register, since assignment sees every occurrence.
+    const candidate = {
+      startDateTime: utcDate(2026, 7, 9, 19, 0),
+      endDateTime: utcDate(2026, 7, 9, 20, 0),
+      isRecurring: true,
+      recurrencePattern: {
+        type: "weekly",
+        startDate: utcDate(2026, 7, 9),
+        endDate: utcDate(2026, 7, 31),
+        interval: 1,
+        daysOfWeek: ["Thursday"],
+      },
+    };
+    const loads = await getPoolHostLoads(pool, candidate, stubClient([onHost(pool[0], 19, 20, 16)]), {
+      includeSuspended: true,
+    });
+    expect(loads[0]).toEqual({ host: pool[0], peak: 1 });
+    expect(loads[1]).toEqual({ host: pool[1], peak: 0 });
   });
 });
 
