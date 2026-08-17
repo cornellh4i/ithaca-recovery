@@ -37,5 +37,7 @@ For developers (current or future H4I teams) writing code against this app — s
 - [Environment Variables](03-development/environment-variables.md) — every env var, what it's for
 - [Backup Infrastructure Setup](03-development/backup-infra-setup.md) — reproducible provisioning checklist for the backup pipeline's cloud resources (GCP projects, buckets, R2, Workload Identity Federation) and its open items
 - [Integration Guides](03-development/integration-guides.md) — step-by-step setup for every external service (Postgres, Google OAuth, Google Calendar, Zoom, PandaDoc, Vercel)
+- [CI/CD](03-development/ci-cd.md) — what runs automatically on pushes and PRs
+- [Docs Site](03-development/docs-site.md) — how docs/ becomes the in-app /docs page, and the checklist for adding or moving a doc
 - [Testing](03-development/testing/README.md) — how the automated test suite (lint/unit/component/integration/e2e) and CI work
 - [Manual Test Script](03-development/testing/manual-test-script-template.md) — manual pre-release checklist (for what CI can't cover)

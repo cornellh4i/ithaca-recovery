@@ -17,11 +17,12 @@ before it changes.
 Two Google accounts control nearly everything — all external services (Vercel, Neon,
 Cloudflare, GCP) are signed into via Google with one of them:
 
-- **Prod account** — `dev@518icr.com`: the production GCP project (`icr-management-system`) and
-  its GCS working bucket, the production OAuth app and calendars, and the Cloudflare account.
-- **Dev account** — `ithacacommunityrecoverytest@gmail.com`: Vercel, Neon, the dev OAuth app and
-  dev calendars, plus the archive GCP project (`icr-backups-archive`) and its GCS archive bucket
-  (and, as a stopgap, the billing account both GCP projects link to).
+- **Prod account** — `dev@518icr.com`: both backup GCP projects (`icr-management-system` and
+  `icr-backups-archive`) with their GCS buckets, the production OAuth app and calendars, and the
+  Cloudflare account.
+- **Dev account** — `ithacacommunityrecoverytest@gmail.com`: Vercel, Neon, and the dev
+  environment's own GCP project (`ithaca-community-recovery` — dev OAuth app + dev calendars);
+  also, as a stopgap, the billing account both backup projects link to.
 - **Zoom account** — `zoom@518icr.com`: the Zoom Server-to-Server app and host licensing (same
   account for both environments).
 
@@ -42,7 +43,7 @@ Cloudflare, GCP) are signed into via Google with one of them:
 | Credential | Purpose | Where it lives | Controlled by | Coordination needed before changing |
 |---|---|---|---|---|
 | `DATABASE_URL_UNPOOLED` | PostgreSQL (Neon) connection string, **direct/unpooled** variant — backup workflow only, not used by the app itself (pgbouncer transaction-mode pooling breaks `pg_dump`'s session-level operations) | GitHub Actions secret | Dev account | Sourced fresh from the Neon dashboard with pooling toggled off, not derived from `DATABASE_URL`; see [Backups and Recovery](backups-and-recovery.md) |
-| `R2_ACCOUNT_ID` / `R2_ACCESS_KEY_ID` / `R2_SECRET_ACCESS_KEY` | Cloudflare R2 API token (Account-level, Object Read & Write, scoped to the one backup bucket, TTL forever — a deliberate exception: a scheduled expiry would silently break backup uploads when it lapses; compensating controls are the single-bucket scope and re-issuing the token at each semester role handoff or on suspected compromise) — third storage target for the backup workflow | GitHub Actions **secrets** | Prod account (Cloudflare) | Rotating requires generating a new scoped token in the Cloudflare dashboard and updating all three GitHub secrets together (they're one token) |
+| `R2_ACCOUNT_ID` / `R2_ACCESS_KEY_ID` / `R2_SECRET_ACCESS_KEY` | Cloudflare R2 API token (Account-level, Object Read & Write, scoped to the one backup bucket, TTL forever — a deliberate exception: a scheduled expiry would silently break backup uploads when it lapses; compensating controls are the single-bucket scope and re-issuing the token on suspected compromise or when account custody changes) — third storage target for the backup workflow | GitHub Actions **secrets** | Prod account (Cloudflare) | Rotating requires generating a new scoped token in the Cloudflare dashboard and updating all three GitHub secrets together (they're one token) |
 | `R2_BUCKET` | Name of the R2 bucket (`icr-db-backup-r2`) backups upload to, Object Lock (Governance mode) enabled at creation | GitHub Actions **variable** | Prod account (Cloudflare) | Object Lock can't be enabled after bucket creation — a bucket rename requires provisioning a new bucket, not just updating this variable |
 | `GCP_WORKLOAD_IDENTITY_PROVIDER` / `GCP_SERVICE_ACCOUNT` | Backup workflow's auth into the **production** GCP project (Workload Identity Federation, no downloaded service-account key) — uploads to `GCS_WORKING_BUCKET` | GitHub Actions **variables** (non-secret by design — WIF federates trust, there's no long-lived key to protect) | Prod account | Locked to this exact repo via an attribute condition on the WIF provider; the SA holds `roles/storage.objectCreator` only (no delete, no overwrite) |
 | `GCS_WORKING_BUCKET` | Name of the production-project GCS bucket (`icr-db-backups-prod`) — the operational copy the admin UI lists/downloads from | GitHub Actions **variable** | Prod account | Bucket-level lifecycle rules (`daily/` 21d, `monthly/` 407d) are the only deletion path — renaming means re-provisioning lifecycle rules too |
@@ -71,7 +72,10 @@ those three accounts:
 
 - **`cornellh4i` GitHub org** — the repo, its Actions variables/secrets, and branch protection;
   the Maintenance Lead ([Support Process](support-process.md)) is the standing admin contact.
-- Vercel env vars are readable by anyone on the Vercel project.
+- Vercel env vars are all marked **Sensitive** — write-only in the dashboard (replace, never
+  view). Residual risk: anyone who can deploy code can still read them at runtime, and
+  `GITHUB_BACKUPS_PAT` is the one write-capable value there (Actions dispatch) — accepted, since
+  project membership is limited to the accounts above.
 
 ## Process for rotating or changing a credential
 

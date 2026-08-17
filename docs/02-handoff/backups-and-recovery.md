@@ -18,8 +18,9 @@ mistake can wipe out our data:
 | 2 | Google Cloud — a second, independent project |
 | 3 | Cloudflare |
 
-The Cloudflare and Google copies also can't be deleted or overwritten early, even by someone with
-access to those accounts — they're locked until their retention period ends.
+The Cloudflare and Google copies are protected against early deletion by the automated systems
+and day-to-day credentials; only the account owners keep a deliberate emergency override for
+fixing mistakes.
 
 ## How long backups are kept
 

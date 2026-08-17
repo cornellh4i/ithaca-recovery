@@ -181,17 +181,26 @@ protecting against a project owner who deliberately edits the policy — the int
 consistent with R2 running Governance rather than Compliance mode.
 
 ```sh
+cat > /tmp/gcs-archive-lifecycle.json <<'JSON'
+{
+  "rule": [
+    { "action": { "type": "Delete" }, "condition": { "age": 407, "matchesPrefix": ["daily/"] } },
+    { "action": { "type": "Delete" }, "condition": { "age": 407, "matchesPrefix": ["monthly/"] } }
+  ]
+}
+JSON
 gcloud storage buckets update gs://icr-db-backups-archive \
-  --lifecycle-file=.github/scripts/gcs-lifecycle.json
+  --lifecycle-file=/tmp/gcs-archive-lifecycle.json
 ```
 
-This archive bucket's applied lifecycle deletes **both** prefixes at 407 days (unlike the working
-bucket's 21d/407d split): GCS retention is bucket-level only — no per-prefix primitive — so the
-period is set to the longer tier, deliberately over-retaining archived dailies (~550 MB steady
-state, cheap by design). The 400d-retain / 407d-delete offset exists because a lifecycle delete
-against a still-retained object fails — deletion must land after retention lapses, never at the
-same age. If re-provisioning from scratch, either apply a second lifecycle file with the 407/407
-rule, or edit `gcs-lifecycle.json`'s ages before applying to this bucket.
+Not `.github/scripts/gcs-lifecycle.json` — that file's 21-day `daily/` rule is the *working*
+bucket's; this bucket deletes both prefixes at 407 days.
+
+Both prefixes delete at 407 days here (unlike the working bucket's 21d/407d split): GCS
+retention is bucket-level only — no per-prefix primitive — so the period is set to the longer
+tier, deliberately over-retaining archived dailies (cheap by design). The 400d-retain /
+407d-delete offset exists because a lifecycle delete against a still-retained object fails —
+deletion must land after retention lapses, never at the same age.
 
 Neither bucket's lifecycle has a rule matching `permanent/` — deliberate, not an oversight: the
 absence of any delete-triggering rule is itself the safeguard for the never-expires tier
@@ -257,9 +266,10 @@ substitute).
    - `daily/` — retain 14 days
    - `monthly/` — retain 400 days
    - `permanent/` — **no lock rule**: an indefinite lock behaves like Compliance in practice —
-     a mistaken promotion into `permanent/` could never be fixed by anyone. The prefix is instead
-     protected by the create-only token (no delete permission) and the absence of any lifecycle
-     rule; promotion is always a manual copy, so nothing automated can populate it at scale.
+     a mistaken promotion into `permanent/` could never be fixed by anyone. Accepted residual
+     risk: the workflow's Object Read & Write token *can* overwrite or delete unlocked
+     `permanent/` objects — the prefix's protection is the absence of any lifecycle rule, the
+     manual-only promotion path, and the retention-protected copies in both GCS buckets.
 4. **Set lifecycle (delete) rules**, offset 7 days past the lock durations — R2 evaluates
    lifecycle roughly daily, so a delete scheduled at exactly the retain-until age fails against
    the still-locked object; the gap is a scheduling buffer, not extra retention:
@@ -284,8 +294,8 @@ Actions secrets and the `R2_BUCKET` variable (see `credentials-and-integrations.
 **Cloudflare usage notification:** a usage-based billing notification at a low threshold, set in
 Dashboard → Notifications on the account owning the R2 bucket. R2 has no hard spend cap; this
 notification is the early-warning signal for a compromised token spamming writes (egress is free,
-so it isn't a cost vector). Steady state is ~550 MB (56 dailies + 13 monthlies at ~8 MB) against
-the 10 GB free tier — ~18x headroom. To re-create: account-level Notifications → Add → Billing → the
+so it isn't a cost vector). Steady state is ~0.8 GB (84 dailies — 4/day x 21 days — plus 13 monthlies, at ~8 MB each)
+against the 10 GB free tier — ~12x headroom. To re-create: account-level Notifications → Add → Billing → the
 usage-based type, threshold well under the 10 GB / 1M-ops free tier, destination an
 org-monitored inbox.
 
@@ -462,7 +472,7 @@ gcloud storage buckets add-iam-policy-binding gs://icr-db-backups-archive \
 gcloud iam service-accounts add-iam-policy-binding \
   backups-tab-reader@icr-management-system.iam.gserviceaccount.com \
   --role="roles/iam.workloadIdentityUser" \
-  --member="principalSet://iam.googleapis.com/projects/152224493895/locations/global/workloadIdentityPools/vercel-backups-pool/attribute.subject/owner:icr-e15f76a6:project:ithaca-recovery:environment:production"
+  --member="principal://iam.googleapis.com/projects/152224493895/locations/global/workloadIdentityPools/vercel-backups-pool/subject/owner:icr-e15f76a6:project:ithaca-recovery:environment:production"
 
 gcloud iam service-accounts add-iam-policy-binding \
   backups-tab-reader@icr-management-system.iam.gserviceaccount.com \

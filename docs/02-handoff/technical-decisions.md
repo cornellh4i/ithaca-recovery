@@ -94,9 +94,9 @@ Each section ends with a **Revisit if:** line — the condition under which this
 **Token refresh happens in `proxy.ts`, not in route handlers** — `services/auth.ts`'s single-argument `getServerSession()` call can't persist a refreshed token back to the cookie (its response object's cookie-write is a no-op), so a route handler alone would refresh the same soon-to-expire token on every request, forever. `frontend/proxy.ts` has real cookie-write access and owns the actual fix; see that file's own comments for the mechanism.
 
 **Notes:**
-- The `calendar.events` scope is sensitive, which keeps the Google Cloud OAuth consent screen in "unverified" status (100-test-user cap) while User Type is **External** — see [Integration Guides](../03-development/integration-guides.md#2-google-oauth-nextauth) for the day-to-day setup and bootstrapping steps.
+- Production's User Type is **Internal** (sign-in restricted to ICR's Google Workspace accounts, no user cap or test-user step); dev stays External/unverified, where the sensitive `calendar.events` scope caps it at 100 manually-approved test users — see [Integration Guides](../03-development/integration-guides.md#2-google-oauth-nextauth).
 
-**Revisit if:** prod's Google Cloud project moves under ICR's own Google Workspace org — at that point switching User Type to **Internal** removes the 100-user cap and test-user approval step entirely, with no code change required. Dev is expected to stay External/unverified regardless (its shared test account isn't on ICR's Workspace domain).
+**Revisit if:** an admin ever needs to sign in with a non-ICR-Workspace account — Internal blocks it; the fallback is switching production back to External and managing its Test users list.
 
 ---
 

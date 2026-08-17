@@ -80,19 +80,16 @@ Authenticates board members via their Google account and grants the server an OA
 
 ### Verification status: External vs Internal
 
-The `calendar.events` scope requested by this app is **sensitive**, which keeps the app in
-"unverified" status (100-test-user cap) while User Type is **External** — configured under
-**Google Auth Platform → Audience**.
+User Type is configured under **Google Auth Platform → Audience**, and the two environments
+differ:
 
-> [!WARNING]
-> While External, every signer also has to be added manually as a **Test user** on that same
-> Audience page — a separate gate from the app's own `Admin` table (see Bootstrapping below).
-> Google blocks sign-in for anyone not whitelisted regardless of what the `Admin` table says.
-
-Dev and Prod are expected to land differently here:
-
-- **Dev**: stays External/unverified — its shared `ithacacommunityrecoverytest@gmail.com` account isn't on ICR's Google Workspace domain.
-- **Prod**: its Cloud project should sit under ICR's own Google Workspace org. Once it does, switching User Type to **Internal** restricts access to ICR accounts, removes the 100-user cap and test-user approval, and requires no code change.
+- **Prod**: **Internal** — sign-in is restricted to accounts in ICR's Google Workspace org, with
+  no user cap and no test-user approval step. The `Admin` table is the only allowlist to manage.
+- **Dev**: **External/unverified** — the `calendar.events` scope is sensitive, which caps an
+  External app at 100 test users, and every signer must also be added manually as a **Test
+  user** on the Audience page (a separate gate from the `Admin` table; Google blocks anyone not
+  whitelisted regardless of what the table says). Dev stays this way — its shared
+  `ithacacommunityrecoverytest@gmail.com` account isn't on ICR's Workspace domain.
 
 ### Adding or removing who can sign in
 Sign-in is invite-only, gated by the `Admin` table — there is no separate Google Cloud "allowlist" step to manage day-to-day. See [Manage Admin Users](../01-user-guide/how-to/manage-admin-users.md) for the in-app flow (Admin → Users → Send Invite), or call `POST /api/write/admin` directly.
@@ -115,9 +112,12 @@ Two independent gates stand between a Google account and a working sign-in, and 
 
 **Production:** there's no shared bootstrap account, and the first production Admin can't invite themselves — so the first Super Admin has to be created manually, satisfying both gates by hand:
 1. Insert the first `Admin` row directly into the production database (e.g. `yarn prisma studio` pointed at the production `DATABASE_URL`, or Neon's own SQL editor in its dashboard) with `role: SUPER_ADMIN` and their email.
-2. Add that same email under the production Google Cloud project's **Google Auth Platform → Audience → Test users** — production is still External/unverified today until the User Type is switched to Internal.
+2. Make sure the email is an account in ICR's Google Workspace org — production's User Type is
+   **Internal**, so only org accounts can sign in (no Test-users list applies).
 
-After that first sign-in, that person can invite everyone else through the normal Admin → Users flow — but each new admin's email still needs to be added to the Test users list too, until Internal User Type ships.
+After that first sign-in, that person can invite everyone else through the normal Admin → Users
+flow. (On **dev** only: each new signer must also be added to the dev project's Test users list —
+see "Verification status" above.)
 
 ### How the auth flow works in code
 
