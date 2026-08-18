@@ -90,3 +90,9 @@ These are deliberately separate credentials from the backup workflow's own GH Ac
 (`R2_ACCOUNT_ID`, `GCP_SERVICE_ACCOUNT`, etc. above) — the workflow's identities are create-only and
 never need to touch the app; the app's identities are read-only and never need write access to
 storage (the one exception, the GitHub PAT, needs write only to call `workflow_dispatch`).
+
+### Docs build (build-time, optional)
+
+| Variable | Purpose |
+|---|---|
+| `GITHUB_TOKEN` | Read-only GitHub token for the docs "Last edited" bylines on Vercel builds. The build clones shallowly, so `generate-docs-content.mjs` asks the GitHub commits API for each doc's last commit; unauthenticated calls work (public repo) but share GitHub's 60 req/hr per-IP limit with other tenants on the same builder IP. Missing or rate-limited → bylines degrade to build-time mtime with no author, never a failed build |
