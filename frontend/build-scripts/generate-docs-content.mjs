@@ -198,24 +198,92 @@ function copyDocAssets() {
 // since it's just what actually happened. relPath is git-relative to repoRoot, not docsRoot,
 // since that's the working tree git was invoked in below.
 //
-// Falls back to the file's mtime (no author) when git has nothing: a doc that's been created or
-// edited but not yet committed -- true for most of this repo's docs/ during active work on
-// them -- has no history to read yet. Also falls back (with a console.warn) if the git binary
-// itself is unavailable or docsRoot isn't inside a git working tree, so a stripped-down build
-// environment degrades to "no byline" instead of failing the whole build.
-function lastEditInfo(relPath) {
+// On a shallow clone (Vercel's builder), local git is silently *wrong* rather than empty: the
+// truncated history's boundary commit appears to touch every file, so every doc would get the
+// deployed commit's author/date. Deep clone isn't the fix -- Vercel's clone step fails outright
+// on this repo's history ("There was a permanent problem cloning the repo") -- so shallow builds
+// ask the GitHub commits API for each doc's true last commit instead.
+function gitLastEditInfo(relPath) {
+  const output = execFileSync(
+    "git",
+    ["log", "-1", "--format=%aI%x09%an", "--", path.posix.join("docs", relPath)],
+    { cwd: repoRoot, encoding: "utf-8" }
+  ).trim();
+  if (!output) return null;
+  const [iso, author] = output.split("\t");
+  return { lastEdited: iso, editedBy: author };
+}
+
+const repoIsShallow = (() => {
   try {
-    const output = execFileSync(
-      "git",
-      ["log", "-1", "--format=%aI%x09%an", "--", path.posix.join("docs", relPath)],
-      { cwd: repoRoot, encoding: "utf-8" }
-    ).trim();
-    if (output) {
-      const [iso, author] = output.split("\t");
-      return { lastEdited: iso, editedBy: author };
+    return (
+      execFileSync("git", ["rev-parse", "--is-shallow-repository"], {
+        cwd: repoRoot,
+        encoding: "utf-8",
+      }).trim() === "true"
+    );
+  } catch {
+    return false;
+  }
+})();
+
+const GITHUB_OWNER = process.env.VERCEL_GIT_REPO_OWNER ?? "cornellh4i";
+const GITHUB_REPO = process.env.VERCEL_GIT_REPO_SLUG ?? "ithaca-recovery";
+// Pinned to the deployed commit so a build reflects exactly what it ships, not whatever master
+// moved to while the build ran.
+const GITHUB_REF = process.env.VERCEL_GIT_COMMIT_SHA ?? "master";
+
+async function githubLastEditInfo(relPath) {
+  const url = new URL(`https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/commits`);
+  url.search = new URLSearchParams({
+    path: `docs/${relPath}`,
+    sha: GITHUB_REF,
+    per_page: "1",
+  }).toString();
+  const headers = {
+    Accept: "application/vnd.github+json",
+    // GitHub rejects requests without a User-Agent, and Node's fetch doesn't send one.
+    "User-Agent": `${GITHUB_REPO}-docs-build`,
+  };
+  // Optional: unauthenticated works (public repo) but shares a 60 req/hr per-IP limit across
+  // whoever else builds from the same Vercel builder IP; a token raises that to 5000/hr.
+  if (process.env.GITHUB_TOKEN) headers.Authorization = `Bearer ${process.env.GITHUB_TOKEN}`;
+  // One retry: under the 8-wide fan-out a request occasionally dies to a transient socket reset,
+  // which would otherwise silently downgrade that one doc's byline to mtime for the whole deploy.
+  let lastError;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const res = await fetch(url, { headers });
+      if (!res.ok) throw new Error(`GitHub commits API returned ${res.status}`);
+      const author = (await res.json())[0]?.commit?.author;
+      return author ? { lastEdited: author.date, editedBy: author.name } : null;
+    } catch (err) {
+      lastError = err;
     }
+  }
+  throw lastError;
+}
+
+// Falls back to the file's mtime (no author) when neither source has anything: a doc that's been
+// created or edited but not yet committed -- common during active docs/ work -- has no history to
+// read yet. Also falls back (with a console.warn) on any git/API failure (git binary missing, not
+// a git working tree, GitHub rate limit or outage), so a degraded environment gets "no byline"
+// instead of a failed build.
+async function lastEditInfo(relPath) {
+  try {
+    // The API path is opt-in (Vercel, or a token) rather than automatic for every shallow clone:
+    // CI's depth-1 checkouts also run this script, and 39 unauthenticated calls per job from
+    // GitHub's shared runner IPs would just rate-limit noisily for bylines no test reads.
+    const info = repoIsShallow
+      ? process.env.VERCEL || process.env.GITHUB_TOKEN
+        ? await githubLastEditInfo(relPath)
+        : null
+      : gitLastEditInfo(relPath);
+    if (info) return info;
   } catch (err) {
-    console.warn(`generate-docs-content: git log failed for docs/${relPath}, falling back to mtime (${err.message})`);
+    console.warn(
+      `generate-docs-content: last-edit lookup failed for docs/${relPath}, falling back to mtime (${err.message})`
+    );
   }
   const mtime = fs.statSync(path.join(docsRoot, relPath)).mtime;
   return { lastEdited: mtime.toISOString(), editedBy: null };
@@ -231,18 +299,35 @@ function readingTimeMinutes(markdown) {
   return Math.max(1, Math.round(wordCount / WORDS_PER_MINUTE));
 }
 
+// Bounded fan-out for the per-doc GitHub API calls on shallow builds -- fully sequential adds
+// ~8s of fetch latency to every Vercel build, while unbounded parallelism trips GitHub's
+// secondary (abuse) rate limiting. Results keep MANIFEST order regardless of completion order.
+async function mapWithConcurrency(items, limit, fn) {
+  const results = new Array(items.length);
+  let next = 0;
+  await Promise.all(
+    Array.from({ length: Math.min(limit, items.length) }, async () => {
+      while (next < items.length) {
+        const i = next++;
+        results[i] = await fn(items[i]);
+      }
+    })
+  );
+  return results;
+}
+
 // Exported (not just written to outFile) so generate-pagefind-index.mjs can reuse this exact
 // array -- it needs the same slug/title/markdown data to build the search index, and importing
 // it here avoids that script re-reading docs/ itself or importing the generated *.ts* output
 // (plain node can't parse TypeScript module resolution the way webpack/tsc do).
-export const docs = MANIFEST.map(({ group, relPath }) => {
+export const docs = await mapWithConcurrency(MANIFEST, 8, async ({ group, relPath }) => {
   const raw = fs.readFileSync(path.join(docsRoot, relPath), "utf-8");
   const title = raw.match(TITLE_PATTERN)?.[1] ?? relPath;
   const slug = slugFromRelPath(relPath);
   const subgroup = subgroupFromRelPath(relPath);
   const currentDir = path.posix.dirname(relPath); // "." for a repo-root file
   const markdown = rewriteImageSrcs(rewriteInterPageLinks(raw, currentDir === "." ? "" : currentDir));
-  const { lastEdited, editedBy } = lastEditInfo(relPath);
+  const { lastEdited, editedBy } = await lastEditInfo(relPath);
   return { slug, title, group, subgroup, markdown, lastEdited, editedBy, readingTimeMinutes: readingTimeMinutes(markdown) };
 });
 

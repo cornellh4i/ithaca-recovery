@@ -22,7 +22,13 @@ Key behaviors:
 - **Links between docs** are rewritten to `/docs/<slug>` URLs at build time, so ordinary relative
   markdown links work both on GitHub and in the app. `mailto:`/external links pass through.
 - **Images** live in `docs/01-user-guide/assets/` and are flat-copied to `public/docs-assets/`.
-- **"Last edited" bylines** come from git history, not frontmatter.
+- **"Last edited" bylines** come from git history, not frontmatter. On a full clone (local dev,
+  CI) that's `git log`; on a shallow clone (Vercel, where local git would report the truncated
+  history's boundary commit for every file) the generator queries the GitHub commits API instead,
+  optionally authenticated via `GITHUB_TOKEN`
+  (see [Environment Variables](environment-variables.md)). The API path is skipped on shallow
+  clones outside Vercel (e.g. CI's depth-1 checkouts, where no test reads bylines); there, and on
+  any lookup failure, the byline degrades to file mtime with no author.
 
 ## Adding, moving, or removing a doc
 
