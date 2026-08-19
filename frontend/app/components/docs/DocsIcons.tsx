@@ -96,6 +96,24 @@ export const ChevronDownIcon: React.FC<{ size?: number; className?: string }> = 
   </svg>
 );
 
+export const PrintIcon: React.FC<{ size?: number; className?: string }> = ({ size = 16, className }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={1.6}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+  >
+    <polyline points="6 9 6 3 18 3 18 9" />
+    <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+    <rect x="6" y="14" width="12" height="7" rx="1" />
+  </svg>
+);
+
 export const ExternalLinkIcon: React.FC<{ size?: number; className?: string }> = ({ size = 16, className }) => (
   <svg
     width={size}

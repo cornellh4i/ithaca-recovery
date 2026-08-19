@@ -5,7 +5,7 @@ import { DESKTOP_BREAKPOINT } from "../../../util/common/breakpoints";
 import { parseMarkdown } from "../../../util/docs/parseMarkdown";
 import type { DocEntry } from "../../../util/docs/loadDocs";
 import { useScrollNavHide } from "../../../hooks/useScrollNavHide";
-import { CheckIcon, ChevronDownIcon, CopyIcon, ExternalLinkIcon, TocToggleIcon } from "./DocsIcons";
+import { CheckIcon, ChevronDownIcon, CopyIcon, ExternalLinkIcon, PrintIcon, TocToggleIcon } from "./DocsIcons";
 import TocList from "./DocsTocList";
 import { handleCodeCopyClick } from "../../../util/docs/codeCopy";
 import styles from "./DocsShell.module.scss";
@@ -93,6 +93,13 @@ const DocsArticle: React.FC<DocsArticleProps> = ({ activeDoc }) => {
   // current URL is already exactly "/docs" + "/" + slug (or bare "/docs" when slug is "").
   const handleOpenMarkdown = useCallback(() => {
     window.open(`${window.location.pathname}.md`, "_blank");
+  }, []);
+
+  // The still-open menu can't leak into the printout even though window.print() blocks before
+  // React commits the close -- .copyMarkdownGroup is display: none under @media print (see
+  // DocsShell.module.scss's print block).
+  const handlePrint = useCallback(() => {
+    window.print();
   }, []);
 
   // INVARIANT: this object's identity must stay stable across re-renders that don't change the
@@ -248,6 +255,15 @@ const DocsArticle: React.FC<DocsArticleProps> = ({ activeDoc }) => {
                     }}
                   >
                     <ExternalLinkIcon size={14} /> Open Markdown
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handlePrint();
+                      setMarkdownMenuOpen(false);
+                    }}
+                  >
+                    <PrintIcon size={14} /> Print…
                   </button>
                 </div>
               </React.Fragment>

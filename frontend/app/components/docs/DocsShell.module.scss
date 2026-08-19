@@ -926,7 +926,9 @@
       break-inside: avoid;
     }
 
-    // Callouts keep only their left-border accent; the tinted fills read as smudges on paper.
+    // Callouts drop their tinted fills (they read as smudges on paper, and browsers skip
+    // printing backgrounds by default) -- each kind's colored left border, restated explicitly
+    // here, becomes the per-kind signal instead, since borders always print.
     :global(.callout),
     :global(.callout-note),
     :global(.callout-tip),
@@ -934,6 +936,26 @@
     :global(.callout-warning),
     :global(.callout-caution) {
       background: #fff;
+    }
+
+    :global(.callout-note) {
+      border-left-color: $info-text-color;
+    }
+
+    :global(.callout-tip) {
+      border-left-color: $success-text-color;
+    }
+
+    :global(.callout-important) {
+      border-left-color: $brand-pink-color;
+    }
+
+    :global(.callout-warning) {
+      border-left-color: $warning-text-color;
+    }
+
+    :global(.callout-caution) {
+      border-left-color: $danger-color;
     }
 
     // Outranks each variant's own tinted label color (same specificity, later in source).
