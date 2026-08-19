@@ -94,3 +94,10 @@
 - name: "status: review-needed"
   color: "fbca04"
   description: Waiting for peer or maintainer review.
+
+# --- Standalone (no prefix) ---
+# backup-db.yml's failure step runs `gh issue create --label backup-failure`, which errors on an
+# unknown label -- declared here so the failure path can't break for want of the label.
+- name: "backup-failure"
+  color: "B60205"
+  description: Automated backup run failed (opened by backup-db.yml).
