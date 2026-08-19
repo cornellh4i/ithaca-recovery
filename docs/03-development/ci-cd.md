@@ -9,8 +9,10 @@ merge, deploy, rollback), see
 All workflows live in [`.github/workflows/`](https://github.com/cornellh4i/ithaca-recovery/tree/master/.github/workflows).
 
 > [!NOTE]
-> There's no separate "CD" workflow in this repo. Deploys are Vercel's own git integration
-> reacting to a push to `master` — not a GitHub Actions job. See
+> The **CI** half (continuous integration — validating every change before merge) is the
+> workflows below. The **CD** half (continuous deployment — every merge to `master` ships to
+> production) has no workflow file at all: deploys are Vercel's own git integration reacting to
+> the push. See
 > [Deployment and Rollback §2](../02-handoff/deployment-and-rollback.md#2-deploy-to-production).
 
 ## Test suite — `test.yml`

@@ -88,10 +88,11 @@ gcloud iam workload-identity-pools providers create-oidc github \
   --attribute-condition="assertion.repository=='cornellh4i/ithaca-recovery'"
 ```
 
-⚠️ **The `attribute-condition` is load-bearing security, not boilerplate.** Without it, *any*
-GitHub Actions workflow in *any* repository could mint a token that this WIF provider accepts and
-trades for `icr-db-backup`'s credentials — the pool's trust isn't otherwise scoped to this repo at
-all. Never omit it or widen it.
+> [!CAUTION]
+> **The `attribute-condition` is a security requirement, not boilerplate.** Without it, *any*
+> GitHub Actions workflow in *any* repository could mint a token that this WIF provider accepts
+> and trades for `icr-db-backup`'s credentials — the pool's trust isn't otherwise scoped to this
+> repo at all. Never omit it or widen it.
 
 ```sh
 gcloud iam service-accounts add-iam-policy-binding \
@@ -124,9 +125,10 @@ gcloud projects create icr-backups-archive \
   --name="ICR Backups Archive"
 ```
 
-⚠️ **A brand-new project's IAM propagation can lag ~1 minute.** `workload-identity-pools create`
-against a project created seconds earlier can fail with `PERMISSION_DENIED` even though the
-command and credentials are correct. Retry after ~60s rather than debugging permissions.
+> [!NOTE]
+> **A brand-new project's IAM propagation can lag ~1 minute.** `workload-identity-pools create`
+> against a project created seconds earlier can fail with `PERMISSION_DENIED` even though the
+> command and credentials are correct. Retry after ~60s rather than debugging permissions.
 
 ### 2.1 Billing
 
@@ -145,9 +147,10 @@ Replace before running:
   `roles/billing.user` grant to `dev@518icr.com` for linking projects to it. Both
   `icr-management-system` and `icr-backups-archive` link to it.
 
-⚠️ **Unlinking billing disables the project's billed APIs, and re-linking does not re-enable
-them** — after any billing change, re-check `gcloud services list --enabled` on the affected
-project (the 2026-08-19 billing switch silently disabled the production project's Calendar API).
+> [!WARNING]
+> **Unlinking billing disables the project's billed APIs, and re-linking does not re-enable
+> them** — after any billing change, re-check `gcloud services list --enabled` on the affected
+> project (the 2026-08-19 billing switch silently disabled the production project's Calendar API).
 
 ### 2.2 Enable APIs, create bucket — same steps as block 1
 
@@ -177,9 +180,12 @@ gcloud storage buckets update gs://icr-db-backups-archive \
   --retention-period=34560000s
 ```
 
-⚠️ **Use the seconds form, not `--retention-period=400d`.** `gcloud` parses the `d` suffix as
-86400s but the rounding lands at ~399.25 days, not exactly 400 — seconds are the only unambiguous
-unit. `34560000s` = 400 days exactly. This period is deliberately **unlocked**, not `--lock`ed:
+> [!IMPORTANT]
+> **Use the seconds form, not `--retention-period=400d`.** `gcloud` parses the `d` suffix as
+> 86400s but the rounding lands at ~399.25 days, not exactly 400 — seconds are the only
+> unambiguous unit. `34560000s` = 400 days exactly.
+
+This period is deliberately **unlocked**, not `--lock`ed:
 locking a GCS retention policy is irreversible — it can never be shortened or removed, even by
 the project owner, even to fix a misconfiguration. Unlocked still blocks every delete/overwrite
 (including by the create-only CI service account) until the period elapses; it only stops
@@ -625,9 +631,13 @@ AGE_IDENTITY_FILE=~/keys/age-key-b.txt \
 ```
 
 The script prints exact per-table row counts after restoring — compare them against the
-`.meta.json` sidecar's `rowCounts` before going any further. Restoring **over production** is
-the runbook's one irreversible step and requires both `--target-is-production` and re-typing the
-target host at the interactive prompt; everything before that flag is a dry run by construction.
+`.meta.json` sidecar's `rowCounts` before going any further.
+
+> [!CAUTION]
+> Restoring **over production** is the runbook's one irreversible step and requires both
+> `--target-is-production` and re-typing the target host at the interactive prompt; everything
+> before that flag is a dry run by construction.
+
 The surrounding decision steps — when to restore, who coordinates, and the post-restore
 write-up — live in the break-glass runbook in
 [Backups and Recovery](../02-handoff/backups-and-recovery.md).

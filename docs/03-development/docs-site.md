@@ -32,6 +32,11 @@ Key behaviors:
 
 ## Adding, moving, or removing a doc
 
+> [!IMPORTANT]
+> Every page under `docs/` needs an entry in the hand-curated `MANIFEST` array in
+> `frontend/build-scripts/generate-docs-content.mjs` — the build fails on any mismatch: a docs
+> file missing from the list, or a listed file missing on disk.
+
 1. Create/move/delete the `.md` file under `docs/`.
 2. Update `MANIFEST` in `frontend/build-scripts/generate-docs-content.mjs` (the drift guard
    reminds you if you forget to add; removals fail the build at read time).

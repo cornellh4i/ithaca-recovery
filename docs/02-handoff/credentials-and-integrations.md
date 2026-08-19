@@ -62,6 +62,11 @@ required payment method is the same ICR card (R2 itself stays on the free plan).
 | `R2_ACCESS_KEY_ID_READ` / `R2_SECRET_ACCESS_KEY_READ` | **Read-only** R2 token the Backups tab checks replica presence with — a separate token from the workflow's write-scoped `R2_*` GitHub secrets above | Vercel env vars | Prod account (Cloudflare) | Rotate independently of the workflow token; both halves are one token and change together |
 | `GITHUB_BACKUPS_PAT` | Fine-grained GitHub PAT (this repo only, Actions read+write) — powers the Backups tab's run history and Back Up Now dispatch | Vercel env vars | Whoever's GitHub account minted it (a repo admin) | Fine-grained PATs expire — renewal is a calendar item, not an incident; on expiry only Recent Activity/Back Up Now degrade, backups themselves keep running on cron |
 
+> [!WARNING]
+> The two `age` **private** keys are never put in GitHub, Vercel, or any CI system, in any form —
+> including a GitHub "environment secret". A compromised pipeline could otherwise read every
+> backup; only the two named key holders' password managers hold them.
+
 *`DATABASE_URL_UNPOOLED` and the backup-workflow rows above back the backup feature — see
 [Backups and Recovery](backups-and-recovery.md) for the 3-2-1-1-0 design, GFS retention, and
 break-glass restore procedure. All are live.*

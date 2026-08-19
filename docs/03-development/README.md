@@ -25,8 +25,3 @@ For developers (current or future H4I teams) writing code against this app. Orga
 - **What runs automatically on a push/PR? How do dependency bumps, release versioning, and
   labeling work?** [CI/CD](ci-cd.md) — every GitHub Actions workflow in the repo, and how they
   fit together.
-
-> [!NOTE]
-> Adding a new page under `docs/`? It also needs an entry in the hand-curated `MANIFEST` array in
-> `frontend/build-scripts/generate-docs-content.mjs` — the build fails on any mismatch: a docs
-> file missing from the list, or a listed file missing on disk.

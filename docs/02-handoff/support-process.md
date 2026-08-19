@@ -36,8 +36,10 @@ questions resolve there.
 - **During the academic year:** first response within **2–3 business days**.
 - **Summer / winter break (between student teams):** **best-effort** — expect slower replies;
   the system runs unattended (deploys, backups, and sync are all automated).
-- Mention clearly in the subject line if something is truly urgent (site down, signage blank,
-  meetings not bookable) so it can be prioritized ahead of routine requests.
+
+> [!TIP]
+> Mention clearly in the subject line if something is truly urgent (site down, signage blank,
+> meetings not bookable) so it can be prioritized ahead of routine requests.
 
 ## 4. Where this connects to other docs
 

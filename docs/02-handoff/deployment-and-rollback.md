@@ -4,9 +4,6 @@ Answers the handoff meeting item: *walk through how code changes are reviewed, t
 and deployed to production, including how failed deployments are rolled back and how ICR is
 notified of significant changes.*
 
-§§1-4 describe how things work today, pulled from the project's actual configuration — no
-decisions needed there.
-
 ---
 
 ## 1. Review and test (before merge)
@@ -51,9 +48,10 @@ production, with no new git push or rebuild required: **Vercel dashboard → pro
 intended rollback path — it takes effect immediately rather than waiting for a new fix to be
 written, reviewed, and rebuilt.
 
-This only rolls back the *application code* — it does not undo a database migration or any data
-written under the bad deploy. A rollback that needs the database restored to a prior state depends
-on [Backups and Recovery](backups-and-recovery.md).
+> [!IMPORTANT]
+> This only rolls back the *application code* — it does not undo a database migration or any data
+> written under the bad deploy. A rollback that needs the database restored to a prior state
+> depends on [Backups and Recovery](backups-and-recovery.md).
 
 ## 4. Notifying ICR of significant changes
 

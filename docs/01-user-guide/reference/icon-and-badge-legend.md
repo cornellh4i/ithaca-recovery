@@ -2,14 +2,11 @@
 
 What each icon and badge on the calendar means, and where you'll see it.
 
-**Admin-only:** every icon on this page except the mode icons only appears for signed-in admins.
-Conflict, sync-failure, and suspension data isn't fetched for public viewers, so a board member
-browsing without an admin account never sees any of it — not "hidden," just never loaded.
+**Admin-only:** every icon on this page except the mode icons appears only for signed-in
+admins — conflict, sync-failure, and suspension data is never loaded for public viewers.
 
-**Screenshot freshness:** the app's icons were recently refreshed. The mode-icon screenshot
-below is current; the other screenshots on this page (conflict, sync-failure, suspend,
-diagnostics-panel, overlap-popover) still show the older icons and need re-capturing by an
-admin — what each icon means is unchanged, just those images look dated.
+**Screenshot freshness:** the mode-icon screenshot is current; the other screenshots still show
+the app's older icons and need re-capturing by an admin — what each icon means is unchanged.
 
 | Icon | Meaning | Where you'll see it |
 |---|---|---|
@@ -24,81 +21,62 @@ admin — what each icon means is unchanged, just those images look dated.
 
 ![The co-present icon in a "Hybrid" tag on a calendar block](../assets/icon-legend-co-present-icon-hybrid-tag.png)
 
-Meeting mode has three icons: a location pin for **In Person**, a video camera for **Remote**, and
-this "co-present" icon — a person inside a presentation-frame outline — for **Hybrid**. The same
-icon is reused in the mode picker on the New Meeting form and in the meeting detail panel.
+Three mode icons: a location pin for **In Person**, a video camera for **Remote**, and this
+"co-present" icon for **Hybrid**. The same icon appears in the mode picker and the detail panel.
 
 ## Conflict warning
 
 A meeting shares a room, Zoom room, or Zoom host with another meeting at an overlapping time.
-Saving isn't blocked — you can save a conflicting meeting anyway — but the warning stays visible
-to admins everywhere that meeting appears until the overlap is resolved.
+Saving isn't blocked, but the warning stays visible to admins until the overlap is resolved.
 
 ![An amber warning triangle in the top-left corner of a calendar block](../assets/icon-legend-conflict-warning-calendar-block.png)
 
-On the calendar, it's a small triangle in the block's **top-left** corner — the sync-error icon
-below sits in the opposite corner, so a meeting with both problems shows one in each corner rather
-than overlapping.
+On the calendar it's a small triangle in the block's **top-left** corner — the sync-error icon
+sits in the opposite corner, so a meeting with both shows one in each.
 
 ![A "Conflicts with 2 other meetings" banner in the meeting detail panel, linking to the Admin Diagnostics page](../assets/icon-legend-conflict-warning-viewmeeting-banner.png)
 
-Opening the meeting shows a banner naming how many other meetings it conflicts with, with a link
-to **Admin → Diagnostics** for the full list.
+Opening the meeting shows a banner counting its conflicts, linking to **Admin → Diagnostics**
+for the full list.
 
 ![A "Scheduling conflict" confirmation dialog with an info icon](../assets/icon-legend-conflict-override-modal-icon.png)
 
-If you try to save a meeting that conflicts with an existing one, this dialog appears first,
-letting you save it anyway or go back and change the room, Zoom room, host, or schedule.
+Saving a conflicting meeting brings up this dialog first — save anyway, or go back and change
+the room, Zoom room, host, or schedule.
 
 ## Overlapping meetings and the "+N" pill
 
-This is a separate mechanism from the conflict warning above: it's about layout, not detection.
-Meetings **cluster** whenever they overlap in time within the same room/column on the calendar
-grid. Clustering and conflict often coincide, since overlapping in the same physical room is
-itself a conflict — but they're not the same thing. Two meetings that only share a Zoom host or
-Zoom room, with different physical rooms, conflict without ever clustering: they never land in the
-same column, so there's nothing to fold.
+Separate from the conflict warning above — clustering is about layout, not detection. Meetings
+cluster when they overlap in time in the same room/column; two meetings that only share a Zoom
+host or Zoom room never cluster (different columns) but still conflict.
 
-When more meetings overlap in a slot than the view can show at full width, the extras fold behind
-the visible ones — shown meetings render **narrower**, not full-size, to share the column — and a
-**"+N" pill** appears in the block's corner for the rest. How many render before folding depends on
-the view: 2 on desktop Day/Week, 3 on mobile portrait, 1 on mobile landscape.
+When more meetings overlap than the view can show (2 on desktop Day/Week, 3 on mobile portrait,
+1 on mobile landscape), the visible ones render narrower and a **"+N" pill** appears for the
+folded rest.
 
 ![The Unity Room row on the calendar: a cluster of two offset, narrowed blocks with a "+1" overflow pill on the left, next to a normal full-width single block later in the same row for comparison](../assets/icon-legend-cluster-overflow-pill.png)
 
-Compare the cluster on the left to the ordinary "Spiritual Foundation" block later in the same
-row — a clustered meeting renders narrower and offset behind its neighbor, while a normal block
-takes the full row width.
-
-Only the **pill itself** opens the list below — clicking any of the visible clustered blocks opens
-that one meeting's own detail panel instead, same as clicking any other block. If a cluster has few
-enough meetings that nothing folds, there's no pill and no list to open; each meeting is just its
-own block.
+Only the **pill itself** opens the overlap list — clicking a visible clustered block opens that
+meeting's own detail panel, like any other block.
 
 ![A popover listing 3 overlapping meetings, two of them marked with a double-booked warning line](../assets/icon-legend-overlap-meetings-modal.png)
 
-The pill opens a compact popover anchored beside the cluster — the surrounding week stays
-visible behind it. Its title is the cluster's time window, with the meeting count underneath.
-Each row carries its own "Double-booked in …" warning line or sync-error icon if it has one —
-clustering together doesn't mean they share a status. (Screenshot above predates the popover
-redesign and needs re-capturing by an admin.)
+The pill opens a compact popover anchored beside the cluster, titled with the cluster's time
+window. Each row carries its own conflict or sync-error marker — clustering together doesn't
+mean sharing a status. (Screenshot predates the popover redesign.)
 
-Don't confuse this with the unrelated "+N" that can appear **inside** a calendar block's tag row:
-that one summarizes tags that didn't fit the card (e.g. `AA +2`), not folded meetings. The cluster
-pill sits in the block's outer corner; the tag pill sits inline with the other tags.
+Don't confuse this with the "+N" **inside** a block's tag row — that one summarizes tags that
+didn't fit (e.g. `AA +2`), not folded meetings.
 
 ## Sync failure
 
 ![A "Failed to sync" banner in the meeting detail panel, with a Retry sync button and a details toggle](../assets/sync-error-detail-panel.png)
 
-Google Calendar and/or Zoom sync failed for that meeting. The icon is two curved arrows forming a
-broken ring around an exclamation mark, red — other pages in this guide call it a "⚠ badge," which
-is this icon, **not** the amber conflict triangle above; the two can appear on the same meeting at
-once, in opposite corners. See [Retry a Failed Sync](../how-to/retry-a-failed-sync.md) for what to
-do about it.
-
-The small circular button next to "Retry sync" (screenshot above) expands or collapses a detailed
-breakdown of which service — Google Calendar, Zoom, or both — failed and why.
+Google Calendar and/or Zoom sync failed for that meeting. The icon is a red broken ring around
+an exclamation mark — what other pages call the "⚠ badge" — not the amber conflict triangle; the
+two can appear on the same meeting, in opposite corners. The small button next to "Retry sync"
+expands a per-service breakdown of what failed. See
+[Retry a Failed Sync](../how-to/retry-a-failed-sync.md).
 
 ![A sync-error icon on a calendar block](../assets/sync-error-badge.png)
 
@@ -106,32 +84,29 @@ breakdown of which service — Google Calendar, Zoom, or both — failed and why
 
 ![A pause icon in a "Suspend this meeting?" confirmation dialog](../assets/icon-legend-suspend-modal-icon.png)
 
-The pause icon marks a meeting that's suspended, or scheduled to become suspended on a future
-date. Suspending pauses and hides a meeting from the live calendar without deleting it — nothing is
-lost. Reactivate it either from the meeting's own **⋮** menu (**Reactivate**, or **Cancel scheduled
-suspension** if it hasn't started yet) or from Admin → Diagnostics. See
-[Suspend and Resume a Meeting](../how-to/suspend-and-resume-a-meeting.md).
+The pause icon marks a meeting that's suspended (or scheduled to be). Suspending hides a meeting
+from the live calendar without deleting it. Reactivate from the meeting's **⋮** menu
+(**Reactivate**, or **Cancel scheduled suspension** if it hasn't started yet) or from
+Admin → Diagnostics. See [Suspend and Resume a Meeting](../how-to/suspend-and-resume-a-meeting.md).
 
 ![A "Not sure? Suspend instead" nudge in the Delete confirmation dialog](../assets/icon-legend-delete-modal-suspend-nudge.png)
 
-Because deleting is permanent and suspending isn't, the Delete confirmation dialog nudges you
-toward suspending instead — for both recurring and non-recurring meetings — unless the meeting is
-already suspended or has a suspension scheduled, in which case the nudge is hidden (a second
-suspension isn't allowed, so offering it there would just lead to an error).
+Because deleting is permanent and suspending isn't, the Delete dialog nudges you toward
+suspending instead — hidden if the meeting already has a suspension, since a second one isn't
+allowed.
 
 ## Zoom room mismatch
 
 ![A video-camera badge with a Zoom room name on a calendar block](../assets/icon-legend-zoom-mismatch-badge.png)
 
-A Hybrid meeting's Zoom room field doesn't match the default Zoom room normally paired with its
-physical room. This isn't an error — some meetings legitimately use a different Zoom room — but the
-badge calls it out so it's not mistaken for a data-entry mistake at a glance.
+A Hybrid meeting's Zoom room doesn't match the one normally paired with its physical room. Not
+an error — some meetings legitimately differ — but flagged so it isn't mistaken for a data-entry
+mistake.
 
 ## Admin Diagnostics panel icons
 
-Three of Admin → Diagnostics' five summary cards reuse the icons above as headers — Sync Issues,
-Conflicts, and Suspended. (The other two, System Status and Meeting Counts, use unrelated icons.)
-Each card lists every meeting currently in that state, with a link to edit or resolve it. Sync
-Issues covers both outright failures and meetings still waiting on a Zoom host to become available.
+Three of the five Diagnostics summary cards reuse the icons above as headers — Sync Issues,
+Conflicts, and Suspended. Each lists every meeting currently in that state; Sync Issues also
+covers meetings still waiting on a Zoom host.
 
 ![The Sync Issues, Conflicts, and Suspended panel headers on the Admin Diagnostics page, each showing a non-zero count](../assets/icon-legend-diagnostics-panel-icons.png)

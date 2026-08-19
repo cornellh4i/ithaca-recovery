@@ -56,9 +56,10 @@ button in this app. Selecting a snapshot row fills in a copy-pasteable command i
 Runbook** card below, but running it requires a private decryption key and direct database access
 that only the Maintenance Lead or ICR President have.
 
-If you suspect data loss or corruption, don't try to fix it yourself — contact the Maintenance
-Lead (see [Support Process](../../02-handoff/support-process.md)). Full restore steps live in
-[Backups and Recovery](../../02-handoff/backups-and-recovery.md#the-break-glass-restore-runbook).
+> [!IMPORTANT]
+> If you suspect data loss or corruption, don't try to fix it yourself — contact the Maintenance
+> Lead (see [Support Process](../../02-handoff/support-process.md)). Full restore steps live in
+> [Backups and Recovery](../../02-handoff/backups-and-recovery.md#the-break-glass-restore-runbook).
 
 ## The quarterly restore drill
 

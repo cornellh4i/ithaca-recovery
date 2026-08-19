@@ -51,8 +51,11 @@ admin panel.
 
 ## What to do
 
-Restoring a backup is a technical, hands-on-keyboard task — it is not something a board member or
-non-technical maintainer should attempt. If you suspect data loss or corruption:
+> [!WARNING]
+> Restoring a backup is a technical, hands-on-keyboard task — it is not something a board member
+> or non-technical maintainer should attempt.
+
+If you suspect data loss or corruption:
 
 1. **Don't try to fix it yourself.**
 2. **Contact the H4I Maintenance Lead** (nbt26@cornell.edu) or, if unavailable, **ICR's Matt
@@ -72,8 +75,9 @@ Mechanics: [Backup Infrastructure Setup](../03-development/backup-infra-setup.md
 Restoring a backup deliberately requires a human with a private key — no automated system can do
 it on its own. This keeps our data safe even if the app or its cloud accounts were compromised.
 
-One operator at a time: restores are coordinated through the Maintenance Lead so two people never
-run one concurrently — there is no technical lock preventing it.
+> [!CAUTION]
+> One operator at a time: restores are coordinated through the Maintenance Lead so two people
+> never run one concurrently — there is no technical lock preventing it.
 
 At a high level, an operator:
 

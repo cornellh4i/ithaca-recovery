@@ -326,7 +326,14 @@ sync-error badge.
 
 ## Lease Settings
 
-Singleton config for the PandaDoc lease export — lease period, per-room rates, rental agent contact, and email template — editable via the Export tab's settings modal. Enforced as a true singleton at the schema level: `LeaseSettings.id` defaults to a fixed constant rather than a random `cuid()`, and reads/writes are keyed on that constant (`upsert`/`findUnique`, not `findFirst()`) instead of relying on "there's only ever one row" as a convention. **Deployment requirement:** this enforcement depends on the migration that renames any pre-existing row's `id` onto the fixed constant — production must apply schema changes via `prisma migrate deploy` (already how the Vercel build runs it), never `prisma db push`, or an existing settings row would silently stop being found and a later save would create a duplicate under the new fixed id.
+Singleton config for the PandaDoc lease export — lease period, per-room rates, rental agent contact, and email template — editable via the Export tab's settings modal. Enforced as a true singleton at the schema level: `LeaseSettings.id` defaults to a fixed constant rather than a random `cuid()`, and reads/writes are keyed on that constant (`upsert`/`findUnique`, not `findFirst()`) instead of relying on "there's only ever one row" as a convention.
+
+> [!IMPORTANT]
+> **Deployment requirement:** this enforcement depends on the migration that renames any
+> pre-existing row's `id` onto the fixed constant — production must apply schema changes via
+> `prisma migrate deploy` (already how the Vercel build runs it), never `prisma db push`, or an
+> existing settings row would silently stop being found and a later save would create a duplicate
+> under the new fixed id.
 
 ### `GET /api/retrieve/lease-settings`
 **Requires:** `SUPER_ADMIN`. Returns the stored settings, or a hardcoded default set (`frontend/util/lease/leaseDefaults.ts`) if none have been saved yet.

@@ -291,7 +291,12 @@ No code changes needed. In the app: **Admin → Export → Configure** (on the l
 Every push to `master` triggers an automatic production deployment. Every pull request gets a preview deployment URL.
 
 ### Build command
-`frontend/package.json`'s `build` script does more than run Next's own build — each step exists for a reason, so don't shorten this if you ever do need to override it in Vercel's dashboard:
+
+> [!IMPORTANT]
+> `frontend/package.json`'s `build` script does more than run Next's own build — each step exists
+> for a reason, so don't shorten it if you ever do need to override it in Vercel's dashboard.
+
+
 ```json
 "build": "node build-scripts/generate-docs-content.mjs && node build-scripts/generate-pagefind-index.mjs && prisma generate && if [ \"$VERCEL_ENV\" = \"production\" ]; then prisma migrate deploy; fi && next build"
 ```

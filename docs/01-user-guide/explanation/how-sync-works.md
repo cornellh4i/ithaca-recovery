@@ -2,7 +2,7 @@
 
 ## Google Calendar is one-way
 
-> [!NOTE]
+> [!WARNING]
 > Always edit meetings in the platform, not directly in Google Calendar.
 
 The platform is the single source of truth. Changes made here sync automatically to Google Calendar, but sync is **one-way only**:

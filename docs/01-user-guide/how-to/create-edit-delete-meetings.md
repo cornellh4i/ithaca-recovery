@@ -53,7 +53,8 @@ what suspending does). Click **Delete** to confirm, or **Cancel** to back out.
 | This and following events | Deletes this occurrence and everything after it |
 | All events | Deletes the entire series |
 
-Either way, a delete you confirm can't be recovered — see
-[why some actions can't be undone](../explanation/why-some-actions-cant-be-undone.md). If you're
-unsure, Suspend is the safer choice: it hides the meeting without losing any data, and can be
-reversed later.
+> [!WARNING]
+> Either way, a delete you confirm can't be recovered — see
+> [why some actions can't be undone](../explanation/why-some-actions-cant-be-undone.md). If you're
+> unsure, Suspend is the safer choice: it hides the meeting without losing any data, and can be
+> reversed later.

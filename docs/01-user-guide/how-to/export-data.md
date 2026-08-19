@@ -12,9 +12,12 @@ export's own settings (the **Configure** button on the card).
 ## Export PandaDocs Lease (CSV)
 
 ICR uses annual lease agreements for each group renting space (lease year: July 1 – June 30 of
-the following year by default). This export generates a CSV for PandaDoc's Bulk Send feature,
-covering every meeting that hasn't been deleted — including suspended ones, since a lease is a
-legal obligation that doesn't end just because a meeting is temporarily hidden from the calendar.
+the following year by default). This export generates a CSV for PandaDoc's Bulk Send feature.
+
+> [!IMPORTANT]
+> The export covers every meeting that hasn't been deleted — **including suspended ones**, since a
+> lease is a legal obligation that doesn't end just because a meeting is temporarily hidden from
+> the calendar.
 
 1. Click **"Export Lease CSV."**
 2. A file named `[year] - [year+1] Bulk Send Lease.csv` downloads.
