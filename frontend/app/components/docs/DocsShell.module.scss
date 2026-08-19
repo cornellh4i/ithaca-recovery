@@ -841,3 +841,104 @@
     font-weight: 600;
   }
 }
+
+// Printing a doc (quick-reference-card.md explicitly tells readers to) should yield just the
+// article, paginating freely: no shell chrome, no interactive controls, and light ink-friendly
+// colors even where the on-screen styling is dark (the code blocks). MainLayout.module.scss's own
+// print block hides the app navbar and frees the viewport-capped .content pane this page sits in.
+@media print {
+  .page {
+    height: auto;
+    background: #fff;
+  }
+
+  // !important beats the .isCompact/.isOpen state variants' higher-specificity display flips,
+  // whatever state the screen UI was in when printing started.
+  .compactBar,
+  .sidebarNav,
+  .tocNav,
+  .tocToggleSlot,
+  .overlay,
+  .mobileSearchResults,
+  .copyMarkdownGroup {
+    display: none !important;
+  }
+
+  // Back to plain document flow: the three-independently-scrolling-panes design exists for the
+  // screen's fixed viewport; a printed page paginates normal flow, and any surviving
+  // height/overflow cap would clip everything past the first sheet.
+  .columns {
+    display: block;
+    height: auto;
+    padding: 0;
+  }
+
+  .articleColumn {
+    display: block;
+    height: auto;
+  }
+
+  .article {
+    height: auto;
+    overflow: visible;
+
+    :global(h1),
+    :global(h2),
+    :global(h3),
+    :global(p),
+    :global(ul),
+    :global(ol) {
+      color: #000;
+    }
+
+    // Ink-friendly inversion of the screen's dark-on-light code styling; pre-wrap because a
+    // printed page has no overflow-x scrollbar to reach clipped-off line ends with.
+    :global(pre) {
+      background: #fff;
+      color: #000;
+      border: 1px solid $light-grey-color;
+      white-space: pre-wrap;
+    }
+
+    :global(code) {
+      background: transparent;
+      color: #000;
+    }
+
+    :global(.codeCopyButton) {
+      display: none;
+    }
+
+    // Underline instead of pink: color alone can't distinguish a link in grayscale print.
+    :global(a) {
+      color: #000;
+      text-decoration: underline;
+    }
+
+    :global(th) {
+      background: #fff;
+    }
+
+    :global(table),
+    :global(blockquote),
+    :global(.callout),
+    :global(.codeBlock) {
+      break-inside: avoid;
+    }
+
+    // Callouts keep only their left-border accent; the tinted fills read as smudges on paper.
+    :global(.callout),
+    :global(.callout-note),
+    :global(.callout-tip),
+    :global(.callout-important),
+    :global(.callout-warning),
+    :global(.callout-caution) {
+      background: #fff;
+    }
+
+    // Outranks each variant's own tinted label color (same specificity, later in source).
+    :global(.callout) :global(.calloutLabel) {
+      color: #000;
+    }
+  }
+}
