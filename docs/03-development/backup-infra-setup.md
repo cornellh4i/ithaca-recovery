@@ -145,6 +145,10 @@ Replace before running:
   `roles/billing.user` grant to `dev@518icr.com` for linking projects to it. Both
   `icr-management-system` and `icr-backups-archive` link to it.
 
+⚠️ **Unlinking billing disables the project's billed APIs, and re-linking does not re-enable
+them** — after any billing change, re-check `gcloud services list --enabled` on the affected
+project (the 2026-08-19 billing switch silently disabled the production project's Calendar API).
+
 ### 2.2 Enable APIs, create bucket — same steps as block 1
 
 ```sh
