@@ -8,7 +8,10 @@ import { useScrollNavHide } from "../../../hooks/useScrollNavHide";
 import { CheckIcon, ChevronDownIcon, CopyIcon, ExternalLinkIcon, PrintIcon, TocToggleIcon } from "./DocsIcons";
 import TocList from "./DocsTocList";
 import { handleCodeCopyClick } from "../../../util/docs/codeCopy";
-import styles from "./DocsShell.module.scss";
+import styles from "./DocsArticle.module.scss";
+// Only for the two chrome-button classes shared with the shell (.sidebarIconBtn/.sidebarClose)
+// -- they stay defined once, in the shell's module, rather than being duplicated here.
+import shellStyles from "./DocsShell.module.scss";
 
 interface DocsArticleProps {
   activeDoc: DocEntry;
@@ -26,7 +29,7 @@ const DATE_FORMATTER = new Intl.DateTimeFormat("en-US", {
 // surrounding chrome (sidebar, search) lives in docs/layout.tsx's DocsShell instead, precisely
 // so it doesn't remount along with this -- see DocsShell.tsx's own comment for why.
 const DocsArticle: React.FC<DocsArticleProps> = ({ activeDoc }) => {
-  // .article is its own scroll pane on this page (see DocsShell.module.scss), not .content --
+  // .article is its own scroll pane on this page (see DocsArticle.module.scss), not .content --
   // .content itself never scrolls here, so the mobile hide-on-scroll behavior ClientLayout wires
   // up globally onto .content has nothing to react to on /docs. Same hook, reattached to the
   // pane that actually scrolls here.
@@ -97,7 +100,7 @@ const DocsArticle: React.FC<DocsArticleProps> = ({ activeDoc }) => {
 
   // The still-open menu can't leak into the printout even though window.print() blocks before
   // React commits the close -- .copyMarkdownGroup is display: none under @media print (see
-  // DocsShell.module.scss's print block).
+  // DocsArticle.module.scss's print block).
   const handlePrint = useCallback(() => {
     window.print();
   }, []);
@@ -139,7 +142,7 @@ const DocsArticle: React.FC<DocsArticleProps> = ({ activeDoc }) => {
     if (headingEls.length === 0) return;
 
     // Measured from the article pane's own top edge, not the viewport's -- the article is its
-    // own scroll container (own overflow-y:auto, see DocsShell.module.scss's .article) rather
+    // own scroll container (own overflow-y:auto, see DocsArticle.module.scss's .article) rather
     // than .content, since the three columns each scroll independently on this page. A
     // viewport-absolute line would have to be re-derived from the navbar's height at every
     // breakpoint, and would be wrong again while the mobile navbar is hidden. 80px clears the
@@ -284,7 +287,7 @@ const DocsArticle: React.FC<DocsArticleProps> = ({ activeDoc }) => {
           <div className={styles.tocToggleSlot}>
             <button
               type="button"
-              className={styles.sidebarIconBtn}
+              className={shellStyles.sidebarIconBtn}
               aria-label="Open on this page"
               onClick={() => setTocOpen((prev) => !prev)}
             >
@@ -298,7 +301,7 @@ const DocsArticle: React.FC<DocsArticleProps> = ({ activeDoc }) => {
                     <span>On this page</span>
                     <button
                       type="button"
-                      className={styles.sidebarClose}
+                      className={shellStyles.sidebarClose}
                       aria-label="Close"
                       onClick={() => setTocOpen(false)}
                     >
