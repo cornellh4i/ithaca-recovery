@@ -4,8 +4,8 @@ Answers the handoff meeting item: *walk through how code changes are reviewed, t
 and deployed to production, including how failed deployments are rolled back and how ICR is
 notified of significant changes.*
 
-§§1-3 describe how things work today, pulled from the project's actual configuration — no
-decisions needed there. §4 flags a real open item (no notification process decided yet).
+§§1-4 describe how things work today, pulled from the project's actual configuration — no
+decisions needed there.
 
 ---
 

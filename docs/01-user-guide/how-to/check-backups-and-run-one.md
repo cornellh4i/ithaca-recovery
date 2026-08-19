@@ -53,7 +53,7 @@ Permanent / Unverified) narrow the list.
 
 Restoring is a deliberate, hands-on-keyboard operation performed by a key holder — never a
 button in this app. Selecting a snapshot row fills in a copy-pasteable command in the **Restore
-Runbook** card below, but running it requires an `age` private key and direct database access
+Runbook** card below, but running it requires a private decryption key and direct database access
 that only the Maintenance Lead or ICR President have.
 
 If you suspect data loss or corruption, don't try to fix it yourself — contact the Maintenance

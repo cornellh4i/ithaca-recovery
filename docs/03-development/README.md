@@ -28,6 +28,5 @@ For developers (current or future H4I teams) writing code against this app. Orga
 
 > [!NOTE]
 > Adding a new page under `docs/`? It also needs an entry in the hand-curated `MANIFEST` array in
-> `frontend/build-scripts/generate-docs-content.mjs` — a file that exists on disk but isn't in
-> that list won't appear on the published site, and a manifest entry whose file is missing fails
-> the build. There's no automated check for this drift yet.
+> `frontend/build-scripts/generate-docs-content.mjs` — the build fails on any mismatch: a docs
+> file missing from the list, or a listed file missing on disk.

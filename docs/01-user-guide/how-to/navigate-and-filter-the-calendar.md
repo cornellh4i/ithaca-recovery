@@ -25,7 +25,7 @@ Filter categories:
 |---|---|
 | Location | Serenity Room, Seeds of Hope Room, Unity Room, Room for Improvement, Room for Acceptance, Room for Gratitude |
 | Zoom Rooms | Serenity Room - Zoom, Seeds of Hope Room - Zoom, Unity Room - Zoom, Room for Improvement - Zoom, Children's Room @ 518 - Zoom |
-| Calendar | AA, Al-Anon, Other |
+| Calendar | AA, Al-Anon, Other (the meeting form calls this **Meeting Type**) |
 | Mode | In Person, Hybrid, Remote |
 
 ## Overlapping meetings

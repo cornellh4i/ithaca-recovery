@@ -28,7 +28,7 @@ Step-by-step setup instructions for every external service the platform depends 
    DATABASE_URL="postgresql://<user>:<password>@<neon-host>-pooler.../<dbname>?sslmode=require"
    ```
    - **App connection**: use Neon's **pooled** string (the `-pooler` hostname) — Vercel's serverless functions need it.
-   - **Backup workflow**: the unpooled/direct string is separate, used only by the (not-yet-built) backup workflow, since `pg_dump`'s session-level operations break under pgbouncer's transaction-mode pooling — see [Backups and Recovery](../02-handoff/backups-and-recovery.md).
+   - **Backup workflow**: the unpooled/direct string is separate, used only by the backup workflow, since `pg_dump`'s session-level operations break under pgbouncer's transaction-mode pooling — see [Backups and Recovery](../02-handoff/backups-and-recovery.md).
 
 2. Generate the Prisma client (required after any schema change):
    ```bash
@@ -266,7 +266,7 @@ Calendar has a new event with the join link in its `location` field.
 The Export tab's "Export Lease CSV" button generates a CSV formatted for PandaDoc's Bulk Send feature, covering every non-deleted meeting — Active and Suspended both included, since a lease is a legal obligation that doesn't end just because a meeting is temporarily hidden from the calendar. ICR uploads this CSV to PandaDoc to send annual lease documents to all groups at once.
 
 ### Configuring rates and lease details
-No code changes needed. In the app: **Admin → Export → (⋮ on the lease card) → Configure export…**, which opens a modal to set the lease period, per-room rate + unit (`/hr` or `/month`), rental agent contact info, and the email message template (`{group}` placeholder). This is stored in the `LeaseSettings` singleton via `GET/PUT /api/retrieve|update/lease-settings`. Until someone saves settings, `frontend/util/leaseDefaults.ts` supplies ICR's current defaults.
+No code changes needed. In the app: **Admin → Export → Configure** (on the lease card), which opens a modal to set the lease period, per-room rate + unit (`/hr` or `/month`), rental agent contact info, and the email message template (`{group}` placeholder). This is stored in the `LeaseSettings` singleton via `GET/PUT /api/retrieve|update/lease-settings`. Until someone saves settings, `frontend/util/lease/leaseDefaults.ts` supplies ICR's current defaults.
 
 ### Uploading to PandaDoc
 1. Export the CSV from **Admin → Export**.

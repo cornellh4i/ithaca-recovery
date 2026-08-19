@@ -1,7 +1,8 @@
 # Resources
 
-Welcome to the documentation hub for the **Ithaca Recovery Management System**. For ease of navigation,
-this hub has been organized by its audience:
+Welcome to the documentation hub for the **Ithaca Recovery Management System** — the meeting
+calendar Cornell Hack4Impact (H4I) maintains for Ithaca Community Recovery (ICR). For ease of
+navigation, this hub has been organized by its audience:
 - [User Guide](#user-guide) for everyday users of the system;
 - [Handoff](#handoff) for the ICR leadership and this application maintainer; and
 - [Development](#development) for developer teams writing code for this app.

@@ -2,14 +2,14 @@
 
 Go to **Admin → Export**. Two exports are available, both Super-Admin-only.
 
-## Export Meetings (full XLSX backup)
+## Export Meetings (XLSX)
 
 Click **"Export Meetings"** to download an `.xlsx` file with every meeting (recurring and
 one-time) — room, mode, contact, schedule, and Google Calendar/Zoom sync IDs. Useful as a full
 data backup or for auditing. Which optional columns are included can be configured via the
-export's own settings (⋮ on the card → configure fields).
+export's own settings (the **Configure** button on the card).
 
-## Export Lease CSV (PandaDoc bulk send)
+## Export PandaDocs Lease (CSV)
 
 ICR uses annual lease agreements for each group renting space (lease year: July 1 – June 30 of
 the following year by default). This export generates a CSV for PandaDoc's Bulk Send feature,
@@ -23,7 +23,7 @@ legal obligation that doesn't end just because a meeting is temporarily hidden f
 
 ### Configuring lease settings
 
-Click the **⋮** on the Export Lease CSV card → **"Configure export…"** to set:
+Click **Configure** on the lease card to set:
 
 - Lease period (start/end date)
 - Per-room rate and unit (`/hr` or `/month`)

@@ -6,11 +6,10 @@ What each icon and badge on the calendar means, and where you'll see it.
 Conflict, sync-failure, and suspension data isn't fetched for public viewers, so a board member
 browsing without an admin account never sees any of it — not "hidden," just never loaded.
 
-**Screenshot freshness:** the app's icon set was migrated from custom SVG assets to
-`@mui/icons-material` glyphs. The mode-icon screenshot below was recaptured against the new
-icons; every other screenshot on this page (conflict, sync-failure, suspend, diagnostics-panel,
-overlap-popover) still shows the pre-migration glyphs and needs re-capturing by an admin — the
-icons themselves are correct, just these specific images are stale.
+**Screenshot freshness:** the app's icons were recently refreshed. The mode-icon screenshot
+below is current; the other screenshots on this page (conflict, sync-failure, suspend,
+diagnostics-panel, overlap-popover) still show the older icons and need re-capturing by an
+admin — what each icon means is unchanged, just those images look dated.
 
 | Icon | Meaning | Where you'll see it |
 |---|---|---|
@@ -109,7 +108,7 @@ breakdown of which service — Google Calendar, Zoom, or both — failed and why
 
 The pause icon marks a meeting that's suspended, or scheduled to become suspended on a future
 date. Suspending pauses and hides a meeting from the live calendar without deleting it — nothing is
-lost. Reactivate it either from the meeting's own kebab menu (**Reactivate**, or **Cancel scheduled
+lost. Reactivate it either from the meeting's own **⋮** menu (**Reactivate**, or **Cancel scheduled
 suspension** if it hasn't started yet) or from Admin → Diagnostics. See
 [Suspend and Resume a Meeting](../how-to/suspend-and-resume-a-meeting.md).
 

@@ -26,7 +26,7 @@ Cloudflare, GCP) are signed into via Google with one of them:
   account for both environments).
 
 Billing is ICR's own: both backup GCP projects link to billing account `014C6E-AF3705-52AF26`,
-owned by Matt Kaskela, ICR President (`matt.kaskela@518icr.com`), and the Cloudflare account's
+owned by Matt Kaskela, ICR President (`Matt.Kaskela@518icr.com`), and the Cloudflare account's
 required payment method is the same ICR card (R2 itself stays on the free plan).
 
 ### Application (Vercel env vars)

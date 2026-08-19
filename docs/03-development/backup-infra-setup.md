@@ -141,7 +141,7 @@ gcloud billing projects link icr-backups-archive \
 Replace before running:
 
 - `<BILLING_ACCOUNT_ID>` — ICR's own billing account, `014C6E-AF3705-52AF26`: owned
-  (`roles/billing.admin`) by Matt Kaskela, ICR President (`matt.kaskela@518icr.com`), with a
+  (`roles/billing.admin`) by Matt Kaskela, ICR President (`Matt.Kaskela@518icr.com`), with a
   `roles/billing.user` grant to `dev@518icr.com` for linking projects to it. Both
   `icr-management-system` and `icr-backups-archive` link to it.
 

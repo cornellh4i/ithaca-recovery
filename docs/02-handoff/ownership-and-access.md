@@ -9,7 +9,7 @@ responsibility*, *ICR access and visibility*, and *post-November continuity*.
 
 | Service | Owner (account holder) | Notes |
 |---|---|---|
-| GitHub repository | [`cornellh4i` GitHub organization](https://github.com/cornellh4i) | Org-owner role: current and past H4I Engineering Chairs. Repo Admin access is managed by org-owner, current + past ICR PM/TL, and the current Maintenance Lead. |
+| GitHub repository | [`cornellh4i` GitHub organization](https://github.com/cornellh4i) | Org-owner role: current and past H4I Engineering Chairs. Repo Admin access is managed by org-owner, the ICR team's current + past H4I PM/Tech Leads, and the current Maintenance Lead. |
 | Vercel project | [Tuni Le](mailto:ttl38@cornell.edu), under the shared account `ithacacommunityrecoverytest@gmail.com` | Open to transitioning primary control to Matt or the next Maintenance Lead |
 | Neon (Postgres) project | [Tuni Le](mailto:ttl38@cornell.edu), under the shared account `ithacacommunityrecoverytest@gmail.com` | Same shared account and open-to-transition note as Vercel above |
 
@@ -50,6 +50,6 @@ depend on any one person. Concretely:
 
 - The support process ([Support Process](support-process.md)) should continue to route through H4I's Maintenance Lead's email.
 - Confirm with the incoming H4I that they have read this [Handoff](../02-handoff/) section.
-- Future ICR administrators should be able to operate the   application and request help without
+- Future ICR administrators should be able to operate the application and request help without
   needing detailed technical knowledge. See the [User Guide](../01-user-guide/) for the
   non-technical operating guide.

@@ -43,7 +43,7 @@ few weeks, a meeting on hold pending a decision.
 ## Cancel a scheduled suspension
 
 If you suspended a meeting for a future date and change your mind before it actually takes
-effect, the kebab menu shows **"Cancel scheduled suspension"** instead of "Reactivate" (the
+effect, the **⋮** menu shows **"Cancel scheduled suspension"** instead of "Reactivate" (the
 meeting is still showing normally on the calendar, so there's nothing to "resume" yet). Choosing
 it either cancels the suspension outright or lets you push its end date instead.
 
