@@ -138,10 +138,12 @@ gcloud billing projects link icr-backups-archive \
   --billing-account=<BILLING_ACCOUNT_ID>
 ```
 
-Both `icr-management-system` and `icr-backups-archive` are billing-linked to ICR's own billing
-account `014C6E-AF3705-52AF26`, owned (`roles/billing.admin`) by Matt Kaskela, ICR President
-(`matt.kaskela@518icr.com`), with a `roles/billing.user` grant to `dev@518icr.com` for linking
-projects to it.
+Replace before running:
+
+- `<BILLING_ACCOUNT_ID>` — ICR's own billing account, `014C6E-AF3705-52AF26`: owned
+  (`roles/billing.admin`) by Matt Kaskela, ICR President (`matt.kaskela@518icr.com`), with a
+  `roles/billing.user` grant to `dev@518icr.com` for linking projects to it. Both
+  `icr-management-system` and `icr-backups-archive` link to it.
 
 ### 2.2 Enable APIs, create bucket — same steps as block 1
 
@@ -323,18 +325,13 @@ reference of what's a secret vs. a variable:
 `DATABASE_URL_UNPOOLED` is sourced fresh from the Neon dashboard with pooling toggled off — not
 derived from the app's own `DATABASE_URL` secret, which is the pooled variant.
 
-### 4.2 Create the `backup-failure` issue label
+### 4.2 The `backup-failure` issue label
 
 The workflow's `if: failure()` step opens a GitHub Issue labeled `backup-failure`; `gh issue
-create --label` errors on an unknown label, so this must exist before the workflow's failure path
-can ever fire cleanly:
-
-```sh
-gh label create backup-failure \
-  --color B60205 \
-  --description "Automated backup workflow run failed" \
-  --repo cornellh4i/ithaca-recovery
-```
+create --label` errors on an unknown label. The label is declared in
+[`.github/labels.yml`](https://github.com/cornellh4i/ithaca-recovery/blob/master/.github/labels.yml)
+and created automatically by `sync-labels.yml` — no manual step. If it's ever missing, re-run
+the sync: `gh workflow run sync-labels.yml`.
 
 ---
 
@@ -390,39 +387,40 @@ nothing — the attacker also needs an artifact, which requires bucket access.
 
 ## 6. Manual `permanent/` promotion
 
-Documented here, deliberately not scripted — a rare, by-hand action for the handful of artifacts
-ever worth keeping forever (a pre-migration snapshot, a final pre-handoff state). Copies an
-existing object into the `permanent/` prefix under its same filename; `permanent/` has no
-lifecycle rule and no Object Lock rule on any of the three targets, so once promoted an object is
-never auto-deleted.
+Deliberately not scripted — a rare, by-hand action for the handful of artifacts ever worth
+keeping forever (a pre-migration snapshot, a final pre-handoff state). Copies an object into the
+`permanent/` prefix under its same filename; no target has a lifecycle or Object Lock rule on
+`permanent/`, so promoted objects are never auto-deleted.
+
+Replace before running:
+
+- `<STAMP>` — the artifact's timestamp, e.g. `20260801T071700Z` (from the Backups tab or a
+  bucket listing)
+- `<R2_ACCOUNT_ID>` — the Cloudflare account ID (§3)
 
 **GCS (working or archive bucket):**
 
 ```sh
-gcloud storage cp \
-  gs://icr-db-backups-prod/monthly/backup-20260801T071700Z.dump.age \
-  gs://icr-db-backups-prod/permanent/backup-20260801T071700Z.dump.age
-
-gcloud storage cp \
-  gs://icr-db-backups-prod/monthly/backup-20260801T071700Z.sha256 \
-  gs://icr-db-backups-prod/permanent/backup-20260801T071700Z.sha256
-
-gcloud storage cp \
-  gs://icr-db-backups-prod/monthly/backup-20260801T071700Z.meta.json \
-  gs://icr-db-backups-prod/permanent/backup-20260801T071700Z.meta.json
+for ext in dump.age sha256 meta.json; do
+  gcloud storage cp \
+    gs://icr-db-backups-prod/monthly/backup-<STAMP>.$ext \
+    gs://icr-db-backups-prod/permanent/backup-<STAMP>.$ext
+done
 ```
 
 **R2:**
 
 ```sh
-aws s3 cp \
-  s3://icr-db-backup-r2/monthly/backup-20260801T071700Z.dump.age \
-  s3://icr-db-backup-r2/permanent/backup-20260801T071700Z.dump.age \
-  --endpoint-url https://<R2_ACCOUNT_ID>.r2.cloudflarestorage.com
+for ext in dump.age sha256 meta.json; do
+  aws s3 cp \
+    s3://icr-db-backup-r2/monthly/backup-<STAMP>.$ext \
+    s3://icr-db-backup-r2/permanent/backup-<STAMP>.$ext \
+    --endpoint-url https://<R2_ACCOUNT_ID>.r2.cloudflarestorage.com
+done
 ```
 
-(repeat for the `.sha256` and `.meta.json` sidecars). No `--object-lock-mode` flag — `permanent/`
-is intentionally never locked (see §3's lock-rule rationale).
+No `--object-lock-mode` flag — `permanent/` is intentionally never locked (see §3's lock-rule
+rationale).
 
 ---
 
@@ -447,7 +445,7 @@ see the break-glass runbook in `backups-and-recovery.md`):
 `count(*)` match have all passed) writes `drill-verified.json` to the working bucket root
 (`gs://icr-db-backups-prod/drill-verified.json`, not under `daily/`/`monthly/`/`permanent/`) and
 uploads it with the operator's own `gcloud storage cp` — the drill only ever holds read access to
-the bucket, so this is a deliberately separate, manually-authenticated write:
+the bucket, so this is a deliberately separate, manually-authenticated write. Sample contents:
 
 ```json
 {
@@ -551,7 +549,12 @@ the exact-`count(*)` verification that makes a result trustworthy. Prerequisites
 
 Pulls the newest `monthly/` artifact, verifies its sha256, decrypts it, restores it into a
 scratch database, and diffs restored row counts against the sidecar `meta.json` — then uploads
-the `drill-verified.json` marker the Backups admin tab reads (§8). From `frontend/`:
+the `drill-verified.json` marker the Backups admin tab reads (§8). Runs from `frontend/`.
+Replace before running:
+
+- `AGE_IDENTITY_FILE` — wherever the key actually lives
+- `DRILL_TARGET_URL` host — the scratch database's own unpooled Neon host (`ep-xxx…` is a
+  sample)
 
 ```sh
 AGE_IDENTITY_FILE=~/keys/age-key-a.txt \
@@ -569,7 +572,8 @@ DRILL_TARGET_URL='postgresql://user:pass@ep-xxx.us-east-2.aws.neon.tech/icr_dril
   drills**: a two-key design only ever tested with key A is a one-key design nobody's noticed.
 - `GCS_BUCKET` overrides the default `icr-db-backups-prod`.
 
-A passing run ends in a dated block meant to be pasted verbatim into the handoff log:
+Sample output of a passing run — the dated block is meant to be pasted verbatim into the
+handoff log:
 
 ```
 === Restore Drill — 2026-08-17 ===
@@ -588,25 +592,31 @@ per-table in the output.
 ### 10.2 Break-glass restore — `frontend/scripts/restore-db.sh`
 
 Unlike the drill, artifact selection is deliberate and by hand. Pick, download, and check the
-artifact first:
+artifact first. Replace before running:
+
+- `<STAMP>` — the chosen artifact's timestamp, from the `ls` output
 
 ```sh
 gcloud storage ls gs://icr-db-backups-prod/daily/        # or monthly/, permanent/
-gcloud storage cp gs://icr-db-backups-prod/daily/backup-<stamp>.dump.age .
-gcloud storage cp gs://icr-db-backups-prod/daily/backup-<stamp>.sha256 .
-gcloud storage cp gs://icr-db-backups-prod/daily/backup-<stamp>.meta.json .
-sha256sum backup-<stamp>.dump.age   # must equal the first field of the .sha256 file
-# (macOS without coreutils: shasum -a 256 backup-<stamp>.dump.age)
+gcloud storage cp gs://icr-db-backups-prod/daily/backup-<STAMP>.dump.age .
+gcloud storage cp gs://icr-db-backups-prod/daily/backup-<STAMP>.sha256 .
+gcloud storage cp gs://icr-db-backups-prod/daily/backup-<STAMP>.meta.json .
+sha256sum backup-<STAMP>.dump.age   # must equal the first field of the .sha256 file
+# (macOS without coreutils: shasum -a 256 backup-<STAMP>.dump.age)
 ```
 
 (If GCS is what failed, fetch the same three objects from R2 with the `aws s3 cp` form in §6,
 direction reversed, or from the archive bucket.)
 
-Then restore into a **fresh Neon branch** — never the primary:
+Then restore into a **fresh Neon branch** — never the primary. Replace before running:
+
+- `AGE_IDENTITY_FILE` — wherever the key actually lives
+- `--target` host — the fresh branch's unpooled host (`ep-xxx-branch-yyy…` is a sample)
+- `<STAMP>` — same artifact timestamp as above
 
 ```sh
 AGE_IDENTITY_FILE=~/keys/age-key-b.txt \
-./scripts/restore-db.sh backup-<stamp>.dump.age \
+./scripts/restore-db.sh backup-<STAMP>.dump.age \
   --target 'postgresql://user:pass@ep-xxx-branch-yyy.us-east-2.aws.neon.tech/neondb'
 ```
 

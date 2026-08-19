@@ -101,8 +101,10 @@ manual run, and both open a PR rather than pushing directly:
   themselves in sync with
   [`.github/labels.yml`](https://github.com/cornellh4i/ithaca-recovery/blob/master/.github/labels.yml),
   triggered whenever that file changes on `master` (plus manual `workflow_dispatch`). Runs with
-  `skip-delete: true` since `labels.yml` only owns those prefixed labels, not GitHub's or
-  Dependabot's defaults (`bug`, `enhancement`, `dependencies`, ...).
+  `skip-delete: true` since `labels.yml` only owns the labels it lists, not GitHub's or
+  Dependabot's defaults (`bug`, `enhancement`, `dependencies`, ...). Besides the prefixed triage
+  labels it also declares `backup-failure`, which the backup workflow's failure step requires
+  ([Backup Infrastructure Setup §4.2](backup-infra-setup.md)).
 
 ## Branch protection
 
@@ -112,6 +114,23 @@ Admins can bypass this — see
 [Deployment and Rollback §1](../02-handoff/deployment-and-rollback.md#1-review-and-test-before-merge)
 for the human-facing version of this rule). `doc-freshness` and `CodeQL` run on every PR but aren't
 part of that required set.
+
+## Release checklist
+
+Manual, owned by the Maintenance Lead. Run after each batch of significant changes lands on
+`master` — the significance bar and the email obligation are defined in
+[Deployment and Rollback §4](../02-handoff/deployment-and-rollback.md):
+
+- [ ] **Bump the version** if needed. Versions are CalVer (`YYYY.M.N`); `calver-bump.yml` (above)
+      PRs the month rollover automatically, but a same-month re-release needs a manual patch bump
+      in `frontend/package.json`.
+- [ ] **Write the release notes** covering everything since the last tag
+      (`git log v<LAST>..master --oneline`): plain language for non-technical ICR staff; skip
+      refactors, tests, dependency bumps, and docs-only changes.
+- [ ] **Tag and publish a GitHub release**:
+      `gh release create v<YYYY.M.N> --title v<YYYY.M.N> --notes-file <NOTES_FILE>`.
+- [ ] **Email the notes to ICR** — contact chain in
+      [Support Process](../02-handoff/support-process.md).
 
 ## Where to go next
 
