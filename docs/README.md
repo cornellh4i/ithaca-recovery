@@ -35,7 +35,7 @@ For developers (current or future H4I teams) writing code against this app — s
 - [Project Structure](03-development/project-structure.md) — tech stack, folder layout, data models, auth flow
 - [API Reference](03-development/api-reference.md) — every API route, request/response shapes
 - [Environment Variables](03-development/environment-variables.md) — every env var, what it's for
-- [Backup Infrastructure Setup](03-development/backup-infra-setup.md) — reproducible provisioning checklist for the backup pipeline's cloud resources (GCP projects, buckets, R2, Workload Identity Federation) and its open items
+- [Backup Infrastructure Setup](03-development/backup-infra-setup.md) — reproducible provisioning checklist for the backup pipeline's cloud resources (GCP projects, buckets, R2, Workload Identity Federation)
 - [Integration Guides](03-development/integration-guides.md) — step-by-step setup for every external service (Postgres, Google OAuth, Google Calendar, Zoom, PandaDoc, Vercel)
 - [CI/CD](03-development/ci-cd.md) — what runs automatically on pushes and PRs
 - [Docs Site](03-development/docs-site.md) — how docs/ becomes the in-app /docs page, and the checklist for adding or moving a doc

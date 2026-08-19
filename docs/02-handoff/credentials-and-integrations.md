@@ -21,10 +21,13 @@ Cloudflare, GCP) are signed into via Google with one of them:
   `icr-backups-archive`) with their GCS buckets, the production OAuth app and calendars, and the
   Cloudflare account.
 - **Dev account** — `ithacacommunityrecoverytest@gmail.com`: Vercel, Neon, and the dev
-  environment's own GCP project (`ithaca-community-recovery` — dev OAuth app + dev calendars);
-  also, as a stopgap, the billing account both backup projects link to.
+  environment's own GCP project (`ithaca-community-recovery` — dev OAuth app + dev calendars).
 - **Zoom account** — `zoom@518icr.com`: the Zoom Server-to-Server app and host licensing (same
   account for both environments).
+
+Billing is ICR's own: both backup GCP projects link to billing account `014C6E-AF3705-52AF26`,
+owned by Matt Kaskela, ICR President (`matt.kaskela@518icr.com`), and the Cloudflare account's
+required payment method is the same ICR card (R2 itself stays on the free plan).
 
 ### Application (Vercel env vars)
 
@@ -61,8 +64,7 @@ Cloudflare, GCP) are signed into via Google with one of them:
 
 *`DATABASE_URL_UNPOOLED` and the backup-workflow rows above back the backup feature — see
 [Backups and Recovery](backups-and-recovery.md) for the 3-2-1-1-0 design, GFS retention, and
-break-glass restore procedure. All are live; the billing re-link follow-up is tracked in
-[Backup Infrastructure Setup](../03-development/backup-infra-setup.md).*
+break-glass restore procedure. All are live.*
 
 ## Who has access to what today
 

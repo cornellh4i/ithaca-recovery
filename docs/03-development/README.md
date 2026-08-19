@@ -17,7 +17,7 @@ For developers (current or future H4I teams) writing code against this app. Orga
   proposing a change to the stack or a core pattern.
 - **How was the backup pipeline's cloud infrastructure provisioned?**
   [Backup Infrastructure Setup](backup-infra-setup.md) — reproducible provisioning checklist
-  (GCP projects, buckets, R2, WIF) and its open items.
+  (GCP projects, buckets, R2, WIF).
 - **How do I add or move a doc on the /docs page?** [Docs Site](docs-site.md).
 - **How does testing work? How do I run the suite?** [Testing](testing/README.md).
   Before a release, see [Manual Test Script](testing/manual-test-script-template.md)

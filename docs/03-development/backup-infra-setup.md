@@ -138,10 +138,10 @@ gcloud billing projects link icr-backups-archive \
   --billing-account=<BILLING_ACCOUNT_ID>
 ```
 
-Both `icr-management-system` and `icr-backups-archive` are billing-linked to
-`017207-9146F6-F17BB6`, owned by the shared test Google account
-(`ithacacommunityrecoverytest@gmail.com`), via a `roles/billing.user` grant to `dev@518icr.com` on
-that billing account. This is a stopgap — see "Billing stopgap" under Open items below.
+Both `icr-management-system` and `icr-backups-archive` are billing-linked to ICR's own billing
+account `014C6E-AF3705-52AF26`, owned (`roles/billing.admin`) by Matt Kaskela, ICR President
+(`matt.kaskela@518icr.com`), with a `roles/billing.user` grant to `dev@518icr.com` for linking
+projects to it.
 
 ### 2.2 Enable APIs, create bucket — same steps as block 1
 
@@ -290,6 +290,9 @@ substitute).
 
 Resulting values map to the `R2_ACCOUNT_ID` / `R2_ACCESS_KEY_ID` / `R2_SECRET_ACCESS_KEY` GitHub
 Actions secrets and the `R2_BUCKET` variable (see `credentials-and-integrations.md`).
+
+**Cloudflare billing:** the account stays on the free plan, but R2 requires a payment method on
+file — that's ICR's own card, the same one behind the GCP billing account (§2.1).
 
 **Cloudflare usage notification:** a usage-based billing notification at a low threshold, set in
 Dashboard → Notifications on the account owning the R2 bucket. R2 has no hard spend cap; this
@@ -614,27 +617,4 @@ target host at the interactive prompt; everything before that flag is a dry run 
 The surrounding decision steps — when to restore, who coordinates, and the post-restore
 write-up — live in the break-glass runbook in
 [Backups and Recovery](../02-handoff/backups-and-recovery.md).
-
----
-
-## Open items
-
-- **Billing stopgap.** Both `icr-management-system` and `icr-backups-archive` are billing-linked
-  to `017207-9146F6-F17BB6`, owned by the shared test Google account
-  (`ithacacommunityrecoverytest@gmail.com`), via a `roles/billing.user` grant to `dev@518icr.com`
-  on that billing account. This is a stopgap: `dev@518icr.com`'s own billing account
-  (`0134D0-99F9C6-BF6F48`) is currently **closed** (card declined). Accepted as an
-  **availability-only** risk — billing admins on the test account cannot read bucket data, and a
-  billing unlink stops new writes but does not delete existing objects or waive their retention
-  policies. Once the card issue is resolved:
-
-  ```sh
-  gcloud billing projects link icr-management-system \
-    --billing-account=0134D0-99F9C6-BF6F48
-  gcloud billing projects link icr-backups-archive \
-    --billing-account=0134D0-99F9C6-BF6F48
-  ```
-
-  Then remove `dev@518icr.com`'s `roles/billing.user` grant on the test account's billing account
-  (`017207-9146F6-F17BB6`) — that grant should not outlive the stopgap.
 
