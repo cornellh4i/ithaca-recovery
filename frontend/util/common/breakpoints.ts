@@ -10,16 +10,21 @@ export const DESKTOP_BREAKPOINT = 1024;
 // edit both together) and mobile MultiDayLandscapeView's fits-how-many-days math.
 export const MIN_DAY_COLUMN_WIDTH = 150;
 
-// Mirrors CalendarSidebar.module.scss's .sidebar width and WeekView.module.scss's .timeColumn
-// min-width — same manual-sync contract as the Sass breakpoint tokens above.
-export const FULL_SIDEBAR_WIDTH = 240;
-export const WEEK_TIME_GUTTER_WIDTH = 60;
+// What the expanded sidebar really costs the calendar, as rendered: the 240px panel
+// (CalendarSidebar.module.scss) plus its padding, the collapse-handle strip, and the gap to the
+// calendar. Measured from the live layout (window.innerWidth − .viewContainer width with the
+// full sidebar mounted) rather than summed from CSS — the naive 240 undercounted by ~108px.
+export const FULL_SIDEBAR_ZONE_WIDTH = 348;
+
+// The week view's minimum unscrolled content width, as rendered: 61px time gutter +
+// 7 × (MIN_DAY_COLUMN_WIDTH + 1px border) + header slack. Measured (.viewContainer scrollWidth
+// with columns pinned at their min) for the same reason as above.
+export const WEEK_MIN_CONTENT_WIDTH = 1142;
 
 // The viewport width below which the full sidebar and an unscrolled 7-day week no longer fit
 // side by side — the sidebar yields (auto-collapses) before the calendar is forced to scroll
-// horizontally. Derived, not hand-picked, so a column/sidebar width change moves it too.
-export const SIDEBAR_YIELD_BREAKPOINT =
-  FULL_SIDEBAR_WIDTH + WEEK_TIME_GUTTER_WIDTH + 7 * MIN_DAY_COLUMN_WIDTH;
+// horizontally. If sidebar or column dimensions change, re-measure the two constants above.
+export const SIDEBAR_YIELD_BREAKPOINT = FULL_SIDEBAR_ZONE_WIDTH + WEEK_MIN_CONTENT_WIDTH;
 
 // Auto-re-expand only comfortably past the yield point — the gap is hysteresis so a window
 // dragged near the boundary doesn't flap the sidebar cross-fade.

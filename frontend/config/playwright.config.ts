@@ -31,9 +31,9 @@ export default defineConfig({
   // directly (spawns `next dev` itself, after Mongo + `prisma db push` are
   // ready) — Playwright's built-in webServer races against that async setup
   // since it isn't guaranteed to start after globalSetup finishes.
-  // Desktop Chrome's default 1280px viewport sits below SIDEBAR_YIELD_BREAKPOINT (1350 — see
+  // Desktop Chrome's default 1280px viewport sits below SIDEBAR_YIELD_BREAKPOINT (1490 — see
   // util/common/breakpoints.ts), where the sidebar auto-collapses; the suite's flows exercise
-  // the full-sidebar desktop experience, so pin a width comfortably above the expand edge.
-  // Tests that want the compact behavior set their own viewport explicitly.
-  projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"], viewport: { width: 1440, height: 900 } } }],
+  // the full-sidebar desktop experience, so pin a width comfortably above the expand edge
+  // (1530). Tests that want the compact behavior set their own viewport explicitly.
+  projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"], viewport: { width: 1600, height: 900 } } }],
 });

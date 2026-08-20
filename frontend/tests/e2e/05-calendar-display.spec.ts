@@ -93,7 +93,7 @@ test.describe("calendar display", () => {
     // icon strip (and its tooltips, which still say "Location") has no such text.
     const fullSidebarMarker = page.getByText("Clear all").first();
 
-    await page.setViewportSize({ width: 1500, height: 900 });
+    await page.setViewportSize({ width: 1600, height: 900 });
     await expect(viewToggleIcon).toBeVisible();
     await expect(fullSidebarMarker).toBeVisible();
     const wideIconWidth = await viewToggleIcon.evaluate((el) => el.getBoundingClientRect().width);
