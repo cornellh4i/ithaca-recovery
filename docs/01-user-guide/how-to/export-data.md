@@ -62,12 +62,14 @@ into multiple database rows that share the same lease/rental history. Both expor
 but differently:
 
 - **Lease CSV:** a split or detached row never gets its own line. All rows descended from the
-  same original series are combined into **one billing row**, using whichever row's own schedule
-  starts latest as the representative for rate, room, and time columns — that's the series'
-  current shape. A cancelled single occurrence (delete "this") does **not** reduce the rent
-  charge — the `4×` monthly multiplier is a fixed flat rate per "the meeting's own hours" above,
-  not a per-occurrence count, so removing one date from a recurring series doesn't lower what's
-  billed.
+  same original series are combined into **one billing row**, representing the series' current
+  shape: if any row in the lineage is still recurring, the recurring row whose own schedule
+  starts latest wins (an edited-and-detached single occurrence never overrides the ongoing
+  series' room/day/duration). Only a lineage with no recurring row left at all falls back to
+  whichever row starts latest overall. A cancelled single occurrence (delete "this") does **not**
+  reduce the rent charge — the `4×` monthly multiplier is a fixed flat rate per "the meeting's
+  own hours" above, not a per-occurrence count, so removing one date from a recurring series
+  doesn't lower what's billed.
 - **Meetings XLSX:** every row stays a separate row, one per distinct schedule, so a split series
   shows up as multiple rows. Two optional columns make the relationship legible: **Series End**
   (the row's own recurrence end date, blank if open-ended or one-time) and **Split From** (the
