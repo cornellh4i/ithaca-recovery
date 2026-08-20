@@ -1,0 +1,30 @@
+@import '../../../styles/Variables.module';
+
+.tocLink {
+  display: block;
+  font-size: 13.5px;
+  font-weight: 400;
+  color: $navy-color;
+  text-decoration: none;
+  padding: 6px 8px;
+  border-radius: 6px;
+  line-height: 1.4;
+
+  &.isH1 {
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  &.isH2 {
+    padding-left: 22px;
+  }
+
+  // Scrollspy: whichever heading is currently nearest the top of the article (see
+  // DocsArticle.tsx's scroll listener). Same background+color+weight treatment as the sidebar's
+  // own active doc-link, for a consistent "you are here" look across both.
+  &.isCurrent {
+    background: $grey-lightest-color;
+    color: $brand-pink-color;
+    font-weight: 600;
+  }
+}

@@ -82,3 +82,22 @@
         }
     }
 }
+
+// The navbar is chrome, and the viewport-capped shell (100vh + inner overflow-y pane) would
+// otherwise clip everything past the first printed sheet -- print pages paginate normal document
+// flow, never an element's own scroll region. DocsShell.module.scss's print block relies on this
+// to let its article content flow (its own scroll panes are freed there).
+@media print {
+    .mainlayout {
+        height: auto;
+        width: auto;
+
+        .navigation {
+            display: none;
+        }
+
+        .content {
+            overflow-y: visible;
+        }
+    }
+}

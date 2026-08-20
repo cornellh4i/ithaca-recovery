@@ -1,6 +1,6 @@
 import React from "react";
 import type { TocItem } from "../../../util/docs/parseMarkdown";
-import styles from "./DocsShell.module.scss";
+import styles from "./DocsTocList.module.scss";
 
 interface TocListProps {
   toc: TocItem[];
