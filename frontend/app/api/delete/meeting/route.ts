@@ -4,10 +4,10 @@ import { requireRole } from '../../../../services/auth';
 import { getETDayBounds } from '../../../../util/date/timeUtils';
 import {
   deleteCalendarEvent,
-  deleteCalendarOccurrence,
-  trimCalendarEventSeries,
+  updateCalendarEvent,
   calendarIdsForMeeting,
 } from '../../../../services/googleCalendar';
+import { IMeeting } from '../../../../types/models';
 import { deleteZoomMeeting, zoomRoomCalendarId } from '../../../../services/zoom';
 import { reconcilePendingResume, tearDownPendingResumeSeries, MeetingWithSuspensions } from '../../../../util/meetings/suspension';
 import { prisma } from '../../../../lib/prisma';
@@ -16,33 +16,26 @@ import { prisma } from '../../../../lib/prisma';
 const toETDateStr = (date: Date): string =>
   new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' }).format(date);
 
-// The three sync* functions below all run after the response is sent (see the
-// after() calls in each branch) — no googleSyncStatus field to reconcile for deletes,
-// so errors are just logged, not written back anywhere.
-async function syncDeleteOccurrence(
+// Runs after the response is sent — full-body rewrite of each configured calType calendar
+// event to match the meeting's POST-WRITE RecurrencePattern (buildEventBody now serializes
+// excludedDates as EXDATE lines and endDate as UNTIL itself, so a plain events.update with the
+// already-mutated pattern is sufficient; no more surgical EXDATE/UNTIL patch needed for a
+// 'this'/'thisAndFollowing' delete). Skipped for a currently suspended meeting -- its live GCal
+// recurrence already carries a suspension-only UNTIL trim (syncSuspend in update/meeting/
+// suspend/route.ts, via trimCalendarEventSeries) that isn't represented in RecurrencePattern at
+// all, and a full-body rewrite from the stored pattern would silently resurrect whatever the
+// suspension hid.
+async function syncPartialDelete(
+  status: string,
   accessToken: string | undefined,
   calendarIds: Record<string, string>,
   eventIds: Record<string, string>,
-  startDateTime: Date,
-  occurrenceDate: string,
+  meetingForCalendar: IMeeting,
 ): Promise<void> {
-  if (!accessToken) return;
+  if (!accessToken || status === 'Suspended') return;
   for (const [cat, calId] of Object.entries(calendarIds)) {
     const eventId = eventIds[cat];
-    if (eventId) await deleteCalendarOccurrence(accessToken, eventId, startDateTime, occurrenceDate, calId);
-  }
-}
-
-async function syncTrimSeries(
-  accessToken: string | undefined,
-  calendarIds: Record<string, string>,
-  eventIds: Record<string, string>,
-  occurrenceDate: string,
-): Promise<void> {
-  if (!accessToken) return;
-  for (const [cat, calId] of Object.entries(calendarIds)) {
-    const eventId = eventIds[cat];
-    if (eventId) await trimCalendarEventSeries(accessToken, eventId, occurrenceDate, calId);
+    if (eventId) await updateCalendarEvent(accessToken, eventId, meetingForCalendar, calId);
   }
 }
 
@@ -143,12 +136,17 @@ const deleteMeeting = async (request: Request) => {
       // MongoDB: record excluded date
       const etDateStr = toETDateStr(new Date(occurrenceDate));
       const [excludedDate] = getETDayBounds(etDateStr);
-      await prisma.recurrencePattern.update({
+      const updatedPattern = await prisma.recurrencePattern.update({
         where: { mid },
         data: { excludedDates: { push: excludedDate } },
       });
-      // Google Calendar: add EXDATE for this occurrence on each calendar
-      after(syncDeleteOccurrence(accessToken, calendarIds, eventIds, meeting.startDateTime, occurrenceDate));
+      // Google Calendar: full-body rewrite from the post-write pattern -- buildEventBody now
+      // serializes excludedDates as EXDATE lines itself, so this new exclusion (and every prior
+      // one) lands on the calendar in one events.update per configured cat-cal event.
+      after(syncPartialDelete(
+        meeting.status, accessToken, calendarIds, eventIds,
+        { ...meeting, recurrencePattern: updatedPattern } as unknown as IMeeting,
+      ));
     } else if (deleteOption === 'thisAndFollowing') {
       if (!meeting.recurrencePattern) {
         return new Response(JSON.stringify({ error: "Meeting has no recurrence pattern" }), {
@@ -156,13 +154,17 @@ const deleteMeeting = async (request: Request) => {
           headers: { 'Content-Type': 'application/json' },
         });
       }
-      // MongoDB: trim the series end date
+      // MongoDB: trim the series end date. numberOfOccurrences is explicitly nulled here -- a
+      // count-bounded series left with a stale count would have that count win back over the
+      // just-written endDate the next time toRRule serializes it (see toRRule's endDate-wins
+      // comment), silently un-trimming the series the next time a whole-series edit resubmits
+      // the stored count and recomputes an endDate past this trim point.
       const etDateStr = toETDateStr(new Date(occurrenceDate));
       const [occurrenceUTCStart] = getETDayBounds(etDateStr);
       const newEndDate = new Date(occurrenceUTCStart.getTime() - 1);
-      await prisma.recurrencePattern.update({
+      const updatedPattern = await prisma.recurrencePattern.update({
         where: { mid },
-        data: { endDate: newEndDate },
+        data: { endDate: newEndDate, numberOfOccurrences: null },
       });
       // A pending resume series pre-created for a scheduled suspension (see
       // createPendingResumeSeries) only makes sense if the recurring series still reaches that
@@ -173,8 +175,12 @@ const deleteMeeting = async (request: Request) => {
         (s) => !s.promoted && s.resumeEventIds && s.to && s.to.getTime() > newEndDate.getTime(),
       );
       if (hasStaleResumeSeries) after(tearDownPendingResumeSeries(meeting, accessToken));
-      // Google Calendar: trim RRULE UNTIL on each calendar
-      after(syncTrimSeries(accessToken, calendarIds, eventIds, occurrenceDate));
+      // Google Calendar: full-body rewrite from the post-write (trimmed) pattern -- buildEventBody
+      // regenerates the RRULE's UNTIL from RecurrencePattern.endDate itself.
+      after(syncPartialDelete(
+        meeting.status, accessToken, calendarIds, eventIds,
+        { ...meeting, recurrencePattern: updatedPattern } as unknown as IMeeting,
+      ));
     } else {
       // 'all' or non-recurring: soft-delete the master meeting record
       await prisma.meeting.update({

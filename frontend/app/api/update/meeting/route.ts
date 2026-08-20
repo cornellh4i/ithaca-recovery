@@ -5,7 +5,7 @@ import { requireRole } from "../../../../services/auth";
 import { IMeeting } from "../../../../types/models";
 import {
   createCalendarEvent, updateCalendarEvent, deleteCalendarEvent, reconcileMeetingCalendars,
-  deleteCalendarOccurrence, trimCalendarEventSeries, calendarIdsForMeeting,
+  calendarIdsForMeeting,
 } from "../../../../services/googleCalendar";
 import { createZoomMeeting, updateZoomMeeting, deleteZoomMeeting, getZoomHostCapacities, getZoomMeetingInvitation, rehostZoomMeeting, resolveZoomHost, zoomHostPool, zoomRoomCalendarId } from "../../../../services/zoom";
 import { findResourceConflicts, findResourceConflictRows, ConflictRow, ResourceConflictAbort } from "../../../../util/meetings/resourceOverlap";
@@ -301,24 +301,26 @@ async function syncUpdatedMeeting(
   }
 }
 
-// Runs after the response is sent — parent-side Google Calendar half of a scoped edit ('this'
-// excludes one occurrence via EXDATE, 'thisAndFollowing' trims the RRULE UNTIL). Mirrors delete/
-// meeting/route.ts's syncDeleteOccurrence/syncTrimSeries exactly (same helpers, same math) --
-// duplicated locally since routes don't export their internals for reuse.
+// Runs after the response is sent — parent-side Google Calendar half of a scoped edit: a
+// full-body rewrite of each configured calType event from the parent's POST-WRITE
+// RecurrencePattern (buildEventBody regenerates the whole recurrence -- RRULE + EXDATEs -- from
+// it, so a plain events.update is sufficient for both 'this' and 'thisAndFollowing'; no more
+// surgical EXDATE/UNTIL patch). Skipped for a currently suspended parent -- its live GCal
+// recurrence already carries a suspension-only UNTIL trim (syncSuspend in update/meeting/
+// suspend/route.ts, via trimCalendarEventSeries) that isn't represented in RecurrencePattern at
+// all, and a full-body rewrite from the stored pattern would silently resurrect whatever the
+// suspension hid -- same reasoning as syncUpdatedMeeting's suspended early-return above.
 async function syncScopedParentCalendar(
-  scope: 'this' | 'thisAndFollowing',
+  status: string,
   accessToken: string | undefined,
   calendarIds: Record<string, string>,
   eventIds: Record<string, string>,
-  startDateTime: Date,
-  occurrenceISODate: string,
+  meetingForCalendar: IMeeting,
 ): Promise<void> {
-  if (!accessToken) return;
+  if (!accessToken || status === 'Suspended') return;
   for (const [cat, calId] of Object.entries(calendarIds)) {
     const eventId = eventIds[cat];
-    if (!eventId) continue;
-    if (scope === 'this') await deleteCalendarOccurrence(accessToken, eventId, startDateTime, occurrenceISODate, calId);
-    else await trimCalendarEventSeries(accessToken, eventId, occurrenceISODate, calId);
+    if (eventId) await updateCalendarEvent(accessToken, eventId, meetingForCalendar, calId);
   }
 }
 
@@ -404,7 +406,6 @@ async function handleScopedEdit(
   const mid = existingMeeting.mid;
   const newMid = randomUUID();
   const splitFromMid = rootSplitMid(existingMeeting);
-  const occurrenceISODate = occurrenceDate.toISOString();
   const isRecurringSplit = scope === 'thisAndFollowing';
 
   let calculatedEndDate: Date | null = null;
@@ -439,9 +440,14 @@ async function handleScopedEdit(
         where: { mid },
         data: {
           lastEditedBy: auth.user?.email ?? null,
+          // numberOfOccurrences explicitly nulled on the trim branch -- same reasoning as
+          // delete/meeting/route.ts's 'thisAndFollowing' trim: a stale count would win back over
+          // this endDate the next time toRRule serializes the pattern (see toRRule's
+          // endDate-wins comment), un-trimming the parent the next time a whole-series edit
+          // resubmits the stored count.
           recurrencePattern: scope === 'this'
             ? { update: { excludedDates: { push: exclusionInstant(occurrenceDate) } } }
-            : { update: { endDate: trimmedEndDate(occurrenceDate) } },
+            : { update: { endDate: trimmedEndDate(occurrenceDate), numberOfOccurrences: null } },
         },
         include: { recurrencePattern: true },
       });
@@ -562,9 +568,12 @@ async function handleScopedEdit(
   const { updatedParent, createdMeeting, hasStaleResumeSeries } = txResult;
   const calendarIds = calendarIdsForMeeting(existingMeeting.calType ?? []);
   const eventIds = (existingMeeting.googleCalendarEventIds ?? {}) as Record<string, string>;
+  // The parent's OWN field values (unchanged by a scoped edit -- only its pattern is
+  // trimmed/excluded) plus the just-written post-trim pattern from the transaction result.
+  const parentForCalendar = { ...existingMeeting, recurrencePattern: updatedParent.recurrencePattern } as unknown as IMeeting;
 
   after(
-    syncScopedParentCalendar(scope, auth.accessToken, calendarIds, eventIds, existingMeeting.startDateTime, occurrenceISODate)
+    syncScopedParentCalendar(existingMeeting.status, auth.accessToken, calendarIds, eventIds, parentForCalendar)
       .catch((error) => console.error("syncScopedParentCalendar threw:", error)),
   );
   if (hasStaleResumeSeries) {
@@ -931,6 +940,23 @@ const updateMeeting = async (request: Request): Promise<Response> => {
       throw error;
     }
 
+    // Same excludedDates fallback as `candidate` above (the BUG FIX comment there), applied to
+    // what actually reaches buildEventBody this time: the client payload's recurrencePattern
+    // doesn't reliably resubmit excludedDates (the form doesn't manage per-occurrence deletions),
+    // and the DB upsert above deliberately never touches that column -- so without this, a plain
+    // whole-series field edit would serialize the calendar body from an effectively-empty
+    // excludedDates and silently resurrect every occurrence a prior 'this'-scope edit/delete had
+    // EXDATE'd on Google Calendar, while the app itself still hides them (BUG A).
+    const newMeetingForSync: IMeeting = {
+      ...newMeeting,
+      recurrencePattern: recurrencePattern
+        ? {
+            ...recurrencePattern,
+            excludedDates: recurrencePattern.excludedDates ?? existingMeeting.recurrencePattern?.excludedDates ?? [],
+          }
+        : null,
+    };
+
     // GCal/Zoom sync runs after the response is sent — see syncUpdatedMeeting above. Caught here
     // so a throw mid-sync (as opposed to a handled failure, which syncUpdatedMeeting already
     // persists as an error status itself) doesn't vanish as a silent unhandled rejection,
@@ -941,7 +967,7 @@ const updateMeeting = async (request: Request): Promise<Response> => {
     // 'error' here is always safe, and zoomSyncStatus is marked too since a crash this early
     // means whatever Zoom-side state exists can't be trusted as accurate either.
     after(
-      syncUpdatedMeeting(mid, newMeeting, existingMeeting, auth.accessToken, resolvedHost, hostSyncError)
+      syncUpdatedMeeting(mid, newMeetingForSync, existingMeeting, auth.accessToken, resolvedHost, hostSyncError)
         .catch(async (error) => {
           console.error("syncUpdatedMeeting threw:", error);
           try {

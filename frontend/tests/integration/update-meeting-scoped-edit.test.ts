@@ -29,8 +29,6 @@ jest.mock("../../services/googleCalendar", () => ({
   // (unmodified) syncUpdatedMeeting path -- an unresolved mock there crashes that function's
   // destructure of this call's return value.
   reconcileMeetingCalendars: jest.fn().mockResolvedValue({ updatedEventIds: {}, allSynced: true, googleSyncError: null }),
-  deleteCalendarOccurrence: jest.fn().mockResolvedValue(true),
-  trimCalendarEventSeries: jest.fn().mockResolvedValue(true),
 }));
 
 jest.mock("../../services/zoom", () => ({
@@ -49,13 +47,12 @@ import { getTestPrismaClient, disconnectTestPrismaClient } from "../factories/db
 import { seedRecurringMeeting, seedMeeting, seedSuspensionPeriod } from "../factories/meeting";
 import { PUT } from "../../app/api/update/meeting/route";
 import {
-  createCalendarEvent, deleteCalendarOccurrence, trimCalendarEventSeries, deleteCalendarEvent,
+  createCalendarEvent, updateCalendarEvent, deleteCalendarEvent,
 } from "../../services/googleCalendar";
 import { createZoomMeeting, deleteZoomMeeting } from "../../services/zoom";
 
 const mockedCreateCalendarEvent = createCalendarEvent as jest.Mock;
-const mockedDeleteCalendarOccurrence = deleteCalendarOccurrence as jest.Mock;
-const mockedTrimCalendarEventSeries = trimCalendarEventSeries as jest.Mock;
+const mockedUpdateCalendarEvent = updateCalendarEvent as jest.Mock;
 const mockedDeleteCalendarEvent = deleteCalendarEvent as jest.Mock;
 const mockedCreateZoomMeeting = createZoomMeeting as jest.Mock;
 const mockedDeleteZoomMeeting = deleteZoomMeeting as jest.Mock;
@@ -92,8 +89,7 @@ afterAll(async () => {
 
 beforeEach(() => {
   mockedCreateCalendarEvent.mockClear();
-  mockedDeleteCalendarOccurrence.mockClear();
-  mockedTrimCalendarEventSeries.mockClear();
+  mockedUpdateCalendarEvent.mockClear();
   mockedDeleteCalendarEvent.mockClear();
   mockedCreateZoomMeeting.mockClear();
   mockedDeleteZoomMeeting.mockClear();
@@ -214,9 +210,13 @@ test("editScope 'this' excludes the occurrence on the parent and creates a detac
   // No Zoom API call for the split-off row -- the zid/host/link are inherited, not provisioned.
   expect(mockedCreateZoomMeeting).not.toHaveBeenCalled();
   expect(mockedDeleteZoomMeeting).not.toHaveBeenCalled();
-  // Parent's calendar event got an EXDATE, not a trim or delete.
-  expect(mockedDeleteCalendarOccurrence).toHaveBeenCalled();
-  expect(mockedTrimCalendarEventSeries).not.toHaveBeenCalled();
+  // Parent's calendar event got a full-body rewrite (no more surgical EXDATE patch) whose
+  // recurrence now carries the new exclusion via buildEventBody.
+  expect(mockedUpdateCalendarEvent).toHaveBeenCalledTimes(1);
+  const [, parentEventId, parentMeetingForCalendar, parentCalId] = mockedUpdateCalendarEvent.mock.calls[0];
+  expect(parentEventId).toBe("parent-event-aa");
+  expect(parentCalId).toBe("cal-AA");
+  expect(parentMeetingForCalendar.recurrencePattern.excludedDates).toHaveLength(1);
   // The new row got its own calType calendar event created.
   expect(mockedCreateCalendarEvent).toHaveBeenCalled();
 });
@@ -249,8 +249,70 @@ test("editScope 'thisAndFollowing' trims the parent's endDate and creates a new 
   expect(created?.splitFromMid).toBe(meeting.mid);
   expect(created?.zid).toBe(meeting.zid);
 
-  expect(mockedTrimCalendarEventSeries).toHaveBeenCalled();
-  expect(mockedDeleteCalendarOccurrence).not.toHaveBeenCalled();
+  expect(parentPattern?.numberOfOccurrences).toBeNull();
+
+  await waitFor(async () => (mockedUpdateCalendarEvent.mock.calls.length > 0 ? true : null));
+  expect(mockedUpdateCalendarEvent).toHaveBeenCalledTimes(1);
+  const [, parentEventId, parentMeetingForCalendar] = mockedUpdateCalendarEvent.mock.calls[0];
+  expect(parentEventId).toBe("parent-event-aa");
+  expect(parentMeetingForCalendar.recurrencePattern.endDate.getTime()).toBe(parentPattern!.endDate!.getTime());
+  expect(parentMeetingForCalendar.recurrencePattern.numberOfOccurrences).toBeNull();
+});
+
+test("a 'thisAndFollowing' trim on a count-bounded series survives a later whole-series (scope 'all') re-edit", async () => {
+  // BUG B regression: toRRule used to prefer numberOfOccurrences (COUNT) over endDate, and the
+  // trim write left the stale count in place -- a later 'all' edit resubmitting that count (the
+  // form derives count-wins from the stored pattern) recomputed calculatedEndDate from it and
+  // silently un-trimmed the series. The trim write now explicitly nulls numberOfOccurrences.
+  // seedWeeklySeries always seeds interval-1/no-count -- make it count-bounded afterward.
+  const { meeting } = await seedWeeklySeries();
+  const prisma = getTestPrismaClient();
+  await prisma.recurrencePattern.update({
+    where: { mid: meeting.mid },
+    data: { numberOfOccurrences: 52, endDate: null },
+  });
+
+  const occurrenceDate = occurrence(3).start;
+  const trimResponse = await putMeeting(scopedPayload(meeting.mid, "thisAndFollowing", occurrenceDate, {
+    recurrencePattern: { type: "weekly", startDate: occurrenceDate, daysOfWeek: [SERIES_WEEKDAY], firstDayOfWeek: "Sunday", interval: 1 },
+  }));
+  expect(trimResponse.status).toBe(200);
+
+  const trimmedPattern = await prisma.recurrencePattern.findUnique({ where: { mid: meeting.mid } });
+  expect(trimmedPattern?.numberOfOccurrences).toBeNull();
+  const trimmedEndDate = trimmedPattern!.endDate!.getTime();
+  expect(trimmedEndDate).toBeLessThan(occurrenceDate.getTime());
+
+  // Now resubmit the parent with a form-shaped 'all' payload -- the form round-trips whatever
+  // the stored (now-trimmed, now-count-less) pattern already has, so it resends the trimmed
+  // endDate itself and no count (there's none left to resend).
+  const reEditPayload: Record<string, unknown> = {
+    mid: meeting.mid,
+    title: meeting.title,
+    description: "",
+    creator: "Creator",
+    group: "Group",
+    startDateTime: meeting.startDateTime,
+    endDateTime: meeting.endDateTime,
+    email: "scoped-edit@test.icr",
+    calType: ["AA"],
+    modeType: "Remote",
+    room: "",
+    status: "Active",
+    isRecurring: true,
+    recurrencePattern: {
+      type: "weekly", startDate: meeting.startDateTime, daysOfWeek: [SERIES_WEEKDAY], firstDayOfWeek: "Sunday", interval: 1,
+      endDate: trimmedPattern!.endDate,
+      // numberOfOccurrences deliberately omitted -- pre-fix, a stale stored count would have
+      // been resubmitted here instead and recomputed a fresh endDate past the trim point.
+    },
+  };
+  const reEditResponse = await putMeeting(reEditPayload);
+  expect(reEditResponse.status).toBe(200);
+
+  const afterReEdit = await prisma.recurrencePattern.findUnique({ where: { mid: meeting.mid } });
+  expect(afterReEdit?.numberOfOccurrences).toBeNull();
+  expect(afterReEdit?.endDate?.getTime()).toBe(trimmedEndDate);
 });
 
 test("a lineage chain propagates the ROOT mid, not the immediate parent's mid", async () => {

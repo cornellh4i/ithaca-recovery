@@ -23,8 +23,7 @@ jest.mock("../../services/auth", () => ({
 jest.mock("../../services/googleCalendar", () => ({
   calendarIdsForMeeting: jest.fn().mockReturnValue({ AA: "fake-calendar-id" }),
   deleteCalendarEvent: jest.fn().mockResolvedValue(true),
-  deleteCalendarOccurrence: jest.fn().mockResolvedValue(true),
-  trimCalendarEventSeries: jest.fn().mockResolvedValue(true),
+  updateCalendarEvent: jest.fn().mockResolvedValue({ ok: true, error: null }),
 }));
 
 jest.mock("../../services/zoom", () => ({
@@ -32,11 +31,12 @@ jest.mock("../../services/zoom", () => ({
   zoomRoomCalendarId: {},
 }));
 
-import { deleteCalendarEvent } from "../../services/googleCalendar";
+import { deleteCalendarEvent, updateCalendarEvent } from "../../services/googleCalendar";
 import { deleteZoomMeeting } from "../../services/zoom";
 import { DELETE } from "../../app/api/delete/meeting/route";
 
 const mockedDelete = deleteCalendarEvent as jest.Mock;
+const mockedUpdate = updateCalendarEvent as jest.Mock;
 const mockedDeleteZoom = deleteZoomMeeting as jest.Mock;
 
 afterAll(async () => {
@@ -45,6 +45,7 @@ afterAll(async () => {
 
 beforeEach(() => {
   mockedDelete.mockClear();
+  mockedUpdate.mockClear();
   mockedDeleteZoom.mockClear();
   mockCapturedAfterTasks.length = 0;
 });
@@ -169,4 +170,85 @@ test("a promoted (already-live) suspension row isn't torn down a second time", a
   // not just that it hadn't happened yet by some guessed deadline.
   await drainAfterTasks();
   expect(mockedDelete).toHaveBeenCalledTimes(1);
+});
+
+// The 'this'/'thisAndFollowing' branches previously had no DB-write coverage at all -- added
+// alongside the EXDATE/full-body-rewrite fix below, since both branches' sync mechanics changed.
+describe("deleteOption 'this' / 'thisAndFollowing'", () => {
+  test("'this' pushes an excludedDates entry and rewrites the calendar event's full body (EXDATE, not a patch)", async () => {
+    const { meeting } = await seedRecurringMeeting(
+      { googleCalendarEventIds: { AA: "live-event-id" } },
+      { type: "weekly", daysOfWeek: ["Monday"], interval: 1 },
+    );
+    const occurrenceDate = new Date("2026-09-14T18:00:00Z"); // a Monday
+
+    const response = await DELETE(new Request("http://localhost/api/delete/meeting", {
+      method: "DELETE",
+      body: JSON.stringify({ mid: meeting.mid, deleteOption: "this", occurrenceDate: occurrenceDate.toISOString() }),
+    }));
+    expect(response.status).toBe(200);
+
+    const prisma = getTestPrismaClient();
+    const pattern = await prisma.recurrencePattern.findUnique({ where: { mid: meeting.mid } });
+    expect(pattern?.excludedDates).toHaveLength(1);
+
+    await drainAfterTasks();
+    // No surgical patch call left at all -- deleteCalendarOccurrence is gone; the whole event
+    // body (with the RRULE + EXDATE buildEventBody now derives from the pattern) is rewritten
+    // via a plain events.update instead.
+    expect(mockedUpdate).toHaveBeenCalledTimes(1);
+    const [, eventId, meetingForCalendar, calendarId] = mockedUpdate.mock.calls[0];
+    expect(eventId).toBe("live-event-id");
+    expect(calendarId).toBe("fake-calendar-id");
+    expect(meetingForCalendar.recurrencePattern.excludedDates).toHaveLength(1);
+  });
+
+  test("'thisAndFollowing' trims endDate, nulls numberOfOccurrences, and rewrites the calendar event", async () => {
+    const { meeting } = await seedRecurringMeeting(
+      { googleCalendarEventIds: { AA: "live-event-id" } },
+      { type: "weekly", daysOfWeek: ["Monday"], interval: 1, numberOfOccurrences: 20, endDate: null },
+    );
+    const occurrenceDate = new Date("2026-09-14T18:00:00Z"); // a Monday
+
+    const response = await DELETE(new Request("http://localhost/api/delete/meeting", {
+      method: "DELETE",
+      body: JSON.stringify({ mid: meeting.mid, deleteOption: "thisAndFollowing", occurrenceDate: occurrenceDate.toISOString() }),
+    }));
+    expect(response.status).toBe(200);
+
+    const prisma = getTestPrismaClient();
+    const pattern = await prisma.recurrencePattern.findUnique({ where: { mid: meeting.mid } });
+    expect(pattern?.endDate).not.toBeNull();
+    expect(pattern!.endDate!.getTime()).toBeLessThan(occurrenceDate.getTime());
+    // The count-bounded regression this whole fix targets: without nulling this, a later
+    // whole-series edit resubmitting the stored count would recompute an endDate past this trim
+    // and silently un-trim the series.
+    expect(pattern?.numberOfOccurrences).toBeNull();
+
+    await drainAfterTasks();
+    expect(mockedUpdate).toHaveBeenCalledTimes(1);
+    const [, , meetingForCalendar] = mockedUpdate.mock.calls[0];
+    expect(meetingForCalendar.recurrencePattern.numberOfOccurrences).toBeNull();
+    expect(meetingForCalendar.recurrencePattern.endDate.getTime()).toBe(pattern!.endDate!.getTime());
+  });
+
+  test("a suspended meeting's 'this' delete never rewrites its calendar event", async () => {
+    // The live GCal recurrence already carries a suspension-only UNTIL trim (syncSuspend) that
+    // isn't represented in RecurrencePattern at all -- a full-body rewrite from the stored
+    // pattern here would silently resurrect whatever the suspension hid.
+    const { meeting } = await seedRecurringMeeting(
+      { status: "Suspended", googleCalendarEventIds: { AA: "live-event-id" } },
+      { type: "weekly", daysOfWeek: ["Monday"], interval: 1 },
+    );
+    const occurrenceDate = new Date("2026-09-14T18:00:00Z");
+
+    const response = await DELETE(new Request("http://localhost/api/delete/meeting", {
+      method: "DELETE",
+      body: JSON.stringify({ mid: meeting.mid, deleteOption: "this", occurrenceDate: occurrenceDate.toISOString() }),
+    }));
+    expect(response.status).toBe(200);
+
+    await drainAfterTasks();
+    expect(mockedUpdate).not.toHaveBeenCalled();
+  });
 });
