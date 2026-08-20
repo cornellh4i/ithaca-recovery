@@ -344,14 +344,14 @@ const updateMeeting = async (request: Request): Promise<Response> => {
     const explicitHostChange = !!newMeeting.zoomHost &&
       newMeeting.zoomHost.toLowerCase() !== (existingMeeting.zoomHost ?? "").toLowerCase();
 
-    // An unmanaged Zoom meeting's host is whoever owns it on Zoom's side (adopted legacy /
-    // externally hosted -- see schema.prisma's zoomManaged); the app can't reassign that, and
+    // An unmanaged Zoom meeting's host is whoever owns it on Zoom's side (externally
+    // hosted -- see schema.prisma's zoomManaged); the app can't reassign that, and
     // persisting a different pool host would only make capacity accounting lie. Everything else
     // (rooms, times, content) is app/calendar-side and stays editable -- a Zoom-room change
     // just moves the join-link event between room calendars using the stored link.
     if (!existingMeeting.zoomManaged && explicitHostChange) {
       return NextResponse.json(
-        { error: "This meeting's Zoom meeting is legacy; its host can't be reassigned from the app." },
+        { error: "This meeting's Zoom meeting is externally owned; its host can't be reassigned from the app." },
         { status: 422 },
       );
     }
