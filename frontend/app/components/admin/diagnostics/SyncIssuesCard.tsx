@@ -180,10 +180,9 @@ const SyncIssuesCard: React.FC = () => {
             <div key={meeting.mid} className={styles.meetingRow}>
               <div className={styles.syncIssueRow}>
                 <div>
-                  <span className={styles.meetingTitle}>{meeting.title}</span>{" "}
-                  <span className={styles.meetingTags}>({meeting.group})</span>
+                  <span className={styles.meetingTitle}>{meeting.title}</span>
                   <div className={styles.meetingMeta}>
-                    {meeting.room} · {meeting.modeType} · {meeting.calType.join(", ")}
+                    {[meeting.room, meeting.modeType, meeting.calType.join(", ")].filter(Boolean).join(" · ")}
                   </div>
                   {meeting.issues.map((issue) => (
                     <div

@@ -51,6 +51,7 @@ function buildMeeting(overrides: Partial<Meeting> = {}): Omit<Meeting, "recurren
     calType: ["AA"],
     description: "",
     creator: "creator@test.icr",
+    lastEditedBy: null,
     group: "Group",
     startDateTime: new Date(now - DAY_MS),
     endDateTime: new Date(now - DAY_MS + 60 * 60 * 1000),

@@ -366,6 +366,7 @@ export default function HomePage() {
           title={selectedMeeting.title}
           description={selectedMeeting.description}
           creator={selectedMeeting.creator}
+          lastEditedBy={selectedMeeting.lastEditedBy}
           group={selectedMeeting.group}
 
           /* ViewMeetingDetails formats for ET display internally (formatETDateString, etTimeFmt,

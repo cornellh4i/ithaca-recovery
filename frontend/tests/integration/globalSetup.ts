@@ -15,7 +15,9 @@ export default async function globalSetup(): Promise<void> {
   execFileSync(path.join(frontendRoot, "node_modules/.bin/prisma"), ["migrate", "deploy"], {
     cwd: frontendRoot,
     stdio: "inherit",
-    env: { ...process.env, DATABASE_URL: uri, CHECKPOINT_DISABLE: "1" },
+    // The embedded test server is a direct connection already, so the pooled and direct URLs
+    // (schema.prisma's url/directUrl) are the same thing here.
+    env: { ...process.env, DATABASE_URL: uri, DATABASE_URL_UNPOOLED: uri, CHECKPOINT_DISABLE: "1" },
     timeout: 60_000,
   });
 }
