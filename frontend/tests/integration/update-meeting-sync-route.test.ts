@@ -16,6 +16,7 @@ jest.mock("../../services/googleCalendar", () => ({
 jest.mock("../../services/zoom", () => ({
   createZoomMeeting: jest.fn(),
   updateZoomMeeting: jest.fn(),
+  getZoomMeetingCredentials: jest.fn(),
   getZoomMeetingInvitation: jest.fn(),
   getZoomHostCapacities: jest.fn().mockResolvedValue({}),
   resolveZoomHost: jest.fn(),
@@ -29,12 +30,13 @@ jest.mock("../../services/zoom", () => ({
 import { getTestPrismaClient, disconnectTestPrismaClient } from "../factories/db";
 import { buildMeetingData as buildBaseMeetingData } from "../factories/meeting";
 import { POST } from "../../app/api/update/meeting/sync/route";
-import { resolveZoomHost, createZoomMeeting, updateZoomMeeting } from "../../services/zoom";
+import { resolveZoomHost, createZoomMeeting, updateZoomMeeting, getZoomMeetingCredentials } from "../../services/zoom";
 import { reconcileMeetingCalendars } from "../../services/googleCalendar";
 
 const mockedResolveZoomHost = resolveZoomHost as jest.Mock;
 const mockedCreateZoomMeeting = createZoomMeeting as jest.Mock;
 const mockedUpdateZoomMeeting = updateZoomMeeting as jest.Mock;
+const mockedGetZoomMeetingCredentials = getZoomMeetingCredentials as jest.Mock;
 const mockedReconcileMeetingCalendars = reconcileMeetingCalendars as jest.Mock;
 
 function buildMeetingData(overrides: Partial<Prisma.MeetingCreateInput> = {}) {
@@ -57,6 +59,7 @@ beforeEach(() => {
   mockedResolveZoomHost.mockReset();
   mockedCreateZoomMeeting.mockReset();
   mockedUpdateZoomMeeting.mockReset();
+  mockedGetZoomMeetingCredentials.mockReset();
   mockedReconcileMeetingCalendars.mockReset();
 });
 
@@ -244,6 +247,54 @@ describe("retrying an already-synced meeting (existing zid)", () => {
 
     expect(mockedUpdateZoomMeeting).not.toHaveBeenCalled();
     expect(mockedReconcileMeetingCalendars).toHaveBeenCalled();
+  });
+
+  test("a retry adopts a portal-side passcode/link change: fresh credentials are stored and the reconcile publishes the live link", async () => {
+    mockedUpdateZoomMeeting.mockResolvedValue(true);
+    mockedGetZoomMeetingCredentials.mockResolvedValue({
+      passcode: "rotated",
+      joinUrl: "http://zoom.test/existing?pwd=rotated",
+    });
+    mockedReconcileMeetingCalendars.mockResolvedValue({ updatedEventIds: {}, allSynced: true, googleSyncError: null });
+
+    const prisma = getTestPrismaClient();
+    const meetingData = buildSyncedMeetingData({ zoomPasscode: "original" });
+    await prisma.meeting.create({ data: meetingData });
+
+    const response = await POST(new Request("http://localhost/api/update/meeting/sync", {
+      method: "POST",
+      body: JSON.stringify({ mid: meetingData.mid }),
+    }));
+    expect(response.status).toBe(200);
+
+    expect(mockedReconcileMeetingCalendars).toHaveBeenCalledWith(
+      "fake-token",
+      expect.objectContaining({ zoomLink: "http://zoom.test/existing?pwd=rotated" }),
+      expect.anything(),
+    );
+    const after = await prisma.meeting.findUnique({ where: { mid: meetingData.mid } });
+    expect(after?.zoomPasscode).toBe("rotated");
+    expect(after?.zoomLink).toBe("http://zoom.test/existing?pwd=rotated");
+  });
+
+  test("an unreachable Zoom credentials fetch keeps the stored passcode and link", async () => {
+    mockedUpdateZoomMeeting.mockResolvedValue(true);
+    mockedGetZoomMeetingCredentials.mockResolvedValue(null);
+    mockedReconcileMeetingCalendars.mockResolvedValue({ updatedEventIds: {}, allSynced: true, googleSyncError: null });
+
+    const prisma = getTestPrismaClient();
+    const meetingData = buildSyncedMeetingData({ zoomPasscode: "original" });
+    await prisma.meeting.create({ data: meetingData });
+
+    const response = await POST(new Request("http://localhost/api/update/meeting/sync", {
+      method: "POST",
+      body: JSON.stringify({ mid: meetingData.mid }),
+    }));
+    expect(response.status).toBe(200);
+
+    const after = await prisma.meeting.findUnique({ where: { mid: meetingData.mid } });
+    expect(after?.zoomPasscode).toBe("original");
+    expect(after?.zoomLink).toBe("http://zoom.test/existing");
   });
 
   test("a real Zoom API failure marks zoomSyncStatus error and defers the calendar reconcile", async () => {

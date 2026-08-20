@@ -27,6 +27,12 @@ The platform is the single source of truth. Changes made here sync automatically
 - **Direct edits in Google Calendar will not sync back** to the platform.
 - **Subsequent platform syncs will overwrite** any changes made directly in Google Calendar.
 
+## Zoom-side changes are detected, not synced live
+
+The platform can't see day-to-day changes made in the Zoom portal. If someone changes a meeting's passcode there, the links and passcode the platform has published keep pointing at the old values — members clicking them get a passcode prompt that rejects what the platform shows.
+
+The platform checks for this when an admin opens the meeting: if the live Zoom link or passcode no longer matches the saved copy, a **"Zoom settings were changed outside the app"** notice appears — click **Sync from Zoom** to adopt the new settings and republish the calendar events. Prefer making changes in the platform where possible; if the Zoom side must change, open the meeting here afterwards and sync.
+
 ## Why sync can fail, and what the sync-error badge means
 
 Meetings are saved to the platform **immediately**, while Google Calendar and Zoom sync in the background. 

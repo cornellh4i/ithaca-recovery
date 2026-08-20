@@ -132,7 +132,10 @@ export default function HomePage() {
       setSelectedMeeting(null);
       setLastClickedDate(null);
     }
-  }, [selectedMeetingID, fetchMeetingDetails]);
+    // refreshTrigger: a successful retry sync can change the *open* meeting's stored
+    // credentials server-side (Sync from Zoom adopts the live passcode/link) -- the popup must
+    // re-render from the fresh row, not keep showing pre-adoption props with the warning gone.
+  }, [selectedMeetingID, fetchMeetingDetails, refreshTrigger]);
 
   // Deep-link support for e.g. the Diagnostics conflicts panel's "Edit" button
   // (/?mid=<id>&edit=1) -- read once on mount rather than via useSearchParams, since this

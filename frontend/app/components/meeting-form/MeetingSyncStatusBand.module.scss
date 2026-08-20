@@ -84,6 +84,44 @@
   }
 }
 
+// Drift block -- warning-tinted, not danger: nothing failed, the app and Zoom just disagree.
+// Reuses .retryButton recolored to match.
+.driftBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: $radius-lg;
+  background: $warning-bg-color;
+
+  .retryButton {
+    border-color: $warning-text-color;
+    color: $warning-text-color;
+  }
+}
+
+.driftHeader {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  color: $warning-text-color;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
+
+  img,
+  svg {
+    width: 16px !important;
+    height: 16px !important;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  span {
+    flex: 1;
+  }
+}
+
 .conflictBlock, .suspensionBlock {
   display: flex;
   align-items: flex-start;

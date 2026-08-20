@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { requireRole } from "../../../../../services/auth";
 import { IMeeting } from "../../../../../types/models";
 import { createCalendarEvent, updateCalendarEvent, reconcileMeetingCalendars } from "../../../../../services/googleCalendar";
-import { createZoomMeeting, getZoomHostCapacities, updateZoomMeeting, getZoomMeetingInvitation, resolveZoomHost, zoomHostPool, zoomRoomCalendarId } from "../../../../../services/zoom";
+import { createZoomMeeting, getZoomHostCapacities, getZoomMeetingCredentials, updateZoomMeeting, getZoomMeetingInvitation, resolveZoomHost, zoomHostPool, zoomRoomCalendarId } from "../../../../../services/zoom";
 import { lockResourceClaims } from "../../../../../util/meetings/resourceLocks";
 import { prisma } from "../../../../../lib/prisma";
 
@@ -62,6 +62,18 @@ const syncMeeting = async (request: Request): Promise<Response> => {
             zoomSyncError = null;
 
             if (zid) {
+                // Credentials flow the OPPOSITE way from schedule: Zoom is their source of
+                // truth (a portal-side passcode change rewrites join_url with no signal to the
+                // app, and our PATCHes never send a password field), so a retry adopts the live
+                // values before republishing anything -- this is what resolves passcode/link
+                // drift instead of re-publishing stale links. Applies to unmanaged meetings
+                // too: their owner rotating a passcode is exactly this case. A failed fetch
+                // keeps the stored values -- an unreachable Zoom API is not evidence of drift.
+                const liveCredentials = await getZoomMeetingCredentials(zid);
+                if (liveCredentials?.joinUrl) {
+                    zoomLink = liveCredentials.joinUrl;
+                    zoomPasscode = liveCredentials.passcode;
+                }
                 // Retry re-asserts an already-working Zoom meeting's existing claim -- nothing
                 // about this meeting's own details changed, so a conflict introduced later by a
                 // *different* meeting must not be able to downgrade it (first-come-first-served:
