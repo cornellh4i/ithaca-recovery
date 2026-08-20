@@ -150,6 +150,89 @@ describe("toZoomStartTime / buildZoomMeetingBody (via createZoomMeeting's reques
   });
 });
 
+describe("type-8 recurrence mapping (via createZoomMeeting's request body)", () => {
+  it("sends a never-ending weekly multi-day series as type 8 with weekly_days and end_times 0", async () => {
+    const { getCapturedBody } = mockFetchCapturingBody();
+    const meeting = buildMeeting({
+      isRecurring: true,
+      recurrencePattern: {
+        type: "weekly", startDate: new Date("2026-07-01T23:00:00.000Z"), endDate: null,
+        daysOfWeek: ["Monday", "Wednesday", "Friday"], firstDayOfWeek: "Sunday", interval: 1,
+      },
+    });
+
+    await createZoomMeeting(meeting, "host@test.icr");
+
+    const body = getCapturedBody();
+    expect(body?.type).toBe(8);
+    expect(body?.recurrence).toEqual({ type: 2, repeat_interval: 1, weekly_days: "2,4,6", end_times: 0 });
+  });
+
+  it("maps a week-of-month monthly pattern to Zoom's monthly_week/monthly_week_day", async () => {
+    const { getCapturedBody } = mockFetchCapturingBody();
+    const meeting = buildMeeting({
+      isRecurring: true,
+      recurrencePattern: {
+        type: "monthly", startDate: new Date("2026-07-07T21:30:00.000Z"), endDate: null,
+        daysOfWeek: ["Tuesday"], weekOfMonth: 1, firstDayOfWeek: "Sunday", interval: 1,
+      },
+    });
+
+    await createZoomMeeting(meeting, "host@test.icr");
+
+    expect(getCapturedBody()?.recurrence).toEqual({ type: 3, repeat_interval: 1, monthly_week: 1, monthly_week_day: 3, end_times: 0 });
+  });
+
+  it("caps a count-bounded series at Zoom's 50-occurrence limit without failing the create", async () => {
+    const { getCapturedBody } = mockFetchCapturingBody();
+    const meeting = buildMeeting({
+      isRecurring: true,
+      recurrencePattern: {
+        type: "weekly", startDate: new Date("2026-07-01T23:00:00.000Z"), endDate: null,
+        numberOfOccurrences: 200, daysOfWeek: ["Wednesday"], firstDayOfWeek: "Sunday", interval: 1,
+      },
+    });
+
+    await createZoomMeeting(meeting, "host@test.icr");
+
+    expect(getCapturedBody()?.recurrence).toMatchObject({ end_times: 50 });
+  });
+
+  it("clamps a backdated series' start_time to its next future occurrence", async () => {
+    const { getCapturedBody } = mockFetchCapturingBody();
+    // Anchored far in the past; the recurrence is every Wednesday 19:00-20:00 ET.
+    const meeting = buildMeeting({
+      isRecurring: true,
+      startDateTime: new Date("2026-07-01T23:00:00.000Z"),
+      endDateTime: new Date("2026-07-02T00:00:00.000Z"),
+      recurrencePattern: {
+        type: "weekly", startDate: new Date("2026-07-01T23:00:00.000Z"), endDate: null,
+        daysOfWeek: ["Wednesday"], firstDayOfWeek: "Sunday", interval: 1,
+      },
+    });
+
+    await createZoomMeeting(meeting, "host@test.icr");
+
+    const body = getCapturedBody();
+    // Whatever today is, the sent start must not be the backdated July 1 anchor and must be
+    // in the future (as an ET wall-clock string at the series' 19:00 time).
+    expect(body?.start_time).not.toBe("2026-07-01T19:00:00");
+    expect(String(body?.start_time)).toMatch(/T19:00:00$/);
+    expect(new Date(`${body?.start_time}-04:00`).getTime()).toBeGreaterThan(Date.now() - 24 * 60 * 60 * 1000);
+  });
+
+  it("keeps a one-time meeting as plain type 2 with no recurrence", async () => {
+    const { getCapturedBody } = mockFetchCapturingBody();
+    const meeting = buildMeeting({ isRecurring: false });
+
+    await createZoomMeeting(meeting, "host@test.icr");
+
+    const body = getCapturedBody();
+    expect(body?.type).toBe(2);
+    expect(body?.recurrence).toBeUndefined();
+  });
+});
+
 describe("token-fetch failure paths", () => {
   it("returns null/false without throwing when Zoom credentials aren't configured", async () => {
     delete process.env.ZOOM_CLIENT_ID;
