@@ -127,6 +127,14 @@ export const meetingSchema = z.object({
     path: ["room"],
   });
 
+// Parsed separately from meetingSchema (not folded into it) so write/meeting -- which shares
+// meetingSchema -- never sees these keys spread into its Prisma create data. update/meeting
+// parses the same raw body through both schemas.
+export const editScopeSchema = z.object({
+  editScope: z.enum(['this', 'thisAndFollowing', 'all']).optional(),
+  occurrenceDate: z.coerce.date().optional(),
+});
+
 // Narrower shape for the Zoom host-availability check — only the fields
 // checkZoomHostPoolAvailability's OccurrenceInput actually needs. The client posts the same
 // full buildMeetingPayload() object the real submit uses (no separate conversion logic), and

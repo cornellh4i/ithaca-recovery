@@ -90,11 +90,25 @@ Retrieve all meetings for an arbitrary date range (used by mobile's prev/current
 
 Zoom sync runs the same mode-gated, resolve-before-publish way as `POST /api/write/meeting` above (same `"pending"` deferral if Zoom can't resolve). If `zoomRoom` changed, the old Zoom meeting and (Hybrid-only) calendar event are deleted and a fresh Zoom meeting/calendar event are created under the new room — a Zoom meeting can't move rooms. If instead the Meeting Form's Zoom Host dropdown was used to explicitly reassign the host, the existing Zoom meeting is transferred to that host in place (`schedule_for`), preserving its ID, passcode and join link; a Zoom-side refusal falls back to the same tear-down-and-recreate, except on a `zid` another meeting shares, where the host is left unchanged and the failure is reported. Otherwise the existing Zoom meeting is updated in place, after re-checking its host is still free for the (possibly moved) time.
 
-**Request body:** `IMeeting` (must include `mid`)
+A recurring meeting's edit can be scoped to less than the whole series via two extra top-level body fields, parsed separately from the `IMeeting` payload itself:
 
-**Response:** `200 OK` — updated `IMeeting`
+| Field | Type | Description |
+|---|---|---|
+| `editScope` | `"this" \| "thisAndFollowing" \| "all"` | Optional; omitted or `"all"` is the whole-series behavior described above. Non-recurring meetings reject `"this"`/`"thisAndFollowing"` with `400`. |
+| `occurrenceDate` | ISO 8601 | Required when `editScope` is `"this"`/`"thisAndFollowing"` (`400` otherwise); must land on a live occurrence of the pattern (not excluded, not past the series end) or the request is rejected with `400`. |
+
+`editScope: "this"` pushes that occurrence's date onto the parent's `RecurrencePattern.excludedDates` and creates a new, detached, non-recurring `Meeting` row (its own `mid`) carrying the request body's edited field values, anchored to `occurrenceDate`. The body's `recurrencePattern` must be omitted for this scope (`400` otherwise — a single occurrence has no recurrence of its own).
+
+`editScope: "thisAndFollowing"` trims the parent's `RecurrencePattern.endDate` to end the day before `occurrenceDate` and creates a new recurring `Meeting` + `RecurrencePattern` (its own `mid`) starting at `occurrenceDate`, using the request body's `recurrencePattern` (required for this scope — `400` otherwise) and edited field values.
+
+Either way, the new row inherits the parent's Zoom identity (`zid`, `zoomHost`, `zoomManaged`, `zoomTopic`, and — for a Hybrid meeting — `zoomRoom`) rather than provisioning a new Zoom meeting; it gets its own Google Calendar event(s), created the same way `POST /api/write/meeting` creates a new meeting's events. Its `splitFromMid` is set to the parent's own root series mid (propagated through, not reset, if the parent itself was already a split-off row), so every row produced by repeated splits of the same original series still shares one lineage root. The parent's Google Calendar event is adjusted to match — an `EXDATE` for `"this"`, an `RRULE UNTIL` trim for `"thisAndFollowing"` — the same way `deleteOption` on `DELETE /api/delete/meeting` adjusts it.
+
+**Request body:** `IMeeting` (must include `mid`), plus `editScope`/`occurrenceDate` above
+
+**Response:** `200 OK` — updated `IMeeting`; when `editScope` was `"this"`/`"thisAndFollowing"`, also includes `newMid` (the new split-off row's `mid`)
 **Error:** `404 Not Found` if `mid` doesn't exist
-**Error:** `400 Bad Request` — request body fails schema validation (issues listed in the response)
+**Error:** `400 Bad Request` — request body fails schema validation, or one of the `editScope` rules above (issues listed in the response)
+**Error:** `409 Conflict` — the edit's room/Zoom-room/Zoom-host would collide with another meeting; body includes `conflicts`. Resubmit with `confirmOverride: true` to save anyway. For a scoped edit, this checks the new split-off row's own occurrence(s), not the parent's.
 
 ---
 

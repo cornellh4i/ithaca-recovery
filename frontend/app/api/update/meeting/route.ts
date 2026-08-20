@@ -1,14 +1,19 @@
-import { Meeting, Prisma, Role } from "@prisma/client";
+import { randomUUID } from "crypto";
+import { Meeting, RecurrencePattern, SuspensionPeriod, Prisma, Role } from "@prisma/client";
 import { NextResponse, after } from "next/server";
 import { requireRole } from "../../../../services/auth";
 import { IMeeting } from "../../../../types/models";
-import { createCalendarEvent, updateCalendarEvent, deleteCalendarEvent, reconcileMeetingCalendars } from "../../../../services/googleCalendar";
+import {
+  createCalendarEvent, updateCalendarEvent, deleteCalendarEvent, reconcileMeetingCalendars,
+  deleteCalendarOccurrence, trimCalendarEventSeries, calendarIdsForMeeting,
+} from "../../../../services/googleCalendar";
 import { createZoomMeeting, updateZoomMeeting, deleteZoomMeeting, getZoomHostCapacities, getZoomMeetingInvitation, rehostZoomMeeting, resolveZoomHost, zoomHostPool, zoomRoomCalendarId } from "../../../../services/zoom";
 import { findResourceConflicts, findResourceConflictRows, ConflictRow, ResourceConflictAbort } from "../../../../util/meetings/resourceOverlap";
 import { lockResourceClaims, ResourceClaim } from "../../../../util/meetings/resourceLocks";
-import { meetingSchema } from "../../../../util/meetings/meetingValidation";
-import { reconcilePendingResume } from "../../../../util/meetings/suspension";
+import { meetingSchema, editScopeSchema } from "../../../../util/meetings/meetingValidation";
+import { reconcilePendingResume, tearDownPendingResumeSeries } from "../../../../util/meetings/suspension";
 import { calculateEndDateFromOccurrences } from "../../../../util/meetings/meetingOccurrences";
+import { EditScope, exclusionInstant, trimmedEndDate, isLiveOccurrence, rootSplitMid } from "../../../../util/meetings/editScope";
 import { prisma } from "../../../../lib/prisma";
 
 // Runs after the response is sent (see after() call below) — failure updates googleSyncStatus
@@ -296,16 +301,319 @@ async function syncUpdatedMeeting(
   }
 }
 
+// Runs after the response is sent — parent-side Google Calendar half of a scoped edit ('this'
+// excludes one occurrence via EXDATE, 'thisAndFollowing' trims the RRULE UNTIL). Mirrors delete/
+// meeting/route.ts's syncDeleteOccurrence/syncTrimSeries exactly (same helpers, same math) --
+// duplicated locally since routes don't export their internals for reuse.
+async function syncScopedParentCalendar(
+  scope: 'this' | 'thisAndFollowing',
+  accessToken: string | undefined,
+  calendarIds: Record<string, string>,
+  eventIds: Record<string, string>,
+  startDateTime: Date,
+  occurrenceISODate: string,
+): Promise<void> {
+  if (!accessToken) return;
+  for (const [cat, calId] of Object.entries(calendarIds)) {
+    const eventId = eventIds[cat];
+    if (!eventId) continue;
+    if (scope === 'this') await deleteCalendarOccurrence(accessToken, eventId, startDateTime, occurrenceISODate, calId);
+    else await trimCalendarEventSeries(accessToken, eventId, occurrenceISODate, calId);
+  }
+}
+
+// Runs after the response is sent — creates the split-off row's own Google Calendar events (and
+// its Zoom-Room event, if any) and persists its sync statuses. No Zoom API call: the row
+// inherits the parent's zid/zoomHost/zoomLink (see handleScopedEdit), so there's nothing for
+// Zoom sync to do beyond marking it synced -- mirrors write/meeting/route.ts's syncNewMeeting,
+// minus the Zoom-provisioning half.
+async function syncSplitMeeting(
+  newMid: string,
+  meetingData: IMeeting,
+  isRecurring: boolean,
+  accessToken: string | undefined,
+): Promise<void> {
+  const zoomEnabled = meetingData.modeType === 'Hybrid' || meetingData.modeType === 'Remote';
+  const meetingForSync: IMeeting = { ...meetingData, isRecurring };
+
+  let googleCalendarEventIds: Record<string, string> | undefined;
+  let googleSyncStatus: string | undefined;
+  let googleSyncError: string | null | undefined;
+
+  if (accessToken) {
+    const requestedCalTypes = meetingData.calType ?? [];
+    const calendarIds = calendarIdsForMeeting(requestedCalTypes);
+    const eventIds: Record<string, string> = {};
+    const unconfiguredCat = requestedCalTypes.find((cat) => !calendarIds[cat]);
+    let syncError: string | null = unconfiguredCat
+      ? `Calendar for "${unconfiguredCat}" is not configured.`
+      : null;
+    for (const [cat, calId] of Object.entries(calendarIds)) {
+      const { id, error } = await createCalendarEvent(accessToken, meetingForSync, calId);
+      if (id) eventIds[cat] = id;
+      else syncError = syncError ?? error;
+    }
+    const synced = requestedCalTypes.length > 0 && requestedCalTypes.every((cat) => eventIds[cat]);
+    googleCalendarEventIds = eventIds;
+    googleSyncStatus = synced ? 'synced' : 'error';
+    googleSyncError = synced ? null : syncError;
+  } else {
+    googleSyncStatus = 'error';
+    googleSyncError = "No Google Calendar access token available for this sync.";
+  }
+
+  let zoomCalendarEventId: string | null = null;
+  let zoomSynced = true;
+  let zoomSyncError: string | null = null;
+  if (zoomEnabled && accessToken && meetingData.zoomLink && meetingData.zoomRoom) {
+    const calId = zoomRoomCalendarId[meetingData.zoomRoom];
+    if (calId) {
+      const { id: eventId, error } = await createCalendarEvent(accessToken, meetingForSync, calId, meetingData.zoomLink);
+      if (eventId) zoomCalendarEventId = eventId;
+      else {
+        zoomSynced = false;
+        zoomSyncError = error ?? "The split-off meeting's Zoom calendar event failed to sync.";
+      }
+    }
+  }
+
+  await prisma.meeting.update({
+    where: { mid: newMid },
+    data: {
+      googleCalendarEventIds, googleSyncStatus, googleSyncError,
+      ...(zoomEnabled
+        ? { zoomCalendarEventId, zoomSyncStatus: zoomSynced ? 'synced' : 'error', zoomSyncError: zoomSynced ? null : zoomSyncError }
+        : {}),
+    },
+  });
+}
+
+// Handles editScope 'this' / 'thisAndFollowing': trims/excludes the parent series and splits the
+// edited values off into a new detached (scope 'this') or new recurring (scope
+// 'thisAndFollowing') Meeting row. Only reached once the caller has already confirmed the parent
+// is recurring, occurrenceDate is present, and occurrenceDate lands on a live occurrence -- see
+// the branch in updateMeeting below.
+async function handleScopedEdit(
+  auth: { accessToken?: string; user?: { email?: string | null } | null },
+  existingMeeting: Meeting & { recurrencePattern: RecurrencePattern | null; suspensions: SuspensionPeriod[] },
+  newMeeting: IMeeting,
+  scope: 'this' | 'thisAndFollowing',
+  occurrenceDate: Date,
+  confirmOverride: boolean,
+): Promise<Response> {
+  const mid = existingMeeting.mid;
+  const newMid = randomUUID();
+  const splitFromMid = rootSplitMid(existingMeeting);
+  const occurrenceISODate = occurrenceDate.toISOString();
+  const isRecurringSplit = scope === 'thisAndFollowing';
+
+  let calculatedEndDate: Date | null = null;
+  if (isRecurringSplit) {
+    const rp = newMeeting.recurrencePattern!;
+    calculatedEndDate = rp.endDate ?? null;
+    if (rp.numberOfOccurrences && !rp.endDate) {
+      calculatedEndDate = calculateEndDateFromOccurrences(
+        occurrenceDate, rp.daysOfWeek || [], rp.numberOfOccurrences, rp.interval || 1,
+        rp.type, rp.weekOfMonth ?? null, rp.dayOfMonth ?? null,
+      );
+    }
+  }
+
+  // License-dependent per-host capacities, resolved before the locked transaction below -- same
+  // reasoning as the 'all' path (a Zoom API round trip while advisory locks are held would
+  // extend lock hold time by an external call's latency; cached 12h, usually a no-op).
+  const hostCapacities = await getZoomHostCapacities();
+
+  let txResult: { updatedParent: Meeting & { recurrencePattern: RecurrencePattern | null }; createdMeeting: Meeting; hasStaleResumeSeries: boolean };
+  try {
+    txResult = await prisma.$transaction(async (tx) => {
+      const claims: ResourceClaim[] = [];
+      if (newMeeting.room) claims.push({ type: "room", value: newMeeting.room });
+      if (existingMeeting.zoomRoom) claims.push({ type: "zoomRoom", value: existingMeeting.zoomRoom });
+      if (existingMeeting.zoomHost) claims.push({ type: "zoomHost", value: existingMeeting.zoomHost });
+      await lockResourceClaims(tx, claims);
+
+      // Trim/exclude the parent BEFORE conflict-checking the new row's candidate below, so the
+      // parent's own remaining occurrences (post-trim) don't self-collide with it.
+      const updatedParent = await tx.meeting.update({
+        where: { mid },
+        data: {
+          lastEditedBy: auth.user?.email ?? null,
+          recurrencePattern: scope === 'this'
+            ? { update: { excludedDates: { push: exclusionInstant(occurrenceDate) } } }
+            : { update: { endDate: trimmedEndDate(occurrenceDate) } },
+        },
+        include: { recurrencePattern: true },
+      });
+
+      // A pending resume series pre-created for a scheduled suspension only makes sense if the
+      // series still reaches that far -- mirrors delete/meeting/route.ts's identical check.
+      let hasStaleResumeSeries = false;
+      if (scope === 'thisAndFollowing') {
+        const newEndDate = updatedParent.recurrencePattern!.endDate!;
+        hasStaleResumeSeries = existingMeeting.suspensions.some(
+          (s) => !s.promoted && s.resumeEventIds && s.to && s.to.getTime() > newEndDate.getTime(),
+        );
+      }
+
+      const candidate = {
+        mid: newMid,
+        title: newMeeting.title,
+        room: newMeeting.room,
+        zoomRoom: existingMeeting.zoomRoom,
+        zoomHost: existingMeeting.zoomHost,
+        status: newMeeting.status ?? existingMeeting.status,
+        calType: newMeeting.calType,
+        startDateTime: newMeeting.startDateTime,
+        endDateTime: newMeeting.endDateTime,
+        isRecurring: isRecurringSplit,
+        recurrencePattern: isRecurringSplit
+          ? { ...newMeeting.recurrencePattern!, startDate: occurrenceDate, endDate: calculatedEndDate, excludedDates: newMeeting.recurrencePattern!.excludedDates ?? [] }
+          : null,
+      };
+
+      // The new row's candidate date is already excluded from/past the end of the parent's own
+      // (just-trimmed, in this same tx) pattern, so it can't self-collide -- but scope 'this'
+      // still needs the parent mid excluded explicitly, since the parent's *other* occurrences
+      // remain in play for the room/zoomRoom/zoomHost scan and excludeMid only affects whether
+      // the parent's own row is queried at all, not which of its occurrences match.
+      const excludeMid = scope === 'this' ? mid : undefined;
+
+      if (!confirmOverride) {
+        const conflictRows: ConflictRow[] = [];
+        if (candidate.room) {
+          conflictRows.push(...await findResourceConflictRows("room", candidate.room, candidate, tx, { excludeMid }));
+        }
+        if (candidate.zoomRoom) {
+          conflictRows.push(...await findResourceConflictRows("zoomRoom", candidate.zoomRoom, candidate, tx, { excludeMid }));
+        }
+        if (candidate.zoomHost) {
+          conflictRows.push(...await findResourceConflictRows(
+            "zoomHost", candidate.zoomHost, candidate, tx,
+            { excludeMid, includeSuspended: true, capacity: hostCapacities[candidate.zoomHost] ?? 1 },
+          ));
+        }
+        if (conflictRows.length > 0) {
+          throw new ResourceConflictAbort(conflictRows);
+        }
+      }
+
+      const createdMeeting = await tx.meeting.create({
+        data: {
+          mid: newMid,
+          title: newMeeting.title,
+          description: newMeeting.description,
+          creator: auth.user?.email ?? existingMeeting.creator,
+          lastEditedBy: null,
+          group: newMeeting.group,
+          startDateTime: newMeeting.startDateTime,
+          endDateTime: newMeeting.endDateTime,
+          email: newMeeting.email,
+          calType: newMeeting.calType,
+          modeType: newMeeting.modeType,
+          room: newMeeting.room,
+          status: newMeeting.status ?? existingMeeting.status,
+          isRecurring: isRecurringSplit,
+          // Inherited, not re-provisioned -- see the Zoom-inheritance decision in editScope.ts's
+          // callers. The shared-zid PATCH machinery (services/zoom.ts) already discovers this row
+          // as a sibling on subsequent edits since it queries by zid.
+          zid: existingMeeting.zid,
+          zoomLink: existingMeeting.zoomLink,
+          zoomPasscode: existingMeeting.zoomPasscode,
+          zoomInvitation: existingMeeting.zoomInvitation,
+          zoomRoom: existingMeeting.zoomRoom,
+          zoomHost: existingMeeting.zoomHost,
+          zoomManaged: existingMeeting.zoomManaged,
+          zoomTopic: existingMeeting.zoomTopic,
+          splitFromMid,
+          ...(isRecurringSplit
+            ? {
+                recurrencePattern: {
+                  create: {
+                    type: newMeeting.recurrencePattern!.type,
+                    startDate: occurrenceDate,
+                    endDate: calculatedEndDate,
+                    numberOfOccurrences: newMeeting.recurrencePattern!.numberOfOccurrences ?? undefined,
+                    daysOfWeek: newMeeting.recurrencePattern!.daysOfWeek ?? [],
+                    firstDayOfWeek: newMeeting.recurrencePattern!.firstDayOfWeek,
+                    interval: newMeeting.recurrencePattern!.interval,
+                    weekOfMonth: newMeeting.recurrencePattern!.weekOfMonth ?? null,
+                    dayOfMonth: newMeeting.recurrencePattern!.dayOfMonth ?? null,
+                    excludedDates: newMeeting.recurrencePattern!.excludedDates ?? [],
+                  },
+                },
+              }
+            : {}),
+        },
+      });
+
+      return { updatedParent, createdMeeting, hasStaleResumeSeries };
+    }, { timeout: 10_000, maxWait: 10_000 });
+  } catch (error) {
+    if (error instanceof ResourceConflictAbort) {
+      return NextResponse.json(
+        { error: "This meeting conflicts with an existing meeting's room, Zoom room, or Zoom host.", conflicts: error.conflicts },
+        { status: 409 },
+      );
+    }
+    throw error;
+  }
+
+  const { updatedParent, createdMeeting, hasStaleResumeSeries } = txResult;
+  const calendarIds = calendarIdsForMeeting(existingMeeting.calType ?? []);
+  const eventIds = (existingMeeting.googleCalendarEventIds ?? {}) as Record<string, string>;
+
+  after(
+    syncScopedParentCalendar(scope, auth.accessToken, calendarIds, eventIds, existingMeeting.startDateTime, occurrenceISODate)
+      .catch((error) => console.error("syncScopedParentCalendar threw:", error)),
+  );
+  if (hasStaleResumeSeries) {
+    after(tearDownPendingResumeSeries(existingMeeting, auth.accessToken).catch((error) =>
+      console.error("tearDownPendingResumeSeries threw:", error)));
+  }
+  after(
+    syncSplitMeeting(
+      newMid,
+      { ...newMeeting, mid: newMid, zid: existingMeeting.zid, zoomLink: existingMeeting.zoomLink, zoomRoom: existingMeeting.zoomRoom },
+      isRecurringSplit,
+      auth.accessToken,
+    ).catch(async (error) => {
+      console.error("syncSplitMeeting threw:", error);
+      try {
+        await prisma.meeting.update({
+          where: { mid: newMid },
+          data: { googleSyncStatus: 'error', googleSyncError: "Sync job failed unexpectedly." },
+        });
+      } catch (persistError) {
+        console.error("Failed to persist split-meeting sync failure status:", persistError);
+      }
+    }),
+  );
+
+  return NextResponse.json({ ...updatedParent, newMid: createdMeeting.mid });
+}
+
 const updateMeeting = async (request: Request): Promise<Response> => {
   try {
     const auth = await requireRole(Role.ADMIN);
     if (auth instanceof Response) return auth;
 
-    const parsed = meetingSchema.safeParse(await request.json());
+    const rawBody = await request.json();
+    const parsed = meetingSchema.safeParse(rawBody);
     if (!parsed.success) {
       return NextResponse.json({ error: "Invalid meeting data", issues: parsed.error.issues }, { status: 400 });
     }
     const newMeeting = parsed.data as IMeeting;
+
+    // Parsed separately from meetingSchema (see editScopeSchema's comment) -- absent or 'all'
+    // means the current whole-series behavior below; 'this'/'thisAndFollowing' hand off to
+    // handleScopedEdit instead.
+    const scopeParsed = editScopeSchema.safeParse(rawBody);
+    if (!scopeParsed.success) {
+      return NextResponse.json({ error: "Invalid edit scope", issues: scopeParsed.error.issues }, { status: 400 });
+    }
+    const editScope: EditScope = scopeParsed.data.editScope ?? 'all';
+    const occurrenceDate = scopeParsed.data.occurrenceDate ?? null;
 
     // Read before lockResourceClaims acquires anything below -- accepted gap, not covered by
     // this fix: two concurrent edits to this *same* meeting could each compute
@@ -329,6 +637,48 @@ const updateMeeting = async (request: Request): Promise<Response> => {
     // googleCalendarEventIds if its date has arrived but nothing's promoted it yet, before this
     // edit reads/writes that field below.
     existingMeeting.googleCalendarEventIds = await reconcilePendingResume(existingMeeting);
+
+    if (editScope !== 'all') {
+      if (!existingMeeting.recurrencePattern) {
+        return NextResponse.json(
+          { error: "This meeting is not recurring; editScope must be omitted or 'all'." },
+          { status: 400 },
+        );
+      }
+      if (!occurrenceDate) {
+        return NextResponse.json({ error: "occurrenceDate is required for this edit scope." }, { status: 400 });
+      }
+      if (editScope === 'this' && newMeeting.recurrencePattern) {
+        return NextResponse.json(
+          { error: "editScope 'this' edits a single occurrence and cannot include a recurrencePattern." },
+          { status: 400 },
+        );
+      }
+      if (editScope === 'thisAndFollowing' && !newMeeting.recurrencePattern) {
+        return NextResponse.json(
+          { error: "editScope 'thisAndFollowing' requires a recurrencePattern for the new series." },
+          { status: 400 },
+        );
+      }
+      const pattern = existingMeeting.recurrencePattern;
+      const patternLike = {
+        type: pattern.type,
+        startDate: pattern.startDate,
+        endDate: pattern.endDate,
+        interval: pattern.interval,
+        daysOfWeek: pattern.daysOfWeek ?? [],
+        weekOfMonth: pattern.weekOfMonth,
+        dayOfMonth: pattern.dayOfMonth,
+        excludedDates: pattern.excludedDates ?? [],
+      };
+      if (!isLiveOccurrence(patternLike, occurrenceDate)) {
+        return NextResponse.json(
+          { error: "occurrenceDate does not fall on a live occurrence of this meeting's recurrence pattern." },
+          { status: 400 },
+        );
+      }
+      return handleScopedEdit(auth, existingMeeting, newMeeting, editScope, occurrenceDate, !!newMeeting.confirmOverride);
+    }
 
     // creator is server-managed provenance (set from the session at create time) -- an update
     // must never overwrite it with the client's placeholder value.
@@ -375,10 +725,21 @@ const updateMeeting = async (request: Request): Promise<Response> => {
         recurrencePattern.dayOfMonth ?? null,
       );
     }
+    // BUG FIX: recurrencePattern.excludedDates is optional on the client payload -- when the
+    // client doesn't resubmit per-occurrence deletions, this must fall back to the meeting's own
+    // stored excludedDates, not silently drop them. Without this, a series with any 'this'-scope
+    // exclusions would have its candidate occurrences expanded WITHOUT those exclusions here,
+    // producing false-positive 409s against its own already-excluded dates.
     const candidate = {
       ...newMeeting,
       isRecurring: !!recurrencePattern,
-      recurrencePattern: recurrencePattern ? { ...recurrencePattern, endDate: calculatedEndDate } : null,
+      recurrencePattern: recurrencePattern
+        ? {
+            ...recurrencePattern,
+            endDate: calculatedEndDate,
+            excludedDates: recurrencePattern.excludedDates ?? existingMeeting.recurrencePattern?.excludedDates ?? [],
+          }
+        : null,
     };
 
     // A new Zoom host is only needed when this meeting has no Zoom meeting to keep using —

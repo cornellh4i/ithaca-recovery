@@ -77,6 +77,7 @@ function buildMeeting(overrides: Partial<Meeting> = {}): Omit<Meeting, "recurren
     zoomHost: null,
     attemptedZoomHost: null,
     zoomSyncError: null,
+    splitFromMid: null,
     deletedAt: null,
     updatedAt: null,
     ...overrides,
