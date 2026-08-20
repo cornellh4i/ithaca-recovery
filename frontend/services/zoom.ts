@@ -458,6 +458,31 @@ export async function updateZoomMeeting(zid: string, meeting: IMeeting, schedule
   }
 }
 
+// Transfers an existing Zoom meeting to another host in place -- meeting ID, passcode, join URL
+// and recurrence all survive (verified empirically 2026-08-20; Zoom answers 204). Zoom rejects
+// this (400) unless the target host has granted scheduling privilege to the current host, and
+// for any basic-tier host on either end, so callers must handle `false` rather than assume the
+// move happened.
+export async function rehostZoomMeeting(zid: string, hostEmail: string): Promise<boolean> {
+  try {
+    const token = await getZoomAccessToken();
+    if (!token) return false;
+    if (!hostEmail) return false;
+
+    const res = await fetch(`${ZOOM_BASE_API}/meetings/${zid}`, {
+      method: "PATCH",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ schedule_for: hostEmail }),
+    });
+    invalidateZoomTokenIfUnauthorized(res);
+    if (!res.ok) console.error("Zoom rehostMeeting error:", await res.text());
+    return res.ok;
+  } catch (error) {
+    console.error("Zoom rehostMeeting error:", error);
+    return false;
+  }
+}
+
 export async function deleteZoomMeeting(zid: string): Promise<boolean> {
   try {
     const token = await getZoomAccessToken();

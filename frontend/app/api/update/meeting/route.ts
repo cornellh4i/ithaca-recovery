@@ -3,7 +3,7 @@ import { NextResponse, after } from "next/server";
 import { requireRole } from "../../../../services/auth";
 import { IMeeting } from "../../../../types/models";
 import { createCalendarEvent, updateCalendarEvent, deleteCalendarEvent, reconcileMeetingCalendars } from "../../../../services/googleCalendar";
-import { createZoomMeeting, updateZoomMeeting, deleteZoomMeeting, getZoomHostCapacities, getZoomMeetingInvitation, resolveZoomHost, zoomHostPool, zoomRoomCalendarId } from "../../../../services/zoom";
+import { createZoomMeeting, updateZoomMeeting, deleteZoomMeeting, getZoomHostCapacities, getZoomMeetingInvitation, rehostZoomMeeting, resolveZoomHost, zoomHostPool, zoomRoomCalendarId } from "../../../../services/zoom";
 import { findResourceConflicts, findResourceConflictRows, ConflictRow, ResourceConflictAbort } from "../../../../util/meetings/resourceOverlap";
 import { lockResourceClaims, ResourceClaim } from "../../../../util/meetings/resourceLocks";
 import { meetingSchema } from "../../../../util/meetings/meetingValidation";
@@ -50,17 +50,62 @@ async function syncUpdatedMeeting(
   let skipCalendarTimeSync = false;
 
   if (zoomEnabled) {
-    // A Zoom meeting can't move rooms or change host in place -- tear down and recreate
-    // whenever the room changes, or an admin explicitly reassigns the host via the Zoom Host
-    // dropdown. A blank/"Automatic" selection is NOT a reassignment -- it just means "don't
-    // force a specific host," so whatever host is already assigned is kept as-is.
+    // A Zoom meeting can't move rooms in place -- a room change tears it down and recreates it.
+    // An admin explicitly reassigning the host via the Zoom Host dropdown is handled by the
+    // in-place transfer below instead. A blank/"Automatic" selection is NOT a reassignment -- it
+    // just means "don't force a specific host," so whatever host is already assigned is kept.
     const roomChanged = !!oldZoomRoom && oldZoomRoom !== newZoomRoom;
     // Case-insensitive (#504): a casing-only difference (Zoom-registered vs ZOOM_HOSTS casing)
     // is the same physical host, not a reassignment.
     const explicitHostChange = !!newMeeting.zoomHost &&
       newMeeting.zoomHost.toLowerCase() !== (existingMeeting.zoomHost ?? "").toLowerCase();
 
-    if (roomChanged || explicitHostChange) {
+    // A host-only reassignment of a Zoom meeting the app owns moves it with `schedule_for`,
+    // which preserves the meeting ID, passcode and join URL members already have (#516). A room
+    // change can't take this path -- its Zoom meeting has to be recreated anyway.
+    const rehostZid = explicitHostChange && !roomChanged && existingMeeting.zoomManaged ? zid : null;
+    // Set when the transfer was attempted and refused by Zoom (missing scheduling privilege,
+    // basic-tier host) on a meeting no other row shares -- recreating is then still an option.
+    let rehostFellBackToRecreate = false;
+    // Set when the requested host's capacity was already verified for this schedule, so the
+    // kept-zid branch below doesn't re-check it -- a sibling row that just moved to the same
+    // host would otherwise read as that host's own booking and look like a false conflict.
+    let hostTimeAlreadyChecked = false;
+
+    if (rehostZid) {
+      const requestedHost = newMeeting.zoomHost as string;
+      const timeConflicts = await findResourceConflicts("zoomHost", requestedHost, newMeeting, prisma, {
+        excludeMid: mid,
+        includeSuspended: true,
+        capacity: (await getZoomHostCapacities())[requestedHost] ?? 1,
+      });
+      if (timeConflicts.length > 0) {
+        zoomSynced = false;
+        zoomSyncError = "The requested Zoom host is already at capacity for this time.";
+        skipCalendarTimeSync = true;
+      } else if (await rehostZoomMeeting(rehostZid, requestedHost)) {
+        zoomHost = requestedHost;
+        hostTimeAlreadyChecked = true;
+        // One Zoom meeting has exactly one real host, so every active row pointing at this zid
+        // follows it -- otherwise a sibling row's capacity accounting would name a host that no
+        // longer runs the meeting.
+        await prisma.meeting.updateMany({ where: { zid, deletedAt: null }, data: { zoomHost } });
+      } else {
+        const siblingCount = await prisma.meeting.count({
+          where: { zid, deletedAt: null, mid: { not: mid } },
+        });
+        if (siblingCount > 0) {
+          // Recreating would give this row a fresh zid and split the bundle away from its
+          // siblings, so a shared Zoom meeting stays put and reports the failed move instead.
+          zoomSynced = false;
+          zoomSyncError = "Couldn't move this shared Zoom meeting to the requested host; the host is unchanged.";
+        } else {
+          rehostFellBackToRecreate = true;
+        }
+      }
+    }
+
+    if (roomChanged || (explicitHostChange && !rehostZid) || rehostFellBackToRecreate) {
       // Managed: the Zoom meeting is disposable, so tear it down for a fresh create below.
       // Unmanaged: the Zoom meeting is ICR's (host changes were already 422'd upstream) -- keep
       // zid/link/passcode and only move the join-link event between room calendars; the
@@ -99,7 +144,7 @@ async function syncUpdatedMeeting(
     // the new schedule before pushing the update to Zoom — otherwise a time edit could
     // silently double-book a host that's fine for the old time but busy at the new one.
     if (zid) {
-      const timeConflicts = zoomHost
+      const timeConflicts = zoomHost && !hostTimeAlreadyChecked && !skipCalendarTimeSync
         ? await findResourceConflicts("zoomHost", zoomHost, newMeeting, prisma, {
             excludeMid: mid,
             includeSuspended: true,
@@ -110,7 +155,9 @@ async function syncUpdatedMeeting(
         zoomSynced = false;
         zoomSyncError = "This time now conflicts with another meeting using the same Zoom host.";
         skipCalendarTimeSync = true;
-      } else {
+      } else if (!skipCalendarTimeSync) {
+        // A blocked host transfer above already left Zoom untouched; pushing the new schedule to
+        // a meeting the app just declined to move would half-apply the edit.
         // Unmanaged Zoom meetings are never PATCHed -- the stored link is the contract; only
         // the calendars follow the app-side edit.
         // The pinned topic (if any) lives on the DB row, not the client payload -- thread it
@@ -156,7 +203,8 @@ async function syncUpdatedMeeting(
     // Only Hybrid meetings have a zoomRoom -- Remote's dedicated per-room Zoom-Room calendar
     // publish naturally no-ops here; its Zoom link is carried by the main calType-calendar
     // reconcile below instead. zoomCalendarEventId is null whenever the teardown above ran
-    // (room change or host reassignment), so checking it alone decides update-vs-create here.
+    // (a room change, or a host reassignment that fell back to a recreate), so checking it alone
+    // decides update-vs-create here.
     if (accessToken && zoomLink && newZoomRoom && !skipCalendarTimeSync) {
       const calId = zoomRoomCalendarId[newZoomRoom];
       if (calId) {
@@ -338,8 +386,9 @@ const updateMeeting = async (request: Request): Promise<Response> => {
     // old one gets torn down and a new host resolved).
     const zoomEnabled = newMeeting.status !== 'Suspended'
       && (newMeeting.modeType === 'Hybrid' || newMeeting.modeType === 'Remote');
-    // explicitHostChange (hoisted above) needs a fresh Zoom meeting too, same as a room change --
-    // Zoom has no in-place host-transfer for this app's stable-meeting model.
+    // explicitHostChange (hoisted above) counts too: the requested host still has to be
+    // capacity-checked and persisted here, whether the deferred sync then transfers the existing
+    // Zoom meeting in place or has to recreate it.
     // Remote meetings submit zoomRoom as "" (no Zoom Room field at all), while older stored
     // rows may hold null for the same "no room" state -- normalize both sides so an unchanged
     // Remote meeting isn't misdetected as a room change and torn down/recreated for nothing.

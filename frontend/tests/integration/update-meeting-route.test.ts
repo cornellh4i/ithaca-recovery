@@ -38,6 +38,7 @@ jest.mock("../../services/googleCalendar", () => ({
 jest.mock("../../services/zoom", () => ({
   createZoomMeeting: jest.fn(),
   updateZoomMeeting: jest.fn(),
+  rehostZoomMeeting: jest.fn(),
   deleteZoomMeeting: jest.fn(),
   getZoomMeetingInvitation: jest.fn(),
   resolveZoomHost: jest.fn(),
@@ -56,13 +57,14 @@ import { getTestPrismaClient, disconnectTestPrismaClient } from "../factories/db
 import { seedSuspensionPeriod } from "../factories/meeting";
 import { PUT } from "../../app/api/update/meeting/route";
 import { requireRole } from "../../services/auth";
-import { updateZoomMeeting, createZoomMeeting, deleteZoomMeeting, resolveZoomHost } from "../../services/zoom";
+import { updateZoomMeeting, createZoomMeeting, deleteZoomMeeting, rehostZoomMeeting, resolveZoomHost } from "../../services/zoom";
 import { reconcileMeetingCalendars, createCalendarEvent } from "../../services/googleCalendar";
 
 const mockedRequireRole = requireRole as jest.Mock;
 const mockedUpdateZoomMeeting = updateZoomMeeting as jest.Mock;
 const mockedCreateZoomMeeting = createZoomMeeting as jest.Mock;
 const mockedDeleteZoomMeeting = deleteZoomMeeting as jest.Mock;
+const mockedRehostZoomMeeting = rehostZoomMeeting as jest.Mock;
 const mockedResolveZoomHost = resolveZoomHost as jest.Mock;
 const mockedReconcileMeetingCalendars = reconcileMeetingCalendars as jest.Mock;
 const mockedCreateCalendarEvent = createCalendarEvent as jest.Mock;
@@ -118,6 +120,7 @@ beforeEach(() => {
   mockedUpdateZoomMeeting.mockReset();
   mockedCreateZoomMeeting.mockReset();
   mockedDeleteZoomMeeting.mockReset();
+  mockedRehostZoomMeeting.mockReset();
   mockedResolveZoomHost.mockReset();
   mockedReconcileMeetingCalendars.mockReset();
   mockedCreateCalendarEvent.mockReset();
@@ -497,7 +500,122 @@ test("an exhausted Zoom host pool on update fails soft, synchronously, without t
   expect(mockedReconcileMeetingCalendars).not.toHaveBeenCalled();
 });
 
-test("an explicit host reassignment tears down the old Zoom meeting and creates a new one under the new host", async () => {
+test("an explicit host reassignment transfers the Zoom meeting in place, keeping its ID, link and passcode", async () => {
+  mockedRehostZoomMeeting.mockResolvedValue(true);
+  mockedUpdateZoomMeeting.mockResolvedValue(true);
+  mockedReconcileMeetingCalendars.mockResolvedValue({ updatedEventIds: {}, allSynced: true });
+
+  const prisma = getTestPrismaClient();
+  const mid = `m-${randomUUID()}`;
+  // Remote (no room, no Zoom room) so this test only exercises the host move, and a host email
+  // used by no other test in the suite -- the capacity re-check is a real query against the
+  // shared test DB.
+  const start = new Date("2026-11-01T15:00:00Z");
+  const end = new Date("2026-11-01T16:00:00Z");
+  await prisma.meeting.create({ data: { ...toMeetingCreateInput(buildMeetingPayload({
+    mid, modeType: "Remote", room: "", zoomRoom: "", zid: "70000000801",
+    zoomHost: "rehost-from@icr.test", zoomLink: "https://zoom.us/j/70000000801", zoomPasscode: "keepme",
+    startDateTime: start, endDateTime: end,
+  })), zoomManaged: true } });
+
+  const payload = buildMeetingPayload({
+    mid, modeType: "Remote", room: "", zoomRoom: "", zoomHost: "rehost-to@icr.test",
+    startDateTime: start, endDateTime: end,
+  });
+  const response = await PUT(new Request("http://localhost/api/update/meeting", { method: "PUT", body: JSON.stringify(payload) }));
+  expect(response.status).toBe(200);
+
+  const afterSync = await waitFor(async () => {
+    const row = await prisma.meeting.findUnique({ where: { mid } });
+    return row?.zoomSyncStatus != null ? row : null;
+  });
+
+  expect(mockedRehostZoomMeeting).toHaveBeenCalledWith("70000000801", "rehost-to@icr.test");
+  expect(mockedDeleteZoomMeeting).not.toHaveBeenCalled();
+  expect(mockedCreateZoomMeeting).not.toHaveBeenCalled();
+  expect(afterSync?.zid).toBe("70000000801");
+  expect(afterSync?.zoomLink).toBe("https://zoom.us/j/70000000801");
+  expect(afterSync?.zoomPasscode).toBe("keepme");
+  expect(afterSync?.zoomHost).toBe("rehost-to@icr.test");
+  expect(afterSync?.zoomSyncStatus).toBe("synced");
+});
+
+test("transferring a Zoom meeting shared by several rows moves every one of them to the new host", async () => {
+  mockedRehostZoomMeeting.mockResolvedValue(true);
+  mockedUpdateZoomMeeting.mockResolvedValue(true);
+  mockedReconcileMeetingCalendars.mockResolvedValue({ updatedEventIds: {}, allSynced: true });
+
+  const prisma = getTestPrismaClient();
+  const editedMid = `m-${randomUUID()}`;
+  const siblingMid = `m-${randomUUID()}`;
+  const start = new Date("2026-11-02T15:00:00Z");
+  const end = new Date("2026-11-02T16:00:00Z");
+  for (const [rowMid, rowStart] of [[editedMid, start], [siblingMid, new Date("2026-11-03T15:00:00Z")]] as const) {
+    await prisma.meeting.create({ data: { ...toMeetingCreateInput(buildMeetingPayload({
+      mid: rowMid, modeType: "Remote", room: "", zoomRoom: "", zid: "70000000803",
+      zoomHost: "shared-rehost-from@icr.test", zoomLink: "https://zoom.us/j/70000000803",
+      startDateTime: rowStart, endDateTime: new Date(rowStart.getTime() + 60 * 60 * 1000),
+    })), zoomManaged: true } });
+  }
+
+  const payload = buildMeetingPayload({
+    mid: editedMid, modeType: "Remote", room: "", zoomRoom: "", zoomHost: "shared-rehost-to@icr.test",
+    startDateTime: start, endDateTime: end,
+  });
+  const response = await PUT(new Request("http://localhost/api/update/meeting", { method: "PUT", body: JSON.stringify(payload) }));
+  expect(response.status).toBe(200);
+
+  await waitFor(async () => {
+    const row = await prisma.meeting.findUnique({ where: { mid: editedMid } });
+    return row?.zoomSyncStatus != null ? row : null;
+  });
+
+  const sibling = await prisma.meeting.findUnique({ where: { mid: siblingMid } });
+  expect(sibling?.zoomHost).toBe("shared-rehost-to@icr.test");
+  expect(sibling?.zid).toBe("70000000803");
+});
+
+test("a refused transfer of a shared Zoom meeting fails soft instead of splitting the bundle with a recreate", async () => {
+  mockedRehostZoomMeeting.mockResolvedValue(false);
+  mockedUpdateZoomMeeting.mockResolvedValue(true);
+  mockedReconcileMeetingCalendars.mockResolvedValue({ updatedEventIds: {}, allSynced: true });
+
+  const prisma = getTestPrismaClient();
+  const editedMid = `m-${randomUUID()}`;
+  const siblingMid = `m-${randomUUID()}`;
+  const start = new Date("2026-11-04T15:00:00Z");
+  const end = new Date("2026-11-04T16:00:00Z");
+  for (const [rowMid, rowStart] of [[editedMid, start], [siblingMid, new Date("2026-11-05T15:00:00Z")]] as const) {
+    await prisma.meeting.create({ data: { ...toMeetingCreateInput(buildMeetingPayload({
+      mid: rowMid, modeType: "Remote", room: "", zoomRoom: "", zid: "70000000805",
+      zoomHost: "stuck-rehost-from@icr.test", zoomLink: "https://zoom.us/j/70000000805",
+      startDateTime: rowStart, endDateTime: new Date(rowStart.getTime() + 60 * 60 * 1000),
+    })), zoomManaged: true } });
+  }
+
+  const payload = buildMeetingPayload({
+    mid: editedMid, modeType: "Remote", room: "", zoomRoom: "", zoomHost: "stuck-rehost-to@icr.test",
+    startDateTime: start, endDateTime: end,
+  });
+  const response = await PUT(new Request("http://localhost/api/update/meeting", { method: "PUT", body: JSON.stringify(payload) }));
+  expect(response.status).toBe(200);
+
+  const afterSync = await waitFor(async () => {
+    const row = await prisma.meeting.findUnique({ where: { mid: editedMid } });
+    return row?.zoomSyncStatus === "error" ? row : null;
+  });
+
+  expect(mockedDeleteZoomMeeting).not.toHaveBeenCalled();
+  expect(mockedCreateZoomMeeting).not.toHaveBeenCalled();
+  expect(afterSync?.zid).toBe("70000000805");
+  expect(afterSync?.zoomHost).toBe("stuck-rehost-from@icr.test");
+  expect(afterSync?.zoomSyncError).toMatch(/host is unchanged/i);
+  const sibling = await prisma.meeting.findUnique({ where: { mid: siblingMid } });
+  expect(sibling?.zoomHost).toBe("stuck-rehost-from@icr.test");
+});
+
+test("an explicit host reassignment Zoom refuses to transfer falls back to tearing down and recreating under the new host", async () => {
+  mockedRehostZoomMeeting.mockResolvedValue(false);
   mockedDeleteZoomMeeting.mockResolvedValue(true);
   mockedCreateZoomMeeting.mockResolvedValue({ zid: "zid-reassigned", zoomLink: "http://zoom.test/reassigned", zoomPasscode: null });
   mockedCreateCalendarEvent.mockResolvedValue({ id: "fake-zoom-cal-event-id", error: null });
@@ -548,6 +666,7 @@ test("an explicit host reassignment tears down the old Zoom meeting and creates 
     return row?.zoomSyncStatus != null ? row : null;
   });
 
+  expect(mockedRehostZoomMeeting).toHaveBeenCalledWith("zid-original", "new-host@icr.test");
   expect(mockedDeleteZoomMeeting).toHaveBeenCalledWith("zid-original");
   expect(mockedUpdateZoomMeeting).not.toHaveBeenCalled();
   expect(afterSync?.zid).toBe("zid-reassigned");
@@ -646,7 +765,8 @@ test("needsNewHost triggered by a missing zid (not an explicit host change) stil
   expect(mockedResolveZoomHost).not.toHaveBeenCalled();
 });
 
-test("confirmOverride: true bypasses the zoomHost reassignment block, tears down the old Zoom meeting, but still defers the new one (Zoom itself can't double-book a host)", async () => {
+test("confirmOverride: true bypasses the zoomHost reassignment block, but the transfer itself is still refused (Zoom itself can't double-book a host)", async () => {
+  mockedRehostZoomMeeting.mockResolvedValue(true);
   mockedDeleteZoomMeeting.mockResolvedValue(true);
 
   const prisma = getTestPrismaClient();
@@ -685,15 +805,22 @@ test("confirmOverride: true bypasses the zoomHost reassignment block, tears down
 
   const afterSync = await waitFor(async () => {
     const row = await prisma.meeting.findUnique({ where: { mid } });
-    return row?.zid === null && row?.zoomSyncStatus === "error" ? row : null;
+    // The capacity message is written by the deferred sync's final Zoom write; the transaction
+    // itself already left a (different) error here synchronously, so this is the one signal
+    // that the deferred job has actually finished.
+    return /at capacity/i.test(row?.zoomSyncError ?? "") ? row : null;
   });
 
+  // The meeting the members know stays exactly as it is: the app declines to move a Zoom
+  // meeting onto a host that has no capacity for it, rather than tearing anything down.
+  expect(mockedRehostZoomMeeting).not.toHaveBeenCalled();
+  expect(mockedDeleteZoomMeeting).not.toHaveBeenCalled();
   expect(mockedCreateZoomMeeting).not.toHaveBeenCalled();
 
-  expect(afterSync?.zid).toBeNull();
-  expect(afterSync?.zoomHost).toBeNull();
+  expect(afterSync?.zid).toBe("zid-original-2");
+  expect(afterSync?.zoomHost).toBe("old-host-3@icr.test");
   expect(afterSync?.zoomSyncStatus).toBe("error");
-  expect(afterSync?.zoomSyncError).toMatch(/conflicts with another meeting/i);
+  expect(afterSync?.zoomSyncError).toMatch(/at capacity/i);
   // Regression coverage: the losing host pick must still be recorded so the Diagnostics
   // Conflicts panel can bucket this meeting against busyHost's holder (see computeConflicts'
   // attemptedZoomHost fallback in util/resourceOverlap.ts) — previously this was discarded

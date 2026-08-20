@@ -1,6 +1,7 @@
 import type {
   createZoomMeeting as CreateZoomMeetingFn,
   updateZoomMeeting as UpdateZoomMeetingFn,
+  rehostZoomMeeting as RehostZoomMeetingFn,
   checkZoomReachable as CheckZoomReachableFn,
 } from "../../services/zoom";
 import type { IMeeting } from "../../types/models";
@@ -13,6 +14,7 @@ import type { IMeeting } from "../../types/models";
 // error, malformed response) as opposed to cache-behavior paths.
 let createZoomMeeting: typeof CreateZoomMeetingFn;
 let updateZoomMeeting: typeof UpdateZoomMeetingFn;
+let rehostZoomMeeting: typeof RehostZoomMeetingFn;
 let checkZoomReachable: typeof CheckZoomReachableFn;
 
 const originalFetch = global.fetch;
@@ -27,7 +29,7 @@ beforeEach(async () => {
 
   // Module-level token cache -- fresh module instance per test, same as zoomTokenCache.test.ts.
   jest.resetModules();
-  ({ createZoomMeeting, updateZoomMeeting, checkZoomReachable } = await import("../../services/zoom"));
+  ({ createZoomMeeting, updateZoomMeeting, rehostZoomMeeting, checkZoomReachable } = await import("../../services/zoom"));
 });
 
 afterEach(() => {
@@ -286,6 +288,31 @@ describe("token-fetch failure paths", () => {
 
     expect(result).toBeNull();
     expect(fetchMock).toHaveBeenCalledTimes(1); // only the token attempt
+  });
+});
+
+describe("rehostZoomMeeting (#516)", () => {
+  it("PATCHes only schedule_for, so the meeting's identity and schedule survive the transfer", async () => {
+    const { getCapturedBody, fetchMock } = mockFetchCapturingBody();
+
+    const moved = await rehostZoomMeeting("70000000901", "518board@gmail.com");
+
+    expect(moved).toBe(true);
+    expect(getCapturedBody()).toEqual({ schedule_for: "518board@gmail.com" });
+    const [url, init] = fetchMock.mock.calls[1];
+    expect(url).toContain("/meetings/70000000901");
+    expect(init?.method).toBe("PATCH");
+  });
+
+  it("returns false when Zoom refuses the transfer (no scheduling privilege, basic-tier host)", async () => {
+    global.fetch = jest.fn((url: string) => {
+      if (url.includes("oauth/token")) {
+        return Promise.resolve({ ok: true, status: 200, json: async () => ({ access_token: "tok-1", expires_in: 3600 }) });
+      }
+      return Promise.resolve({ ok: false, status: 400, text: async () => "Invalid schedule_for" });
+    }) as unknown as typeof fetch;
+
+    expect(await rehostZoomMeeting("70000000902", "518icrzoom@gmail.com")).toBe(false);
   });
 });
 
