@@ -1,7 +1,7 @@
 import "server-only";
 import { Prisma } from "@prisma/client";
 import { IMeeting } from "../types/models";
-import { findResourceConflicts, findFirstFreePoolHost, getPoolHostLoads, OccurrenceInput } from "../util/meetings/resourceOverlap";
+import { expandOccurrences, findResourceConflicts, findFirstFreePoolHost, getPoolHostLoads, OccurrenceInput } from "../util/meetings/resourceOverlap";
 import { prisma } from "../lib/prisma";
 
 const ZOOM_BASE_API = process.env.NEXT_PUBLIC_ZOOM_BASE_API ?? "https://api.zoom.us/v2";
@@ -241,6 +241,54 @@ function toZoomStartTime(date: Date): string {
   return `${get("year")}-${get("month")}-${get("day")}T${get("hour")}:${get("minute")}:${get("second")}`;
 }
 
+// Zoom's weekday numbering for recurrence.weekly_days / monthly_week_day (1 = Sunday).
+const ZOOM_WEEKDAY: Record<string, number> = {
+  Sunday: 1, Monday: 2, Tuesday: 3, Wednesday: 4, Thursday: 5, Friday: 6, Saturday: 7,
+};
+
+// Maps the app's recurrence pattern onto Zoom's recurrence object so a recurring series is a
+// real type-8 recurring meeting on Zoom (visible as a series in the host's portal). An
+// unbounded series sends end_times: 0 -- undocumented but exactly what the Zoom portal itself
+// stores for its own "no end" meetings (verified empirically 2026-08-20; Zoom's PATCH path
+// clamps it to a ~2-year rolling horizon, which future edits keep pushing forward).
+function buildZoomRecurrence(meeting: IMeeting): Record<string, unknown> | null {
+  if (!meeting.isRecurring || !meeting.recurrencePattern) return null;
+  const p = meeting.recurrencePattern;
+  const end = p.endDate
+    ? { end_date_time: new Date(p.endDate).toISOString().replace(/\.\d{3}Z$/, "Z") }
+    : p.numberOfOccurrences
+      // Zoom rejects counts above 50 -- a longer bounded series still ends on time because the
+      // app/calendars own the real schedule; Zoom's copy just under-shows the tail.
+      ? { end_times: Math.min(p.numberOfOccurrences, 50) }
+      : { end_times: 0 };
+  if (p.type === "monthly") {
+    if (p.weekOfMonth != null && (p.daysOfWeek ?? []).length > 0) {
+      return { type: 3, repeat_interval: p.interval ?? 1, monthly_week: p.weekOfMonth,
+        monthly_week_day: ZOOM_WEEKDAY[(p.daysOfWeek ?? [])[0]] ?? 1, ...end };
+    }
+    if (p.dayOfMonth != null) {
+      return { type: 3, repeat_interval: p.interval ?? 1, monthly_day: p.dayOfMonth, ...end };
+    }
+  }
+  const days = (p.daysOfWeek ?? []).map((d) => ZOOM_WEEKDAY[d]).filter(Boolean);
+  return { type: 2, repeat_interval: p.interval ?? 1, ...(days.length ? { weekly_days: days.join(",") } : {}), ...end };
+}
+
+// A recurring meeting's Zoom start_time is its next FUTURE occurrence, never the series
+// anchor: Zoom silently rewrites a past start_time to "now" (verified 2026-08-20), and a
+// backdated anchor (e.g. a lease-year import) would otherwise file the meeting under the
+// host's past meetings.
+function nextOccurrenceStart(meeting: IMeeting): Date {
+  if (!meeting.isRecurring || !meeting.recurrencePattern) return new Date(meeting.startDateTime);
+  const now = new Date();
+  const horizon = new Date(now.getTime() + 370 * 24 * 60 * 60 * 1000);
+  const occurrences = expandOccurrences(
+    { ...meeting, recurrencePattern: meeting.recurrencePattern } as Parameters<typeof expandOccurrences>[0],
+    now, horizon,
+  );
+  return occurrences[0]?.start ?? new Date(meeting.startDateTime);
+}
+
 // ICR's own Zoom naming convention, applied when no explicit zoomTopic is pinned. Adopted
 // legacy meetings carry a pinned zoomTopic instead (their verbatim pre-app names) so an
 // app-side edit can never rename them implicitly.
@@ -254,10 +302,15 @@ function buildZoomMeetingBody(meeting: IMeeting) {
   const durationMinutes = Math.round(
     (new Date(meeting.endDateTime).getTime() - new Date(meeting.startDateTime).getTime()) / 60000,
   );
+  const recurrence = buildZoomRecurrence(meeting);
   return {
     topic: zoomTopicFor(meeting),
-    type: 2, // single stable meeting, reused across all occurrences
-    start_time: toZoomStartTime(new Date(meeting.startDateTime)),
+    // Recurring series are real recurring meetings on Zoom (type 8, usually endless via
+    // end_times: 0) -- one stable meeting ID across all occurrences, now with the schedule
+    // visible in the host's portal. One-time meetings stay plain scheduled (type 2).
+    type: recurrence ? 8 : 2,
+    ...(recurrence ? { recurrence } : {}),
+    start_time: toZoomStartTime(recurrence ? nextOccurrenceStart(meeting) : new Date(meeting.startDateTime)),
     duration: durationMinutes,
     timezone: "America/New_York",
     agenda: meeting.description,
@@ -274,11 +327,7 @@ export async function createZoomMeeting(meeting: IMeeting, hostEmail: string): P
     const res = await fetch(`${ZOOM_BASE_API}/users/${encodeURIComponent(hostEmail)}/meetings`, {
       method: "POST",
       headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-      body: JSON.stringify(
-        meeting.isRecurring
-          ? (({ topic, agenda, settings }) => ({ topic, agenda, settings }))(buildZoomMeetingBody(meeting))
-          : buildZoomMeetingBody(meeting),
-      ),
+      body: JSON.stringify(buildZoomMeetingBody(meeting)),
     });
     invalidateZoomTokenIfUnauthorized(res);
     if (!res.ok) {
@@ -318,10 +367,10 @@ export async function getZoomMeetingInvitation(zid: string): Promise<string | nu
 }
 
 export async function updateZoomMeeting(zid: string, meeting: IMeeting): Promise<boolean> {
-  // A recurring series' Zoom meeting is a stable join target (legacy type 3, or endless type 8)
-  // whose schedule lives in the app/Google Calendar, not in Zoom -- PATCHing start_time/duration
-  // into it would distort the series (and Zoom silently rewrites past starts anyway). Only
-  // content fields are safe to update for recurring meetings.
+  // Managed recurring meetings mirror their real schedule to Zoom (type 8 + recurrence, built
+  // from the same pattern the app/calendars use) -- each successful PATCH also re-extends
+  // Zoom's ~2-year rolling occurrence horizon. Unmanaged meetings never reach this function
+  // (gated at every call site); their Zoom-side schedule is the owner's business.
 
   try {
     const token = await getZoomAccessToken();
@@ -330,11 +379,7 @@ export async function updateZoomMeeting(zid: string, meeting: IMeeting): Promise
     const res = await fetch(`${ZOOM_BASE_API}/meetings/${zid}`, {
       method: "PATCH",
       headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-      body: JSON.stringify(
-        meeting.isRecurring
-          ? (({ topic, agenda, settings }) => ({ topic, agenda, settings }))(buildZoomMeetingBody(meeting))
-          : buildZoomMeetingBody(meeting),
-      ),
+      body: JSON.stringify(buildZoomMeetingBody(meeting)),
     });
     invalidateZoomTokenIfUnauthorized(res);
     if (!res.ok) console.error("Zoom updateMeeting error:", await res.text());
