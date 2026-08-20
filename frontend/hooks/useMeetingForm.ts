@@ -179,6 +179,12 @@ function snapshotFields(values: {
 export function useMeetingForm(initialMeeting?: IMeeting, defaultContext?: MeetingFormDefaultContext) {
     const [title, setTitle] = useState(initialMeeting?.title ?? "");
     const [mode, setMode] = useState<string>(initialMeeting?.modeType ?? "Hybrid");
+    // Snapshot of the Mode the form opened with -- EditRecurringModal gates scoped saves
+    // ('this'/'thisAndFollowing') on this: the server always applies a mode change to the whole
+    // series (400s a scoped save with a changed modeType), so a changed Mode disables both
+    // scoped options rather than silently discarding the user's choice. Same pattern as
+    // dateBaseline below.
+    const [modeBaseline, setModeBaseline] = useState(mode);
     // Computed once per render (not just on mount) so the date and time defaults below agree
     // on the same rolledToNextDay snapshot -- see computeDefaultTime's doc comment.
     const defaultTimeInfo = initialMeeting ? null : computeDefaultTime();
@@ -214,6 +220,11 @@ export function useMeetingForm(initialMeeting?: IMeeting, defaultContext?: Meeti
         initialMeeting?.modeType === "Remote" ? "" : (initialMeeting?.zoomRoom ?? "")
     );
     const [zoomHost, setZoomHost] = useState(initialMeeting?.zoomHost ?? "");
+    // Snapshot of the Zoom Host the form opened with -- same gating role as modeBaseline above.
+    // The server 400s a scoped save's host change (a non-empty host that case-insensitively
+    // differs from the parent's), so comparisons below match that case-insensitive rule exactly
+    // rather than a strict string diff.
+    const [zoomHostBaseline, setZoomHostBaseline] = useState(zoomHost);
     const [isRecurring, setIsRecurring] = useState(!!initialMeeting?.recurrencePattern);
     const [recurrencePattern, setRecurrencePattern] = useState<IRecurrencePattern | null>(
         initialMeeting?.recurrencePattern ?? null
@@ -329,6 +340,8 @@ export function useMeetingForm(initialMeeting?: IMeeting, defaultContext?: Meeti
         // it opened with as the comparison point.
         setFieldBaseline(snapshotFields(resetValues));
         setDateBaseline(resetValues.date);
+        setModeBaseline(resetValues.mode);
+        setZoomHostBaseline(resetValues.zoomHost);
         setRecurrenceBaseline(null);
         setRecurrenceSignature(null);
     };
@@ -476,6 +489,16 @@ export function useMeetingForm(initialMeeting?: IMeeting, defaultContext?: Meeti
     // while an edited one is respected as the user's explicit choice.
     const isDateDirty = date !== dateBaseline;
 
+    // Exposed for the same reason as isDateDirty -- EditRecurringModal disables scoped saves
+    // ('this'/'thisAndFollowing') entirely when Mode changed, mirroring the server's own rule.
+    const isModeDirty = mode !== modeBaseline;
+
+    // Mirrors the server's exact scoped-edit host rule (update/meeting route): a non-empty
+    // Zoom Host that case-insensitively differs from the parent's is a real host change: a
+    // blank/omitted host, or resubmitting the parent's own host in any casing, is not.
+    const isHostDirty =
+        zoomHost.trim() !== "" && zoomHost.trim().toLowerCase() !== zoomHostBaseline.trim().toLowerCase();
+
     const isDirty =
         snapshotFields({ title, mode, date, time, email, description, room, calTypes, zoomRoom, zoomHost }) !== fieldBaseline ||
         isRecurrenceDirty;
@@ -515,6 +538,8 @@ export function useMeetingForm(initialMeeting?: IMeeting, defaultContext?: Meeti
         isDirty,
         isRecurrenceDirty,
         isDateDirty,
+        isModeDirty,
+        isHostDirty,
         markFieldTouched,
         getFieldError,
     };

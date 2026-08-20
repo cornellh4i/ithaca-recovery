@@ -85,6 +85,8 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
       isDirty,
       isRecurrenceDirty,
       isDateDirty,
+      isModeDirty,
+      isHostDirty,
     } = useMeetingForm(meeting);
 
     // Populated only for admin sessions by retrieve/meeting/[id] -- empty for a meeting whose
@@ -438,6 +440,7 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
             }}
             onSave={handleScopeChoice}
             disableThis={isRecurrenceDirty}
+            disableScopedEdits={isModeDirty || isHostDirty}
           />
         )}
         <ConflictOverrideModal

@@ -30,7 +30,11 @@ change:
 
 Changing the recurrence settings themselves (frequency, days, end date) disables **This event** —
 a recurrence change can only apply going forward or to the whole series, never to a single date.
-See [why some actions can't be undone](../explanation/why-some-actions-cant-be-undone.md#editing-recurring-series)
+Changing Mode or Zoom Host disables **both** scoped options and forces **All events** — those
+always apply to the whole series. Room and Zoom Room changes have no such restriction: they can be
+scoped like any other field — the Zoom link stays the same either way, the meeting just publishes
+on the other room's calendar. See
+[why some actions can't be undone](../explanation/why-some-actions-cant-be-undone.md#editing-recurring-series)
 for what each option means for undoing a mistake.
 
 ## Double-booking a room, Zoom room, or Zoom host
