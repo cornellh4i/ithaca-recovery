@@ -195,6 +195,8 @@ test("creator is recorded from the session, not the client payload", async () =>
   const prisma = getTestPrismaClient();
   const stored = await prisma.meeting.findUnique({ where: { mid: payload.mid } });
   expect(stored?.creator).toBe("session-admin@test.icr");
+  // lastEditedBy is edit provenance -- a freshly created meeting has never been edited.
+  expect(stored?.lastEditedBy).toBeNull();
 
   await waitForGoogleSyncStatus(payload.mid);
 });

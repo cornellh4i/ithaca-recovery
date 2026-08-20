@@ -411,6 +411,8 @@ const updateMeeting = async (request: Request): Promise<Response> => {
           },
           data: {
             ...meetingFields,
+            // Server-managed provenance, like creator at create time -- who last saved an edit.
+            lastEditedBy: auth.user?.email ?? null,
             // Postgres' Json columns reject a literal `null` on write (needs the Prisma.DbNull
             // sentinel for a real SQL NULL) -- Mongo's connector accepted plain `null` here directly.
             // Left `undefined` when the client didn't send the field at all (the normal case --

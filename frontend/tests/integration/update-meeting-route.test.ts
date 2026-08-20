@@ -169,6 +169,7 @@ test("an update never overwrites the stored creator with the client payload's va
   const stored = await prisma.meeting.findUnique({ where: { mid } });
   expect(stored?.title).toBe("Renamed");
   expect(stored?.creator).toBe("original-admin@test.icr");
+  expect(stored?.lastEditedBy).toBe("session-admin@test.icr");
 });
 
 test("a same-room time edit that now conflicts with another meeting on the same Zoom host fails soft instead of double-booking it", async () => {

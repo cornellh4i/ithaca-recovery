@@ -13,6 +13,7 @@ interface IMeeting {
   mid: string;
   description: string;
   creator: string; // admin later on [optional]
+  lastEditedBy?: string | null; // server-managed: session email of the last admin to save an edit
   group: string; // group interface later on [optional]
   startDateTime: Date;
   endDateTime: Date;

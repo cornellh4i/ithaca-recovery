@@ -68,6 +68,7 @@ type ViewMeetingDetailsProps = {
   isRecurring: boolean;
   recurrencePattern?: IRecurrencePattern
   currentOccurrenceDate?: Date; // Handles the specific occurrence date
+  lastEditedBy?: string | null; // Server-managed: session email of the last admin to save an edit
   googleSyncStatus?: string | null;
   googleSyncError?: string | null;
   zoomSyncStatus?: string | null;
@@ -111,6 +112,8 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
   title,
   modeType,
   description,
+  creator,
+  lastEditedBy,
   startDateTime,
   endDateTime,
   email,
@@ -494,6 +497,18 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
               <p className={styles.contactRow}>
                 <Icon name="person" />
                 <span>Host: {zoomHostLabel(zoomHost, zoomHostPool.indexOf(zoomHost))} — {zoomHost}</span>
+              </p>
+            )}
+            {/* Provenance is only shown when it's a real session email -- meetings created
+                before creator was server-set carry a literal placeholder ("Creator"). */}
+            {(creator?.includes("@") || lastEditedBy) && (
+              <p className={styles.contactRow}>
+                <Icon name="clock" />
+                <span>
+                  {creator?.includes("@") ? `Entered by ${creator}` : null}
+                  {creator?.includes("@") && lastEditedBy ? " · " : null}
+                  {lastEditedBy ? `Last edited by ${lastEditedBy}` : null}
+                </span>
               </p>
             )}
           </div>
