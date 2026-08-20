@@ -1,6 +1,6 @@
 import { test, expect } from "./support/fixtures";
 import { fillTimeRange } from "./support/formHelpers";
-import { seedMeeting } from "../factories/meeting";
+import { seedMeeting, seedRecurringMeeting } from "../factories/meeting";
 import { getTestPrismaClient } from "../factories/db";
 import { convertETToUTC, formatETDateString } from "../../util/date/timeUtils";
 
@@ -60,28 +60,36 @@ test.describe("meeting editing", () => {
     expect(updated).not.toBeNull();
   });
 
-  test("3.5 editing a recurring meeting updates the entire series", async ({ adminPage }) => {
+  test("3.5 editing a recurring meeting opens the edit-recurring dialog", async ({ adminPage }) => {
     const { page } = adminPage;
-    const meeting = await seedMeeting({ title: "Recurring To Edit", isRecurring: true });
-    const prisma = getTestPrismaClient();
-    await prisma.recurrencePattern.create({
-      data: {
-        mid: meeting.mid,
-        type: "weekly",
-        startDate: meeting.startDateTime,
-        daysOfWeek: ["Sunday"],
-        firstDayOfWeek: "Sunday",
-        interval: 1,
-        excludedDates: [],
-      },
-    });
-
+    await seedRecurringMeeting({ title: "Recurring To Edit" });
     await page.goto("/");
     await openMeeting(page, "Recurring To Edit");
     await openEditFromDetails(page);
     await page.getByPlaceholder("Meeting title").fill("Recurring Series Renamed");
-
     await page.getByRole("button", { name: "Update Meeting" }).click();
+
+    await expect(page.getByLabel("This event")).toBeVisible();
+    await expect(page.getByLabel("This and following events")).toBeVisible();
+    await expect(page.getByLabel("All events")).toBeVisible();
+  });
+
+  test("3.5a 'All events' updates the entire series", async ({ adminPage }) => {
+    const { page } = adminPage;
+    const { meeting } = await seedRecurringMeeting({ title: "Recurring To Edit All" });
+    const prisma = getTestPrismaClient();
+
+    await page.goto("/");
+    await openMeeting(page, "Recurring To Edit All");
+    await openEditFromDetails(page);
+    await page.getByPlaceholder("Meeting title").fill("Recurring Series Renamed");
+    await page.getByRole("button", { name: "Update Meeting" }).click();
+    await page.getByLabel("All events").check();
+
+    const updateResponse = page.waitForResponse((r) => r.url().includes("/api/update/meeting"));
+    await page.getByRole("button", { name: "Save", exact: true }).click();
+    await updateResponse;
+
     // The calendar (level-3 heading) picks up the rename immediately via the
     // post-update refresh; the still-open detail panel's own <h1> is a known
     // exception — it keeps showing the pre-edit title until closed and reopened,
@@ -93,6 +101,85 @@ test.describe("meeting editing", () => {
     const all = await prisma.meeting.findMany({ where: { mid: meeting.mid } });
     expect(all).toHaveLength(1);
     expect(all[0].title).toBe("Recurring Series Renamed");
+  });
+
+  test("3.5b 'This event' detaches the clicked occurrence, series keeps other dates", async ({ adminPage }) => {
+    const { page } = adminPage;
+    // seedRecurringMeeting's bare default leaves daysOfWeek empty, which matchesRecurrencePattern
+    // (util/meetings/recurrenceMatch.ts) treats as "matches no date at all" -- not even the
+    // meeting's own start date. A scope 'this'/'thisAndFollowing' save validates occurrenceDate
+    // against that real pattern server-side, so (same as 3.5c below) the day actually clicked
+    // needs to be one the pattern genuinely recurs on.
+    const dayName = new Date().toLocaleDateString("en-US", { weekday: "long", timeZone: "America/New_York" });
+    const { meeting } = await seedRecurringMeeting(
+      { title: "Recurring To Edit This" },
+      { type: "weekly", daysOfWeek: [dayName], interval: 1 },
+    );
+    const prisma = getTestPrismaClient();
+
+    await page.goto("/");
+    await openMeeting(page, "Recurring To Edit This");
+    await openEditFromDetails(page);
+    await page.getByPlaceholder("Meeting title").fill("Occurrence Renamed");
+    await page.getByRole("button", { name: "Update Meeting" }).click();
+    await page.getByLabel("This event").check();
+
+    const updateResponse = page.waitForResponse((r) => r.url().includes("/api/update/meeting"));
+    await page.getByRole("button", { name: "Save", exact: true }).click();
+    await updateResponse;
+    await expect(page.getByText("Meeting updated successfully")).toBeVisible();
+
+    // The series row itself is untouched -- same pattern 04-meeting-deletion.spec.ts's 4.3
+    // asserts for "This event" deletion, mirrored here for an edit.
+    const series = await prisma.meeting.findUnique({ where: { mid: meeting.mid } });
+    expect(series?.title).toBe("Recurring To Edit This");
+    const pattern = await prisma.recurrencePattern.findUnique({ where: { mid: meeting.mid } });
+    expect(pattern?.excludedDates.length).toBeGreaterThan(0);
+
+    // The clicked occurrence becomes its own standalone (non-recurring) meeting.
+    const standalone = await prisma.meeting.findFirst({ where: { title: "Occurrence Renamed" } });
+    expect(standalone).not.toBeNull();
+    expect(standalone?.isRecurring).toBe(false);
+
+    await page.reload();
+    await expect(page.getByText("Occurrence Renamed")).toBeVisible();
+    await expect(page.getByText("Recurring To Edit This")).toHaveCount(0);
+  });
+
+  test("3.5c 'This and following events' splits the series at the clicked date", async ({ adminPage }) => {
+    const { page } = adminPage;
+    const dayName = new Date().toLocaleDateString("en-US", { weekday: "long", timeZone: "America/New_York" });
+    const { meeting } = await seedRecurringMeeting(
+      { title: "Recurring To Split" },
+      { type: "weekly", daysOfWeek: [dayName], interval: 1 },
+    );
+    const prisma = getTestPrismaClient();
+
+    await page.goto("/");
+    await openMeeting(page, "Recurring To Split");
+    await openEditFromDetails(page);
+    await page.getByPlaceholder("Meeting title").fill("Split Series Renamed");
+    await page.getByRole("button", { name: "Update Meeting" }).click();
+    await page.getByLabel("This and following events").check();
+
+    const updateResponse = page.waitForResponse((r) => r.url().includes("/api/update/meeting"));
+    await page.getByRole("button", { name: "Save", exact: true }).click();
+    await updateResponse;
+    await expect(page.getByText("Meeting updated successfully")).toBeVisible();
+
+    // The original series keeps its old title, now bounded to end before the split date.
+    const original = await prisma.meeting.findUnique({ where: { mid: meeting.mid } });
+    expect(original?.title).toBe("Recurring To Split");
+    const originalPattern = await prisma.recurrencePattern.findUnique({ where: { mid: meeting.mid } });
+    expect(originalPattern?.endDate).not.toBeNull();
+
+    // A new tail series picks up the rename from the split date onward.
+    const tail = await prisma.meeting.findFirst({ where: { title: "Split Series Renamed" } });
+    expect(tail).not.toBeNull();
+    expect(tail?.isRecurring).toBe(true);
+
+    await page.reload();
+    await expect(page.getByText("Split Series Renamed")).toBeVisible();
   });
 
   test("3.6 opening a different meeting closes an in-progress edit panel", async ({ adminPage }) => {

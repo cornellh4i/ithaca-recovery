@@ -318,6 +318,7 @@ export default function HomePage() {
           onCloseEdit={handleCloseEdit}
           isNewMeetingOpen={isNewMeetingOpen}
           setIsNewMeetingOpen={setIsNewMeetingOpen}
+          occurrenceDate={lastClickedDate}
         />
       )}
       {isPhone && isAdmin && (
@@ -356,6 +357,7 @@ export default function HomePage() {
                 meeting={selectedMeeting}
                 onClose={handleCloseEdit}
                 onUpdateSuccess={triggerCalendarRefresh}
+                occurrenceDate={lastClickedDate}
               />
             )}
           </MobileFullScreenSheet>

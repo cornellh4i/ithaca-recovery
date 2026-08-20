@@ -1,0 +1,148 @@
+@import 'https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;600&display=swap';
+@import '../../../styles/Variables.module';
+
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgb(0 0 0 / 50%);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  // See DeleteRecurringModal.module.scss's identical comment -- must beat ViewMeeting's
+  // .popupAnchor (z-index: 2000) since this can also be reached from that popup's Edit action.
+  z-index: 2001;
+}
+
+.modalContent {
+  background-color: white;
+  border-radius: 8px;
+  width: 400px;
+  max-width: 90%;
+  padding: 24px;
+  font-family: "Source Sans Pro", sans-serif;
+  color: $black-color;
+  box-shadow: 0 4px 12px rgb(0 0 0 / 15%);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.iconCircle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+
+  // Neutral/informational, not danger -- an edit isn't destructive the way delete is.
+  background-color: $info-bg-color;
+  color: $info-text-color;
+  flex-shrink: 0;
+}
+
+.modalTitle {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.message {
+  margin: 0 0 20px;
+  padding-left: 48px;
+  font-size: 15px;
+  line-height: 1.5;
+  color: #444;
+}
+
+.effectiveDate {
+  color: $info-text-color;
+}
+
+.optionsContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.optionItem {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.optionItemDisabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.disabledHint {
+  margin: -10px 0 0 30px;
+  font-size: 13px;
+  color: $medium-grey-color;
+}
+
+.radioInput {
+  margin-right: 12px;
+  accent-color: #4285F4;
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+
+  &:disabled {
+    cursor: not-allowed;
+  }
+}
+
+.radioLabel {
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.buttonContainer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 24px;
+}
+
+.cancelButton {
+  padding: 8px 16px;
+  border-radius: 6px;
+  border: 1.5px solid $light-grey-color;
+  background-color: white;
+  color: $black-color;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: center;
+  cursor: pointer;
+
+  &:hover {
+    background-color: #F5F5F5;
+  }
+}
+
+.saveButton {
+  padding: 8px 16px;
+  border-radius: 6px;
+  border: none;
+  background-color: $link-color;
+  color: $white-color;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: center;
+  cursor: pointer;
+
+  &:hover {
+    background-color: #005FCC;
+  }
+}

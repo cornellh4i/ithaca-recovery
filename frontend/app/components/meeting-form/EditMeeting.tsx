@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { MeetingForm } from './MeetingForm';
 
 import TextField from '../ui/inputs/TextField';
@@ -13,6 +13,7 @@ import ZoomHostField from './ZoomHostField';
 import ConflictOverrideModal from './ConflictOverrideModal';
 import DiscardChangesModal from './DiscardChangesModal';
 import FormValidationBanner from './FormValidationBanner';
+import EditRecurringModal, { EditScope } from './EditRecurringModal';
 import IconButton from '../ui/buttons/IconButton';
 
 import { IMeeting } from '../../../types/models'
@@ -21,8 +22,24 @@ import { useMeetingForm, CAL_TYPE_OPTIONS, CAL_TYPE_COLOR, DESCRIPTION_MAX_LENGT
 import { ConflictListRow } from '../../../util/meetings/conflictDisplay';
 import { useToast } from '../shared/ToastProvider';
 import { pollMeetingSyncStatus, describeSyncFailure } from '../../../services/syncMeeting';
+import { convertETToUTC, formatETDateString, getETTimeOfDay, isDstGapError } from '../../../util/date/timeUtils';
 
 import styles from './MeetingForm.module.scss';
+
+// "the date the action takes effect" for EditRecurringModal -- mirrors ViewMeeting.tsx's
+// identical helper (same copy convention across the app's recurring-scope modals).
+const formatEffectiveDate = (date: Date): string =>
+  new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', weekday: 'long', month: 'long', day: 'numeric' })
+    .format(date);
+
+// Not part of IMeeting (types/models.ts is shared with the concurrently-in-progress backend
+// work) -- these three fields are the update/meeting PUT contract's edit-scope extension.
+// editScope/occurrenceDate drive server-side occurrence splitting; newMid is only ever read
+// off a response, never sent.
+type EditMeetingPayload = IMeeting & {
+  editScope?: EditScope;
+  occurrenceDate?: string;
+};
 
 interface EditMeetingSidebarProps {
   meeting: IMeeting;
@@ -31,10 +48,16 @@ interface EditMeetingSidebarProps {
   // "wide" is used when this form is embedded inline in a wider context (e.g. the Diagnostics
   // Conflicts panel) rather than the narrow Main Calendar sidebar. See MeetingForm's layout prop.
   layout?: "sidebar" | "wide";
+  // The specific occurrence the calendar box/popup was clicked on -- same value page.tsx's
+  // handleDelete sends as deleteOption's occurrenceDate (lastClickedDate), kept consistent with
+  // that call site rather than ViewMeeting's re-anchored displayStartDate. Absent at the two
+  // Diagnostics mount sites (ConflictList/SyncIssuesCard), which have no click to attribute a
+  // date to -- absence there means "always scope 'all'", the pre-existing behavior.
+  occurrenceDate?: Date | null;
 }
 
 const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
-  ({ meeting, onClose, onUpdateSuccess, layout = "sidebar" }) => {
+  ({ meeting, onClose, onUpdateSuccess, layout = "sidebar", occurrenceDate }) => {
     const {
       title: inputMeetingTitleValue, setTitle: setMeetingTitleValue,
       mode: selectedMode,
@@ -46,6 +69,7 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
       calTypes: selectedCalTypes,
       zoomRoom: selectedZoomRoom, setZoomRoom: setSelectedZoomRoom,
       zoomHost: selectedZoomHost, setZoomHost: setSelectedZoomHost,
+      isRecurring,
       handleRecurringMeetingChange,
       handleRoomChange,
       handleModeSelect,
@@ -59,6 +83,8 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
       timeRangeError,
       isOvernight,
       isDirty,
+      isRecurrenceDirty,
+      isDateDirty,
     } = useMeetingForm(meeting);
 
     // Populated only for admin sessions by retrieve/meeting/[id] -- empty for a meeting whose
@@ -70,12 +96,28 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
     const { showToast } = useToast();
     const [isSubmitting, setIsSubmitting] = useState(false);
     // Holds the payload + conflict rows across the confirm round-trip -- a 409 doesn't discard
-    // the edit, it just pauses submission until the modal's Cancel or "Save anyway".
-    const [conflictState, setConflictState] = useState<{ payload: IMeeting; conflicts: ConflictListRow[] } | null>(null);
+    // the edit, it just pauses submission until the modal's Cancel or "Save anyway". The
+    // conflict retry (onConfirm below) resubmits this exact payload, so any editScope/
+    // occurrenceDate applyEditScope already stamped onto it survives the retry for free.
+    const [conflictState, setConflictState] = useState<{ payload: EditMeetingPayload; conflicts: ConflictListRow[] } | null>(null);
     // Narrow Main Calendar sidebar gets ~80%-scaled field fonts; the "wide" embed (e.g.
     // Diagnostics Conflicts panel) has room to spare and keeps full size.
     const compact = layout === "sidebar";
     const [isDiscardPromptOpen, setIsDiscardPromptOpen] = useState(false);
+    // A scope choice only makes sense when the meeting was AND still is recurring, with known
+    // occurrence context (absent at the Diagnostics mount sites). Turning recurrence off in the
+    // form (meeting.isRecurring true, current isRecurring false) is inherently an all-events
+    // restructure -- the payload carries no recurrencePattern, so scope 'thisAndFollowing' would
+    // 400 server-side and 'this' is already disabled by isRecurrenceDirty -- so that case skips
+    // the modal too and submits as today (no editScope, whole-series behavior). Turning
+    // recurrence ON for a previously non-recurring meeting also skips it: there's no existing
+    // series for occurrenceDate to scope against.
+    const canScopeEdit = !!(meeting.isRecurring && isRecurring && occurrenceDate);
+    const [isScopeModalOpen, setIsScopeModalOpen] = useState(false);
+    // The payload built at the moment Save was pressed -- EditRecurringModal's own choice
+    // handler applies the scope onto this rather than rebuilding from current form state, since
+    // nothing in the form can change while the modal is up front of it.
+    const pendingPayloadRef = useRef<IMeeting | null>(null);
 
     // Both user-driven close paths (Cancel, the X) go through here, so neither can silently
     // drop in-progress edits.
@@ -87,7 +129,7 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
       onClose();
     };
 
-    const submitMeeting = async (payload: IMeeting, confirmOverride: boolean) => {
+    const submitMeeting = async (payload: EditMeetingPayload, confirmOverride: boolean) => {
       setIsSubmitting(true);
       try {
         const response = await fetch('/api/update/meeting', {
@@ -129,6 +171,19 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
           const message = describeSyncFailure(result);
           if (message) showToast({ variant: "error", title: message, persistent: true });
         });
+
+        // A 'this'/'thisAndFollowing' edit detaches or tails off a *new* row (newMid) that
+        // inherits this meeting's Zoom link rather than getting one of its own -- no Zoom call
+        // runs for it, so only Google Calendar sync is worth waiting on.
+        if (meetingResponse.newMid) {
+          pollMeetingSyncStatus(meetingResponse.newMid, {
+            expectGoogle: (payload.calType?.length ?? 0) > 0,
+            expectZoom: false,
+          }).then((result) => {
+            const message = describeSyncFailure(result);
+            if (message) showToast({ variant: "error", title: message, persistent: true });
+          });
+        }
       } catch (error) {
         console.error('There was an error fetching the data:', error);
         showToast({
@@ -138,6 +193,54 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
       } finally {
         setIsSubmitting(false);
       }
+    };
+
+    // Scope: 'all' (or no occurrence context) submits the payload untouched -- current,
+    // unscoped whole-series behavior. Scope 'this'/'thisAndFollowing' stamps editScope +
+    // occurrenceDate on for the server, and strips recurrencePattern under 'this' specifically
+    // (the server 400s a single-occurrence edit that still carries series recurrence rules;
+    // EditRecurringModal also disables that option whenever recurrence was actually changed, so
+    // this only ever discards an unmodified/inherited pattern, never a real edit).
+    const applyEditScope = (payload: IMeeting, scope: EditScope): EditMeetingPayload => {
+      if (scope === 'all' || !occurrenceDate) return payload;
+
+      let { startDateTime, endDateTime } = payload;
+      // The form seeds Date/Time from the series' anchor row (retrieve/meeting/[id] returns
+      // the *master* row's startDateTime), not the clicked occurrence -- for a recurring
+      // meeting those can be weeks apart. If the user left the Date field untouched, re-anchor
+      // onto the occurrence's ET calendar date (keeping the form's, possibly edited,
+      // time-of-day) so the detached/tail row lands on the right day instead of the anchor's.
+      // An edited Date field is the user's explicit choice and is left alone. Mirrors
+      // ViewMeeting.tsx's identical re-anchor for the View popup's own display.
+      if (!isDateDirty) {
+        const occurrenceDateStr = formatETDateString(occurrenceDate);
+        const { hour, minute, second } = getETTimeOfDay(startDateTime);
+        try {
+          const newStart = new Date(convertETToUTC(`${occurrenceDateStr}T${hour}:${minute}:${second}`));
+          // Milliseconds have no timezone component -- getETTimeOfDay doesn't carry them,
+          // restore directly from the payload's own start rather than losing precision.
+          newStart.setUTCMilliseconds(startDateTime.getUTCMilliseconds());
+          const duration = endDateTime.getTime() - startDateTime.getTime();
+          startDateTime = newStart;
+          endDateTime = new Date(newStart.getTime() + duration);
+        } catch (err) {
+          // The occurrence date re-anchored onto this time-of-day lands in the DST
+          // spring-forward gap -- not reachable in practice (the calendar never renders a gap
+          // occurrence to click), guarded defensively so a future caller can't crash here.
+          if (!isDstGapError(err)) throw err;
+          console.warn(`Could not re-anchor onto ${occurrenceDateStr}: ${(err as Error).message}`);
+        }
+      }
+
+      const scoped: EditMeetingPayload = {
+        ...payload,
+        startDateTime,
+        endDateTime,
+        editScope: scope,
+        occurrenceDate: occurrenceDate.toISOString(),
+      };
+      if (scope === 'this') delete scoped.recurrencePattern;
+      return scoped;
     };
 
     const updateMeeting = async () => {
@@ -155,7 +258,20 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
       const updatedMeeting = buildMeetingPayload(meeting.mid, meeting.status ?? 'Active');
       if (!updatedMeeting) return;
 
+      if (canScopeEdit) {
+        pendingPayloadRef.current = updatedMeeting;
+        setIsScopeModalOpen(true);
+        return;
+      }
+
       await submitMeeting(updatedMeeting, false);
+    };
+
+    const handleScopeChoice = async (scope: EditScope) => {
+      const payload = pendingPayloadRef.current;
+      pendingPayloadRef.current = null;
+      if (!payload) return;
+      await submitMeeting(applyEditScope(payload, scope), false);
     };
 
     return (
@@ -311,6 +427,19 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
             onClose();
           }}
         />
+        {canScopeEdit && (
+          <EditRecurringModal
+            isOpen={isScopeModalOpen}
+            title={meeting.title}
+            effectiveDateText={formatEffectiveDate(occurrenceDate as Date)}
+            onClose={() => {
+              setIsScopeModalOpen(false);
+              pendingPayloadRef.current = null;
+            }}
+            onSave={handleScopeChoice}
+            disableThis={isRecurrenceDirty}
+          />
+        )}
         <ConflictOverrideModal
           isOpen={!!conflictState}
           conflicts={conflictState?.conflicts ?? []}

@@ -26,6 +26,11 @@ interface CalendarSidebarShellProps {
   // second, independent boolean.
   isNewMeetingOpen: boolean;
   setIsNewMeetingOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  // The clicked occurrence's date, threaded through to EditMeetingSidebar so a recurring
+  // meeting's edit save can offer the same three-scope choice delete already offers -- see
+  // EditMeeting.tsx's occurrenceDate prop doc for why this value (not ViewMeeting's re-anchored
+  // displayStartDate) is the one passed through.
+  occurrenceDate?: Date | null;
 }
 
 // Matches the staggered fade durations set on .sidebarLayerOutgoing/.sidebarLayerEntered in
@@ -67,6 +72,7 @@ const CalendarSidebarShell: React.FC<CalendarSidebarShellProps> = ({
   onCloseEdit,
   isNewMeetingOpen,
   setIsNewMeetingOpen,
+  occurrenceDate,
 }) => {
   const { isCompact, collapseSidebar, expandSidebar } = useSidebar();
   useBreakpoint(collapseSidebar, expandSidebar);
@@ -185,6 +191,7 @@ const CalendarSidebarShell: React.FC<CalendarSidebarShellProps> = ({
             onUpdateSuccess={() => {
               triggerCalendarRefresh();
             }}
+            occurrenceDate={occurrenceDate}
           />
         </div>
       ) : (
