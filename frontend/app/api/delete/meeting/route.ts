@@ -43,9 +43,13 @@ async function syncPartialDelete(
     const eventId = eventIds[cat];
     if (eventId) await updateCalendarEvent(accessToken, eventId, meetingForCalendar, calId);
   }
-  if (zoomCalendarEventId && zoomRoom) {
+  // A null zoomLink here would fall back to buildEventBody's street-address default as this
+  // event's `location` (see the locationOverride comment there) -- publishing that onto a
+  // Zoom-Room calendar breaks the room hardware's one-touch join detection, which keys off a
+  // real Zoom URL. Only rewrite when there's still a real link to publish.
+  if (zoomCalendarEventId && zoomRoom && meetingForCalendar.zoomLink) {
     const calId = zoomRoomCalendarId[zoomRoom];
-    if (calId) await updateCalendarEvent(accessToken, zoomCalendarEventId, meetingForCalendar, calId, meetingForCalendar.zoomLink ?? undefined);
+    if (calId) await updateCalendarEvent(accessToken, zoomCalendarEventId, meetingForCalendar, calId, meetingForCalendar.zoomLink);
   }
 }
 

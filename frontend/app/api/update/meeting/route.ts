@@ -345,9 +345,13 @@ async function syncScopedParentCalendar(
     const eventId = eventIds[cat];
     if (eventId) await updateCalendarEvent(accessToken, eventId, meetingForCalendar, calId);
   }
-  if (zoomCalendarEventId && zoomRoom) {
+  // A null zoomLink here would fall back to buildEventBody's street-address default as this
+  // event's `location` (see the locationOverride comment there) -- publishing that onto a
+  // Zoom-Room calendar breaks the room hardware's one-touch join detection, which keys off a
+  // real Zoom URL. Only rewrite when there's still a real link to publish.
+  if (zoomCalendarEventId && zoomRoom && meetingForCalendar.zoomLink) {
     const calId = zoomRoomCalendarId[zoomRoom];
-    if (calId) await updateCalendarEvent(accessToken, zoomCalendarEventId, meetingForCalendar, calId, meetingForCalendar.zoomLink ?? undefined);
+    if (calId) await updateCalendarEvent(accessToken, zoomCalendarEventId, meetingForCalendar, calId, meetingForCalendar.zoomLink);
   }
 }
 
@@ -362,6 +366,12 @@ async function syncSplitMeeting(
   isRecurring: boolean,
   accessToken: string | undefined,
 ): Promise<void> {
+  // Defense in depth, same guard as syncUpdatedMeeting's -- the caller always creates a
+  // split-off row with status: 'Active' (it has no suspension history of its own), so this
+  // should never actually trigger, but a suspended meeting's calendar events must never be
+  // published regardless of how that status got here.
+  if (meetingData.status === 'Suspended') return;
+
   const zoomEnabled = meetingData.modeType === 'Hybrid' || meetingData.modeType === 'Remote';
   const meetingForSync: IMeeting = { ...meetingData, isRecurring };
 
@@ -502,7 +512,11 @@ async function handleScopedEdit(
         // join-link event on a different Zoom Room's calendar than the parent's.
         zoomRoom: newMeeting.zoomRoom,
         zoomHost: existingMeeting.zoomHost,
-        status: newMeeting.status ?? existingMeeting.status,
+        // A split-off row always starts Active -- it has no suspension history of its own, and
+        // a scoped edit is never how a suspension gets created (that's the dedicated
+        // suspend/resume flow). Never the parent's or the payload's status: if the parent
+        // happens to be suspended, the child must not silently inherit that.
+        status: 'Active',
         calType: newMeeting.calType,
         startDateTime: newMeeting.startDateTime,
         endDateTime: newMeeting.endDateTime,
@@ -512,25 +526,30 @@ async function handleScopedEdit(
           : null,
       };
 
-      // The new row's candidate date is already excluded from/past the end of the parent's own
-      // (just-trimmed, in this same tx) pattern, so it can't self-collide -- but scope 'this'
-      // still needs the parent mid excluded explicitly, since the parent's *other* occurrences
-      // remain in play for the room/zoomRoom/zoomHost scan and excludeMid only affects whether
-      // the parent's own row is queried at all, not which of its occurrences match.
-      const excludeMid = scope === 'this' ? mid : undefined;
+      // room/zoomRoom must NOT exclude the parent: the client can legitimately re-date a "This
+      // event" child onto another day the series itself still meets (e.g. moving a Monday
+      // occurrence to that same series' Wednesday slot), and the parent's occurrence on THAT day
+      // is still very much live in this same room -- only the one occurrence at occurrenceDate
+      // was excluded above, not the whole parent. Excluding the parent here would let the child
+      // double-book its own series' room/Zoom Room undetected.
+      //
+      // zoomHost DOES exclude the parent for scope 'this': same zid means the same real Zoom
+      // meeting/host, so the parent's own occurrences "sharing the host" is not a second booking
+      // to flag, just the same one Zoom meeting the child inherits.
+      const zoomHostExcludeMid = scope === 'this' ? mid : undefined;
 
       if (!confirmOverride) {
         const conflictRows: ConflictRow[] = [];
         if (candidate.room) {
-          conflictRows.push(...await findResourceConflictRows("room", candidate.room, candidate, tx, { excludeMid }));
+          conflictRows.push(...await findResourceConflictRows("room", candidate.room, candidate, tx, {}));
         }
         if (candidate.zoomRoom) {
-          conflictRows.push(...await findResourceConflictRows("zoomRoom", candidate.zoomRoom, candidate, tx, { excludeMid }));
+          conflictRows.push(...await findResourceConflictRows("zoomRoom", candidate.zoomRoom, candidate, tx, {}));
         }
         if (candidate.zoomHost) {
           conflictRows.push(...await findResourceConflictRows(
             "zoomHost", candidate.zoomHost, candidate, tx,
-            { excludeMid, includeSuspended: true, capacity: hostCapacities[candidate.zoomHost] ?? 1 },
+            { excludeMid: zoomHostExcludeMid, includeSuspended: true, capacity: hostCapacities[candidate.zoomHost] ?? 1 },
           ));
         }
         if (conflictRows.length > 0) {
@@ -552,7 +571,8 @@ async function handleScopedEdit(
           calType: newMeeting.calType,
           modeType: newMeeting.modeType,
           room: newMeeting.room,
-          status: newMeeting.status ?? existingMeeting.status,
+          // Always Active -- see the identical comment on `candidate` above.
+          status: 'Active',
           isRecurring: isRecurringSplit,
           // Zoom identity inherited, not re-provisioned, regardless of room -- see the
           // Zoom-inheritance decision in editScope.ts's callers. The shared-zid PATCH machinery
@@ -624,8 +644,9 @@ async function handleScopedEdit(
       newMid,
       // zoomRoom deliberately NOT overridden here -- newMeeting's own value (already what got
       // persisted onto the row above) is what should flow into the child's room-cal event, not
-      // the parent's room.
-      { ...newMeeting, mid: newMid, zid: existingMeeting.zid, zoomLink: existingMeeting.zoomLink },
+      // the parent's room. status is forced to 'Active' to match what was actually persisted
+      // (see the create data above) -- newMeeting.status could still be the parent's 'Suspended'.
+      { ...newMeeting, mid: newMid, zid: existingMeeting.zid, zoomLink: existingMeeting.zoomLink, status: 'Active' },
       isRecurringSplit,
       auth.accessToken,
     ).catch(async (error) => {

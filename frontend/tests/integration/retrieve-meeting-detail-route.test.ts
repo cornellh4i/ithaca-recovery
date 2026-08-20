@@ -106,6 +106,50 @@ describe("shared Zoom link siblings", () => {
     expect(body.zoomScheduleDiverged).toBe(true);
   });
 
+  // A "This event" split-off child (isRecurring: false, splitFromMid set) has no
+  // representation in Zoom's single recurring schedule at all -- it's a one-off, not a second
+  // weekly slot, so it must never pin zoomScheduleDiverged to true with no way to clear.
+  test("a non-recurring split-off child sibling never counts toward divergence, even with a mismatched schedule", async () => {
+    mockedGetAuth.mockResolvedValue({ user: { role: "ADMIN" } });
+    const zid = "70000001105";
+    const { meeting } = await seedRecurringMeeting(
+      { zid, title: "Early Bird", modeType: "Hybrid", startDateTime: at("18:00:00"), endDateTime: at("19:00:00") },
+      { daysOfWeek: ["Monday"] },
+    );
+    // A detached "This event" child: non-recurring, a mismatched one-off time, and splitFromMid
+    // set (as handleScopedEdit always sets it) -- exactly what would otherwise permanently flag.
+    await seedMeeting({
+      zid, title: "Split Occurrence", modeType: "Remote", isRecurring: false,
+      splitFromMid: meeting.mid, startDateTime: at("20:00:00"), endDateTime: at("20:30:00"),
+    });
+
+    const body = await getMeetingDetail(meeting.mid);
+    expect(body.sharedWith).toEqual([{ title: "Split Occurrence", modeType: "Remote" }]);
+    expect(body.zoomScheduleDiverged).toBe(false);
+  });
+
+  // A "This and following" tail split is still a real recurring weekly slot -- unlike the
+  // one-off case above, it must still flag if its schedule genuinely diverges from the root.
+  test("a recurring tail split sibling that genuinely diverges still flags", async () => {
+    mockedGetAuth.mockResolvedValue({ user: { role: "ADMIN" } });
+    const zid = "70000001106";
+    const { meeting } = await seedRecurringMeeting(
+      { zid, title: "Early Bird", modeType: "Hybrid", startDateTime: at("18:00:00"), endDateTime: at("19:00:00") },
+      { daysOfWeek: ["Monday"] },
+    );
+    await seedRecurringMeeting(
+      {
+        zid, title: "Tail Split", modeType: "Remote", splitFromMid: meeting.mid,
+        startDateTime: at("20:00:00"), endDateTime: at("21:00:00"),
+      },
+      { daysOfWeek: ["Sunday"] },
+    );
+
+    const body = await getMeetingDetail(meeting.mid);
+    expect(body.sharedWith).toEqual([{ title: "Tail Split", modeType: "Remote" }]);
+    expect(body.zoomScheduleDiverged).toBe(true);
+  });
+
   test("an unshared meeting carries neither field", async () => {
     mockedGetAuth.mockResolvedValue({ user: { role: "ADMIN" } });
     const meeting = await seedMeeting({ zid: "70000001103" });

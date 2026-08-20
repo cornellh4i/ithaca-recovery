@@ -298,4 +298,28 @@ describe("deleteOption 'this' / 'thisAndFollowing'", () => {
     await drainAfterTasks();
     expect(mockedUpdate).not.toHaveBeenCalled();
   });
+
+  test("a null zoomLink skips the room-cal rewrite entirely -- never falls back to publishing the street address", async () => {
+    const { meeting } = await seedRecurringMeeting(
+      {
+        modeType: "Hybrid", room: "Delete Route Room 3", zoomRoom: "Delete Route Zoom Room",
+        zoomCalendarEventId: "live-room-event-id-3", zoomLink: null,
+        googleCalendarEventIds: { AA: "live-event-id" },
+      },
+      { type: "weekly", daysOfWeek: ["Monday"], interval: 1 },
+    );
+    const occurrenceDate = new Date("2026-09-14T18:00:00Z");
+
+    const response = await DELETE(new Request("http://localhost/api/delete/meeting", {
+      method: "DELETE",
+      body: JSON.stringify({ mid: meeting.mid, deleteOption: "this", occurrenceDate: occurrenceDate.toISOString() }),
+    }));
+    expect(response.status).toBe(200);
+    await drainAfterTasks();
+
+    // Only the calType event is rewritten -- the room-cal event (which would otherwise fall back
+    // to buildEventBody's street-address default, breaking Zoom Room one-touch join) is skipped.
+    expect(mockedUpdate).toHaveBeenCalledTimes(1);
+    expect(mockedUpdate).not.toHaveBeenCalledWith(expect.anything(), "live-room-event-id-3", expect.anything(), expect.anything(), expect.anything());
+  });
 });

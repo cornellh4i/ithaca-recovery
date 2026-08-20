@@ -59,16 +59,26 @@ const getMeeting = async(request: NextRequest) => {
       ? await prisma.meeting.findMany({
           where: { zid: meeting.zid, deletedAt: null, mid: { not: meeting.mid } },
           select: {
-            title: true, modeType: true, isRecurring: true,
+            title: true, modeType: true, isRecurring: true, splitFromMid: true,
             startDateTime: true, endDateTime: true,
             recurrencePattern: { select: { type: true, interval: true } },
           },
         })
       : [];
+    // A "This event" split-off child (isRecurring: false, splitFromMid set) has no
+    // representation in Zoom's single schedule at all -- it's a one-off, not a second weekly
+    // slot -- so it must never count toward this divergence signal. Filtered out here, not in
+    // isSharedZoomScheduleCompatible itself: that function's "incompatible" answer for such a
+    // row is still the correct input to the schedule-neutral PATCH decision in services/zoom.ts,
+    // which is a different question (can Zoom's PATCH represent this row at all) than "is there
+    // a genuine, user-visible divergence to warn about." Without this, a detached child would
+    // permanently pin zoomScheduleDiverged to true with no way to ever clear it. A recurring
+    // tail split (editScope 'thisAndFollowing') keeps `isRecurring: true` and still counts.
+    const scheduleRelevantRows = [meeting, ...siblings].filter((row) => row.isRecurring || !row.splitFromMid);
     const sharedZoom = siblings.length > 0
       ? {
           sharedWith: siblings.map(({ title, modeType }) => ({ title, modeType })),
-          zoomScheduleDiverged: !isSharedZoomScheduleCompatible([meeting, ...siblings]),
+          zoomScheduleDiverged: !isSharedZoomScheduleCompatible(scheduleRelevantRows),
         }
       : {};
 

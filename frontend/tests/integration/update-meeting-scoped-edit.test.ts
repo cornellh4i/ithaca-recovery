@@ -40,7 +40,10 @@ jest.mock("../../services/zoom", () => ({
   resolveZoomHost: jest.fn(),
   getZoomHostCapacities: jest.fn().mockResolvedValue({}),
   zoomHostPool: ["mock-pool-host-1@icr.test", "mock-pool-host-2@icr.test"],
-  zoomRoomCalendarId: { "Scoped Zoom Room": "zoomroom-cal-id", "Scoped Zoom Room 2": "zoomroom-cal-id-2" },
+  zoomRoomCalendarId: {
+    "Scoped Zoom Room": "zoomroom-cal-id", "Scoped Zoom Room 2": "zoomroom-cal-id-2",
+    "Null Link Zoom Room": "zoomroom-cal-id-null-link",
+  },
 }));
 
 import { getTestPrismaClient, disconnectTestPrismaClient } from "../factories/db";
@@ -602,5 +605,117 @@ describe("scoped edit rejects whole-series-only field changes", () => {
 
     const response = await putMeeting(scopedPayload(meeting.mid, "this", occurrenceDate, { zoomHost: null }));
     expect(response.status).toBe(200);
+  });
+});
+
+describe("scoped edit conflict scan no longer excludes the parent for room/zoomRoom", () => {
+  test("a 'this' child re-dated onto another day the series meets, same room, is rejected 409 -- the parent's live occurrence on that day is no longer hidden from the scan", async () => {
+    const wednesdayName = formatETWeekdayLong(new Date(SERIES_START.getTime() + 2 * 24 * 60 * 60 * 1000));
+    const room = `Multi-Day Room ${randomUUID()}`;
+    const { meeting } = await seedRecurringMeeting(
+      {
+        startDateTime: SERIES_START, endDateTime: SERIES_END,
+        modeType: "In Person", room, zoomRoom: null, zid: null, zoomHost: null, calType: ["AA"],
+      },
+      { type: "weekly", daysOfWeek: [SERIES_WEEKDAY, wednesdayName], interval: 1 },
+    );
+
+    // occurrenceDate (the Monday being edited) gets excluded from the parent -- but the child is
+    // re-dated onto the SAME week's Wednesday, which the parent's pattern still produces (only
+    // the Monday date was excluded), in the identical room.
+    const mondayOccurrence = occurrence(2);
+    const wednesdayStart = new Date(mondayOccurrence.start.getTime() + 2 * 24 * 60 * 60 * 1000);
+    const wednesdayEnd = new Date(mondayOccurrence.end.getTime() + 2 * 24 * 60 * 60 * 1000);
+
+    const response = await putMeeting(scopedPayload(meeting.mid, "this", mondayOccurrence.start, {
+      modeType: "In Person", room, startDateTime: wednesdayStart, endDateTime: wednesdayEnd,
+    }));
+    expect(response.status).toBe(409);
+    const body = await response.json();
+    expect(body.conflicts[0]).toMatchObject({ field: "room", value: room });
+  });
+
+  test("a 'this' child NOT re-dated (same occurrence date) does not self-conflict with the parent's own just-excluded date", async () => {
+    const room = `Same Day Room ${randomUUID()}`;
+    const { meeting } = await seedRecurringMeeting(
+      {
+        startDateTime: SERIES_START, endDateTime: SERIES_END,
+        modeType: "In Person", room, zoomRoom: null, zid: null, zoomHost: null, calType: ["AA"],
+      },
+      { type: "weekly", daysOfWeek: [SERIES_WEEKDAY], interval: 1 },
+    );
+    const occ = occurrence(2);
+    const response = await putMeeting(scopedPayload(meeting.mid, "this", occ.start, { modeType: "In Person", room }));
+    expect(response.status).toBe(200);
+  });
+
+  test("zoomHost still excludes the parent for scope 'this' -- sharing the inherited zid/host is not a real conflict", async () => {
+    const { meeting } = await seedWeeklySeries();
+    const occ = occurrence(2);
+    const response = await putMeeting(scopedPayload(meeting.mid, "this", occ.start, { zoomHost: meeting.zoomHost }));
+    expect(response.status).toBe(200);
+  });
+});
+
+describe("scoped edit on a suspended parent", () => {
+  test("creates an Active child whose events publish, while the parent's own calendar rewrite is skipped", async () => {
+    const { meeting } = await seedWeeklySeries({ status: "Suspended", googleCalendarEventIds: { AA: "parent-event-aa" } });
+    const occurrenceDate = occurrence(2).start;
+
+    // The payload mirrors the parent's own (suspended) status, as a client that round-trips the
+    // fetched meeting's status might -- the child must come out Active regardless.
+    const response = await putMeeting(scopedPayload(meeting.mid, "this", occurrenceDate, {
+      title: "Split While Suspended", status: "Suspended",
+    }));
+    expect(response.status).toBe(200);
+    const body = await response.json();
+
+    const prisma = getTestPrismaClient();
+    const created = await waitFor(async () => {
+      const row = await prisma.meeting.findUnique({ where: { mid: body.newMid } });
+      return row?.googleSyncStatus != null ? row : null;
+    });
+    expect(created?.status).toBe("Active");
+    // A split-off row has no suspension history -- its events ARE published, unlike the parent's.
+    expect(created?.googleSyncStatus).toBe("synced");
+    expect(mockedCreateCalendarEvent).toHaveBeenCalled();
+
+    // The parent's own full-body rewrite is still skipped -- it's still suspended.
+    expect(mockedUpdateCalendarEvent).not.toHaveBeenCalled();
+  });
+});
+
+describe("scoped edit parent room-cal rewrite with a null zoomLink", () => {
+  test("skips the room-cal rewrite entirely -- never falls back to publishing the street address", async () => {
+    const { meeting } = await seedWeeklySeries({
+      modeType: "Hybrid",
+      room: `Null Link Room ${randomUUID()}`,
+      zoomRoom: "Null Link Zoom Room",
+      zoomCalendarEventId: "parent-room-event-null-link",
+      zoomLink: null,
+      googleCalendarEventIds: { AA: "parent-event-aa" },
+    });
+    const occurrenceDate = occurrence(2).start;
+
+    const response = await putMeeting(scopedPayload(meeting.mid, "this", occurrenceDate, {
+      modeType: "Hybrid", room: meeting.room, zoomRoom: "Null Link Zoom Room",
+    }));
+    expect(response.status).toBe(200);
+    const body = await response.json();
+
+    // Wait for the deferred parent rewrite to have had its chance to run (via the child's own
+    // sync, which lands after the parent's in the after() ordering).
+    const prisma = getTestPrismaClient();
+    await waitFor(async () => {
+      const row = await prisma.meeting.findUnique({ where: { mid: body.newMid } });
+      return row?.googleSyncStatus != null ? row : null;
+    });
+
+    // The calType event was still rewritten -- only the room-cal event (which would otherwise
+    // fall back to the street address) was skipped.
+    expect(mockedUpdateCalendarEvent).toHaveBeenCalledTimes(1);
+    expect(mockedUpdateCalendarEvent).not.toHaveBeenCalledWith(
+      expect.anything(), "parent-room-event-null-link", expect.anything(), expect.anything(), expect.anything(),
+    );
   });
 });
