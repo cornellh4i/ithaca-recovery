@@ -231,4 +231,77 @@ describe("ViewMeeting", () => {
       expect(await screen.findByText(/July 15/)).toBeInTheDocument();
     });
   });
+
+  describe("Zoom drift notice", () => {
+    const zoomProps = {
+      ...baseProps,
+      modeType: "Remote",
+      room: "",
+      zid: "70000000905",
+      zoomLink: "http://zoom.test/j/70000000905?pwd=old",
+      isPhone: false,
+    };
+
+    // Routes the two fetches this flow makes: the drift check (re-queried after every
+    // successful retry, mirroring the real server whose adoption clears the drift), and the
+    // retry-sync POST the "Sync from Zoom" button fires.
+    const mockFetchWithDrift = (drift: boolean, { syncSucceeds = true } = {}) => {
+      let liveDrift = drift;
+      global.fetch = jest.fn().mockImplementation((url: string) => {
+        if (String(url).includes("/api/admin/zoom-drift/")) {
+          return Promise.resolve({ ok: true, json: async () => ({ drift: liveDrift }) });
+        }
+        if (String(url).includes("/api/update/meeting/sync")) {
+          if (!syncSucceeds) {
+            return Promise.resolve({ ok: false, status: 500, json: async () => ({ error: "boom" }) });
+          }
+          liveDrift = false;
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({ googleSyncStatus: "synced", googleSyncError: null, zoomSyncStatus: "synced", zoomSyncError: null }),
+          });
+        }
+        return Promise.resolve({ ok: true, json: async () => ({ hosts: [] }) });
+      }) as jest.Mock;
+    };
+
+    it("shows the drift notice with its own action when the live Zoom settings differ", async () => {
+      mockFetchWithDrift(true);
+      renderViewMeeting({ ...zoomProps, anchorEl: makeAnchorEl() });
+      expect(await screen.findByText(/changed outside the app/)).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Sync from Zoom" })).toBeInTheDocument();
+    });
+
+    it("clears the notice after a successful sync-from-Zoom", async () => {
+      mockFetchWithDrift(true);
+      renderViewMeeting({ ...zoomProps, anchorEl: makeAnchorEl() });
+      fireEvent.click(await screen.findByRole("button", { name: "Sync from Zoom" }));
+      await waitFor(() => expect(screen.queryByText(/changed outside the app/)).not.toBeInTheDocument());
+    });
+
+    it("keeps the notice when the retry itself fails", async () => {
+      mockFetchWithDrift(true, { syncSucceeds: false });
+      renderViewMeeting({ ...zoomProps, anchorEl: makeAnchorEl() });
+      fireEvent.click(await screen.findByRole("button", { name: "Sync from Zoom" }));
+      // The failure toast settles first; the drift notice must survive it.
+      await screen.findByText(/Could not retry the sync/);
+      expect(screen.getByText(/changed outside the app/)).toBeInTheDocument();
+    });
+
+    it("renders no notice when the live settings match", async () => {
+      mockFetchWithDrift(false);
+      renderViewMeeting({ ...zoomProps, anchorEl: makeAnchorEl() });
+      await screen.findByText("Serenity Group");
+      expect(screen.queryByText(/changed outside the app/)).not.toBeInTheDocument();
+    });
+
+    it("never even checks for drift for a non-admin viewer", async () => {
+      mockFetchWithDrift(true);
+      renderViewMeeting({ ...zoomProps, isAdmin: false, anchorEl: makeAnchorEl() });
+      await screen.findByText("Serenity Group");
+      expect(screen.queryByText(/changed outside the app/)).not.toBeInTheDocument();
+      const driftCalls = (global.fetch as jest.Mock).mock.calls.filter((c) => String(c[0]).includes("zoom-drift"));
+      expect(driftCalls).toHaveLength(0);
+    });
+  });
 });

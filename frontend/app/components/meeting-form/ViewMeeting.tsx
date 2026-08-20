@@ -1,4 +1,4 @@
-import React, { useState, useId, useLayoutEffect, useRef } from 'react';
+import React, { useState, useEffect, useId, useLayoutEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import styles from './ViewMeeting.module.scss';
 import DeleteRecurringModal from './DeleteRecurringModal';
@@ -160,6 +160,21 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
   const hasSuspension = !!suspendedSince;
   const isSuspended = hasSuspension && !!suspensionActive;
   const hasPendingSuspension = hasSuspension && !isSuspended;
+  // Admin-only, one Zoom GET per opened meeting -- deliberately NOT part of the calendar
+  // retrieve payloads (bulk, public, hot path); see /api/admin/zoom-drift. After a successful
+  // retry the server is re-asked rather than assumed clear: a retry can report synced while
+  // the credential fetch inside it failed, leaving the stored copy still stale.
+  const [zoomDrift, setZoomDrift] = useState(false);
+  const [driftCheckNonce, setDriftCheckNonce] = useState(0);
+  useEffect(() => {
+    if (!isAdmin || !zid) return;
+    let cancelled = false;
+    fetch(`/api/admin/zoom-drift/${mid}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => { if (!cancelled && data) setZoomDrift(!!data.drift); })
+      .catch(() => { /* fail quiet -- drift detection is best-effort */ });
+    return () => { cancelled = true; };
+  }, [isAdmin, zid, mid, driftCheckNonce]);
   const {
     googleSyncStatus,
     googleSyncError,
@@ -173,7 +188,10 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
     initialGoogleSyncError,
     initialZoomSyncStatus,
     initialZoomSyncError,
-    onSyncSuccess,
+    onSyncSuccess: () => {
+      setDriftCheckNonce((n) => n + 1);
+      onSyncSuccess?.();
+    },
   });
   const [kebabOpen, setKebabOpen] = useState(false);
   const [showInvitation, setShowInvitation] = useState(false);
@@ -416,6 +434,7 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
           googleSyncError={googleSyncError}
           zoomSyncStatus={zoomSyncStatus}
           zoomSyncError={zoomSyncError}
+          zoomDrift={zoomDrift}
           syncing={syncing}
           onRetrySync={handleRetrySync}
           conflictCount={conflictCount}

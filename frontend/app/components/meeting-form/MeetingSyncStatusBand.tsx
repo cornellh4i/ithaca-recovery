@@ -14,6 +14,9 @@ interface MeetingSyncStatusBandProps {
   googleSyncError: string | null;
   zoomSyncStatus: string | null;
   zoomSyncError: string | null;
+  // The live Zoom passcode/join URL no longer match the stored copy (someone changed them in
+  // the Zoom portal) -- resolved by the same retry action, which adopts Zoom's values.
+  zoomDrift: boolean;
   syncing: boolean;
   onRetrySync: () => void;
   conflictCount: number;
@@ -35,6 +38,7 @@ const MeetingSyncStatusBand: React.FC<MeetingSyncStatusBandProps> = ({
   googleSyncError,
   zoomSyncStatus,
   zoomSyncError,
+  zoomDrift,
   syncing,
   onRetrySync,
   conflictCount,
@@ -46,7 +50,7 @@ const MeetingSyncStatusBand: React.FC<MeetingSyncStatusBandProps> = ({
   const [syncDetailsOpen, setSyncDetailsOpen] = useState(false);
   const hasSyncFailure = googleSyncStatus === 'error' || zoomSyncStatus === 'error';
 
-  if (!isAdmin || !(hasSyncFailure || conflictCount > 0 || hasSuspension)) return null;
+  if (!isAdmin || !(hasSyncFailure || zoomDrift || conflictCount > 0 || hasSuspension)) return null;
 
   return (
     <div className={styles.statusBand}>
@@ -80,6 +84,22 @@ const MeetingSyncStatusBand: React.FC<MeetingSyncStatusBandProps> = ({
             className={styles.retryButton}
           >
             {syncing ? 'Retrying…' : 'Retry sync'}
+          </button>
+        </div>
+      )}
+
+      {zoomDrift && (
+        <div className={styles.driftBlock}>
+          <div className={styles.driftHeader}>
+            <Icon name="warning" />
+            <span>Zoom settings were changed outside the app — the saved link and passcode may be stale.</span>
+          </div>
+          <button
+            onClick={onRetrySync}
+            disabled={syncing}
+            className={styles.retryButton}
+          >
+            {syncing ? 'Syncing…' : 'Sync from Zoom'}
           </button>
         </div>
       )}

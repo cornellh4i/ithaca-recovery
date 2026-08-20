@@ -366,6 +366,34 @@ export async function getZoomMeetingInvitation(zid: string): Promise<string | nu
   }
 }
 
+// Live join credentials straight from Zoom, for drift detection/reconciliation against the
+// stored copy. Zoom is the source of truth for passcode/join URL -- a portal-side passcode
+// change rewrites join_url's ?pwd= with no signal to the app (our PATCHes never send a
+// password field, so they neither revert nor absorb it). null = couldn't fetch; callers must
+// keep their stored values rather than treat an unreachable API as drift.
+export async function getZoomMeetingCredentials(zid: string): Promise<{ passcode: string | null; joinUrl: string | null } | null> {
+  try {
+    const token = await getZoomAccessToken();
+    if (!token) return null;
+
+    const res = await fetch(`${ZOOM_BASE_API}/meetings/${zid}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    invalidateZoomTokenIfUnauthorized(res);
+    if (!res.ok) {
+      console.error("Zoom getMeetingCredentials error:", await res.text());
+      return null;
+    }
+    const data = await res.json();
+    // A passcode-less meeting comes back as password: "" -- normalized to null so drift
+    // comparison and adoption both treat "no passcode" as one value, not two.
+    return { passcode: data.password || null, joinUrl: data.join_url || null };
+  } catch (error) {
+    console.error("Zoom getMeetingCredentials error:", error);
+    return null;
+  }
+}
+
 export async function updateZoomMeeting(zid: string, meeting: IMeeting): Promise<boolean> {
   // Managed recurring meetings mirror their real schedule to Zoom (type 8 + recurrence, built
   // from the same pattern the app/calendars use) -- each successful PATCH also re-extends
