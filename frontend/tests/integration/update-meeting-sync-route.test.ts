@@ -226,7 +226,7 @@ describe("retrying an already-synced meeting (existing zid)", () => {
     expect(body.zoomSyncStatus).toBe("synced");
     expect(body.googleSyncStatus).toBe("synced");
 
-    expect(mockedUpdateZoomMeeting).toHaveBeenCalledWith("existing-zid", expect.anything());
+    expect(mockedUpdateZoomMeeting).toHaveBeenCalledWith("existing-zid", expect.anything(), expect.any(Array));
     expect(mockedReconcileMeetingCalendars).toHaveBeenCalled();
   });
 
@@ -247,6 +247,29 @@ describe("retrying an already-synced meeting (existing zid)", () => {
 
     expect(mockedUpdateZoomMeeting).not.toHaveBeenCalled();
     expect(mockedReconcileMeetingCalendars).toHaveBeenCalled();
+  });
+
+  test("a shared-zid meeting's retry hands its sibling rows to the Zoom PATCH so the union schedule is sent (#513)", async () => {
+    mockedUpdateZoomMeeting.mockResolvedValue(true);
+    mockedReconcileMeetingCalendars.mockResolvedValue({ updatedEventIds: {}, allSynced: true, googleSyncError: null });
+
+    const prisma = getTestPrismaClient();
+    const shared = "70000000910";
+    const meetingData = buildSyncedMeetingData({ zid: shared, title: "Shared Retry A" });
+    const siblingData = buildSyncedMeetingData({ zid: shared, title: "Shared Retry B" });
+    await prisma.meeting.create({ data: meetingData });
+    await prisma.meeting.create({ data: siblingData });
+
+    await POST(new Request("http://localhost/api/update/meeting/sync", {
+      method: "POST",
+      body: JSON.stringify({ mid: meetingData.mid }),
+    }));
+
+    expect(mockedUpdateZoomMeeting).toHaveBeenCalledTimes(1);
+    const [zidArg, , siblingsArg] = mockedUpdateZoomMeeting.mock.calls[0];
+    expect(zidArg).toBe(shared);
+    expect(siblingsArg).toHaveLength(1);
+    expect(siblingsArg[0].mid).toBe(siblingData.mid);
   });
 
   test("a retry adopts a portal-side passcode/link change: fresh credentials are stored and the reconcile publishes the live link", async () => {

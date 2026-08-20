@@ -68,19 +68,15 @@ async function main(): Promise<void> {
       }
     }
 
-    // Shared-zid pairs are skipped: their Zoom recurrence is the UNION of both rows' schedules
-    // (built at the 2026-08 type-8 conversion), and updateZoomMeeting only knows one row's
-    // pattern -- a PATCH from either row would silently narrow the union (e.g. drop the
-    // Sunday-only sibling's day). Union-aware PATCHing is tracked as a follow-up; until then
-    // shared meetings' horizons re-extend only when deliberately edited.
-    const representative = group.length === 1 && group[0].zoomManaged && group[0].isRecurring && group[0].status !== "Suspended"
-      ? group[0]
-      : null;
+    // updateZoomMeeting receives the OTHER rows sharing this zid, so a shared meeting's PATCH
+    // sends the union of every row's schedule rather than one row's narrowed view (#513).
+    const representative = group.find((m) => m.zoomManaged && m.isRecurring && m.status !== "Suspended") ?? null;
     if (representative) {
+      const siblings = group.filter((m) => m !== representative);
       const ok = await updateZoomMeeting(zid, {
         ...representative,
         recurrencePattern: representative.recurrencePattern ?? null,
-      } as unknown as IMeeting);
+      } as unknown as IMeeting, siblings as unknown as IMeeting[]);
       if (ok) extended++;
       else {
         failures++;
