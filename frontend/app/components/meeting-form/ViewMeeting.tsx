@@ -504,7 +504,7 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
             {zoomManaged === false && (
               <p className={styles.contactRow}>
                 <Icon name="lock" />
-                <span>Legacy Zoom link — owned by ICR; the app keeps calendars in sync but never changes the Zoom meeting itself.</span>
+                <span>Legacy Zoom link; the app keeps calendars in sync but never changes the Zoom host.</span>
               </p>
             )}
             {/* Provenance is only shown when it's a real session email -- meetings created
