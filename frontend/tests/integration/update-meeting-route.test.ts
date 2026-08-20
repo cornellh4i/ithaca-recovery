@@ -148,6 +148,27 @@ test("a malformed body returns 400 with validation issues instead of a raw 500",
   expect(found).toBeNull();
 });
 
+test("a managed edit threads the pinned zoomTopic into the Zoom PATCH instead of the title", async () => {
+  mockedUpdateZoomMeeting.mockResolvedValue(true);
+  mockedReconcileMeetingCalendars.mockResolvedValue({ updatedEventIds: {}, allSynced: true });
+
+  const prisma = getTestPrismaClient();
+  const mid = `m-${randomUUID()}`;
+  await prisma.meeting.create({ data: { ...toMeetingCreateInput(buildMeetingPayload({
+    mid, modeType: "Remote", room: "", zoomRoom: "", zid: "70000000778", zoomHost: "zoom@518icr.com",
+  })), zoomManaged: true, zoomTopic: "Keep It Simple - Hybrid", zoomSyncStatus: "synced" } });
+
+  const edit = buildMeetingPayload({ mid, modeType: "Remote", room: "", zoomRoom: "", title: "Tuesday Noon Al-Anon", zoomHost: "zoom@518icr.com" });
+  const response = await PUT(new Request("http://localhost/api/update/meeting", { method: "PUT", body: JSON.stringify(edit) }));
+  expect(response.status).toBe(200);
+
+  await waitFor(async () => (mockedUpdateZoomMeeting.mock.calls.length > 0 ? true : null));
+  expect(mockedUpdateZoomMeeting).toHaveBeenCalledWith(
+    "70000000778",
+    expect.objectContaining({ zoomTopic: "Keep It Simple - Hybrid" }),
+  );
+});
+
 test("an unmanaged Zoom meeting is never PATCHed by a plain edit, and the edit still succeeds", async () => {
   mockedReconcileMeetingCalendars.mockResolvedValue({ updatedEventIds: {}, allSynced: true });
 

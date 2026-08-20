@@ -15,6 +15,7 @@ interface IMeeting {
   creator: string; // admin later on [optional]
   lastEditedBy?: string | null; // server-managed: session email of the last admin to save an edit
   zoomManaged?: boolean; // false = the app points at an ICR-owned/external Zoom meeting and never mutates it
+  zoomTopic?: string | null; // pinned Zoom display topic; null derives title + mode suffix
   group: string; // group interface later on [optional]
   startDateTime: Date;
   endDateTime: Date;

@@ -110,7 +110,11 @@ async function syncUpdatedMeeting(
       } else {
         // Unmanaged Zoom meetings are never PATCHed -- the stored link is the contract; only
         // the calendars follow the app-side edit.
-        const ok = existingMeeting.zoomManaged ? await updateZoomMeeting(zid, newMeeting) : true;
+        // The pinned topic (if any) lives on the DB row, not the client payload -- thread it
+        // through so a managed PATCH keeps the meeting's established Zoom name.
+        const ok = existingMeeting.zoomManaged
+          ? await updateZoomMeeting(zid, { ...newMeeting, zoomTopic: existingMeeting.zoomTopic })
+          : true;
         if (!ok) zoomSynced = false;
       }
     } else if (!existingMeeting.zoomManaged) {
