@@ -18,7 +18,14 @@ export const GET = async () => {
   const meetings = await prisma.meeting.findMany({
     where: {
       deletedAt: null,
-      OR: [{ googleSyncStatus: "error" }, { zoomSyncStatus: "error" }],
+      OR: [
+        { googleSyncStatus: "error" },
+        { zoomSyncStatus: "error" },
+        // Persisted Zoom credential drift (see zoomDriftDetectedAt in schema.prisma) rides the
+        // same badge: both mean "this meeting's published copies need sync attention", and
+        // opening the meeting shows which one it is.
+        { zoomDriftDetectedAt: { not: null } },
+      ],
     },
     select: { mid: true },
   });

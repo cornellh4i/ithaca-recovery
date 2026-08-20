@@ -17,7 +17,7 @@ export const GET = async (request: NextRequest) => {
   const mid = request.nextUrl.pathname.split("/").pop() as string;
   const meeting = await prisma.meeting.findFirst({
     where: { mid, deletedAt: null },
-    select: { zid: true, zoomLink: true, zoomPasscode: true },
+    select: { zid: true, zoomLink: true, zoomPasscode: true, zoomDriftDetectedAt: true },
   });
   if (!meeting) {
     return NextResponse.json({ error: "Meeting not found" }, { status: 404 });
@@ -38,5 +38,15 @@ export const GET = async (request: NextRequest) => {
   const drift =
     live.joinUrl !== meeting.zoomLink ||
     live.passcode !== (meeting.zoomPasscode || null);
+
+  // Keep the persisted flag (the calendar badge's source) in step with what this fresh check
+  // just learned -- an admin opening the meeting is a better signal than waiting for the next
+  // monthly scan, in both directions.
+  if (drift !== (meeting.zoomDriftDetectedAt !== null)) {
+    await prisma.meeting.update({
+      where: { mid },
+      data: { zoomDriftDetectedAt: drift ? new Date() : null },
+    });
+  }
   return NextResponse.json({ drift });
 };

@@ -59,6 +59,7 @@ const syncMeeting = async (request: Request): Promise<Response> => {
             let zoomHost = meeting.zoomHost;
             let zoomCalendarEventId = meeting.zoomCalendarEventId;
             let zoomSynced = true;
+            let liveCredentialsFetched = false;
             zoomSyncError = null;
 
             if (zid) {
@@ -73,6 +74,7 @@ const syncMeeting = async (request: Request): Promise<Response> => {
                 if (liveCredentials?.joinUrl) {
                     zoomLink = liveCredentials.joinUrl;
                     zoomPasscode = liveCredentials.passcode;
+                    liveCredentialsFetched = true;
                 }
                 // Retry re-asserts an already-working Zoom meeting's existing claim -- nothing
                 // about this meeting's own details changed, so a conflict introduced later by a
@@ -161,7 +163,13 @@ const syncMeeting = async (request: Request): Promise<Response> => {
             const zoomInvitation = zid ? (await getZoomMeetingInvitation(zid)) ?? meeting.zoomInvitation : null;
             await prisma.meeting.update({
                 where: { mid },
-                data: { zid, zoomLink, zoomPasscode, zoomInvitation, zoomHost, zoomCalendarEventId, zoomSyncStatus, zoomSyncError },
+                data: {
+                    zid, zoomLink, zoomPasscode, zoomInvitation, zoomHost, zoomCalendarEventId, zoomSyncStatus, zoomSyncError,
+                    // The stored copy now equals Zoom's truth (adopted above, or just created),
+                    // so any persisted drift flag is resolved. A failed credentials fetch left
+                    // stored values possibly stale -- the flag must survive it.
+                    ...(zid && meeting.zid && !liveCredentialsFetched ? {} : { zoomDriftDetectedAt: null }),
+                },
             });
         }
 

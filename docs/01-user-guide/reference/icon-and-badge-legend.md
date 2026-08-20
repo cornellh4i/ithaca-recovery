@@ -13,7 +13,7 @@ the app's older icons and need re-capturing by an admin — what each icon means
 | Co-present (mode tag) | Meeting is **Hybrid** | Mode picker, calendar tags, detail panel |
 | Amber triangle | Room/Zoom room/Zoom host **conflict** | Calendar block (top-left), detail panel, overlap popover |
 | "+N" pill (block corner) | Cluster hides N more **overlapping** meetings | Day/Week view, when 2+ meetings share a slot |
-| Red broken-ring + "!" | Google Calendar/Zoom **sync failed** | Calendar block (top-right), detail panel |
+| Red broken-ring + "!" | Google Calendar/Zoom **sync needs attention** — a failed sync, or Zoom settings changed outside the app | Calendar block (top-right), detail panel |
 | Pause (⏸) | Meeting is **suspended** | Suspend dialog, Admin Diagnostics |
 | Video icon + room name | Zoom room doesn't match the physical room's default pairing | Calendar block (top-right) |
 
@@ -77,6 +77,10 @@ an exclamation mark — what other pages call the "⚠ badge" — not the amber 
 two can appear on the same meeting, in opposite corners. The small button next to "Retry sync"
 expands a per-service breakdown of what failed. See
 [Retry a Failed Sync](../how-to/retry-a-failed-sync.md).
+
+The same icon also appears when nothing failed but the meeting's Zoom settings were
+[changed outside the app](../explanation/how-sync-works.md#zoom-side-changes-are-detected-not-synced-live) —
+opening the meeting shows which case it is and the one-click fix.
 
 ![A sync-error icon on a calendar block](../assets/sync-error-badge.png)
 
