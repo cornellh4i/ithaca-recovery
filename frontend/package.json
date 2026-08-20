@@ -68,6 +68,7 @@
     "pagefind": "^1.5.2",
     "stylelint": "^17.14.1",
     "stylelint-config-standard-scss": "^17.0.0",
+    "tsx": "^4.23.12",
     "typescript": "6.0.3"
   },
   "resolutions": {

@@ -43,6 +43,7 @@ test("returns the mids of meetings with a Google Calendar or Zoom sync error", a
 
   const midGoogleError = `m-${randomUUID()}`;
   const midZoomError = `m-${randomUUID()}`;
+  const midDrifted = `m-${randomUUID()}`;
   const midSynced = `m-${randomUUID()}`;
   const midPending = `m-${randomUUID()}`;
   const midDeleted = `m-${randomUUID()}`;
@@ -52,6 +53,11 @@ test("returns the mids of meetings with a Google Calendar or Zoom sync error", a
   });
   await prisma.meeting.create({
     data: buildMeetingData({ mid: midZoomError, googleSyncStatus: "synced", zoomSyncStatus: "error" }),
+  });
+  // Both channels healthy but the stored Zoom credentials drifted from the live ones -- rides
+  // the same needs-sync-attention badge as an error.
+  await prisma.meeting.create({
+    data: buildMeetingData({ mid: midDrifted, googleSyncStatus: "synced", zoomSyncStatus: "synced", zoomDriftDetectedAt: new Date() }),
   });
   // Neither channel in an error state -- must not show up as a false positive.
   await prisma.meeting.create({
@@ -71,7 +77,7 @@ test("returns the mids of meetings with a Google Calendar or Zoom sync error", a
   expect(response.status).toBe(200);
   const body = await response.json();
 
-  expect(body.mids).toEqual(expect.arrayContaining([midGoogleError, midZoomError]));
+  expect(body.mids).toEqual(expect.arrayContaining([midGoogleError, midZoomError, midDrifted]));
   expect(body.mids).not.toContain(midSynced);
   expect(body.mids).not.toContain(midPending);
   expect(body.mids).not.toContain(midDeleted);

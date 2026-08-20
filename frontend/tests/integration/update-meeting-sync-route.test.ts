@@ -277,6 +277,44 @@ describe("retrying an already-synced meeting (existing zid)", () => {
     expect(after?.zoomLink).toBe("http://zoom.test/existing?pwd=rotated");
   });
 
+  test("adopting live credentials clears a persisted drift flag", async () => {
+    mockedUpdateZoomMeeting.mockResolvedValue(true);
+    mockedGetZoomMeetingCredentials.mockResolvedValue({ passcode: "rotated", joinUrl: "http://zoom.test/existing?pwd=rotated" });
+    mockedReconcileMeetingCalendars.mockResolvedValue({ updatedEventIds: {}, allSynced: true, googleSyncError: null });
+
+    const prisma = getTestPrismaClient();
+    const meetingData = buildSyncedMeetingData({ zoomPasscode: "original", zoomDriftDetectedAt: new Date() });
+    await prisma.meeting.create({ data: meetingData });
+
+    await POST(new Request("http://localhost/api/update/meeting/sync", {
+      method: "POST",
+      body: JSON.stringify({ mid: meetingData.mid }),
+    }));
+
+    const after = await prisma.meeting.findUnique({ where: { mid: meetingData.mid } });
+    expect(after?.zoomDriftDetectedAt).toBeNull();
+  });
+
+  test("a failed credentials fetch leaves a persisted drift flag standing", async () => {
+    mockedUpdateZoomMeeting.mockResolvedValue(true);
+    mockedGetZoomMeetingCredentials.mockResolvedValue(null);
+    mockedReconcileMeetingCalendars.mockResolvedValue({ updatedEventIds: {}, allSynced: true, googleSyncError: null });
+
+    const prisma = getTestPrismaClient();
+    const flaggedAt = new Date();
+    const meetingData = buildSyncedMeetingData({ zoomPasscode: "original", zoomDriftDetectedAt: flaggedAt });
+    await prisma.meeting.create({ data: meetingData });
+
+    await POST(new Request("http://localhost/api/update/meeting/sync", {
+      method: "POST",
+      body: JSON.stringify({ mid: meetingData.mid }),
+    }));
+
+    // Stored credentials may still be stale (the fetch failed), so the flag must survive.
+    const after = await prisma.meeting.findUnique({ where: { mid: meetingData.mid } });
+    expect(after?.zoomDriftDetectedAt).not.toBeNull();
+  });
+
   test("an unreachable Zoom credentials fetch keeps the stored passcode and link", async () => {
     mockedUpdateZoomMeeting.mockResolvedValue(true);
     mockedGetZoomMeetingCredentials.mockResolvedValue(null);

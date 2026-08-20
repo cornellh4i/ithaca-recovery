@@ -1,0 +1,39 @@
+name: Zoom Maintenance Scan
+
+on:
+  schedule:
+    # Monthly, 06:23 UTC on the 1st -- an offset minute for the same scheduler pile-up reason
+    # as backup-db.yml. Frequency rationale: drift is a rare human action (detection also
+    # happens whenever an admin opens a meeting), and the type-8 occurrence horizon Zoom clamps
+    # to is ~2 years, so monthly keeps everything fresh with orders of magnitude to spare.
+    - cron: "23 6 1 * *"
+  workflow_dispatch:
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: yarn
+          cache-dependency-path: frontend/yarn.lock
+      - run: yarn install --frozen-lockfile
+      - name: Scan Zoom meetings (credential drift + horizon re-extension)
+        # react-server condition: services/zoom.ts imports "server-only", whose default build
+        # throws outside a Next server context; the condition resolves its no-op build. Nothing
+        # in the script's import graph resolves React itself, so the condition changes nothing else.
+        run: npx tsx scripts/zoom-scan.ts
+        env:
+          NODE_OPTIONS: --conditions=react-server
+          DATABASE_URL_UNPOOLED: ${{ secrets.DATABASE_URL_UNPOOLED }}
+          ZOOM_CLIENT_ID: ${{ secrets.ZOOM_CLIENT_ID }}
+          ZOOM_CLIENT_SECRET: ${{ secrets.ZOOM_CLIENT_SECRET }}
+          ZOOM_ACCOUNT_ID: ${{ secrets.ZOOM_ACCOUNT_ID }}

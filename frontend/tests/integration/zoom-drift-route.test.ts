@@ -40,6 +40,23 @@ test("reports drift when the live Zoom passcode differs from the stored one", as
   expect(response.status).toBe(200);
   expect(await response.json()).toEqual({ drift: true });
   expect(mockedGetCredentials).toHaveBeenCalledWith("70000000901");
+
+  // The fresh check persists what it learned -- this flag is the calendar badge's source.
+  const after = await getTestPrismaClient().meeting.findUnique({ where: { mid: meeting.mid } });
+  expect(after?.zoomDriftDetectedAt).not.toBeNull();
+});
+
+test("a fresh check that finds no drift clears a previously persisted flag", async () => {
+  const meeting = await seedMeeting({
+    zid: "70000000909", zoomLink: "http://zoom.test/j/70000000909?pwd=x", zoomPasscode: "x",
+    zoomDriftDetectedAt: new Date(),
+  });
+  mockedGetCredentials.mockResolvedValue({ passcode: "x", joinUrl: "http://zoom.test/j/70000000909?pwd=x" });
+
+  const response = await GET(driftRequest(meeting.mid));
+  expect(await response.json()).toEqual({ drift: false });
+  const after = await getTestPrismaClient().meeting.findUnique({ where: { mid: meeting.mid } });
+  expect(after?.zoomDriftDetectedAt).toBeNull();
 });
 
 test("a passcode-only change is drift even when the join URL is unchanged", async () => {

@@ -72,6 +72,11 @@ model Meeting {
   // " - Zoom Only", ICR's own naming convention); non-null = pinned verbatim -- backfilled with
   // the adopted legacy meetings' exact topics so an app-side edit never renames them by surprise.
   zoomTopic              String?
+  // When the live Zoom passcode/join URL was last seen differing from the stored copy (set by
+  // the monthly zoom-scan workflow and the on-open drift check; cleared once a retry sync
+  // adopts the live values). Non-null feeds the calendar's sync-attention badge without any
+  // Zoom call on the bulk retrieve paths.
+  zoomDriftDetectedAt    DateTime?
   deletedAt              DateTime?
   updatedAt              DateTime?            @updatedAt
 
