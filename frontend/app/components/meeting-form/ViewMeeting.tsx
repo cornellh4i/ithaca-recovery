@@ -283,10 +283,16 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
     );
   };
 
+  // Also drives DeleteRecurringModal's disableScoped below -- the deep-link (?mid=) path into a
+  // recurring meeting never sets currentOccurrenceDate (there's no click to attribute a date
+  // to), and a stale/mismatched one wouldn't validate server-side either; either way there's no
+  // real occurrence to scope 'this'/'thisAndFollowing' against.
+  const hasKnownOccurrence = isRecurring && !!currentOccurrenceDate && doesMeetingOccurOnDate(currentOccurrenceDate);
+
   let displayStartDate = startDateTime;
   let displayEndDate = endDateTime;
 
-  if (isRecurring && currentOccurrenceDate && doesMeetingOccurOnDate(currentOccurrenceDate)) {
+  if (hasKnownOccurrence && currentOccurrenceDate) {
     // Keeps startDateTime's ET time-of-day, moved onto currentOccurrenceDate's ET calendar
     // day -- via convertETToUTC so this is correct regardless of the viewer's own timezone.
     const occurrenceDateStr = formatETDateString(currentOccurrenceDate);
@@ -601,6 +607,7 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
         // "Suspend instead" there would open a modal that can only 409 (the suspend route
         // already blocks creating a second unresolved suspension for the same meeting).
         onSuspendInstead={onSuspend && !hasSuspension ? handleSuspendClick : undefined}
+        disableScoped={!hasKnownOccurrence}
       />
       <DeleteMeetingModal
         isOpen={showDeleteConfirm}

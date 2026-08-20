@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Icon from '../ui/displays/Icon';
 import Modal from '../ui/overlays/Modal';
 import styles from './DeleteRecurringModal.module.scss';
@@ -11,6 +11,12 @@ interface DeleteRecurringModalProps {
   onDelete: (option: 'this' | 'thisAndFollowing' | 'all') => void;
   // Omitted entirely (not shown disabled) when the caller has no suspend action wired up.
   onSuspendInstead?: () => void;
+  // True when the caller has no specific occurrence to scope against -- e.g. the deep-link
+  // (?mid=) path into a recurring meeting, which never sets lastClickedDate (there's no click
+  // to attribute a date to). 'this'/'thisAndFollowing' both need an occurrenceDate the server
+  // can validate; without one they'd 400. Disables both scoped options and forces 'all',
+  // mirroring EditRecurringModal's disableScopedEdits gate.
+  disableScoped?: boolean;
 }
 
 const DeleteRecurringModal: React.FC<DeleteRecurringModalProps> = ({
@@ -20,8 +26,19 @@ const DeleteRecurringModal: React.FC<DeleteRecurringModalProps> = ({
   onClose,
   onDelete,
   onSuspendInstead,
+  disableScoped = false,
 }) => {
   const [selectedOption, setSelectedOption] = useState<'this' | 'thisAndFollowing' | 'all'>('this');
+
+  // Keeps a disabled option from staying selected once disableScoped forces the choice --
+  // re-checked each time the modal opens rather than continuously, so it doesn't fight a
+  // mid-session click back to a valid option (not that there is one here besides 'all').
+  useEffect(() => {
+    if (isOpen && disableScoped && selectedOption !== 'all') {
+      setSelectedOption('all');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, disableScoped]);
 
   const handleOptionSelect = (option: 'this' | 'thisAndFollowing' | 'all') => {
     setSelectedOption(option);
@@ -71,29 +88,37 @@ const DeleteRecurringModal: React.FC<DeleteRecurringModalProps> = ({
       </p>
 
       <div className={styles.optionsContainer}>
-        <div className={styles.optionItem}>
+        <div className={`${styles.optionItem} ${disableScoped ? styles.optionItemDisabled : ''}`}>
           <input
             type="radio"
             id="this-event"
             name="delete-option"
             checked={selectedOption === 'this'}
             onChange={() => handleOptionSelect('this')}
+            disabled={disableScoped}
             className={styles.radioInput}
           />
           <label htmlFor="this-event" className={styles.radioLabel}>This event</label>
         </div>
 
-        <div className={styles.optionItem}>
+        <div className={`${styles.optionItem} ${disableScoped ? styles.optionItemDisabled : ''}`}>
           <input
             type="radio"
             id="this-and-following"
             name="delete-option"
             checked={selectedOption === 'thisAndFollowing'}
             onChange={() => handleOptionSelect('thisAndFollowing')}
+            disabled={disableScoped}
             className={styles.radioInput}
           />
           <label htmlFor="this-and-following" className={styles.radioLabel}>This and following events</label>
         </div>
+
+        {disableScoped && (
+          <p className={styles.disabledHint}>
+            Open the meeting from a calendar day to delete specific occurrences.
+          </p>
+        )}
 
         <div className={styles.optionItem}>
           <input

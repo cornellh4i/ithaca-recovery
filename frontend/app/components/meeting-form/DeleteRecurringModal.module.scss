@@ -83,12 +83,27 @@
   cursor: pointer;
 }
 
+.optionItemDisabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.disabledHint {
+  margin: -10px 0 0 30px;
+  font-size: 13px;
+  color: $medium-grey-color;
+}
+
 .radioInput {
   margin-right: 12px;
   accent-color: #4285F4;
   width: 18px;
   height: 18px;
   cursor: pointer;
+
+  &:disabled {
+    cursor: not-allowed;
+  }
 }
 
 .radioLabel {
