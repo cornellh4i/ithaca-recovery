@@ -54,3 +54,25 @@ meeting itself is set up:
 "The meeting's own hours" means that one meeting's start-to-end duration, not a sum across its
 whole recurrence — a weekly 1-hour meeting is still just "1 hour" for this calculation, not "1
 hour × however many weeks are in the lease."
+
+## Recurring-series edge cases
+
+Editing "this and following" or "this" occurrence of a recurring meeting can split one series
+into multiple database rows that share the same lease/rental history. Both exports handle this,
+but differently:
+
+- **Lease CSV:** a split or detached row never gets its own line. All rows descended from the
+  same original series are combined into **one billing row**, using whichever row's own schedule
+  starts latest as the representative for rate, room, and time columns — that's the series'
+  current shape. A cancelled single occurrence (delete "this") does **not** reduce the rent
+  charge — the `4×` monthly multiplier is a fixed flat rate per "the meeting's own hours" above,
+  not a per-occurrence count, so removing one date from a recurring series doesn't lower what's
+  billed.
+- **Meetings XLSX:** every row stays a separate row, one per distinct schedule, so a split series
+  shows up as multiple rows. Two optional columns make the relationship legible: **Series End**
+  (the row's own recurrence end date, blank if open-ended or one-time) and **Split From** (the
+  originating series' meeting ID, blank if the row isn't part of a split).
+
+> [!NOTE]
+> The suspended-meetings behavior above still applies per lineage: if any row in a split lineage
+> is suspended rather than deleted, it's still billed in the Lease CSV.

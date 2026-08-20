@@ -163,7 +163,7 @@ Each section ends with a **Revisit if:** line — the condition under which this
 - A direct PandaDoc API integration was considered and rejected — it would require a higher-tier PandaDoc account, raising operational cost for no clear benefit at ICR's scale.
 - Moving rate/contact/template values into `LeaseSettings` means a rate change no longer requires a code deploy.
 
-**What the CSV contains:** one row per non-deleted meeting — **not** filtered by `status`, deliberately: a suspended meeting's lease is still a legal obligation, it doesn't lapse just because the meeting is hidden from the calendar.
+**What the CSV contains:** one row per non-deleted meeting lineage — rows created by scoped edits (`splitFromMid`) collapse into a single billing row per root series, represented by the latest-starting segment, so a split series never bills twice. **Not** filtered by `status`, deliberately: a suspended meeting's lease is still a legal obligation, it doesn't lapse just because the meeting is hidden from the calendar.
 
 **Revisit if:** the manual upload-to-PandaDoc step becomes enough of a friction point to justify direct API integration — [PandaDoc has a free API tier](https://www.pandadoc.com/developer-api/pricing/), but that hasn't been evaluated against this app's actual usage.
 
