@@ -290,7 +290,7 @@ const updateMeeting = async (request: Request): Promise<Response> => {
     // just moves the join-link event between room calendars using the stored link.
     if (!existingMeeting.zoomManaged && explicitHostChange) {
       return NextResponse.json(
-        { error: "This meeting's Zoom meeting is ICR-owned (legacy/external); its host can't be reassigned from the app." },
+        { error: "This meeting's Zoom meeting is legacy; its host can't be reassigned from the app." },
         { status: 422 },
       );
     }

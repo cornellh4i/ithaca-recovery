@@ -260,7 +260,7 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
               compact={compact}
               getCandidate={() => buildMeetingPayload(meeting.mid, meeting.status ?? 'Active')}
               lockedReason={meeting.zoomManaged === false
-                ? "ICR-owned Zoom link (legacy) — the host can't be reassigned from the app."
+                ? "Legacy Zoom link; host can't be reassigned from the app."
                 : undefined}
             />
           }

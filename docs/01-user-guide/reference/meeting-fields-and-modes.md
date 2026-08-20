@@ -26,7 +26,7 @@ part unless you specifically need to pick a different host (e.g. troubleshooting
 | Room | Hybrid / In Person only | One of the 6 physical rooms at 518 W Seneca St |
 | Meeting Type | ✅ | AA, Al-Anon, and/or Other — check every calendar this meeting belongs to; a meeting can belong to more than one |
 | Zoom Room | Hybrid only | One of 5 named Zoom rooms — picking a physical room auto-selects its matching Zoom room, but you can change it |
-| Zoom Host | Hybrid / Remote only | Defaults to "Automatic assignment" (first available host from the shared pool) — pick a specific one manually only if you need to, e.g. troubleshooting |
+| Zoom Host | Hybrid / Remote only | Defaults to "Automatic assignment" (first available host from the shared pool) — pick one manually only if you need to, e.g. troubleshooting. Locked (🔒) for meetings on a [legacy Zoom link](../explanation/how-sync-works.md#legacy-zoom-links) |
 | Email | ✅ | The group organizer's contact email — used for lease document generation |
 | Description | — | Additional notes |
 

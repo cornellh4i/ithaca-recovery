@@ -1,5 +1,22 @@
 # How Calendar and Zoom Sync Work
 
+## What each action does to the Google and Zoom copies
+
+Every meeting has up to three synced copies: an event on its category calendar, an event on its room's calendar (Hybrid only, carrying the join link), and a Zoom meeting (Hybrid/Remote). What happens to each:
+
+| Action in the platform | Google Calendar events | Zoom meeting |
+|---|---|---|
+| **Create** | Created on the category calendar (and Zoom room calendar for Hybrid and Remote) | Created — under one stable ID and link |
+| **Edit** (always the whole series) | Updated to match | Rescheduled to match — retain the meeting ID, link, and passcode |
+| **Delete** (one occurrence / this-and-following) | Affected occurrences removed | Untouched |
+| **Delete** (whole series) | All events removed | Deleted — unless another platform meeting still shares the same Zoom meeting, or it's a [legacy link](#legacy-zoom-links) the platform doesn't own |
+| **Suspend / Resume** | Events removed for the suspension window; the resume series is pre-created | Untouched — the link keeps working for the return date |
+| **Retry sync** | Failed events re-published | Re-attempted first (Google waits on Zoom) — an existing link is always reused, never replaced |
+
+## Legacy Zoom links
+
+A few meetings use a Zoom meeting ICR doesn't control at all (e.g. an outside organization's account). Those show a lock in the meeting details: the platform syncs their calendar events but never edits or deletes anything on Zoom, and consequently, the Zoom Host can't be reassigned.
+
 ## Google Calendar is one-way
 
 > [!WARNING]
