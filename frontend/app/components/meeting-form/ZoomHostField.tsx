@@ -26,6 +26,9 @@ export interface ZoomHostFieldProps {
   // used for meetings whose Zoom meeting the app doesn't own (zoomManaged: false), where a
   // host reassignment is impossible (the server 422s it) rather than merely unavailable.
   lockedReason?: string;
+  // Informational only (the edit is allowed): this meeting's Zoom link is shared with other
+  // rows, so the schedule saved here feeds a Zoom meeting they use too.
+  sharedLinkNote?: string;
 }
 
 const CheckIcon: React.FC = () => (
@@ -68,6 +71,7 @@ export const ZoomHostField: React.FC<ZoomHostFieldProps> = ({
   compact = false,
   getCandidate,
   lockedReason,
+  sharedLinkNote,
 }) => {
   const hosts = useZoomHostPool();
   // Per-host remaining capacity from the most recent check -- freeSlots reflects the
@@ -187,9 +191,16 @@ export const ZoomHostField: React.FC<ZoomHostFieldProps> = ({
 
   if (!isVisible) return null;
 
+  const sharedNote = sharedLinkNote ? (
+    <p className={styles.sharedLinkNote}>
+      <Icon name="link" size={16} ariaLabel="Shared Zoom link" /> {sharedLinkNote}
+    </p>
+  ) : null;
+
   if (lockedReason) {
     return (
       <div className={styles.zoomHostField}>
+        {sharedNote}
         <p className={styles.lockedIndicator}>
           <Icon name="lock" size={16} ariaLabel="Locked" /> {lockedReason}
         </p>
@@ -239,6 +250,7 @@ export const ZoomHostField: React.FC<ZoomHostFieldProps> = ({
 
   return (
     <div className={styles.zoomHostField}>
+      {sharedNote}
       {status === 'checking' && (
         <p className={styles.checkingIndicator}>Checking host availability…</p>
       )}

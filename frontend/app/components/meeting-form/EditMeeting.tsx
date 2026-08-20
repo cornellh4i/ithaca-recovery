@@ -61,6 +61,12 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
       isDirty,
     } = useMeetingForm(meeting);
 
+    // Populated only for admin sessions by retrieve/meeting/[id] -- empty for a meeting whose
+    // Zoom link is its own.
+    const sharedWithText = (meeting.sharedWith ?? [])
+      .map((row) => `${row.title} (${row.modeType})`)
+      .join(', ');
+
     const { showToast } = useToast();
     const [isSubmitting, setIsSubmitting] = useState(false);
     // Holds the payload + conflict rows across the confirm round-trip -- a 409 doesn't discard
@@ -261,6 +267,9 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
               getCandidate={() => buildMeetingPayload(meeting.mid, meeting.status ?? 'Active')}
               lockedReason={meeting.zoomManaged === false
                 ? "Legacy Zoom link; host can't be reassigned from the app."
+                : undefined}
+              sharedLinkNote={sharedWithText
+                ? `This Zoom link is shared with ${sharedWithText}; the schedule saved here feeds that same Zoom meeting.`
                 : undefined}
             />
           }

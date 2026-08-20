@@ -45,6 +45,7 @@ import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import LinkIcon from "@mui/icons-material/Link";
 import FileDownloadOutlinedIcon from "@mui/icons-material/FileDownloadOutlined";
 import type { SvgIconComponent } from "@mui/icons-material";
 
@@ -123,6 +124,7 @@ const MUI_ICONS = {
     // variants.
     "warning-amber": WarningAmberIcon,
     copy: ContentCopyIcon,
+    link: LinkIcon,
     download: FileDownloadOutlinedIcon,
 } satisfies Record<string, SvgIconComponent>;
 
