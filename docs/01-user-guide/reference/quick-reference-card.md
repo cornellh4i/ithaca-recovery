@@ -22,6 +22,7 @@
 **Edit a meeting**
 1. Click meeting → click **⋮** → **"Edit"**
 2. Change fields → click **"Update Meeting"**
+3. Recurring: choose "This event" / "This and following events" / "All events" in the dialog
 
 **Delete a meeting**
 1. Click meeting → click **⋮** → **"Delete"**

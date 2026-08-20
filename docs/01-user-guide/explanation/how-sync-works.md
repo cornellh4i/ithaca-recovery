@@ -7,7 +7,8 @@ Every meeting has up to three synced copies: an event on its category calendar, 
 | Action in the platform | Google Calendar events | Zoom meeting |
 |---|---|---|
 | **Create** | Created on the category calendar (and Zoom room calendar for Hybrid and Remote) | Created — under one stable ID and link |
-| **Edit** (always the whole series) | Updated to match | Rescheduled to match — retain the meeting ID, link, and passcode |
+| **Edit** (This event / This and following) | Affected occurrence(s) updated; a recurring edit splits or detaches the Google event(s) to match | Untouched — the detached/tail row inherits the same meeting ID, link, and passcode |
+| **Edit** (All events) | Updated to match | Rescheduled to match — retain the meeting ID, link, and passcode |
 | **Change Zoom Host** | Events keep the same link | Moved to the new host — ID, link, and passcode unchanged (a replacement is only created if Zoom refuses the move) |
 | **Delete** (one occurrence / this-and-following) | Affected occurrences removed | Untouched |
 | **Delete** (whole series) | All events removed | Deleted — unless another platform meeting still shares the same Zoom meeting, or it's an [external link](#external-zoom-links) the platform doesn't own |

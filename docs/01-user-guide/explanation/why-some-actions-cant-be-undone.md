@@ -16,7 +16,10 @@
 
 ## Editing Recurring Series
 
-Edits to a recurring series apply to **all occurrences**. To modify a single date without affecting the rest:
+Saving an edit to a recurring meeting asks which occurrences it applies to — **This event**, **This and following events**, or **All events** (see [Create, Edit, and Delete Meetings](../how-to/create-edit-delete-meetings.md)). The Zoom link stays the same across all three; only Google Calendar and the meeting's own details change.
 
-1. Delete the single occurrence.
-2. Create a separate, standalone meeting for that specific date (see [Create, Edit, and Delete Meetings](../how-to/create-edit-delete-meetings.md)).
+- **This event** detaches the clicked occurrence into its own standalone meeting — it's no longer part of the series and won't follow future edits to it.
+- **This and following events** splits the series in two at the clicked date: everything before keeps its old details, everything from that date on picks up the new ones.
+- **All events** applies the change to the entire series, same as before.
+
+There's no "undo" for a scope choice once saved — picking the wrong one means repeating the edit with the correct scope.

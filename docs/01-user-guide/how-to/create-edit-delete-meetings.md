@@ -19,10 +19,19 @@ saved either way, see [how sync works](../explanation/how-sync-works.md) for why
 
 All fields can be edited, including mode and recurrence. Editing never changes a meeting's Zoom link or passcode — even reassigning the Zoom Host moves the existing Zoom meeting rather than creating a new one. For the few meetings on an [external Zoom link](../explanation/how-sync-works.md#external-zoom-links), the Zoom Host field is locked and the Zoom side isn't touched at all.
 
-> [!IMPORTANT]
-> For a recurring meeting, editing updates the **entire series** — there's no per-occurrence edit.
-> See [why some actions can't be undone](../explanation/why-some-actions-cant-be-undone.md#editing-recurring-series)
-> for the reasoning and the workaround if only one date needs to differ.
+**Recurring:** clicking **"Update Meeting"** on a recurring meeting offers the same three-way
+scope choice as delete:
+
+| Option | Effect |
+|---|---|
+| This event | Only the clicked occurrence changes; it becomes a standalone meeting, separate from the series |
+| This and following events | The clicked occurrence and everything after it changes; the series splits in two at that date |
+| All events | The entire series changes, same as every other occurrence |
+
+Changing the recurrence settings themselves (frequency, days, end date) disables **This event** —
+a recurrence change can only apply going forward or to the whole series, never to a single date.
+See [why some actions can't be undone](../explanation/why-some-actions-cant-be-undone.md#editing-recurring-series)
+for what each option means for undoing a mistake.
 
 ## Double-booking a room, Zoom room, or Zoom host
 
