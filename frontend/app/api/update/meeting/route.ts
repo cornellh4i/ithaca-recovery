@@ -248,7 +248,9 @@ const updateMeeting = async (request: Request): Promise<Response> => {
     // edit reads/writes that field below.
     existingMeeting.googleCalendarEventIds = await reconcilePendingResume(existingMeeting);
 
-    const { mid, recurrencePattern, confirmOverride, ...meetingFields } = newMeeting;
+    // creator is server-managed provenance (set from the session at create time) -- an update
+    // must never overwrite it with the client's placeholder value.
+    const { mid, recurrencePattern, confirmOverride, creator: _creator, ...meetingFields } = newMeeting;
 
     // An explicit host reassignment (the Zoom Host dropdown set to a specific pool host,
     // different from whatever's currently assigned) -- hoisted above the confirmOverride block

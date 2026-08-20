@@ -23,7 +23,7 @@ jest.mock("next/server", () => ({
 
 jest.mock("../../services/auth", () => ({
   requireRole: jest.fn().mockResolvedValue({
-    user: { role: "ADMIN" },
+    user: { role: "ADMIN", email: "session-admin@test.icr" },
     accessToken: "fake-token",
   }),
 }));
@@ -146,6 +146,29 @@ test("a malformed body returns 400 with validation issues instead of a raw 500",
   const prisma = getTestPrismaClient();
   const found = await prisma.meeting.findUnique({ where: { mid: malformed.mid } });
   expect(found).toBeNull();
+});
+
+test("an update never overwrites the stored creator with the client payload's value", async () => {
+  mockedReconcileMeetingCalendars.mockResolvedValue({ updatedEventIds: {}, allSynced: true });
+
+  const prisma = getTestPrismaClient();
+  const mid = `m-${randomUUID()}`;
+  await prisma.meeting.create({ data: toMeetingCreateInput(buildMeetingPayload({
+    mid,
+    room: "Creator Preserve Room",
+    creator: "original-admin@test.icr",
+  })) });
+
+  const edit = buildMeetingPayload({ mid, room: "Creator Preserve Room", title: "Renamed", creator: "Spoofed Creator" });
+  const response = await PUT(new Request("http://localhost/api/update/meeting", {
+    method: "PUT",
+    body: JSON.stringify(edit),
+  }));
+  expect(response.status).toBe(200);
+
+  const stored = await prisma.meeting.findUnique({ where: { mid } });
+  expect(stored?.title).toBe("Renamed");
+  expect(stored?.creator).toBe("original-admin@test.icr");
 });
 
 test("a same-room time edit that now conflicts with another meeting on the same Zoom host fails soft instead of double-booking it", async () => {

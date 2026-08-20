@@ -24,7 +24,7 @@ jest.mock("next/server", () => ({
 
 jest.mock("../../services/auth", () => ({
   requireRole: jest.fn().mockResolvedValue({
-    user: { role: "ADMIN" },
+    user: { role: "ADMIN", email: "session-admin@test.icr" },
     accessToken: "fake-token",
   }),
 }));
@@ -179,6 +179,23 @@ test("a resolved Zoom host is persisted synchronously, before the deferred sync 
 
   // Lets the deferred sync finish before the test (and its mocks) tear down, rather than
   // guessing how long that takes.
+  await waitForGoogleSyncStatus(payload.mid);
+});
+
+test("creator is recorded from the session, not the client payload", async () => {
+  const payload = buildMeetingPayload({ room: "Creator Provenance Room", creator: "Spoofed Creator" });
+  const request = new Request("http://localhost/api/write/meeting", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+
+  const response = await POST(request);
+  expect(response.status).toBe(201);
+
+  const prisma = getTestPrismaClient();
+  const stored = await prisma.meeting.findUnique({ where: { mid: payload.mid } });
+  expect(stored?.creator).toBe("session-admin@test.icr");
+
   await waitForGoogleSyncStatus(payload.mid);
 });
 

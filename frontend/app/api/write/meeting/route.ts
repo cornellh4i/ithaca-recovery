@@ -164,6 +164,9 @@ const createMeeting = async (request: Request) => {
       return NextResponse.json({ error: "Invalid meeting data", issues: parsed.error.issues }, { status: 400 });
     }
     const meetingData = parsed.data as IMeeting;
+    // The form doesn't collect a creator (it sends a placeholder) -- record the signed-in admin
+    // who actually created the meeting, server-side, so the value can't be spoofed either.
+    meetingData.creator = auth.user?.email ?? meetingData.creator;
 
     const { recurrencePattern, confirmOverride, ...meetingDetails } = meetingData;
     const isRecurring = !!recurrencePattern;
