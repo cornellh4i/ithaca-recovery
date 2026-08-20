@@ -62,7 +62,16 @@ async function syncDeleteAll(
   // the live pointer above would otherwise be left dangling on Google Calendar once the meeting
   // itself is gone.
   await tearDownPendingResumeSeries(meeting, accessToken);
-  if (meeting.zid) await deleteZoomMeeting(meeting.zid);
+  // Never delete an unmanaged Zoom meeting (adopted legacy / externally hosted): the group's
+  // meeting ID predates this app and must survive the app-side record's deletion. A managed
+  // Zoom meeting can also be shared by a sibling row (one group, two schedule variants -- e.g.
+  // the Sat-hybrid/Sun-remote pairs), so it's only torn down once no other live row points at it.
+  if (meeting.zid && meeting.zoomManaged) {
+    const siblingCount = await prisma.meeting.count({
+      where: { zid: meeting.zid, deletedAt: null, mid: { not: meeting.mid } },
+    });
+    if (siblingCount === 0) await deleteZoomMeeting(meeting.zid);
+  }
   if (accessToken && meeting.zoomCalendarEventId && meeting.zoomRoom) {
     const calId = zoomRoomCalendarId[meeting.zoomRoom];
     if (calId) await deleteCalendarEvent(accessToken, meeting.zoomCalendarEventId, calId);

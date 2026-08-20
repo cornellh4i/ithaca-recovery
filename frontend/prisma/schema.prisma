@@ -63,6 +63,15 @@ model Meeting {
   // Server-managed provenance (session email), like creator: null = never edited since import/
   // creation. Both are set only by the API routes, never from client payloads.
   lastEditedBy           String?
+  // False for meetings whose Zoom meeting the app merely points at but does not own: ICR's
+  // legacy recurring meetings adopted in the 2026-08 migration, and externally hosted ones
+  // (e.g. a group member's personal account). The app must never PATCH, delete, or recreate an
+  // unmanaged Zoom meeting -- it is the client's property; only the stored link/passcode is ours.
+  zoomManaged            Boolean              @default(true)
+  // The Zoom meeting's display topic. Null = derive from title + a mode suffix (" - Hybrid" /
+  // " - Zoom Only", ICR's own naming convention); non-null = pinned verbatim -- backfilled with
+  // the adopted legacy meetings' exact topics so an app-side edit never renames them by surprise.
+  zoomTopic              String?
   deletedAt              DateTime?
   updatedAt              DateTime?            @updatedAt
 

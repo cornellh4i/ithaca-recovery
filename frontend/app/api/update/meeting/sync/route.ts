@@ -69,8 +69,14 @@ const syncMeeting = async (request: Request): Promise<Response> => {
                 // is the "re-enter the queue" case, handled separately by update/meeting/route.ts).
                 // The conflict itself still surfaces independently via /api/admin/conflict-mids
                 // (Diagnostics), regardless of what happens here.
-                const ok = await updateZoomMeeting(zid, meetingForCalendar);
+                // Unmanaged (adopted/external) Zoom meetings are never PATCHed -- retrying the
+                // sync only re-runs the calendar half against the stored link.
+                const ok = meeting.zoomManaged ? await updateZoomMeeting(zid, meetingForCalendar) : true;
                 if (!ok) zoomSynced = false;
+            } else if (!meeting.zoomManaged) {
+                // An unmanaged meeting with no zid points outside the app's Zoom account by
+                // deliberate choice -- a retry must not auto-provision an app-owned meeting
+                // under a flag that says the app doesn't own it.
             } else {
                 // Reserve a pool host under lock BEFORE ever calling the external Zoom API below
                 // -- closes #360's TOCTOU gap: two retries of this same meeting (or a retry

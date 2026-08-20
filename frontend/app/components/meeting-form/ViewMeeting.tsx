@@ -69,6 +69,7 @@ type ViewMeetingDetailsProps = {
   recurrencePattern?: IRecurrencePattern
   currentOccurrenceDate?: Date; // Handles the specific occurrence date
   lastEditedBy?: string | null; // Server-managed: session email of the last admin to save an edit
+  zoomManaged?: boolean; // false = ICR-owned/external Zoom meeting the app only points at
   googleSyncStatus?: string | null;
   googleSyncError?: string | null;
   zoomSyncStatus?: string | null;
@@ -114,6 +115,7 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
   description,
   creator,
   lastEditedBy,
+  zoomManaged,
   startDateTime,
   endDateTime,
   email,
@@ -497,6 +499,12 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
               <p className={styles.contactRow}>
                 <Icon name="person" />
                 <span>Host: {zoomHostLabel(zoomHost, zoomHostPool.indexOf(zoomHost))} — {zoomHost}</span>
+              </p>
+            )}
+            {zoomManaged === false && (
+              <p className={styles.contactRow}>
+                <Icon name="lock" />
+                <span>Legacy Zoom link — owned by ICR; the app keeps calendars in sync but never changes the Zoom meeting itself.</span>
               </p>
             )}
             {/* Provenance is only shown when it's a real session email -- meetings created

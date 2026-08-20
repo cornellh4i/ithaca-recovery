@@ -58,9 +58,21 @@ async function syncUpdatedMeeting(
     const explicitHostChange = !!newMeeting.zoomHost && newMeeting.zoomHost !== existingMeeting.zoomHost;
 
     if (roomChanged || explicitHostChange) {
-      if (zid) {
-        const ok = await deleteZoomMeeting(zid);
-        if (!ok) zoomSynced = false;
+      // Managed: the Zoom meeting is disposable, so tear it down for a fresh create below.
+      // Unmanaged: the Zoom meeting is ICR's (host changes were already 422'd upstream) -- keep
+      // zid/link/passcode and only move the join-link event between room calendars; the
+      // downstream zoomCalendarEventId === null branch recreates it on the new room's calendar
+      // with the stored link.
+      if (zid && existingMeeting.zoomManaged) {
+        // Shared-zid guard: a sibling row (same group, second schedule variant) may still point
+        // at this Zoom meeting -- only the last referencing row actually tears it down.
+        const siblingCount = await prisma.meeting.count({
+          where: { zid, deletedAt: null, mid: { not: mid } },
+        });
+        if (siblingCount === 0) {
+          const ok = await deleteZoomMeeting(zid);
+          if (!ok) zoomSynced = false;
+        }
       }
       if (accessToken && zoomCalendarEventId && oldZoomRoom) {
         const oldCalId = zoomRoomCalendarId[oldZoomRoom];
@@ -69,10 +81,12 @@ async function syncUpdatedMeeting(
           if (!ok) zoomSynced = false;
         }
       }
-      zid = null;
-      zoomLink = null;
-      zoomPasscode = null;
-      zoomHost = null;
+      if (existingMeeting.zoomManaged) {
+        zid = null;
+        zoomLink = null;
+        zoomPasscode = null;
+        zoomHost = null;
+      }
       zoomCalendarEventId = null;
     }
 
@@ -94,9 +108,19 @@ async function syncUpdatedMeeting(
         zoomSyncError = "This time now conflicts with another meeting using the same Zoom host.";
         skipCalendarTimeSync = true;
       } else {
-        const ok = await updateZoomMeeting(zid, newMeeting);
+        // Unmanaged Zoom meetings are never PATCHed -- the stored link is the contract; only
+        // the calendars follow the app-side edit.
+        // The pinned topic (if any) lives on the DB row, not the client payload -- thread it
+        // through so a managed PATCH keeps the meeting's established Zoom name.
+        const ok = existingMeeting.zoomManaged
+          ? await updateZoomMeeting(zid, { ...newMeeting, zoomTopic: existingMeeting.zoomTopic })
+          : true;
         if (!ok) zoomSynced = false;
       }
+    } else if (!existingMeeting.zoomManaged) {
+      // An unmanaged meeting with no zid means an admin deliberately points it outside the
+      // app's Zoom account -- never auto-provision an app-owned meeting under the flag that
+      // says the app doesn't own it.
     } else {
       // Already resolved (and persisted) synchronously in updateMeeting, before this ever
       // runs — see the comment there for why. This only does the network-bound half:
@@ -258,6 +282,18 @@ const updateMeeting = async (request: Request): Promise<Response> => {
     // down. A blank/"Automatic" selection, or resubmitting the form with the same
     // already-assigned host untouched, is NOT a reassignment.
     const explicitHostChange = !!newMeeting.zoomHost && newMeeting.zoomHost !== existingMeeting.zoomHost;
+
+    // An unmanaged Zoom meeting's host is whoever owns it on Zoom's side (adopted legacy /
+    // externally hosted -- see schema.prisma's zoomManaged); the app can't reassign that, and
+    // persisting a different pool host would only make capacity accounting lie. Everything else
+    // (rooms, times, content) is app/calendar-side and stays editable -- a Zoom-room change
+    // just moves the join-link event between room calendars using the stored link.
+    if (!existingMeeting.zoomManaged && explicitHostChange) {
+      return NextResponse.json(
+        { error: "This meeting's Zoom meeting is ICR-owned (legacy/external); its host can't be reassigned from the app." },
+        { status: 422 },
+      );
+    }
 
     // A count-bounded series (numberOfOccurrences set, no explicit endDate) has a real last
     // occurrence -- checking conflicts against the raw (still-null) endDate would expand it out

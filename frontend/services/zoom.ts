@@ -241,12 +241,21 @@ function toZoomStartTime(date: Date): string {
   return `${get("year")}-${get("month")}-${get("day")}T${get("hour")}:${get("minute")}:${get("second")}`;
 }
 
+// ICR's own Zoom naming convention, applied when no explicit zoomTopic is pinned. Adopted
+// legacy meetings carry a pinned zoomTopic instead (their verbatim pre-app names) so an
+// app-side edit can never rename them implicitly.
+function zoomTopicFor(meeting: IMeeting): string {
+  if (meeting.zoomTopic) return meeting.zoomTopic;
+  const suffix = meeting.modeType === "Remote" ? " - Zoom Only" : meeting.modeType === "Hybrid" ? " - Hybrid" : "";
+  return `${meeting.title}${suffix}`;
+}
+
 function buildZoomMeetingBody(meeting: IMeeting) {
   const durationMinutes = Math.round(
     (new Date(meeting.endDateTime).getTime() - new Date(meeting.startDateTime).getTime()) / 60000,
   );
   return {
-    topic: meeting.title,
+    topic: zoomTopicFor(meeting),
     type: 2, // single stable meeting, reused across all occurrences
     start_time: toZoomStartTime(new Date(meeting.startDateTime)),
     duration: durationMinutes,
@@ -265,7 +274,11 @@ export async function createZoomMeeting(meeting: IMeeting, hostEmail: string): P
     const res = await fetch(`${ZOOM_BASE_API}/users/${encodeURIComponent(hostEmail)}/meetings`, {
       method: "POST",
       headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-      body: JSON.stringify(buildZoomMeetingBody(meeting)),
+      body: JSON.stringify(
+        meeting.isRecurring
+          ? (({ topic, agenda, settings }) => ({ topic, agenda, settings }))(buildZoomMeetingBody(meeting))
+          : buildZoomMeetingBody(meeting),
+      ),
     });
     invalidateZoomTokenIfUnauthorized(res);
     if (!res.ok) {
@@ -305,6 +318,11 @@ export async function getZoomMeetingInvitation(zid: string): Promise<string | nu
 }
 
 export async function updateZoomMeeting(zid: string, meeting: IMeeting): Promise<boolean> {
+  // A recurring series' Zoom meeting is a stable join target (legacy type 3, or endless type 8)
+  // whose schedule lives in the app/Google Calendar, not in Zoom -- PATCHing start_time/duration
+  // into it would distort the series (and Zoom silently rewrites past starts anyway). Only
+  // content fields are safe to update for recurring meetings.
+
   try {
     const token = await getZoomAccessToken();
     if (!token) return false;
@@ -312,7 +330,11 @@ export async function updateZoomMeeting(zid: string, meeting: IMeeting): Promise
     const res = await fetch(`${ZOOM_BASE_API}/meetings/${zid}`, {
       method: "PATCH",
       headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-      body: JSON.stringify(buildZoomMeetingBody(meeting)),
+      body: JSON.stringify(
+        meeting.isRecurring
+          ? (({ topic, agenda, settings }) => ({ topic, agenda, settings }))(buildZoomMeetingBody(meeting))
+          : buildZoomMeetingBody(meeting),
+      ),
     });
     invalidateZoomTokenIfUnauthorized(res);
     if (!res.ok) console.error("Zoom updateMeeting error:", await res.text());

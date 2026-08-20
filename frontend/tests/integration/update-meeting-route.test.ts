@@ -148,6 +148,101 @@ test("a malformed body returns 400 with validation issues instead of a raw 500",
   expect(found).toBeNull();
 });
 
+test("a managed edit threads the pinned zoomTopic into the Zoom PATCH instead of the title", async () => {
+  mockedUpdateZoomMeeting.mockResolvedValue(true);
+  mockedReconcileMeetingCalendars.mockResolvedValue({ updatedEventIds: {}, allSynced: true });
+
+  const prisma = getTestPrismaClient();
+  const mid = `m-${randomUUID()}`;
+  await prisma.meeting.create({ data: { ...toMeetingCreateInput(buildMeetingPayload({
+    mid, modeType: "Remote", room: "", zoomRoom: "", zid: "70000000778", zoomHost: "zoom@518icr.com",
+  })), zoomManaged: true, zoomTopic: "Keep It Simple - Hybrid", zoomSyncStatus: "synced" } });
+
+  const edit = buildMeetingPayload({ mid, modeType: "Remote", room: "", zoomRoom: "", title: "Tuesday Noon Al-Anon", zoomHost: "zoom@518icr.com" });
+  const response = await PUT(new Request("http://localhost/api/update/meeting", { method: "PUT", body: JSON.stringify(edit) }));
+  expect(response.status).toBe(200);
+
+  await waitFor(async () => (mockedUpdateZoomMeeting.mock.calls.length > 0 ? true : null));
+  expect(mockedUpdateZoomMeeting).toHaveBeenCalledWith(
+    "70000000778",
+    expect.objectContaining({ zoomTopic: "Keep It Simple - Hybrid" }),
+  );
+});
+
+test("an unmanaged Zoom meeting is never PATCHed by a plain edit, and the edit still succeeds", async () => {
+  mockedReconcileMeetingCalendars.mockResolvedValue({ updatedEventIds: {}, allSynced: true });
+
+  const prisma = getTestPrismaClient();
+  const mid = `m-${randomUUID()}`;
+  await prisma.meeting.create({ data: { ...toMeetingCreateInput(buildMeetingPayload({
+    mid, modeType: "Remote", room: "", zoomRoom: "", zid: "40134853210", zoomHost: null,
+    zoomLink: "https://zoom.us/j/40134853210",
+  })), zoomManaged: false, zoomSyncStatus: "synced" } });
+
+  const edit = buildMeetingPayload({ mid, modeType: "Remote", room: "", zoomRoom: "", title: "Renamed Unmanaged" });
+  const response = await PUT(new Request("http://localhost/api/update/meeting", { method: "PUT", body: JSON.stringify(edit) }));
+  expect(response.status).toBe(200);
+
+  expect(mockedUpdateZoomMeeting).not.toHaveBeenCalled();
+  expect(mockedDeleteZoomMeeting).not.toHaveBeenCalled();
+  const stored = await prisma.meeting.findUnique({ where: { mid } });
+  expect(stored?.title).toBe("Renamed Unmanaged");
+  expect(stored?.zid).toBe("40134853210");
+  expect(stored?.zoomSyncStatus).toBe("synced");
+});
+
+test("a Zoom-room change on an unmanaged meeting moves the calendar event but keeps the Zoom meeting", async () => {
+  mockedReconcileMeetingCalendars.mockResolvedValue({ updatedEventIds: {}, allSynced: true });
+
+  const prisma = getTestPrismaClient();
+  const mid = `m-${randomUUID()}`;
+  await prisma.meeting.create({ data: { ...toMeetingCreateInput(buildMeetingPayload({
+    mid, modeType: "Hybrid", room: "Unmanaged Move Room", zoomRoom: "Unmanaged Move Room - Zoom",
+    zid: "85466978793", zoomHost: "518board@gmail.com", zoomLink: "https://zoom.us/j/85466978793",
+    zoomCalendarEventId: "old-room-event",
+  })), zoomManaged: false, zoomSyncStatus: "synced" } });
+
+  const edit = buildMeetingPayload({
+    mid, modeType: "Hybrid", room: "Unmanaged Move Room 2", zoomRoom: "Unmanaged Move Room 2 - Zoom",
+    zid: "85466978793", zoomHost: "518board@gmail.com",
+  });
+  const response = await PUT(new Request("http://localhost/api/update/meeting", { method: "PUT", body: JSON.stringify(edit) }));
+  expect(response.status).toBe(200);
+
+  // The deferred sync persists the kept zid/link last — wait for the room change to land,
+  // then assert what the sync did (and didn't do) to Zoom.
+  const stored = await waitFor(async () => {
+    const m = await prisma.meeting.findUnique({ where: { mid } });
+    return m?.zoomRoom === "Unmanaged Move Room 2 - Zoom" && m.zoomSyncStatus === "synced" ? m : null;
+  });
+
+  // The Zoom meeting itself is never deleted, recreated, or PATCHed.
+  expect(mockedDeleteZoomMeeting).not.toHaveBeenCalled();
+  expect(mockedCreateZoomMeeting).not.toHaveBeenCalled();
+  expect(mockedUpdateZoomMeeting).not.toHaveBeenCalled();
+
+  expect(stored?.zid).toBe("85466978793");
+  expect(stored?.zoomLink).toBe("https://zoom.us/j/85466978793");
+});
+
+test("an explicit host change on an unmanaged Zoom meeting is rejected with 422 before touching Zoom", async () => {
+  const prisma = getTestPrismaClient();
+  const mid = `m-${randomUUID()}`;
+  await prisma.meeting.create({ data: { ...toMeetingCreateInput(buildMeetingPayload({
+    mid, modeType: "Remote", room: "", zoomRoom: "", zid: "89296128710", zoomHost: "zoom@518icr.com",
+  })), zoomManaged: false } });
+
+  const edit = buildMeetingPayload({ mid, modeType: "Remote", room: "", zoomRoom: "", zoomHost: "518board@gmail.com" });
+  const response = await PUT(new Request("http://localhost/api/update/meeting", { method: "PUT", body: JSON.stringify(edit) }));
+  expect(response.status).toBe(422);
+  expect(mockedDeleteZoomMeeting).not.toHaveBeenCalled();
+  expect(mockedUpdateZoomMeeting).not.toHaveBeenCalled();
+
+  const stored = await prisma.meeting.findUnique({ where: { mid } });
+  expect(stored?.zid).toBe("89296128710");
+  expect(stored?.zoomHost).toBe("zoom@518icr.com");
+});
+
 test("an update never overwrites the stored creator with the client payload's value", async () => {
   mockedReconcileMeetingCalendars.mockResolvedValue({ updatedEventIds: {}, allSynced: true });
 
