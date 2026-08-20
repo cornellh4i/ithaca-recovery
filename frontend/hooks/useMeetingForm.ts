@@ -277,7 +277,21 @@ export function useMeetingForm(initialMeeting?: IMeeting, defaultContext?: Meeti
     }) => {
         setIsRecurring(data.isRecurring);
         setRecurrencePattern(data.recurrencePattern);
-        const signature = JSON.stringify(data);
+        // recurrencePattern.startDate is excluded from the dirty-comparison signature below --
+        // RecurringMeetingForm rebuilds it from this hook's own `date` field on every Date-field
+        // edit (its main effect depends on the `startDate` prop), so it shifts every time
+        // regardless of whether the user touched any actual recurrence setting. Counting it here
+        // would make editing only the Date field also trip isRecurrenceDirty, disabling 'this'
+        // in EditRecurringModal on top of isDateDirty's own (correct, narrower) 'thisAndFollowing'-
+        // only gate. The real recurrencePattern state above is untouched -- buildMeetingPayload
+        // still submits its actual startDate; only this comparison ignores it.
+        const comparableData = {
+            ...data,
+            recurrencePattern: data.recurrencePattern
+                ? { ...data.recurrencePattern, startDate: undefined }
+                : null,
+        };
+        const signature = JSON.stringify(comparableData);
         setRecurrenceSignature(signature);
         // While still settling, every report becomes the new baseline (see
         // recurrenceSettlingRef's comment above) -- once the window closes, only the first

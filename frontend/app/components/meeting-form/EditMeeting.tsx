@@ -451,6 +451,7 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
             onSave={handleScopeChoice}
             disableThis={isRecurrenceDirty}
             disableScopedEdits={isModeDirty || isHostDirty}
+            disableThisAndFollowing={isDateDirty}
           />
         )}
         <ConflictOverrideModal

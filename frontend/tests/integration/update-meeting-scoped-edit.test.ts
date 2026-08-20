@@ -177,6 +177,57 @@ test("editScope 'thisAndFollowing' without a recurrencePattern is rejected with 
   expect(response.status).toBe(400);
 });
 
+test("editScope 'thisAndFollowing' with a startDateTime whose ET date diverges from occurrenceDate is rejected with 400", async () => {
+  // The tail series' pattern.startDate anchors to occurrenceDate (the clicked occurrence), while
+  // the new row's own startDateTime is whatever the client submits -- these must describe the
+  // same calendar date, or the row's own date silently disagrees with the series it claims to
+  // start (PR #523 review).
+  const { meeting } = await seedWeeklySeries();
+  const occurrenceDate = occurrence(3).start;
+  const movedStart = new Date(occurrenceDate.getTime() + 24 * 60 * 60 * 1000); // next calendar day
+  const movedEnd = new Date(movedStart.getTime() + SERIES_DURATION_MS);
+
+  const response = await putMeeting(scopedPayload(meeting.mid, "thisAndFollowing", occurrenceDate, {
+    startDateTime: movedStart,
+    endDateTime: movedEnd,
+    recurrencePattern: { type: "weekly", startDate: occurrenceDate, daysOfWeek: [SERIES_WEEKDAY], firstDayOfWeek: "Sunday", interval: 1 },
+  }));
+  expect(response.status).toBe(400);
+  const body = await response.json();
+  expect(body.error).toBe("date changes apply to a single event or the whole series");
+});
+
+test("editScope 'thisAndFollowing' with startDateTime re-anchored to occurrenceDate (same ET date, different time-of-day) is unaffected", async () => {
+  const { meeting } = await seedWeeklySeries();
+  const occurrenceDate = occurrence(3).start;
+  // Same calendar date as occurrenceDate, but a different wall-clock time -- only the ET DATE
+  // has to match, not the exact instant.
+  const reAnchoredStart = new Date(occurrenceDate.getTime() + 60 * 60 * 1000);
+  const reAnchoredEnd = new Date(reAnchoredStart.getTime() + SERIES_DURATION_MS);
+
+  const response = await putMeeting(scopedPayload(meeting.mid, "thisAndFollowing", occurrenceDate, {
+    startDateTime: reAnchoredStart,
+    endDateTime: reAnchoredEnd,
+    recurrencePattern: { type: "weekly", startDate: occurrenceDate, daysOfWeek: [SERIES_WEEKDAY], firstDayOfWeek: "Sunday", interval: 1 },
+  }));
+  expect(response.status).toBe(200);
+});
+
+test("editScope 'this' with a moved startDateTime is unaffected by the thisAndFollowing date guard", async () => {
+  // Editing the single occurrence's own date is the whole point of scope 'this' -- the new
+  // date-match guard is scoped to 'thisAndFollowing' only.
+  const { meeting } = await seedWeeklySeries();
+  const occurrenceDate = occurrence(2).start;
+  const movedStart = new Date(occurrenceDate.getTime() + 24 * 60 * 60 * 1000);
+  const movedEnd = new Date(movedStart.getTime() + SERIES_DURATION_MS);
+
+  const response = await putMeeting(scopedPayload(meeting.mid, "this", occurrenceDate, {
+    startDateTime: movedStart,
+    endDateTime: movedEnd,
+  }));
+  expect(response.status).toBe(200);
+});
+
 test("an occurrenceDate that isn't a live occurrence of the pattern is rejected with 400", async () => {
   const { meeting } = await seedWeeklySeries();
   // One day off the weekly pattern's day-of-week -- never a live occurrence.

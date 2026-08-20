@@ -288,6 +288,27 @@ describe("EditMeetingSidebar recurring-scope re-anchoring", () => {
     expect(screen.getByText(/Mode and host changes apply to the whole series/)).toBeInTheDocument();
   });
 
+  // 'thisAndFollowing' with an edited Date field would give the child row a startDateTime from
+  // the edited Date field while its RecurrencePattern.startDate comes from the clicked
+  // occurrenceDate -- a divergent anchor. 'this' stays available (a date change unambiguously
+  // means "move this one occurrence" there, and EditMeeting's re-anchor logic only applies when
+  // the Date field is untouched, which it explicitly isn't here).
+  it("disables only This and following when the Date field was changed", async () => {
+    renderEdit();
+    await act(async () => {});
+
+    const dateInput = screen.getByPlaceholderText("MM/DD/YYYY");
+    fireEvent.change(dateInput, { target: { value: "09/01/2026" } });
+    fireEvent.blur(dateInput);
+
+    fireEvent.click(screen.getByRole("button", { name: "Update Meeting" }));
+
+    expect(screen.getByLabelText("This event")).not.toBeDisabled();
+    expect(screen.getByLabelText("This and following events")).toBeDisabled();
+    expect(screen.getByLabelText("All events")).not.toBeDisabled();
+    expect(screen.getByText(/Date changes apply to a single event or the whole series/)).toBeInTheDocument();
+  });
+
   // zoomRoom changes are now honored for every scope (the child row takes the new Zoom Room) --
   // unlike Mode/Host, they must NOT disable the scoped options.
   it("does not gate scoped options when only the Zoom Room was changed", async () => {

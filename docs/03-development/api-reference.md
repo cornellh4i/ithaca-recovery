@@ -105,6 +105,8 @@ Either way, the new row inherits the parent's Zoom identity (`zid`, `zoomHost`, 
 
 `modeType` and `zoomHost` are whole-series properties and can't be changed by a scoped edit — unlike `zoomRoom`, a mode or host change has series-wide consequences a single split-off row can't represent. A body whose `modeType` differs from the parent's is rejected with `400` (`"mode changes apply to the whole series"`); a body with an explicit `zoomHost` (case-insensitive, non-empty) different from the parent's stored host is rejected with `400` (`"host changes apply to the whole series"`) — a blank/omitted `zoomHost`, or resubmitting the parent's own already-assigned host, is not a change.
 
+For `editScope: "thisAndFollowing"`, the new tail series' `RecurrencePattern.startDate` anchors to `occurrenceDate`, while the row's own `startDateTime` is whatever the body submits — those must name the same Eastern-Time calendar date, or a `400` (`"date changes apply to a single event or the whole series"`) is returned; a client that re-anchors the date field to `occurrenceDate` (matching calendar date, any time-of-day) is unaffected. `editScope: "this"` is exempt — editing the single occurrence's own date is expected there.
+
 **Request body:** `IMeeting` (must include `mid`), plus `editScope`/`occurrenceDate` above
 
 **Response:** `200 OK` — updated `IMeeting`; when `editScope` was `"this"`/`"thisAndFollowing"`, also includes `newMid` (the new split-off row's `mid`)

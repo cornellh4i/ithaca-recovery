@@ -74,4 +74,50 @@ describe("EditRecurringModal", () => {
     expect(screen.getByLabelText("This event")).not.toBeDisabled();
     expect(screen.getByLabelText("This and following events")).not.toBeDisabled();
   });
+
+  // A date change is unambiguous for 'this' (move one occurrence) but ambiguous for
+  // 'thisAndFollowing' (the child row's startDateTime would come from the edited Date field
+  // while its RecurrencePattern.startDate comes from the clicked occurrenceDate -- a divergent
+  // anchor) -- only 'thisAndFollowing' is disabled, 'this' stays available and selected.
+  it("disables only This and following when the Date field was changed", () => {
+    render(<EditRecurringModal isOpen {...baseProps} disableThisAndFollowing />);
+    expect(screen.getByLabelText("This event")).not.toBeDisabled();
+    expect(screen.getByLabelText("This and following events")).toBeDisabled();
+    expect(screen.getByLabelText("All events")).not.toBeDisabled();
+    // 'this' was already the default selection and isn't disabled, so nothing forces it away.
+    expect(screen.getByLabelText("This event")).toBeChecked();
+    expect(screen.getByText(/Date changes apply to a single event or the whole series/)).toBeInTheDocument();
+  });
+
+  it("only ever calls onSave with 'this' or 'all' while disableThisAndFollowing is set", () => {
+    const onSave = jest.fn();
+    render(<EditRecurringModal isOpen {...baseProps} onSave={onSave} disableThisAndFollowing />);
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    expect(onSave).toHaveBeenCalledWith("this");
+  });
+
+  // Recurrence-dirty disables 'this'; date-dirty (independently) disables 'thisAndFollowing' --
+  // together they leave only 'all' selectable, and the fall-through must land there instead of
+  // stopping on the equally-disabled 'thisAndFollowing'. Both hints are for genuinely different
+  // reasons, so both should show.
+  it("falls through to All events when recurrence-dirty and date-dirty combine to disable both scoped options", () => {
+    render(<EditRecurringModal isOpen {...baseProps} disableThis disableThisAndFollowing />);
+    expect(screen.getByLabelText("This event")).toBeDisabled();
+    expect(screen.getByLabelText("This and following events")).toBeDisabled();
+    expect(screen.getByLabelText("All events")).not.toBeDisabled();
+    expect(screen.getByLabelText("All events")).toBeChecked();
+    expect(screen.getByLabelText("All events")).toHaveFocus();
+    expect(screen.getByText(/Recurrence changes apply to the whole series/)).toBeInTheDocument();
+    expect(screen.getByText(/Date changes apply to a single event or the whole series/)).toBeInTheDocument();
+  });
+
+  // The broader mode/host gate already disables both scoped options and explains why -- the
+  // narrower date-only hint would be redundant/confusing alongside it, so it's suppressed.
+  it("prefers the mode/host hint over the date hint when both apply", () => {
+    render(<EditRecurringModal isOpen {...baseProps} disableScopedEdits disableThisAndFollowing />);
+    expect(screen.getByLabelText("This event")).toBeDisabled();
+    expect(screen.getByLabelText("This and following events")).toBeDisabled();
+    expect(screen.getByText(/Mode and host changes apply to the whole series/)).toBeInTheDocument();
+    expect(screen.queryByText(/Date changes apply to a single event or the whole series/)).not.toBeInTheDocument();
+  });
 });

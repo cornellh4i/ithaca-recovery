@@ -13,7 +13,7 @@ import { lockResourceClaims, ResourceClaim } from "../../../../util/meetings/res
 import { meetingSchema, editScopeSchema } from "../../../../util/meetings/meetingValidation";
 import { reconcilePendingResume, tearDownPendingResumeSeries } from "../../../../util/meetings/suspension";
 import { calculateEndDateFromOccurrences } from "../../../../util/meetings/meetingOccurrences";
-import { EditScope, exclusionInstant, trimmedEndDate, isLiveOccurrence, rootSplitMid } from "../../../../util/meetings/editScope";
+import { EditScope, exclusionInstant, trimmedEndDate, isLiveOccurrence, rootSplitMid, toETDateStr } from "../../../../util/meetings/editScope";
 import { prisma } from "../../../../lib/prisma";
 
 // Runs after the response is sent (see after() call below) — failure updates googleSyncStatus
@@ -748,6 +748,20 @@ const updateMeeting = async (request: Request): Promise<Response> => {
       if (editScope === 'thisAndFollowing' && !newMeeting.recurrencePattern) {
         return NextResponse.json(
           { error: "editScope 'thisAndFollowing' requires a recurrencePattern for the new series." },
+          { status: 400 },
+        );
+      }
+      // 'thisAndFollowing' anchors the new tail series' pattern.startDate to occurrenceDate (the
+      // clicked occurrence), not to newMeeting.startDateTime -- handleScopedEdit uses
+      // occurrenceDate for the series start and newMeeting.startDateTime for the row's own
+      // wall-clock time. Those only stay consistent if the client re-anchored the date field to
+      // match occurrenceDate; an edited date field (a genuine date CHANGE, not a re-anchor)
+      // would silently diverge the row's own date from the series it claims to start. Scope
+      // 'this' is deliberately exempt -- editing the single occurrence's own date is the whole
+      // point there.
+      if (editScope === 'thisAndFollowing' && toETDateStr(newMeeting.startDateTime) !== toETDateStr(occurrenceDate)) {
+        return NextResponse.json(
+          { error: "date changes apply to a single event or the whole series" },
           { status: 400 },
         );
       }
