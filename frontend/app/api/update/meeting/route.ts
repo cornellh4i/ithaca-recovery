@@ -55,7 +55,10 @@ async function syncUpdatedMeeting(
     // dropdown. A blank/"Automatic" selection is NOT a reassignment -- it just means "don't
     // force a specific host," so whatever host is already assigned is kept as-is.
     const roomChanged = !!oldZoomRoom && oldZoomRoom !== newZoomRoom;
-    const explicitHostChange = !!newMeeting.zoomHost && newMeeting.zoomHost !== existingMeeting.zoomHost;
+    // Case-insensitive (#504): a casing-only difference (Zoom-registered vs ZOOM_HOSTS casing)
+    // is the same physical host, not a reassignment.
+    const explicitHostChange = !!newMeeting.zoomHost &&
+      newMeeting.zoomHost.toLowerCase() !== (existingMeeting.zoomHost ?? "").toLowerCase();
 
     if (roomChanged || explicitHostChange) {
       // Managed: the Zoom meeting is disposable, so tear it down for a fresh create below.
@@ -281,7 +284,10 @@ const updateMeeting = async (request: Request): Promise<Response> => {
     // below so the blocking conflict check can use it too, not just the resolution step further
     // down. A blank/"Automatic" selection, or resubmitting the form with the same
     // already-assigned host untouched, is NOT a reassignment.
-    const explicitHostChange = !!newMeeting.zoomHost && newMeeting.zoomHost !== existingMeeting.zoomHost;
+    // Case-insensitive (#504): a casing-only difference (Zoom-registered vs ZOOM_HOSTS casing)
+    // is the same physical host, not a reassignment.
+    const explicitHostChange = !!newMeeting.zoomHost &&
+      newMeeting.zoomHost.toLowerCase() !== (existingMeeting.zoomHost ?? "").toLowerCase();
 
     // An unmanaged Zoom meeting's host is whoever owns it on Zoom's side (adopted legacy /
     // externally hosted -- see schema.prisma's zoomManaged); the app can't reassign that, and
