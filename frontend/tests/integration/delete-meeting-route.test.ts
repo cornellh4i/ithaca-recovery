@@ -28,7 +28,7 @@ jest.mock("../../services/googleCalendar", () => ({
 
 jest.mock("../../services/zoom", () => ({
   deleteZoomMeeting: jest.fn().mockResolvedValue(true),
-  zoomRoomCalendarId: {},
+  zoomRoomCalendarId: { "Delete Route Zoom Room": "fake-room-calendar-id" },
 }));
 
 import { deleteCalendarEvent, updateCalendarEvent } from "../../services/googleCalendar";
@@ -248,6 +248,53 @@ describe("deleteOption 'this' / 'thisAndFollowing'", () => {
     }));
     expect(response.status).toBe(200);
 
+    await drainAfterTasks();
+    expect(mockedUpdate).not.toHaveBeenCalled();
+  });
+
+  test("'this' also rewrites the meeting's own Zoom-Room join-link event, not just the calType event", async () => {
+    const { meeting } = await seedRecurringMeeting(
+      {
+        modeType: "Hybrid", room: "Delete Route Room", zoomRoom: "Delete Route Zoom Room",
+        zoomCalendarEventId: "live-room-event-id", zoomLink: "https://zoom.us/j/deleteroutetest",
+        googleCalendarEventIds: { AA: "live-event-id" },
+      },
+      { type: "weekly", daysOfWeek: ["Monday"], interval: 1 },
+    );
+    const occurrenceDate = new Date("2026-09-14T18:00:00Z"); // a Monday
+
+    const response = await DELETE(new Request("http://localhost/api/delete/meeting", {
+      method: "DELETE",
+      body: JSON.stringify({ mid: meeting.mid, deleteOption: "this", occurrenceDate: occurrenceDate.toISOString() }),
+    }));
+    expect(response.status).toBe(200);
+    await drainAfterTasks();
+
+    // Two full-body rewrites: the calType calendar event and the room-cal event.
+    expect(mockedUpdate).toHaveBeenCalledTimes(2);
+    const roomCall = mockedUpdate.mock.calls.find((call) => call[1] === "live-room-event-id");
+    expect(roomCall).toBeDefined();
+    expect(roomCall![3]).toBe("fake-room-calendar-id");
+    expect(roomCall![4]).toBe("https://zoom.us/j/deleteroutetest"); // locationOverride: the join link
+    expect(roomCall![2].recurrencePattern.excludedDates).toHaveLength(1);
+  });
+
+  test("a suspended meeting's 'this' delete never rewrites its room-cal event either", async () => {
+    const { meeting } = await seedRecurringMeeting(
+      {
+        status: "Suspended", modeType: "Hybrid", room: "Delete Route Room 2", zoomRoom: "Delete Route Zoom Room",
+        zoomCalendarEventId: "live-room-event-id-2", zoomLink: "https://zoom.us/j/deleteroutetest2",
+        googleCalendarEventIds: { AA: "live-event-id" },
+      },
+      { type: "weekly", daysOfWeek: ["Monday"], interval: 1 },
+    );
+    const occurrenceDate = new Date("2026-09-14T18:00:00Z");
+
+    const response = await DELETE(new Request("http://localhost/api/delete/meeting", {
+      method: "DELETE",
+      body: JSON.stringify({ mid: meeting.mid, deleteOption: "this", occurrenceDate: occurrenceDate.toISOString() }),
+    }));
+    expect(response.status).toBe(200);
     await drainAfterTasks();
     expect(mockedUpdate).not.toHaveBeenCalled();
   });

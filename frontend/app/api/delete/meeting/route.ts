@@ -20,22 +20,32 @@ const toETDateStr = (date: Date): string =>
 // event to match the meeting's POST-WRITE RecurrencePattern (buildEventBody now serializes
 // excludedDates as EXDATE lines and endDate as UNTIL itself, so a plain events.update with the
 // already-mutated pattern is sufficient; no more surgical EXDATE/UNTIL patch needed for a
-// 'this'/'thisAndFollowing' delete). Skipped for a currently suspended meeting -- its live GCal
-// recurrence already carries a suspension-only UNTIL trim (syncSuspend in update/meeting/
-// suspend/route.ts, via trimCalendarEventSeries) that isn't represented in RecurrencePattern at
-// all, and a full-body rewrite from the stored pattern would silently resurrect whatever the
-// suspension hid.
+// 'this'/'thisAndFollowing' delete), plus the meeting's OWN Zoom-Room join-link event (if it has
+// one) -- previously a partial delete never touched it at all, leaving it describing an
+// occurrence 'this' had just excluded (or a tail 'thisAndFollowing' had just trimmed away).
+// Mirrors how that event was created (write/meeting's syncNewMeeting): same calendar
+// (zoomRoomCalendarId[zoomRoom]), same locationOverride (the join link). Skipped for a currently
+// suspended meeting -- its live GCal recurrence already carries a suspension-only UNTIL trim
+// (syncSuspend in update/meeting/suspend/route.ts, via trimCalendarEventSeries) that isn't
+// represented in RecurrencePattern at all, and a full-body rewrite from the stored pattern would
+// silently resurrect whatever the suspension hid.
 async function syncPartialDelete(
   status: string,
   accessToken: string | undefined,
   calendarIds: Record<string, string>,
   eventIds: Record<string, string>,
   meetingForCalendar: IMeeting,
+  zoomCalendarEventId: string | null,
+  zoomRoom: string | null,
 ): Promise<void> {
   if (!accessToken || status === 'Suspended') return;
   for (const [cat, calId] of Object.entries(calendarIds)) {
     const eventId = eventIds[cat];
     if (eventId) await updateCalendarEvent(accessToken, eventId, meetingForCalendar, calId);
+  }
+  if (zoomCalendarEventId && zoomRoom) {
+    const calId = zoomRoomCalendarId[zoomRoom];
+    if (calId) await updateCalendarEvent(accessToken, zoomCalendarEventId, meetingForCalendar, calId, meetingForCalendar.zoomLink ?? undefined);
   }
 }
 
@@ -146,6 +156,7 @@ const deleteMeeting = async (request: Request) => {
       after(syncPartialDelete(
         meeting.status, accessToken, calendarIds, eventIds,
         { ...meeting, recurrencePattern: updatedPattern } as unknown as IMeeting,
+        meeting.zoomCalendarEventId, meeting.zoomRoom,
       ));
     } else if (deleteOption === 'thisAndFollowing') {
       if (!meeting.recurrencePattern) {
@@ -180,6 +191,7 @@ const deleteMeeting = async (request: Request) => {
       after(syncPartialDelete(
         meeting.status, accessToken, calendarIds, eventIds,
         { ...meeting, recurrencePattern: updatedPattern } as unknown as IMeeting,
+        meeting.zoomCalendarEventId, meeting.zoomRoom,
       ));
     } else {
       // 'all' or non-recurring: soft-delete the master meeting record

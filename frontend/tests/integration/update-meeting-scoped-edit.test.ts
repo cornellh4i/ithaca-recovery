@@ -40,7 +40,7 @@ jest.mock("../../services/zoom", () => ({
   resolveZoomHost: jest.fn(),
   getZoomHostCapacities: jest.fn().mockResolvedValue({}),
   zoomHostPool: ["mock-pool-host-1@icr.test", "mock-pool-host-2@icr.test"],
-  zoomRoomCalendarId: { "Scoped Zoom Room": "zoomroom-cal-id" },
+  zoomRoomCalendarId: { "Scoped Zoom Room": "zoomroom-cal-id", "Scoped Zoom Room 2": "zoomroom-cal-id-2" },
 }));
 
 import { getTestPrismaClient, disconnectTestPrismaClient } from "../factories/db";
@@ -451,4 +451,156 @@ test("editScope 'all' (omitted) behaves exactly as before -- a single-series in-
   expect(rowCount).toBe(1);
   const stored = await prisma.meeting.findUnique({ where: { mid: meeting.mid } });
   expect(stored?.title).toBe("Plainly Edited");
+});
+
+// Zoom-Room moves: the Zoom meeting is host-owned, not room-owned, so a scoped edit's split-off
+// row is free to publish on a different Zoom Room than the parent while keeping the inherited
+// zid/link/passcode/host working.
+describe("scoped edit Zoom Room moves", () => {
+  function hybridSeries(overrides: Partial<Parameters<typeof seedRecurringMeeting>[0]> = {}) {
+    return seedWeeklySeries({
+      modeType: "Hybrid",
+      room: `Test Room ${randomUUID()}`,
+      zoomRoom: "Scoped Zoom Room",
+      zoomCalendarEventId: "parent-room-event",
+      zoomLink: `https://zoom.us/j/${randomUUID()}`,
+      ...overrides,
+    });
+  }
+
+  test("moves the child to a new Zoom Room -- its own room-cal event, parent's own event untouched by room", async () => {
+    const { meeting } = await hybridSeries({ googleCalendarEventIds: { AA: "parent-event-aa" } });
+    const occurrenceDate = occurrence(2).start;
+
+    const response = await putMeeting(scopedPayload(meeting.mid, "this", occurrenceDate, {
+      modeType: "Hybrid", room: meeting.room, zoomRoom: "Scoped Zoom Room 2",
+    }));
+    expect(response.status).toBe(200);
+    const body = await response.json();
+
+    const prisma = getTestPrismaClient();
+    const created = await waitFor(async () => {
+      const row = await prisma.meeting.findUnique({ where: { mid: body.newMid } });
+      return row?.googleSyncStatus != null ? row : null;
+    });
+    expect(created?.zoomRoom).toBe("Scoped Zoom Room 2");
+    // Zoom identity still inherited regardless of room.
+    expect(created?.zid).toBe(meeting.zid);
+    expect(created?.zoomLink).toBe(meeting.zoomLink);
+    expect(created?.zoomHost).toBe(meeting.zoomHost);
+    expect(created?.zoomManaged).toBe(meeting.zoomManaged);
+
+    // The child's own room-cal event was created on the NEW room's calendar with the inherited
+    // join link as its location.
+    const roomCalCall = mockedCreateCalendarEvent.mock.calls.find((call) => call[2] === "zoomroom-cal-id-2");
+    expect(roomCalCall).toBeDefined();
+    expect(roomCalCall![3]).toBe(meeting.zoomLink);
+
+    // The parent's own room-cal event still exists and was rewritten (full-body), not deleted --
+    // it keeps living on room 1's calendar.
+    const parentRoomCalCall = mockedUpdateCalendarEvent.mock.calls.find((call) => call[1] === "parent-room-event");
+    expect(parentRoomCalCall).toBeDefined();
+    expect(parentRoomCalCall![3]).toBe("zoomroom-cal-id");
+  });
+
+  test("a Remote child (no zoomRoom at all) skips room-cal creation cleanly", async () => {
+    // meetingSchema requires a Hybrid meeting to carry both room and zoomRoom, so "removed" only
+    // has a real meaning for a Remote series (zoomRoom always null/absent) -- exercised here
+    // explicitly since the Hybrid tests above never take this path.
+    const { meeting } = await seedWeeklySeries({ googleCalendarEventIds: { AA: "parent-event-aa" } });
+    const occurrenceDate = occurrence(2).start;
+
+    const response = await putMeeting(scopedPayload(meeting.mid, "this", occurrenceDate, {
+      modeType: "Remote", room: "", zoomRoom: null,
+    }));
+    expect(response.status).toBe(200);
+    const body = await response.json();
+
+    const prisma = getTestPrismaClient();
+    const created = await waitFor(async () => {
+      const row = await prisma.meeting.findUnique({ where: { mid: body.newMid } });
+      return row?.googleSyncStatus != null ? row : null;
+    });
+    expect(created?.zoomRoom).toBeNull();
+    expect(created?.zoomCalendarEventId).toBeNull();
+
+    // Only the calType event was created for the child -- no room-cal call at all.
+    const roomCalCalls = mockedCreateCalendarEvent.mock.calls.filter((call) => call[2]?.startsWith("zoomroom-cal-id"));
+    expect(roomCalCalls).toHaveLength(0);
+  });
+
+  test("a zoomRoom conflict on the child's dates is rejected with 409, and confirmOverride bypasses it", async () => {
+    const { meeting } = await hybridSeries();
+    const occ = occurrence(2);
+    await seedMeeting({
+      modeType: "Hybrid", room: `Busy Room ${randomUUID()}`, zoomRoom: "Scoped Zoom Room 2",
+      startDateTime: occ.start, endDateTime: occ.end,
+    });
+
+    const blocked = await putMeeting(scopedPayload(meeting.mid, "this", occ.start, {
+      modeType: "Hybrid", room: meeting.room, zoomRoom: "Scoped Zoom Room 2",
+    }));
+    expect(blocked.status).toBe(409);
+    const blockedBody = await blocked.json();
+    expect(blockedBody.conflicts[0]).toMatchObject({ field: "zoomRoom", value: "Scoped Zoom Room 2" });
+
+    const overridden = await putMeeting(scopedPayload(meeting.mid, "this", occ.start, {
+      modeType: "Hybrid", room: meeting.room, zoomRoom: "Scoped Zoom Room 2", confirmOverride: true,
+    }));
+    expect(overridden.status).toBe(200);
+  });
+
+  test("a suspended parent's scoped edit never rewrites its room-cal event either", async () => {
+    const { meeting } = await hybridSeries({ status: "Suspended", googleCalendarEventIds: { AA: "parent-event-aa" } });
+    const occurrenceDate = occurrence(2).start;
+
+    const response = await putMeeting(scopedPayload(meeting.mid, "this", occurrenceDate, {
+      modeType: "Hybrid", room: meeting.room, zoomRoom: "Scoped Zoom Room", status: "Suspended",
+    }));
+    expect(response.status).toBe(200);
+    await waitFor(async () => (mockedCreateCalendarEvent.mock.calls.length > 0 ? true : null));
+
+    expect(mockedUpdateCalendarEvent).not.toHaveBeenCalled();
+  });
+});
+
+describe("scoped edit rejects whole-series-only field changes", () => {
+  test("a modeType change is rejected with 400 (\"mode changes apply to the whole series\")", async () => {
+    const { meeting } = await seedWeeklySeries({ modeType: "Remote" });
+    const occurrenceDate = occurrence(2).start;
+
+    const response = await putMeeting(scopedPayload(meeting.mid, "this", occurrenceDate, { modeType: "In Person", room: "Some Room" }));
+    expect(response.status).toBe(400);
+    const body = await response.json();
+    expect(body.error).toBe("mode changes apply to the whole series");
+  });
+
+  test("an explicit zoomHost change is rejected with 400 (\"host changes apply to the whole series\")", async () => {
+    // Unique per-call host (seedWeeklySeries' default) -- a fixed literal shared with another
+    // test in this file would collide as a real zoomHost conflict (capacity 1) via the exact
+    // same occurrence(2) slot every scoped-edit test in this file targets.
+    const { meeting } = await seedWeeklySeries();
+    const occurrenceDate = occurrence(2).start;
+
+    const response = await putMeeting(scopedPayload(meeting.mid, "this", occurrenceDate, { zoomHost: `different-host-${randomUUID()}@518icr.com` }));
+    expect(response.status).toBe(400);
+    const body = await response.json();
+    expect(body.error).toBe("host changes apply to the whole series");
+  });
+
+  test("resubmitting the parent's own already-assigned host (any casing) is NOT treated as a change", async () => {
+    const { meeting } = await seedWeeklySeries();
+    const occurrenceDate = occurrence(2).start;
+
+    const response = await putMeeting(scopedPayload(meeting.mid, "this", occurrenceDate, { zoomHost: meeting.zoomHost!.toUpperCase() }));
+    expect(response.status).toBe(200);
+  });
+
+  test("a blank/omitted zoomHost is NOT treated as a change", async () => {
+    const { meeting } = await seedWeeklySeries();
+    const occurrenceDate = occurrence(2).start;
+
+    const response = await putMeeting(scopedPayload(meeting.mid, "this", occurrenceDate, { zoomHost: null }));
+    expect(response.status).toBe(200);
+  });
 });
