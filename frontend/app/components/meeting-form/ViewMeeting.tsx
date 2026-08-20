@@ -10,7 +10,7 @@ import TagList from '../ui/displays/TagList';
 import BottomSheet from '../ui/overlays/BottomSheet';
 import Icon from '../ui/displays/Icon';
 
-import { IRecurrencePattern } from '../../../types/models';
+import { IRecurrencePattern, ISharedZoomRow } from '../../../types/models';
 import { formatCompactTimeRange, formatMeetingDateLine } from "../../../util/date/timeFormat";
 import {
   convertETToUTC,
@@ -70,6 +70,12 @@ type ViewMeetingDetailsProps = {
   currentOccurrenceDate?: Date; // Handles the specific occurrence date
   lastEditedBy?: string | null; // Server-managed: session email of the last admin to save an edit
   zoomManaged?: boolean; // false = ICR-owned/external Zoom meeting the app only points at
+  // Other active rows on the same Zoom link (shared legacy meetings) -- admin-only, like the
+  // rest of the contact group it renders in.
+  sharedWith?: ISharedZoomRow[];
+  // Those rows' schedules disagree, so Zoom is holding its current schedule until they match.
+  // A pending state, not a failure: the app and Google calendars already follow this row.
+  zoomScheduleDiverged?: boolean;
   googleSyncStatus?: string | null;
   googleSyncError?: string | null;
   zoomSyncStatus?: string | null;
@@ -116,6 +122,8 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
   creator,
   lastEditedBy,
   zoomManaged,
+  sharedWith,
+  zoomScheduleDiverged = false,
   startDateTime,
   endDateTime,
   email,
@@ -384,6 +392,8 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
   const primaryColor = ROOM_COLORS[room] ?? ZOOM_ROOM_COLOR;
   const primaryLocation = room || (zoomRoom ? stripZoomSuffix(zoomRoom) : '');
   const showZoomMismatchRow = !!(room && zoomRoom && isZoomRoomMismatched(room, zoomRoom));
+  const sharedRows = sharedWith ?? [];
+  const sharedWithText = sharedRows.map((row) => `${row.title} (${row.modeType})`).join(', ');
 
   const content = (
     <div className={styles.meetingDetails}>
@@ -435,6 +445,8 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
           zoomSyncStatus={zoomSyncStatus}
           zoomSyncError={zoomSyncError}
           zoomDrift={zoomDrift}
+          sharedScheduleDiverged={zoomScheduleDiverged && sharedRows.length > 0}
+          sharedWithText={sharedWithText}
           syncing={syncing}
           onRetrySync={handleRetrySync}
           conflictCount={conflictCount}
@@ -506,7 +518,7 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
           </div>
         )}
 
-        {isAdmin && (email || zoomHost) && (
+        {isAdmin && (email || zoomHost || sharedRows.length > 0) && (
           <div className={`${styles.contactGroup} ${description ? styles.withDivider : ''}`}>
             {email && (
               <p className={styles.contactRow}>
@@ -518,6 +530,12 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
               <p className={styles.contactRow}>
                 <Icon name="person" />
                 <span>Host: {zoomHostLabel(zoomHost, zoomHostPool.indexOf(zoomHost))} — {zoomHost}</span>
+              </p>
+            )}
+            {sharedRows.length > 0 && (
+              <p className={styles.contactRow}>
+                <Icon name="link" />
+                <span>Zoom link shared with {sharedWithText}</span>
               </p>
             )}
             {zoomManaged === false && (

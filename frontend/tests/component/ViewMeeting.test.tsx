@@ -304,4 +304,53 @@ describe("ViewMeeting", () => {
       expect(driftCalls).toHaveLength(0);
     });
   });
+
+  // A few legacy Zoom meetings serve two platform rows on one zid. Both the sharing row and
+  // the divergence notice are admin-only (BUG-022) -- the sibling's title/mode never reaches a
+  // public viewer, and the retrieve route omits the fields entirely for one.
+  describe("shared Zoom link", () => {
+    const sharedProps = {
+      ...baseProps,
+      modeType: "Hybrid",
+      zid: "70000001101",
+      zoomLink: "http://zoom.test/j/70000001101",
+      sharedWith: [{ title: "One Day at a Time", modeType: "Remote" }],
+      isPhone: false,
+    };
+
+    it("shows the sharing row for an admin", async () => {
+      renderViewMeeting({ ...sharedProps, anchorEl: makeAnchorEl() });
+      expect(await screen.findByText(/Zoom link shared with One Day at a Time \(Remote\)/)).toBeInTheDocument();
+    });
+
+    it("hides the sharing row from a non-admin viewer", async () => {
+      renderViewMeeting({ ...sharedProps, anchorEl: makeAnchorEl(), isAdmin: false });
+      await screen.findByText("Serenity Group");
+      expect(screen.queryByText(/Zoom link shared with/)).not.toBeInTheDocument();
+    });
+
+    it("renders no sharing row when the Zoom link is this meeting's alone", async () => {
+      renderViewMeeting({ ...sharedProps, anchorEl: makeAnchorEl(), sharedWith: undefined });
+      await screen.findByText("Serenity Group");
+      expect(screen.queryByText(/Zoom link shared with/)).not.toBeInTheDocument();
+    });
+
+    it("adds the pending-divergence notice, with no action, when the schedules disagree", async () => {
+      renderViewMeeting({ ...sharedProps, anchorEl: makeAnchorEl(), zoomScheduleDiverged: true });
+      expect(await screen.findByText(/which still has a different\s+schedule/)).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: /Retry sync|Sync from Zoom/ })).not.toBeInTheDocument();
+    });
+
+    it("omits the divergence notice while the schedules still match", async () => {
+      renderViewMeeting({ ...sharedProps, anchorEl: makeAnchorEl(), zoomScheduleDiverged: false });
+      await screen.findByText("Serenity Group");
+      expect(screen.queryByText(/still has a different/)).not.toBeInTheDocument();
+    });
+
+    it("hides the divergence notice from a non-admin viewer", async () => {
+      renderViewMeeting({ ...sharedProps, anchorEl: makeAnchorEl(), zoomScheduleDiverged: true, isAdmin: false });
+      await screen.findByText("Serenity Group");
+      expect(screen.queryByText(/still has a different/)).not.toBeInTheDocument();
+    });
+  });
 });

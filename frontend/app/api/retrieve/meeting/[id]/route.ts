@@ -3,6 +3,7 @@ import { getAuth } from "../../../../../services/auth";
 import { prisma } from "../../../../../lib/prisma";
 import { toPublicMeeting } from "../../../../../util/meetings/publicMeeting";
 import { getUnresolvedSuspension } from "../../../../../util/meetings/suspension";
+import { isSharedZoomScheduleCompatible } from "../../../../../util/meetings/sharedZoomSchedule";
 import { formatETDateString } from "../../../../../util/date/timeUtils";
 const getMeeting = async(request: NextRequest) => {
   try {
@@ -49,12 +50,35 @@ const getMeeting = async(request: NextRequest) => {
     // internal fields like resumeEventIds) isn't meant to be public API surface.
     const { suspensions: _suspensions, ...meetingWithoutSuspensions } = meeting;
     const isAdminSession = session?.user?.role === "ADMIN" || session?.user?.role === "SUPER_ADMIN";
+
+    // A few legacy Zoom meetings serve more than one platform row (one shared zid, union
+    // schedule on Zoom). Admins need to know before editing that the schedule they're changing
+    // feeds a link another meeting also uses, and whether Zoom is currently waiting on the
+    // sibling to match. Admin-only (BUG-022): the sibling's title/mode is never public.
+    const siblings = isAdminSession && meeting.zid
+      ? await prisma.meeting.findMany({
+          where: { zid: meeting.zid, deletedAt: null, mid: { not: meeting.mid } },
+          select: {
+            title: true, modeType: true, isRecurring: true,
+            startDateTime: true, endDateTime: true,
+            recurrencePattern: { select: { type: true, interval: true } },
+          },
+        })
+      : [];
+    const sharedZoom = siblings.length > 0
+      ? {
+          sharedWith: siblings.map(({ title, modeType }) => ({ title, modeType })),
+          zoomScheduleDiverged: !isSharedZoomScheduleCompatible([meeting, ...siblings]),
+        }
+      : {};
+
     const body = isAdminSession
       ? {
           ...meetingWithoutSuspensions,
           resumesAt: relevantSuspension?.to ?? null,
           suspendedSince: relevantSuspension?.from ?? null,
           suspensionActive,
+          ...sharedZoom,
         }
       : toPublicMeeting({ ...meeting, recurrencePattern: meeting.recurrencePattern ?? null });
 

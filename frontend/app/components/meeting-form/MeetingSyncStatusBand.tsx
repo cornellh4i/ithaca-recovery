@@ -17,6 +17,13 @@ interface MeetingSyncStatusBandProps {
   // The live Zoom passcode/join URL no longer match the stored copy (someone changed them in
   // the Zoom portal) -- resolved by the same retry action, which adopts Zoom's values.
   zoomDrift: boolean;
+  // This meeting shares its Zoom link with another row whose schedule no longer matches, so
+  // Zoom keeps its current schedule until both agree. A pending state, not a failure -- the
+  // app and Google calendars already follow this row's own edit.
+  sharedScheduleDiverged: boolean;
+  // The sharing rows, pre-formatted as "Title (Mode)" by ViewMeeting -- the same text its
+  // shared-link row shows.
+  sharedWithText: string;
   syncing: boolean;
   onRetrySync: () => void;
   conflictCount: number;
@@ -39,6 +46,8 @@ const MeetingSyncStatusBand: React.FC<MeetingSyncStatusBandProps> = ({
   zoomSyncStatus,
   zoomSyncError,
   zoomDrift,
+  sharedScheduleDiverged,
+  sharedWithText,
   syncing,
   onRetrySync,
   conflictCount,
@@ -50,7 +59,7 @@ const MeetingSyncStatusBand: React.FC<MeetingSyncStatusBandProps> = ({
   const [syncDetailsOpen, setSyncDetailsOpen] = useState(false);
   const hasSyncFailure = googleSyncStatus === 'error' || zoomSyncStatus === 'error';
 
-  if (!isAdmin || !(hasSyncFailure || zoomDrift || conflictCount > 0 || hasSuspension)) return null;
+  if (!isAdmin || !(hasSyncFailure || zoomDrift || sharedScheduleDiverged || conflictCount > 0 || hasSuspension)) return null;
 
   return (
     <div className={styles.statusBand}>
@@ -101,6 +110,16 @@ const MeetingSyncStatusBand: React.FC<MeetingSyncStatusBandProps> = ({
           >
             {syncing ? 'Syncing…' : 'Sync from Zoom'}
           </button>
+        </div>
+      )}
+
+      {sharedScheduleDiverged && (
+        <div className={styles.sharedScheduleBlock}>
+          <Icon name="warning" />
+          <span>
+            This meeting shares its Zoom link with {sharedWithText}, which still has a different
+            schedule — Zoom updates once both match (edit it too, or revert).
+          </span>
         </div>
       )}
 

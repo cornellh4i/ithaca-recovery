@@ -2,6 +2,7 @@ import "server-only";
 import { Prisma } from "@prisma/client";
 import { IMeeting } from "../types/models";
 import { expandOccurrences, findResourceConflicts, findFirstFreePoolHost, getPoolHostLoads, OccurrenceInput } from "../util/meetings/resourceOverlap";
+import { isSharedZoomScheduleCompatible } from "../util/meetings/sharedZoomSchedule";
 import { prisma } from "../lib/prisma";
 
 const ZOOM_BASE_API = process.env.NEXT_PUBLIC_ZOOM_BASE_API ?? "https://api.zoom.us/v2";
@@ -262,14 +263,9 @@ function buildZoomRecurrence(meeting: IMeeting, siblings: IMeeting[] = []): Reco
   if (!meeting.isRecurring || !meeting.recurrencePattern) return siblings.length ? "incompatible" : null;
   if (siblings.length > 0) {
     const rows = [meeting, ...siblings];
-    const timeOf = (m: IMeeting) => toZoomStartTime(new Date(m.startDateTime)).slice(11);
-    const durationOf = (m: IMeeting) => new Date(m.endDateTime).getTime() - new Date(m.startDateTime).getTime();
-    const compatible = rows.every((m) =>
-      m.isRecurring && m.recurrencePattern && m.recurrencePattern.type === "weekly" &&
-      (m.recurrencePattern.interval ?? 1) === (meeting.recurrencePattern?.interval ?? 1) &&
-      timeOf(m) === timeOf(meeting) && durationOf(m) === durationOf(meeting),
-    );
-    if (!compatible) return "incompatible";
+    // Same compatibility rule the retrieve route reports to the UI as a divergence -- shared
+    // so the two can never disagree about whether Zoom is waiting on a sibling edit.
+    if (!isSharedZoomScheduleCompatible(rows)) return "incompatible";
     const unionDays = [...new Set(rows.flatMap((m) => m.recurrencePattern?.daysOfWeek ?? []))]
       .map((d) => ZOOM_WEEKDAY[d]).filter(Boolean).sort((a, b) => a - b);
     // Always unbounded: every shared meeting is an endless adopted legacy series; a union of

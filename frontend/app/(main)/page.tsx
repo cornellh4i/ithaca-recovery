@@ -371,6 +371,8 @@ export default function HomePage() {
           creator={selectedMeeting.creator}
           lastEditedBy={selectedMeeting.lastEditedBy}
           zoomManaged={selectedMeeting.zoomManaged}
+          sharedWith={selectedMeeting.sharedWith}
+          zoomScheduleDiverged={selectedMeeting.zoomScheduleDiverged}
           group={selectedMeeting.group}
 
           /* ViewMeetingDetails formats for ET display internally (formatETDateString, etTimeFmt,

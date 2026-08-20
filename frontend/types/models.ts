@@ -41,6 +41,13 @@ interface IMeeting {
   // now) vs. is merely scheduled for a future date. Only meaningful when suspendedSince is
   // non-null.
   suspensionActive?: boolean;
+  // Other active rows sharing this meeting's Zoom link (same zid), populated only by
+  // retrieve/meeting/[id] for admin sessions -- absent/empty whenever the link is this
+  // meeting's alone. Never part of the public payload (util/meetings/publicMeeting.ts).
+  sharedWith?: ISharedZoomRow[];
+  // Those rows' schedules can't currently be expressed as one Zoom series, so Zoom keeps the
+  // schedule it already has until they match again. Same population rules as sharedWith.
+  zoomScheduleDiverged?: boolean;
   isRecurring: boolean;
   recurrencePattern?: IRecurrencePattern | null;
   googleCalendarEventId?: string | null;
@@ -56,6 +63,11 @@ interface IMeeting {
   // Set true to resubmit a payload that already saw (and was shown) a room/zoomRoom conflict --
   // never persisted, write/update strip it before the Prisma write.
   confirmOverride?: boolean;
+}
+
+interface ISharedZoomRow {
+  title: string;
+  modeType: string;
 }
 
 interface IRecurrencePattern {
@@ -94,4 +106,4 @@ interface ILeaseSettings {
   emailTemplate: string;
 }
 
-export type { IAdmin, IMeeting, IRecurrencePattern, IRoomRate, ILeaseSettings };
+export type { IAdmin, IMeeting, ISharedZoomRow, IRecurrencePattern, IRoomRate, ILeaseSettings };
