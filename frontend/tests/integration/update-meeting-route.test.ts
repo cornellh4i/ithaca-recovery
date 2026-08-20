@@ -50,7 +50,14 @@ jest.mock("../../services/zoom", () => ({
   // now locks every pool host via lockResourceClaims (the real implementation, not mocked)
   // before calling it -- needs real string values to lock, not the real env-derived pool.
   zoomHostPool: ["mock-pool-host-1@icr.test", "mock-pool-host-2@icr.test"],
-  zoomRoomCalendarId: {},
+  zoomRoomCalendarId: {
+    "Managed Move Room - Zoom": "cal-managed-room-1",
+    "Managed Move Room 2 - Zoom": "cal-managed-room-2",
+    "Shared Zid Move Room - Zoom": "cal-shared-room-1",
+    "Shared Zid Move Room 2 - Zoom": "cal-shared-room-2",
+    "Combined Recreate Room - Zoom": "cal-combined-room-1",
+    "Combined Recreate Room 2 - Zoom": "cal-combined-room-2",
+  },
 }));
 
 import { getTestPrismaClient, disconnectTestPrismaClient } from "../factories/db";
@@ -58,7 +65,7 @@ import { seedSuspensionPeriod } from "../factories/meeting";
 import { PUT } from "../../app/api/update/meeting/route";
 import { requireRole } from "../../services/auth";
 import { updateZoomMeeting, createZoomMeeting, deleteZoomMeeting, rehostZoomMeeting, resolveZoomHost } from "../../services/zoom";
-import { reconcileMeetingCalendars, createCalendarEvent } from "../../services/googleCalendar";
+import { reconcileMeetingCalendars, createCalendarEvent, deleteCalendarEvent } from "../../services/googleCalendar";
 
 const mockedRequireRole = requireRole as jest.Mock;
 const mockedUpdateZoomMeeting = updateZoomMeeting as jest.Mock;
@@ -68,6 +75,7 @@ const mockedRehostZoomMeeting = rehostZoomMeeting as jest.Mock;
 const mockedResolveZoomHost = resolveZoomHost as jest.Mock;
 const mockedReconcileMeetingCalendars = reconcileMeetingCalendars as jest.Mock;
 const mockedCreateCalendarEvent = createCalendarEvent as jest.Mock;
+const mockedDeleteCalendarEvent = deleteCalendarEvent as jest.Mock;
 
 async function waitFor<T>(fn: () => Promise<T | null | undefined>, timeoutMs = 2000): Promise<T> {
   const start = Date.now();
@@ -124,6 +132,8 @@ beforeEach(() => {
   mockedResolveZoomHost.mockReset();
   mockedReconcileMeetingCalendars.mockReset();
   mockedCreateCalendarEvent.mockReset();
+  mockedDeleteCalendarEvent.mockReset();
+  mockedDeleteCalendarEvent.mockResolvedValue(true);
 });
 
 test("a malformed body returns 400 with validation issues instead of a raw 500", async () => {
@@ -227,6 +237,154 @@ test("a Zoom-room change on an unmanaged meeting moves the calendar event but ke
 
   expect(stored?.zid).toBe("85466978793");
   expect(stored?.zoomLink).toBe("https://zoom.us/j/85466978793");
+});
+
+test("a pure Zoom Room change on a MANAGED meeting moves in place -- keeps zid/link/passcode/host, moves the room-cal event (#522)", async () => {
+  mockedReconcileMeetingCalendars.mockResolvedValue({ updatedEventIds: {}, allSynced: true });
+  mockedCreateCalendarEvent.mockResolvedValue({ id: "new-managed-room-event", error: null });
+  // The kept-zid branch still PATCHes the schedule (unrelated to the room move) -- needs a
+  // resolved value or it defaults to undefined/falsy and zoomSynced never reaches 'synced'.
+  mockedUpdateZoomMeeting.mockResolvedValue(true);
+
+  const prisma = getTestPrismaClient();
+  const mid = `m-${randomUUID()}`;
+  await prisma.meeting.create({ data: { ...toMeetingCreateInput(buildMeetingPayload({
+    mid, modeType: "Hybrid", room: "Managed Move Room", zoomRoom: "Managed Move Room - Zoom",
+    zid: "managed-zid-1", zoomHost: "host@icr.test", zoomLink: "https://zoom.us/j/managed1",
+    zoomPasscode: "pass123", zoomCalendarEventId: "old-managed-room-event",
+  })), zoomManaged: true } });
+
+  // Room changes, host resubmitted unchanged (not a reassignment).
+  const edit = buildMeetingPayload({
+    mid, modeType: "Hybrid", room: "Managed Move Room 2", zoomRoom: "Managed Move Room 2 - Zoom",
+    zid: "managed-zid-1", zoomHost: "host@icr.test",
+  });
+  const response = await PUT(new Request("http://localhost/api/update/meeting", { method: "PUT", body: JSON.stringify(edit) }));
+  expect(response.status).toBe(200);
+
+  // The synchronous write must not have overwritten zoomHost with a freshly-resolved pool host
+  // either -- needsNewHost no longer fires for a pure room change.
+  const rightAfterResponse = await prisma.meeting.findUnique({ where: { mid } });
+  expect(rightAfterResponse?.zoomHost).toBe("host@icr.test");
+
+  const stored = await waitFor(async () => {
+    const m = await prisma.meeting.findUnique({ where: { mid } });
+    return m?.zoomRoom === "Managed Move Room 2 - Zoom" && m.zoomSyncStatus === "synced" ? m : null;
+  });
+
+  // The Zoom meeting itself is never torn down or recreated for a pure room move.
+  expect(mockedDeleteZoomMeeting).not.toHaveBeenCalled();
+  expect(mockedCreateZoomMeeting).not.toHaveBeenCalled();
+
+  expect(stored?.zid).toBe("managed-zid-1");
+  expect(stored?.zoomLink).toBe("https://zoom.us/j/managed1");
+  expect(stored?.zoomPasscode).toBe("pass123");
+  expect(stored?.zoomHost).toBe("host@icr.test");
+
+  // The join-link event moved: deleted off the old room's calendar, created on the new one.
+  expect(mockedDeleteCalendarEvent).toHaveBeenCalledWith("fake-token", "old-managed-room-event", "cal-managed-room-1");
+  expect(mockedCreateCalendarEvent).toHaveBeenCalledWith(
+    "fake-token", expect.anything(), "cal-managed-room-2", "https://zoom.us/j/managed1",
+  );
+  expect(stored?.zoomCalendarEventId).toBe("new-managed-room-event");
+});
+
+test("a shared-zid meeting's pure Zoom Room change also just moves calendars, without the sibling guard blocking anything", async () => {
+  mockedReconcileMeetingCalendars.mockResolvedValue({ updatedEventIds: {}, allSynced: true });
+  mockedCreateCalendarEvent.mockResolvedValue({ id: "new-shared-room-event", error: null });
+  mockedUpdateZoomMeeting.mockResolvedValue(true);
+
+  const prisma = getTestPrismaClient();
+  const sharedZid = "shared-zid-room-move";
+  const mid = `m-${randomUUID()}`;
+  const siblingMid = `m-${randomUUID()}`;
+
+  await prisma.meeting.create({ data: { ...toMeetingCreateInput(buildMeetingPayload({
+    mid, modeType: "Hybrid", room: "Shared Zid Move Room", zoomRoom: "Shared Zid Move Room - Zoom",
+    zid: sharedZid, zoomHost: "shared-host@icr.test", zoomLink: "https://zoom.us/j/sharedroom",
+    zoomCalendarEventId: "old-shared-room-event",
+  })), zoomManaged: true } });
+  // Sibling row still pointing at the same zid (a second schedule variant) -- previously this
+  // guard existed specifically so a room-changing row's teardown wouldn't delete a Zoom meeting
+  // the sibling still needs. It's moot now: a pure room change never tears the meeting down at
+  // all, so the sibling's presence shouldn't change anything about this outcome.
+  await prisma.meeting.create({ data: { ...toMeetingCreateInput(buildMeetingPayload({
+    mid: siblingMid, modeType: "Remote", zoomRoom: "", zid: sharedZid, zoomHost: "shared-host@icr.test",
+    zoomLink: "https://zoom.us/j/sharedroom",
+    startDateTime: new Date("2026-08-02T22:00:00Z"), endDateTime: new Date("2026-08-02T23:00:00Z"),
+  })), zoomManaged: true, zoomSyncStatus: "synced" } });
+
+  const edit = buildMeetingPayload({
+    mid, modeType: "Hybrid", room: "Shared Zid Move Room 2", zoomRoom: "Shared Zid Move Room 2 - Zoom",
+    zid: sharedZid, zoomHost: "shared-host@icr.test",
+  });
+  const response = await PUT(new Request("http://localhost/api/update/meeting", { method: "PUT", body: JSON.stringify(edit) }));
+  expect(response.status).toBe(200);
+
+  const stored = await waitFor(async () => {
+    const m = await prisma.meeting.findUnique({ where: { mid } });
+    return m?.zoomRoom === "Shared Zid Move Room 2 - Zoom" && m.zoomSyncStatus === "synced" ? m : null;
+  });
+
+  expect(mockedDeleteZoomMeeting).not.toHaveBeenCalled();
+  expect(mockedCreateZoomMeeting).not.toHaveBeenCalled();
+  expect(stored?.zid).toBe(sharedZid);
+  expect(mockedDeleteCalendarEvent).toHaveBeenCalledWith("fake-token", "old-shared-room-event", "cal-shared-room-1");
+  expect(mockedCreateCalendarEvent).toHaveBeenCalledWith(
+    "fake-token", expect.anything(), "cal-shared-room-2", "https://zoom.us/j/sharedroom",
+  );
+
+  // The sibling itself is untouched -- this was never about the sibling's own zoomRoom (it has
+  // none, being Remote) and its zid stays the same shared value.
+  const sibling = await prisma.meeting.findUnique({ where: { mid: siblingMid } });
+  expect(sibling?.zid).toBe(sharedZid);
+});
+
+test("a room change combined with a genuine recreate reason (explicit host change Zoom refuses to transfer) still recreates", async () => {
+  mockedRehostZoomMeeting.mockResolvedValue(false); // never actually called here -- room change forces rehostZid null upfront
+  mockedDeleteZoomMeeting.mockResolvedValue(true);
+  mockedCreateZoomMeeting.mockResolvedValue({ zid: "zid-combined-recreate", zoomLink: "http://zoom.test/combined", zoomPasscode: null });
+  mockedCreateCalendarEvent.mockResolvedValue({ id: "new-combined-room-event", error: null });
+  mockedReconcileMeetingCalendars.mockResolvedValue({ updatedEventIds: {}, allSynced: true });
+
+  const prisma = getTestPrismaClient();
+  const mid = `m-${randomUUID()}`;
+  const start = new Date("2026-10-03T15:00:00Z");
+  const end = new Date("2026-10-03T16:00:00Z");
+  await prisma.meeting.create({ data: { ...toMeetingCreateInput(buildMeetingPayload({
+    mid, modeType: "Hybrid", room: "Combined Recreate Room", zoomRoom: "Combined Recreate Room - Zoom",
+    zid: "zid-combined-original", zoomHost: "old-combined-host@icr.test",
+    zoomCalendarEventId: "old-combined-room-event", startDateTime: start, endDateTime: end,
+  })), zoomManaged: true } });
+
+  // BOTH a room change AND an explicit host change in the same edit -- rehostZid is null
+  // whenever roomChanged is true (schedule_for moves a host, not a room), so this always lands
+  // in the recreate branch, never the in-place transfer.
+  const edit = buildMeetingPayload({
+    mid, modeType: "Hybrid", room: "Combined Recreate Room 2", zoomRoom: "Combined Recreate Room 2 - Zoom",
+    zid: "zid-combined-original", zoomHost: "new-combined-host@icr.test", startDateTime: start, endDateTime: end,
+  });
+  const response = await PUT(new Request("http://localhost/api/update/meeting", { method: "PUT", body: JSON.stringify(edit) }));
+  expect(response.status).toBe(200);
+
+  const afterSync = await waitFor(async () => {
+    const row = await prisma.meeting.findUnique({ where: { mid } });
+    return row?.zoomSyncStatus != null ? row : null;
+  });
+
+  // schedule_for was never attempted -- the room change alone rules it out.
+  expect(mockedRehostZoomMeeting).not.toHaveBeenCalled();
+  expect(mockedDeleteZoomMeeting).toHaveBeenCalledWith("zid-combined-original");
+  expect(mockedCreateZoomMeeting).toHaveBeenCalled();
+  expect(afterSync?.zid).toBe("zid-combined-recreate");
+  expect(afterSync?.zoomHost).toBe("new-combined-host@icr.test");
+  expect(afterSync?.zoomRoom).toBe("Combined Recreate Room 2 - Zoom");
+  // The fresh meeting's room-cal event publishes straight to the NEW room's calendar -- the old
+  // one is still cleaned up first.
+  expect(mockedDeleteCalendarEvent).toHaveBeenCalledWith("fake-token", "old-combined-room-event", "cal-combined-room-1");
+  expect(mockedCreateCalendarEvent).toHaveBeenCalledWith(
+    "fake-token", expect.anything(), "cal-combined-room-2", "http://zoom.test/combined",
+  );
 });
 
 test("an explicit host change on an unmanaged Zoom meeting is rejected with 422 before touching Zoom", async () => {
