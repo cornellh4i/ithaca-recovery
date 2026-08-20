@@ -571,6 +571,19 @@ export function computeConflicts(
   const activeMeetings = meetings.filter((m) => !isDateSuspended(m.suspensions ?? [], todayStr));
   const conflicts: ConflictRow[] = [];
 
+  // A meeting occupies up to three resource fields (room, zoomRoom, zoomHost) and lands in one
+  // bucket per field — expanding its occurrences is the expensive part (a day-by-day walk over
+  // the whole horizon), so expand once per meeting per scan, not once per field.
+  const expansionCache = new Map<ConflictCandidateMeeting, Occurrence[]>();
+  const expandCached = (meeting: ConflictCandidateMeeting): Occurrence[] => {
+    let occurrences = expansionCache.get(meeting);
+    if (!occurrences) {
+      occurrences = expandOccurrences(meeting, rangeStart, rangeEnd);
+      expansionCache.set(meeting, occurrences);
+    }
+    return occurrences;
+  };
+
   const fieldMeetings: Record<"room" | "zoomRoom" | "zoomHost", ConflictCandidateMeeting[]> = {
     room: activeMeetings,
     zoomRoom: activeMeetings,
@@ -595,7 +608,7 @@ export function computeConflicts(
       const capacity = field === "zoomHost" ? (opts.zoomHostCapacities?.[value] ?? 1) : 1;
       const withOccurrences = bucketMeetings.map((meeting) => ({
         meeting,
-        occurrences: expandOccurrences(meeting, rangeStart, rangeEnd),
+        occurrences: expandCached(meeting),
       }));
 
       if (capacity <= 1) {
