@@ -11,6 +11,15 @@
     font-family: 'Source Sans Pro', sans-serif;
 }
 
+.lockedIndicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: $medium-grey-color;
+  margin: 0;
+}
+
 .checkDoneIndicator {
     display: flex;
     align-items: center;

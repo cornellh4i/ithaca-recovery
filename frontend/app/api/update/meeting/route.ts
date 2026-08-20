@@ -57,8 +57,13 @@ async function syncUpdatedMeeting(
     const roomChanged = !!oldZoomRoom && oldZoomRoom !== newZoomRoom;
     const explicitHostChange = !!newMeeting.zoomHost && newMeeting.zoomHost !== existingMeeting.zoomHost;
 
-    if ((roomChanged || explicitHostChange) && existingMeeting.zoomManaged) {
-      if (zid) {
+    if (roomChanged || explicitHostChange) {
+      // Managed: the Zoom meeting is disposable, so tear it down for a fresh create below.
+      // Unmanaged: the Zoom meeting is ICR's (host changes were already 422'd upstream) -- keep
+      // zid/link/passcode and only move the join-link event between room calendars; the
+      // downstream zoomCalendarEventId === null branch recreates it on the new room's calendar
+      // with the stored link.
+      if (zid && existingMeeting.zoomManaged) {
         const ok = await deleteZoomMeeting(zid);
         if (!ok) zoomSynced = false;
       }
@@ -69,10 +74,12 @@ async function syncUpdatedMeeting(
           if (!ok) zoomSynced = false;
         }
       }
-      zid = null;
-      zoomLink = null;
-      zoomPasscode = null;
-      zoomHost = null;
+      if (existingMeeting.zoomManaged) {
+        zid = null;
+        zoomLink = null;
+        zoomPasscode = null;
+        zoomHost = null;
+      }
       zoomCalendarEventId = null;
     }
 
@@ -261,18 +268,16 @@ const updateMeeting = async (request: Request): Promise<Response> => {
     // already-assigned host untouched, is NOT a reassignment.
     const explicitHostChange = !!newMeeting.zoomHost && newMeeting.zoomHost !== existingMeeting.zoomHost;
 
-    // An unmanaged Zoom meeting (adopted legacy / externally hosted -- see schema.prisma's
-    // zoomManaged) can't be torn down and recreated by the app: a room or host change would
-    // silently replace the group's long-lived meeting ID. Reject up front with a clear message
-    // instead of half-applying the edit.
-    if (!existingMeeting.zoomManaged) {
-      const roomChangedUnmanaged = !!existingMeeting.zoomRoom && newMeeting.zoomRoom !== existingMeeting.zoomRoom;
-      if (roomChangedUnmanaged || explicitHostChange) {
-        return NextResponse.json(
-          { error: "This meeting's Zoom meeting is owned outside the app (legacy/external). Changing its Zoom room or host would replace the group's long-standing meeting ID — coordinate with ICR instead." },
-          { status: 422 },
-        );
-      }
+    // An unmanaged Zoom meeting's host is whoever owns it on Zoom's side (adopted legacy /
+    // externally hosted -- see schema.prisma's zoomManaged); the app can't reassign that, and
+    // persisting a different pool host would only make capacity accounting lie. Everything else
+    // (rooms, times, content) is app/calendar-side and stays editable -- a Zoom-room change
+    // just moves the join-link event between room calendars using the stored link.
+    if (!existingMeeting.zoomManaged && explicitHostChange) {
+      return NextResponse.json(
+        { error: "This meeting's Zoom meeting is ICR-owned (legacy/external); its host can't be reassigned from the app." },
+        { status: 422 },
+      );
     }
 
     // A count-bounded series (numberOfOccurrences set, no explicit endDate) has a real last

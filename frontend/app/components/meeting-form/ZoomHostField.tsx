@@ -22,6 +22,10 @@ export interface ZoomHostFieldProps {
   // to send as-is (see util/meetingValidation.ts's zoomHostAvailabilityCheckSchema, which
   // only reads mid/startDateTime/endDateTime/isRecurring/recurrencePattern from it).
   getCandidate: () => IMeeting | null;
+  // When set, the field renders read-only with this explanation instead of the dropdown --
+  // used for meetings whose Zoom meeting the app doesn't own (zoomManaged: false), where a
+  // host reassignment is impossible (the server 422s it) rather than merely unavailable.
+  lockedReason?: string;
 }
 
 const CheckIcon: React.FC = () => (
@@ -63,6 +67,7 @@ export const ZoomHostField: React.FC<ZoomHostFieldProps> = ({
   isVisible,
   compact = false,
   getCandidate,
+  lockedReason,
 }) => {
   const hosts = useZoomHostPool();
   // Per-host remaining capacity from the most recent check -- freeSlots reflects the
@@ -181,6 +186,16 @@ export const ZoomHostField: React.FC<ZoomHostFieldProps> = ({
   }, [candidateKey]);
 
   if (!isVisible) return null;
+
+  if (lockedReason) {
+    return (
+      <div className={styles.zoomHostField}>
+        <p className={styles.lockedIndicator}>
+          <Icon name="lock" size={16} ariaLabel="Locked" /> {lockedReason}
+        </p>
+      </div>
+    );
+  }
 
   const labelToEmail: Record<string, string> = {};
   hosts.forEach((email, i) => { labelToEmail[zoomHostLabel(email, i)] = email; });

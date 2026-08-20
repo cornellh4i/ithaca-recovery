@@ -259,6 +259,9 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
               isVisible={true}
               compact={compact}
               getCandidate={() => buildMeetingPayload(meeting.mid, meeting.status ?? 'Active')}
+              lockedReason={meeting.zoomManaged === false
+                ? "ICR-owned Zoom link (legacy) — the host can't be reassigned from the app."
+                : undefined}
             />
           }
           emailTextField={<TextField
