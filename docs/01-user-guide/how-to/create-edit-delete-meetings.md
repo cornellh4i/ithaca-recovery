@@ -17,7 +17,7 @@ saved either way, see [how sync works](../explanation/how-sync-works.md) for why
 2. Click the **⋮** menu → **"Edit."**
 3. Change whatever fields need updating, then click **"Update Meeting."**
 
-All fields can be edited, including mode and recurrence. Editing never changes a meeting's Zoom link or passcode; and for the few meetings on a [legacy Zoom link](../explanation/how-sync-works.md#legacy-zoom-links), the Zoom Host field is locked and the Zoom side isn't touched at all.
+All fields can be edited, including mode and recurrence. Editing never changes a meeting's Zoom link or passcode — even reassigning the Zoom Host moves the existing Zoom meeting rather than creating a new one. For the few meetings on an [external Zoom link](../explanation/how-sync-works.md#external-zoom-links), the Zoom Host field is locked and the Zoom side isn't touched at all.
 
 > [!IMPORTANT]
 > For a recurring meeting, editing updates the **entire series** — there's no per-occurrence edit.

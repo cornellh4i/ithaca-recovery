@@ -8,12 +8,17 @@ Every meeting has up to three synced copies: an event on its category calendar, 
 |---|---|---|
 | **Create** | Created on the category calendar (and Zoom room calendar for Hybrid and Remote) | Created — under one stable ID and link |
 | **Edit** (always the whole series) | Updated to match | Rescheduled to match — retain the meeting ID, link, and passcode |
+| **Change Zoom Host** | Events keep the same link | Moved to the new host — ID, link, and passcode unchanged (a replacement is only created if Zoom refuses the move) |
 | **Delete** (one occurrence / this-and-following) | Affected occurrences removed | Untouched |
-| **Delete** (whole series) | All events removed | Deleted — unless another platform meeting still shares the same Zoom meeting, or it's a [legacy link](#legacy-zoom-links) the platform doesn't own |
+| **Delete** (whole series) | All events removed | Deleted — unless another platform meeting still shares the same Zoom meeting, or it's an [external link](#external-zoom-links) the platform doesn't own |
 | **Suspend / Resume** | Events removed for the suspension window; the resume series is pre-created | Untouched — the link keeps working for the return date |
 | **Retry sync** | Failed events re-published | Re-attempted first (Google waits on Zoom) — an existing link is always reused, never replaced |
 
-## Legacy Zoom links
+## Shared Zoom links
+
+A few groups have two calendar entries that share one Zoom link — e.g. a Hybrid weekday meeting and a Zoom-only Sunday meeting that are the same group. Both entries show **"Zoom link shared with …"** in their details. Editing either entry updates the shared Zoom schedule to cover both; if an edit leaves the two entries at different times, a notice appears on the meeting until they match again — the calendars always show each entry's real schedule, and Zoom's own copy catches up once both agree. Changing the Zoom Host on either entry moves the shared meeting for both.
+
+## External Zoom links
 
 A few meetings use a Zoom meeting ICR doesn't control at all (e.g. an outside organization's account). Those show a lock in the meeting details: the platform syncs their calendar events but never edits or deletes anything on Zoom, and consequently, the Zoom Host can't be reassigned.
 
