@@ -113,6 +113,10 @@ async function syncUpdatedMeeting(
         const ok = existingMeeting.zoomManaged ? await updateZoomMeeting(zid, newMeeting) : true;
         if (!ok) zoomSynced = false;
       }
+    } else if (!existingMeeting.zoomManaged) {
+      // An unmanaged meeting with no zid means an admin deliberately points it outside the
+      // app's Zoom account -- never auto-provision an app-owned meeting under the flag that
+      // says the app doesn't own it.
     } else {
       // Already resolved (and persisted) synchronously in updateMeeting, before this ever
       // runs — see the comment there for why. This only does the network-bound half:
