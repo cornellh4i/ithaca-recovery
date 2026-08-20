@@ -6,6 +6,7 @@ import { filterMeetingsForDate, MeetingFilters } from "../../../../util/filters/
 import { ZOOM_ROOM_COLOR } from "../../../../util/rooms/filterColors";
 import { getMeetingChipPresentation } from "../../../../util/meetings/meetingChipPresentation";
 import { formatETDateString, formatETWeekdayShort, getCurrentETMinutesSinceMidnight } from "../../../../util/date/timeUtils";
+import { MIN_DAY_COLUMN_WIDTH } from "../../../../util/common/breakpoints";
 import { layoutOverlappingMeetings, OverlapMeeting } from "../../../../util/meetings/meetingOverlapLayout";
 import { addDaysToDate, daysBetweenET } from "../../../../util/date/weekDates";
 import { useRangeMeetings } from "../../../../hooks/useRangeMeetings";
@@ -15,12 +16,12 @@ import TopLoadingBar from "../../ui/displays/TopLoadingBar";
 
 type Meeting = OverlapMeeting;
 
-// A day column needs at least this much width to stay legible at the compact tier (room +
+// A day column needs at least MIN_DAY_COLUMN_WIDTH to stay legible at the compact tier (room +
 // title, per BoxText's tier table) -- the day count below is derived from how many of these
 // actually fit the measured width, generalizing WeekView's fixed 7-day week into an
 // arbitrary-width "page". Never fewer than 1 (a very narrow width still shows something) or
 // more than 7 (a wide tablet lands back on a familiar week).
-const MIN_DAY_WIDTH = 150;
+const MIN_DAY_WIDTH = MIN_DAY_COLUMN_WIDTH;
 const MAX_DAYS = 7;
 // Portrait's 60px scaled down further -- this view trades some per-hour legibility for
 // headroom to show the day header row above each column within a short landscape viewport.

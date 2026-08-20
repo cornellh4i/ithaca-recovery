@@ -75,29 +75,46 @@ test.describe("calendar display", () => {
   // stayed a fixed pixel size while the rest of the header row scaled continuously with its
   // own container width (container queries, not viewport-based breakpoints). The pill in
   // particular couldn't scale at all -- it rendered as a DOM sibling of the container-query
-  // root, not a descendant, so cqi units had no ancestor to resolve against. Both widths stay
-  // above the tablet breakpoint (768px, see hooks/useViewport.ts) so the desktop shell -- and
-  // this container-query row -- stays mounted at both sizes; only the row's own available
-  // width (viewport minus the sidebar) changes.
+  // root, not a descendant, so cqi units had no ancestor to resolve against.
+  //
+  // Since the sidebar started yielding before the calendar scrolls (SIDEBAR_YIELD_BREAKPOINT),
+  // the narrow measurement runs with a compact sidebar, which *widens* the header row: the
+  // smallest desktop-mode container is now ~640px, past the pill's own clamp cap (2cqi caps
+  // 14px at ~524px) -- so the pill asserts at-cap at both widths, and continuous scaling is
+  // observed on the view-toggle icon, whose clamp caps later (~824px container). The narrow
+  // width sits below the yield edge, the wide one above the expand edge, and the measurement
+  // waits for the full sidebar's cross-fade unmount instead of racing it.
   test("calendar header: view-toggle icon and 'View only' pill scale continuously with the header row's own width", async ({ page }) => {
     await page.goto("/");
     const viewToggleIcon = page.locator('[data-icon-name="view-timeline"]');
     const pillText = page.getByText("View only - sign in as Admin to manage meetings");
     const pillIcon = page.locator('[data-icon-name="lock"]');
+    // "Clear all" only exists in the full sidebar's filter headers -- the compact variant's
+    // icon strip (and its tooltips, which still say "Location") has no such text.
+    const fullSidebarMarker = page.getByText("Clear all").first();
 
-    await page.setViewportSize({ width: 1400, height: 900 });
+    await page.setViewportSize({ width: 1500, height: 900 });
     await expect(viewToggleIcon).toBeVisible();
+    await expect(fullSidebarMarker).toBeVisible();
     const wideIconWidth = await viewToggleIcon.evaluate((el) => el.getBoundingClientRect().width);
     const widePillFontSize = parseFloat(await pillText.evaluate((el) => window.getComputedStyle(el).fontSize));
     const widePillIconWidth = await pillIcon.evaluate((el) => el.getBoundingClientRect().width);
 
-    await page.setViewportSize({ width: 820, height: 900 });
+    await page.setViewportSize({ width: 900, height: 900 });
+    // The sidebar auto-collapses below SIDEBAR_YIELD_BREAKPOINT; wait for the full variant's
+    // filter headings to unmount so the row is measured at its settled (compact-sidebar) width.
+    await expect(fullSidebarMarker).toBeHidden();
     const narrowIconWidth = await viewToggleIcon.evaluate((el) => el.getBoundingClientRect().width);
     const narrowPillFontSize = parseFloat(await pillText.evaluate((el) => window.getComputedStyle(el).fontSize));
     const narrowPillIconWidth = await pillIcon.evaluate((el) => el.getBoundingClientRect().width);
 
     expect(narrowIconWidth).toBeLessThan(wideIconWidth);
-    expect(narrowPillFontSize).toBeLessThan(widePillFontSize);
-    expect(narrowPillIconWidth).toBeLessThan(widePillIconWidth);
+    // Desktop mode can no longer reach the pill's sub-cap range -- both widths sit at the
+    // clamp max, which is the "it scales with the container, not frozen mid-range" contract
+    // #350 actually cares about.
+    expect(narrowPillFontSize).toBe(14);
+    expect(widePillFontSize).toBe(14);
+    expect(narrowPillIconWidth).toBe(14);
+    expect(widePillIconWidth).toBe(14);
   });
 });
