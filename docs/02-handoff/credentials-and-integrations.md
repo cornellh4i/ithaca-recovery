@@ -18,8 +18,12 @@ Two Google accounts control nearly everything — all external services (Vercel,
 Cloudflare, GCP) are signed into via Google with one of them:
 
 - **Prod account** — `dev@518icr.com`: both backup GCP projects (`icr-management-system` and
-  `icr-backups-archive`) with their GCS buckets, the production OAuth app and calendars, and the
-  Cloudflare account.
+  `icr-backups-archive`) with their GCS buckets, the production OAuth app, and the Cloudflare
+  account. The 8 production Google Calendars are **not** owned by this account: they belong to
+  ICR's own `admin@ithacacommunityrecovery.org`, which shares each one to `dev@518icr.com` with
+  "Make changes to events". A calendar the app can't write to fails sync with "You need to have
+  writer access to this calendar" — the share level on that specific calendar is the first thing
+  to check.
 - **Dev account** — `ithacacommunityrecoverytest@gmail.com`: Vercel, Neon, and the dev
   environment's own GCP project (`ithaca-community-recovery` — dev OAuth app + dev calendars).
 - **Zoom account** — `zoom@518icr.com`: the Zoom Server-to-Server app and host licensing (same
@@ -36,10 +40,10 @@ required payment method is the same ICR card (R2 itself stays on the free plan).
 | `DATABASE_URL` | PostgreSQL (Neon) connection string, **pooled** variant (the `-pooler` hostname) | Vercel env vars | Dev account | Rotating this requires updating Vercel + confirming no other consumer holds the old string |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Google OAuth app (NextAuth) — separate OAuth apps per environment | Google Cloud Console project + Vercel env vars | **Prod:** Prod account. **Dev:** Dev account | Changing the OAuth app affects every signed-in admin |
 | `NEXTAUTH_SECRET` | Session JWT signing — a locally-generated random value, not tied to any external account | Vercel env vars | None | Rotating invalidates all active sessions |
-| `GOOGLE_CALENDAR_AA` / `_ALANON` / `_OTHER` | Category calendar IDs | Google Calendar + Vercel env vars | **Prod:** Prod account. **Dev:** Dev account | Each calendar must stay shared with every signed-in admin's Google account (see [Integration Guides §3](../03-development/integration-guides.md#3-google-calendar-api)) |
+| `GOOGLE_CALENDAR_AA` / `_ALANON` / `_OTHER` | Category calendar IDs | Google Calendar + Vercel env vars | **Prod:** owned by `admin@ithacacommunityrecovery.org`, shared to the Prod account as writer. **Dev:** Dev account | Each calendar must stay shared with every signed-in admin's Google account (see [Integration Guides §3](../03-development/integration-guides.md#3-google-calendar-api)) |
 | `ZOOM_CLIENT_ID` / `ZOOM_CLIENT_SECRET` / `ZOOM_ACCOUNT_ID` | Zoom Server-to-Server OAuth app | Zoom Marketplace + Vercel env vars | Zoom account | Marketplace secret rotation keeps the old secret valid for 30 days (the `rotate_client_secret` API invalidates it immediately) — either way, update `ZOOM_CLIENT_SECRET` in Vercel, redeploy, and verify Diagnostics + a test meeting well inside the overlap |
 | `ZOOM_HOSTS` | Pool of licensed Zoom host emails — which host *users* are in the pool per environment | Vercel env vars + Zoom account licensing | Zoom account | Removing a host from the pool without removing their Zoom license (or vice versa) causes silent sync failures |
-| `GOOGLE_CALENDAR_ZOOM_<ROOM>` (×5) | Per-room Zoom join-link calendars | Google Calendar + Vercel env vars | **Prod:** Prod account. **Dev:** Dev account | Must match what each room's physical Zoom Room hardware is actually configured to read |
+| `GOOGLE_CALENDAR_ZOOM_<ROOM>` (×5) | Per-room Zoom join-link calendars | Google Calendar + Vercel env vars | **Prod:** owned by `admin@ithacacommunityrecovery.org`, shared to the Prod account as writer. **Dev:** Dev account | Must match what each room's physical Zoom Room hardware is actually configured to read |
 
 ### Backup workflow (GitHub Actions secrets/variables)
 
