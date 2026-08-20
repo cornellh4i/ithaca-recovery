@@ -29,12 +29,17 @@ export const convertUTCToET = (utcDateString: string): string => {
 // ET wall-clock reading (year/month/day/hour/minute/second) of a UTC instant, as plain
 // numbers -- shared by convertETToUTC's offset search below. hour % 24 guards against ICU
 // builds that render midnight as "24" under hour12: false.
+// INVARIANT: the formatter is constructed once at module level, like every other formatter in
+// this file — constructing an Intl.DateTimeFormat per call loads ICU data each time (~0.1-1ms)
+// and this sits under every occurrence expansion (conflict scans, write-path checks), where it
+// runs tens of thousands of times per request at production meeting volume.
+const etPartsFmt = new Intl.DateTimeFormat('en-GB', {
+  timeZone: 'America/New_York',
+  year: 'numeric', month: '2-digit', day: '2-digit',
+  hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
+});
 const getETPartsAt = (ms: number) => {
-  const parts = new Intl.DateTimeFormat('en-GB', {
-    timeZone: 'America/New_York',
-    year: 'numeric', month: '2-digit', day: '2-digit',
-    hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
-  }).formatToParts(new Date(ms));
+  const parts = etPartsFmt.formatToParts(new Date(ms));
   const get = (type: Intl.DateTimeFormatPartTypes) =>
     parseInt(parts.find(p => p.type === type)?.value ?? '0');
   return {
