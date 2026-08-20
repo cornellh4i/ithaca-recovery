@@ -64,8 +64,15 @@ async function syncUpdatedMeeting(
       // downstream zoomCalendarEventId === null branch recreates it on the new room's calendar
       // with the stored link.
       if (zid && existingMeeting.zoomManaged) {
-        const ok = await deleteZoomMeeting(zid);
-        if (!ok) zoomSynced = false;
+        // Shared-zid guard: a sibling row (same group, second schedule variant) may still point
+        // at this Zoom meeting -- only the last referencing row actually tears it down.
+        const siblingCount = await prisma.meeting.count({
+          where: { zid, deletedAt: null, mid: { not: mid } },
+        });
+        if (siblingCount === 0) {
+          const ok = await deleteZoomMeeting(zid);
+          if (!ok) zoomSynced = false;
+        }
       }
       if (accessToken && zoomCalendarEventId && oldZoomRoom) {
         const oldCalId = zoomRoomCalendarId[oldZoomRoom];

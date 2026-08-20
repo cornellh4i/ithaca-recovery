@@ -69,6 +69,28 @@ test("deleting a meeting whose Zoom meeting is unmanaged never deletes it from Z
   expect(mockedDeleteZoom).not.toHaveBeenCalled();
 });
 
+test("a managed Zoom meeting shared by two rows survives until the last referencing row is deleted", async () => {
+  // Unique to this test: the sibling count is a real DB query, and suites share the embedded
+  // Postgres — reusing a zid another suite seeds would make the count see foreign rows.
+  const shared = "70000000777";
+  const a = await seedMeeting({ zid: shared, zoomManaged: true, title: "Shared Pair A" });
+  const b = await seedMeeting({ zid: shared, zoomManaged: true, title: "Shared Pair B" });
+
+  let response = await DELETE(new Request("http://localhost/api/delete/meeting", {
+    method: "DELETE", body: JSON.stringify({ mid: a.mid, deleteOption: "all" }),
+  }));
+  expect(response.status).toBe(200);
+  await drainAfterTasks();
+  expect(mockedDeleteZoom).not.toHaveBeenCalled();
+
+  response = await DELETE(new Request("http://localhost/api/delete/meeting", {
+    method: "DELETE", body: JSON.stringify({ mid: b.mid, deleteOption: "all" }),
+  }));
+  expect(response.status).toBe(200);
+  await drainAfterTasks();
+  expect(mockedDeleteZoom).toHaveBeenCalledWith("70000000777");
+});
+
 test("deleting a managed meeting still tears its Zoom meeting down", async () => {
   const meeting = await seedMeeting({ zid: "80000000001", zoomManaged: true });
 
