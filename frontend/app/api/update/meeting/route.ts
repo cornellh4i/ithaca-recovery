@@ -114,9 +114,16 @@ async function syncUpdatedMeeting(
         // Unmanaged Zoom meetings are never PATCHed -- the stored link is the contract; only
         // the calendars follow the app-side edit.
         // The pinned topic (if any) lives on the DB row, not the client payload -- thread it
-        // through so a managed PATCH keeps the meeting's established Zoom name.
+        // through so a managed PATCH keeps the meeting's established Zoom name. Sibling rows
+        // sharing this zid ride along so the PATCH sends the whole union schedule (#513).
+        const scheduleSiblings = existingMeeting.zoomManaged
+          ? await prisma.meeting.findMany({
+              where: { zid, deletedAt: null, mid: { not: newMeeting.mid } },
+              include: { recurrencePattern: true },
+            })
+          : [];
         const ok = existingMeeting.zoomManaged
-          ? await updateZoomMeeting(zid, { ...newMeeting, zoomTopic: existingMeeting.zoomTopic })
+          ? await updateZoomMeeting(zid, { ...newMeeting, zoomTopic: existingMeeting.zoomTopic }, scheduleSiblings as unknown as IMeeting[])
           : true;
         if (!ok) zoomSynced = false;
       }

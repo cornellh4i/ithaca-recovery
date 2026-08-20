@@ -251,8 +251,31 @@ const ZOOM_WEEKDAY: Record<string, number> = {
 // unbounded series sends end_times: 0 -- undocumented but exactly what the Zoom portal itself
 // stores for its own "no end" meetings (verified empirically 2026-08-20; Zoom's PATCH path
 // clamps it to a ~2-year rolling horizon, which future edits keep pushing forward).
-function buildZoomRecurrence(meeting: IMeeting): Record<string, unknown> | null {
-  if (!meeting.isRecurring || !meeting.recurrencePattern) return null;
+// Some Zoom meetings serve several platform rows at once (one shared zid -- e.g. a Hybrid
+// M-Sat row and a Remote Sunday row on one legacy meeting). Zoom holds ONE schedule, so a
+// PATCH built from a single row would silently narrow it to that row's days (#513); with
+// siblings supplied, the recurrence is instead the union of every row's weekdays -- valid only
+// when all rows are weekly at the same interval, time-of-day, and duration, which is how the
+// shared legacy meetings were built. "incompatible" tells the caller to leave Zoom's schedule
+// untouched rather than mangle it.
+function buildZoomRecurrence(meeting: IMeeting, siblings: IMeeting[] = []): Record<string, unknown> | null | "incompatible" {
+  if (!meeting.isRecurring || !meeting.recurrencePattern) return siblings.length ? "incompatible" : null;
+  if (siblings.length > 0) {
+    const rows = [meeting, ...siblings];
+    const timeOf = (m: IMeeting) => toZoomStartTime(new Date(m.startDateTime)).slice(11);
+    const durationOf = (m: IMeeting) => new Date(m.endDateTime).getTime() - new Date(m.startDateTime).getTime();
+    const compatible = rows.every((m) =>
+      m.isRecurring && m.recurrencePattern && m.recurrencePattern.type === "weekly" &&
+      (m.recurrencePattern.interval ?? 1) === (meeting.recurrencePattern?.interval ?? 1) &&
+      timeOf(m) === timeOf(meeting) && durationOf(m) === durationOf(meeting),
+    );
+    if (!compatible) return "incompatible";
+    const unionDays = [...new Set(rows.flatMap((m) => m.recurrencePattern?.daysOfWeek ?? []))]
+      .map((d) => ZOOM_WEEKDAY[d]).filter(Boolean).sort((a, b) => a - b);
+    // Always unbounded: every shared meeting is an endless adopted legacy series; a union of
+    // per-row end dates has no single-series representation worth inventing for them.
+    return { type: 2, repeat_interval: meeting.recurrencePattern.interval ?? 1, weekly_days: unionDays.join(","), end_times: 0 };
+  }
   const p = meeting.recurrencePattern;
   const end = p.endDate
     ? { end_date_time: new Date(p.endDate).toISOString().replace(/\.\d{3}Z$/, "Z") }
@@ -278,15 +301,19 @@ function buildZoomRecurrence(meeting: IMeeting): Record<string, unknown> | null 
 // anchor: Zoom silently rewrites a past start_time to "now" (verified 2026-08-20), and a
 // backdated anchor (e.g. a lease-year import) would otherwise file the meeting under the
 // host's past meetings.
-function nextOccurrenceStart(meeting: IMeeting): Date {
+function nextOccurrenceStart(meeting: IMeeting, siblings: IMeeting[] = []): Date {
   if (!meeting.isRecurring || !meeting.recurrencePattern) return new Date(meeting.startDateTime);
   const now = new Date();
   const horizon = new Date(now.getTime() + 370 * 24 * 60 * 60 * 1000);
-  const occurrences = expandOccurrences(
-    { ...meeting, recurrencePattern: meeting.recurrencePattern } as Parameters<typeof expandOccurrences>[0],
-    now, horizon,
-  );
-  return occurrences[0]?.start ?? new Date(meeting.startDateTime);
+  // A shared meeting's next occurrence is the earliest across ALL rows it serves.
+  const candidates = [meeting, ...siblings.filter((m) => m.isRecurring && m.recurrencePattern)]
+    .map((m) => expandOccurrences(
+      { ...m, recurrencePattern: m.recurrencePattern } as Parameters<typeof expandOccurrences>[0],
+      now, horizon,
+    )[0]?.start)
+    .filter((d): d is Date => !!d);
+  if (candidates.length === 0) return new Date(meeting.startDateTime);
+  return candidates.reduce((a, b) => (a < b ? a : b));
 }
 
 // ICR's own Zoom naming convention, applied when no explicit zoomTopic is pinned. Adopted
@@ -298,11 +325,22 @@ function zoomTopicFor(meeting: IMeeting): string {
   return `${meeting.title}${suffix}`;
 }
 
-function buildZoomMeetingBody(meeting: IMeeting) {
+function buildZoomMeetingBody(meeting: IMeeting, scheduleSiblings: IMeeting[] = []) {
   const durationMinutes = Math.round(
     (new Date(meeting.endDateTime).getTime() - new Date(meeting.startDateTime).getTime()) / 60000,
   );
-  const recurrence = buildZoomRecurrence(meeting);
+  const recurrence = buildZoomRecurrence(meeting, scheduleSiblings);
+  if (recurrence === "incompatible") {
+    // Divergent shared rows can't be one fixed-time series -- send a schedule-neutral body
+    // (content only) so the PATCH can't narrow whatever union Zoom currently holds (#513).
+    console.error(`Zoom shared-schedule rows for "${meeting.title}" diverged; leaving Zoom's schedule untouched`);
+    return {
+      topic: zoomTopicFor(meeting),
+      duration: durationMinutes,
+      agenda: meeting.description,
+      settings: { host_video: true, participant_video: true, join_before_host: true },
+    };
+  }
   return {
     topic: zoomTopicFor(meeting),
     // Recurring series are real recurring meetings on Zoom (type 8, usually endless via
@@ -310,7 +348,7 @@ function buildZoomMeetingBody(meeting: IMeeting) {
     // visible in the host's portal. One-time meetings stay plain scheduled (type 2).
     type: recurrence ? 8 : 2,
     ...(recurrence ? { recurrence } : {}),
-    start_time: toZoomStartTime(recurrence ? nextOccurrenceStart(meeting) : new Date(meeting.startDateTime)),
+    start_time: toZoomStartTime(recurrence ? nextOccurrenceStart(meeting, scheduleSiblings) : new Date(meeting.startDateTime)),
     duration: durationMinutes,
     timezone: "America/New_York",
     agenda: meeting.description,
@@ -394,11 +432,13 @@ export async function getZoomMeetingCredentials(zid: string): Promise<{ passcode
   }
 }
 
-export async function updateZoomMeeting(zid: string, meeting: IMeeting): Promise<boolean> {
+export async function updateZoomMeeting(zid: string, meeting: IMeeting, scheduleSiblings: IMeeting[] = []): Promise<boolean> {
   // Managed recurring meetings mirror their real schedule to Zoom (type 8 + recurrence, built
   // from the same pattern the app/calendars use) -- each successful PATCH also re-extends
   // Zoom's ~2-year rolling occurrence horizon. Unmanaged meetings never reach this function
   // (gated at every call site); their Zoom-side schedule is the owner's business.
+  // scheduleSiblings: the OTHER active rows sharing this zid (shared legacy meetings) -- the
+  // schedule sent is then the union of all rows, never one row's narrowed view (#513).
 
   try {
     const token = await getZoomAccessToken();
@@ -407,7 +447,7 @@ export async function updateZoomMeeting(zid: string, meeting: IMeeting): Promise
     const res = await fetch(`${ZOOM_BASE_API}/meetings/${zid}`, {
       method: "PATCH",
       headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-      body: JSON.stringify(buildZoomMeetingBody(meeting)),
+      body: JSON.stringify(buildZoomMeetingBody(meeting, scheduleSiblings)),
     });
     invalidateZoomTokenIfUnauthorized(res);
     if (!res.ok) console.error("Zoom updateMeeting error:", await res.text());

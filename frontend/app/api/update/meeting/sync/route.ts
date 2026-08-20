@@ -84,8 +84,17 @@ const syncMeeting = async (request: Request): Promise<Response> => {
                 // The conflict itself still surfaces independently via /api/admin/conflict-mids
                 // (Diagnostics), regardless of what happens here.
                 // Unmanaged (adopted/external) Zoom meetings are never PATCHed -- retrying the
-                // sync only re-runs the calendar half against the stored link.
-                const ok = meeting.zoomManaged ? await updateZoomMeeting(zid, meetingForCalendar) : true;
+                // sync only re-runs the calendar half against the stored link. Sibling rows
+                // sharing this zid ride along so the PATCH sends the whole union schedule (#513).
+                const scheduleSiblings = meeting.zoomManaged
+                    ? await prisma.meeting.findMany({
+                        where: { zid, deletedAt: null, mid: { not: mid } },
+                        include: { recurrencePattern: true },
+                    })
+                    : [];
+                const ok = meeting.zoomManaged
+                    ? await updateZoomMeeting(zid, meetingForCalendar, scheduleSiblings as unknown as IMeeting[])
+                    : true;
                 if (!ok) zoomSynced = false;
             } else if (!meeting.zoomManaged) {
                 // An unmanaged meeting with no zid points outside the app's Zoom account by

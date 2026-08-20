@@ -288,3 +288,45 @@ describe("token-fetch failure paths", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1); // only the token attempt
   });
 });
+
+describe("shared-zid union schedules (#513, via updateZoomMeeting's request body)", () => {
+  const weeklyRow = (days: string[], overrides: Partial<IMeeting> = {}): IMeeting => buildMeeting({
+    isRecurring: true,
+    recurrencePattern: {
+      type: "weekly", startDate: new Date("2026-07-01T23:00:00.000Z"), endDate: null,
+      daysOfWeek: days, firstDayOfWeek: "Sunday", interval: 1,
+    },
+    ...overrides,
+  });
+
+  it("sends the union of all sharing rows' weekdays, not the edited row's alone", async () => {
+    const { getCapturedBody } = mockFetchCapturingBody();
+    const edited = weeklyRow(["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]);
+    const sunday = weeklyRow(["Sunday"], { mid: "m-2", startDateTime: new Date("2026-07-05T22:00:00.000Z"), endDateTime: new Date("2026-07-05T23:00:00.000Z") });
+
+    await updateZoomMeeting("zid-shared", edited, [sunday]);
+
+    const body = getCapturedBody();
+    expect(body?.type).toBe(8);
+    expect(body?.recurrence).toEqual({ type: 2, repeat_interval: 1, weekly_days: "1,2,3,4,5,6,7", end_times: 0 });
+  });
+
+  it("sends a schedule-neutral body when sharing rows diverge, instead of narrowing Zoom's union", async () => {
+    const { getCapturedBody } = mockFetchCapturingBody();
+    const edited = weeklyRow(["Monday"]);
+    // Same weekday shape but a different time-of-day -- not representable as one series.
+    const divergent = weeklyRow(["Sunday"], {
+      mid: "m-2",
+      startDateTime: new Date("2026-07-05T20:00:00.000Z"),
+      endDateTime: new Date("2026-07-05T21:00:00.000Z"),
+    });
+
+    await updateZoomMeeting("zid-shared", edited, [divergent]);
+
+    const body = getCapturedBody();
+    expect(body?.type).toBeUndefined();
+    expect(body?.recurrence).toBeUndefined();
+    expect(body?.start_time).toBeUndefined();
+    expect(body?.topic).toBeDefined();
+  });
+});

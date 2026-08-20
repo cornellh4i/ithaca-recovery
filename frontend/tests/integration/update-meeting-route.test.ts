@@ -166,6 +166,7 @@ test("a managed edit threads the pinned zoomTopic into the Zoom PATCH instead of
   expect(mockedUpdateZoomMeeting).toHaveBeenCalledWith(
     "70000000778",
     expect.objectContaining({ zoomTopic: "Keep It Simple - Hybrid" }),
+    expect.any(Array),
   );
 });
 
