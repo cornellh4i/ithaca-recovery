@@ -58,6 +58,16 @@ required payment method is the same ICR card (R2 itself stays on the free plan).
 | `GCS_ARCHIVE_BUCKET` | Name of the archive-project GCS bucket (`icr-db-backups-archive`) — pure redundancy + immutability copy, bucket-level retention policy (400 days, unlocked) | GitHub Actions **variable** | Prod account | Retention is bucket-level, not per-object — see [Backups and Recovery](backups-and-recovery.md) for why 400d covers both GFS tiers there |
 | `AGE_PUBLIC_KEY_A` / `AGE_PUBLIC_KEY_B` | Two `age` public keys each backup is encrypted to (`age -r A -r B`) — either private key alone decrypts (OR, not AND), so the archive survives one holder being unreachable | GitHub Actions **variables** — public keys are safe even if leaked (can only encrypt) | Key custody, not an account: **Key A** = the H4I Maintenance Lead's password manager (Nathnael Tesfaw, nbt26@cornell.edu); **Key B** = Matt Kaskela, ICR President (Matt.Kaskela@518icr.com), who also holds all ICR-side credentials | Both **private** keys are never put in GitHub, Vercel, or any CI system, in any form — including a GitHub "environment secret". Rotation/compromise procedure: [Backup Infrastructure Setup](../03-development/backup-infra-setup.md) |
 
+### Zoom maintenance scan (GitHub Actions secrets)
+
+The monthly `zoom-scan.yml` workflow (credential-drift sweep + recurring-meeting horizon
+re-extension — see [How Sync Works](../01-user-guide/explanation/how-sync-works.md#zoom-side-changes-are-detected-not-synced-live))
+reuses `DATABASE_URL_UNPOOLED` from the backup workflow above, plus repo-secret **copies** of the
+app's `ZOOM_CLIENT_ID` / `ZOOM_CLIENT_SECRET` / `ZOOM_ACCOUNT_ID` (same Server-to-Server app as
+the Vercel env vars — rotating the Marketplace secret means updating **both** places). A red run
+means drift detection and horizon maintenance stopped; re-run via workflow_dispatch after
+fixing.
+
 ### Backups admin tab (Vercel env vars)
 
 | Credential | Purpose | Where it lives | Controlled by | Coordination needed before changing |
