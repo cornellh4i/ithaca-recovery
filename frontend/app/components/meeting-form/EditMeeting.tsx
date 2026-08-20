@@ -266,7 +266,7 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
               compact={compact}
               getCandidate={() => buildMeetingPayload(meeting.mid, meeting.status ?? 'Active')}
               lockedReason={meeting.zoomManaged === false
-                ? "Legacy Zoom link; host can't be reassigned from the app."
+                ? "External Zoom link; host can't be reassigned from the app."
                 : undefined}
               sharedLinkNote={sharedWithText
                 ? `This Zoom link is shared with ${sharedWithText}; the schedule saved here feeds that same Zoom meeting.`
