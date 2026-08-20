@@ -10,10 +10,13 @@ Every meeting has up to three synced copies: an event on its category calendar, 
 | **Edit** (This event / This and following) | Affected occurrence(s) updated; a recurring edit splits or detaches the Google event(s) to match | Untouched — the detached/tail row inherits the same meeting ID, link, and passcode |
 | **Edit** (All events) | Updated to match | Rescheduled to match — retain the meeting ID, link, and passcode |
 | **Change Zoom Host** | Events keep the same link | Moved to the new host — ID, link, and passcode unchanged (a replacement is only created if Zoom refuses the move) |
+| **Change Room / Zoom Room** | The join-link event moves to the new room's calendar (for a scoped edit, only the detached/tail part moves — each segment publishes on its own room's calendar) | Untouched — ID, link, and passcode kept |
 | **Delete** (one occurrence / this-and-following) | Affected occurrences removed | Untouched |
 | **Delete** (whole series) | All events removed | Deleted — unless another platform meeting still shares the same Zoom meeting, or it's an [external link](#external-zoom-links) the platform doesn't own |
 | **Suspend / Resume** | Events removed for the suspension window; the resume series is pre-created | Untouched — the link keeps working for the return date |
 | **Retry sync** | Failed events re-published | Re-attempted first (Google waits on Zoom) — an existing link is always reused, never replaced |
+
+Creating, editing, suspending, resuming, and retrying all report the sync-error badge if a copy fails; deleting applies immediately and doesn't badge. A rare failed occurrence-removal is reapplied by the next edit or retry of the series; a failed whole-series delete can leave a stray Google Calendar event to remove by hand.
 
 ## Shared Zoom links
 
