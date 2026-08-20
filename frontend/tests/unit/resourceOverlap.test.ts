@@ -258,6 +258,43 @@ describe("computeConflicts", () => {
     expect(conflicts[0].value).toBe("host1@icr.test");
   });
 
+  it("buckets two casings of one host email together (#504), keeping a real stored casing in the row", () => {
+    const withHost: ConflictCandidateMeeting = { ...baseMeeting, zoomHost: "518Board@gmail.com" };
+    const meetingTwo: ConflictCandidateMeeting = {
+      ...baseMeeting,
+      mid: "m2",
+      title: "Meeting Two",
+      room: "Unity Room",
+      zoomHost: "518board@gmail.com",
+      startDateTime: utcDate(2026, 7, 6, 19, 30),
+      endDateTime: utcDate(2026, 7, 6, 20, 30),
+    };
+
+    const conflicts = computeConflicts([withHost, meetingTwo]);
+    expect(conflicts).toHaveLength(1);
+    expect(conflicts[0].field).toBe("zoomHost");
+    expect(conflicts[0].value).toBe("518Board@gmail.com");
+  });
+
+  it("resolves a host's capacity case-insensitively, so two meetings on one licensed host stay healthy across casings", () => {
+    const withHost: ConflictCandidateMeeting = { ...baseMeeting, zoomHost: "518Board@gmail.com" };
+    const meetingTwo: ConflictCandidateMeeting = {
+      ...baseMeeting,
+      mid: "m2",
+      title: "Meeting Two",
+      room: "Unity Room",
+      zoomHost: "518board@gmail.com",
+      startDateTime: utcDate(2026, 7, 6, 19, 30),
+      endDateTime: utcDate(2026, 7, 6, 20, 30),
+    };
+
+    // Capacities arrive keyed in ZOOM_HOSTS casing; the bucket's display value is DB casing.
+    const conflicts = computeConflicts([withHost, meetingTwo], OVERLAP_HORIZON_YEARS, {
+      zoomHostCapacities: { "518board@GMAIL.com": 2 },
+    });
+    expect(conflicts).toEqual([]);
+  });
+
   it("flags a zoomHost conflict even when one of the two meetings is suspended", () => {
     // Unlike room/zoomRoom, a suspended meeting's Zoom host is still genuinely reserved
     // (its Zoom sync is skipped, not torn down) -- see resolveZoomHost's includeSuspended: true.
@@ -450,6 +487,15 @@ describe("findFirstFreePoolHost — per-host capacities", () => {
       capacities: { [pool[0]]: 2, [pool[1]]: 1 },
     });
     expect(host).toBe(pool[0]);
+  });
+
+  it("counts a row stored in Zoom-registered casing against the ZOOM_HOSTS-cased pool entry (#504)", async () => {
+    // Without case-insensitive bucketing this row splits into a phantom host, both pool
+    // entries look idle, and least-loaded would pick pool[0] -- over-booking the real host.
+    const host = await findFirstFreePoolHost(pool, candidate, stubClient([onHost("Licensed@ICR.test", 19, 20)]), {
+      capacities: { [pool[0]]: 2, [pool[1]]: 2 },
+    });
+    expect(host).toBe(pool[1]);
   });
 
   it("uses a basic host only once every licensed host is at capacity", async () => {

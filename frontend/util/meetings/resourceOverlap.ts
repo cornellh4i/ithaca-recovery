@@ -229,10 +229,17 @@ const candidateHorizonRange = (horizonYears: number): [Date, Date] => {
   return [rangeStart, rangeEnd];
 };
 
+// Host emails are identity-compared case-insensitively everywhere (#504): email addresses are
+// case-insensitive in reality, and Zoom's API reports them in registered casing
+// (518Board@gmail.com) while ZOOM_HOSTS and the DB may carry another — a casing mismatch must
+// never split one physical host into two accounting buckets. Stored/displayed values keep
+// their original casing; only comparison keys normalize.
+export const hostKey = (email: string): string => email.toLowerCase();
+
 const fieldWhere = (field: ResourceField, value: string): Prisma.MeetingWhereInput => {
   if (field === "room") return { room: value };
   if (field === "zoomRoom") return { zoomRoom: value };
-  return { zoomHost: value };
+  return { zoomHost: { equals: value, mode: "insensitive" } };
 };
 
 export type FindConflictsOptions = {
@@ -429,7 +436,7 @@ export async function getPoolHostLoads(
   const where: Prisma.MeetingWhereInput = {
     AND: [
       notDeleted,
-      { zoomHost: { in: pool } },
+      { zoomHost: { in: pool, mode: "insensitive" } },
       ...(opts.excludeMid ? [{ mid: { not: opts.excludeMid } }] : []),
     ],
   };
@@ -453,13 +460,14 @@ export async function getPoolHostLoads(
   const occupiedByHost = new Map<string, typeof meetings>();
   for (const meeting of meetings) {
     if (!meeting.zoomHost) continue;
-    const bucket = occupiedByHost.get(meeting.zoomHost);
+    const key = hostKey(meeting.zoomHost);
+    const bucket = occupiedByHost.get(key);
     if (bucket) bucket.push(meeting);
-    else occupiedByHost.set(meeting.zoomHost, [meeting]);
+    else occupiedByHost.set(key, [meeting]);
   }
 
   return pool.map((host) => {
-    const hostOccurrenceLists = (occupiedByHost.get(host) ?? []).map((meeting) =>
+    const hostOccurrenceLists = (occupiedByHost.get(hostKey(host)) ?? []).map((meeting) =>
       expandOccurrences(
         {
           startDateTime: meeting.startDateTime,
@@ -590,8 +598,16 @@ export function computeConflicts(
     zoomHost: meetings,
   };
 
+  // Capacity keys arrive in ZOOM_HOSTS casing while bucket values may carry DB casing --
+  // normalize once here so the lookup below can't miss (#504).
+  const capacityByHostKey = new Map(
+    Object.entries(opts.zoomHostCapacities ?? {}).map(([host, capacity]) => [hostKey(host), capacity]),
+  );
+
   (["room", "zoomRoom", "zoomHost"] as const).forEach((field) => {
     const buckets = new Map<string, ConflictCandidateMeeting[]>();
+    // zoomHost buckets key case-insensitively (#504); rows still display a real stored casing.
+    const displayValues = new Map<string, string>();
     for (const meeting of fieldMeetings[field]) {
       // A meeting whose explicit zoomHost pick lost out to another meeting has zoomHost: null
       // (nothing was actually assigned) but still real-y wants that host -- bucket it under
@@ -599,13 +615,16 @@ export function computeConflicts(
       // already-known conflict (see its zoomSyncError) silently vanishing from this panel.
       const value = field === "zoomHost" ? (meeting.zoomHost ?? meeting.attemptedZoomHost) : meeting[field];
       if (!value) continue;
-      const bucket = buckets.get(value);
+      const key = field === "zoomHost" ? hostKey(value) : value;
+      if (!displayValues.has(key)) displayValues.set(key, value);
+      const bucket = buckets.get(key);
       if (bucket) bucket.push(meeting);
-      else buckets.set(value, [meeting]);
+      else buckets.set(key, [meeting]);
     }
 
-    for (const [value, bucketMeetings] of buckets) {
-      const capacity = field === "zoomHost" ? (opts.zoomHostCapacities?.[value] ?? 1) : 1;
+    for (const [key, bucketMeetings] of buckets) {
+      const value = displayValues.get(key) ?? key;
+      const capacity = field === "zoomHost" ? (capacityByHostKey.get(key) ?? 1) : 1;
       const withOccurrences = bucketMeetings.map((meeting) => ({
         meeting,
         occurrences: expandCached(meeting),
