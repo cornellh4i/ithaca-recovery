@@ -62,7 +62,9 @@ async function syncDeleteAll(
   // the live pointer above would otherwise be left dangling on Google Calendar once the meeting
   // itself is gone.
   await tearDownPendingResumeSeries(meeting, accessToken);
-  if (meeting.zid) await deleteZoomMeeting(meeting.zid);
+  // Never delete an unmanaged Zoom meeting (adopted legacy / externally hosted): the group's
+  // meeting ID predates this app and must survive the app-side record's deletion.
+  if (meeting.zid && meeting.zoomManaged) await deleteZoomMeeting(meeting.zid);
   if (accessToken && meeting.zoomCalendarEventId && meeting.zoomRoom) {
     const calId = zoomRoomCalendarId[meeting.zoomRoom];
     if (calId) await deleteCalendarEvent(accessToken, meeting.zoomCalendarEventId, calId);

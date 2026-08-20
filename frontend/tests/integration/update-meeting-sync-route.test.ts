@@ -227,6 +227,25 @@ describe("retrying an already-synced meeting (existing zid)", () => {
     expect(mockedReconcileMeetingCalendars).toHaveBeenCalled();
   });
 
+  test("an unmanaged Zoom meeting's retry skips the Zoom PATCH but still reconciles calendars", async () => {
+    mockedReconcileMeetingCalendars.mockResolvedValue({ updatedEventIds: {}, allSynced: true, googleSyncError: null });
+
+    const prisma = getTestPrismaClient();
+    const meetingData = buildSyncedMeetingData({ zoomManaged: false });
+    await prisma.meeting.create({ data: meetingData });
+
+    const response = await POST(new Request("http://localhost/api/update/meeting/sync", {
+      method: "POST",
+      body: JSON.stringify({ mid: meetingData.mid }),
+    }));
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body.zoomSyncStatus).toBe("synced");
+
+    expect(mockedUpdateZoomMeeting).not.toHaveBeenCalled();
+    expect(mockedReconcileMeetingCalendars).toHaveBeenCalled();
+  });
+
   test("a real Zoom API failure marks zoomSyncStatus error and defers the calendar reconcile", async () => {
     mockedUpdateZoomMeeting.mockResolvedValue(false);
 

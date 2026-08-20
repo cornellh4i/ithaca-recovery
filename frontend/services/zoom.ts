@@ -265,7 +265,11 @@ export async function createZoomMeeting(meeting: IMeeting, hostEmail: string): P
     const res = await fetch(`${ZOOM_BASE_API}/users/${encodeURIComponent(hostEmail)}/meetings`, {
       method: "POST",
       headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-      body: JSON.stringify(buildZoomMeetingBody(meeting)),
+      body: JSON.stringify(
+        meeting.isRecurring
+          ? (({ topic, agenda, settings }) => ({ topic, agenda, settings }))(buildZoomMeetingBody(meeting))
+          : buildZoomMeetingBody(meeting),
+      ),
     });
     invalidateZoomTokenIfUnauthorized(res);
     if (!res.ok) {
@@ -305,6 +309,11 @@ export async function getZoomMeetingInvitation(zid: string): Promise<string | nu
 }
 
 export async function updateZoomMeeting(zid: string, meeting: IMeeting): Promise<boolean> {
+  // A recurring series' Zoom meeting is a stable join target (legacy type 3, or endless type 8)
+  // whose schedule lives in the app/Google Calendar, not in Zoom -- PATCHing start_time/duration
+  // into it would distort the series (and Zoom silently rewrites past starts anyway). Only
+  // content fields are safe to update for recurring meetings.
+
   try {
     const token = await getZoomAccessToken();
     if (!token) return false;
@@ -312,7 +321,11 @@ export async function updateZoomMeeting(zid: string, meeting: IMeeting): Promise
     const res = await fetch(`${ZOOM_BASE_API}/meetings/${zid}`, {
       method: "PATCH",
       headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-      body: JSON.stringify(buildZoomMeetingBody(meeting)),
+      body: JSON.stringify(
+        meeting.isRecurring
+          ? (({ topic, agenda, settings }) => ({ topic, agenda, settings }))(buildZoomMeetingBody(meeting))
+          : buildZoomMeetingBody(meeting),
+      ),
     });
     invalidateZoomTokenIfUnauthorized(res);
     if (!res.ok) console.error("Zoom updateMeeting error:", await res.text());

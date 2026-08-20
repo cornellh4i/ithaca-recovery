@@ -57,7 +57,7 @@ async function syncUpdatedMeeting(
     const roomChanged = !!oldZoomRoom && oldZoomRoom !== newZoomRoom;
     const explicitHostChange = !!newMeeting.zoomHost && newMeeting.zoomHost !== existingMeeting.zoomHost;
 
-    if (roomChanged || explicitHostChange) {
+    if ((roomChanged || explicitHostChange) && existingMeeting.zoomManaged) {
       if (zid) {
         const ok = await deleteZoomMeeting(zid);
         if (!ok) zoomSynced = false;
@@ -94,7 +94,9 @@ async function syncUpdatedMeeting(
         zoomSyncError = "This time now conflicts with another meeting using the same Zoom host.";
         skipCalendarTimeSync = true;
       } else {
-        const ok = await updateZoomMeeting(zid, newMeeting);
+        // Unmanaged Zoom meetings are never PATCHed -- the stored link is the contract; only
+        // the calendars follow the app-side edit.
+        const ok = existingMeeting.zoomManaged ? await updateZoomMeeting(zid, newMeeting) : true;
         if (!ok) zoomSynced = false;
       }
     } else {
@@ -258,6 +260,20 @@ const updateMeeting = async (request: Request): Promise<Response> => {
     // down. A blank/"Automatic" selection, or resubmitting the form with the same
     // already-assigned host untouched, is NOT a reassignment.
     const explicitHostChange = !!newMeeting.zoomHost && newMeeting.zoomHost !== existingMeeting.zoomHost;
+
+    // An unmanaged Zoom meeting (adopted legacy / externally hosted -- see schema.prisma's
+    // zoomManaged) can't be torn down and recreated by the app: a room or host change would
+    // silently replace the group's long-lived meeting ID. Reject up front with a clear message
+    // instead of half-applying the edit.
+    if (!existingMeeting.zoomManaged) {
+      const roomChangedUnmanaged = !!existingMeeting.zoomRoom && newMeeting.zoomRoom !== existingMeeting.zoomRoom;
+      if (roomChangedUnmanaged || explicitHostChange) {
+        return NextResponse.json(
+          { error: "This meeting's Zoom meeting is owned outside the app (legacy/external). Changing its Zoom room or host would replace the group's long-standing meeting ID — coordinate with ICR instead." },
+          { status: 422 },
+        );
+      }
+    }
 
     // A count-bounded series (numberOfOccurrences set, no explicit endDate) has a real last
     // occurrence -- checking conflicts against the raw (still-null) endDate would expand it out

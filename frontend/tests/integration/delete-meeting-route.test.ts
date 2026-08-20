@@ -33,9 +33,11 @@ jest.mock("../../services/zoom", () => ({
 }));
 
 import { deleteCalendarEvent } from "../../services/googleCalendar";
+import { deleteZoomMeeting } from "../../services/zoom";
 import { DELETE } from "../../app/api/delete/meeting/route";
 
 const mockedDelete = deleteCalendarEvent as jest.Mock;
+const mockedDeleteZoom = deleteZoomMeeting as jest.Mock;
 
 afterAll(async () => {
   await disconnectTestPrismaClient();
@@ -43,6 +45,7 @@ afterAll(async () => {
 
 beforeEach(() => {
   mockedDelete.mockClear();
+  mockedDeleteZoom.mockClear();
   mockCapturedAfterTasks.length = 0;
 });
 
@@ -54,6 +57,28 @@ beforeEach(() => {
 async function drainAfterTasks(): Promise<void> {
   await Promise.all(mockCapturedAfterTasks.splice(0, mockCapturedAfterTasks.length));
 }
+
+test("deleting a meeting whose Zoom meeting is unmanaged never deletes it from Zoom", async () => {
+  const meeting = await seedMeeting({ zid: "89296128710", zoomManaged: false });
+
+  const response = await DELETE(new Request("http://localhost/api/delete/meeting", {
+    method: "DELETE", body: JSON.stringify({ mid: meeting.mid, deleteOption: "all" }),
+  }));
+  expect(response.status).toBe(200);
+  await drainAfterTasks();
+  expect(mockedDeleteZoom).not.toHaveBeenCalled();
+});
+
+test("deleting a managed meeting still tears its Zoom meeting down", async () => {
+  const meeting = await seedMeeting({ zid: "80000000001", zoomManaged: true });
+
+  const response = await DELETE(new Request("http://localhost/api/delete/meeting", {
+    method: "DELETE", body: JSON.stringify({ mid: meeting.mid, deleteOption: "all" }),
+  }));
+  expect(response.status).toBe(200);
+  await drainAfterTasks();
+  expect(mockedDeleteZoom).toHaveBeenCalledWith("80000000001");
+});
 
 test("deleting a meeting with a pending pre-created resume series tears that series down too, not just the live event", async () => {
   const { meeting } = await seedRecurringMeeting({
