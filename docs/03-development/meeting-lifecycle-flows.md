@@ -2,7 +2,7 @@
 
 What each lifecycle operation writes to the database, what it syncs externally, and what the client does afterward. Read this before touching any of the routes below — the seams between operations (exclusions, trims, splits, suspensions, soft-delete) are where regressions hide. For *why* the model looks like this, see [Technical Decisions](../02-handoff/technical-decisions.md) ("Recurring-Series Edit Scopes", "Zoom Integration", "Google Calendar Sync").
 
-Legend: **tx** = advisory-lock-guarded `$transaction` (`util/meetings/resourceLocks.ts`); **after()** = deferred post-response sync via Next's `after()`; *cat-cal* = category (calType) calendar events (`Meeting.googleCalendarEventIds`, keyed by category); *room-cal* = the Zoom-Room calendar's join-link event (`Meeting.zoomCalendarEventId`, singular).
+Legend: **tx** = advisory-lock-guarded `$transaction` (`util/meetings/resourceLocks.ts`); **after()** = deferred post-response sync via Next's `after()`; *cat-cal* = category (calType) calendar events (`Meeting.googleCalendarEventIds`, keyed by category); *room-cal* = the Zoom-Room calendar's join-link event (`Meeting.zoomCalendarEventId`, singular; published only when `zoomRoom` is set, i.e. Hybrid).
 
 | Op | DB writes (synchronous) | Deferred sync | Client follow-up |
 |---|---|---|---|
