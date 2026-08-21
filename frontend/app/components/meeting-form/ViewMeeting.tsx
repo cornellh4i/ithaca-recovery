@@ -286,8 +286,14 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
   // Also drives DeleteRecurringModal's disableScoped below -- the deep-link (?mid=) path into a
   // recurring meeting never sets currentOccurrenceDate (there's no click to attribute a date
   // to), and a stale/mismatched one wouldn't validate server-side either; either way there's no
-  // real occurrence to scope 'this'/'thisAndFollowing' against.
-  const hasKnownOccurrence = isRecurring && !!currentOccurrenceDate && doesMeetingOccurOnDate(currentOccurrenceDate);
+  // real occurrence to scope 'this'/'thisAndFollowing' against. recurrencePattern is checked
+  // separately from isRecurring -- doesMeetingOccurOnDate's own `!isRecurring || !recurrencePattern`
+  // branch is the *non-recurring* fallback (a plain date match), but it also fires for a
+  // malformed isRecurring:true row with no pattern at all; without this extra check, that plain
+  // date match against startDateTime would read as "yes, a known occurrence" and enable scoped
+  // delete for a row the server 400s (scoped ops require an actual pattern).
+  const hasKnownOccurrence =
+    isRecurring && !!recurrencePattern && !!currentOccurrenceDate && doesMeetingOccurOnDate(currentOccurrenceDate);
 
   let displayStartDate = startDateTime;
   let displayEndDate = endDateTime;

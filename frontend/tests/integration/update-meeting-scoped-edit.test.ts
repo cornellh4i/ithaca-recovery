@@ -301,6 +301,42 @@ test("a failed parent rewrite persists googleSyncStatus 'error' with the error t
   expect(parentAfterSync?.googleSyncError).toBe("Insufficient Permission");
 });
 
+test("a configured calType with a missing parent event ID is treated as unsynced, not silently skipped", async () => {
+  // No "AA" entry in googleCalendarEventIds even though "AA" is a configured, requested
+  // calType -- e.g. a previously-failed sync that never got an event ID to rewrite.
+  const { meeting } = await seedWeeklySeries({ googleCalendarEventIds: {} });
+  const occurrenceDate = occurrence(2).start;
+
+  const response = await putMeeting(scopedPayload(meeting.mid, "this", occurrenceDate));
+  expect(response.status).toBe(200);
+
+  const prisma = getTestPrismaClient();
+  const parentAfterSync = await waitFor(async () => {
+    const row = await prisma.meeting.findUnique({ where: { mid: meeting.mid } });
+    return row?.googleSyncStatus != null ? row : null;
+  });
+  // Nothing to rewrite -- there's no event ID for updateCalendarEvent to target.
+  expect(mockedUpdateCalendarEvent).not.toHaveBeenCalled();
+  expect(parentAfterSync?.googleSyncStatus).toBe("error");
+  expect(parentAfterSync?.googleSyncError).toBe('Missing Google Calendar event ID for "AA".');
+});
+
+test("fully-populated parent eventIds still lands 'synced'", async () => {
+  const { meeting } = await seedWeeklySeries({ googleCalendarEventIds: { AA: "parent-event-aa" } });
+  const occurrenceDate = occurrence(2).start;
+
+  const response = await putMeeting(scopedPayload(meeting.mid, "this", occurrenceDate));
+  expect(response.status).toBe(200);
+
+  const prisma = getTestPrismaClient();
+  const parentAfterSync = await waitFor(async () => {
+    const row = await prisma.meeting.findUnique({ where: { mid: meeting.mid } });
+    return row?.googleSyncStatus != null ? row : null;
+  });
+  expect(parentAfterSync?.googleSyncStatus).toBe("synced");
+  expect(parentAfterSync?.googleSyncError).toBeNull();
+});
+
 test("editScope 'thisAndFollowing' trims the parent's endDate and creates a new recurring tail series", async () => {
   const { meeting } = await seedWeeklySeries({ googleCalendarEventIds: { AA: "parent-event-aa" } });
   const occurrenceDate = occurrence(3).start;

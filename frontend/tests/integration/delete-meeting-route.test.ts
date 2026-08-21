@@ -230,6 +230,51 @@ describe("deleteOption 'this' / 'thisAndFollowing'", () => {
     expect(stored?.googleSyncError).toBe("Insufficient Permission");
   });
 
+  test("a configured calType with a missing event ID is treated as unsynced, not silently skipped", async () => {
+    // No "AA" entry in googleCalendarEventIds even though "AA" is a configured, requested
+    // calType -- e.g. a previously-failed sync that never got an event ID to rewrite.
+    const { meeting } = await seedRecurringMeeting(
+      { googleCalendarEventIds: {} },
+      { type: "weekly", daysOfWeek: ["Monday"], interval: 1 },
+    );
+    const occurrenceDate = new Date("2026-09-14T18:00:00Z");
+
+    const response = await DELETE(new Request("http://localhost/api/delete/meeting", {
+      method: "DELETE",
+      body: JSON.stringify({ mid: meeting.mid, deleteOption: "this", occurrenceDate: occurrenceDate.toISOString() }),
+    }));
+    expect(response.status).toBe(200);
+
+    await drainAfterTasks();
+    // Nothing to rewrite -- there's no event ID for updateCalendarEvent to target.
+    expect(mockedUpdate).not.toHaveBeenCalled();
+
+    const prisma = getTestPrismaClient();
+    const stored = await prisma.meeting.findUnique({ where: { mid: meeting.mid } });
+    expect(stored?.googleSyncStatus).toBe("error");
+    expect(stored?.googleSyncError).toBe('Missing Google Calendar event ID for "AA".');
+  });
+
+  test("fully-populated eventIds still lands 'synced'", async () => {
+    const { meeting } = await seedRecurringMeeting(
+      { googleCalendarEventIds: { AA: "live-event-id" } },
+      { type: "weekly", daysOfWeek: ["Monday"], interval: 1 },
+    );
+    const occurrenceDate = new Date("2026-09-14T18:00:00Z");
+
+    const response = await DELETE(new Request("http://localhost/api/delete/meeting", {
+      method: "DELETE",
+      body: JSON.stringify({ mid: meeting.mid, deleteOption: "this", occurrenceDate: occurrenceDate.toISOString() }),
+    }));
+    expect(response.status).toBe(200);
+
+    await drainAfterTasks();
+    const prisma = getTestPrismaClient();
+    const stored = await prisma.meeting.findUnique({ where: { mid: meeting.mid } });
+    expect(stored?.googleSyncStatus).toBe("synced");
+    expect(stored?.googleSyncError).toBeNull();
+  });
+
   test("'thisAndFollowing' trims endDate, nulls numberOfOccurrences, and rewrites the calendar event", async () => {
     const { meeting } = await seedRecurringMeeting(
       { googleCalendarEventIds: { AA: "live-event-id" } },

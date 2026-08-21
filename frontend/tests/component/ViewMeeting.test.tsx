@@ -282,6 +282,24 @@ describe("ViewMeeting", () => {
       expect(screen.getByLabelText("This event")).toBeDisabled();
       expect(screen.getByLabelText("This and following events")).toBeDisabled();
     });
+
+    // doesMeetingOccurOnDate's `!isRecurring || !recurrencePattern` branch is the *non-recurring*
+    // fallback (a plain date match against startDateTime) -- for a malformed isRecurring:true row
+    // with no pattern at all, that same plain match would otherwise read "yes, a known occurrence"
+    // whenever the clicked date happens to equal startDateTime, wrongly enabling scoped delete for
+    // a row the server 400s (scoped ops require an actual recurrencePattern to exist).
+    it("disables both scoped options for an isRecurring meeting with no recurrencePattern, even when the clicked date matches startDateTime", async () => {
+      renderViewMeeting({
+        ...biweeklyProps,
+        recurrencePattern: undefined,
+        currentOccurrenceDate: biweeklyProps.startDateTime,
+      });
+      await openDeleteModal();
+      expect(screen.getByLabelText("This event")).toBeDisabled();
+      expect(screen.getByLabelText("This and following events")).toBeDisabled();
+      expect(screen.getByLabelText("All events")).toBeChecked();
+      expect(screen.getByText(/Open the meeting from a calendar day/)).toBeInTheDocument();
+    });
   });
 
   describe("Zoom drift notice", () => {

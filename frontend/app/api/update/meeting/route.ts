@@ -351,7 +351,15 @@ async function syncScopedParentCalendar(
   let syncError: string | null = null;
   for (const [cat, calId] of Object.entries(calendarIds)) {
     const eventId = eventIds[cat];
-    if (!eventId) continue;
+    if (!eventId) {
+      // A configured category with no stored event ID (most likely a previously-failed sync
+      // that never got an ID to rewrite) isn't a no-op -- it's still divergent from what the
+      // pattern now says, and silently continuing past it would report 'synced' while that
+      // calendar never got touched at all.
+      synced = false;
+      syncError = syncError ?? `Missing Google Calendar event ID for "${cat}".`;
+      continue;
+    }
     const { ok, error } = await updateCalendarEvent(accessToken, eventId, meetingForCalendar, calId);
     if (!ok) {
       synced = false;
