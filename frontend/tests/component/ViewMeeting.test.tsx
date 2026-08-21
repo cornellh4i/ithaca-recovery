@@ -192,6 +192,37 @@ describe("ViewMeeting", () => {
     });
   });
 
+  describe("recurrence line series end date", () => {
+    const recurringProps = {
+      ...baseProps,
+      isRecurring: true,
+      recurrencePattern: {
+        type: "weekly",
+        startDate: new Date("2026-07-15T04:00:00Z"),
+        daysOfWeek: ["Wednesday"],
+        firstDayOfWeek: "Sunday",
+        interval: 1,
+      },
+      anchorEl: makeAnchorEl(),
+      isPhone: false,
+    };
+
+    it("shows the series' end date when the pattern has one", async () => {
+      // 11:59:59 PM ET Dec 31 (EST, UTC-5) -- the inclusive last day of the series per
+      // IRecurrencePattern's endDate contract.
+      renderViewMeeting({
+        ...recurringProps,
+        recurrencePattern: { ...recurringProps.recurrencePattern, endDate: new Date("2027-01-01T04:59:59Z") },
+      });
+      expect(await screen.findByText(/Ends December 31, 2026/)).toBeInTheDocument();
+    });
+
+    it("shows \"No end date\" when the series has none", async () => {
+      renderViewMeeting(recurringProps);
+      expect(await screen.findByText(/No end date/)).toBeInTheDocument();
+    });
+  });
+
   describe("biweekly recurrence occurrence re-anchoring", () => {
     // doesMeetingOccurOnDate diffs ET calendar days (daysBetweenET), not raw instants --
     // date (noon-ET-anchored) and startDateTime aren't at the same time-of-day, so a raw

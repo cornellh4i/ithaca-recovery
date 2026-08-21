@@ -84,6 +84,38 @@ function lastUpdateMeetingBody(): Record<string, unknown> {
   return JSON.parse(call![1].body);
 }
 
+describe("EditMeetingSidebar mid-series occurrence hint", () => {
+  it("shows a hint when the clicked occurrence differs from the series' start date", async () => {
+    renderEdit();
+    await act(async () => {});
+    expect(screen.getByText(/You opened this meeting from its/)).toBeInTheDocument();
+    expect(screen.getByText(/August 9, 2026/)).toBeInTheDocument();
+  });
+
+  it("shows no hint when there's no occurrence context", async () => {
+    renderEdit(null);
+    await act(async () => {});
+    expect(screen.queryByText(/You opened this meeting from its/)).not.toBeInTheDocument();
+  });
+
+  it("shows no hint when the clicked occurrence is the series' own start date", async () => {
+    // anchorMeeting.startDateTime is Sun Jul 5, 2026, 6:00 PM ET -- same ET calendar day as
+    // the occurrence clicked here, just a different time-of-day.
+    render(
+      <ToastProvider>
+        <EditMeetingSidebar
+          meeting={anchorMeeting}
+          onClose={jest.fn()}
+          onUpdateSuccess={jest.fn()}
+          occurrenceDate={new Date("2026-07-05T23:00:00.000Z")}
+        />
+      </ToastProvider>
+    );
+    await act(async () => {});
+    expect(screen.queryByText(/You opened this meeting from its/)).not.toBeInTheDocument();
+  });
+});
+
 describe("EditMeetingSidebar recurring-scope re-anchoring", () => {
   it("re-anchors an untouched Date field onto the clicked occurrence for a scoped save", async () => {
     renderEdit();

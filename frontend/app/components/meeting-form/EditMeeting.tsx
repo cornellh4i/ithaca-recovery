@@ -22,7 +22,7 @@ import { useMeetingForm, CAL_TYPE_OPTIONS, CAL_TYPE_COLOR, DESCRIPTION_MAX_LENGT
 import { ConflictListRow } from '../../../util/meetings/conflictDisplay';
 import { useToast } from '../shared/ToastProvider';
 import { pollMeetingSyncStatus, describeSyncFailure } from '../../../services/syncMeeting';
-import { convertETToUTC, formatETDateString, getETTimeOfDay, isDstGapError } from '../../../util/date/timeUtils';
+import { convertETToUTC, formatETDateString, formatETLongDate, getETTimeOfDay, isDstGapError } from '../../../util/date/timeUtils';
 
 import styles from './MeetingForm.module.scss';
 
@@ -124,6 +124,15 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
     // makes an all-occurrences edit an informed, explicit choice instead of the previous silent
     // whole-series rewrite.
     const canScopeEdit = !!(meeting.isRecurring && isRecurring);
+    // The Date field below always shows the series' anchor (meeting.startDateTime), never the
+    // clicked occurrence -- admins opening a mid-series occurrence (e.g. Sept 23 on the
+    // calendar) otherwise see an unexplained Sept 9. Independent of canScopeEdit: this is a
+    // display clarification, not a scoping precondition, so it stays even when e.g. the meeting
+    // isn't currently recurring in the form.
+    const showOccurrenceDateHint = !!(occurrenceDate &&
+      // new Date() wrap: meeting comes off a JSON fetch, so startDateTime is a string at
+      // runtime despite IMeeting's Date type -- Intl.format throws on it unwrapped.
+      formatETDateString(occurrenceDate) !== formatETDateString(new Date(meeting.startDateTime)));
     const [isScopeModalOpen, setIsScopeModalOpen] = useState(false);
     // The payload built at the moment Save was pressed -- EditRecurringModal's own choice
     // handler applies the scope onto this rather than rebuilding from current form state, since
@@ -307,6 +316,13 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
           />
         </div>
         <FormValidationBanner errors={liveValidationErrors} />
+        {showOccurrenceDateHint && (
+          <p className={styles.occurrenceHint}>
+            <Icon name="warning-circle" size={16} />
+            You opened this meeting from its {formatETLongDate(occurrenceDate as Date)} occurrence.
+            The date below is the series&apos; start date, not this occurrence.
+          </p>
+        )}
         <MeetingForm
           meetingTitleTextField={<TextField
             input="Meeting title"

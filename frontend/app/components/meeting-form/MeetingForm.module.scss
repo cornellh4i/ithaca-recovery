@@ -147,6 +147,18 @@
   flex-direction: column;
 }
 
+// One-line plain-language context under a field's caption -- see Field's `hint` prop in
+// MeetingForm.tsx. Distinct from .fieldMessage (which reports the live time-range validation
+// state below the control) -- this is static per-field guidance shown above it.
+.fieldHint {
+  display: block;
+  font-family: 'Source Sans Pro', sans-serif;
+  font-size: 11px;
+  line-height: 1.4;
+  color: $medium-grey-color;
+  margin: -2px 0 6px;
+}
+
 .requiredMark {
   color: $danger-color;
   margin-left: 2px;
@@ -165,6 +177,28 @@
     width: 100%;
     height: auto;
     padding: 20px;
+  }
+}
+
+// Neutral/informational (not a validation error) -- shown above the form when the admin opened
+// a mid-series occurrence, to explain why the Date field below shows the series' start rather
+// than the occurrence they clicked. Same $info-* palette as EditRecurringModal's own hints.
+.occurrenceHint {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0 0 16px;
+  padding: 10px 12px;
+  border-radius: $radius-md;
+  background-color: $info-bg-color;
+  color: $info-text-color;
+  font-family: 'Source Sans Pro', sans-serif;
+  font-size: 13px;
+  line-height: 1.5;
+
+  svg {
+    flex-shrink: 0;
+    margin-top: 2px;
   }
 }
 
