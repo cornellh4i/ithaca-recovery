@@ -273,6 +273,32 @@ test("editScope 'this' excludes the occurrence on the parent and creates a detac
   expect(parentMeetingForCalendar.recurrencePattern.excludedDates).toHaveLength(1);
   // The new row got its own calType calendar event created.
   expect(mockedCreateCalendarEvent).toHaveBeenCalled();
+
+  // A successful rewrite persists googleSyncStatus 'synced' on the PARENT too, not just the child.
+  const parentAfterSync = await waitFor(async () => {
+    const row = await prisma.meeting.findUnique({ where: { mid: meeting.mid } });
+    return row?.googleSyncStatus != null ? row : null;
+  });
+  expect(parentAfterSync?.googleSyncStatus).toBe("synced");
+  expect(parentAfterSync?.googleSyncError).toBeNull();
+});
+
+test("a failed parent rewrite persists googleSyncStatus 'error' with the error text on the parent", async () => {
+  mockedUpdateCalendarEvent.mockResolvedValueOnce({ ok: false, error: "Insufficient Permission" });
+
+  const { meeting } = await seedWeeklySeries({ googleCalendarEventIds: { AA: "parent-event-aa" } });
+  const occurrenceDate = occurrence(2).start;
+
+  const response = await putMeeting(scopedPayload(meeting.mid, "this", occurrenceDate));
+  expect(response.status).toBe(200);
+
+  const prisma = getTestPrismaClient();
+  const parentAfterSync = await waitFor(async () => {
+    const row = await prisma.meeting.findUnique({ where: { mid: meeting.mid } });
+    return row?.googleSyncStatus != null ? row : null;
+  });
+  expect(parentAfterSync?.googleSyncStatus).toBe("error");
+  expect(parentAfterSync?.googleSyncError).toBe("Insufficient Permission");
 });
 
 test("editScope 'thisAndFollowing' trims the parent's endDate and creates a new recurring tail series", async () => {
@@ -710,7 +736,9 @@ describe("scoped edit conflict scan no longer excludes the parent for room/zoomR
 
 describe("scoped edit on a suspended parent", () => {
   test("creates an Active child whose events publish, while the parent's own calendar rewrite is skipped", async () => {
-    const { meeting } = await seedWeeklySeries({ status: "Suspended", googleCalendarEventIds: { AA: "parent-event-aa" } });
+    const { meeting } = await seedWeeklySeries({
+      status: "Suspended", googleCalendarEventIds: { AA: "parent-event-aa" }, googleSyncStatus: "synced",
+    });
     const occurrenceDate = occurrence(2).start;
 
     // The payload mirrors the parent's own (suspended) status, as a client that round-trips the
@@ -733,6 +761,10 @@ describe("scoped edit on a suspended parent", () => {
 
     // The parent's own full-body rewrite is still skipped -- it's still suspended.
     expect(mockedUpdateCalendarEvent).not.toHaveBeenCalled();
+    // The suspended-skip is a deferral, not a failure -- the parent's own googleSyncStatus is
+    // left exactly as it was, never flipped to 'error'.
+    const parentAfter = await prisma.meeting.findUnique({ where: { mid: meeting.mid } });
+    expect(parentAfter?.googleSyncStatus).toBe("synced");
   });
 });
 

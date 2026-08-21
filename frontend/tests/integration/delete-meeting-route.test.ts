@@ -201,6 +201,33 @@ describe("deleteOption 'this' / 'thisAndFollowing'", () => {
     expect(eventId).toBe("live-event-id");
     expect(calendarId).toBe("fake-calendar-id");
     expect(meetingForCalendar.recurrencePattern.excludedDates).toHaveLength(1);
+
+    // A successful rewrite persists googleSyncStatus 'synced' on the parent.
+    const prismaAfter = await prisma.meeting.findUnique({ where: { mid: meeting.mid } });
+    expect(prismaAfter?.googleSyncStatus).toBe("synced");
+    expect(prismaAfter?.googleSyncError).toBeNull();
+  });
+
+  test("a failed rewrite persists googleSyncStatus 'error' with the error text on the parent", async () => {
+    mockedUpdate.mockResolvedValueOnce({ ok: false, error: "Insufficient Permission" });
+
+    const { meeting } = await seedRecurringMeeting(
+      { googleCalendarEventIds: { AA: "live-event-id" } },
+      { type: "weekly", daysOfWeek: ["Monday"], interval: 1 },
+    );
+    const occurrenceDate = new Date("2026-09-14T18:00:00Z"); // a Monday
+
+    const response = await DELETE(new Request("http://localhost/api/delete/meeting", {
+      method: "DELETE",
+      body: JSON.stringify({ mid: meeting.mid, deleteOption: "this", occurrenceDate: occurrenceDate.toISOString() }),
+    }));
+    expect(response.status).toBe(200); // the DB write already committed; the response doesn't wait on the deferred sync
+
+    await drainAfterTasks();
+    const prisma = getTestPrismaClient();
+    const stored = await prisma.meeting.findUnique({ where: { mid: meeting.mid } });
+    expect(stored?.googleSyncStatus).toBe("error");
+    expect(stored?.googleSyncError).toBe("Insufficient Permission");
   });
 
   test("'thisAndFollowing' trims endDate, nulls numberOfOccurrences, and rewrites the calendar event", async () => {
@@ -237,7 +264,7 @@ describe("deleteOption 'this' / 'thisAndFollowing'", () => {
     // isn't represented in RecurrencePattern at all -- a full-body rewrite from the stored
     // pattern here would silently resurrect whatever the suspension hid.
     const { meeting } = await seedRecurringMeeting(
-      { status: "Suspended", googleCalendarEventIds: { AA: "live-event-id" } },
+      { status: "Suspended", googleCalendarEventIds: { AA: "live-event-id" }, googleSyncStatus: "synced" },
       { type: "weekly", daysOfWeek: ["Monday"], interval: 1 },
     );
     const occurrenceDate = new Date("2026-09-14T18:00:00Z");
@@ -250,6 +277,11 @@ describe("deleteOption 'this' / 'thisAndFollowing'", () => {
 
     await drainAfterTasks();
     expect(mockedUpdate).not.toHaveBeenCalled();
+    // The suspended-skip is a deferral, not a failure -- googleSyncStatus is left exactly as it
+    // was, never flipped to 'error'.
+    const prisma = getTestPrismaClient();
+    const stored = await prisma.meeting.findUnique({ where: { mid: meeting.mid } });
+    expect(stored?.googleSyncStatus).toBe("synced");
   });
 
   test("'this' also rewrites the meeting's own Zoom-Room join-link event, not just the calType event", async () => {

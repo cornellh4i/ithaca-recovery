@@ -99,7 +99,10 @@ function formatExdateCompact(occurrenceDate: Date | string, meetingStartDateTime
 
     const etTimeParts = new Intl.DateTimeFormat('en-US', {
         timeZone: 'America/New_York',
-        hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
+        // hourCycle: 'h23' explicitly, not just hour12: false -- some engines default hour12:
+        // false to h24 (midnight renders as "24", not "00"), which would emit an invalid EXDATE
+        // hour for a meeting whose ET start time is exactly midnight.
+        hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false, hourCycle: 'h23',
     }).formatToParts(new Date(meetingStartDateTime));
     const get = (t: string) => etTimeParts.find(p => p.type === t)?.value?.padStart(2, '0') ?? '00';
 

@@ -330,8 +330,14 @@ async function syncUpdatedMeeting(
 // (syncSuspend in update/meeting/suspend/route.ts, via trimCalendarEventSeries) that isn't
 // represented in RecurrencePattern at all, and a full-body rewrite from the stored pattern would
 // silently resurrect whatever the suspension hid -- same reasoning as syncUpdatedMeeting's
-// suspended early-return above.
+// suspended early-return above. Persists googleSyncStatus/googleSyncError for the parent so a
+// failed rewrite gets the ⚠ badge/retry prompt instead of silently leaving DB and Google
+// disagreeing about the trim/exclusion that already committed -- same contract as every other
+// Google write (technical-decisions.md's "API failure ⇒ googleSyncStatus 'error'"). The
+// suspended early-return above deliberately skips this write too -- that deferral is intentional
+// (status stays whatever it already was), not a failure to report.
 async function syncScopedParentCalendar(
+  mid: string,
   status: string,
   accessToken: string | undefined,
   calendarIds: Record<string, string>,
@@ -341,9 +347,16 @@ async function syncScopedParentCalendar(
   zoomRoom: string | null,
 ): Promise<void> {
   if (!accessToken || status === 'Suspended') return;
+  let synced = true;
+  let syncError: string | null = null;
   for (const [cat, calId] of Object.entries(calendarIds)) {
     const eventId = eventIds[cat];
-    if (eventId) await updateCalendarEvent(accessToken, eventId, meetingForCalendar, calId);
+    if (!eventId) continue;
+    const { ok, error } = await updateCalendarEvent(accessToken, eventId, meetingForCalendar, calId);
+    if (!ok) {
+      synced = false;
+      syncError = syncError ?? error ?? "Failed to update the calendar event.";
+    }
   }
   // A null zoomLink here would fall back to buildEventBody's street-address default as this
   // event's `location` (see the locationOverride comment there) -- publishing that onto a
@@ -351,8 +364,18 @@ async function syncScopedParentCalendar(
   // real Zoom URL. Only rewrite when there's still a real link to publish.
   if (zoomCalendarEventId && zoomRoom && meetingForCalendar.zoomLink) {
     const calId = zoomRoomCalendarId[zoomRoom];
-    if (calId) await updateCalendarEvent(accessToken, zoomCalendarEventId, meetingForCalendar, calId, meetingForCalendar.zoomLink);
+    if (calId) {
+      const { ok, error } = await updateCalendarEvent(accessToken, zoomCalendarEventId, meetingForCalendar, calId, meetingForCalendar.zoomLink);
+      if (!ok) {
+        synced = false;
+        syncError = syncError ?? error ?? "Failed to update the Zoom-Room calendar event.";
+      }
+    }
   }
+  await prisma.meeting.update({
+    where: { mid },
+    data: { googleSyncStatus: synced ? 'synced' : 'error', googleSyncError: synced ? null : syncError },
+  });
 }
 
 // Runs after the response is sent — creates the split-off row's own Google Calendar events (and
@@ -631,7 +654,7 @@ async function handleScopedEdit(
 
   after(
     syncScopedParentCalendar(
-      existingMeeting.status, auth.accessToken, calendarIds, eventIds, parentForCalendar,
+      mid, existingMeeting.status, auth.accessToken, calendarIds, eventIds, parentForCalendar,
       existingMeeting.zoomCalendarEventId, existingMeeting.zoomRoom,
     ).catch((error) => console.error("syncScopedParentCalendar threw:", error)),
   );
