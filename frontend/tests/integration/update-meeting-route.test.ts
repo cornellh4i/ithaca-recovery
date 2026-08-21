@@ -77,7 +77,9 @@ const mockedReconcileMeetingCalendars = reconcileMeetingCalendars as jest.Mock;
 const mockedCreateCalendarEvent = createCalendarEvent as jest.Mock;
 const mockedDeleteCalendarEvent = deleteCalendarEvent as jest.Mock;
 
-async function waitFor<T>(fn: () => Promise<T | null | undefined>, timeoutMs = 2000): Promise<T> {
+// 10s ceiling: deferred-sync assertions race Jest's parallel workers sharing one embedded
+// Postgres, and 2s flaked under full-suite load while always passing standalone.
+async function waitFor<T>(fn: () => Promise<T | null | undefined>, timeoutMs = 10_000): Promise<T> {
   const start = Date.now();
   while (Date.now() - start < timeoutMs) {
     const result = await fn();
