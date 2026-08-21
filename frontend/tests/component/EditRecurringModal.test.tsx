@@ -45,8 +45,33 @@ describe("EditRecurringModal", () => {
   it("disables the This event option and defaults to This and following when recurrence was changed", () => {
     render(<EditRecurringModal isOpen {...baseProps} disableThis />);
     expect(screen.getByLabelText("This event")).toBeDisabled();
+    expect(screen.getByLabelText("This and following events")).not.toBeDisabled();
     expect(screen.getByLabelText("This and following events")).toBeChecked();
     // Initial focus skips the disabled radio and lands on the next focusable option instead.
     expect(screen.getByLabelText("This and following events")).toHaveFocus();
+  });
+
+  it("disables both scoped options and defaults to All events when Mode or Host changed", () => {
+    render(<EditRecurringModal isOpen {...baseProps} disableScopedEdits />);
+    expect(screen.getByLabelText("This event")).toBeDisabled();
+    expect(screen.getByLabelText("This and following events")).toBeDisabled();
+    expect(screen.getByLabelText("All events")).toBeChecked();
+    expect(screen.getByLabelText("All events")).toHaveFocus();
+    expect(screen.getByText(/Mode and host changes apply to the whole series/)).toBeInTheDocument();
+  });
+
+  it("prefers the mode/host hint over the recurrence hint when both apply", () => {
+    render(<EditRecurringModal isOpen {...baseProps} disableThis disableScopedEdits />);
+    expect(screen.getByLabelText("This event")).toBeDisabled();
+    expect(screen.getByLabelText("This and following events")).toBeDisabled();
+    expect(screen.getByLabelText("All events")).toBeChecked();
+    expect(screen.getByText(/Mode and host changes apply to the whole series/)).toBeInTheDocument();
+    expect(screen.queryByText(/Recurrence changes apply to the whole series/)).not.toBeInTheDocument();
+  });
+
+  it("leaves both scoped options enabled when neither gate applies", () => {
+    render(<EditRecurringModal isOpen {...baseProps} />);
+    expect(screen.getByLabelText("This event")).not.toBeDisabled();
+    expect(screen.getByLabelText("This and following events")).not.toBeDisabled();
   });
 });

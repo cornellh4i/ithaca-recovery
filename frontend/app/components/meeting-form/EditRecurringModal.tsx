@@ -13,8 +13,13 @@ interface EditRecurringModalProps {
   onSave: (option: EditScope) => void;
   // True when the form's recurrence settings were changed in this edit session -- the server
   // 400s a scope: 'this' payload that still carries recurrencePattern, so that option is
-  // disabled rather than silently dropping the user's recurrence change.
+  // disabled rather than silently dropping the user's recurrence change. Independent of
+  // disableScopedEdits below: a recurrence change alone still allows 'thisAndFollowing'.
   disableThis?: boolean;
+  // True when Mode or Zoom Host were changed -- the server always applies both to the whole
+  // series (400s any scoped save that carries either), so BOTH scoped options are disabled and
+  // the choice is forced to 'all'.
+  disableScopedEdits?: boolean;
 }
 
 const EditRecurringModal: React.FC<EditRecurringModalProps> = ({
@@ -24,18 +29,23 @@ const EditRecurringModal: React.FC<EditRecurringModalProps> = ({
   onClose,
   onSave,
   disableThis = false,
+  disableScopedEdits = false,
 }) => {
   const [selectedOption, setSelectedOption] = useState<EditScope>('this');
 
-  // Keeps the disabled "This event" option from staying selected once recurrence changes make
-  // it unavailable -- re-checked each time the modal opens rather than continuously, so it
-  // doesn't fight a mid-session click back to a valid option.
+  // Keeps a disabled option from staying selected once a form change makes it unavailable --
+  // re-checked each time the modal opens rather than continuously, so it doesn't fight a
+  // mid-session click back to a valid option. Falls through 'this' -> 'thisAndFollowing' -> 'all'
+  // to land on the first option that's still actually selectable.
   useEffect(() => {
-    if (isOpen && disableThis && selectedOption === 'this') {
-      setSelectedOption('thisAndFollowing');
+    if (!isOpen) return;
+    if (selectedOption === 'this' && (disableThis || disableScopedEdits)) {
+      setSelectedOption(disableScopedEdits ? 'all' : 'thisAndFollowing');
+    } else if (selectedOption === 'thisAndFollowing' && disableScopedEdits) {
+      setSelectedOption('all');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, disableThis]);
+  }, [isOpen, disableThis, disableScopedEdits]);
 
   const handleOptionSelect = (option: EditScope) => {
     setSelectedOption(option);
@@ -85,35 +95,43 @@ const EditRecurringModal: React.FC<EditRecurringModalProps> = ({
       </p>
 
       <div className={styles.optionsContainer}>
-        <div className={`${styles.optionItem} ${disableThis ? styles.optionItemDisabled : ''}`}>
+        <div className={`${styles.optionItem} ${(disableThis || disableScopedEdits) ? styles.optionItemDisabled : ''}`}>
           <input
             type="radio"
             id="edit-this-event"
             name="edit-option"
             checked={selectedOption === 'this'}
             onChange={() => handleOptionSelect('this')}
-            disabled={disableThis}
+            disabled={disableThis || disableScopedEdits}
             className={styles.radioInput}
           />
           <label htmlFor="edit-this-event" className={styles.radioLabel}>This event</label>
         </div>
-        {disableThis && (
-          <p className={styles.disabledHint}>
-            Recurrence changes apply to the whole series, so this option isn&apos;t available.
-          </p>
-        )}
 
-        <div className={styles.optionItem}>
+        <div className={`${styles.optionItem} ${disableScopedEdits ? styles.optionItemDisabled : ''}`}>
           <input
             type="radio"
             id="edit-this-and-following"
             name="edit-option"
             checked={selectedOption === 'thisAndFollowing'}
             onChange={() => handleOptionSelect('thisAndFollowing')}
+            disabled={disableScopedEdits}
             className={styles.radioInput}
           />
           <label htmlFor="edit-this-and-following" className={styles.radioLabel}>This and following events</label>
         </div>
+
+        {/* Mode/host changes are the broader constraint (both scoped options unavailable) --
+            shown in preference to the recurrence-only hint when both apply at once. */}
+        {disableScopedEdits ? (
+          <p className={styles.disabledHint}>
+            Mode and host changes apply to the whole series, so this option isn&apos;t available.
+          </p>
+        ) : disableThis ? (
+          <p className={styles.disabledHint}>
+            Recurrence changes apply to the whole series, so this option isn&apos;t available.
+          </p>
+        ) : null}
 
         <div className={styles.optionItem}>
           <input

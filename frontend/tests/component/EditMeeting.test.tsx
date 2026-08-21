@@ -179,4 +179,52 @@ describe("EditMeetingSidebar recurring-scope re-anchoring", () => {
     const body = lastUpdateMeetingBody();
     expect(body.editScope).toBe("this");
   });
+
+  // The server always applies a Mode change to the whole series (400s a scoped save that
+  // carries one) -- the modal must force scope 'all' rather than let the user pick a scope
+  // that's guaranteed to fail server-side.
+  it("disables both scoped options and forces All events when Mode was changed", async () => {
+    renderEdit();
+    await act(async () => {});
+
+    // anchorMeeting.modeType is "In Person" -- Remote needs no room/zoomRoom, so this change
+    // alone doesn't trip validation (unlike switching to Hybrid, which would also require
+    // filling in a Zoom Room first and conflate this test with a room/zoomRoom edit).
+    fireEvent.click(screen.getByRole("button", { name: "Remote" }));
+    fireEvent.click(screen.getByRole("button", { name: "Update Meeting" }));
+
+    expect(screen.getByLabelText("This event")).toBeDisabled();
+    expect(screen.getByLabelText("This and following events")).toBeDisabled();
+    expect(screen.getByLabelText("All events")).toBeChecked();
+    expect(screen.getByText(/Mode and host changes apply to the whole series/)).toBeInTheDocument();
+  });
+
+  // zoomRoom changes are now honored for every scope (the child row takes the new Zoom Room) --
+  // unlike Mode/Host, they must NOT disable the scoped options.
+  it("does not gate scoped options when only the Zoom Room was changed", async () => {
+    const hybridMeeting: IMeeting = {
+      ...anchorMeeting,
+      modeType: "Hybrid",
+      room: "Serenity Room",
+      zoomRoom: "Serenity Room - Zoom",
+    };
+    render(
+      <ToastProvider>
+        <EditMeetingSidebar
+          meeting={hybridMeeting}
+          onClose={jest.fn()}
+          onUpdateSuccess={jest.fn()}
+          occurrenceDate={occurrenceDate}
+        />
+      </ToastProvider>,
+    );
+    await act(async () => {});
+
+    fireEvent.click(screen.getByRole("button", { name: /Serenity Room - Zoom/ }));
+    fireEvent.click(screen.getByRole("option", { name: "Unity Room - Zoom" }));
+    fireEvent.click(screen.getByRole("button", { name: "Update Meeting" }));
+
+    expect(screen.getByLabelText("This event")).not.toBeDisabled();
+    expect(screen.getByLabelText("This and following events")).not.toBeDisabled();
+  });
 });

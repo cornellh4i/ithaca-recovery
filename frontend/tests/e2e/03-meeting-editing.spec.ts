@@ -182,6 +182,51 @@ test.describe("meeting editing", () => {
     await expect(page.getByText("Split Series Renamed")).toBeVisible();
   });
 
+  test("3.5d 'This and following' with a changed Zoom Room splits the series and moves the tail's Zoom Room", async ({ adminPage }) => {
+    const { page } = adminPage;
+    // Hybrid so the Zoom Room dropdown is actually rendered (MeetingForm only shows it for
+    // Hybrid -- see MeetingForm.tsx). zoomRoom changes are now honored per-scope: unlike
+    // Mode/Host, they don't disable 'thisAndFollowing'.
+    const dayName = new Date().toLocaleDateString("en-US", { weekday: "long", timeZone: "America/New_York" });
+    const { meeting } = await seedRecurringMeeting(
+      { title: "Recurring Room Move", modeType: "Hybrid", room: "Serenity Room", zoomRoom: "Serenity Room - Zoom" },
+      { type: "weekly", daysOfWeek: [dayName], interval: 1 },
+    );
+    const prisma = getTestPrismaClient();
+
+    await page.goto("/");
+    // Hybrid meetings render a calendar box in both their room column and their Zoom room
+    // column, so (unlike openMeeting's plain text lookup, fine for every other In Person/
+    // Remote-seeded test in this file) the title text alone is ambiguous here -- .first() picks
+    // either one, since both open the same meeting.
+    await page.getByText("Recurring Room Move", { exact: true }).first().click();
+    await openEditFromDetails(page);
+
+    await page.getByRole("button", { name: /Serenity Room - Zoom/ }).click();
+    await page.getByRole("option", { name: "Unity Room - Zoom" }).click();
+
+    await page.getByRole("button", { name: "Update Meeting" }).click();
+    await page.getByLabel("This and following events").check();
+    // The Zoom Room change alone doesn't gate the scoped options -- both remain selectable.
+    await expect(page.getByLabel("This event")).toBeEnabled();
+
+    const updateResponse = page.waitForResponse((r) => r.url().includes("/api/update/meeting"));
+    await page.getByRole("button", { name: "Save", exact: true }).click();
+    await updateResponse;
+    await expect(page.getByText("Meeting updated successfully")).toBeVisible();
+
+    // The original series keeps its original Zoom Room, now bounded to end before the split.
+    const original = await prisma.meeting.findUnique({ where: { mid: meeting.mid } });
+    expect(original?.zoomRoom).toBe("Serenity Room - Zoom");
+
+    // The new tail row (linked back via splitFromMid) takes the changed Zoom Room from the
+    // split date onward -- same Zoom link/ID, just a different room calendar.
+    const tail = await prisma.meeting.findFirst({ where: { splitFromMid: meeting.mid } });
+    expect(tail).not.toBeNull();
+    expect(tail?.zoomRoom).toBe("Unity Room - Zoom");
+    expect(tail?.isRecurring).toBe(true);
+  });
+
   test("3.6 opening a different meeting closes an in-progress edit panel", async ({ adminPage }) => {
     const { page } = adminPage;
     await seedMeeting({ title: "Edit Panel A" });

@@ -305,22 +305,33 @@ async function syncUpdatedMeeting(
 // full-body rewrite of each configured calType event from the parent's POST-WRITE
 // RecurrencePattern (buildEventBody regenerates the whole recurrence -- RRULE + EXDATEs -- from
 // it, so a plain events.update is sufficient for both 'this' and 'thisAndFollowing'; no more
-// surgical EXDATE/UNTIL patch). Skipped for a currently suspended parent -- its live GCal
-// recurrence already carries a suspension-only UNTIL trim (syncSuspend in update/meeting/
-// suspend/route.ts, via trimCalendarEventSeries) that isn't represented in RecurrencePattern at
-// all, and a full-body rewrite from the stored pattern would silently resurrect whatever the
-// suspension hid -- same reasoning as syncUpdatedMeeting's suspended early-return above.
+// surgical EXDATE/UNTIL patch), plus the parent's OWN Zoom-Room join-link event (if it has one)
+// -- previously never EXDATEd/trimmed by a scoped edit at all, so a "This event" split off a
+// Hybrid parent left the parent's room-cal event still describing the now-excluded occurrence.
+// Mirrors how that event was created (write/meeting's syncNewMeeting): same calendar
+// (zoomRoomCalendarId[zoomRoom]), same locationOverride (the join link). Skipped for a currently
+// suspended parent -- its live GCal recurrence already carries a suspension-only UNTIL trim
+// (syncSuspend in update/meeting/suspend/route.ts, via trimCalendarEventSeries) that isn't
+// represented in RecurrencePattern at all, and a full-body rewrite from the stored pattern would
+// silently resurrect whatever the suspension hid -- same reasoning as syncUpdatedMeeting's
+// suspended early-return above.
 async function syncScopedParentCalendar(
   status: string,
   accessToken: string | undefined,
   calendarIds: Record<string, string>,
   eventIds: Record<string, string>,
   meetingForCalendar: IMeeting,
+  zoomCalendarEventId: string | null,
+  zoomRoom: string | null,
 ): Promise<void> {
   if (!accessToken || status === 'Suspended') return;
   for (const [cat, calId] of Object.entries(calendarIds)) {
     const eventId = eventIds[cat];
     if (eventId) await updateCalendarEvent(accessToken, eventId, meetingForCalendar, calId);
+  }
+  if (zoomCalendarEventId && zoomRoom) {
+    const calId = zoomRoomCalendarId[zoomRoom];
+    if (calId) await updateCalendarEvent(accessToken, zoomCalendarEventId, meetingForCalendar, calId, meetingForCalendar.zoomLink ?? undefined);
   }
 }
 
@@ -430,7 +441,10 @@ async function handleScopedEdit(
     txResult = await prisma.$transaction(async (tx) => {
       const claims: ResourceClaim[] = [];
       if (newMeeting.room) claims.push({ type: "room", value: newMeeting.room });
-      if (existingMeeting.zoomRoom) claims.push({ type: "zoomRoom", value: existingMeeting.zoomRoom });
+      // The CHILD's own requested room (which may differ from the parent's) -- the Zoom
+      // meeting is host-owned, not room-owned, so a scoped edit is free to move the child's
+      // room-cal event to a different Zoom Room while the inherited zid/link keep working.
+      if (newMeeting.zoomRoom) claims.push({ type: "zoomRoom", value: newMeeting.zoomRoom });
       if (existingMeeting.zoomHost) claims.push({ type: "zoomHost", value: existingMeeting.zoomHost });
       await lockResourceClaims(tx, claims);
 
@@ -466,7 +480,11 @@ async function handleScopedEdit(
         mid: newMid,
         title: newMeeting.title,
         room: newMeeting.room,
-        zoomRoom: existingMeeting.zoomRoom,
+        // The CHILD's own requested room -- zid/host/link/passcode/zoomManaged/zoomTopic are
+        // still inherited from the parent regardless (below), but the room itself is not: the
+        // Zoom meeting is host-owned, not room-owned, so the child is free to publish its
+        // join-link event on a different Zoom Room's calendar than the parent's.
+        zoomRoom: newMeeting.zoomRoom,
         zoomHost: existingMeeting.zoomHost,
         status: newMeeting.status ?? existingMeeting.status,
         calType: newMeeting.calType,
@@ -520,14 +538,17 @@ async function handleScopedEdit(
           room: newMeeting.room,
           status: newMeeting.status ?? existingMeeting.status,
           isRecurring: isRecurringSplit,
-          // Inherited, not re-provisioned -- see the Zoom-inheritance decision in editScope.ts's
-          // callers. The shared-zid PATCH machinery (services/zoom.ts) already discovers this row
-          // as a sibling on subsequent edits since it queries by zid.
+          // Zoom identity inherited, not re-provisioned, regardless of room -- see the
+          // Zoom-inheritance decision in editScope.ts's callers. The shared-zid PATCH machinery
+          // (services/zoom.ts) already discovers this row as a sibling on subsequent edits since
+          // it queries by zid. zoomRoom is the one exception: the Zoom meeting is host-owned, not
+          // room-owned, so the child publishes its own join-link event on whichever Zoom Room it
+          // was submitted with (see candidate above).
           zid: existingMeeting.zid,
           zoomLink: existingMeeting.zoomLink,
           zoomPasscode: existingMeeting.zoomPasscode,
           zoomInvitation: existingMeeting.zoomInvitation,
-          zoomRoom: existingMeeting.zoomRoom,
+          zoomRoom: newMeeting.zoomRoom,
           zoomHost: existingMeeting.zoomHost,
           zoomManaged: existingMeeting.zoomManaged,
           zoomTopic: existingMeeting.zoomTopic,
@@ -573,8 +594,10 @@ async function handleScopedEdit(
   const parentForCalendar = { ...existingMeeting, recurrencePattern: updatedParent.recurrencePattern } as unknown as IMeeting;
 
   after(
-    syncScopedParentCalendar(existingMeeting.status, auth.accessToken, calendarIds, eventIds, parentForCalendar)
-      .catch((error) => console.error("syncScopedParentCalendar threw:", error)),
+    syncScopedParentCalendar(
+      existingMeeting.status, auth.accessToken, calendarIds, eventIds, parentForCalendar,
+      existingMeeting.zoomCalendarEventId, existingMeeting.zoomRoom,
+    ).catch((error) => console.error("syncScopedParentCalendar threw:", error)),
   );
   if (hasStaleResumeSeries) {
     after(tearDownPendingResumeSeries(existingMeeting, auth.accessToken).catch((error) =>
@@ -583,7 +606,10 @@ async function handleScopedEdit(
   after(
     syncSplitMeeting(
       newMid,
-      { ...newMeeting, mid: newMid, zid: existingMeeting.zid, zoomLink: existingMeeting.zoomLink, zoomRoom: existingMeeting.zoomRoom },
+      // zoomRoom deliberately NOT overridden here -- newMeeting's own value (already what got
+      // persisted onto the row above) is what should flow into the child's room-cal event, not
+      // the parent's room.
+      { ...newMeeting, mid: newMid, zid: existingMeeting.zid, zoomLink: existingMeeting.zoomLink },
       isRecurringSplit,
       auth.accessToken,
     ).catch(async (error) => {
@@ -656,6 +682,25 @@ const updateMeeting = async (request: Request): Promise<Response> => {
       }
       if (!occurrenceDate) {
         return NextResponse.json({ error: "occurrenceDate is required for this edit scope." }, { status: 400 });
+      }
+      // Mode and host are whole-series properties -- unlike zoomRoom (the child is free to
+      // publish on a different Zoom Room; the Zoom meeting is host-owned, not room-owned), a
+      // mode or host change has series-wide consequences (Hybrid<->Remote changes what Zoom
+      // needs to exist at all; a host reassignment moves capacity accounting for every
+      // occurrence) that a single split-off row can't represent on its own. Previously a
+      // scoped edit's modeType/zoomHost changes were silently ignored (the split row inherited
+      // the parent's regardless of what was submitted) -- rejecting explicitly instead of
+      // silently dropping the field.
+      if (newMeeting.modeType !== existingMeeting.modeType) {
+        return NextResponse.json({ error: "mode changes apply to the whole series" }, { status: 400 });
+      }
+      // Case-insensitive, non-empty-only -- same definition of "an explicit reassignment" the
+      // 'all' path's explicitHostChange uses (a blank/"Automatic" selection, or resubmitting the
+      // meeting's own already-assigned host, is not a change).
+      const scopedExplicitHostChange = !!newMeeting.zoomHost &&
+        newMeeting.zoomHost.toLowerCase() !== (existingMeeting.zoomHost ?? "").toLowerCase();
+      if (scopedExplicitHostChange) {
+        return NextResponse.json({ error: "host changes apply to the whole series" }, { status: 400 });
       }
       if (editScope === 'this' && newMeeting.recurrencePattern) {
         return NextResponse.json(
