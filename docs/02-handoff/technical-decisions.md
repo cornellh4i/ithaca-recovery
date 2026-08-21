@@ -137,6 +137,23 @@ Each section ends with a **Revisit if:** line — the condition under which this
 
 ---
 
+## Recurring-Series Edit Scopes: Split Rows, Not an Exception Table
+
+**Decision:** Editing a recurring meeting is scoped like deleting one — **This event**, **This and following events**, or **All events**. The two partial scopes reuse delete's existing series primitives on the parent (an `excludedDates` push for one occurrence, an `endDate` trim for a split) and put the edited values in a **new ordinary `Meeting` row**: a detached one-time row for "This event", a new series starting at the clicked occurrence for "This and following". `Meeting.splitFromMid` links every split-off row to its root series' `mid` (chains propagate the root, so one lineage shares one value). There is no per-occurrence override/exception table.
+
+**Why:**
+- Delete already encoded "remove one occurrence" and "end the series here" purely inside `RecurrencePattern` (`excludedDates`, trimmed `endDate`); every consumer (calendar expansion, conflict checking, Google Calendar EXDATE/UNTIL sync) already honors those. Reusing them means an edit-scope row is just a normal meeting to the rest of the system — no second code path through expansion, conflicts, or sync.
+- Split-off rows **inherit the parent's Zoom meeting** (`zid`, link, passcode, host, `zoomManaged`, pinned topic) instead of provisioning a new one — members keep the link they know, and the shared-`zid` machinery (union schedule, schedule-neutral PATCH on divergence, last-row-standing delete guard) already governs multiple rows on one `zid`. Consistent with delete's contract: partial scopes never touch Zoom.
+- On Google Calendar the parent gets the same EXDATE/UNTIL patch delete uses; the new row gets its own events and sync statuses, so the standard per-meeting sync badges/retry apply to each half independently.
+- The whole scoped write (parent trim/exclusion, conflict check of the new row, row creation) runs in one advisory-lock-guarded transaction, parent first, so the new row can't collide with occurrences the same edit just removed.
+- `splitFromMid` exists chiefly for the lease export: a split series is one lease obligation, so the CSV bills each lineage once (see the leasing section below).
+- Scope fields (`editScope`, `occurrenceDate`) are parsed by a separate schema from the shared meeting payload, so the create route can never absorb them.
+- **Suspend keeps whole-series semantics only** — deliberately out of scope: suspension is already a soft "this and following" (trim + pre-created resume series), and removing a single occurrence exists via delete's "This event". Per-occurrence suspension would add a second exception mechanism for little gain.
+
+**Revisit if:** ICR ever needs to edit a single occurrence *without* changing the members' join expectations breaking down — e.g. per-occurrence Zoom scheduling — which would require Zoom occurrence-level API support this model deliberately avoids; or if lineage chains grow long enough that "latest segment wins" stops being the right lease representative.
+
+---
+
 ## Leasing Documents: DB-configured CSV Export
 
 **Decision:** The Export tab's "Export Lease CSV" button exports a CSV file rather than calling the PandaDoc API directly, and its inputs (lease period, per-room rates, agent contact, email template) are stored in a `LeaseSettings` singleton rather than hardcoded in a component.

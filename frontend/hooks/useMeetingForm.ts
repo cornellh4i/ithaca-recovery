@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { IMeeting, IRecurrencePattern } from '../types/models';
 import { convertUTCToET, convertETToUTC, formatETDateString, getWeekDatesET, getCurrentETMinutesSinceMidnight, isConvertETToUTCValidationError, isDstGapError } from '../util/date/timeUtils';
 import { roomToZoomRoom } from '../util/rooms/rooms';
@@ -187,6 +187,11 @@ export function useMeetingForm(initialMeeting?: IMeeting, defaultContext?: Meeti
             ? formatDateForPicker(initialMeeting.startDateTime)
             : computeDefaultDate(defaultContext, defaultTimeInfo!.rolledToNextDay)
     );
+    // Snapshot of the Date field's own opening value, separate from fieldBaseline's combined
+    // snapshot -- EditMeeting.tsx needs to know specifically whether the *date* was touched
+    // (not just "something changed") to decide whether a scoped save should re-anchor onto the
+    // clicked occurrence or respect the user's explicit date edit. Set once, like fieldBaseline.
+    const [dateBaseline, setDateBaseline] = useState(date);
     const [time, setTime] = useState<string>(() =>
         initialMeeting
             ? `${formatTimeForPicker(initialMeeting.startDateTime)} - ${formatTimeForPicker(initialMeeting.endDateTime)}`
@@ -226,12 +231,26 @@ export function useMeetingForm(initialMeeting?: IMeeting, defaultContext?: Meeti
         setTouchedFields((prev) => (prev.has(field) ? prev : new Set(prev).add(field)));
     }, []);
 
-    // Recurrence is tracked for dirtiness by comparing against RecurringMeeting.tsx's *first*
-    // report rather than against initialMeeting.recurrencePattern: that child rebuilds the
-    // pattern object from its own state on mount, so the rebuilt shape can differ from the
-    // stored one field-for-field while describing the same recurrence.
+    // Recurrence is tracked for dirtiness by comparing against RecurringMeeting.tsx's report
+    // rather than against initialMeeting.recurrencePattern: that child rebuilds the pattern
+    // object from its own state on mount, so the rebuilt shape can differ from the stored one
+    // field-for-field while describing the same recurrence.
     const [recurrenceBaseline, setRecurrenceBaseline] = useState<string | null>(null);
     const [recurrenceSignature, setRecurrenceSignature] = useState<string | null>(null);
+    // RecurringMeeting.tsx's mount can report MORE than once with no user input at all: e.g. a
+    // stored pattern with an empty daysOfWeek (a real, persisted shape -- not just a test
+    // fixture) makes its own "seed a default weekday" effect fire a *second*, self-corrected
+    // report right after its first. Locking the baseline onto that first (pre-correction) report
+    // would read the self-correction itself as a user edit -- false-positive dirty/disabled-
+    // 'This event' for a meeting nobody touched. Instead, the baseline keeps tracking the latest
+    // report for a brief settling window after mount (these cascades are synchronous React state
+    // updates with no real async gap, so they always finish well within one macrotask, long
+    // before a user could physically interact) and only freezes once that window closes.
+    const recurrenceSettlingRef = useRef(true);
+    useEffect(() => {
+        const settleId = setTimeout(() => { recurrenceSettlingRef.current = false; }, 0);
+        return () => clearTimeout(settleId);
+    }, []);
     // Baseline for the unsaved-changes guard, seeded from the values the form opened with
     // rather than re-derived from initialMeeting -- a brand-new form's computed date/time
     // defaults count as untouched too.
@@ -248,8 +267,13 @@ export function useMeetingForm(initialMeeting?: IMeeting, defaultContext?: Meeti
         setIsRecurring(data.isRecurring);
         setRecurrencePattern(data.recurrencePattern);
         const signature = JSON.stringify(data);
-        setRecurrenceBaseline((previous) => previous ?? signature);
         setRecurrenceSignature(signature);
+        // While still settling, every report becomes the new baseline (see
+        // recurrenceSettlingRef's comment above) -- once the window closes, only the first
+        // baseline value stands and subsequent reports are real, comparable edits.
+        setRecurrenceBaseline((previous) =>
+            recurrenceSettlingRef.current || previous === null ? signature : previous
+        );
     }, []);
 
     const handleRoomChange = (value: string) => {
@@ -304,6 +328,7 @@ export function useMeetingForm(initialMeeting?: IMeeting, defaultContext?: Meeti
         // A reset form reads as untouched again -- rebaseline rather than leaving the values
         // it opened with as the comparison point.
         setFieldBaseline(snapshotFields(resetValues));
+        setDateBaseline(resetValues.date);
         setRecurrenceBaseline(null);
         setRecurrenceSignature(null);
     };
@@ -439,9 +464,21 @@ export function useMeetingForm(initialMeeting?: IMeeting, defaultContext?: Meeti
     const isOvernight =
         !!currentStartTime && !!currentEndTime && isOvernightTimeRange(currentStartTime, currentEndTime);
 
+    // Exposed separately from isDirty below -- EditRecurringModal disables its "This event"
+    // option specifically when recurrence settings changed (the server 400s recurrencePattern
+    // under scope 'this'), not for any other field edit.
+    const isRecurrenceDirty = recurrenceSignature !== null && recurrenceSignature !== recurrenceBaseline;
+
+    // Exposed separately too -- EditMeeting.tsx's scoped-save re-anchoring needs to know
+    // specifically whether the Date field itself was hand-edited: the edit form seeds its Date
+    // from the series' anchor row (retrieve/meeting/[id] returns the master row), not the
+    // clicked occurrence, so an untouched Date field is re-anchored onto the occurrence date
+    // while an edited one is respected as the user's explicit choice.
+    const isDateDirty = date !== dateBaseline;
+
     const isDirty =
         snapshotFields({ title, mode, date, time, email, description, room, calTypes, zoomRoom, zoomHost }) !== fieldBaseline ||
-        (recurrenceSignature !== null && recurrenceSignature !== recurrenceBaseline);
+        isRecurrenceDirty;
 
     // Independent of submitAttempted -- a field can show its own inline error the moment
     // it's been touched, even before any submit attempt (e.g. blurring an empty title on
@@ -476,6 +513,8 @@ export function useMeetingForm(initialMeeting?: IMeeting, defaultContext?: Meeti
         timeRangeError,
         isOvernight,
         isDirty,
+        isRecurrenceDirty,
+        isDateDirty,
         markFieldTouched,
         getFieldError,
     };

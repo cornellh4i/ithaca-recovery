@@ -77,6 +77,12 @@ model Meeting {
   // adopts the live values). Non-null feeds the calendar's sync-attention badge without any
   // Zoom call on the bulk retrieve paths.
   zoomDriftDetectedAt    DateTime?
+  // Set on a Meeting row created by a scoped recurring edit ('this' / 'thisAndFollowing', see
+  // util/meetings/editScope.ts) -- the ORIGINAL series' mid, so every row a lineage of splits
+  // produces still shares one root regardless of how many times it's been split again (a split
+  // of an already-split-off row propagates ITS splitFromMid, not its own mid). Null for a
+  // meeting that has never been split off from another series.
+  splitFromMid           String?
   deletedAt              DateTime?
   updatedAt              DateTime?            @updatedAt
 
@@ -86,6 +92,7 @@ model Meeting {
   @@index([zoomHost])
   @@index([room])
   @@index([zoomRoom])
+  @@index([splitFromMid])
 }
 
 model RecurrencePattern {
