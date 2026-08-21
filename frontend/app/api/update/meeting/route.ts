@@ -55,10 +55,12 @@ async function syncUpdatedMeeting(
   let skipCalendarTimeSync = false;
 
   if (zoomEnabled) {
-    // A Zoom meeting can't move rooms in place -- a room change tears it down and recreates it.
-    // An admin explicitly reassigning the host via the Zoom Host dropdown is handled by the
-    // in-place transfer below instead. A blank/"Automatic" selection is NOT a reassignment -- it
-    // just means "don't force a specific host," so whatever host is already assigned is kept.
+    // A room isn't tied to any particular Zoom meeting (#522) -- a room change alone moves only
+    // the join-link event between room calendars below, in place, the same way it already works
+    // for an unmanaged meeting. An admin explicitly reassigning the host via the Zoom Host
+    // dropdown is handled by the in-place transfer below instead. A blank/"Automatic" selection
+    // is NOT a reassignment -- it just means "don't force a specific host," so whatever host is
+    // already assigned is kept.
     const roomChanged = !!oldZoomRoom && oldZoomRoom !== newZoomRoom;
     // Case-insensitive (#504): a casing-only difference (Zoom-registered vs ZOOM_HOSTS casing)
     // is the same physical host, not a reassignment.
@@ -66,8 +68,10 @@ async function syncUpdatedMeeting(
       newMeeting.zoomHost.toLowerCase() !== (existingMeeting.zoomHost ?? "").toLowerCase();
 
     // A host-only reassignment of a Zoom meeting the app owns moves it with `schedule_for`,
-    // which preserves the meeting ID, passcode and join URL members already have (#516). A room
-    // change can't take this path -- its Zoom meeting has to be recreated anyway.
+    // which preserves the meeting ID, passcode and join URL members already have (#516). Bundled
+    // with a room change, this still recreates instead (below) -- schedule_for moves a host, not
+    // a room, so there's nothing for it to help with there, and the recreate path already
+    // handles the room move as a side effect of publishing under the fresh meeting.
     const rehostZid = explicitHostChange && !roomChanged && existingMeeting.zoomManaged ? zid : null;
     // Set when the transfer was attempted and refused by Zoom (missing scheduling privilege,
     // basic-tier host) on a meeting no other row shares -- recreating is then still an option.
@@ -110,13 +114,22 @@ async function syncUpdatedMeeting(
       }
     }
 
-    if (roomChanged || (explicitHostChange && !rehostZid) || rehostFellBackToRecreate) {
-      // Managed: the Zoom meeting is disposable, so tear it down for a fresh create below.
-      // Unmanaged: the Zoom meeting is ICR's (host changes were already 422'd upstream) -- keep
-      // zid/link/passcode and only move the join-link event between room calendars; the
-      // downstream zoomCalendarEventId === null branch recreates it on the new room's calendar
-      // with the stored link.
-      if (zid && existingMeeting.zoomManaged) {
+    // A genuine recreate reason -- distinct from a pure room change (#522). Neither reason
+    // implies the other, and both can fire together (e.g. an explicit host change bundled with a
+    // room change): the recreate wins in that case, the room move just becomes where the fresh
+    // meeting ends up published, since createZoomMeeting/the room-cal create below always use
+    // newMeeting's (new) room regardless of which branch got Zoom to this point.
+    const needsRecreate = (explicitHostChange && !rehostZid) || rehostFellBackToRecreate;
+
+    if (needsRecreate || roomChanged) {
+      // Only a genuine recreate reason ever tears down the Zoom meeting itself -- a pure room
+      // change (no recreate reason) leaves it running untouched under its existing zid/host, the
+      // same way an unmanaged meeting's room change already did (host changes were already
+      // 422'd upstream for those, so needsRecreate can never be true there). This also makes the
+      // shared-zid sibling guard below moot for a pure room move: nothing here would tear the
+      // Zoom meeting down in the first place, so there's nothing for a sibling to be guarded
+      // against.
+      if (needsRecreate && zid && existingMeeting.zoomManaged) {
         // Shared-zid guard: a sibling row (same group, second schedule variant) may still point
         // at this Zoom meeting -- only the last referencing row actually tears it down.
         const siblingCount = await prisma.meeting.count({
@@ -127,6 +140,9 @@ async function syncUpdatedMeeting(
           if (!ok) zoomSynced = false;
         }
       }
+      // The join-link event always moves off the old room's calendar here, recreate or not --
+      // the downstream zoomCalendarEventId === null branch republishes it on the new room's
+      // calendar (with either the kept or the freshly-created link).
       if (accessToken && zoomCalendarEventId && oldZoomRoom) {
         const oldCalId = zoomRoomCalendarId[oldZoomRoom];
         if (oldCalId) {
@@ -134,7 +150,7 @@ async function syncUpdatedMeeting(
           if (!ok) zoomSynced = false;
         }
       }
-      if (existingMeeting.zoomManaged) {
+      if (needsRecreate && existingMeeting.zoomManaged) {
         zid = null;
         zoomLink = null;
         zoomPasscode = null;
@@ -796,22 +812,22 @@ const updateMeeting = async (request: Request): Promise<Response> => {
         : null,
     };
 
-    // A new Zoom host is only needed when this meeting has no Zoom meeting to keep using —
-    // either it never had one, or its room changed (a Zoom meeting can't move rooms, so the
-    // old one gets torn down and a new host resolved).
     const zoomEnabled = newMeeting.status !== 'Suspended'
       && (newMeeting.modeType === 'Hybrid' || newMeeting.modeType === 'Remote');
-    // explicitHostChange (hoisted above) counts too: the requested host still has to be
+    // A new Zoom host is only needed when this meeting has no Zoom meeting to keep using at
+    // all -- it never had one, or an explicit host reassignment was requested. A ROOM change
+    // alone does NOT need a new host (#522): room and host are independent resources, and
+    // syncUpdatedMeeting moves a changed room's join-link event in place under the existing
+    // host, the same way it already did for an unmanaged meeting. Getting this wrong here would
+    // synchronously overwrite the DB row's zoomHost with a freshly-resolved pool host even
+    // though the deferred sync never actually moves the Zoom meeting off its real host for a
+    // pure room change -- the write and Zoom's own state would silently disagree.
+    // explicitHostChange (hoisted above) counts because the requested host still has to be
     // capacity-checked and persisted here, whether the deferred sync then transfers the existing
     // Zoom meeting in place or has to recreate it.
-    // Remote meetings submit zoomRoom as "" (no Zoom Room field at all), while older stored
-    // rows may hold null for the same "no room" state -- normalize both sides so an unchanged
-    // Remote meeting isn't misdetected as a room change and torn down/recreated for nothing.
     const needsNewHost =
       zoomEnabled &&
-      (!existingMeeting.zid ||
-        (existingMeeting.zoomRoom || "") !== (newMeeting.zoomRoom || "") ||
-        explicitHostChange);
+      (!existingMeeting.zid || explicitHostChange);
 
     // Pure/cheap (no DB) -- only decides which claims to lock below. The actual pool-host
     // resolution runs on `tx`, after every pool host is locked, inside the transaction (see the
@@ -885,17 +901,17 @@ const updateMeeting = async (request: Request): Promise<Response> => {
         if (needsNewHost) {
           if (newMeeting.zoomHost) {
             // A conflicting explicitHostChange is already blocked with a 409 above unless
-            // confirmOverride was set. This branch also runs, non-blocking, for needsNewHost
-            // cases that aren't an explicit host change (e.g. a room change resubmitted with the
-            // same already-assigned host) -- either way, a real conflict here is treated the
-            // same as pool exhaustion below: nothing gets written to the external Zoom API, and
-            // the calendar publish is deferred until an admin picks a different host or the
-            // conflict clears.
+            // confirmOverride was set. This branch also runs, non-blocking, for the other
+            // needsNewHost case (the meeting never had a zid yet, but the client still picked a
+            // specific host rather than leaving it to auto-assign) -- either way, a real
+            // conflict here is treated the same as pool exhaustion below: nothing gets written
+            // to the external Zoom API, and the calendar publish is deferred until an admin
+            // picks a different host or the conflict clears.
             // Only re-query when the blocking check above didn't already prove this exact
             // field/value/candidate clean -- that's true only when !confirmOverride AND
-            // explicitHostChange (the blocking check's own zoomHost gating condition); a plain
-            // room-change-only needsNewHost case never had this value checked yet, so it still
-            // needs a real query even when !confirmOverride.
+            // explicitHostChange (the blocking check's own zoomHost gating condition); the
+            // never-had-a-zid case never had this value checked yet, so it still needs a real
+            // query even when !confirmOverride.
             const alreadyCheckedClean = !confirmOverride && explicitHostChange;
             const conflicts = alreadyCheckedClean
               ? []

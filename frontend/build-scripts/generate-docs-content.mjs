@@ -62,6 +62,7 @@ const MANIFEST = [
   { group: "Development", relPath: "03-development/local-setup.md" },
   { group: "Development", relPath: "03-development/project-structure.md" },
   { group: "Development", relPath: "03-development/api-reference.md" },
+  { group: "Development", relPath: "03-development/meeting-lifecycle-flows.md" },
   { group: "Development", relPath: "03-development/environment-variables.md" },
   { group: "Development", relPath: "03-development/backup-infra-setup.md" },
   { group: "Development", relPath: "03-development/integration-guides.md" },

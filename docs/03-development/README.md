@@ -12,6 +12,9 @@ For developers (current or future H4I teams) writing code against this app. Orga
   [Project Structure](project-structure.md) (architecture, folder layout, data models,
   auth flow) and [API Reference](api-reference.md) (every API route, request/response
   shapes).
+- **What exactly does creating/editing/deleting/suspending a meeting do, end to end?**
+  [Meeting Lifecycle Flows](meeting-lifecycle-flows.md) — per-operation DB writes, deferred
+  sync effects, and the invariants at the seams.
 - **Why is it built this way?** [Technical Decisions](../02-handoff/technical-decisions.md)
   — every significant architecture decision and the reasoning behind it. Read this before
   proposing a change to the stack or a core pattern.
