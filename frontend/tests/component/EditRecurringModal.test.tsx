@@ -120,4 +120,33 @@ describe("EditRecurringModal", () => {
     expect(screen.getByText(/Mode and host changes apply to the whole series/)).toBeInTheDocument();
     expect(screen.queryByText(/Date changes apply to a single event or the whole series/)).not.toBeInTheDocument();
   });
+
+  // disableScoped: the caller has no occurrence context at all (e.g. Diagnostics Sync Issues
+  // panel) -- mirrors DeleteRecurringModal's disableScoped gate. Both scoped options are
+  // disabled and the choice is forced to 'all', but the modal still opens rather than silently
+  // applying scope 'all' behind the admin's back.
+  it("disables both scoped options, forces All events, and explains why when there's no occurrence context", () => {
+    render(<EditRecurringModal isOpen {...baseProps} disableScoped />);
+    expect(screen.getByLabelText("This event")).toBeDisabled();
+    expect(screen.getByLabelText("This and following events")).toBeDisabled();
+    expect(screen.getByLabelText("All events")).toBeChecked();
+    expect(screen.getByLabelText("All events")).toHaveFocus();
+    expect(screen.getByText(/Open the meeting from a calendar day to edit specific occurrences/)).toBeInTheDocument();
+  });
+
+  // disableScoped is the broadest gate (no occurrence context to scope against at all) -- takes
+  // precedence over the mode/host hint the same way that hint takes precedence over the
+  // narrower recurrence/date hints.
+  it("prefers the no-occurrence-context hint over the mode/host hint when both apply", () => {
+    render(<EditRecurringModal isOpen {...baseProps} disableScoped disableScopedEdits />);
+    expect(screen.getByText(/Open the meeting from a calendar day to edit specific occurrences/)).toBeInTheDocument();
+    expect(screen.queryByText(/Mode and host changes apply to the whole series/)).not.toBeInTheDocument();
+  });
+
+  it("only ever calls onSave with 'all' while disableScoped is set", () => {
+    const onSave = jest.fn();
+    render(<EditRecurringModal isOpen {...baseProps} onSave={onSave} disableScoped />);
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    expect(onSave).toHaveBeenCalledWith("all");
+  });
 });

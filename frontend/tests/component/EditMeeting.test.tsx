@@ -219,16 +219,33 @@ describe("EditMeetingSidebar recurring-scope re-anchoring", () => {
     });
   });
 
-  it("skips the scope modal entirely when there's no occurrence context (e.g. Diagnostics mount sites)", async () => {
+  // Regression: editing a recurring meeting from Diagnostics used to skip the scope modal
+  // entirely and silently rewrite the whole series. It must now still show the modal, force an
+  // explicit "All events" confirmation, and only submit once that's confirmed.
+  it("shows the scope modal with scoped options disabled when there's no occurrence context (e.g. Sync Issues panel), and applies scope 'all' only after explicit confirmation", async () => {
     renderEdit(null);
     await act(async () => {});
 
     fireEvent.click(screen.getByRole("button", { name: "Update Meeting" }));
 
-    expect(screen.queryByLabelText("This event")).not.toBeInTheDocument();
-    await waitFor(() => expect(global.fetch).toHaveBeenCalled());
+    const thisEventRadio = await screen.findByLabelText("This event");
+    expect(thisEventRadio).toBeDisabled();
+    expect(screen.getByLabelText("This and following events")).toBeDisabled();
+    expect(screen.getByLabelText("All events")).toBeChecked();
+    expect(screen.getByText(/Open the meeting from a calendar day to edit specific occurrences/)).toBeInTheDocument();
+
+    // No request fired yet -- the modal is a real gate, not just a display.
+    expect(global.fetch).not.toHaveBeenCalledWith("/api/update/meeting", expect.anything());
+
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => expect(global.fetch).toHaveBeenCalledWith(
+      "/api/update/meeting",
+      expect.objectContaining({ method: "PUT" }),
+    ));
     const body = lastUpdateMeetingBody();
     expect(body.editScope).toBeUndefined();
+    expect(body.occurrenceDate).toBeUndefined();
   });
 
   // Regression for a false-positive isRecurrenceDirty: a stored pattern with an empty

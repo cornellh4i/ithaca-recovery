@@ -28,6 +28,12 @@ interface EditRecurringModalProps {
   // occurrences belongs in the recurrence editor's daysOfWeek, not the Date field), so only
   // 'thisAndFollowing' is disabled here -- 'this' and 'all' stay available.
   disableThisAndFollowing?: boolean;
+  // True when the caller has no specific occurrence to scope against -- e.g. the Diagnostics
+  // Sync Issues panel, which edits a meeting with no click to attribute a date to.
+  // 'this'/'thisAndFollowing' both need an occurrenceDate the server can validate; without one
+  // they'd 400. Disables both scoped options and forces 'all', mirroring
+  // DeleteRecurringModal's disableScoped gate.
+  disableScoped?: boolean;
 }
 
 const EditRecurringModal: React.FC<EditRecurringModalProps> = ({
@@ -39,11 +45,12 @@ const EditRecurringModal: React.FC<EditRecurringModalProps> = ({
   disableThis = false,
   disableScopedEdits = false,
   disableThisAndFollowing = false,
+  disableScoped = false,
 }) => {
   const [selectedOption, setSelectedOption] = useState<EditScope>('this');
 
-  const isThisDisabled = disableThis || disableScopedEdits;
-  const isThisAndFollowingDisabled = disableScopedEdits || disableThisAndFollowing;
+  const isThisDisabled = disableThis || disableScopedEdits || disableScoped;
+  const isThisAndFollowingDisabled = disableScopedEdits || disableThisAndFollowing || disableScoped;
 
   // Keeps a disabled option from staying selected once a form change makes it unavailable --
   // re-checked each time the modal opens rather than continuously, so it doesn't fight a
@@ -135,12 +142,16 @@ const EditRecurringModal: React.FC<EditRecurringModalProps> = ({
           <label htmlFor="edit-this-and-following" className={styles.radioLabel}>This and following events</label>
         </div>
 
-        {/* Mode/host changes are the broadest constraint (both scoped options unavailable) --
-            shown on its own, in preference to the narrower recurrence/date hints, when it
-            applies: those two are otherwise independent (each disables only its own option)
-            and can legitimately show together (e.g. recurrence-dirty + date-dirty leaves only
-            'all' selectable, for two different reasons). */}
-        {disableScopedEdits ? (
+        {/* disableScoped (no occurrence context at all) and disableScopedEdits (mode/host
+            changes apply to the whole series) each disable both scoped options on their own --
+            shown in preference to the narrower recurrence/date hints below, which can
+            legitimately show together (e.g. recurrence-dirty + date-dirty leaves only 'all'
+            selectable, for two different reasons) once neither of these applies. */}
+        {disableScoped ? (
+          <p className={styles.disabledHint}>
+            Open the meeting from a calendar day to edit specific occurrences.
+          </p>
+        ) : disableScopedEdits ? (
           <p className={styles.disabledHint}>
             Mode and host changes apply to the whole series, so this option isn&apos;t available.
           </p>
