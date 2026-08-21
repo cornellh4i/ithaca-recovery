@@ -252,14 +252,14 @@ test("a pure Zoom Room change on a MANAGED meeting moves in place -- keeps zid/l
   const mid = `m-${randomUUID()}`;
   await prisma.meeting.create({ data: { ...toMeetingCreateInput(buildMeetingPayload({
     mid, modeType: "Hybrid", room: "Managed Move Room", zoomRoom: "Managed Move Room - Zoom",
-    zid: "managed-zid-1", zoomHost: "host@icr.test", zoomLink: "https://zoom.us/j/managed1",
+    zid: "managed-zid-1", zoomHost: "room-move-host@icr.test", zoomLink: "https://zoom.us/j/managed1",
     zoomPasscode: "pass123", zoomCalendarEventId: "old-managed-room-event",
   })), zoomManaged: true } });
 
   // Room changes, host resubmitted unchanged (not a reassignment).
   const edit = buildMeetingPayload({
     mid, modeType: "Hybrid", room: "Managed Move Room 2", zoomRoom: "Managed Move Room 2 - Zoom",
-    zid: "managed-zid-1", zoomHost: "host@icr.test",
+    zid: "managed-zid-1", zoomHost: "room-move-host@icr.test",
   });
   const response = await PUT(new Request("http://localhost/api/update/meeting", { method: "PUT", body: JSON.stringify(edit) }));
   expect(response.status).toBe(200);
@@ -267,7 +267,7 @@ test("a pure Zoom Room change on a MANAGED meeting moves in place -- keeps zid/l
   // The synchronous write must not have overwritten zoomHost with a freshly-resolved pool host
   // either -- needsNewHost no longer fires for a pure room change.
   const rightAfterResponse = await prisma.meeting.findUnique({ where: { mid } });
-  expect(rightAfterResponse?.zoomHost).toBe("host@icr.test");
+  expect(rightAfterResponse?.zoomHost).toBe("room-move-host@icr.test");
 
   const stored = await waitFor(async () => {
     const m = await prisma.meeting.findUnique({ where: { mid } });
@@ -281,7 +281,7 @@ test("a pure Zoom Room change on a MANAGED meeting moves in place -- keeps zid/l
   expect(stored?.zid).toBe("managed-zid-1");
   expect(stored?.zoomLink).toBe("https://zoom.us/j/managed1");
   expect(stored?.zoomPasscode).toBe("pass123");
-  expect(stored?.zoomHost).toBe("host@icr.test");
+  expect(stored?.zoomHost).toBe("room-move-host@icr.test");
 
   // The join-link event moved: deleted off the old room's calendar, created on the new one.
   expect(mockedDeleteCalendarEvent).toHaveBeenCalledWith("fake-token", "old-managed-room-event", "cal-managed-room-1");
@@ -303,7 +303,7 @@ test("a shared-zid meeting's pure Zoom Room change also just moves calendars, wi
 
   await prisma.meeting.create({ data: { ...toMeetingCreateInput(buildMeetingPayload({
     mid, modeType: "Hybrid", room: "Shared Zid Move Room", zoomRoom: "Shared Zid Move Room - Zoom",
-    zid: sharedZid, zoomHost: "shared-host@icr.test", zoomLink: "https://zoom.us/j/sharedroom",
+    zid: sharedZid, zoomHost: "shared-room-move-host@icr.test", zoomLink: "https://zoom.us/j/sharedroom",
     zoomCalendarEventId: "old-shared-room-event",
   })), zoomManaged: true } });
   // Sibling row still pointing at the same zid (a second schedule variant) -- previously this
@@ -311,14 +311,14 @@ test("a shared-zid meeting's pure Zoom Room change also just moves calendars, wi
   // the sibling still needs. It's moot now: a pure room change never tears the meeting down at
   // all, so the sibling's presence shouldn't change anything about this outcome.
   await prisma.meeting.create({ data: { ...toMeetingCreateInput(buildMeetingPayload({
-    mid: siblingMid, modeType: "Remote", zoomRoom: "", zid: sharedZid, zoomHost: "shared-host@icr.test",
+    mid: siblingMid, modeType: "Remote", zoomRoom: "", zid: sharedZid, zoomHost: "shared-room-move-host@icr.test",
     zoomLink: "https://zoom.us/j/sharedroom",
     startDateTime: new Date("2026-08-02T22:00:00Z"), endDateTime: new Date("2026-08-02T23:00:00Z"),
   })), zoomManaged: true, zoomSyncStatus: "synced" } });
 
   const edit = buildMeetingPayload({
     mid, modeType: "Hybrid", room: "Shared Zid Move Room 2", zoomRoom: "Shared Zid Move Room 2 - Zoom",
-    zid: sharedZid, zoomHost: "shared-host@icr.test",
+    zid: sharedZid, zoomHost: "shared-room-move-host@icr.test",
   });
   const response = await PUT(new Request("http://localhost/api/update/meeting", { method: "PUT", body: JSON.stringify(edit) }));
   expect(response.status).toBe(200);
