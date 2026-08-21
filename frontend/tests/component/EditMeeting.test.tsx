@@ -88,8 +88,11 @@ describe("EditMeetingSidebar mid-series occurrence hint", () => {
   it("shows a hint when the clicked occurrence differs from the series' start date", async () => {
     renderEdit();
     await act(async () => {});
-    expect(screen.getByText(/You opened this meeting from its/)).toBeInTheDocument();
-    expect(screen.getByText(/August 9, 2026/)).toBeInTheDocument();
+    // The whole sentence must be ONE element (a span inside the flex hint): bare text
+    // children of the flex <p> become separate anonymous flex items, and the spaces at
+    // their boundaries (around the date) collapse away visually.
+    const sentence = screen.getByText(/You opened this meeting from its August 9, 2026 occurrence\./);
+    expect(sentence.tagName).toBe("SPAN");
   });
 
   it("shows no hint when there's no occurrence context", async () => {

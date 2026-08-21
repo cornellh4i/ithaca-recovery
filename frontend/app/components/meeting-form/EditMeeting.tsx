@@ -319,8 +319,13 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
         {showOccurrenceDateHint && (
           <p className={styles.occurrenceHint}>
             <Icon name="warning-circle" size={16} />
-            You opened this meeting from its {formatETLongDate(occurrenceDate as Date)} occurrence.
-            The date below is the series&apos; start date, not this occurrence.
+            {/* One span = one flex item: bare text children would each become their own
+                anonymous item, and the whitespace at their boundaries (around the date)
+                collapses away visually. */}
+            <span>
+              You opened this meeting from its {formatETLongDate(occurrenceDate as Date)} occurrence.
+              The date below is the series&apos; start date, not this occurrence.
+            </span>
           </p>
         )}
         <MeetingForm
