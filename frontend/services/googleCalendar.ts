@@ -68,9 +68,11 @@ export function toRRule(pattern: IRecurrencePattern): string {
         byday = byDay ? `;BYDAY=${byDay}` : "";
     }
 
-    if (pattern.numberOfOccurrences) {
-        return `RRULE:${freq}${byday};COUNT=${pattern.numberOfOccurrences}`;
-    }
+    // endDate wins when both are present. Normally only one of the two is ever set, but a
+    // 'thisAndFollowing' trim (delete route, update route's handleScopedEdit) writes endDate
+    // without also clearing a pre-existing numberOfOccurrences at every call site that reaches
+    // here indirectly (e.g. a stale in-memory object) -- checking endDate first is a defensive
+    // backstop so a trimmed series can never be un-trimmed by COUNT winning instead of UNTIL.
     if (pattern.endDate) {
         // Use 23:59:59 ET so the end date is inclusive — midnight UTC = previous evening ET.
         const etDate = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' })
@@ -79,7 +81,29 @@ export function toRRule(pattern: IRecurrencePattern): string {
             .toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
         return `RRULE:${freq}${byday};UNTIL=${until}`;
     }
+    if (pattern.numberOfOccurrences) {
+        return `RRULE:${freq}${byday};COUNT=${pattern.numberOfOccurrences}`;
+    }
     return `RRULE:${freq}${byday}`;
+}
+
+// Formats an excluded occurrence's date + the meeting's own ET start wall-clock time as
+// Google Calendar's EXDATE value ("YYYYMMDDTHHMMSS", ET) -- the exclusion always keeps the
+// series' own start time, only the calendar date varies per entry. Shared by buildEventBody's
+// EXDATE emission below; extracted so any other EXDATE-shaped formatting stays byte-for-byte
+// consistent with it instead of drifting into a second, subtly different implementation.
+function formatExdateCompact(occurrenceDate: Date | string, meetingStartDateTime: Date | string): string {
+    const etDate = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' })
+        .format(new Date(occurrenceDate));
+    const etDateCompact = etDate.replace(/-/g, '');
+
+    const etTimeParts = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'America/New_York',
+        hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
+    }).formatToParts(new Date(meetingStartDateTime));
+    const get = (t: string) => etTimeParts.find(p => p.type === t)?.value?.padStart(2, '0') ?? '00';
+
+    return `${etDateCompact}T${get('hour')}${get('minute')}${get('second')}`;
 }
 
 // Suffix appended to the GCal event title so the mode is visible at a glance;
@@ -101,7 +125,10 @@ function buildEventTitle(meeting: IMeeting): string {
 
 // locationOverride: Zoom Room calendars pass the join link here — Zoom Rooms detects a
 // joinable meeting from the location field, not the description.
-function buildEventBody(meeting: IMeeting, locationOverride?: string) {
+// Exported for direct unit testing of the RRULE/EXDATE serialization -- this is the single
+// place a RecurrencePattern turns into a Google Calendar body, so its output shape is worth
+// testing without going through the network-calling functions below.
+export function buildEventBody(meeting: IMeeting, locationOverride?: string) {
     const descriptionLines = [
         meeting.calType?.length ? `Type: ${meeting.calType.join(', ')}` : null,
         meeting.modeType ? `Mode: ${meeting.modeType}` : null,
@@ -122,7 +149,17 @@ if (meeting.description) {
     };
 
     if (meeting.recurrencePattern) {
-        event.recurrence = [toRRule(meeting.recurrencePattern)];
+        const recurrence = [toRRule(meeting.recurrencePattern)];
+        // RecurrencePattern.excludedDates is the complete, current record of every occurrence
+        // removed from this series (delete-'this', edit-'this') -- buildEventBody is the single
+        // place that turns a pattern into a Google Calendar body, so serializing them here as
+        // EXDATE lines makes every full events.update/events.insert (whole-series edit, Retry
+        // sync, reconcile) automatically preserve them instead of silently resurrecting
+        // previously-removed occurrences the way a bare RRULE regenerate would.
+        for (const excluded of meeting.recurrencePattern.excludedDates ?? []) {
+            recurrence.push(`EXDATE;TZID=America/New_York:${formatExdateCompact(excluded, meeting.startDateTime)}`);
+        }
+        event.recurrence = recurrence;
     }
 
     return event;
@@ -255,48 +292,18 @@ export async function deleteCalendarEvent(
     }
 }
 
-// Adds an EXDATE to a recurring Google Calendar event to skip a single occurrence.
-// occurrenceISODate: UTC ISO string representing the occurrence to exclude (from lastClickedDate).
-export async function deleteCalendarOccurrence(
-    accessToken: string,
-    googleCalendarEventId: string,
-    meetingStartDateTime: Date | string,
-    occurrenceISODate: string,
-    calendarId: string,
-): Promise<boolean> {
-    try {
-        const calendar = getCalendarClient(accessToken);
-
-        // Derive the ET date of the occurrence (YYYYMMDD compact)
-        const etDate = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' })
-            .format(new Date(occurrenceISODate));
-        const etDateCompact = etDate.replace(/-/g, '');
-
-        // Derive the meeting's start time in ET (HHMMSS) for the EXDATE
-        const etTimeParts = new Intl.DateTimeFormat('en-US', {
-            timeZone: 'America/New_York',
-            hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
-        }).formatToParts(new Date(meetingStartDateTime));
-        const get = (t: string) => etTimeParts.find(p => p.type === t)?.value?.padStart(2, '0') ?? '00';
-        const exdateStr = `EXDATE;TZID=America/New_York:${etDateCompact}T${get('hour')}${get('minute')}${get('second')}`;
-
-        const event = await calendar.events.get({ calendarId, eventId: googleCalendarEventId });
-        const currentRecurrence = event.data.recurrence ?? [];
-
-        await calendar.events.patch({
-            calendarId,
-            eventId: googleCalendarEventId,
-            requestBody: { recurrence: [...currentRecurrence, exdateStr] },
-        });
-        return true;
-    } catch (error) {
-        console.error("Google Calendar deleteCalendarOccurrence error:", error);
-        return false;
-    }
-}
-
 // Truncates a recurring Google Calendar event series so it ends before occurrenceISODate.
 // occurrenceISODate: UTC ISO string representing the first occurrence to remove.
+//
+// Exists solely for a SUSPENSION trim now (services/... syncSuspend in
+// app/api/update/meeting/suspend/route.ts) -- every other trim (delete's 'thisAndFollowing',
+// update's scoped-edit split) is RecurrencePattern state (a stored `endDate`) and goes through
+// a full events.update instead, letting buildEventBody regenerate the whole recurrence
+// (RRULE + EXDATEs) from that pattern. A suspension trim is deliberately NOT pattern state --
+// it truncates at max(suspension.from, tomorrow), a date that lives only in SuspensionPeriod,
+// never written into RecurrencePattern.endDate -- so it must stay a live-recurrence patch here
+// rather than ever being regenerated from the pattern, or a later full-body rewrite of the same
+// event (e.g. an unrelated field edit while still suspended) would silently undo it.
 export async function trimCalendarEventSeries(
     accessToken: string,
     googleCalendarEventId: string,

@@ -1,4 +1,4 @@
-import type { toRRule as ToRRuleFn, reconcileMeetingCalendars as ReconcileFn } from "../../services/googleCalendar";
+import type { toRRule as ToRRuleFn, reconcileMeetingCalendars as ReconcileFn, buildEventBody as BuildEventBodyFn } from "../../services/googleCalendar";
 import { IMeeting, IRecurrencePattern } from "../../types/models";
 
 // calendarIdForCategory (in services/googleCalendar.ts) is computed once at module-load
@@ -11,6 +11,7 @@ import { IMeeting, IRecurrencePattern } from "../../types/models";
 // into any other test file sharing the same worker process.
 let toRRule: typeof ToRRuleFn;
 let reconcileMeetingCalendars: typeof ReconcileFn;
+let buildEventBody: typeof BuildEventBodyFn;
 const ENV_KEYS = ["GOOGLE_CALENDAR_AA", "GOOGLE_CALENDAR_ALANON", "GOOGLE_CALENDAR_OTHER"] as const;
 const originalEnv: Partial<Record<(typeof ENV_KEYS)[number], string>> = {};
 
@@ -20,7 +21,7 @@ beforeAll(async () => {
     delete process.env[key];
   }
   jest.resetModules();
-  ({ toRRule, reconcileMeetingCalendars } = await import("../../services/googleCalendar"));
+  ({ toRRule, reconcileMeetingCalendars, buildEventBody } = await import("../../services/googleCalendar"));
 });
 
 afterAll(() => {
@@ -117,14 +118,23 @@ describe("toRRule — weekly", () => {
     expect(toRRule({ ...base, interval: 2 })).toBe("RRULE:FREQ=WEEKLY;INTERVAL=2;BYDAY=MO");
   });
 
-  it("prefers numberOfOccurrences (COUNT) over endDate when both are set", () => {
+  it("prefers endDate (UNTIL) over numberOfOccurrences (COUNT) when both are set", () => {
+    // Both-present only arises after a 'thisAndFollowing' trim on what used to be a
+    // count-bounded series -- the trim sites now null numberOfOccurrences at the same time
+    // they write endDate, so this is a defensive backstop, not the normal path. A trimmed
+    // series must never be un-trimmed by COUNT winning back over the stored endDate.
     const rule = toRRule({
       ...base,
       numberOfOccurrences: 5,
       endDate: new Date("2026-12-31T00:00:00Z"),
     });
-    expect(rule).toContain("COUNT=5");
-    expect(rule).not.toContain("UNTIL");
+    expect(rule).toContain("UNTIL");
+    expect(rule).not.toContain("COUNT");
+  });
+
+  it("uses COUNT when only numberOfOccurrences is set", () => {
+    const rule = toRRule({ ...base, numberOfOccurrences: 5, endDate: null });
+    expect(rule).toBe("RRULE:FREQ=WEEKLY;INTERVAL=1;BYDAY=MO;COUNT=5");
   });
 
   it("uses UNTIL, inclusive of the full ET end date, when only endDate is set", () => {
@@ -154,5 +164,50 @@ describe("toRRule — monthly", () => {
   it("uses -1 for 'last weekday of month'", () => {
     const rule = toRRule({ ...base, type: "monthly", weekOfMonth: -1, daysOfWeek: ["Friday"] });
     expect(rule).toBe("RRULE:FREQ=MONTHLY;INTERVAL=1;BYDAY=-1FR");
+  });
+});
+
+// buildEventBody is the single place a RecurrencePattern turns into a Google Calendar
+// event body -- every full events.insert/events.update (create, whole-series edit, Retry
+// sync, reconcile, pending-resume series creation) goes through it, so these cases are what
+// stand between a full-body rewrite and silently resurrecting a previously-EXDATE'd occurrence.
+describe("buildEventBody — recurrence serialization", () => {
+  const recurringMeeting = (recurrencePattern: IRecurrencePattern): IMeeting => buildMeeting({
+    isRecurring: true,
+    recurrencePattern,
+  });
+
+  it("has no recurrence field at all for a non-recurring meeting", () => {
+    const body = buildEventBody(buildMeeting({ isRecurring: false }));
+    expect(body.recurrence).toBeUndefined();
+  });
+
+  it("emits just the RRULE line when there are no excludedDates", () => {
+    const body = buildEventBody(recurringMeeting({ ...base, excludedDates: [] }));
+    expect(body.recurrence).toEqual([toRRule({ ...base, excludedDates: [] })]);
+  });
+
+  it("emits one EXDATE line per excludedDates entry, after the RRULE line", () => {
+    const body = buildEventBody(recurringMeeting({
+      ...base,
+      // meeting.startDateTime is 2026-08-01T18:00:00Z -- 14:00:00 ET (EDT, UTC-4).
+      excludedDates: [new Date("2026-08-10T00:00:00Z"), new Date("2026-08-24T00:00:00Z")],
+    }));
+    expect(body.recurrence).toEqual([
+      toRRule(base),
+      "EXDATE;TZID=America/New_York:20260809T140000",
+      "EXDATE;TZID=America/New_York:20260823T140000",
+    ]);
+  });
+
+  it("keeps the meeting's own ET start time on every EXDATE regardless of the excluded date's own time-of-day", () => {
+    // The excludedDates entry itself is stored as an ET-day-start instant (see
+    // util/meetings/editScope.ts's exclusionInstant) -- its time-of-day must never leak into
+    // the EXDATE, which always carries the series' own start time instead.
+    const body = buildEventBody(recurringMeeting({
+      ...base,
+      excludedDates: [new Date("2026-08-10T04:00:00Z")], // ET midnight of 2026-08-10
+    }));
+    expect(body.recurrence).toContain("EXDATE;TZID=America/New_York:20260810T140000");
   });
 });
