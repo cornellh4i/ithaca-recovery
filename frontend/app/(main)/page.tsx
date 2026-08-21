@@ -16,6 +16,7 @@ import EditMeetingSidebar from "../components/meeting-form/EditMeeting";
 import { IMeeting } from "../../types/models";
 import { useConflictMids } from "../../hooks/useConflictMids";
 import { useSyncErrorMids } from "../../hooks/useSyncErrorMids";
+import { useMeetingDetailsSync } from "../../hooks/useMeetingDetailsSync";
 import { useViewport } from "../../hooks/useViewport";
 import { PHONE_BREAKPOINT } from "../../util/common/breakpoints";
 import { useCalendarContext } from "../context/CalendarProvider";
@@ -99,43 +100,15 @@ export default function HomePage() {
   // The clicked meeting box, so the View Meeting popup can anchor itself beside it.
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
 
-  const fetchMeetingDetails = useCallback(async (meetingId: string) => {
-    try {
-      const response = await fetch(`/api/retrieve/meeting/${meetingId}`, { method: 'GET' });
-      if (response.ok) {
-        const data: IMeeting = await response.json();
-        // Batched: keeps the old panel on screen until the new meeting is ready.
-        setShowEditMeeting(false);
-        setSelectedMeeting(data);
-        // lastClickedDate is set directly by the calendar box's own click handler (see
-        // setLastClickedDate threaded into DayView/WeekView/DayPortraitView) --
-        // it already knows which specific occurrence's column/row was clicked, which the
-        // globally-selected calendar date does not (e.g. Week view can have a different
-        // selectedDate than the day column actually clicked). Left unset here for the
-        // deep-link (?mid=) path, which has no click to attribute a date to.
-      } else {
-        console.error("Failed to fetch meeting details");
-      }
-    } catch (error) {
-      console.error('Error fetching meeting details:', error);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (selectedMeetingID) {
-      // Async fetch-then-set; the lint rule can't see the setState calls sit after an
-      // await, so this is a false positive for the standard "load on ID change" pattern.
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      fetchMeetingDetails(selectedMeetingID);
-    } else {
-      setShowEditMeeting(false);
-      setSelectedMeeting(null);
-      setLastClickedDate(null);
-    }
-    // refreshTrigger: a successful retry sync can change the *open* meeting's stored
-    // credentials server-side (Sync from Zoom adopts the live passcode/link) -- the popup must
-    // re-render from the fresh row, not keep showing pre-adoption props with the warning gone.
-  }, [selectedMeetingID, fetchMeetingDetails, refreshTrigger]);
+  // Keeps selectedMeeting in sync with selectedMeetingID and refreshTrigger -- see the hook's
+  // own doc comment for why a background refresh must never force-close an open Edit panel.
+  useMeetingDetailsSync({
+    selectedMeetingID,
+    refreshTrigger,
+    setSelectedMeeting,
+    setShowEditMeeting,
+    setLastClickedDate,
+  });
 
   // Deep-link support for e.g. the Diagnostics conflicts panel's "Edit" button
   // (/?mid=<id>&edit=1) -- read once on mount rather than via useSearchParams, since this

@@ -338,3 +338,51 @@ describe("EditMeetingSidebar recurring-scope re-anchoring", () => {
     expect(screen.getByLabelText("This and following events")).not.toBeDisabled();
   });
 });
+
+describe("EditMeetingSidebar stays open during ordinary field interaction", () => {
+  const renderEditWithOnClose = () => {
+    const onClose = jest.fn();
+    render(
+      <ToastProvider>
+        <EditMeetingSidebar
+          meeting={anchorMeeting}
+          onClose={onClose}
+          onUpdateSuccess={jest.fn()}
+          occurrenceDate={occurrenceDate}
+        />
+      </ToastProvider>,
+    );
+    return onClose;
+  };
+
+  it("keeps the panel open after selecting a Room dropdown option", async () => {
+    const onClose = renderEditWithOnClose();
+    await act(async () => {});
+
+    fireEvent.click(screen.getByRole("button", { name: /Serenity Room/ }));
+    fireEvent.click(screen.getByRole("option", { name: "Unity Room" }));
+
+    expect(screen.getByRole("button", { name: "Update Meeting" })).toBeInTheDocument();
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it("keeps the panel open while typing digits into the Start time field", async () => {
+    const onClose = renderEditWithOnClose();
+    await act(async () => {});
+
+    fireEvent.change(screen.getByLabelText("Start time"), { target: { value: "09:15" } });
+
+    expect(screen.getByRole("button", { name: "Update Meeting" })).toBeInTheDocument();
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it("keeps the panel open on a scroll event", async () => {
+    const onClose = renderEditWithOnClose();
+    await act(async () => {});
+
+    fireEvent.scroll(window);
+
+    expect(screen.getByRole("button", { name: "Update Meeting" })).toBeInTheDocument();
+    expect(onClose).not.toHaveBeenCalled();
+  });
+});
