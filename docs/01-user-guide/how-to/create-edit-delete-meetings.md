@@ -19,8 +19,8 @@ saved either way, see [how sync works](../explanation/how-sync-works.md) for why
 
 All fields can be edited, including mode and recurrence. Editing never changes a meeting's Zoom link or passcode — even reassigning the Zoom Host moves the existing Zoom meeting rather than creating a new one. For the few meetings on an [external Zoom link](../explanation/how-sync-works.md#external-zoom-links), the Zoom Host field is locked and the Zoom side isn't touched at all.
 
-**Recurring:** clicking **"Update Meeting"** on a recurring meeting offers the same three-way
-scope choice as delete:
+**Recurring:** clicking **"Update Meeting"** on a recurring meeting asks which occurrences to
+change:
 
 | Option | Effect |
 |---|---|
