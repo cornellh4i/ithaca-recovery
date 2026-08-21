@@ -72,13 +72,10 @@ function lineageRoot(meeting: LeaseMeeting): string {
   return meeting.splitFromMid ?? meeting.mid;
 }
 
-// One CSV row per lineage, not per Meeting row -- otherwise a split/detached series would bill
-// twice for the same group. Within a lineage, the representative is whichever segment's own
-// schedule starts latest: that's the "current" shape of the series (a "this and following" edit
-// hands off to its new tail row; a "this" edit's detached occurrence is itself the latest thing
-// that happened to that lineage). Ties broken by mid for a deterministic, arbitrary-but-stable
-// pick -- two rows in the same lineage should never share a startDateTime in practice.
-function pickLineageRepresentative(meetings: LeaseMeeting[]): LeaseMeeting {
+// Picks whichever meeting's own schedule starts latest, tie-broken by mid for a deterministic,
+// arbitrary-but-stable pick -- two rows in the same lineage should never share a startDateTime
+// in practice.
+function latestStarting(meetings: LeaseMeeting[]): LeaseMeeting {
   return meetings.reduce((latest, candidate) => {
     const latestStart = latest.startDateTime.getTime();
     const candidateStart = candidate.startDateTime.getTime();
@@ -86,6 +83,20 @@ function pickLineageRepresentative(meetings: LeaseMeeting[]): LeaseMeeting {
     if (candidateStart < latestStart) return latest;
     return candidate.mid < latest.mid ? candidate : latest;
   });
+}
+
+// One CSV row per lineage, not per Meeting row -- otherwise a split/detached series would bill
+// twice for the same group. A "this and following" edit hands the series off to a new recurring
+// tail row, which really is the series' current shape -- latest-starting recurring member wins.
+// But a "this" edit's detached one-time child (recurrencePattern: null) is always later-starting
+// than the still-recurring parent it was split from (it's anchored to the clicked occurrence
+// date, not the series' original anchor), so picking by latest start across *all* members would
+// make a single edited occurrence stand in for the whole ongoing series -- wrong room/day/
+// duration on every future bill. Restricting the pick to recurring members fixes that; only a
+// lineage with no recurring member left at all (fully one-time) falls back to latest-of-everyone.
+function pickLineageRepresentative(meetings: LeaseMeeting[]): LeaseMeeting {
+  const recurring = meetings.filter((m) => m.recurrencePattern !== null);
+  return latestStarting(recurring.length > 0 ? recurring : meetings);
 }
 
 function groupByLineage(meetings: LeaseMeeting[]): LeaseMeeting[] {

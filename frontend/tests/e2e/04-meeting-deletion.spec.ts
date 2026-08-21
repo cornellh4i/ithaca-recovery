@@ -63,7 +63,17 @@ test.describe("meeting deletion", () => {
 
   test("4.3 'This event' removes only the clicked occurrence's date, series survives", async ({ adminPage }) => {
     const { page } = adminPage;
-    const { meeting } = await seedRecurringMeeting({ title: "Delete This Occurrence" });
+    // seedRecurringMeeting's bare default leaves daysOfWeek empty, which matchesRecurrencePattern
+    // (util/meetings/recurrenceMatch.ts) treats as "matches no date at all" -- not even the
+    // meeting's own start date. ViewMeeting's DeleteRecurringModal now disables 'this'/
+    // 'thisAndFollowing' whenever the clicked date doesn't resolve to a real occurrence (see
+    // ViewMeeting.tsx's hasKnownOccurrence), so the clicked day needs to be one the pattern
+    // genuinely recurs on -- same fix already applied to 03-meeting-editing.spec.ts's 3.5b/3.5c.
+    const dayName = new Date().toLocaleDateString("en-US", { weekday: "long", timeZone: "America/New_York" });
+    const { meeting } = await seedRecurringMeeting(
+      { title: "Delete This Occurrence" },
+      { type: "weekly", daysOfWeek: [dayName], interval: 1 },
+    );
     await page.goto("/");
     await openMeetingOptions(page, "Delete This Occurrence");
     await page.getByRole("button", { name: "Delete", exact: true }).click();

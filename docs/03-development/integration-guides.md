@@ -171,7 +171,7 @@ When a meeting is created, updated, or deleted, the platform publishes a matchin
 > if their Google account was never shared onto the relevant calendar(s).
 
 ### Key client code
-`frontend/services/googleCalendar.ts` — `calendarIdForCategory`, `calendarIdsForMeeting`, `checkCalendarReachable`, `createCalendarEvent`, `updateCalendarEvent`, `deleteCalendarEvent`, `deleteCalendarOccurrence` (adds an EXDATE for a single recurring occurrence), `trimCalendarEventSeries` (trims a recurring event's RRULE `UNTIL`).
+`frontend/services/googleCalendar.ts` — `calendarIdForCategory`, `calendarIdsForMeeting`, `checkCalendarReachable`, `createCalendarEvent`, `updateCalendarEvent`, `deleteCalendarEvent`, `buildEventBody` (the single place a `RecurrencePattern` turns into a calendar body — serializes `excludedDates` as `EXDATE` lines and `endDate` as the RRULE `UNTIL`, so a plain `updateCalendarEvent` reflects a trim/exclusion completely), `trimCalendarEventSeries` (trims a recurring event's RRULE `UNTIL` — reserved for a suspension trim, which isn't `RecurrencePattern` state).
 
 ### Sync behavior
 
@@ -219,7 +219,7 @@ Creates/updates/deletes a real Zoom meeting whenever a meeting has a `zoomRoom` 
 
 - **Conflict Fallback**: If all hosts are busy, the meeting saves without Zoom, setting `zoomSyncStatus: "error"` and a `zoomSyncError`. Admins can retry via the UI "Retry sync" button or `POST /api/update/meeting/sync`.
 
-- **Host Persistence**: Existing meetings retain their host across edits unless the room changes, which triggers host re-resolution and recreates the Zoom meeting.
+- **Host Persistence**: Existing meetings retain their host across edits, including a room change — room and host are independent resources, so a room change alone moves only the join-link event between room calendars in place. Host re-resolution (and, if Zoom can't transfer the meeting to that host, a recreate) is triggered only by an explicit host reassignment.
 
 > [!NOTE]
 > Auto-assignment must run inside the meeting's write transaction with the whole pool locked, not

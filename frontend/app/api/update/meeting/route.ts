@@ -13,7 +13,7 @@ import { lockResourceClaims, ResourceClaim } from "../../../../util/meetings/res
 import { meetingSchema, editScopeSchema } from "../../../../util/meetings/meetingValidation";
 import { reconcilePendingResume, tearDownPendingResumeSeries } from "../../../../util/meetings/suspension";
 import { calculateEndDateFromOccurrences } from "../../../../util/meetings/meetingOccurrences";
-import { EditScope, exclusionInstant, trimmedEndDate, isLiveOccurrence, rootSplitMid } from "../../../../util/meetings/editScope";
+import { EditScope, exclusionInstant, trimmedEndDate, isLiveOccurrence, rootSplitMid, toETDateStr } from "../../../../util/meetings/editScope";
 import { prisma } from "../../../../lib/prisma";
 
 // Runs after the response is sent (see after() call below) — failure updates googleSyncStatus
@@ -330,8 +330,14 @@ async function syncUpdatedMeeting(
 // (syncSuspend in update/meeting/suspend/route.ts, via trimCalendarEventSeries) that isn't
 // represented in RecurrencePattern at all, and a full-body rewrite from the stored pattern would
 // silently resurrect whatever the suspension hid -- same reasoning as syncUpdatedMeeting's
-// suspended early-return above.
+// suspended early-return above. Persists googleSyncStatus/googleSyncError for the parent so a
+// failed rewrite gets the ⚠ badge/retry prompt instead of silently leaving DB and Google
+// disagreeing about the trim/exclusion that already committed -- same contract as every other
+// Google write (technical-decisions.md's "API failure ⇒ googleSyncStatus 'error'"). The
+// suspended early-return above deliberately skips this write too -- that deferral is intentional
+// (status stays whatever it already was), not a failure to report.
 async function syncScopedParentCalendar(
+  mid: string,
   status: string,
   accessToken: string | undefined,
   calendarIds: Record<string, string>,
@@ -341,14 +347,43 @@ async function syncScopedParentCalendar(
   zoomRoom: string | null,
 ): Promise<void> {
   if (!accessToken || status === 'Suspended') return;
+  let synced = true;
+  let syncError: string | null = null;
   for (const [cat, calId] of Object.entries(calendarIds)) {
     const eventId = eventIds[cat];
-    if (eventId) await updateCalendarEvent(accessToken, eventId, meetingForCalendar, calId);
+    if (!eventId) {
+      // A configured category with no stored event ID (most likely a previously-failed sync
+      // that never got an ID to rewrite) isn't a no-op -- it's still divergent from what the
+      // pattern now says, and silently continuing past it would report 'synced' while that
+      // calendar never got touched at all.
+      synced = false;
+      syncError = syncError ?? `Missing Google Calendar event ID for "${cat}".`;
+      continue;
+    }
+    const { ok, error } = await updateCalendarEvent(accessToken, eventId, meetingForCalendar, calId);
+    if (!ok) {
+      synced = false;
+      syncError = syncError ?? error ?? "Failed to update the calendar event.";
+    }
   }
-  if (zoomCalendarEventId && zoomRoom) {
+  // A null zoomLink here would fall back to buildEventBody's street-address default as this
+  // event's `location` (see the locationOverride comment there) -- publishing that onto a
+  // Zoom-Room calendar breaks the room hardware's one-touch join detection, which keys off a
+  // real Zoom URL. Only rewrite when there's still a real link to publish.
+  if (zoomCalendarEventId && zoomRoom && meetingForCalendar.zoomLink) {
     const calId = zoomRoomCalendarId[zoomRoom];
-    if (calId) await updateCalendarEvent(accessToken, zoomCalendarEventId, meetingForCalendar, calId, meetingForCalendar.zoomLink ?? undefined);
+    if (calId) {
+      const { ok, error } = await updateCalendarEvent(accessToken, zoomCalendarEventId, meetingForCalendar, calId, meetingForCalendar.zoomLink);
+      if (!ok) {
+        synced = false;
+        syncError = syncError ?? error ?? "Failed to update the Zoom-Room calendar event.";
+      }
+    }
   }
+  await prisma.meeting.update({
+    where: { mid },
+    data: { googleSyncStatus: synced ? 'synced' : 'error', googleSyncError: synced ? null : syncError },
+  });
 }
 
 // Runs after the response is sent — creates the split-off row's own Google Calendar events (and
@@ -362,6 +397,12 @@ async function syncSplitMeeting(
   isRecurring: boolean,
   accessToken: string | undefined,
 ): Promise<void> {
+  // Defense in depth, same guard as syncUpdatedMeeting's -- the caller always creates a
+  // split-off row with status: 'Active' (it has no suspension history of its own), so this
+  // should never actually trigger, but a suspended meeting's calendar events must never be
+  // published regardless of how that status got here.
+  if (meetingData.status === 'Suspended') return;
+
   const zoomEnabled = meetingData.modeType === 'Hybrid' || meetingData.modeType === 'Remote';
   const meetingForSync: IMeeting = { ...meetingData, isRecurring };
 
@@ -502,7 +543,11 @@ async function handleScopedEdit(
         // join-link event on a different Zoom Room's calendar than the parent's.
         zoomRoom: newMeeting.zoomRoom,
         zoomHost: existingMeeting.zoomHost,
-        status: newMeeting.status ?? existingMeeting.status,
+        // A split-off row always starts Active -- it has no suspension history of its own, and
+        // a scoped edit is never how a suspension gets created (that's the dedicated
+        // suspend/resume flow). Never the parent's or the payload's status: if the parent
+        // happens to be suspended, the child must not silently inherit that.
+        status: 'Active',
         calType: newMeeting.calType,
         startDateTime: newMeeting.startDateTime,
         endDateTime: newMeeting.endDateTime,
@@ -512,25 +557,30 @@ async function handleScopedEdit(
           : null,
       };
 
-      // The new row's candidate date is already excluded from/past the end of the parent's own
-      // (just-trimmed, in this same tx) pattern, so it can't self-collide -- but scope 'this'
-      // still needs the parent mid excluded explicitly, since the parent's *other* occurrences
-      // remain in play for the room/zoomRoom/zoomHost scan and excludeMid only affects whether
-      // the parent's own row is queried at all, not which of its occurrences match.
-      const excludeMid = scope === 'this' ? mid : undefined;
+      // room/zoomRoom must NOT exclude the parent: the client can legitimately re-date a "This
+      // event" child onto another day the series itself still meets (e.g. moving a Monday
+      // occurrence to that same series' Wednesday slot), and the parent's occurrence on THAT day
+      // is still very much live in this same room -- only the one occurrence at occurrenceDate
+      // was excluded above, not the whole parent. Excluding the parent here would let the child
+      // double-book its own series' room/Zoom Room undetected.
+      //
+      // zoomHost DOES exclude the parent for scope 'this': same zid means the same real Zoom
+      // meeting/host, so the parent's own occurrences "sharing the host" is not a second booking
+      // to flag, just the same one Zoom meeting the child inherits.
+      const zoomHostExcludeMid = scope === 'this' ? mid : undefined;
 
       if (!confirmOverride) {
         const conflictRows: ConflictRow[] = [];
         if (candidate.room) {
-          conflictRows.push(...await findResourceConflictRows("room", candidate.room, candidate, tx, { excludeMid }));
+          conflictRows.push(...await findResourceConflictRows("room", candidate.room, candidate, tx, {}));
         }
         if (candidate.zoomRoom) {
-          conflictRows.push(...await findResourceConflictRows("zoomRoom", candidate.zoomRoom, candidate, tx, { excludeMid }));
+          conflictRows.push(...await findResourceConflictRows("zoomRoom", candidate.zoomRoom, candidate, tx, {}));
         }
         if (candidate.zoomHost) {
           conflictRows.push(...await findResourceConflictRows(
             "zoomHost", candidate.zoomHost, candidate, tx,
-            { excludeMid, includeSuspended: true, capacity: hostCapacities[candidate.zoomHost] ?? 1 },
+            { excludeMid: zoomHostExcludeMid, includeSuspended: true, capacity: hostCapacities[candidate.zoomHost] ?? 1 },
           ));
         }
         if (conflictRows.length > 0) {
@@ -552,7 +602,8 @@ async function handleScopedEdit(
           calType: newMeeting.calType,
           modeType: newMeeting.modeType,
           room: newMeeting.room,
-          status: newMeeting.status ?? existingMeeting.status,
+          // Always Active -- see the identical comment on `candidate` above.
+          status: 'Active',
           isRecurring: isRecurringSplit,
           // Zoom identity inherited, not re-provisioned, regardless of room -- see the
           // Zoom-inheritance decision in editScope.ts's callers. The shared-zid PATCH machinery
@@ -611,7 +662,7 @@ async function handleScopedEdit(
 
   after(
     syncScopedParentCalendar(
-      existingMeeting.status, auth.accessToken, calendarIds, eventIds, parentForCalendar,
+      mid, existingMeeting.status, auth.accessToken, calendarIds, eventIds, parentForCalendar,
       existingMeeting.zoomCalendarEventId, existingMeeting.zoomRoom,
     ).catch((error) => console.error("syncScopedParentCalendar threw:", error)),
   );
@@ -624,8 +675,9 @@ async function handleScopedEdit(
       newMid,
       // zoomRoom deliberately NOT overridden here -- newMeeting's own value (already what got
       // persisted onto the row above) is what should flow into the child's room-cal event, not
-      // the parent's room.
-      { ...newMeeting, mid: newMid, zid: existingMeeting.zid, zoomLink: existingMeeting.zoomLink },
+      // the parent's room. status is forced to 'Active' to match what was actually persisted
+      // (see the create data above) -- newMeeting.status could still be the parent's 'Suspended'.
+      { ...newMeeting, mid: newMid, zid: existingMeeting.zid, zoomLink: existingMeeting.zoomLink, status: 'Active' },
       isRecurringSplit,
       auth.accessToken,
     ).catch(async (error) => {
@@ -713,8 +765,10 @@ const updateMeeting = async (request: Request): Promise<Response> => {
       // Case-insensitive, non-empty-only -- same definition of "an explicit reassignment" the
       // 'all' path's explicitHostChange uses (a blank/"Automatic" selection, or resubmitting the
       // meeting's own already-assigned host, is not a change).
-      const scopedExplicitHostChange = !!newMeeting.zoomHost &&
-        newMeeting.zoomHost.toLowerCase() !== (existingMeeting.zoomHost ?? "").toLowerCase();
+      // Trimmed to match the client's isHostDirty normalization -- a trailing space must not
+      // turn an unchanged host into a 400 the scope dialog never warned about.
+      const scopedExplicitHostChange = (newMeeting.zoomHost ?? "").trim() !== "" &&
+        (newMeeting.zoomHost ?? "").trim().toLowerCase() !== (existingMeeting.zoomHost ?? "").trim().toLowerCase();
       if (scopedExplicitHostChange) {
         return NextResponse.json({ error: "host changes apply to the whole series" }, { status: 400 });
       }
@@ -727,6 +781,20 @@ const updateMeeting = async (request: Request): Promise<Response> => {
       if (editScope === 'thisAndFollowing' && !newMeeting.recurrencePattern) {
         return NextResponse.json(
           { error: "editScope 'thisAndFollowing' requires a recurrencePattern for the new series." },
+          { status: 400 },
+        );
+      }
+      // 'thisAndFollowing' anchors the new tail series' pattern.startDate to occurrenceDate (the
+      // clicked occurrence), not to newMeeting.startDateTime -- handleScopedEdit uses
+      // occurrenceDate for the series start and newMeeting.startDateTime for the row's own
+      // wall-clock time. Those only stay consistent if the client re-anchored the date field to
+      // match occurrenceDate; an edited date field (a genuine date CHANGE, not a re-anchor)
+      // would silently diverge the row's own date from the series it claims to start. Scope
+      // 'this' is deliberately exempt -- editing the single occurrence's own date is the whole
+      // point there.
+      if (editScope === 'thisAndFollowing' && toETDateStr(newMeeting.startDateTime) !== toETDateStr(occurrenceDate)) {
+        return NextResponse.json(
+          { error: "date changes apply to a single event or the whole series" },
           { status: 400 },
         );
       }

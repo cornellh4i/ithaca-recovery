@@ -6,11 +6,11 @@ Every meeting has up to three synced copies: an event on its category calendar, 
 
 | Action in the platform | Google Calendar events | Zoom meeting |
 |---|---|---|
-| **Create** | Created on the category calendar (and Zoom room calendar for Hybrid and Remote) | Created — under one stable ID and link |
+| **Create** | Created on the category calendar (and Zoom room calendar for Hybrid) | Created — under one stable ID and link |
 | **Edit** (This event / This and following) | Affected occurrence(s) updated; a recurring edit splits or detaches the Google event(s) to match | Untouched — the detached/tail row inherits the same meeting ID, link, and passcode |
 | **Edit** (All events) | Updated to match | Rescheduled to match — retain the meeting ID, link, and passcode |
 | **Change Zoom Host** | Events keep the same link | Moved to the new host — ID, link, and passcode unchanged (a replacement is only created if Zoom refuses the move) |
-| **Change Room / Zoom Room** | The join-link event moves to the new room's calendar (for a scoped edit, only the detached/tail part moves — each segment publishes on its own room's calendar) | Untouched — ID, link, and passcode kept |
+| **Change Room / Zoom Room** | The join-link event moves to the new room's calendar (for a scoped edit, only the detached/tail part moves — each segment publishes on its own room's calendar) | Same meeting kept for a room-only change — ID, link, passcode, and host unchanged. Changing the Zoom Host at the same time recreates the Zoom meeting (new link) |
 | **Delete** (one occurrence / this-and-following) | Affected occurrences removed | Untouched |
 | **Delete** (whole series) | All events removed | Deleted — unless another platform meeting still shares the same Zoom meeting, or it's an [external link](#external-zoom-links) the platform doesn't own |
 | **Suspend / Resume** | Events removed for the suspension window; the resume series is pre-created | Untouched — the link keeps working for the return date |

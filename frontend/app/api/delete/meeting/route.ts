@@ -28,8 +28,16 @@ const toETDateStr = (date: Date): string =>
 // suspended meeting -- its live GCal recurrence already carries a suspension-only UNTIL trim
 // (syncSuspend in update/meeting/suspend/route.ts, via trimCalendarEventSeries) that isn't
 // represented in RecurrencePattern at all, and a full-body rewrite from the stored pattern would
-// silently resurrect whatever the suspension hid.
+// silently resurrect whatever the suspension hid. Persists googleSyncStatus/googleSyncError so a
+// failed rewrite gets the ⚠ badge/retry prompt instead of silently leaving DB and Google
+// disagreeing about the exclusion/trim that already committed -- same contract as every other
+// Google write (technical-decisions.md's "API failure ⇒ googleSyncStatus 'error'"). The
+// suspended early-return above deliberately skips this write too -- that deferral is intentional
+// (status stays whatever it already was), not a failure to report. 'all'/whole-series delete
+// (syncDeleteAll below) stays fire-and-log -- the row is soft-deleted, there's no meeting left
+// for a status badge to attach to.
 async function syncPartialDelete(
+  mid: string,
   status: string,
   accessToken: string | undefined,
   calendarIds: Record<string, string>,
@@ -39,14 +47,43 @@ async function syncPartialDelete(
   zoomRoom: string | null,
 ): Promise<void> {
   if (!accessToken || status === 'Suspended') return;
+  let synced = true;
+  let syncError: string | null = null;
   for (const [cat, calId] of Object.entries(calendarIds)) {
     const eventId = eventIds[cat];
-    if (eventId) await updateCalendarEvent(accessToken, eventId, meetingForCalendar, calId);
+    if (!eventId) {
+      // A configured category with no stored event ID (most likely a previously-failed sync
+      // that never got an ID to rewrite) isn't a no-op -- it's still divergent from what the
+      // pattern now says, and silently continuing past it would report 'synced' while that
+      // calendar never got touched at all.
+      synced = false;
+      syncError = syncError ?? `Missing Google Calendar event ID for "${cat}".`;
+      continue;
+    }
+    const { ok, error } = await updateCalendarEvent(accessToken, eventId, meetingForCalendar, calId);
+    if (!ok) {
+      synced = false;
+      syncError = syncError ?? error ?? "Failed to update the calendar event.";
+    }
   }
-  if (zoomCalendarEventId && zoomRoom) {
+  // A null zoomLink here would fall back to buildEventBody's street-address default as this
+  // event's `location` (see the locationOverride comment there) -- publishing that onto a
+  // Zoom-Room calendar breaks the room hardware's one-touch join detection, which keys off a
+  // real Zoom URL. Only rewrite when there's still a real link to publish.
+  if (zoomCalendarEventId && zoomRoom && meetingForCalendar.zoomLink) {
     const calId = zoomRoomCalendarId[zoomRoom];
-    if (calId) await updateCalendarEvent(accessToken, zoomCalendarEventId, meetingForCalendar, calId, meetingForCalendar.zoomLink ?? undefined);
+    if (calId) {
+      const { ok, error } = await updateCalendarEvent(accessToken, zoomCalendarEventId, meetingForCalendar, calId, meetingForCalendar.zoomLink);
+      if (!ok) {
+        synced = false;
+        syncError = syncError ?? error ?? "Failed to update the Zoom-Room calendar event.";
+      }
+    }
   }
+  await prisma.meeting.update({
+    where: { mid },
+    data: { googleSyncStatus: synced ? 'synced' : 'error', googleSyncError: synced ? null : syncError },
+  });
 }
 
 async function syncDeleteAll(
@@ -154,7 +191,7 @@ const deleteMeeting = async (request: Request) => {
       // serializes excludedDates as EXDATE lines itself, so this new exclusion (and every prior
       // one) lands on the calendar in one events.update per configured cat-cal event.
       after(syncPartialDelete(
-        meeting.status, accessToken, calendarIds, eventIds,
+        mid, meeting.status, accessToken, calendarIds, eventIds,
         { ...meeting, recurrencePattern: updatedPattern } as unknown as IMeeting,
         meeting.zoomCalendarEventId, meeting.zoomRoom,
       ));
@@ -189,7 +226,7 @@ const deleteMeeting = async (request: Request) => {
       // Google Calendar: full-body rewrite from the post-write (trimmed) pattern -- buildEventBody
       // regenerates the RRULE's UNTIL from RecurrencePattern.endDate itself.
       after(syncPartialDelete(
-        meeting.status, accessToken, calendarIds, eventIds,
+        mid, meeting.status, accessToken, calendarIds, eventIds,
         { ...meeting, recurrencePattern: updatedPattern } as unknown as IMeeting,
         meeting.zoomCalendarEventId, meeting.zoomRoom,
       ));

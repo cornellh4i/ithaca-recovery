@@ -283,10 +283,22 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
     );
   };
 
+  // Also drives DeleteRecurringModal's disableScoped below -- the deep-link (?mid=) path into a
+  // recurring meeting never sets currentOccurrenceDate (there's no click to attribute a date
+  // to), and a stale/mismatched one wouldn't validate server-side either; either way there's no
+  // real occurrence to scope 'this'/'thisAndFollowing' against. recurrencePattern is checked
+  // separately from isRecurring -- doesMeetingOccurOnDate's own `!isRecurring || !recurrencePattern`
+  // branch is the *non-recurring* fallback (a plain date match), but it also fires for a
+  // malformed isRecurring:true row with no pattern at all; without this extra check, that plain
+  // date match against startDateTime would read as "yes, a known occurrence" and enable scoped
+  // delete for a row the server 400s (scoped ops require an actual pattern).
+  const hasKnownOccurrence =
+    isRecurring && !!recurrencePattern && !!currentOccurrenceDate && doesMeetingOccurOnDate(currentOccurrenceDate);
+
   let displayStartDate = startDateTime;
   let displayEndDate = endDateTime;
 
-  if (isRecurring && currentOccurrenceDate && doesMeetingOccurOnDate(currentOccurrenceDate)) {
+  if (hasKnownOccurrence && currentOccurrenceDate) {
     // Keeps startDateTime's ET time-of-day, moved onto currentOccurrenceDate's ET calendar
     // day -- via convertETToUTC so this is correct regardless of the viewer's own timezone.
     const occurrenceDateStr = formatETDateString(currentOccurrenceDate);
@@ -601,6 +613,7 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
         // "Suspend instead" there would open a modal that can only 409 (the suspend route
         // already blocks creating a second unresolved suspension for the same meeting).
         onSuspendInstead={onSuspend && !hasSuspension ? handleSuspendClick : undefined}
+        disableScoped={!hasKnownOccurrence}
       />
       <DeleteMeetingModal
         isOpen={showDeleteConfirm}

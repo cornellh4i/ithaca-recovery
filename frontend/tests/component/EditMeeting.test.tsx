@@ -4,6 +4,15 @@ import { ToastProvider } from "../../app/components/shared/ToastProvider";
 import EditMeetingSidebar from "../../app/components/meeting-form/EditMeeting";
 import { IMeeting } from "../../types/models";
 
+// Mocked (not the real fetch-driven poll loop) so the parent-vs-newMid polling tests below can
+// assert exactly which mid(s) got polled, with what expectations, without waiting out real
+// POLL_INTERVAL_MS ticks -- see the "scoped-edit poll target" describe block.
+jest.mock("../../services/syncMeeting", () => ({
+  pollMeetingSyncStatus: jest.fn(),
+  describeSyncFailure: jest.fn(),
+}));
+import { pollMeetingSyncStatus, describeSyncFailure } from "../../services/syncMeeting";
+
 // The series' anchor row -- what retrieve/meeting/[id] returns and what the form seeds Date/
 // Time from. A recurring meeting's clicked occurrence is usually weeks away from this date;
 // that gap is exactly what the re-anchoring fix under test corrects for.
@@ -40,10 +49,18 @@ const occurrenceDate = new Date("2026-08-09T22:00:00.000Z"); // Sun Aug 9, 2026,
 // list. update/meeting itself is mocked per-test via jest.Mock.mockResolvedValueOnce where a
 // distinct response matters.
 beforeEach(() => {
+  jest.clearAllMocks();
   global.fetch = jest.fn().mockResolvedValue({
     ok: true,
     json: async () => ({ hosts: [], mid: "m-1" }),
   }) as jest.Mock;
+  // Default: resolves as "nothing to report" so the fire-and-forget .then() in every other
+  // test's save flow doesn't throw -- tests that care about the actual poll targets/results
+  // override this themselves.
+  (pollMeetingSyncStatus as jest.Mock).mockResolvedValue({
+    settled: false, googleSyncStatus: null, googleSyncError: null, zoomSyncStatus: null, zoomSyncError: null,
+  });
+  (describeSyncFailure as jest.Mock).mockReturnValue(null);
 });
 
 afterEach(() => {
@@ -130,6 +147,78 @@ describe("EditMeetingSidebar recurring-scope re-anchoring", () => {
     expect(body.isRecurring).toBe(false);
   });
 
+  describe("post-save poll target", () => {
+    // A scoped save ('this'/'thisAndFollowing') makes no Zoom call and never updates the
+    // *parent* row's own sync status -- meetingResponse.mid is still the parent, so polling it
+    // would just re-surface whatever zoomSyncStatus it already had before this edit (here, a
+    // stale 'error' from something unrelated) as a false failure for a save that actually
+    // succeeded. Only the new detached/tail row (newMid) reflects this edit's real outcome.
+    const mockPollByMid = () => {
+      (pollMeetingSyncStatus as jest.Mock).mockImplementation((mid: string) => {
+        if (mid === "m-1") {
+          // The parent's pre-existing, unrelated sync status -- must never be read for a
+          // scoped save.
+          return Promise.resolve({
+            settled: true, googleSyncStatus: "synced", googleSyncError: null,
+            zoomSyncStatus: "error", zoomSyncError: "stale failure",
+          });
+        }
+        return Promise.resolve({
+          settled: true, googleSyncStatus: "synced", googleSyncError: null, zoomSyncStatus: null, zoomSyncError: null,
+        });
+      });
+      (describeSyncFailure as jest.Mock).mockImplementation((result) =>
+        result.zoomSyncStatus === "error"
+          ? `The meeting saved, but failed to sync: Zoom (${result.zoomSyncError}).`
+          : null
+      );
+    };
+
+    it("scoped save: skips the stale parent poll, polls only newMid, and shows no failure toast", async () => {
+      global.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ hosts: [], mid: "m-1", newMid: "m-2" }),
+      }) as jest.Mock;
+      mockPollByMid();
+
+      renderEdit();
+      await act(async () => {});
+
+      fireEvent.click(screen.getByRole("button", { name: "Update Meeting" }));
+      fireEvent.click(screen.getByLabelText("This event"));
+      fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+      await waitFor(() => expect(pollMeetingSyncStatus).toHaveBeenCalled());
+      expect(pollMeetingSyncStatus).toHaveBeenCalledTimes(1);
+      expect(pollMeetingSyncStatus).toHaveBeenCalledWith("m-2", { expectGoogle: true, expectZoom: false });
+      expect(pollMeetingSyncStatus).not.toHaveBeenCalledWith("m-1", expect.anything());
+
+      await waitFor(() => expect(describeSyncFailure).toHaveBeenCalled());
+      expect(screen.queryByText(/failed to sync/i)).not.toBeInTheDocument();
+    });
+
+    it("unscoped ('all') save: still polls the parent, unchanged -- a real Zoom failure still toasts", async () => {
+      global.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ hosts: [], mid: "m-1" }),
+      }) as jest.Mock;
+      mockPollByMid();
+
+      renderEdit();
+      await act(async () => {});
+
+      fireEvent.click(screen.getByRole("button", { name: "Update Meeting" }));
+      fireEvent.click(screen.getByLabelText("All events"));
+      fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+      await waitFor(() => expect(pollMeetingSyncStatus).toHaveBeenCalledWith(
+        "m-1", expect.objectContaining({ expectGoogle: true }),
+      ));
+
+      expect(await screen.findByText(/failed to sync: Zoom \(stale failure\)/)).toBeInTheDocument();
+    });
+  });
+
   it("skips the scope modal entirely when there's no occurrence context (e.g. Diagnostics mount sites)", async () => {
     renderEdit(null);
     await act(async () => {});
@@ -197,6 +286,27 @@ describe("EditMeetingSidebar recurring-scope re-anchoring", () => {
     expect(screen.getByLabelText("This and following events")).toBeDisabled();
     expect(screen.getByLabelText("All events")).toBeChecked();
     expect(screen.getByText(/Mode and host changes apply to the whole series/)).toBeInTheDocument();
+  });
+
+  // 'thisAndFollowing' with an edited Date field would give the child row a startDateTime from
+  // the edited Date field while its RecurrencePattern.startDate comes from the clicked
+  // occurrenceDate -- a divergent anchor. 'this' stays available (a date change unambiguously
+  // means "move this one occurrence" there, and EditMeeting's re-anchor logic only applies when
+  // the Date field is untouched, which it explicitly isn't here).
+  it("disables only This and following when the Date field was changed", async () => {
+    renderEdit();
+    await act(async () => {});
+
+    const dateInput = screen.getByPlaceholderText("MM/DD/YYYY");
+    fireEvent.change(dateInput, { target: { value: "09/01/2026" } });
+    fireEvent.blur(dateInput);
+
+    fireEvent.click(screen.getByRole("button", { name: "Update Meeting" }));
+
+    expect(screen.getByLabelText("This event")).not.toBeDisabled();
+    expect(screen.getByLabelText("This and following events")).toBeDisabled();
+    expect(screen.getByLabelText("All events")).not.toBeDisabled();
+    expect(screen.getByText(/Date changes apply to a single event or the whole series/)).toBeInTheDocument();
   });
 
   // zoomRoom changes are now honored for every scope (the child row takes the new Zoom Room) --

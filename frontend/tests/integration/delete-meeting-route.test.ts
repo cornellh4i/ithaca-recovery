@@ -201,6 +201,78 @@ describe("deleteOption 'this' / 'thisAndFollowing'", () => {
     expect(eventId).toBe("live-event-id");
     expect(calendarId).toBe("fake-calendar-id");
     expect(meetingForCalendar.recurrencePattern.excludedDates).toHaveLength(1);
+
+    // A successful rewrite persists googleSyncStatus 'synced' on the parent.
+    const prismaAfter = await prisma.meeting.findUnique({ where: { mid: meeting.mid } });
+    expect(prismaAfter?.googleSyncStatus).toBe("synced");
+    expect(prismaAfter?.googleSyncError).toBeNull();
+  });
+
+  test("a failed rewrite persists googleSyncStatus 'error' with the error text on the parent", async () => {
+    mockedUpdate.mockResolvedValueOnce({ ok: false, error: "Insufficient Permission" });
+
+    const { meeting } = await seedRecurringMeeting(
+      { googleCalendarEventIds: { AA: "live-event-id" } },
+      { type: "weekly", daysOfWeek: ["Monday"], interval: 1 },
+    );
+    const occurrenceDate = new Date("2026-09-14T18:00:00Z"); // a Monday
+
+    const response = await DELETE(new Request("http://localhost/api/delete/meeting", {
+      method: "DELETE",
+      body: JSON.stringify({ mid: meeting.mid, deleteOption: "this", occurrenceDate: occurrenceDate.toISOString() }),
+    }));
+    expect(response.status).toBe(200); // the DB write already committed; the response doesn't wait on the deferred sync
+
+    await drainAfterTasks();
+    const prisma = getTestPrismaClient();
+    const stored = await prisma.meeting.findUnique({ where: { mid: meeting.mid } });
+    expect(stored?.googleSyncStatus).toBe("error");
+    expect(stored?.googleSyncError).toBe("Insufficient Permission");
+  });
+
+  test("a configured calType with a missing event ID is treated as unsynced, not silently skipped", async () => {
+    // No "AA" entry in googleCalendarEventIds even though "AA" is a configured, requested
+    // calType -- e.g. a previously-failed sync that never got an event ID to rewrite.
+    const { meeting } = await seedRecurringMeeting(
+      { googleCalendarEventIds: {} },
+      { type: "weekly", daysOfWeek: ["Monday"], interval: 1 },
+    );
+    const occurrenceDate = new Date("2026-09-14T18:00:00Z");
+
+    const response = await DELETE(new Request("http://localhost/api/delete/meeting", {
+      method: "DELETE",
+      body: JSON.stringify({ mid: meeting.mid, deleteOption: "this", occurrenceDate: occurrenceDate.toISOString() }),
+    }));
+    expect(response.status).toBe(200);
+
+    await drainAfterTasks();
+    // Nothing to rewrite -- there's no event ID for updateCalendarEvent to target.
+    expect(mockedUpdate).not.toHaveBeenCalled();
+
+    const prisma = getTestPrismaClient();
+    const stored = await prisma.meeting.findUnique({ where: { mid: meeting.mid } });
+    expect(stored?.googleSyncStatus).toBe("error");
+    expect(stored?.googleSyncError).toBe('Missing Google Calendar event ID for "AA".');
+  });
+
+  test("fully-populated eventIds still lands 'synced'", async () => {
+    const { meeting } = await seedRecurringMeeting(
+      { googleCalendarEventIds: { AA: "live-event-id" } },
+      { type: "weekly", daysOfWeek: ["Monday"], interval: 1 },
+    );
+    const occurrenceDate = new Date("2026-09-14T18:00:00Z");
+
+    const response = await DELETE(new Request("http://localhost/api/delete/meeting", {
+      method: "DELETE",
+      body: JSON.stringify({ mid: meeting.mid, deleteOption: "this", occurrenceDate: occurrenceDate.toISOString() }),
+    }));
+    expect(response.status).toBe(200);
+
+    await drainAfterTasks();
+    const prisma = getTestPrismaClient();
+    const stored = await prisma.meeting.findUnique({ where: { mid: meeting.mid } });
+    expect(stored?.googleSyncStatus).toBe("synced");
+    expect(stored?.googleSyncError).toBeNull();
   });
 
   test("'thisAndFollowing' trims endDate, nulls numberOfOccurrences, and rewrites the calendar event", async () => {
@@ -237,7 +309,7 @@ describe("deleteOption 'this' / 'thisAndFollowing'", () => {
     // isn't represented in RecurrencePattern at all -- a full-body rewrite from the stored
     // pattern here would silently resurrect whatever the suspension hid.
     const { meeting } = await seedRecurringMeeting(
-      { status: "Suspended", googleCalendarEventIds: { AA: "live-event-id" } },
+      { status: "Suspended", googleCalendarEventIds: { AA: "live-event-id" }, googleSyncStatus: "synced" },
       { type: "weekly", daysOfWeek: ["Monday"], interval: 1 },
     );
     const occurrenceDate = new Date("2026-09-14T18:00:00Z");
@@ -250,6 +322,11 @@ describe("deleteOption 'this' / 'thisAndFollowing'", () => {
 
     await drainAfterTasks();
     expect(mockedUpdate).not.toHaveBeenCalled();
+    // The suspended-skip is a deferral, not a failure -- googleSyncStatus is left exactly as it
+    // was, never flipped to 'error'.
+    const prisma = getTestPrismaClient();
+    const stored = await prisma.meeting.findUnique({ where: { mid: meeting.mid } });
+    expect(stored?.googleSyncStatus).toBe("synced");
   });
 
   test("'this' also rewrites the meeting's own Zoom-Room join-link event, not just the calType event", async () => {
@@ -297,5 +374,29 @@ describe("deleteOption 'this' / 'thisAndFollowing'", () => {
     expect(response.status).toBe(200);
     await drainAfterTasks();
     expect(mockedUpdate).not.toHaveBeenCalled();
+  });
+
+  test("a null zoomLink skips the room-cal rewrite entirely -- never falls back to publishing the street address", async () => {
+    const { meeting } = await seedRecurringMeeting(
+      {
+        modeType: "Hybrid", room: "Delete Route Room 3", zoomRoom: "Delete Route Zoom Room",
+        zoomCalendarEventId: "live-room-event-id-3", zoomLink: null,
+        googleCalendarEventIds: { AA: "live-event-id" },
+      },
+      { type: "weekly", daysOfWeek: ["Monday"], interval: 1 },
+    );
+    const occurrenceDate = new Date("2026-09-14T18:00:00Z");
+
+    const response = await DELETE(new Request("http://localhost/api/delete/meeting", {
+      method: "DELETE",
+      body: JSON.stringify({ mid: meeting.mid, deleteOption: "this", occurrenceDate: occurrenceDate.toISOString() }),
+    }));
+    expect(response.status).toBe(200);
+    await drainAfterTasks();
+
+    // Only the calType event is rewritten -- the room-cal event (which would otherwise fall back
+    // to buildEventBody's street-address default, breaking Zoom Room one-touch join) is skipped.
+    expect(mockedUpdate).toHaveBeenCalledTimes(1);
+    expect(mockedUpdate).not.toHaveBeenCalledWith(expect.anything(), "live-room-event-id-3", expect.anything(), expect.anything(), expect.anything());
   });
 });

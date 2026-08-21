@@ -163,16 +163,26 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
         onUpdateSuccess();
         onClose();
 
+        // A scoped save ('this'/'thisAndFollowing') makes no Zoom call and writes no sync
+        // status on the *parent* row -- meetingResponse.mid here is still the parent (see
+        // update/meeting route's updatedParent response), so polling it would just re-read
+        // whatever zoomSyncStatus it already had before this edit (possibly a stale 'error'
+        // from something unrelated) and wrongly blame this successful save for it. Only the
+        // new detached/tail row (newMid, polled below) reflects this edit's own outcome.
+        const isScoped = payload.editScope === 'this' || payload.editScope === 'thisAndFollowing';
+
         // Fire-and-forget -- see NewMeeting.tsx's identical call for why (the response above
         // is sent before the actual Zoom/Calendar sync runs). showToast is global, so this is
         // safe to resolve after the form itself has already closed.
-        pollMeetingSyncStatus(meetingResponse.mid, {
-          expectGoogle: (payload.calType?.length ?? 0) > 0,
-          expectZoom: payload.modeType === 'Hybrid' || payload.modeType === 'Remote',
-        }).then((result) => {
-          const message = describeSyncFailure(result);
-          if (message) showToast({ variant: "error", title: message, persistent: true });
-        });
+        if (!isScoped) {
+          pollMeetingSyncStatus(meetingResponse.mid, {
+            expectGoogle: (payload.calType?.length ?? 0) > 0,
+            expectZoom: payload.modeType === 'Hybrid' || payload.modeType === 'Remote',
+          }).then((result) => {
+            const message = describeSyncFailure(result);
+            if (message) showToast({ variant: "error", title: message, persistent: true });
+          });
+        }
 
         // A 'this'/'thisAndFollowing' edit detaches or tails off a *new* row (newMid) that
         // inherits this meeting's Zoom link rather than getting one of its own -- no Zoom call
@@ -441,6 +451,7 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
             onSave={handleScopeChoice}
             disableThis={isRecurrenceDirty}
             disableScopedEdits={isModeDirty || isHostDirty}
+            disableThisAndFollowing={isDateDirty}
           />
         )}
         <ConflictOverrideModal

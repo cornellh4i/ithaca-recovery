@@ -201,26 +201,33 @@ test("split pair (thisAndFollowing tail): lineage bills as one row, using the ta
 });
 
 // #497 "this" edit: a single occurrence detaches into its own one-time Meeting row (no
-// recurrencePattern) with splitFromMid pointing at the root, and a later startDateTime than the
-// root's recurrence anchor -- so the detached row is the representative here too.
-test("split pair (this detached occurrence): lineage bills as one row, using the detached occurrence", async () => {
-  await seedLeaseSettings({ rooms: [{ room: "Serenity Room", rate: 15, unit: "hr" }] });
-  const { meeting: root } = await seedRecurringMeeting({
-    title: "Detached Group",
-    group: "Detached Group",
-    room: "Serenity Room",
-    modeType: "In Person",
-    startDateTime: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
-    endDateTime: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000 + 60 * 60 * 1000),
-  });
+// recurrencePattern) with splitFromMid pointing at the root. Its startDateTime (the clicked
+// occurrence date) is always later than the still-recurring root's anchor, but it must NOT win
+// the representative pick -- the root is still the group's ongoing obligation, and one edited
+// occurrence shouldn't stand in for the whole series' room/day/duration on the bill.
+test("split pair (this detached occurrence): lineage bills as one row, using the still-recurring parent", async () => {
+  await seedLeaseSettings({ rooms: [{ room: "Serenity Room", rate: 15, unit: "hr" }, { room: "Chapel", rate: 20, unit: "hr" }] });
+  const { meeting: root } = await seedRecurringMeeting(
+    {
+      title: "Detached Group",
+      group: "Detached Group",
+      room: "Serenity Room",
+      modeType: "In Person",
+      startDateTime: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+      endDateTime: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000 + 60 * 60 * 1000),
+    },
+    { daysOfWeek: ["Monday"] },
+  );
+  // Room/duration deliberately differ from the root -- if the detached row wins the
+  // representative pick, these values (and "One-time") would leak into the CSV row instead.
   await seedMeeting({
     title: "Detached Group",
     group: "Detached Group",
-    room: "Serenity Room",
+    room: "Chapel",
     modeType: "In Person",
     isRecurring: false,
     startDateTime: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
-    endDateTime: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000 + 60 * 60 * 1000),
+    endDateTime: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000 + 3 * 60 * 60 * 1000),
     splitFromMid: root.mid,
   });
   seededGroups.push("Detached Group");
@@ -229,7 +236,44 @@ test("split pair (this detached occurrence): lineage bills as one row, using the
   const csv = await response.text();
 
   expect(rowCountFor(csv, "Detached Group")).toBe(1);
-  // "Meeting Day" reads formatDayColumn(recurrencePattern) -- "One-time" only appears if the
-  // detached (no-pattern) row won, not the still-recurring root.
-  expect(columnValueFor(csv, "Detached Group", "Meeting Day")).toBe("One-time");
+  // "Meeting Day" reads formatDayColumn(recurrencePattern) -- the series' actual day, not
+  // "One-time", confirms the recurring parent won, not the detached child.
+  expect(columnValueFor(csv, "Detached Group", "Meeting Day")).toBe("Mon");
+  expect(columnValueFor(csv, "Detached Group", "Room")).toBe("Serenity Room ($15/hr)");
+  expect(rentChargeFor(csv, "Detached Group")).toBe("$60.00");
+});
+
+// A lineage where every member is a one-time row (no recurrencePattern at all) has no recurring
+// member to restrict the pick to -- pickLineageRepresentative must fall back to latest-starting
+// across the whole group rather than returning nothing/throwing. Not a shape #497 currently
+// produces (a detached child always keeps its recurring parent around), but the function should
+// still degrade sensibly if that ever changes.
+test("all-one-time lineage: falls back to latest-starting across the whole group", async () => {
+  await seedLeaseSettings({ rooms: [{ room: "Serenity Room", rate: 15, unit: "hr" }, { room: "Chapel", rate: 20, unit: "hr" }] });
+  const root = await seedMeeting({
+    title: "OneTime Group",
+    group: "OneTime Group",
+    room: "Serenity Room",
+    modeType: "In Person",
+    isRecurring: false,
+    startDateTime: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000),
+    endDateTime: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000 + 60 * 60 * 1000),
+  });
+  await seedMeeting({
+    title: "OneTime Group",
+    group: "OneTime Group",
+    room: "Chapel",
+    modeType: "In Person",
+    isRecurring: false,
+    startDateTime: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+    endDateTime: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000 + 60 * 60 * 1000),
+    splitFromMid: root.mid,
+  });
+  seededGroups.push("OneTime Group");
+
+  const response = await GET();
+  const csv = await response.text();
+
+  expect(rowCountFor(csv, "OneTime Group")).toBe(1);
+  expect(columnValueFor(csv, "OneTime Group", "Room")).toBe("Chapel ($20/hr)");
 });

@@ -232,6 +232,76 @@ describe("ViewMeeting", () => {
     });
   });
 
+  describe("Delete-modal scoped-option gating", () => {
+    const openDeleteModal = async () => {
+      fireEvent.click(await screen.findByRole("button", { name: "Meeting options" }));
+      fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+    };
+
+    const biweeklyProps = {
+      ...baseProps,
+      startDateTime: new Date("2026-07-15T22:00:00Z"),
+      endDateTime: new Date("2026-07-15T23:00:00Z"),
+      isRecurring: true,
+      recurrencePattern: {
+        type: "weekly",
+        startDate: new Date("2026-07-15T04:00:00Z"),
+        daysOfWeek: ["Wednesday"],
+        firstDayOfWeek: "Sunday",
+        interval: 2,
+      },
+      currentOccurrenceDate: new Date("2026-07-29T16:00:00Z"),
+      anchorEl: makeAnchorEl(),
+      isPhone: false,
+    };
+
+    it("keeps both scoped options enabled when a valid clicked occurrence is known", async () => {
+      renderViewMeeting(biweeklyProps);
+      await openDeleteModal();
+      expect(screen.getByLabelText("This event")).not.toBeDisabled();
+      expect(screen.getByLabelText("This and following events")).not.toBeDisabled();
+    });
+
+    // The ?mid= deep-link path never sets currentOccurrenceDate (there's no click to
+    // attribute a date to) -- without a known occurrence, 'this'/'thisAndFollowing' have
+    // nothing valid to scope against and would 400 server-side.
+    it("disables both scoped options and forces All events when there's no occurrence context (e.g. the ?mid= deep link)", async () => {
+      renderViewMeeting({ ...biweeklyProps, currentOccurrenceDate: undefined });
+      await openDeleteModal();
+      expect(screen.getByLabelText("This event")).toBeDisabled();
+      expect(screen.getByLabelText("This and following events")).toBeDisabled();
+      expect(screen.getByLabelText("All events")).toBeChecked();
+      expect(screen.getByText(/Open the meeting from a calendar day/)).toBeInTheDocument();
+    });
+
+    // Same outcome as the deep-link case -- an occurrence date that doesn't actually match
+    // this meeting's pattern is just as unusable server-side as no date at all.
+    it("also disables both scoped options when currentOccurrenceDate doesn't match this meeting's pattern", async () => {
+      renderViewMeeting({ ...biweeklyProps, currentOccurrenceDate: new Date("not-a-date") });
+      await openDeleteModal();
+      expect(screen.getByLabelText("This event")).toBeDisabled();
+      expect(screen.getByLabelText("This and following events")).toBeDisabled();
+    });
+
+    // doesMeetingOccurOnDate's `!isRecurring || !recurrencePattern` branch is the *non-recurring*
+    // fallback (a plain date match against startDateTime) -- for a malformed isRecurring:true row
+    // with no pattern at all, that same plain match would otherwise read "yes, a known occurrence"
+    // whenever the clicked date happens to equal startDateTime, wrongly enabling scoped delete for
+    // a row the server 400s (scoped ops require an actual recurrencePattern to exist).
+    it("disables both scoped options for an isRecurring meeting with no recurrencePattern, even when the clicked date matches startDateTime", async () => {
+      renderViewMeeting({
+        ...biweeklyProps,
+        recurrencePattern: undefined,
+        currentOccurrenceDate: biweeklyProps.startDateTime,
+      });
+      await openDeleteModal();
+      expect(screen.getByLabelText("This event")).toBeDisabled();
+      expect(screen.getByLabelText("This and following events")).toBeDisabled();
+      expect(screen.getByLabelText("All events")).toBeChecked();
+      expect(screen.getByText(/Open the meeting from a calendar day/)).toBeInTheDocument();
+    });
+  });
+
   describe("Zoom drift notice", () => {
     const zoomProps = {
       ...baseProps,

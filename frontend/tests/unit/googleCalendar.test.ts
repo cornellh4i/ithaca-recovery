@@ -210,4 +210,16 @@ describe("buildEventBody — recurrence serialization", () => {
     }));
     expect(body.recurrence).toContain("EXDATE;TZID=America/New_York:20260810T140000");
   });
+
+  it("renders a midnight-ET start time as hour '00', not '24'", () => {
+    // Without an explicit hourCycle, some engines default hour12: false to h24 -- midnight would
+    // render as "24" instead of "00", an invalid EXDATE hour.
+    const midnightMeeting = recurringMeeting({
+      ...base,
+      excludedDates: [new Date("2026-08-10T04:00:00Z")], // ET midnight of 2026-08-10
+    });
+    midnightMeeting.startDateTime = new Date("2026-08-01T04:00:00Z"); // ET midnight
+    const body = buildEventBody(midnightMeeting);
+    expect(body.recurrence).toContain("EXDATE;TZID=America/New_York:20260810T000000");
+  });
 });
