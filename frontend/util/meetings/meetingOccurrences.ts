@@ -288,6 +288,11 @@ export function calculateEndDateFromOccurrences(
             while (nextDayIndex < recurrenceDays.length) {
                 const daysToAdd = (currentWeek * 7) +
                     (recurrenceDays[nextDayIndex] - startDayOfWeek + 7) % 7;
+                // Re-anchor to patternStartDate before the day-offset write: setUTCDate
+                // interprets its argument against endDate's CURRENT month, so once a prior
+                // iteration rolled endDate into the next month, a cumulative offset lands
+                // "day 43 of October" (= Nov 12) instead of Sept 15 + 42 days (= Oct 27).
+                endDate.setTime(patternStartDate.getTime());
                 endDate.setUTCDate(patternStartDate.getUTCDate() + daysToAdd);
                 occurrenceCount++;
                 nextDayIndex++;

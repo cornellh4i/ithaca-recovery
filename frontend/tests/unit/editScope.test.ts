@@ -1,4 +1,4 @@
-import { toETDateStr, exclusionInstant, trimmedEndDate, isLiveOccurrence, rootSplitMid } from "../../util/meetings/editScope";
+import { toETDateStr, exclusionInstant, trimmedEndDate, isLiveOccurrence, countOccurrencesBefore, rootSplitMid } from "../../util/meetings/editScope";
 
 describe("toETDateStr", () => {
   test("formats a UTC instant as its Eastern-Time calendar date", () => {
@@ -57,6 +57,42 @@ describe("isLiveOccurrence", () => {
   test("false for an excluded date even though it otherwise matches", () => {
     const withExclusion = { ...weeklyPattern, excludedDates: [new Date("2026-06-15T18:00:00Z")] };
     expect(isLiveOccurrence(withExclusion, new Date("2026-06-15T18:00:00Z"))).toBe(false);
+  });
+});
+
+describe("countOccurrencesBefore", () => {
+  const weeklyPattern = {
+    type: "weekly",
+    startDate: new Date("2026-06-01T18:00:00Z"), // a Monday
+    endDate: null,
+    interval: 1,
+    daysOfWeek: ["Monday"],
+    weekOfMonth: null,
+    dayOfMonth: null,
+    excludedDates: [] as Date[],
+  };
+
+  test("zero for the series' first occurrence", () => {
+    expect(countOccurrencesBefore(weeklyPattern, new Date("2026-06-01T18:00:00Z"))).toBe(0);
+  });
+
+  test("counts each prior weekly occurrence", () => {
+    expect(countOccurrencesBefore(weeklyPattern, new Date("2026-06-22T18:00:00Z"))).toBe(3);
+  });
+
+  test("excluded dates still count toward the total (COUNT semantics)", () => {
+    const withExclusion = { ...weeklyPattern, excludedDates: [new Date("2026-06-08T18:00:00Z")] };
+    expect(countOccurrencesBefore(withExclusion, new Date("2026-06-22T18:00:00Z"))).toBe(3);
+  });
+
+  test("a trimmed endDate before the target does not stop the count", () => {
+    const trimmed = { ...weeklyPattern, endDate: new Date("2026-06-08T23:59:59Z") };
+    expect(countOccurrencesBefore(trimmed, new Date("2026-06-22T18:00:00Z"))).toBe(3);
+  });
+
+  test("respects a biweekly interval", () => {
+    const biweekly = { ...weeklyPattern, interval: 2 };
+    expect(countOccurrencesBefore(biweekly, new Date("2026-06-29T18:00:00Z"))).toBe(2);
   });
 });
 

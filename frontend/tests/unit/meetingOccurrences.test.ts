@@ -122,6 +122,36 @@ describe("adjustOccurrenceToDate", () => {
   });
 });
 
+describe("calculateEndDateFromOccurrences — weekly month rollover", () => {
+  // Regression: the weekly loop reused one Date across iterations, so once an intermediate
+  // occurrence rolled into the next month, later setUTCDate offsets were interpreted against
+  // the rolled month — a 6-occurrence Tuesday series from Sept 15, 2026 reported an end of
+  // Dec 20 instead of Oct 20.
+  it("stays week-aligned when intermediate occurrences cross a month boundary", () => {
+    const endDate = calculateEndDateFromOccurrences(
+      new Date("2026-09-15T18:00:00Z"), // a Tuesday, 2 PM ET
+      ["Tuesday"], 6, 1, "weekly", null, null,
+    );
+    expect(formatETDateString(endDate)).toBe("2026-10-20");
+  });
+
+  it("handles a span crossing two month boundaries", () => {
+    const endDate = calculateEndDateFromOccurrences(
+      new Date("2026-09-15T18:00:00Z"),
+      ["Tuesday"], 10, 1, "weekly", null, null,
+    );
+    expect(formatETDateString(endDate)).toBe("2026-11-17");
+  });
+
+  it("is unaffected when only the final occurrence crosses the boundary", () => {
+    const endDate = calculateEndDateFromOccurrences(
+      new Date("2026-09-01T18:00:00Z"), // a Tuesday, 2 PM ET
+      ["Tuesday"], 6, 1, "weekly", null, null,
+    );
+    expect(formatETDateString(endDate)).toBe("2026-10-06");
+  });
+});
+
 describe("calculateEndDateFromOccurrences — monthly day-of-month clamping", () => {
   // Regression: a "day 31" monthly pattern whose Nth occurrence lands in a shorter month (e.g.
   // February) used to build an out-of-range calendar date string like "2026-02-31" -- which

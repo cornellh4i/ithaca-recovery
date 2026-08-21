@@ -3,7 +3,7 @@
 // route.ts already uses (its own toETDateStr + getETDayBounds) so both routes agree on exactly
 // which instant an occurrence's ET calendar day starts at.
 import { getETDayBounds } from "../date/timeUtils";
-import { matchesRecurrencePattern } from "./recurrenceMatch";
+import { addOneETDay, matchesRecurrencePattern } from "./recurrenceMatch";
 
 export type EditScope = 'this' | 'thisAndFollowing' | 'all';
 
@@ -46,6 +46,22 @@ export const isLiveOccurrence = (pattern: RecurrencePatternLike, occurrenceDate:
   const [year, month, day] = etDateStr.split('-').map(Number);
   const localDate = new Date(Date.UTC(year, month - 1, day));
   return matchesRecurrencePattern(pattern, etDateStr, localDate);
+};
+
+// How many occurrences `pattern` produces STRICTLY BEFORE occurrenceDate's ET calendar day.
+// Exclusions and endDate are deliberately ignored: COUNT semantics (RRULE's, and how
+// calculateEndDateFromOccurrences resolves a count into an endDate at create time) allocate one
+// slot per pattern date regardless of later EXDATEs/trims, so a split-off child's remaining
+// count stays anchored to the original allocation.
+export const countOccurrencesBefore = (pattern: RecurrencePatternLike, occurrenceDate: Date): number => {
+  const countingPattern = { ...pattern, endDate: null, excludedDates: [] };
+  const target = toETDateStr(occurrenceDate);
+  let count = 0;
+  for (let etDateStr = toETDateStr(new Date(pattern.startDate)); etDateStr < target; etDateStr = addOneETDay(etDateStr)) {
+    const [year, month, day] = etDateStr.split('-').map(Number);
+    if (matchesRecurrencePattern(countingPattern, etDateStr, new Date(Date.UTC(year, month - 1, day)))) count++;
+  }
+  return count;
 };
 
 // The root mid a lineage chain shares: a meeting produced by an earlier split already carries
