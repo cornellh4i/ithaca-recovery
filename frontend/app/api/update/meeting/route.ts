@@ -757,8 +757,10 @@ const updateMeeting = async (request: Request): Promise<Response> => {
       // Case-insensitive, non-empty-only -- same definition of "an explicit reassignment" the
       // 'all' path's explicitHostChange uses (a blank/"Automatic" selection, or resubmitting the
       // meeting's own already-assigned host, is not a change).
-      const scopedExplicitHostChange = !!newMeeting.zoomHost &&
-        newMeeting.zoomHost.toLowerCase() !== (existingMeeting.zoomHost ?? "").toLowerCase();
+      // Trimmed to match the client's isHostDirty normalization -- a trailing space must not
+      // turn an unchanged host into a 400 the scope dialog never warned about.
+      const scopedExplicitHostChange = (newMeeting.zoomHost ?? "").trim() !== "" &&
+        (newMeeting.zoomHost ?? "").trim().toLowerCase() !== (existingMeeting.zoomHost ?? "").trim().toLowerCase();
       if (scopedExplicitHostChange) {
         return NextResponse.json({ error: "host changes apply to the whole series" }, { status: 400 });
       }

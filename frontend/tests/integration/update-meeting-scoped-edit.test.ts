@@ -683,6 +683,14 @@ describe("scoped edit rejects whole-series-only field changes", () => {
     const response = await putMeeting(scopedPayload(meeting.mid, "this", occurrenceDate, { zoomHost: null }));
     expect(response.status).toBe(200);
   });
+
+  test("the parent's own host with surrounding whitespace is NOT treated as a change", async () => {
+    const { meeting } = await seedWeeklySeries();
+    const occurrenceDate = occurrence(2).start;
+
+    const response = await putMeeting(scopedPayload(meeting.mid, "this", occurrenceDate, { zoomHost: ` ${meeting.zoomHost!} ` }));
+    expect(response.status).toBe(200);
+  });
 });
 
 describe("scoped edit conflict scan no longer excludes the parent for room/zoomRoom", () => {
