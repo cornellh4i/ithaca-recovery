@@ -32,7 +32,9 @@ const DiscardChangesModal: React.FC<DiscardChangesModalProps> = ({
     </div>
 
     <p className={styles.message}>
-      Your {subject} hasn&apos;t been saved. Closing this panel discards it.
+      {/* Number-agnostic phrasing: subject may be singular ("new meeting") or plural
+          ("edits to this meeting"), so no verb may agree with it. */}
+      Closing this panel discards your unsaved {subject}.
     </p>
 
     <div className={styles.buttonContainer}>

@@ -15,6 +15,7 @@ import { formatCompactTimeRange, formatMeetingDateLine } from "../../../util/dat
 import {
   convertETToUTC,
   formatETDateString,
+  formatETLongDate,
   getETTimeOfDay,
   isDstGapError,
 } from "../../../util/date/timeUtils";
@@ -396,6 +397,14 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
     return formatted || "Repeats regularly";
   };
 
+  // Recurrence's own copy never surfaced when (or whether) the series ends -- only its
+  // frequency. endDate is the inclusive last day of the series (see IRecurrencePattern), null
+  // meaning it runs indefinitely.
+  const getRecurrenceEndText = (): string =>
+    // new Date() wrap: pattern fields come off a JSON fetch, so endDate is a string at runtime
+    // despite IRecurrencePattern's Date type -- Intl.format throws on it unwrapped.
+    recurrencePattern?.endDate ? `Ends ${formatETLongDate(new Date(recurrencePattern.endDate))}` : "No end date";
+
   const timeRangeText = formatCompactTimeRange(
     etTimeFmt.format(displayStartDate),
     etTimeFmt.format(displayEndDate)
@@ -477,7 +486,7 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
           {isRecurring && (
             <p className={styles.recurrenceLine}>
               <Icon name="repeat" />
-              <span>{getRecurrenceText()}</span>
+              <span>{getRecurrenceText()} · {getRecurrenceEndText()}</span>
             </p>
           )}
 

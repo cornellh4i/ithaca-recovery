@@ -37,4 +37,14 @@ describe("DeleteMeetingModal", () => {
     fireEvent.click(screen.getByRole("button", { name: "Delete" }));
     expect(onConfirm).toHaveBeenCalledTimes(1);
   });
+
+  // This modal only ever confirms deleting a one-time meeting (recurring meetings go through
+  // DeleteRecurringModal instead) -- the copy must read as a single event, not "starting X",
+  // which implies an ongoing series.
+  it("phrases the confirmation as a single meeting on a single date, not a recurring series", () => {
+    render(<DeleteMeetingModal isOpen {...baseProps} />);
+    const dialogText = screen.getByRole("dialog").textContent ?? "";
+    expect(dialogText).toMatch(/Weekly Standup on Aug 15, 2026/);
+    expect(dialogText).not.toMatch(/starting/i);
+  });
 });

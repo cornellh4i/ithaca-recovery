@@ -54,8 +54,12 @@ const Field: React.FC<{
   required?: boolean;
   asGroup?: boolean;
   className?: string;
+  // One line of plain-language context under the caption -- for fields whose behavior isn't
+  // obvious from the label alone (e.g. what "Automatic assignment" does). Kept short by
+  // convention; not a substitute for FormValidationBanner's error messaging.
+  hint?: string;
   children: React.ReactNode;
-}> = ({ caption, htmlFor, required = false, asGroup = false, className, children }) => {
+}> = ({ caption, htmlFor, required = false, asGroup = false, className, hint, children }) => {
   const captionId = useId();
   const marker = required ? <span className={styles.requiredMark} aria-hidden="true">*</span> : null;
 
@@ -72,6 +76,7 @@ const Field: React.FC<{
       aria-labelledby={asGroup && caption ? captionId : undefined}
     >
       {captionNode}
+      {hint && <span className={styles.fieldHint}>{hint}</span>}
       {children}
     </div>
   );
@@ -151,6 +156,7 @@ export const MeetingForm: React.FC<MeetingFormProps> = ({
           caption="Mode"
           asGroup
           required
+          hint="Hybrid needs both a physical Room and a Zoom Room."
           className={`${styles.meetingButtons} ${styles.fieldFullWidth}`}
         >
           {modeTypeButtons}
@@ -193,7 +199,12 @@ export const MeetingForm: React.FC<MeetingFormProps> = ({
         </Field>
         )}
         {(selectedMode === "Hybrid" || selectedMode === "Remote") && (
-        <Field caption="Zoom host" asGroup className={styles.dummyComponent}>
+        <Field
+          caption="Zoom host"
+          asGroup
+          hint="Automatic assignment picks the least-busy Zoom account from the org's pool."
+          className={styles.dummyComponent}
+        >
           {zoomHostDropdown}
         </Field>
         )}
@@ -201,6 +212,7 @@ export const MeetingForm: React.FC<MeetingFormProps> = ({
           caption="Group contact email"
           htmlFor={fieldId("email")}
           required
+          hint="The group's point of contact, shown to admins only -- not used for invites or notifications."
           className={`${styles.dummyComponent} ${styles.fieldFullWidth}`}
         >
           {withFieldProps(emailTextField, { id: fieldId("email"), required: true, "aria-required": true })}

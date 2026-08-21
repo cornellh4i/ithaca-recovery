@@ -38,9 +38,11 @@ const DeleteMeetingModal: React.FC<DeleteMeetingModalProps> = ({
     </div>
 
     <p className={styles.message}>
-      <strong>{title}</strong> ({timeRangeText}) will be permanently removed from the
-      calendar starting <strong className={styles.effectiveDate}>{effectiveDateText}</strong>.
-      This can&apos;t be undone.
+      {/* This modal is only ever shown for a one-time meeting (ViewMeeting.tsx's handleDelete
+          routes recurring meetings to DeleteRecurringModal instead), so this reads as a single
+          event on a single date -- not the "starting X" phrasing that implies a series. */}
+      <strong>{title}</strong> on <strong className={styles.effectiveDate}>{effectiveDateText}</strong> ({timeRangeText}) will
+      be permanently removed from the calendar. This can&apos;t be undone.
     </p>
 
     {onSuspendInstead && (
