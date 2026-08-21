@@ -171,6 +171,11 @@ const ConflictList: React.FC<ConflictListProps> = ({ conflicts, emptyLabel = "No
                             <EditMeetingSidebar
                               layout="wide"
                               meeting={meetingDetails}
+                              // This row's own conflicting occurrence (not the overlap
+                              // intersection) -- a real date this conflict is actually about,
+                              // so a recurring meeting's edit can be scoped to it instead of
+                              // forcing a whole-series rewrite.
+                              occurrenceDate={new Date(meeting.occurrence.start)}
                               onClose={collapse}
                               onUpdateSuccess={() => {
                                 collapse();

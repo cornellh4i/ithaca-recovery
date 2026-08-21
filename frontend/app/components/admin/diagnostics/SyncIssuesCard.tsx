@@ -229,6 +229,10 @@ const SyncIssuesCard: React.FC = () => {
                         <EditMeetingSidebar
                           layout="wide"
                           meeting={meetingDetails}
+                          // No occurrenceDate: sync status (SyncIssueRow) is series-level, not
+                          // tied to any specific occurrence -- there's no real date to pass.
+                          // A recurring meeting still gets the scope dialog (EditMeeting's
+                          // canScopeEdit), just with 'this'/'thisAndFollowing' disabled.
                           onClose={collapseEdit}
                           onUpdateSuccess={() => {
                             collapseEdit();

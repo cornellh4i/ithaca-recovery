@@ -48,11 +48,14 @@ interface EditMeetingSidebarProps {
   // "wide" is used when this form is embedded inline in a wider context (e.g. the Diagnostics
   // Conflicts panel) rather than the narrow Main Calendar sidebar. See MeetingForm's layout prop.
   layout?: "sidebar" | "wide";
-  // The specific occurrence the calendar box/popup was clicked on -- same value page.tsx's
-  // handleDelete sends as deleteOption's occurrenceDate (lastClickedDate), kept consistent with
-  // that call site rather than ViewMeeting's re-anchored displayStartDate. Absent at the two
-  // Diagnostics mount sites (ConflictList/SyncIssuesCard), which have no click to attribute a
-  // date to -- absence there means "always scope 'all'", the pre-existing behavior.
+  // The specific occurrence to scope 'this'/'thisAndFollowing' against. Either the calendar
+  // box/popup click date (same value page.tsx's handleDelete sends as deleteOption's
+  // occurrenceDate/lastClickedDate) or, for ConflictList's Diagnostics embed, the conflicting
+  // meeting's own occurrence from the conflict row (ConflictMeetingSummary.occurrence) -- a real
+  // date the row is already about, not a click. Absent at the SyncIssuesCard Diagnostics mount
+  // site, which has no occurrence-specific data at all (sync status is series-level) -- absence
+  // there forces the scope dialog's scoped options off (EditRecurringModal's disableScoped),
+  // requiring an explicit "All events" confirmation instead of silently scoping 'all'.
   occurrenceDate?: Date | null;
 }
 
@@ -106,15 +109,21 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
     // Diagnostics Conflicts panel) has room to spare and keeps full size.
     const compact = layout === "sidebar";
     const [isDiscardPromptOpen, setIsDiscardPromptOpen] = useState(false);
-    // A scope choice only makes sense when the meeting was AND still is recurring, with known
-    // occurrence context (absent at the Diagnostics mount sites). Turning recurrence off in the
-    // form (meeting.isRecurring true, current isRecurring false) is inherently an all-events
-    // restructure -- the payload carries no recurrencePattern, so scope 'thisAndFollowing' would
-    // 400 server-side and 'this' is already disabled by isRecurrenceDirty -- so that case skips
-    // the modal too and submits as today (no editScope, whole-series behavior). Turning
-    // recurrence ON for a previously non-recurring meeting also skips it: there's no existing
-    // series for occurrenceDate to scope against.
-    const canScopeEdit = !!(meeting.isRecurring && isRecurring && occurrenceDate);
+    // A scope choice only makes sense when the meeting was AND still is recurring. Turning
+    // recurrence off in the form (meeting.isRecurring true, current isRecurring false) is
+    // inherently an all-events restructure -- the payload carries no recurrencePattern, so scope
+    // 'thisAndFollowing' would 400 server-side and 'this' is already disabled by
+    // isRecurrenceDirty -- so that case skips the modal too and submits as today (no editScope,
+    // whole-series behavior). Turning recurrence ON for a previously non-recurring meeting also
+    // skips it: there's no existing series for occurrenceDate to scope against.
+    //
+    // Occurrence context (absent at the Diagnostics Sync Issues mount site, which has no click
+    // to attribute a date to -- ConflictList passes the actual conflicting occurrence instead)
+    // still opens the modal, just with 'this'/'thisAndFollowing' disabled -- see
+    // EditRecurringModal's disableScoped, mirroring DeleteRecurringModal's identical gate. This
+    // makes an all-occurrences edit an informed, explicit choice instead of the previous silent
+    // whole-series rewrite.
+    const canScopeEdit = !!(meeting.isRecurring && isRecurring);
     const [isScopeModalOpen, setIsScopeModalOpen] = useState(false);
     // The payload built at the moment Save was pressed -- EditRecurringModal's own choice
     // handler applies the scope onto this rather than rebuilding from current form state, since
@@ -443,7 +452,13 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
           <EditRecurringModal
             isOpen={isScopeModalOpen}
             title={meeting.title}
-            effectiveDateText={formatEffectiveDate(occurrenceDate as Date)}
+            // No occurrence context (Sync Issues panel) falls back to the series' own anchor
+            // date -- mirrors ViewMeeting.tsx's displayStartDate fallback for the same case.
+            // disableScoped forces scope to 'all' whenever this fallback is in play, so this
+            // date is never used to re-anchor a scoped save, only to render the message text.
+            // new Date() wrap: meeting comes off a JSON fetch, so startDateTime is a string at
+            // runtime despite IMeeting's Date type -- Intl.format throws on it unwrapped.
+            effectiveDateText={formatEffectiveDate(new Date(occurrenceDate ?? meeting.startDateTime))}
             onClose={() => {
               setIsScopeModalOpen(false);
               pendingPayloadRef.current = null;
@@ -452,6 +467,7 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
             disableThis={isRecurrenceDirty}
             disableScopedEdits={isModeDirty || isHostDirty}
             disableThisAndFollowing={isDateDirty}
+            disableScoped={!occurrenceDate}
           />
         )}
         <ConflictOverrideModal
