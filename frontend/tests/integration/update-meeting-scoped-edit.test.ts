@@ -1,6 +1,6 @@
 import { randomUUID } from "crypto";
 import type { IMeeting } from "../../types/models";
-import { formatETWeekdayLong } from "../../util/date/timeUtils";
+import { formatETDateString, formatETWeekdayLong } from "../../util/date/timeUtils";
 
 // Same after() shim as update-meeting-route.test.ts -- Next's real after() throws outside a
 // request scope, and the deferred sync promise is already constructed (and running) by the time
@@ -429,6 +429,56 @@ test("a 'thisAndFollowing' trim on a count-bounded series survives a later whole
   const afterReEdit = await prisma.recurrencePattern.findUnique({ where: { mid: meeting.mid } });
   expect(afterReEdit?.numberOfOccurrences).toBeNull();
   expect(afterReEdit?.endDate?.getTime()).toBe(trimmedEndDate);
+});
+
+test("'thisAndFollowing' on an unchanged count-bounded series gives the child the REMAINING count, not a fresh full run", async () => {
+  // A 6-occurrence series split at its 4th occurrence leaves a 3-occurrence child (the 4th,
+  // 5th, and 6th), keeping the overall span the admin configured -- Google Calendar's
+  // this-and-following semantics for a COUNT rule.
+  const { meeting } = await seedWeeklySeries();
+  const prisma = getTestPrismaClient();
+  await prisma.recurrencePattern.update({
+    where: { mid: meeting.mid },
+    data: { numberOfOccurrences: 6, endDate: null },
+  });
+
+  const occurrenceDate = occurrence(3).start;
+  const response = await putMeeting(scopedPayload(meeting.mid, "thisAndFollowing", occurrenceDate, {
+    recurrencePattern: {
+      type: "weekly", startDate: occurrenceDate, daysOfWeek: [SERIES_WEEKDAY], firstDayOfWeek: "Sunday", interval: 1,
+      numberOfOccurrences: 6,
+    },
+  }));
+  expect(response.status).toBe(200);
+  const body = await response.json();
+
+  const childPattern = await waitFor(async () => prisma.recurrencePattern.findUnique({ where: { mid: body.newMid } }));
+  expect(childPattern?.numberOfOccurrences).toBe(3);
+  // Last occurrence = the split date + 2 more weeks, i.e. the original series' own 6th slot.
+  expect(formatETDateString(childPattern!.endDate!)).toBe(formatETDateString(occurrence(5).start));
+});
+
+test("'thisAndFollowing' with an admin-changed count runs that count in full from the split date", async () => {
+  const { meeting } = await seedWeeklySeries();
+  const prisma = getTestPrismaClient();
+  await prisma.recurrencePattern.update({
+    where: { mid: meeting.mid },
+    data: { numberOfOccurrences: 6, endDate: null },
+  });
+
+  const occurrenceDate = occurrence(3).start;
+  const response = await putMeeting(scopedPayload(meeting.mid, "thisAndFollowing", occurrenceDate, {
+    recurrencePattern: {
+      type: "weekly", startDate: occurrenceDate, daysOfWeek: [SERIES_WEEKDAY], firstDayOfWeek: "Sunday", interval: 1,
+      numberOfOccurrences: 8,
+    },
+  }));
+  expect(response.status).toBe(200);
+  const body = await response.json();
+
+  const childPattern = await waitFor(async () => prisma.recurrencePattern.findUnique({ where: { mid: body.newMid } }));
+  expect(childPattern?.numberOfOccurrences).toBe(8);
+  expect(formatETDateString(childPattern!.endDate!)).toBe(formatETDateString(new Date(occurrenceDate.getTime() + 7 * WEEK_MS)));
 });
 
 test("a lineage chain propagates the ROOT mid, not the immediate parent's mid", async () => {

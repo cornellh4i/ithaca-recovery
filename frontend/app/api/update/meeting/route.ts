@@ -13,7 +13,7 @@ import { lockResourceClaims, ResourceClaim } from "../../../../util/meetings/res
 import { meetingSchema, editScopeSchema } from "../../../../util/meetings/meetingValidation";
 import { reconcilePendingResume, tearDownPendingResumeSeries } from "../../../../util/meetings/suspension";
 import { calculateEndDateFromOccurrences } from "../../../../util/meetings/meetingOccurrences";
-import { EditScope, exclusionInstant, trimmedEndDate, isLiveOccurrence, rootSplitMid, toETDateStr } from "../../../../util/meetings/editScope";
+import { EditScope, countOccurrencesBefore, exclusionInstant, trimmedEndDate, isLiveOccurrence, rootSplitMid, toETDateStr } from "../../../../util/meetings/editScope";
 import { prisma } from "../../../../lib/prisma";
 
 // Runs after the response is sent (see after() call below) — failure updates googleSyncStatus
@@ -477,12 +477,34 @@ async function handleScopedEdit(
   const isRecurringSplit = scope === 'thisAndFollowing';
 
   let calculatedEndDate: Date | null = null;
+  // The count the child row stores for a count-bounded split -- null whenever the payload is
+  // endDate-bounded (or the split isn't recurring), in which case the payload's own value (if
+  // any) is persisted as-is below.
+  let childOccurrenceCount: number | null = null;
   if (isRecurringSplit) {
     const rp = newMeeting.recurrencePattern!;
     calculatedEndDate = rp.endDate ?? null;
     if (rp.numberOfOccurrences && !rp.endDate) {
+      // Remaining-count semantics (matching Google Calendar's this-and-following on a COUNT
+      // rule): an unchanged count-bounded pattern splits into "the rest of the series" -- a
+      // 6-occurrence series split at its 3rd occurrence leaves a 4-occurrence child, keeping
+      // the overall span the admin configured. Only when the admin actually edited the
+      // schedule shape or the count itself does the submitted count run in full from the
+      // split date -- they redefined the series, so their numbers win.
+      const parentRp = existingMeeting.recurrencePattern;
+      const sortedDays = (days: string[] | null | undefined) => [...(days ?? [])].sort().join(',');
+      const shapeUnchanged = !!parentRp &&
+        parentRp.type === rp.type &&
+        (parentRp.interval ?? 1) === (rp.interval ?? 1) &&
+        (parentRp.weekOfMonth ?? null) === (rp.weekOfMonth ?? null) &&
+        (parentRp.dayOfMonth ?? null) === (rp.dayOfMonth ?? null) &&
+        sortedDays(parentRp.daysOfWeek) === sortedDays(rp.daysOfWeek) &&
+        parentRp.numberOfOccurrences === rp.numberOfOccurrences;
+      childOccurrenceCount = shapeUnchanged
+        ? Math.max(1, rp.numberOfOccurrences - countOccurrencesBefore(parentRp!, occurrenceDate))
+        : rp.numberOfOccurrences;
       calculatedEndDate = calculateEndDateFromOccurrences(
-        occurrenceDate, rp.daysOfWeek || [], rp.numberOfOccurrences, rp.interval || 1,
+        occurrenceDate, rp.daysOfWeek || [], childOccurrenceCount, rp.interval || 1,
         rp.type, rp.weekOfMonth ?? null, rp.dayOfMonth ?? null,
       );
     }
@@ -627,7 +649,10 @@ async function handleScopedEdit(
                     type: newMeeting.recurrencePattern!.type,
                     startDate: occurrenceDate,
                     endDate: calculatedEndDate,
-                    numberOfOccurrences: newMeeting.recurrencePattern!.numberOfOccurrences ?? undefined,
+                    // The remaining/child count computed above, so the edit form ("After N
+                    // occurrences") and the endDate-driven popover/expansion agree on the
+                    // child's span instead of contradicting each other.
+                    numberOfOccurrences: childOccurrenceCount ?? newMeeting.recurrencePattern!.numberOfOccurrences ?? undefined,
                     daysOfWeek: newMeeting.recurrencePattern!.daysOfWeek ?? [],
                     firstDayOfWeek: newMeeting.recurrencePattern!.firstDayOfWeek,
                     interval: newMeeting.recurrencePattern!.interval,
