@@ -1,4 +1,4 @@
-import { Role } from "@prisma/client";
+import { Prisma, Role } from "@prisma/client";
 import { requireRole } from "../../../../services/auth";
 import { defaultLeaseSettings } from "../../../../util/lease/leaseDefaults";
 import { formatDayColumn } from "../../../../util/meetings/recurrenceDisplay";
@@ -61,6 +61,44 @@ function formatLeaseDate(date: Date): string {
   return `${day}-${month}-${year}`;
 }
 
+type LeaseMeeting = Prisma.MeetingGetPayload<{ include: { recurrencePattern: true } }>;
+
+// A #497 edit-scope split ("this" -> detached one-time row, "thisAndFollowing" -> new tail
+// row) creates a second Meeting row for what is, for billing purposes, still one lease
+// obligation -- root = splitFromMid ?? mid so every row in a chain (however many generations
+// deep) collapses onto the ROOT series' mid, since #497 always points splitFromMid at the root,
+// never at an intermediate segment.
+function lineageRoot(meeting: LeaseMeeting): string {
+  return meeting.splitFromMid ?? meeting.mid;
+}
+
+// One CSV row per lineage, not per Meeting row -- otherwise a split/detached series would bill
+// twice for the same group. Within a lineage, the representative is whichever segment's own
+// schedule starts latest: that's the "current" shape of the series (a "this and following" edit
+// hands off to its new tail row; a "this" edit's detached occurrence is itself the latest thing
+// that happened to that lineage). Ties broken by mid for a deterministic, arbitrary-but-stable
+// pick -- two rows in the same lineage should never share a startDateTime in practice.
+function pickLineageRepresentative(meetings: LeaseMeeting[]): LeaseMeeting {
+  return meetings.reduce((latest, candidate) => {
+    const latestStart = latest.startDateTime.getTime();
+    const candidateStart = candidate.startDateTime.getTime();
+    if (candidateStart > latestStart) return candidate;
+    if (candidateStart < latestStart) return latest;
+    return candidate.mid < latest.mid ? candidate : latest;
+  });
+}
+
+function groupByLineage(meetings: LeaseMeeting[]): LeaseMeeting[] {
+  const groups = new Map<string, LeaseMeeting[]>();
+  for (const meeting of meetings) {
+    const root = lineageRoot(meeting);
+    const group = groups.get(root);
+    if (group) group.push(meeting);
+    else groups.set(root, [meeting]);
+  }
+  return Array.from(groups.values()).map(pickLineageRepresentative);
+}
+
 function toCSV(rows: Record<string, string>[]): string {
   if (rows.length === 0) return "";
   const header = Object.keys(rows[0]);
@@ -106,7 +144,12 @@ export const GET = async () => {
     const leaseStart = new Date(settings.leaseStartDate);
     const leaseEnd = new Date(settings.leaseEndDate);
 
-    const rows = meetings.map((meeting) => {
+    // Collapse split/detached rows onto one representative per lineage before building CSV
+    // rows, then re-sort -- grouping can promote a row whose title differs from the one the
+    // original title-ordered query put first.
+    const billableMeetings = groupByLineage(meetings).sort((a, b) => a.title.localeCompare(b.title));
+
+    const rows = billableMeetings.map((meeting) => {
       const start = meeting.startDateTime;
       const end = meeting.endDateTime;
       const billableTime = calculateBillableTime(start, end);

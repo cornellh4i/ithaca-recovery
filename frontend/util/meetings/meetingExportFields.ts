@@ -16,6 +16,8 @@ export type MeetingExportFieldKey =
   | "startTime"
   | "endDate"
   | "endTime"
+  | "seriesEnd"
+  | "splitFrom"
   | "contactEmail";
 
 interface MeetingExportFieldGroup {
@@ -47,6 +49,12 @@ export const MEETING_EXPORT_FIELD_GROUPS: MeetingExportFieldGroup[] = [
       { key: "startTime", label: "Start Time" },
       { key: "endDate", label: "End Date" },
       { key: "endTime", label: "End Time" },
+      // Both surface a recurring-series' edit-scope history (see #497/#498): a "this and
+      // following" edit trims the parent's RecurrencePattern.endDate and starts a new tail row,
+      // and a "this" edit detaches a one-time row -- Split From links that row back to the
+      // lineage's root mid so an admin can tell related rows apart in a flat spreadsheet.
+      { key: "seriesEnd", label: "Series End" },
+      { key: "splitFrom", label: "Split From" },
     ],
   },
   {

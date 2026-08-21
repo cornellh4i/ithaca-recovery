@@ -67,6 +67,12 @@ const FIELD_COLUMN: Record<MeetingExportFieldKey, { label: string; value: (m: Me
   startTime: { label: "Start Time", value: (m) => formatETTime(m.startDateTime) },
   endDate: { label: "End Date", value: (m) => formatETDate(m.endDateTime) },
   endTime: { label: "End Time", value: (m) => formatETTime(m.endDateTime) },
+  // Blank for an open-ended series (endDate null) or a one-time meeting (no recurrencePattern
+  // at all) -- both mean "no trim has happened", same as the pre-#497 default.
+  seriesEnd: { label: "Series End", value: (m) => (m.recurrencePattern?.endDate ? formatETDate(m.recurrencePattern.endDate) : "") },
+  // Blank for a lineage root (nothing to split from). Nullable at the schema level -- ?? ""
+  // covers a row created before #497 shipped as well as an un-split row.
+  splitFrom: { label: "Split From", value: (m) => m.splitFromMid ?? "" },
   contactEmail: { label: "Contact Email", value: (m) => m.email },
 };
 
