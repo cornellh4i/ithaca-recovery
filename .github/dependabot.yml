@@ -11,11 +11,6 @@ updates:
       prefix-development: "chore"  # Prefixes dev dependency updates (e.g., chore(deps-dev): ...)
       include: "scope"             # Formats as chore(deps): instead of just chore: 
     open-pull-requests-limit: 10
-    ignore:
-      # Next 16.3.x reintroduces the e2e deep-link hydration regression (#320/#341/#342, §1.5j);
-      # pinned below 16.3.0 until a release passes that suite.
-      - dependency-name: "next"
-        versions: ["16.3.x"]
     groups:
       # Patch and minor bumps (prod or dev) are safe to auto-merge unattended once CI is
       # green (see dependabot-auto-merge.yml) -- only major bumps are left as individual
