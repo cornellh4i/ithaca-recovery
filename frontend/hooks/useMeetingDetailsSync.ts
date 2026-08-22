@@ -69,15 +69,16 @@ export function useMeetingDetailsSync({
   // successful retry-sync) without resetting showEditMeeting -- unlike the effect above, this is
   // never a new selection, just fresher data for the current one. Guarded on selectedMeetingID
   // so it doesn't fire before anything is selected.
-  const isFirstRefreshRun = useRef(true);
+  const prevRefreshTrigger = useRef(refreshTrigger);
   useEffect(() => {
-    // Every effect runs once on mount regardless of its dependency values -- skip that first
-    // run here, since the effect above already fetches on mount (with resetEditState: true).
-    // Without this guard, selecting a meeting would fire two redundant fetches back to back.
-    if (isFirstRefreshRun.current) {
-      isFirstRefreshRun.current = false;
-      return;
-    }
+    // Every effect runs once on mount regardless of its dependency values -- skip any run where
+    // refreshTrigger didn't actually change, since the effect above already fetches on mount
+    // (with resetEditState: true); without this guard, selecting a meeting would fire two
+    // redundant fetches back to back. Compared against the previous value rather than a "skip
+    // first run" flag so the guard stays correct under dev-mode StrictMode effect replays,
+    // which re-run effects while refs keep their values.
+    if (prevRefreshTrigger.current === refreshTrigger) return;
+    prevRefreshTrigger.current = refreshTrigger;
     if (!selectedMeetingID) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchMeetingDetails(selectedMeetingID, false);
