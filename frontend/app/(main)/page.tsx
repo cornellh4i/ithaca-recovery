@@ -142,15 +142,18 @@ export default function HomePage() {
   // not just closing Edit, since the clicked box's anchorEl also goes stale across the
   // switch (Day view's boxes aren't in the DOM once Week view renders, and vice versa),
   // so leaving the View Meeting popup open underneath would anchor to a detached element.
-  // Skipped on mount: this effect also fires on initial render (selectedView's first value
-  // counts as a "change"), which would race the deep-link effect above and immediately
-  // clear the ?mid=&edit=1 selection it just queued.
-  const isInitialViewRender = useRef(true);
+  // Guarded by comparing against the previous view rather than a "skip first run" flag: this
+  // effect also fires on initial render (selectedView's first value counts as a "change"),
+  // which would race the deep-link effect above and immediately clear the ?mid=&edit=1
+  // selection it just queued. A first-run flag isn't replay-safe -- refs survive dev-mode
+  // StrictMode effect replays (Next >= 16.3.0) while the effect re-runs, so the replayed run
+  // would see the flag already cleared and wipe the deep-link selection.
+  const prevSelectedView = useRef(selectedView);
   useEffect(() => {
-    if (isInitialViewRender.current) {
-      isInitialViewRender.current = false;
+    if (prevSelectedView.current === selectedView) {
       return;
     }
+    prevSelectedView.current = selectedView;
     handleBack();
     setShowEditMeeting(false);
   }, [selectedView]);
