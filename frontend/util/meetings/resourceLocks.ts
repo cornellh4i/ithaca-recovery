@@ -1,12 +1,22 @@
 import { Prisma } from "@prisma/client";
 import { ResourceField } from "./resourceOverlap";
 
-export type ResourceClaim = { type: ResourceField; value: string };
+/**
+ * What a lock claim can name. A superset of {@link ResourceField}: `zoomFamily` is a lock-only
+ * type, keyed on a linked-schedule family's anchor mid, with no counterpart in the conflict
+ * checks (a family is not a bookable resource -- it is the unit that has to be provisioned
+ * exactly once, see app/api/update/meeting/sync/route.ts).
+ */
+export type LockResourceType = ResourceField | "zoomFamily";
 
-// Fixed per-type key instead of hashing `type` -- there are only 3 values, so a literal avoids
-// any chance of a type/type or type/value hash collision; only same-type value collisions
-// remain (hashtext(value) below), the minimum surface achievable with a 32-bit hash.
-const TYPE_KEY: Record<ResourceField, number> = { room: 1, zoomRoom: 2, zoomHost: 3 };
+export type ResourceClaim = { type: LockResourceType; value: string };
+
+// Fixed per-type key instead of hashing `type` -- there are only a handful of values, so a
+// literal avoids any chance of a type/type or type/value hash collision; only same-type value
+// collisions remain (hashtext(value) below), the minimum surface achievable with a 32-bit hash.
+// Each entry's number is permanent: changing one would make an in-flight deploy's two versions
+// take different locks for the same claim.
+const TYPE_KEY: Record<LockResourceType, number> = { room: 1, zoomRoom: 2, zoomHost: 3, zoomFamily: 4 };
 
 // Closes the check-then-write race on room/zoomRoom/zoomHost conflicts (PR #303's accepted
 // gap): two concurrent requests could both pass findResourceConflictRows before either wrote,
