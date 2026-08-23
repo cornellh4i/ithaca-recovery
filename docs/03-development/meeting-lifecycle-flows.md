@@ -14,7 +14,7 @@ Legend: **tx** = advisory-lock-guarded `$transaction` (`util/meetings/resourceLo
 | **Delete `all` / one-off** | `meeting.update({ deletedAt })` (soft) | `syncDeleteAll`: delete cat-cal events, tear down pending resume series, delete the Zoom meeting only if `zoomManaged` and no live row shares the zid, delete room-cal event. Fire-and-log | none |
 | **Suspend** | **tx** (+ retry): re-check open suspension → `status:'Suspended'` + `SuspensionPeriod.create` | `syncSuspend`: UNTIL-trim cat-cals at max(from, tomorrow) via `trimCalendarEventSeries` (suspension trims are **not** pattern state — this helper exists solely for them), or delete events for a one-off; bounded suspensions pre-create the resume series into `resumeEventIds` | none |
 | **Resume (now / on date)** | **tx**: single-winner `updateMany` on the unpromoted suspension; immediate resume also flips `status:'Active'` | delete/recreate pending resume events; overwrite `googleCalendarEventIds` + status | none |
-| **Retry sync** — `update/meeting/sync` | Synchronous end-to-end (no `after()`): adopts live Zoom credentials → PATCH → host reservation in its own tx → room-cal → reconcile cat-cals → status writes | n/a | fresh statuses in the response |
+| **Retry sync** — `update/meeting/sync` | Synchronous end-to-end (no `after()`): adopts live Zoom credentials → PATCH → host reservation in its own tx (family-scoped: it reserves for every Zoom-bearing member of a linked family, and a member whose family is already provisioned adopts instead of minting) → room-cal → reconcile cat-cals → status writes | n/a | fresh statuses in the response |
 
 ## Invariants worth knowing
 
