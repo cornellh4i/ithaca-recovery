@@ -7,7 +7,7 @@ import {
   createCalendarEvent, updateCalendarEvent, deleteCalendarEvent, reconcileMeetingCalendars,
   calendarIdsForMeeting,
 } from "../../../../services/googleCalendar";
-import { createZoomMeeting, updateZoomMeeting, deleteZoomMeeting, getZoomHostCapacities, getZoomMeetingInvitation, rehostZoomMeeting, resolveZoomHost, zoomHostPool, zoomRoomCalendarId } from "../../../../services/zoom";
+import { createZoomMeeting, updateZoomMeeting, deleteZoomMeeting, getZoomHostCapacities, getZoomMeetingInvitation, loadZoomScheduleFamily, rehostZoomMeeting, resolveZoomHost, zoomHostPool, zoomRoomCalendarId } from "../../../../services/zoom";
 import { findResourceConflicts, findResourceConflictRows, ConflictRow, ResourceConflictAbort } from "../../../../util/meetings/resourceOverlap";
 import { lockResourceClaims, ResourceClaim } from "../../../../util/meetings/resourceLocks";
 import { meetingSchema, editScopeSchema } from "../../../../util/meetings/meetingValidation";
@@ -182,16 +182,15 @@ async function syncUpdatedMeeting(
         // Unmanaged Zoom meetings are never PATCHed -- the stored link is the contract; only
         // the calendars follow the app-side edit.
         // The pinned topic (if any) lives on the DB row, not the client payload -- thread it
-        // through so a managed PATCH keeps the meeting's established Zoom name. Sibling rows
-        // sharing this zid ride along so the PATCH sends the whole union schedule (#513).
-        const scheduleSiblings = existingMeeting.zoomManaged
-          ? await prisma.meeting.findMany({
-              where: { zid, deletedAt: null, mid: { not: newMeeting.mid } },
-              include: { recurrencePattern: true },
-            })
+        // through so a managed PATCH keeps the meeting's established Zoom name (a null one
+        // stays null, so an auto topic is recomputed from the family below rather than pinned).
+        // The whole linked-schedule family rides along so the PATCH sends the union schedule
+        // (#513) and the family's own Zoom name, not this row's narrowed view of either.
+        const family = existingMeeting.zoomManaged
+          ? await loadZoomScheduleFamily(prisma, newMeeting.mid, zid)
           : [];
         const ok = existingMeeting.zoomManaged
-          ? await updateZoomMeeting(zid, { ...newMeeting, zoomTopic: existingMeeting.zoomTopic }, scheduleSiblings as unknown as IMeeting[])
+          ? await updateZoomMeeting(zid, { ...newMeeting, zoomTopic: existingMeeting.zoomTopic }, family)
           : true;
         if (!ok) zoomSynced = false;
       }
@@ -208,7 +207,12 @@ async function syncUpdatedMeeting(
         zoomSynced = false;
         zoomSyncError = hostSyncError ?? "No Zoom host available for this meeting's schedule (pool exhausted).";
       } else {
-        const created = await createZoomMeeting(newMeeting, host);
+        // No zid to group by here (this row either never had one or just had it torn down), so
+        // the family is whatever linkedToMid says -- enough for the fresh meeting to be minted
+        // with the family's union schedule and Zoom name rather than a name it has to be
+        // renamed out of on the next PATCH.
+        const family = await loadZoomScheduleFamily(prisma, newMeeting.mid, null);
+        const created = await createZoomMeeting(newMeeting, host, family);
         if (created) {
           zid = created.zid;
           zoomLink = created.zoomLink;

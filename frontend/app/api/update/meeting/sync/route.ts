@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { requireRole } from "../../../../../services/auth";
 import { IMeeting } from "../../../../../types/models";
 import { createCalendarEvent, updateCalendarEvent, reconcileMeetingCalendars } from "../../../../../services/googleCalendar";
-import { createZoomMeeting, getZoomHostCapacities, getZoomMeetingCredentials, updateZoomMeeting, getZoomMeetingInvitation, resolveZoomHost, zoomHostPool, zoomRoomCalendarId } from "../../../../../services/zoom";
+import { createZoomMeeting, getZoomHostCapacities, getZoomMeetingCredentials, updateZoomMeeting, getZoomMeetingInvitation, loadZoomScheduleFamily, resolveZoomHost, zoomHostPool, zoomRoomCalendarId } from "../../../../../services/zoom";
 import { lockResourceClaims } from "../../../../../util/meetings/resourceLocks";
 import { prisma } from "../../../../../lib/prisma";
 
@@ -84,16 +84,14 @@ const syncMeeting = async (request: Request): Promise<Response> => {
                 // The conflict itself still surfaces independently via /api/admin/conflict-mids
                 // (Diagnostics), regardless of what happens here.
                 // Unmanaged (adopted/external) Zoom meetings are never PATCHed -- retrying the
-                // sync only re-runs the calendar half against the stored link. Sibling rows
-                // sharing this zid ride along so the PATCH sends the whole union schedule (#513).
-                const scheduleSiblings = meeting.zoomManaged
-                    ? await prisma.meeting.findMany({
-                        where: { zid, deletedAt: null, mid: { not: mid } },
-                        include: { recurrencePattern: true },
-                    })
+                // sync only re-runs the calendar half against the stored link. The whole
+                // linked-schedule family rides along so the PATCH sends the union schedule
+                // (#513) and the family's own Zoom name, not this row's narrowed view of either.
+                const family = meeting.zoomManaged
+                    ? await loadZoomScheduleFamily(prisma, mid, zid)
                     : [];
                 const ok = meeting.zoomManaged
-                    ? await updateZoomMeeting(zid, meetingForCalendar, scheduleSiblings as unknown as IMeeting[])
+                    ? await updateZoomMeeting(zid, meetingForCalendar, family)
                     : true;
                 if (!ok) zoomSynced = false;
             } else if (!meeting.zoomManaged) {
@@ -129,7 +127,11 @@ const syncMeeting = async (request: Request): Promise<Response> => {
                     // failure below must not roll back the reservation (the final
                     // prisma.meeting.update further down re-persists this same value either way).
                     zoomHost = host;
-                    const created = await createZoomMeeting(meetingForCalendar, host);
+                    // Same family lookup as the PATCH branch above, minus the zid this row
+                    // doesn't have yet -- the fresh Zoom meeting is minted with the family's
+                    // union schedule and Zoom name from the start.
+                    const family = await loadZoomScheduleFamily(prisma, mid, null);
+                    const created = await createZoomMeeting(meetingForCalendar, host, family);
                     if (created) {
                         zid = created.zid;
                         zoomLink = created.zoomLink;
