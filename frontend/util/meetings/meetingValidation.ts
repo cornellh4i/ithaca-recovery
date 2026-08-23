@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { LINKED_SCHEDULE_MODES } from "./linkedSchedules";
+
 // Zoom's `agenda` field (which the description is sent as, see services/zoom.ts's
 // buildZoomMeetingBody) hard-caps at 1024 chars -- lower than Google Calendar's description
 // limit, so a too-long description silently fails only the Zoom half of the sync. The form UI
@@ -136,6 +138,60 @@ export const editScopeSchema = z.object({
   editScope: z.enum(['this', 'thisAndFollowing', 'all']).optional(),
   occurrenceDate: z.coerce.date().optional(),
 });
+
+// A second weekly schedule to create alongside the meeting being updated -- a different mode on
+// different weekdays, sharing the family's one Zoom meeting (util/meetings/linkedSchedules.ts).
+// Parsed separately from meetingSchema for the same reason editScopeSchema is: these keys
+// describe a whole other Meeting row, and must never be spread into the anchor's update data.
+//
+// Deliberately narrow. Everything the two schedules must agree on -- title, description, email,
+// group, calType, time of day, duration, interval, and where the series ends -- is derived
+// server-side from the anchor row and never read from here, because a family whose rows disagree
+// on any of them has no single-series representation on Zoom (isSharedZoomScheduleCompatible)
+// and would silently stop reaching Zoom at all. Only the mode, the room(s) that mode needs, and
+// the weekdays are genuinely this schedule's own.
+//
+// RULE: that derivation is a create-time snapshot, and drift afterwards is accepted, not
+// guarded. Editing either row's title/description/email/group/calType propagates to neither the
+// other row nor the family's external name (buildLinkedScheduleLabel builds each member's name
+// from that member's OWN title), so the two members' calendar events can end up reading
+// differently. Nothing detects or reconciles it; re-saving both rows with the same values is the
+// fix. The schedule fields above are the ones that would actually break Zoom, and those are
+// re-checked on every write.
+// TODO(linked-schedules PR6): if the form grows a single submit that edits the anchor and its
+// linked schedules together, propagate the shared identity fields there instead.
+export const linkedScheduleBlockSchema = z.object({
+  // Client-generated, like NewMeeting's -- so both rows are known before the write and the
+  // create can stay inside the same transaction as the rest of the request.
+  mid: z.string().min(1),
+  modeType: z.enum(LINKED_SCHEDULE_MODES),
+  room: z.string().nullable().optional(),
+  zoomRoom: z.string().nullable().optional(),
+  recurrencePattern: recurrencePatternSchema,
+})
+  // Same room requirements meetingSchema puts on the primary schedule -- the linked row is an
+  // ordinary Meeting row and gets rendered, conflict-checked and published exactly like one.
+  .refine((linked) => linked.modeType !== "Hybrid" || (!!linked.room && !!linked.zoomRoom), {
+    message: "Hybrid meetings require both a physical room and a Zoom room.",
+    path: ["room"],
+  })
+  .refine((linked) => linked.modeType !== "In Person" || !!linked.room, {
+    message: "In Person meetings require a physical room.",
+    path: ["room"],
+  })
+  // The weekdays are read from this pattern but its frequency is not: the anchor must already be
+  // weekly, and Zoom holds the family as one weekly union. Rejected rather than silently coerced,
+  // so a client asking for a monthly schedule is told no instead of getting a weekly one.
+  .refine((linked) => linked.recurrencePattern.type === "weekly", {
+    message: "A linked schedule must be weekly.",
+    path: ["recurrencePattern", "type"],
+  });
+
+export const linkedScheduleSchema = z.object({
+  linkedSchedule: linkedScheduleBlockSchema.optional(),
+});
+
+export type LinkedScheduleInput = z.infer<typeof linkedScheduleBlockSchema>;
 
 // Narrower shape for the Zoom host-availability check — only the fields
 // checkZoomHostPoolAvailability's OccurrenceInput actually needs. The client posts the same
