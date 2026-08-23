@@ -382,3 +382,123 @@ describe("retrying an already-synced meeting (existing zid)", () => {
     expect(mockedReconcileMeetingCalendars).not.toHaveBeenCalled();
   });
 });
+
+// A linked-schedule family is served by ONE Zoom meeting and holds ONE pool host slot
+// (util/meetings/linkedSchedules.ts). Retry sync provisions Zoom, so it is a place that
+// invariant can be broken one row at a time.
+describe("retrying a linked-schedule family", () => {
+  function syncRequest(mid: string): Request {
+    return new Request("http://localhost/api/update/meeting/sync", {
+      method: "POST",
+      body: JSON.stringify({ mid }),
+    });
+  }
+
+  // Exactly the state a two-schedule create leaves behind when the host pool was exhausted:
+  // both Zoom-bearing rows committed, neither provisioned.
+  async function seedZidlessFamily(prefix: string) {
+    const prisma = getTestPrismaClient();
+    const anchor = buildMeetingData({ title: `${prefix} Anchor`, modeType: "Hybrid", room: `${prefix} Room` });
+    const linked = buildMeetingData({ title: `${prefix} Linked`, linkedToMid: anchor.mid });
+    await prisma.meeting.create({ data: anchor });
+    await prisma.meeting.create({ data: linked });
+    return { anchor, linked };
+  }
+
+  test("retrying both zid-less schedules of one family mints ONE Zoom meeting, shared by both", async () => {
+    mockedResolveZoomHost.mockResolvedValue("family-host@icr.test");
+    mockedCreateZoomMeeting.mockResolvedValue({
+      zid: "one-family-zid", zoomLink: "http://zoom.test/one-family", zoomPasscode: "family-pass",
+    });
+    mockedUpdateZoomMeeting.mockResolvedValue(true);
+    mockedGetZoomMeetingCredentials.mockResolvedValue(null);
+    mockedReconcileMeetingCalendars.mockResolvedValue({ updatedEventIds: {}, allSynced: true, googleSyncError: null });
+
+    const { anchor, linked } = await seedZidlessFamily("Pool Exhausted");
+
+    expect((await POST(syncRequest(anchor.mid))).status).toBe(200);
+    expect((await POST(syncRequest(linked.mid))).status).toBe(200);
+
+    // The second retry finds the family already provisioned and PATCHes that meeting instead of
+    // minting its own -- two Zoom meetings (and two host reservations) for one meeting is exactly
+    // what the family exists to prevent.
+    expect(mockedCreateZoomMeeting).toHaveBeenCalledTimes(1);
+    expect(mockedResolveZoomHost).toHaveBeenCalledTimes(1);
+    expect(mockedUpdateZoomMeeting).toHaveBeenCalledWith("one-family-zid", expect.anything(), expect.any(Array));
+
+    const prisma = getTestPrismaClient();
+    for (const mid of [anchor.mid, linked.mid]) {
+      const row = await prisma.meeting.findUnique({ where: { mid } });
+      expect(row?.zid).toBe("one-family-zid");
+      expect(row?.zoomLink).toBe("http://zoom.test/one-family");
+      expect(row?.zoomPasscode).toBe("family-pass");
+      expect(row?.zoomHost).toBe("family-host@icr.test");
+    }
+  });
+
+  test("the sibling of a just-provisioned schedule keeps its own pending sync status until it is retried", async () => {
+    mockedResolveZoomHost.mockResolvedValue("family-host-2@icr.test");
+    mockedCreateZoomMeeting.mockResolvedValue({
+      zid: "sibling-fanout-zid", zoomLink: "http://zoom.test/sibling-fanout", zoomPasscode: null,
+    });
+    mockedReconcileMeetingCalendars.mockResolvedValue({ updatedEventIds: {}, allSynced: true, googleSyncError: null });
+
+    const { anchor, linked } = await seedZidlessFamily("Fan Out");
+    expect((await POST(syncRequest(anchor.mid))).status).toBe(200);
+
+    const prisma = getTestPrismaClient();
+    const sibling = await prisma.meeting.findUnique({ where: { mid: linked.mid } });
+    // Only the shared Zoom identity is fanned out: this row's own calendar events were never
+    // published by the anchor's retry, so its statuses must keep saying so.
+    expect(sibling?.zid).toBe("sibling-fanout-zid");
+    expect(sibling?.googleSyncStatus).toBe("pending");
+    expect(sibling?.zoomSyncStatus).toBe("error");
+    expect(mockedReconcileMeetingCalendars).toHaveBeenCalledTimes(1);
+  });
+
+  test("retrying a zid-less schedule whose family already has a Zoom meeting adopts it instead of minting a second", async () => {
+    mockedUpdateZoomMeeting.mockResolvedValue(true);
+    mockedReconcileMeetingCalendars.mockResolvedValue({ updatedEventIds: {}, allSynced: true, googleSyncError: null });
+
+    const prisma = getTestPrismaClient();
+    const anchor = buildMeetingData({
+      title: "Adopting Anchor",
+      modeType: "Hybrid",
+      room: "Adopting Room",
+      zid: "already-held-zid",
+      zoomLink: "http://zoom.test/already-held",
+      zoomPasscode: "held-pass",
+      zoomInvitation: "held invitation",
+      zoomHost: "held-host@icr.test",
+      googleSyncStatus: "synced",
+      zoomSyncStatus: "synced",
+      zoomSyncError: null,
+    });
+    const linked = buildMeetingData({ title: "Adopting Linked", linkedToMid: anchor.mid });
+    await prisma.meeting.create({ data: anchor });
+    await prisma.meeting.create({ data: linked });
+
+    const response = await POST(syncRequest(linked.mid));
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body.zoomSyncStatus).toBe("synced");
+
+    expect(mockedCreateZoomMeeting).not.toHaveBeenCalled();
+    // No second host slot either -- the family's booking already has one.
+    expect(mockedResolveZoomHost).not.toHaveBeenCalled();
+    // The shared meeting is re-PATCHed so its schedule widens to cover the adopting row's days.
+    expect(mockedUpdateZoomMeeting).toHaveBeenCalledWith("already-held-zid", expect.anything(), expect.any(Array));
+
+    const adopted = await prisma.meeting.findUnique({ where: { mid: linked.mid } });
+    expect(adopted?.zid).toBe("already-held-zid");
+    expect(adopted?.zoomLink).toBe("http://zoom.test/already-held");
+    expect(adopted?.zoomPasscode).toBe("held-pass");
+    expect(adopted?.zoomInvitation).toBe("held invitation");
+    expect(adopted?.zoomHost).toBe("held-host@icr.test");
+
+    // The holder itself is left exactly as it was.
+    const holder = await prisma.meeting.findUnique({ where: { mid: anchor.mid } });
+    expect(holder?.zid).toBe("already-held-zid");
+    expect(holder?.googleSyncStatus).toBe("synced");
+  });
+});

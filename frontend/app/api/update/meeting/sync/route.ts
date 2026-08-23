@@ -5,7 +5,7 @@ import { IMeeting } from "../../../../../types/models";
 import { createCalendarEvent, updateCalendarEvent, reconcileMeetingCalendars } from "../../../../../services/googleCalendar";
 import { createZoomMeeting, getZoomHostCapacities, getZoomMeetingCredentials, updateZoomMeeting, getZoomMeetingInvitation, resolveZoomHost, zoomHostPool, zoomRoomCalendarId } from "../../../../../services/zoom";
 import { lockResourceClaims } from "../../../../../util/meetings/resourceLocks";
-import { linkedFamilyLoader } from "../../../../../util/meetings/linkedSchedules";
+import { familyMembers, getLinkedFamily, isZoomBearing, linkedFamilyLoader } from "../../../../../util/meetings/linkedSchedules";
 import { prisma } from "../../../../../lib/prisma";
 
 const syncMeeting = async (request: Request): Promise<Response> => {
@@ -64,6 +64,13 @@ const syncMeeting = async (request: Request): Promise<Response> => {
             let zoomCalendarEventId = meeting.zoomCalendarEventId;
             let zoomSynced = true;
             let liveCredentialsFetched = false;
+            // The Zoom-bearing family members this retry has to hand its freshly-minted Zoom
+            // identity to (see the mint branch below). Empty for every other path.
+            let fanOutMids: string[] = [];
+            // What a failed invitation fetch falls back to. This row's own stored value, except
+            // when it adopts a sibling's Zoom meeting -- then the family's invitation is the one
+            // it should be carrying.
+            let storedInvitation = meeting.zoomInvitation;
             zoomSyncError = null;
 
             if (zid) {
@@ -101,46 +108,87 @@ const syncMeeting = async (request: Request): Promise<Response> => {
                 // deliberate choice -- a retry must not auto-provision an app-owned meeting
                 // under a flag that says the app doesn't own it.
             } else {
-                // Reserve a pool host under lock BEFORE ever calling the external Zoom API below
-                // -- closes #360's TOCTOU gap: two retries of this same meeting (or a retry
-                // racing a fresh write/meeting create) could otherwise both read the same
-                // last-free host before either persisted it. The reservation transaction only
-                // ever writes `zoomHost` and stays DB-only; the external API call happens
-                // afterward, outside the lock -- a Postgres advisory lock can't stay held across
-                // a network call the way it can across another DB query (see write/meeting and
-                // update/meeting's transactions, which don't make external calls either).
-                // Resolved BEFORE the locked transaction, same as write/update -- a Zoom API
-                // round trip while pool locks are held would extend lock hold time (cached 12h).
-                const hostCapacities = await getZoomHostCapacities();
-                const host = await prisma.$transaction(async (tx) => {
-                    await lockResourceClaims(tx, zoomHostPool.map((h) => ({ type: "zoomHost" as const, value: h })));
-                    const resolved = await resolveZoomHost(meetingForCalendar, tx, { excludeMid: mid, capacities: hostCapacities });
-                    if (resolved) {
-                        await tx.meeting.update({ where: { mid }, data: { zoomHost: resolved } });
-                    }
-                    return resolved;
-                }, { timeout: 10_000 });
+                // A linked-schedule family is served by ONE Zoom meeting and holds ONE host slot
+                // (util/meetings/linkedSchedules.ts), so what the rest of the family already has
+                // decides this retry entirely. Two Zoom-bearing members can be zid-less at the
+                // same time (a create whose host pool was exhausted), and retrying each of them
+                // in turn would otherwise mint a second Zoom meeting for one meeting.
+                const linkedFamily = await getLinkedFamily(prisma, mid);
+                const familySiblings = (linkedFamily ? familyMembers(linkedFamily) : [])
+                    .filter((row) => row.mid !== mid && isZoomBearing(row));
+                const holder = familySiblings.find((row) => row.zid);
+                const holderZid = holder?.zid ?? null;
 
-                if (!host) {
-                    zoomSynced = false;
-                    zoomSyncError = "No Zoom host available for this meeting's schedule (pool exhausted).";
+                if (holder && holderZid) {
+                    // The family's Zoom meeting already exists: adopt its identity and widen its
+                    // schedule to cover this row's days, rather than provisioning a second one.
+                    zid = holderZid;
+                    zoomLink = holder.zoomLink;
+                    zoomPasscode = holder.zoomPasscode;
+                    zoomHost = holder.zoomHost;
+                    storedInvitation = holder.zoomInvitation;
+                    // Unmanaged (adopted/external) Zoom meetings are never PATCHed -- same
+                    // contract as the zid branch above; the stored link is all this row adopts.
+                    if (holder.zoomManaged) {
+                        const ok = await updateZoomMeeting(holderZid, meetingForCalendar, await loadFamily(holderZid));
+                        if (!ok) {
+                            zoomSynced = false;
+                            zoomSyncError = "Couldn't update the shared Zoom meeting for this schedule.";
+                        }
+                    }
                 } else {
-                    // Reserved above regardless of what happens next -- a createZoomMeeting
-                    // failure below must not roll back the reservation (the final
-                    // prisma.meeting.update further down re-persists this same value either way).
-                    zoomHost = host;
-                    // Same family lookup as the PATCH branch above, minus the zid this row
-                    // doesn't have yet -- the fresh Zoom meeting is minted with the family's
-                    // union schedule and Zoom name from the start.
-                    const family = await loadFamily(null);
-                    const created = await createZoomMeeting(meetingForCalendar, host, family);
-                    if (created) {
-                        zid = created.zid;
-                        zoomLink = created.zoomLink;
-                        zoomPasscode = created.zoomPasscode;
-                    } else {
+                    // A sibling that reserved a pool host but never got its Zoom meeting minted
+                    // already holds the family's one host slot -- join that reservation instead
+                    // of resolving a second host for the same booking.
+                    let host = familySiblings.find((row) => row.zoomHost)?.zoomHost ?? null;
+                    if (!host) {
+                        // Reserve a pool host under lock BEFORE ever calling the external Zoom API
+                        // below -- closes #360's TOCTOU gap: two retries of this same meeting (or a
+                        // retry racing a fresh write/meeting create) could otherwise both read the
+                        // same last-free host before either persisted it. The reservation
+                        // transaction only ever writes `zoomHost` and stays DB-only; the external
+                        // API call happens afterward, outside the lock -- a Postgres advisory lock
+                        // can't stay held across a network call the way it can across another DB
+                        // query (see write/meeting and update/meeting's transactions, which don't
+                        // make external calls either).
+                        // Resolved BEFORE the locked transaction, same as write/update -- a Zoom
+                        // API round trip while pool locks are held would extend lock hold time
+                        // (cached 12h).
+                        const hostCapacities = await getZoomHostCapacities();
+                        host = await prisma.$transaction(async (tx) => {
+                            await lockResourceClaims(tx, zoomHostPool.map((h) => ({ type: "zoomHost" as const, value: h })));
+                            const resolved = await resolveZoomHost(meetingForCalendar, tx, { excludeMid: mid, capacities: hostCapacities });
+                            if (resolved) {
+                                await tx.meeting.update({ where: { mid }, data: { zoomHost: resolved } });
+                            }
+                            return resolved;
+                        }, { timeout: 10_000 });
+                    }
+
+                    if (!host) {
                         zoomSynced = false;
-                        zoomSyncError = "Failed to create the Zoom meeting.";
+                        zoomSyncError = "No Zoom host available for this meeting's schedule (pool exhausted).";
+                    } else {
+                        // Reserved above regardless of what happens next -- a createZoomMeeting
+                        // failure below must not roll back the reservation (the final
+                        // prisma.meeting.update further down re-persists this same value either way).
+                        zoomHost = host;
+                        // Same family lookup as the PATCH branch above, minus the zid this row
+                        // doesn't have yet -- the fresh Zoom meeting is minted with the family's
+                        // union schedule and Zoom name from the start.
+                        const family = await loadFamily(null);
+                        const created = await createZoomMeeting(meetingForCalendar, host, family);
+                        if (created) {
+                            zid = created.zid;
+                            zoomLink = created.zoomLink;
+                            zoomPasscode = created.zoomPasscode;
+                            // The minted meeting belongs to the whole family, not to the row the
+                            // admin happened to retry -- see the fan-out below.
+                            fanOutMids = familySiblings.map((row) => row.mid);
+                        } else {
+                            zoomSynced = false;
+                            zoomSyncError = "Failed to create the Zoom meeting.";
+                        }
                     }
                 }
             }
@@ -174,7 +222,7 @@ const syncMeeting = async (request: Request): Promise<Response> => {
             zoomSyncError = zoomSynced ? null : zoomSyncError;
             // See the comment in app/api/update/meeting/route.ts's syncUpdatedMeeting: a fetch
             // failure here (collapsed to null) shouldn't overwrite an already-stored invitation.
-            const zoomInvitation = zid ? (await getZoomMeetingInvitation(zid)) ?? meeting.zoomInvitation : null;
+            const zoomInvitation = zid ? (await getZoomMeetingInvitation(zid)) ?? storedInvitation : null;
             await prisma.meeting.update({
                 where: { mid },
                 data: {
@@ -185,6 +233,17 @@ const syncMeeting = async (request: Request): Promise<Response> => {
                     ...(zid && meeting.zid && !liveCredentialsFetched ? {} : { zoomDriftDetectedAt: null }),
                 },
             });
+            // The Zoom identity this retry minted is the FAMILY's, so every Zoom-bearing member
+            // gets it -- a sibling left zid-less would look unprovisioned to its own "Retry sync"
+            // and mint a second Zoom meeting (and reserve a second host) for one meeting. Only
+            // the shared identity is fanned out: each sibling keeps its own sync statuses, so its
+            // still-unpublished calendar events stay flagged until it is retried in turn.
+            if (fanOutMids.length > 0) {
+                await prisma.meeting.updateMany({
+                    where: { mid: { in: fanOutMids } },
+                    data: { zid, zoomLink, zoomPasscode, zoomInvitation, zoomHost },
+                });
+            }
         }
 
         // True when this meeting needs Zoom but doesn't currently have a healthy Zoom sync --
