@@ -455,3 +455,50 @@ describe("ViewMeeting", () => {
     });
   });
 });
+
+// The meeting's other schedules (retrieve/meeting/[id]'s admin-only linkedSchedules), shown
+// here read-only -- removing one is an Edit action.
+describe("ViewMeeting linked schedules", () => {
+  const linkedSchedule = {
+    mid: "m-linked",
+    modeType: "Remote",
+    room: "",
+    zoomRoom: "Unity Room - Zoom",
+    zoomHost: "pool-host-1@icr.test",
+    recurrencePattern: {
+      type: "weekly",
+      startDate: new Date("2026-08-01T00:00:00Z"),
+      daysOfWeek: ["Saturday"],
+      firstDayOfWeek: "Sunday",
+      interval: 1,
+    },
+    startDateTime: new Date("2026-08-01T18:00:00Z"),
+    endDateTime: new Date("2026-08-01T19:00:00Z"),
+    googleSyncStatus: "synced",
+    zoomSyncStatus: "synced",
+  };
+
+  it("shows an admin the other schedule and where to edit it, with no Remove action here", async () => {
+    renderViewMeeting({
+      ...baseProps, anchorEl: makeAnchorEl(), isPhone: false, linkedSchedules: [linkedSchedule],
+    });
+
+    expect(await screen.findByText("Also meets")).toBeInTheDocument();
+    expect(screen.getByText("Sat · 2 - 3 PM")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Open this schedule" })).toHaveAttribute(
+      "href", "/?mid=m-linked&edit=1",
+    );
+    expect(screen.queryByRole("button", { name: /Remove/ })).not.toBeInTheDocument();
+  });
+
+  // BUG-022: the API never sends this to a non-admin, and the UI doesn't offer it either.
+  it("never renders the section for a non-admin viewer", async () => {
+    renderViewMeeting({
+      ...baseProps, anchorEl: makeAnchorEl(), isPhone: false, isAdmin: false,
+      linkedSchedules: [linkedSchedule],
+    });
+
+    await screen.findByText("Serenity Group");
+    expect(screen.queryByText("Also meets")).not.toBeInTheDocument();
+  });
+});

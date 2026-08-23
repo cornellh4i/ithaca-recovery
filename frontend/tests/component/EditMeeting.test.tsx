@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen, fireEvent, act, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, act, waitFor, within } from "@testing-library/react";
 import { ToastProvider } from "../../app/components/shared/ToastProvider";
 import EditMeetingSidebar from "../../app/components/meeting-form/EditMeeting";
 import { IMeeting } from "../../types/models";
@@ -436,5 +436,131 @@ describe("EditMeetingSidebar stays open during ordinary field interaction", () =
 
     expect(screen.getByRole("button", { name: "Update Meeting" })).toBeInTheDocument();
     expect(onClose).not.toHaveBeenCalled();
+  });
+});
+
+// A meeting the group runs as two schedules (retrieve/meeting/[id]'s admin-only
+// linkedSchedules). The form edits the schedule that was opened; the other one is read-only
+// here and can only be removed.
+describe("EditMeetingSidebar linked schedules", () => {
+  const linkedMeeting: IMeeting = {
+    ...anchorMeeting,
+    modeType: "Hybrid",
+    zid: "89296128710",
+    linkedSchedules: [
+      {
+        mid: "m-linked",
+        modeType: "Remote",
+        room: "",
+        zoomRoom: "Unity Room - Zoom",
+        zoomHost: "pool-host-1@icr.test",
+        recurrencePattern: {
+          type: "weekly",
+          startDate: new Date("2026-07-11T00:00:00.000Z"),
+          daysOfWeek: ["Saturday"],
+          firstDayOfWeek: "Sunday",
+          interval: 1,
+        },
+        startDateTime: new Date("2026-07-11T22:00:00.000Z"), // 6:00 PM ET
+        endDateTime: new Date("2026-07-11T23:00:00.000Z"),
+        googleSyncStatus: "synced",
+        zoomSyncStatus: "synced",
+      },
+    ],
+  };
+
+  const renderWithLinked = (meeting: IMeeting = linkedMeeting) => {
+    const onUpdateSuccess = jest.fn();
+    render(
+      <ToastProvider>
+        <EditMeetingSidebar
+          meeting={meeting}
+          onClose={jest.fn()}
+          onUpdateSuccess={onUpdateSuccess}
+          occurrenceDate={null}
+        />
+      </ToastProvider>,
+    );
+    return onUpdateSuccess;
+  };
+
+  const deleteCalls = () =>
+    (global.fetch as jest.Mock).mock.calls.filter(([url]) => url === "/api/delete/meeting");
+
+  it("renders the other schedule read-only, with a link to its own form", async () => {
+    renderWithLinked();
+    await act(async () => {});
+
+    // Scoped to the section: the form's own Mode buttons name every mode too, so "Remote"
+    // alone is ambiguous on this page.
+    const section = screen.getByRole("region", { name: "Linked schedule" });
+    expect(within(section).getByText("Remote")).toBeInTheDocument();
+    expect(within(section).getByText("Sat · 6 - 7 PM")).toBeInTheDocument();
+    expect(within(section).getByRole("link", { name: "Open this schedule" })).toHaveAttribute(
+      "href",
+      "/?mid=m-linked&edit=1",
+    );
+  });
+
+  it("says nothing about linked schedules for an ordinary single-schedule meeting", async () => {
+    renderWithLinked(anchorMeeting);
+    await act(async () => {});
+
+    expect(screen.queryByRole("region", { name: /Linked schedule/ })).not.toBeInTheDocument();
+  });
+
+  it("asks for confirmation before removing, and deletes nothing if the admin cancels", async () => {
+    renderWithLinked();
+    await act(async () => {});
+
+    fireEvent.click(screen.getByRole("button", { name: /Remove/ }));
+    expect(screen.getByRole("heading", { name: "Remove this schedule?" })).toBeInTheDocument();
+    // The surviving schedule is Hybrid and holds the family's zid, so the Zoom meeting stays.
+    expect(screen.getByText(/The shared Zoom meeting stays/)).toBeInTheDocument();
+
+    // The form has a Cancel button of its own -- this is the modal's.
+    fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Cancel" }));
+    expect(deleteCalls()).toHaveLength(0);
+  });
+
+  it("soft-deletes the whole linked row through the delete route once confirmed", async () => {
+    const onUpdateSuccess = renderWithLinked();
+    await act(async () => {});
+
+    fireEvent.click(screen.getByRole("button", { name: /Remove/ }));
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Remove schedule" }));
+    });
+
+    expect(deleteCalls()).toHaveLength(1);
+    const [, init] = deleteCalls()[0];
+    expect(init.method).toBe("DELETE");
+    expect(JSON.parse(init.body)).toEqual({ mid: "m-linked", deleteOption: "all" });
+    // The panel stays open -- the refresh re-reads the meeting (and its remaining schedules)
+    // without discarding whatever edit is in progress in the form.
+    await waitFor(() => expect(onUpdateSuccess).toHaveBeenCalled());
+    expect(screen.getByRole("button", { name: "Update Meeting" })).toBeInTheDocument();
+  });
+
+  // The delete route only tears a Zoom meeting down once no live row still points at its zid,
+  // so what the confirmation promises depends on whether the schedule left behind is on it.
+  it("warns that the Zoom meeting goes too when the surviving schedule has none", async () => {
+    renderWithLinked({ ...linkedMeeting, modeType: "In Person", zid: null });
+    await act(async () => {});
+
+    fireEvent.click(screen.getByRole("button", { name: /Remove/ }));
+    expect(screen.getByText(/that Zoom meeting is deleted too/)).toBeInTheDocument();
+  });
+
+  it("says nothing about Zoom when removing an In-Person schedule", async () => {
+    renderWithLinked({
+      ...linkedMeeting,
+      linkedSchedules: [{ ...linkedMeeting.linkedSchedules![0], modeType: "In Person", room: "Serenity Room", zoomRoom: null }],
+    });
+    await act(async () => {});
+
+    fireEvent.click(screen.getByRole("button", { name: /Remove/ }));
+    expect(screen.getByRole("heading", { name: "Remove this schedule?" })).toBeInTheDocument();
+    expect(screen.queryByText(/Zoom meeting/)).not.toBeInTheDocument();
   });
 });
