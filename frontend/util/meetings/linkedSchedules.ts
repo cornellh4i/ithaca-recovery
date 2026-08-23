@@ -1,8 +1,12 @@
 import type { Prisma } from "@prisma/client";
 
 import type { IMeeting } from "../../types/models";
-import { WEEKDAY_NAMES } from "../date/timeUtils";
+import { convertETToUTC, formatETDateString, getETTimeOfDay, WEEKDAY_NAMES } from "../date/timeUtils";
 import { formatDayColumn } from "./recurrenceDisplay";
+// recurrenceMatch, not meetingOccurrences: this module is reached from the client through
+// meetingValidation.ts (hooks/useMeetingForm.ts), and meetingOccurrences' `server-only`/Prisma
+// imports would break that build. The two export the same function.
+import { firstOccurrenceOnOrAfter } from "./recurrenceMatch";
 
 // A "linked schedules" family is one meeting the group runs as two co-existing weekly
 // schedules -- same time, duration and interval, different modes on different weekdays -- served
@@ -196,6 +200,71 @@ export function claimedDaysFor(family: LinkedFamily): string[] {
  */
 export function isZoomBearing(row: { modeType: string }): boolean {
   return row.modeType === "Hybrid" || row.modeType === "Remote";
+}
+
+// --- deriving a linked schedule's own series from the anchor's -----------------------------
+
+/** The anchor fields {@link deriveLinkedScheduleStart} re-anchors a linked schedule onto. */
+export interface LinkedScheduleAnchor {
+  startDateTime: Date;
+  endDateTime: Date;
+  recurrencePattern?: { startDate: Date; endDate?: Date | null; interval: number } | null;
+}
+
+/**
+ * The anchor's ET wall-clock time of day and duration, re-anchored onto the first date its
+ * series actually meets on `daysOfWeek`. A linked schedule never gets its start from the client:
+ * the family is served by ONE Zoom meeting, which can only hold one series, so every member has
+ * to keep the same time of day and duration ({@link isSharedZoomScheduleCompatible}) -- and the
+ * search runs against the ANCHOR's pattern, so an every-other-week family stays in one week phase
+ * instead of the two schedules landing on alternating weeks.
+ *
+ * Returns null when the requested days produce no occurrence inside the anchor's series at all
+ * (e.g. a series that ends first), or when the anchor carries no pattern to re-anchor onto.
+ * Throws convertETToUTC's validation error when the anchor's time of day doesn't exist on the
+ * derived date (the DST spring-forward gap) -- callers turn that into a 400.
+ */
+export function deriveLinkedScheduleStart(
+  anchor: LinkedScheduleAnchor,
+  daysOfWeek: string[],
+): { startDateTime: Date; endDateTime: Date; patternStartDate: Date } | null {
+  const pattern = anchor.recurrencePattern;
+  if (!pattern) return null;
+  // Never earlier than today: a schedule added to a series that started years ago is a schedule
+  // that starts NOW, not one that retroactively met every week since. Searching from the series
+  // start instead would publish a backdated Google Calendar series (fabricated history on past
+  // calendar views) and, for a count-bounded anchor, could resolve an end date that has already
+  // passed -- a row born dead. The week phase is unaffected: matchesRecurrencePattern measures
+  // the interval from the ANCHOR's own startDate below, whatever date the search begins on.
+  const seriesStartEtDateStr = formatETDateString(pattern.startDate);
+  const todayEtDateStr = formatETDateString(new Date());
+  const searchFromEtDateStr = seriesStartEtDateStr > todayEtDateStr ? seriesStartEtDateStr : todayEtDateStr;
+  const firstETDate = firstOccurrenceOnOrAfter(
+    {
+      type: 'weekly',
+      startDate: pattern.startDate,
+      endDate: pattern.endDate ?? null,
+      interval: pattern.interval,
+      daysOfWeek,
+      weekOfMonth: null,
+      dayOfMonth: null,
+      // The anchor's own excluded dates are its alone -- a per-occurrence deletion on the
+      // Monday-Friday schedule says nothing about when the Saturday one starts.
+      excludedDates: [],
+    },
+    searchFromEtDateStr,
+  );
+  if (!firstETDate) return null;
+  const { hour, minute, second } = getETTimeOfDay(anchor.startDateTime);
+  const pad = (value: number) => String(value).padStart(2, '0');
+  const startDateTime = new Date(convertETToUTC(`${firstETDate}T${pad(hour)}:${pad(minute)}:${pad(second)}`));
+  const durationMs = anchor.endDateTime.getTime() - anchor.startDateTime.getTime();
+  // INVARIANT: a stored recurrencePattern.startDate is ET-midnight-anchored (parseMMDDYYYY),
+  // never a real meeting-time instant -- calculateEndDateFromOccurrences reads the weekday
+  // anchor straight off getUTCDay(), so a 7 PM-or-later ET start would roll into the next UTC
+  // day and count the occurrences from the wrong weekday.
+  const patternStartDate = new Date(convertETToUTC(`${firstETDate}T00:00:00`));
+  return { startDateTime, endDateTime: new Date(startDateTime.getTime() + durationMs), patternStartDate };
 }
 
 // --- the family's display name, shared by every external service --------------------------
