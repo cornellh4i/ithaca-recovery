@@ -27,12 +27,21 @@ jest.mock("../../services/zoom", () => ({
   zoomRoomCalendarId: {},
 }));
 
+// Spied, not stubbed: the real advisory locks still run (they are what the family-serialization
+// tests below actually exercise), the mock only records which claims each transaction took.
+jest.mock("../../util/meetings/resourceLocks", () => {
+  const actual = jest.requireActual("../../util/meetings/resourceLocks");
+  return { ...actual, lockResourceClaims: jest.fn(actual.lockResourceClaims) };
+});
+
 import { getTestPrismaClient, disconnectTestPrismaClient } from "../factories/db";
 import { buildMeetingData as buildBaseMeetingData } from "../factories/meeting";
 import { POST } from "../../app/api/update/meeting/sync/route";
 import { resolveZoomHost, createZoomMeeting, updateZoomMeeting, getZoomMeetingCredentials } from "../../services/zoom";
 import { reconcileMeetingCalendars } from "../../services/googleCalendar";
+import { lockResourceClaims } from "../../util/meetings/resourceLocks";
 
+const mockedLockResourceClaims = lockResourceClaims as jest.Mock;
 const mockedResolveZoomHost = resolveZoomHost as jest.Mock;
 const mockedCreateZoomMeeting = createZoomMeeting as jest.Mock;
 const mockedUpdateZoomMeeting = updateZoomMeeting as jest.Mock;
@@ -56,6 +65,8 @@ afterAll(async () => {
 });
 
 beforeEach(() => {
+  // mockClear, not mockReset -- the spy must keep delegating to the real lock implementation.
+  mockedLockResourceClaims.mockClear();
   mockedResolveZoomHost.mockReset();
   mockedCreateZoomMeeting.mockReset();
   mockedUpdateZoomMeeting.mockReset();
@@ -405,6 +416,15 @@ describe("retrying a linked-schedule family", () => {
     return { anchor, linked };
   }
 
+  // Every zoomFamily claim taken across the request(s) a test made -- the lock that serializes
+  // two retries on one family (the pool claims can't: two retries may resolve different hosts).
+  type LockClaim = { type: string; value: string };
+  function familyLockClaims(): LockClaim[] {
+    return mockedLockResourceClaims.mock.calls
+      .flatMap((call) => call[1] as LockClaim[])
+      .filter((claim) => claim.type === "zoomFamily");
+  }
+
   test("retrying both zid-less schedules of one family mints ONE Zoom meeting, shared by both", async () => {
     mockedResolveZoomHost.mockResolvedValue("family-host@icr.test");
     mockedCreateZoomMeeting.mockResolvedValue({
@@ -434,6 +454,188 @@ describe("retrying a linked-schedule family", () => {
       expect(row?.zoomPasscode).toBe("family-pass");
       expect(row?.zoomHost).toBe("family-host@icr.test");
     }
+
+    // Only the minting retry locks the family; the second one finds the provisioned family and
+    // adopts it without ever reaching the reservation transaction. The claim names the ANCHOR's
+    // mid, which is what makes the two rows' locks the same lock (see the race test below).
+    expect(familyLockClaims()).toEqual([{ type: "zoomFamily", value: anchor.mid }]);
+  });
+
+  // The concurrent case #556 (1) describes, at the exact interleaving that produces it: the
+  // second retry lands after the first's reservation transaction has committed (the family lock
+  // it held is released there, deliberately -- the Zoom API call must not run inside a
+  // transaction) but before the first's freshly-minted zid has been fanned out. Driving it from
+  // inside the createZoomMeeting mock puts the second request in that window deterministically,
+  // rather than hoping two Promise.all'd requests interleave there (see resourceLocks.test.ts's
+  // comment on why route-level Promise.all races prove nothing here).
+  test("a retry landing while a sibling's mint is still in flight defers instead of minting a second Zoom meeting", async () => {
+    const { anchor, linked } = await seedZidlessFamily("Concurrent Mint");
+
+    mockedResolveZoomHost.mockResolvedValue("race-host@icr.test");
+    mockedGetZoomMeetingCredentials.mockResolvedValue(null);
+    mockedUpdateZoomMeeting.mockResolvedValue(true);
+    mockedReconcileMeetingCalendars.mockResolvedValue({ updatedEventIds: {}, allSynced: true, googleSyncError: null });
+
+    let racingResponse: Response | null = null;
+    let racingStarted = false;
+    mockedCreateZoomMeeting.mockImplementation(async () => {
+      // Fired once: a second retry that wrongly mints would re-enter this mock, and the point of
+      // the test is to count mints, not to recurse.
+      if (!racingStarted) {
+        racingStarted = true;
+        racingResponse = await POST(syncRequest(linked.mid));
+      }
+      return { zid: "race-zid", zoomLink: "http://zoom.test/race", zoomPasscode: null };
+    });
+
+    expect((await POST(syncRequest(anchor.mid))).status).toBe(200);
+
+    // One meeting, one Zoom meeting, one host slot -- even though both rows were retried while
+    // neither held a zid.
+    expect(mockedCreateZoomMeeting).toHaveBeenCalledTimes(1);
+    expect(mockedResolveZoomHost).toHaveBeenCalledTimes(1);
+
+    // Both retries reached the reservation transaction and took the SAME family claim -- that is
+    // what serialized them, and what let the second one see the first's reservation at all.
+    expect(familyLockClaims()).toEqual([
+      { type: "zoomFamily", value: anchor.mid },
+      { type: "zoomFamily", value: anchor.mid },
+    ]);
+
+    const racingBody = await (racingResponse as unknown as Response).json();
+    expect(racingBody.zoomSyncStatus).toBe("error");
+    expect(racingBody.zoomSyncError).toMatch(/already being created/i);
+    // Nothing to publish while the family's link is still unknown.
+    expect(racingBody.googleSyncStatus).toBe("pending");
+
+    const prisma = getTestPrismaClient();
+    for (const mid of [anchor.mid, linked.mid]) {
+      const row = await prisma.meeting.findUnique({ where: { mid } });
+      expect(row?.zid).toBe("race-zid");
+      expect(row?.zoomHost).toBe("race-host@icr.test");
+    }
+
+    // Retried once the mint has landed, the deferred row picks the family's Zoom meeting up
+    // normally -- the defer above costs a retry, not the row's sync.
+    mockedCreateZoomMeeting.mockResolvedValue(null);
+    const followUp = await POST(syncRequest(linked.mid));
+    expect((await followUp.json()).zoomSyncStatus).toBe("synced");
+    expect(mockedCreateZoomMeeting).toHaveBeenCalledTimes(1);
+  });
+
+  test("a retry of a family that already holds a zid never mints a second Zoom meeting", async () => {
+    mockedUpdateZoomMeeting.mockResolvedValue(true);
+    mockedGetZoomMeetingCredentials.mockResolvedValue(null);
+    mockedReconcileMeetingCalendars.mockResolvedValue({ updatedEventIds: {}, allSynced: true, googleSyncError: null });
+
+    const prisma = getTestPrismaClient();
+    const anchor = buildMeetingData({
+      title: "Provisioned Anchor", modeType: "Hybrid", room: "Provisioned Room",
+      zid: "provisioned-zid", zoomLink: "http://zoom.test/provisioned", zoomHost: "provisioned-host@icr.test",
+      googleSyncStatus: "synced", zoomSyncStatus: "synced", zoomSyncError: null,
+    });
+    const linked = buildMeetingData({
+      title: "Provisioned Linked", linkedToMid: anchor.mid,
+      zid: "provisioned-zid", zoomLink: "http://zoom.test/provisioned", zoomHost: "provisioned-host@icr.test",
+      googleSyncStatus: "synced", zoomSyncStatus: "synced", zoomSyncError: null,
+    });
+    await prisma.meeting.create({ data: anchor });
+    await prisma.meeting.create({ data: linked });
+
+    expect((await POST(syncRequest(anchor.mid))).status).toBe(200);
+    expect((await POST(syncRequest(linked.mid))).status).toBe(200);
+
+    expect(mockedCreateZoomMeeting).not.toHaveBeenCalled();
+    expect(mockedResolveZoomHost).not.toHaveBeenCalled();
+    // No reservation transaction at all: a row that already holds its family's zid never reaches
+    // the mint branch.
+    expect(familyLockClaims()).toEqual([]);
+  });
+
+  // #556 (3): only rows holding no Zoom identity of their own may be handed the minted one.
+  test("the fan-out leaves a sibling's existing zoomLink alone", async () => {
+    mockedResolveZoomHost.mockResolvedValue("fanout-guard-host@icr.test");
+    mockedCreateZoomMeeting.mockResolvedValue({
+      zid: "fanout-guard-zid", zoomLink: "http://zoom.test/fanout-guard", zoomPasscode: null,
+    });
+    mockedReconcileMeetingCalendars.mockResolvedValue({ updatedEventIds: {}, allSynced: true, googleSyncError: null });
+
+    const prisma = getTestPrismaClient();
+    const anchor = buildMeetingData({ title: "Fan Out Guard Anchor", modeType: "Hybrid", room: "Fan Out Guard Room" });
+    // zid-less (so it isn't the family's holder) but already publishing an adopted link: its
+    // calendar events advertise that link, and nothing here would republish them.
+    const linked = buildMeetingData({
+      title: "Fan Out Guard Linked", linkedToMid: anchor.mid,
+      zoomLink: "http://zoom.test/adopted-legacy", googleSyncStatus: "synced",
+    });
+    await prisma.meeting.create({ data: anchor });
+    await prisma.meeting.create({ data: linked });
+
+    expect((await POST(syncRequest(anchor.mid))).status).toBe(200);
+
+    const sibling = await prisma.meeting.findUnique({ where: { mid: linked.mid } });
+    expect(sibling?.zoomLink).toBe("http://zoom.test/adopted-legacy");
+    expect(sibling?.zid).toBeNull();
+    const retried = await prisma.meeting.findUnique({ where: { mid: anchor.mid } });
+    expect(retried?.zid).toBe("fanout-guard-zid");
+  });
+
+  // #556 (4): the family's one Zoom booking covers both schedules' weekdays, so the host has to
+  // be free on all of them -- write/meeting/route.ts's zoomCandidate resolves the same union.
+  test("the host is resolved against the family's union schedule, not the retried row's days alone", async () => {
+    mockedResolveZoomHost.mockResolvedValue("union-host@icr.test");
+    mockedCreateZoomMeeting.mockResolvedValue({ zid: "union-zid", zoomLink: "http://zoom.test/union", zoomPasscode: null });
+    mockedReconcileMeetingCalendars.mockResolvedValue({ updatedEventIds: {}, allSynced: true, googleSyncError: null });
+
+    const prisma = getTestPrismaClient();
+    const weekly = (daysOfWeek: string[], startDate: Date | string) => ({
+      create: { type: "weekly", startDate, daysOfWeek, firstDayOfWeek: "Sunday", interval: 1 },
+    });
+    const anchor = buildMeetingData({
+      title: "Union Anchor", modeType: "Hybrid", room: "Union Room", isRecurring: true,
+    });
+    const linked = buildMeetingData({
+      title: "Union Linked", linkedToMid: anchor.mid, isRecurring: true,
+    });
+    await prisma.meeting.create({
+      data: { ...anchor, recurrencePattern: weekly(["Monday", "Wednesday"], anchor.startDateTime) },
+    });
+    await prisma.meeting.create({
+      data: { ...linked, recurrencePattern: weekly(["Saturday"], linked.startDateTime) },
+    });
+
+    expect((await POST(syncRequest(anchor.mid))).status).toBe(200);
+
+    expect(mockedResolveZoomHost).toHaveBeenCalledTimes(1);
+    const [candidate] = mockedResolveZoomHost.mock.calls[0] as [{ recurrencePattern: { daysOfWeek: string[] } }];
+    expect([...candidate.recurrencePattern.daysOfWeek].sort())
+      .toEqual(["Monday", "Saturday", "Wednesday"]);
+  });
+
+  // #556 (5): the family's one Zoom meeting is one meeting on one account -- a row adopting it
+  // has to adopt whether the app owns it, or it would PATCH a meeting the family treats as
+  // unmanaged (or refuse to PATCH one it manages).
+  test("adopting a sibling's Zoom meeting copies zoomManaged", async () => {
+    mockedReconcileMeetingCalendars.mockResolvedValue({ updatedEventIds: {}, allSynced: true, googleSyncError: null });
+    mockedGetZoomMeetingCredentials.mockResolvedValue(null);
+
+    const prisma = getTestPrismaClient();
+    const anchor = buildMeetingData({
+      title: "Unmanaged Anchor", modeType: "Hybrid", room: "Unmanaged Room",
+      zid: "unmanaged-zid", zoomLink: "http://zoom.test/unmanaged", zoomManaged: false,
+      googleSyncStatus: "synced", zoomSyncStatus: "synced", zoomSyncError: null,
+    });
+    const linked = buildMeetingData({ title: "Unmanaged Linked", linkedToMid: anchor.mid });
+    await prisma.meeting.create({ data: anchor });
+    await prisma.meeting.create({ data: linked });
+
+    expect((await POST(syncRequest(linked.mid))).status).toBe(200);
+
+    const adopted = await prisma.meeting.findUnique({ where: { mid: linked.mid } });
+    expect(adopted?.zid).toBe("unmanaged-zid");
+    expect(adopted?.zoomManaged).toBe(false);
+    // An unmanaged Zoom meeting is never PATCHed, whichever family row triggered the sync.
+    expect(mockedUpdateZoomMeeting).not.toHaveBeenCalled();
   });
 
   test("the sibling of a just-provisioned schedule keeps its own pending sync status until it is retried", async () => {
