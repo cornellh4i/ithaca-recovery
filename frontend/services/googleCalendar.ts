@@ -2,7 +2,7 @@ import "server-only";
 import { google } from "googleapis";
 import { IMeeting, IRecurrencePattern } from "../types/models";
 import { getETDayBounds, convertETToUTC } from "../util/date/timeUtils";
-import { buildLinkedScheduleLabel } from "../util/meetings/linkedSchedules";
+import { buildLinkedScheduleLabel, LINKED_SCHEDULE_MODE_LABEL } from "../util/meetings/linkedSchedules";
 
 export const calendarIdForCategory: Record<string, string> = {
     AA:        process.env.GOOGLE_CALENDAR_AA ?? "",
@@ -114,6 +114,12 @@ function formatExdateCompact(occurrenceDate: Date | string, meetingStartDateTime
 // Zoom Room calendars pass their own join link.
 const MEETING_LOCATION = "518 W Seneca St, Ithaca, NY 14850";
 
+// A lone meeting's event title names its own mode, "In Person" included: unlike a Zoom topic,
+// a calendar event exists for an in-person meeting and its mode is exactly what a reader needs.
+// Passed explicitly rather than left to buildLinkedScheduleLabel's default, so both services
+// state the one thing they disagree about at their own call site (cf. ZOOM_SINGLE_TOPIC_SUFFIX).
+const CALENDAR_SINGLE_TITLE_SUFFIX = LINKED_SCHEDULE_MODE_LABEL;
+
 // The event title carries the meeting's mode ("… - Zoom Only") so it's visible at a glance on a
 // public calendar. A meeting run as a linked-schedule family gets that family's full name --
 // "One Day at a Time - Hybrid Mon-Fri - Zoom Only Sat" -- on EVERY member's event, not just the
@@ -121,8 +127,13 @@ const MEETING_LOCATION = "518 W Seneca St, Ithaca, NY 14850";
 // RRULE, but a reader landing on either one sees the same meeting described the same way, which
 // is also exactly the name the family's shared Zoom meeting carries. Nothing pins a calendar
 // title the way zoomTopic pins a Zoom topic, so there's no verbatim-name escape hatch here.
+//
+// TODO(linked-schedules PR3): the union title is recomputed only for the row being written, so
+// adding or removing a family member leaves the OTHER members' events on their previous title
+// until each is itself edited or retry-synced. PR3's family-wide fan-out has to republish every
+// member's calendar events alongside its updateZoomMeeting, not just the Zoom half.
 function buildEventTitle(meeting: IMeeting, family: IMeeting[]): string {
-    return buildLinkedScheduleLabel(meeting.title, meeting, family);
+    return buildLinkedScheduleLabel(meeting.title, meeting, family, CALENDAR_SINGLE_TITLE_SUFFIX);
 }
 
 // family: the meeting's linked-schedule family (util/meetings/linkedSchedules.ts), for the
