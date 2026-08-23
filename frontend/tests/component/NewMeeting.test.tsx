@@ -152,7 +152,6 @@ describe("NewMeetingSidebar linked schedule", () => {
     await act(async () => {});
 
     fillPrimaryMeeting();
-    fireEvent.click(screen.getByRole("button", { name: "Done" }));
     fireEvent.click(screen.getByRole("button", { name: /Add another mode for other days/ }));
 
     const draft = screen.getByTestId("linked-schedule-draft");
@@ -190,7 +189,6 @@ describe("NewMeetingSidebar linked schedule", () => {
     await act(async () => {});
 
     fillPrimaryMeeting();
-    fireEvent.click(screen.getByRole("button", { name: "Done" }));
     fireEvent.click(screen.getByRole("button", { name: /Add another mode for other days/ }));
 
     const draft = screen.getByTestId("linked-schedule-draft");
@@ -218,7 +216,6 @@ describe("NewMeetingSidebar linked schedule", () => {
     await act(async () => {});
 
     fillPrimaryMeeting();
-    fireEvent.click(screen.getByRole("button", { name: "Done" }));
     fireEvent.click(screen.getByRole("button", { name: /Add another mode for other days/ }));
 
     const draft = screen.getByTestId("linked-schedule-draft");

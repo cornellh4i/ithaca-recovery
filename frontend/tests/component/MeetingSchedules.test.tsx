@@ -41,20 +41,36 @@ const renderSchedules = (overrides: Partial<MeetingSchedulesProps> = {}) => {
 
 const addTrigger = () => screen.queryByRole("button", { name: /Add another mode for other days/ });
 
-describe("MeetingSchedules confirm and collapse", () => {
-  it("shows only the recurrence editor before the schedule is confirmed", () => {
+describe("MeetingSchedules collapse and second schedule", () => {
+  // One click, not two: the trigger is reachable straight from the open editor, and taking it is
+  // what collapses this meeting's schedule into its card.
+  it("offers a second schedule from the still-open recurrence editor", () => {
     renderSchedules({ isConfirmed: false });
 
     expect(screen.getByTestId("recurrence-editor")).toBeInTheDocument();
     expect(screen.queryByText(/Mon-Fri · 9 - 10 AM/)).not.toBeInTheDocument();
-    expect(addTrigger()).not.toBeInTheDocument();
+    expect(addTrigger()).toBeInTheDocument();
   });
 
-  it("summarises the confirmed schedule and offers a second one", () => {
+  it("summarises the collapsed schedule and still offers a second one", () => {
     renderSchedules();
 
     expect(screen.getByText("Mon-Fri · 9 - 10 AM")).toBeInTheDocument();
     expect(addTrigger()).toBeInTheDocument();
+  });
+
+  // Nothing to collapse into and nothing for the linked schedule to inherit.
+  it("offers no second schedule while the weekly pattern has no day", () => {
+    renderSchedules({
+      isConfirmed: false,
+      recurrencePattern: { ...weeklyPattern, daysOfWeek: [] },
+    });
+    expect(addTrigger()).not.toBeInTheDocument();
+  });
+
+  it("offers no second schedule while the Date or Time field is unreadable", () => {
+    renderSchedules({ isConfirmed: false, scheduleInstants: null });
+    expect(addTrigger()).not.toBeInTheDocument();
   });
 
   it("keeps the recurrence editor mounted while collapsed, so its state survives", () => {
@@ -85,10 +101,10 @@ describe("MeetingSchedules confirm and collapse", () => {
     expect(onAddSchedule).toHaveBeenCalledWith("In Person");
   });
 
-  it("explains why a second schedule can't be started instead of offering it", () => {
+  it("disables the trigger and says why a second schedule can't be started", () => {
     renderSchedules({ addBlockedNote: "Save this meeting's changes first." });
 
-    expect(addTrigger()).not.toBeInTheDocument();
+    expect(addTrigger()).toBeDisabled();
     expect(screen.getByText("Save this meeting's changes first.")).toBeInTheDocument();
   });
 });

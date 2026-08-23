@@ -566,22 +566,24 @@ describe("EditMeetingSidebar linked schedules", () => {
 });
 
 describe("EditMeetingSidebar adding a linked schedule", () => {
-  // Confirms this meeting's own schedule, then opens the second one's inline section.
   const openDraft = () => {
-    fireEvent.click(screen.getByRole("button", { name: "Done" }));
     fireEvent.click(screen.getByRole("button", { name: /Add another mode for other days/ }));
     return screen.getByTestId("linked-schedule-draft");
   };
 
-  it("collapses this meeting's schedule into a card and offers a second one", async () => {
+  // One click does both halves: this meeting's own schedule collapses into its summary card and
+  // the second schedule's fields open below it.
+  it("collapses this meeting's schedule into a card and opens the second one in one click", async () => {
     renderEdit(null);
     await act(async () => {});
 
-    expect(screen.queryByRole("button", { name: /Add another mode for other days/ })).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Done" }));
+    expect(screen.queryByText("Sun · 6 - 7 PM")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("linked-schedule-draft")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /Add another mode for other days/ }));
 
     expect(screen.getByText("Sun · 6 - 7 PM")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Add another mode for other days/ })).toBeInTheDocument();
+    expect(screen.getByTestId("linked-schedule-draft")).toBeInTheDocument();
   });
 
   it("submits the second schedule as a linkedSchedule block on the meeting's own save", async () => {
@@ -634,9 +636,8 @@ describe("EditMeetingSidebar adding a linked schedule", () => {
     await act(async () => {});
 
     fireEvent.change(screen.getByPlaceholderText("Meeting title"), { target: { value: "Renamed Series" } });
-    fireEvent.click(screen.getByRole("button", { name: "Done" }));
 
-    expect(screen.queryByRole("button", { name: /Add another mode for other days/ })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Add another mode for other days/ })).toBeDisabled();
     expect(screen.getByText(/Save this meeting's changes first/)).toBeInTheDocument();
   });
 
@@ -706,7 +707,6 @@ describe("EditMeetingSidebar adding a linked schedule", () => {
     );
     await act(async () => {});
 
-    fireEvent.click(screen.getByRole("button", { name: "Done" }));
     expect(screen.queryByRole("button", { name: /Add another mode for other days/ })).not.toBeInTheDocument();
   });
 });

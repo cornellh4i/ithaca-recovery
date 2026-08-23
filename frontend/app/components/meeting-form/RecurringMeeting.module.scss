@@ -66,30 +66,6 @@
     }
   }
 
-  // "Done": collapses this editor into a read-only schedule card so a second mode's schedule can
-  // be added beside it. Local only -- it confirms nothing with the server (see the onConfirm prop).
-  .confirmRow {
-    display: flex;
-    justify-content: flex-end;
-    margin-top: 4px;
-  }
-
-  .confirmButton {
-    background: #fff;
-    border: 1px solid $brand-pink-color;
-    border-radius: $radius-md;
-    color: $brand-pink-color;
-    font-family: "Source Sans Pro", sans-serif;
-    font-size: 13px;
-    font-weight: 600;
-    padding: 4px 16px;
-    cursor: pointer;
-
-    &:hover {
-      background-color: $grey-lightest-color;
-    }
-  }
-
   .separator {
     width: 100%;
     height: 1.5px;
