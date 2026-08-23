@@ -21,14 +21,22 @@ CREATE INDEX "Meeting_linkedToMid_idx" ON "Meeting"("linkedToMid");
 --     guard in the app rejects by JS truthiness (app/api/delete/meeting/route.ts) and which
 --     nothing in the write path or meetingSchema forbids persisting. Two blank-zid rows are two
 --     Zoom-less meetings, not a family, and linking them would union unrelated schedules.
---   * Anchor = the lexicographically smallest id. Meeting has no createdAt column, and every id
---     is a cuid (@default(cuid())), which is timestamp-prefixed, so min(id) is the
---     earlier-created row. This holds only while the id column stays single-format: a cuid
---     ("c...") sorts after a Mongo ObjectId hex ("6..."), so if ObjectId-shaped ids are ever
---     introduced, min(id) would pick by format before it picks by time.
--- Verified read-only against production before this migration shipped: exactly three pairs
--- match (Weekend Al-Anon 9 am / One Day at a Time / Early Bird Group, each a Remote anchor plus
--- a Hybrid sibling), no zid group has 3+ members, and no row holds an empty-string zid.
+--   * Anchor = the lexicographically smallest id. Meeting has no createdAt column, and "id" is
+--     mixed-format: rows carried over by the Mongo import kept their ObjectId hex, and
+--     @default(cuid()) only governs rows created since the Postgres cutover (no script that
+--     would have regenerated the imported ids exists in this repo). ObjectId hex ("6...") sorts
+--     before a cuid ("c..."), and every imported row is older than every cuid row, so the
+--     format-first ordering happens to agree with creation order and min(id) is the earlier
+--     row. It stops being the earlier row the moment a cuid row can predate an ObjectId-shaped
+--     one -- i.e. if the imported ids were regenerated, or ObjectId-shaped ids reintroduced.
+--     The legacy pairs this backfill targets are exactly the ones most likely to be ObjectIds.
+-- Scope check before applying (frontend/package.json runs `prisma migrate deploy` unattended on
+-- Vercel production): run the families CTE below on its own as a SELECT, plus a
+-- HAVING COUNT(*) > 2 variant, and confirm it matches the expected three pairs -- Weekend Al-Anon
+-- 9 am, One Day at a Time, Early Bird Group, each a Remote anchor plus a Hybrid sibling -- with no
+-- 3+-member zid group and no empty-string zid. That check has not been run against production
+-- from this branch. If the adopted set turns out wrong, reversal is one statement:
+-- UPDATE "Meeting" SET "linkedToMid" = NULL;
 WITH families AS (
   SELECT "zid", MIN("id") AS "anchorId"
   FROM "Meeting"
@@ -46,7 +54,6 @@ SET "linkedToMid" = anchor."mid"
 FROM families f
 JOIN "Meeting" anchor ON anchor."id" = f."anchorId"
 WHERE m."zid" = f."zid"
-  AND m."zid" <> ''
   AND m."id" <> f."anchorId"
   AND m."deletedAt" IS NULL
   AND m."splitFromMid" IS NULL
