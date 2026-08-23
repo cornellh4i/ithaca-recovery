@@ -8,6 +8,7 @@ import {
   claimedDaysFor,
   familyMembers,
   getLinkedFamily,
+  isDetachedSplitChild,
   isZoomBearing,
   resolveFamilyRows,
   type LinkedFamily,
@@ -281,6 +282,37 @@ describe("buildLinkedScheduleLabel", () => {
 
     expect(buildLinkedScheduleLabel("Early Bird Group", hybrid, [hybrid, oneTime]))
       .toBe("Early Bird Group - Hybrid Mon-Fri - Zoom Only One-time");
+  });
+
+  test("never names a detached split child, whatever mode it was later given", () => {
+    const hybrid = { ...labelRow("m-hybrid", "Hybrid", weekdays), isRecurring: true };
+    // A "this occurrence" split-off that was afterwards edited to a different mode: it shares
+    // the zid, so it reaches the family, but it is a one-off, not a schedule of its own.
+    const detached = { ...labelRow("m-split", "Remote"), isRecurring: false, splitFromMid: "m-hybrid" };
+
+    expect(buildLinkedScheduleLabel("One Day at a Time", hybrid, [hybrid, detached]))
+      .toBe("One Day at a Time - Hybrid");
+    // Its own edit names only itself too -- the in-flight payload carries no lineage fields, so
+    // the exclusion has to come from the stored copy in the family.
+    expect(buildLinkedScheduleLabel("One Day at a Time", labelRow("m-split", "Remote"), [hybrid, detached]))
+      .toBe("One Day at a Time - Zoom Only");
+  });
+
+  test("still names a recurring tail split, which is a genuine ongoing schedule", () => {
+    const hybrid = { ...labelRow("m-hybrid", "Hybrid", weekdays), isRecurring: true };
+    const tail = { ...labelRow("m-tail", "Remote", ["Saturday"]), isRecurring: true, splitFromMid: "m-hybrid" };
+
+    expect(buildLinkedScheduleLabel("One Day at a Time", hybrid, [hybrid, tail]))
+      .toBe("One Day at a Time - Hybrid Mon-Fri - Zoom Only Sat");
+  });
+});
+
+describe("isDetachedSplitChild", () => {
+  test("only a non-recurring row split off a parent is detached", () => {
+    expect(isDetachedSplitChild({ isRecurring: false, splitFromMid: "m-parent" })).toBe(true);
+    expect(isDetachedSplitChild({ isRecurring: true, splitFromMid: "m-parent" })).toBe(false);
+    expect(isDetachedSplitChild({ isRecurring: false, splitFromMid: null })).toBe(false);
+    expect(isDetachedSplitChild({ isRecurring: true })).toBe(false);
   });
 });
 

@@ -4,6 +4,7 @@ import { prisma } from "../../../../../lib/prisma";
 import { toPublicMeeting } from "../../../../../util/meetings/publicMeeting";
 import { getUnresolvedSuspension } from "../../../../../util/meetings/suspension";
 import { isSharedZoomScheduleCompatible } from "../../../../../util/meetings/sharedZoomSchedule";
+import { isDetachedSplitChild } from "../../../../../util/meetings/linkedSchedules";
 import { formatETDateString } from "../../../../../util/date/timeUtils";
 const getMeeting = async(request: NextRequest) => {
   try {
@@ -65,16 +66,16 @@ const getMeeting = async(request: NextRequest) => {
           },
         })
       : [];
-    // A "This event" split-off child (isRecurring: false, splitFromMid set) has no
-    // representation in Zoom's single schedule at all -- it's a one-off, not a second weekly
-    // slot -- so it must never count toward this divergence signal. Filtered out here, not in
-    // isSharedZoomScheduleCompatible itself: that function's "incompatible" answer for such a
-    // row is still the correct input to the schedule-neutral PATCH decision in services/zoom.ts,
-    // which is a different question (can Zoom's PATCH represent this row at all) than "is there
-    // a genuine, user-visible divergence to warn about." Without this, a detached child would
-    // permanently pin zoomScheduleDiverged to true with no way to ever clear it. A recurring
-    // tail split (editScope 'thisAndFollowing') keeps `isRecurring: true` and still counts.
-    const scheduleRelevantRows = [meeting, ...siblings].filter((row) => row.isRecurring || !row.splitFromMid);
+    // A "This event" split-off child has no representation in Zoom's single schedule at all --
+    // it's a one-off, not a second weekly slot -- so it must never count toward this divergence
+    // signal. Filtered out here, not in isSharedZoomScheduleCompatible itself: that function's
+    // "incompatible" answer for such a row is still the correct input to the schedule-neutral
+    // PATCH decision in services/zoom.ts, which is a different question (can Zoom's PATCH
+    // represent this row at all) than "is there a genuine, user-visible divergence to warn
+    // about." Without this, a detached child would permanently pin zoomScheduleDiverged to true
+    // with no way to ever clear it. Same predicate the family label excludes by, so the two can
+    // never disagree about what counts as a detached one-off.
+    const scheduleRelevantRows = [meeting, ...siblings].filter((row) => !isDetachedSplitChild(row));
     const sharedZoom = siblings.length > 0
       ? {
           sharedWith: siblings.map(({ title, modeType }) => ({ title, modeType })),
