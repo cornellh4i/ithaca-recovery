@@ -4,9 +4,8 @@
 // See ViewMeeting.tsx's use of matchesRecurrencePattern for why that matters: two independent
 // implementations previously disagreed on monthly patterns, excludedDates, and weekly interval
 // anchoring.
-import { convertETToUTC } from "../date/timeUtils";
+import { convertETToUTC, WEEKDAY_NAMES } from "../date/timeUtils";
 
-const daysOfWeekNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 const etFmt = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' });
 const etTimeFmt = new Intl.DateTimeFormat('en-GB', {
     timeZone: 'America/New_York',
@@ -61,7 +60,7 @@ export const matchesRecurrencePattern = (
     const patternStartLocalDate = new Date(Date.UTC(startEtYear, startEtMonth - 1, startEtDay));
 
     const dayOfWeek = localDate.getUTCDay();
-    const requestedDayName = daysOfWeekNames[dayOfWeek];
+    const requestedDayName = WEEKDAY_NAMES[dayOfWeek];
 
     if (recurrence.type === "monthly") {
         const interval = recurrence.interval ?? 1;

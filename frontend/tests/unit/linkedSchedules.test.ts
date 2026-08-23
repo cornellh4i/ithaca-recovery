@@ -15,14 +15,15 @@ import {
 // --- getLinkedFamily's fake client -------------------------------------------------------
 // A tiny in-memory stand-in for the Prisma delegate, honouring exactly the `where` keys
 // getLinkedFamily uses (mid / mid: { not } / linkedToMid / deletedAt) so a member the query
-// should have filtered out can't slip into a result and pass unnoticed.
+// should have filtered out can't slip into a result and pass unnoticed. findUnique ignores
+// deletedAt exactly like the real key lookup does -- the caller filters soft-deleted rows.
 
 type FakeRow = {
   mid: string;
   modeType: string;
   linkedToMid: string | null;
   deletedAt: Date | null;
-  recurrencePattern?: { daysOfWeek: string[] } | null;
+  recurrencePattern?: { daysOfWeek: string[] | null } | null;
 };
 
 type FakeWhere = {
@@ -42,9 +43,12 @@ const matches = (row: FakeRow, where: FakeWhere): boolean => {
 const fakeClient = (rows: FakeRow[]) =>
   ({
     meeting: {
-      findFirst: async ({ where }: { where: FakeWhere }) => rows.find((row) => matches(row, where)) ?? null,
-      findMany: async ({ where }: { where: FakeWhere }) =>
-        rows.filter((row) => matches(row, where)).sort((a, b) => a.mid.localeCompare(b.mid)),
+      findUnique: async ({ where }: { where: { mid: string } }) =>
+        rows.find((row) => row.mid === where.mid) ?? null,
+      findMany: async ({ where, orderBy }: { where: FakeWhere; orderBy?: { mid: "asc" | "desc" } }) => {
+        const found = rows.filter((row) => matches(row, where));
+        return orderBy?.mid === "asc" ? [...found].sort((a, b) => a.mid.localeCompare(b.mid)) : found;
+      },
     },
   }) as unknown as Prisma.TransactionClient;
 
@@ -91,6 +95,18 @@ describe("getLinkedFamily", () => {
     const family = await getLinkedFamily(fakeClient(rows), "survivor");
     expect(family?.anchor.mid).toBe("survivor");
     expect(family?.linked).toEqual([]);
+  });
+
+  test("returns linked members ordered by mid, not in storage order", async () => {
+    // Defensive beyond today's cap of 2: the Zoom topic's segment order is derived from this
+    // list, so it has to be deterministic no matter what order the rows come back in.
+    const rows = [
+      row("anchor"),
+      row("zulu", { linkedToMid: "anchor" }),
+      row("alpha", { linkedToMid: "anchor" }),
+    ];
+    const family = await getLinkedFamily(fakeClient(rows), "anchor");
+    expect(family?.linked.map((m) => m.mid)).toEqual(["alpha", "zulu"]);
   });
 
   test("the anchor never appears in its own linked list", async () => {
@@ -156,6 +172,14 @@ describe("claimedDaysFor", () => {
 
   test("claims nothing for a member with no recurrence pattern", () => {
     expect(claimedDaysFor(familyOf(schedule("Hybrid")))).toEqual([]);
+  });
+
+  test("claims nothing for a pattern whose daysOfWeek is null", () => {
+    const family = familyOf(
+      { modeType: "Hybrid", recurrencePattern: { daysOfWeek: null } },
+      schedule("Remote", ["Tuesday"]),
+    );
+    expect(claimedDaysFor(family)).toEqual(["Tuesday"]);
   });
 
   test("still reports a day name it doesn't recognise, rather than dropping it", () => {

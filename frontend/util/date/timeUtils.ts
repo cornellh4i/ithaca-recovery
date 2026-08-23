@@ -222,6 +222,16 @@ export const getETDayOfWeek = (date: Date): number =>
   new Date(getETCalendarDateMs(formatETDateString(date))).getUTCDay();
 
 /**
+ * Full weekday names, Sunday-first -- both the index<->name mapping for getETDayOfWeek's 0-6
+ * and the canonical sort order for a recurrence pattern's daysOfWeek. The single copy: the
+ * recurrence matcher, the export "Day" column, and the linked-schedules day union all read it,
+ * so they cannot drift on ordering or on the exact spellings stored in daysOfWeek.
+ */
+export const WEEKDAY_NAMES: readonly string[] = [
+  'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday',
+];
+
+/**
  * Parses a DatePicker field's MM/DD/YYYY value into a UTC Date at ET midnight for that day, or
  * null for an empty/unparseable value. Tolerates unpadded month/day -- DatePicker's onChange
  * can forward the user's raw typed text (e.g. "1/5/2026"), not just its zero-padded output.

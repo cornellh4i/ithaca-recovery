@@ -1,5 +1,7 @@
 import type { Prisma } from "@prisma/client";
 
+import { WEEKDAY_NAMES } from "../date/timeUtils";
+
 // A "linked schedules" family is one meeting the group runs as two co-existing weekly
 // schedules -- same time, duration and interval, different modes on different weekdays -- served
 // by ONE Zoom meeting (the shape the "Weekend Al-Anon 9 am" / "One Day at a Time" / "Early Bird
@@ -20,8 +22,6 @@ export const LINKED_SCHEDULE_CAP = 2;
 export const LINKED_SCHEDULE_MODES = ["Hybrid", "In Person", "Remote"] as const;
 
 export type LinkedScheduleMode = (typeof LINKED_SCHEDULE_MODES)[number];
-
-const WEEK_ORDER = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
 // The subset of a meeting row the pure predicates below read -- deliberately structural (same
 // approach as SharedZoomScheduleRow), so a Prisma row, an IMeeting, and a not-yet-created
@@ -61,14 +61,19 @@ export async function getLinkedFamily(
   tx: Prisma.TransactionClient,
   mid: string,
 ): Promise<LinkedFamily<LinkedFamilyMeeting> | null> {
-  const row = await tx.meeting.findFirst({ where: { mid, deletedAt: null }, include: FAMILY_INCLUDE });
+  // findUnique, not findFirst: mid is @unique, so "the row for this mid" is a key lookup and
+  // the soft-delete filter is a property of the row found, not part of what identifies it.
+  const live = async (byMid: string): Promise<LinkedFamilyMeeting | null> => {
+    const found = await tx.meeting.findUnique({ where: { mid: byMid }, include: FAMILY_INCLUDE });
+    return found && found.deletedAt === null ? found : null;
+  };
+
+  const row = await live(mid);
   if (!row) return null;
 
   // Single-level by construction: the cap of 2 means a linked row's anchor is never itself
   // linked, so there is no pointer chain to walk.
-  const anchor = row.linkedToMid
-    ? await tx.meeting.findFirst({ where: { mid: row.linkedToMid, deletedAt: null }, include: FAMILY_INCLUDE })
-    : row;
+  const anchor = row.linkedToMid ? await live(row.linkedToMid) : row;
   // Anchor soft-deleted out from under a survivor whose pointer wasn't cleared: treat the
   // survivor as its own family rather than reporting no family at all, so the row stays
   // editable and its Zoom topic falls back to the single-schedule form.
@@ -108,10 +113,10 @@ export function claimedDaysFor(family: LinkedFamily): string[] {
   const claimed = new Set(
     familyMembers(family).flatMap((row) => row.recurrencePattern?.daysOfWeek ?? []),
   );
-  const ordered = WEEK_ORDER.filter((day) => claimed.has(day));
+  const ordered = WEEKDAY_NAMES.filter((day) => claimed.has(day));
   // Anything not a recognised weekday name still has to be reported as claimed rather than
   // silently dropped, or the validator would let a second row claim it.
-  return [...ordered, ...[...claimed].filter((day) => !WEEK_ORDER.includes(day))];
+  return [...ordered, ...[...claimed].filter((day) => !WEEKDAY_NAMES.includes(day))];
 }
 
 /**
