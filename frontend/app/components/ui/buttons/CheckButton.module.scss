@@ -35,3 +35,14 @@
     color: white;
     border-color: $brand-pink-color;
   }
+
+  // A day another schedule of the same meeting already claims -- see DayPicker's disabledDays.
+  .checkButton:disabled {
+    background-color: $grey-lightest-color;
+    color: $grey-border-color;
+    cursor: not-allowed;
+  }
+
+  .checkButton:disabled:hover {
+    background-color: $grey-lightest-color;
+  }

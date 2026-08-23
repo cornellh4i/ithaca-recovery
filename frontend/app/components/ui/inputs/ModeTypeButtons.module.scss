@@ -59,6 +59,13 @@
   font-size: 12px;
 }
 
+// A mode the meeting's other schedule already runs -- see the disabledModes prop.
+.button:disabled {
+  background: $grey-lightest-color;
+  color: $grey-border-color;
+  cursor: not-allowed;
+}
+
 .icon {
   // !important: @mui/icons-material icons carry their own same-specificity .MuiSvgIcon-root
   // class (width/height: 1em) that otherwise wins unpredictably depending on emotion's

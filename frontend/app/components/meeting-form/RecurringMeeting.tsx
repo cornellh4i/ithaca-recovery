@@ -8,7 +8,7 @@ import DatePicker from '../ui/pickers/DatePicker';
 import Dropdown from '../ui/inputs/Dropdown';
 import styles from "./RecurringMeeting.module.scss";
 
-import CheckButton from '../ui/buttons/CheckButton';
+import DayPicker from '../ui/inputs/DayPicker';
 import { IRecurrencePattern } from "../../../types/models";
 import { convertUTCToET, formatETDateString, getDaysInMonth, getETDayOfWeek, parseMMDDYYYY, WEEKDAY_NAMES } from "../../../util/date/timeUtils";
 import { MAX_RECURRENCE_OCCURRENCES } from "../../../util/meetings/meetingValidation";
@@ -27,26 +27,11 @@ interface RecurringMeetingFormProps {
   // "wide" narrows the Repeats/monthly-option dropdowns so they don't stretch full-width in
   // wider embedding contexts (e.g. an inline edit panel) -- see MeetingForm's layout prop.
   layout?: "sidebar" | "wide";
+  // Renders a "Done" button under the recurrence controls. Purely local: the host collapses this
+  // editor into a read-only summary card so a second schedule can be added beside it -- nothing
+  // is saved until the form's own submit. Omitted where there is no second schedule to add.
+  onConfirm?: () => void;
 }
-
-// Full day name → abbreviated ID used by the day-picker buttons
-const fullDayToId: Record<string, string> = {
-  Sunday: 'sun', Monday: 'mon', Tuesday: 'tue', Wednesday: 'wed',
-  Thursday: 'thu', Friday: 'fri', Saturday: 'sat',
-};
-
-// Module-level (not component-body) so these have a stable reference across renders —
-// needed for correct useEffect dependency arrays below.
-const dayMapping: Record<string, string> = {
-  'sun': 'Sunday', 'mon': 'Monday', 'tue': 'Tuesday', 'wed': 'Wednesday',
-  'thu': 'Thursday', 'fri': 'Friday', 'sat': 'Saturday',
-};
-
-const days = [
-  { id: 'sun', label: 'S' }, { id: 'mon', label: 'M' }, { id: 'tue', label: 'T' },
-  { id: 'wed', label: 'W' }, { id: 'thu', label: 'T' }, { id: 'fri', label: 'F' },
-  { id: 'sat', label: 'S' },
-];
 
 const ordinals = ["1st", "2nd", "3rd", "4th"];
 
@@ -108,15 +93,15 @@ const RecurringMeetingForm: React.FC<RecurringMeetingFormProps> = ({
   startDate,
   initialValue,
   layout = "sidebar",
+  onConfirm,
 }) => {
   const initPattern = initialValue?.recurrencePattern ?? null;
 
   const [isRecurring, setIsRecurring] = useState(initialValue?.isRecurring ?? false);
   const [recurrenceType, setRecurrenceType] = useState<string>(initPattern?.type ?? "weekly");
   const [frequency, setFrequency] = useState(initPattern?.interval ?? 1);
-  const [selectedDays, setSelectedDays] = useState<string[]>(
-    (initPattern?.daysOfWeek ?? []).map(d => fullDayToId[d] ?? d)
-  );
+  // Full weekday names throughout ("Monday"), exactly as a recurrence pattern stores them.
+  const [selectedDays, setSelectedDays] = useState<string[]>(initPattern?.daysOfWeek ?? []);
   const [monthlyOption, setMonthlyOption] = useState<string>(
     initPattern?.type === "monthly" ? inferMonthlyOption(initPattern) : ""
   );
@@ -142,7 +127,7 @@ const RecurringMeetingForm: React.FC<RecurringMeetingFormProps> = ({
         const date = parseMMDDYYYY(startDate);
         if (date && selectedDays.length === 0) {
           // eslint-disable-next-line react-hooks/set-state-in-effect
-          setSelectedDays([days[getETDayOfWeek(date)].id]);
+          setSelectedDays([WEEKDAY_NAMES[getETDayOfWeek(date)]]);
         }
       } catch (error) {
         console.error("Error parsing date:", error);
@@ -229,7 +214,7 @@ const RecurringMeetingForm: React.FC<RecurringMeetingFormProps> = ({
           interval: frequency,
           startDate: parseMMDDYYYY(startDate ?? '') ?? new Date(),
           firstDayOfWeek: "Sunday",
-          daysOfWeek: selectedDays.map(day => dayMapping[day]),
+          daysOfWeek: selectedDays,
           endDate: endOption === 'On' && endDate ? parseMMDDYYYY(endDate) : null,
           numberOfOccurrences: endOption === 'After' ? occurrences : null,
         };
@@ -243,10 +228,10 @@ const RecurringMeetingForm: React.FC<RecurringMeetingFormProps> = ({
     setIsRecurring(e.target.checked);
   };
 
-  const toggleDay = (dayId: string) => {
+  const toggleDay = (day: string) => {
     setTouched(true);
     setSelectedDays((prev) =>
-      prev.includes(dayId) ? prev.filter((id) => id !== dayId) : [...prev, dayId]
+      prev.includes(day) ? prev.filter((selected) => selected !== day) : [...prev, day]
     );
   };
 
@@ -313,18 +298,12 @@ const RecurringMeetingForm: React.FC<RecurringMeetingFormProps> = ({
                   </div>
                 )}
 
-                <div className={styles.dayButtons}>
-                  <label style={{ marginRight: '5px' }}>On</label>
-                  {days.map((day) => (
-                    <CheckButton
-                      key={day.id}
-                      label={day.label}
-                      checked={selectedDays.includes(day.id)}
-                      onClick={() => toggleDay(day.id)}
-                      compact={layout === "sidebar"}
-                    />
-                  ))}
-                </div>
+                <DayPicker
+                  label="On"
+                  selectedDays={selectedDays}
+                  onToggleDay={toggleDay}
+                  compact={layout === "sidebar"}
+                />
 
                 {touched && selectedDays.length === 0 && (
                   <div className={styles['error-message']}>
@@ -390,6 +369,14 @@ const RecurringMeetingForm: React.FC<RecurringMeetingFormProps> = ({
                 ),
               }}
             />
+
+            {onConfirm && (
+              <div className={styles.confirmRow}>
+                <button type="button" className={styles.confirmButton} onClick={onConfirm}>
+                  Done
+                </button>
+              </div>
+            )}
           </div>
           <div className={styles.separator}></div>
         </div>
