@@ -36,10 +36,16 @@ afterAll(async () => {
 test("counts a Remote meeting's Zoom sync error even though it has no zoomRoom", async () => {
   const prisma = getTestPrismaClient();
 
+  // Suites share one Postgres instance and run in parallel, so every lookup below has to be
+  // keyed on a mid seeded here -- matching on modeType alone picks up another suite's rows.
+  const remoteMid = `m-${randomUUID()}`;
+  const pendingMid = `m-${randomUUID()}`;
+
   // Regression case: gating this count on zoomRoom truthy (the old behavior) would silently
   // exclude this meeting, since Remote meetings no longer have a zoomRoom.
   await prisma.meeting.create({
     data: buildMeetingData({
+      mid: remoteMid,
       modeType: "Remote",
       room: "",
       zoomSyncStatus: "error",
@@ -48,6 +54,7 @@ test("counts a Remote meeting's Zoom sync error even though it has no zoomRoom",
   });
   await prisma.meeting.create({
     data: buildMeetingData({
+      mid: pendingMid,
       modeType: "Hybrid",
       zoomRoom: "Serenity Room - Zoom",
       googleSyncStatus: "pending",
@@ -66,11 +73,11 @@ test("counts a Remote meeting's Zoom sync error even though it has no zoomRoom",
   const syncIssuesResponse = await getSyncIssues();
   const { syncIssues } = await syncIssuesResponse.json();
 
-  const remoteIssue = syncIssues.find((s: { title: string; modeType: string }) => s.title === "Diagnostics Count Meeting" && s.modeType === "Remote");
+  const remoteIssue = syncIssues.find((s: { mid: string }) => s.mid === remoteMid);
   expect(remoteIssue).toBeDefined();
   expect(remoteIssue.issues.some((i: { text: string }) => i.text.includes("Zoom sync failed"))).toBe(true);
 
-  const pendingIssue = syncIssues.find((s: { modeType: string }) => s.modeType === "Hybrid");
+  const pendingIssue = syncIssues.find((s: { mid: string }) => s.mid === pendingMid);
   expect(pendingIssue).toBeDefined();
   expect(pendingIssue.issues.some((i: { text: string }) => i.text.includes("Waiting on a Zoom host"))).toBe(true);
 });
