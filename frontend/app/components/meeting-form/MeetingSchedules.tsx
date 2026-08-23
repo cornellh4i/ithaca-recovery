@@ -191,21 +191,27 @@ const MeetingSchedules: React.FC<MeetingSchedulesProps> = ({
             this meeting&apos;s time, length and repeat: {inheritedScheduleText(recurrencePattern, scheduleInstants)}.
           </p>
 
-          <span className={styles.fieldCaption}>Mode</span>
-          <ModeTypeButtons
-            selectedMode={draft.modeType}
-            onModeSelect={onSelectDraftMode}
-            compact={compact}
-            disabledModes={LINKED_SCHEDULE_MODES.filter((mode) => !candidateModes.includes(mode))}
-          />
+          {/* Grouped and named the same way the form's own multi-control fields are: a caption
+              can't be a <label> for several controls at once. */}
+          <div role="group" aria-label="Linked schedule mode">
+            <span className={styles.fieldCaption}>Mode</span>
+            <ModeTypeButtons
+              selectedMode={draft.modeType}
+              onModeSelect={onSelectDraftMode}
+              compact={compact}
+              disabledModes={LINKED_SCHEDULE_MODES.filter((mode) => !candidateModes.includes(mode))}
+            />
+          </div>
 
-          <span className={styles.fieldCaption}>Days</span>
-          <DayPicker
-            selectedDays={draft.daysOfWeek}
-            onToggleDay={onToggleDraftDay}
-            disabledDays={claimedDays}
-            compact={compact}
-          />
+          <div role="group" aria-label="Linked schedule days">
+            <span className={styles.fieldCaption}>Days</span>
+            <DayPicker
+              selectedDays={draft.daysOfWeek}
+              onToggleDay={onToggleDraftDay}
+              disabledDays={claimedDays}
+              compact={compact}
+            />
+          </div>
 
           {/* The meeting form's own Room / Zoom room / Zoom host block, mounted for every mode
               still selectable above rather than for the one currently picked -- so the fields

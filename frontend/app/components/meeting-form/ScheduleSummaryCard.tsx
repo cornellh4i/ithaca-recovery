@@ -99,7 +99,10 @@ const ScheduleSummaryCard: React.FC<ScheduleSummaryCardProps> = ({
   removeDisabled = false,
 }) => {
   const { modeType, room, zoomRoom, googleSyncStatus, zoomSyncStatus } = schedule;
-  const locationText = [room, zoomRoom ? stripZoomSuffix(zoomRoom) : null].filter(Boolean).join(' · ');
+  // A Hybrid schedule's Zoom room is usually the auto-paired one for its physical room, and
+  // naming the same room twice reads as a mistake -- so it's only added when it differs.
+  const zoomRoomText = zoomRoom ? stripZoomSuffix(zoomRoom) : null;
+  const locationText = [room, zoomRoomText === room ? null : zoomRoomText].filter(Boolean).join(' · ');
 
   // Not yet live on the service in question. 'error' counts as waiting rather than broken: a
   // schedule created while the Zoom host pool was exhausted lands here with no calendar events

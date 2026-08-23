@@ -36,6 +36,13 @@
     border-color: $brand-pink-color;
   }
 
+  // Holds the selected fill under the pointer -- :hover above outranks .active on specificity,
+  // so without this a day reads as unselected for as long as the cursor rests on the button the
+  // user just clicked. Mirrors ModeTypeButtons' own .selected:hover.
+  .checkButton.active:hover {
+    background-color: $brand-pink-color;
+  }
+
   // A day another schedule of the same meeting already claims -- see DayPicker's disabledDays.
   .checkButton:disabled {
     background-color: $grey-lightest-color;
