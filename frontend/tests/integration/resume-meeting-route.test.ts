@@ -83,9 +83,11 @@ test("resuming early discards the pre-created future series instead of promoting
   const response = await POST(request);
   expect(response.status).toBe(200);
 
-  await waitFor(async () => (mockedDelete.mock.calls.length > 0 ? true : null));
+  // Both halves of the background sync, not just the teardown: the fresh series is created
+  // after a family lookup, so waiting only on the delete would race the create.
+  await waitFor(async () =>
+    mockedDelete.mock.calls.length > 0 && mockedCreate.mock.calls.length > 0 ? true : null);
   expect(mockedDelete).toHaveBeenCalledWith("fake-token", "pending-future-event-id", "fake-calendar-id");
-  expect(mockedCreate).toHaveBeenCalled();
 });
 
 test("resuming a meeting that isn't currently suspended returns 400", async () => {

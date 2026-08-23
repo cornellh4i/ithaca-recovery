@@ -89,6 +89,7 @@ test("a retry that newly succeeds at getting a host both creates the Zoom meetin
     "fake-token",
     expect.objectContaining({ zoomLink: "http://zoom.test/retried" }),
     {},
+    expect.any(Array),
   );
 
   const afterRetry = await prisma.meeting.findUnique({ where: { mid: meetingData.mid } });
@@ -249,7 +250,7 @@ describe("retrying an already-synced meeting (existing zid)", () => {
     expect(mockedReconcileMeetingCalendars).toHaveBeenCalled();
   });
 
-  test("a shared-zid meeting's retry hands its sibling rows to the Zoom PATCH so the union schedule is sent (#513)", async () => {
+  test("a shared-zid meeting's retry hands the whole family to the Zoom PATCH so the union schedule is sent (#513)", async () => {
     mockedUpdateZoomMeeting.mockResolvedValue(true);
     mockedReconcileMeetingCalendars.mockResolvedValue({ updatedEventIds: {}, allSynced: true, googleSyncError: null });
 
@@ -266,10 +267,12 @@ describe("retrying an already-synced meeting (existing zid)", () => {
     }));
 
     expect(mockedUpdateZoomMeeting).toHaveBeenCalledTimes(1);
-    const [zidArg, , siblingsArg] = mockedUpdateZoomMeeting.mock.calls[0];
+    const [zidArg, , familyArg] = mockedUpdateZoomMeeting.mock.calls[0];
     expect(zidArg).toBe(shared);
-    expect(siblingsArg).toHaveLength(1);
-    expect(siblingsArg[0].mid).toBe(siblingData.mid);
+    // The family the Zoom body is built from is every live row the meeting serves, the retried
+    // row included -- the service replaces that row with the in-flight copy it was handed.
+    expect((familyArg as { mid: string }[]).map((row) => row.mid).sort())
+      .toEqual([meetingData.mid, siblingData.mid].sort());
   });
 
   test("a retry adopts a portal-side passcode/link change: fresh credentials are stored and the reconcile publishes the live link", async () => {
@@ -294,6 +297,7 @@ describe("retrying an already-synced meeting (existing zid)", () => {
       "fake-token",
       expect.objectContaining({ zoomLink: "http://zoom.test/existing?pwd=rotated" }),
       expect.anything(),
+      expect.any(Array),
     );
     const after = await prisma.meeting.findUnique({ where: { mid: meetingData.mid } });
     expect(after?.zoomPasscode).toBe("rotated");

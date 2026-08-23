@@ -18,6 +18,7 @@
 // (the condition neutralizes services/zoom.ts's "server-only" guard outside Next).
 import { PrismaClient } from "@prisma/client";
 import { getZoomMeetingCredentials, updateZoomMeeting } from "../services/zoom";
+import { getZoomScheduleFamily } from "../util/meetings/linkedSchedules";
 import type { IMeeting } from "../types/models";
 
 const databaseUrl = process.env.DATABASE_URL_UNPOOLED ?? process.env.DATABASE_URL;
@@ -68,15 +69,18 @@ async function main(): Promise<void> {
       }
     }
 
-    // updateZoomMeeting receives the OTHER rows sharing this zid, so a shared meeting's PATCH
-    // sends the union of every row's schedule rather than one row's narrowed view (#513).
+    // updateZoomMeeting receives the representative's whole linked-schedule family (which also
+    // covers every row sharing this zid), so a shared meeting's PATCH sends the union of every
+    // row's schedule rather than one row's narrowed view (#513) -- and, just as importantly,
+    // recomputes the same family Zoom name the app's own PATCH paths do, so the monthly scan
+    // can never rename a linked family's meeting back to a single schedule's name.
     const representative = group.find((m) => m.zoomManaged && m.isRecurring && m.status !== "Suspended") ?? null;
     if (representative) {
-      const siblings = group.filter((m) => m !== representative);
+      const family = await getZoomScheduleFamily(prisma, representative.mid, zid);
       const ok = await updateZoomMeeting(zid, {
         ...representative,
         recurrencePattern: representative.recurrencePattern ?? null,
-      } as unknown as IMeeting, siblings as unknown as IMeeting[]);
+      } as unknown as IMeeting, family);
       if (ok) extended++;
       else {
         failures++;

@@ -11,6 +11,7 @@ import { createZoomMeeting, updateZoomMeeting, deleteZoomMeeting, getZoomHostCap
 import { findResourceConflicts, findResourceConflictRows, ConflictRow, ResourceConflictAbort } from "../../../../util/meetings/resourceOverlap";
 import { lockResourceClaims, ResourceClaim } from "../../../../util/meetings/resourceLocks";
 import { meetingSchema, editScopeSchema } from "../../../../util/meetings/meetingValidation";
+import { linkedFamilyLoader, LinkedFamilyLoader } from "../../../../util/meetings/linkedSchedules";
 import { reconcilePendingResume, tearDownPendingResumeSeries } from "../../../../util/meetings/suspension";
 import { calculateEndDateFromOccurrences } from "../../../../util/meetings/meetingOccurrences";
 import { EditScope, countOccurrencesBefore, exclusionInstant, trimmedEndDate, isLiveOccurrence, rootSplitMid, toETDateStr } from "../../../../util/meetings/editScope";
@@ -53,6 +54,11 @@ async function syncUpdatedMeeting(
   // time-conflict, below) -- read outside this block by zoomBlocking, so the calType calendar
   // reconcile doesn't publish the new time while Zoom itself is still sitting at the old one.
   let skipCalendarTimeSync = false;
+  // One family lookup for this whole sync: the Zoom PATCH/create below and every Google Calendar
+  // write further down name the family the same way, so they must read the same rows. Whichever
+  // gets there first pays for the query; an In-Person family member reaches only the calendar
+  // half and loads it there.
+  const loadFamily = linkedFamilyLoader(prisma, mid);
 
   if (zoomEnabled) {
     // A room isn't tied to any particular Zoom meeting (#522) -- a room change alone moves only
@@ -182,16 +188,13 @@ async function syncUpdatedMeeting(
         // Unmanaged Zoom meetings are never PATCHed -- the stored link is the contract; only
         // the calendars follow the app-side edit.
         // The pinned topic (if any) lives on the DB row, not the client payload -- thread it
-        // through so a managed PATCH keeps the meeting's established Zoom name. Sibling rows
-        // sharing this zid ride along so the PATCH sends the whole union schedule (#513).
-        const scheduleSiblings = existingMeeting.zoomManaged
-          ? await prisma.meeting.findMany({
-              where: { zid, deletedAt: null, mid: { not: newMeeting.mid } },
-              include: { recurrencePattern: true },
-            })
-          : [];
+        // through so a managed PATCH keeps the meeting's established Zoom name (a null one
+        // stays null, so an auto topic is recomputed from the family below rather than pinned).
+        // The whole linked-schedule family rides along so the PATCH sends the union schedule
+        // (#513) and the family's own Zoom name, not this row's narrowed view of either.
+        const family = existingMeeting.zoomManaged ? await loadFamily(zid) : [];
         const ok = existingMeeting.zoomManaged
-          ? await updateZoomMeeting(zid, { ...newMeeting, zoomTopic: existingMeeting.zoomTopic }, scheduleSiblings as unknown as IMeeting[])
+          ? await updateZoomMeeting(zid, { ...newMeeting, zoomTopic: existingMeeting.zoomTopic }, family)
           : true;
         if (!ok) zoomSynced = false;
       }
@@ -208,7 +211,12 @@ async function syncUpdatedMeeting(
         zoomSynced = false;
         zoomSyncError = hostSyncError ?? "No Zoom host available for this meeting's schedule (pool exhausted).";
       } else {
-        const created = await createZoomMeeting(newMeeting, host);
+        // No zid to group by here (this row either never had one or just had it torn down), so
+        // the family is whatever linkedToMid says -- enough for the fresh meeting to be minted
+        // with the family's union schedule and Zoom name rather than a name it has to be
+        // renamed out of on the next PATCH.
+        const family = await loadFamily(null);
+        const created = await createZoomMeeting(newMeeting, host, family);
         if (created) {
           zid = created.zid;
           zoomLink = created.zoomLink;
@@ -230,14 +238,15 @@ async function syncUpdatedMeeting(
       const calId = zoomRoomCalendarId[newZoomRoom];
       if (calId) {
         const meetingWithZoomLink = { ...newMeeting, zoomLink };
+        const family = await loadFamily(zid);
         if (zoomCalendarEventId) {
-          const { ok, error } = await updateCalendarEvent(accessToken, zoomCalendarEventId, meetingWithZoomLink, calId, zoomLink);
+          const { ok, error } = await updateCalendarEvent(accessToken, zoomCalendarEventId, meetingWithZoomLink, calId, zoomLink, family);
           if (!ok) {
             zoomSynced = false;
             zoomSyncError = zoomSyncError ?? error ?? "Zoom meeting's calendar event failed to update.";
           }
         } else {
-          const { id: eventId, error } = await createCalendarEvent(accessToken, meetingWithZoomLink, calId, zoomLink);
+          const { id: eventId, error } = await createCalendarEvent(accessToken, meetingWithZoomLink, calId, zoomLink, family);
           if (eventId) zoomCalendarEventId = eventId;
           else {
             zoomSynced = false;
@@ -263,6 +272,7 @@ async function syncUpdatedMeeting(
       accessToken,
       meetingForCalendar,
       existingEventIds,
+      await loadFamily(zid),
     );
 
     await prisma.meeting.update({
@@ -345,10 +355,14 @@ async function syncScopedParentCalendar(
   meetingForCalendar: IMeeting,
   zoomCalendarEventId: string | null,
   zoomRoom: string | null,
+  loadFamily: LinkedFamilyLoader,
 ): Promise<void> {
   if (!accessToken || status === 'Suspended') return;
   let synced = true;
   let syncError: string | null = null;
+  // The parent may be one schedule of a linked family, whose event title names every schedule --
+  // rewriting its body without the family would quietly rename it back to its own mode alone.
+  const family = await loadFamily(meetingForCalendar.zid ?? null);
   for (const [cat, calId] of Object.entries(calendarIds)) {
     const eventId = eventIds[cat];
     if (!eventId) {
@@ -360,7 +374,7 @@ async function syncScopedParentCalendar(
       syncError = syncError ?? `Missing Google Calendar event ID for "${cat}".`;
       continue;
     }
-    const { ok, error } = await updateCalendarEvent(accessToken, eventId, meetingForCalendar, calId);
+    const { ok, error } = await updateCalendarEvent(accessToken, eventId, meetingForCalendar, calId, undefined, family);
     if (!ok) {
       synced = false;
       syncError = syncError ?? error ?? "Failed to update the calendar event.";
@@ -373,7 +387,7 @@ async function syncScopedParentCalendar(
   if (zoomCalendarEventId && zoomRoom && meetingForCalendar.zoomLink) {
     const calId = zoomRoomCalendarId[zoomRoom];
     if (calId) {
-      const { ok, error } = await updateCalendarEvent(accessToken, zoomCalendarEventId, meetingForCalendar, calId, meetingForCalendar.zoomLink);
+      const { ok, error } = await updateCalendarEvent(accessToken, zoomCalendarEventId, meetingForCalendar, calId, meetingForCalendar.zoomLink, family);
       if (!ok) {
         synced = false;
         syncError = syncError ?? error ?? "Failed to update the Zoom-Room calendar event.";
@@ -396,6 +410,7 @@ async function syncSplitMeeting(
   meetingData: IMeeting,
   isRecurring: boolean,
   accessToken: string | undefined,
+  loadFamily: LinkedFamilyLoader,
 ): Promise<void> {
   // Defense in depth, same guard as syncUpdatedMeeting's -- the caller always creates a
   // split-off row with status: 'Active' (it has no suspension history of its own), so this
@@ -405,6 +420,11 @@ async function syncSplitMeeting(
 
   const zoomEnabled = meetingData.modeType === 'Hybrid' || meetingData.modeType === 'Remote';
   const meetingForSync: IMeeting = { ...meetingData, isRecurring };
+  // The split-off row is a lineage of its parent, not a second mode, so it joins the family only
+  // through the zid it inherited -- which is exactly how Zoom already sees it. Read from the
+  // parent's loader: this sync runs concurrently with syncScopedParentCalendar over the same
+  // zid group, so the two share one lookup instead of issuing near-identical queries.
+  const family = await loadFamily(meetingData.zid ?? null);
 
   let googleCalendarEventIds: Record<string, string> | undefined;
   let googleSyncStatus: string | undefined;
@@ -419,7 +439,7 @@ async function syncSplitMeeting(
       ? `Calendar for "${unconfiguredCat}" is not configured.`
       : null;
     for (const [cat, calId] of Object.entries(calendarIds)) {
-      const { id, error } = await createCalendarEvent(accessToken, meetingForSync, calId);
+      const { id, error } = await createCalendarEvent(accessToken, meetingForSync, calId, undefined, family);
       if (id) eventIds[cat] = id;
       else syncError = syncError ?? error;
     }
@@ -438,7 +458,7 @@ async function syncSplitMeeting(
   if (zoomEnabled && accessToken && meetingData.zoomLink && meetingData.zoomRoom) {
     const calId = zoomRoomCalendarId[meetingData.zoomRoom];
     if (calId) {
-      const { id: eventId, error } = await createCalendarEvent(accessToken, meetingForSync, calId, meetingData.zoomLink);
+      const { id: eventId, error } = await createCalendarEvent(accessToken, meetingForSync, calId, meetingData.zoomLink, family);
       if (eventId) zoomCalendarEventId = eventId;
       else {
         zoomSynced = false;
@@ -684,11 +704,15 @@ async function handleScopedEdit(
   // The parent's OWN field values (unchanged by a scoped edit -- only its pattern is
   // trimmed/excluded) plus the just-written post-trim pattern from the transaction result.
   const parentForCalendar = { ...existingMeeting, recurrencePattern: updatedParent.recurrencePattern } as unknown as IMeeting;
+  // One family lookup for both background syncs below: the split child inherits the parent's
+  // zid, so keyed on the parent's mid it returns the superset both of them need -- and they
+  // start concurrently, which is why the loader caches its in-flight promise.
+  const loadFamily = linkedFamilyLoader(prisma, mid);
 
   after(
     syncScopedParentCalendar(
       mid, existingMeeting.status, auth.accessToken, calendarIds, eventIds, parentForCalendar,
-      existingMeeting.zoomCalendarEventId, existingMeeting.zoomRoom,
+      existingMeeting.zoomCalendarEventId, existingMeeting.zoomRoom, loadFamily,
     ).catch((error) => console.error("syncScopedParentCalendar threw:", error)),
   );
   if (hasStaleResumeSeries) {
@@ -705,6 +729,7 @@ async function handleScopedEdit(
       { ...newMeeting, mid: newMid, zid: existingMeeting.zid, zoomLink: existingMeeting.zoomLink, status: 'Active' },
       isRecurringSplit,
       auth.accessToken,
+      loadFamily,
     ).catch(async (error) => {
       console.error("syncSplitMeeting threw:", error);
       try {

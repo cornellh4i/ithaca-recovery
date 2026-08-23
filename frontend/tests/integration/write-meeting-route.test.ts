@@ -502,6 +502,9 @@ test("a Remote meeting (no zoomRoom) still gets a Zoom meeting created, and its 
     "fake-token",
     expect.objectContaining({ zoomLink: "http://zoom.test/remote" }),
     "fake-calendar-id",
+    undefined,
+    // The linked-schedule family, for the event title -- a family of one here.
+    [expect.objectContaining({ mid: payload.mid })],
   );
 });
 
@@ -717,6 +720,11 @@ test("a recurring meeting creates its Meeting and RecurrencePattern together (on
   expect(meetingRow?.isRecurring).toBe(true);
   expect(patternRow).not.toBeNull();
   expect(patternRow?.daysOfWeek).toEqual(["Monday"]);
+
+  // Drains this meeting's background sync before the test ends -- nothing above needs its
+  // result, but a still-in-flight createCalendarEvent would otherwise land inside the next
+  // test and count against its own call assertions.
+  await waitForGoogleSyncStatus(payload.mid);
 });
 
 test("a category with no configured calendar fails the meeting's sync, even if its other category succeeds", async () => {

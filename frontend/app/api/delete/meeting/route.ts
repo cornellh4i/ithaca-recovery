@@ -10,6 +10,7 @@ import {
 import { IMeeting } from '../../../../types/models';
 import { deleteZoomMeeting, zoomRoomCalendarId } from '../../../../services/zoom';
 import { reconcilePendingResume, tearDownPendingResumeSeries, MeetingWithSuspensions } from '../../../../util/meetings/suspension';
+import { getZoomScheduleFamily } from '../../../../util/meetings/linkedSchedules';
 import { prisma } from '../../../../lib/prisma';
 
 // Returns "YYYY-MM-DD" in Eastern Time for the given UTC timestamp.
@@ -49,6 +50,10 @@ async function syncPartialDelete(
   if (!accessToken || status === 'Suspended') return;
   let synced = true;
   let syncError: string | null = null;
+  // The surviving row may be one schedule of a linked family, whose event title names every
+  // schedule -- rewriting its body without the family would quietly rename it back to its own
+  // mode alone.
+  const family = await getZoomScheduleFamily(prisma, mid, meetingForCalendar.zid ?? null);
   for (const [cat, calId] of Object.entries(calendarIds)) {
     const eventId = eventIds[cat];
     if (!eventId) {
@@ -60,7 +65,7 @@ async function syncPartialDelete(
       syncError = syncError ?? `Missing Google Calendar event ID for "${cat}".`;
       continue;
     }
-    const { ok, error } = await updateCalendarEvent(accessToken, eventId, meetingForCalendar, calId);
+    const { ok, error } = await updateCalendarEvent(accessToken, eventId, meetingForCalendar, calId, undefined, family);
     if (!ok) {
       synced = false;
       syncError = syncError ?? error ?? "Failed to update the calendar event.";
@@ -73,7 +78,7 @@ async function syncPartialDelete(
   if (zoomCalendarEventId && zoomRoom && meetingForCalendar.zoomLink) {
     const calId = zoomRoomCalendarId[zoomRoom];
     if (calId) {
-      const { ok, error } = await updateCalendarEvent(accessToken, zoomCalendarEventId, meetingForCalendar, calId, meetingForCalendar.zoomLink);
+      const { ok, error } = await updateCalendarEvent(accessToken, zoomCalendarEventId, meetingForCalendar, calId, meetingForCalendar.zoomLink, family);
       if (!ok) {
         synced = false;
         syncError = syncError ?? error ?? "Failed to update the Zoom-Room calendar event.";

@@ -1,6 +1,8 @@
 import type { Prisma } from "@prisma/client";
 
+import type { IMeeting } from "../../types/models";
 import { WEEKDAY_NAMES } from "../date/timeUtils";
+import { formatDayColumn } from "./recurrenceDisplay";
 
 // A "linked schedules" family is one meeting the group runs as two co-existing weekly
 // schedules -- same time, duration and interval, different modes on different weekdays -- served
@@ -26,12 +28,50 @@ export const LINKED_SCHEDULE_MODES = ["Hybrid", "In Person", "Remote"] as const;
 
 export type LinkedScheduleMode = (typeof LINKED_SCHEDULE_MODES)[number];
 
+// Only the pattern fields formatDayColumn reads, all optional so a Prisma row, an IMeeting's
+// IRecurrencePattern, and a bare { daysOfWeek } candidate all satisfy it.
+export interface LinkedSchedulePattern {
+  type?: string;
+  weekOfMonth?: number | null;
+  dayOfMonth?: number | null;
+  daysOfWeek?: string[] | null;
+}
+
 // The subset of a meeting row the pure predicates below read -- deliberately structural (same
 // approach as SharedZoomScheduleRow), so a Prisma row, an IMeeting, and a not-yet-created
 // candidate row from a request payload all satisfy it without casting.
 export interface LinkedScheduleRow {
   modeType: string;
-  recurrencePattern?: { daysOfWeek?: string[] | null } | null;
+  recurrencePattern?: LinkedSchedulePattern | null;
+}
+
+/**
+ * A row {@link buildLinkedScheduleLabel} can reconcile against a family: identity plus schedule.
+ * The lineage fields are optional so an in-flight request payload (which carries no
+ * `splitFromMid`) still satisfies it -- see {@link isDetachedSplitChild}.
+ */
+export interface LinkedScheduleLabelRow extends LinkedScheduleRow {
+  mid: string;
+  isRecurring?: boolean | null;
+  splitFromMid?: string | null;
+}
+
+/**
+ * A "this occurrence" split-off child: a one-off detached from a series, not a schedule of its
+ * own. It has no representation in the family's name or in Zoom's single schedule -- one
+ * detached child whose mode was later edited would otherwise add a bogus segment
+ * ("… - Zoom Only One-time") to every sharing row's Zoom topic and calendar title.
+ *
+ * Deliberately NOT applied to the family {@link getZoomScheduleFamily} returns: such a row is
+ * still a real row of the shared Zoom meeting, and buildZoomRecurrence must keep seeing it to
+ * decide whether Zoom's schedule can be represented at all (retrieve/meeting/[id] draws the
+ * same distinction for zoomScheduleDiverged, from this same predicate).
+ *
+ * A recurring tail split (editScope 'thisAndFollowing') keeps `isRecurring: true` and is a
+ * genuine ongoing schedule, so it is not detached.
+ */
+export function isDetachedSplitChild(row: { isRecurring?: boolean | null; splitFromMid?: string | null }): boolean {
+  return !row.isRecurring && !!row.splitFromMid;
 }
 
 export interface LinkedFamily<TRow extends LinkedScheduleRow = LinkedScheduleRow> {
@@ -90,6 +130,34 @@ export async function getLinkedFamily(
   return { anchor, linked };
 }
 
+/**
+ * Every live row the family's single Zoom meeting has to account for, ready to hand to
+ * createZoomMeeting/updateZoomMeeting (services/zoom.ts).
+ *
+ * Two sources, unioned by mid, because neither alone is the whole picture:
+ * - the linked-schedule family -- the only way to reach a Zoom-free In-Person member, which
+ *   holds no zid yet still names itself in the family's Zoom topic;
+ * - every other live row sharing this zid -- a scoped edit's split children (deliberately not
+ *   family members) and any legacy zid group the linked backfill didn't cover. Those are real
+ *   rows of the same Zoom meeting, and dropping them would narrow the union schedule Zoom
+ *   currently holds (#513).
+ */
+export async function getZoomScheduleFamily(
+  tx: Prisma.TransactionClient,
+  mid: string,
+  zid: string | null,
+): Promise<IMeeting[]> {
+  const family = await getLinkedFamily(tx, mid);
+  const zidRows = zid
+    ? await tx.meeting.findMany({ where: { zid, deletedAt: null }, include: FAMILY_INCLUDE })
+    : [];
+  const byMid = new Map<string, LinkedFamilyMeeting>();
+  for (const row of [...(family ? familyMembers(family) : []), ...zidRows]) byMid.set(row.mid, row);
+  // A Prisma row with its pattern included is structurally what the Zoom body builder reads,
+  // just not nominally an IMeeting -- the same cast the routes already made for zid siblings.
+  return [...byMid.values()] as unknown as IMeeting[];
+}
+
 /** Whether another schedule may still be added to this family (cap of {@link LINKED_SCHEDULE_CAP}). */
 export function canLinkSchedule(family: LinkedFamily): boolean {
   return familyMembers(family).length < LINKED_SCHEDULE_CAP;
@@ -128,4 +196,102 @@ export function claimedDaysFor(family: LinkedFamily): string[] {
  */
 export function isZoomBearing(row: { modeType: string }): boolean {
   return row.modeType === "Hybrid" || row.modeType === "Remote";
+}
+
+// --- the family's display name, shared by every external service --------------------------
+
+/**
+ * The family as a service must see it for THIS write: callers load the family from the
+ * database, so the row being created or updated is still its pre-edit copy in there -- the
+ * in-flight version replaces it. A caller that passes only the OTHER rows still gets a
+ * complete family, so no caller has to know which of the two shapes it holds.
+ */
+export function resolveFamilyRows<TRow extends { mid: string }>(meeting: TRow, family: TRow[]): TRow[] {
+  return family.some((row) => row.mid === meeting.mid)
+    ? family.map((row) => (row.mid === meeting.mid ? meeting : row))
+    : [meeting, ...family];
+}
+
+// How each mode names itself inside a family label. Only Remote is renamed ("Zoom Only") --
+// ICR's meetings are never fully unattended, so "Remote" would read as unhosted.
+export const LINKED_SCHEDULE_MODE_LABEL: Record<LinkedScheduleMode, string> = {
+  Hybrid: "Hybrid",
+  "In Person": "In Person",
+  Remote: "Zoom Only",
+};
+
+// The Day column the exports already render ("Mon-Fri", "Sat", "Daily") -- one formatter, so a
+// family's external name can never disagree with how the same schedule reads everywhere else.
+function scheduleDayLabel(pattern: LinkedSchedulePattern | null | undefined): string {
+  if (!pattern) return formatDayColumn(null);
+  return formatDayColumn({
+    type: pattern.type ?? "",
+    weekOfMonth: pattern.weekOfMonth ?? null,
+    dayOfMonth: pattern.dayOfMonth ?? null,
+    daysOfWeek: pattern.daysOfWeek ?? [],
+  });
+}
+
+/**
+ * The name one meeting run as several linked schedules carries on every external service:
+ * `"One Day at a Time - Hybrid Mon-Fri - Zoom Only Sat"`. Segments follow
+ * {@link LINKED_SCHEDULE_MODES}' fixed order, never the order the rows were created in, so the
+ * name is stable no matter which member triggered the write.
+ *
+ * Pure text: no knowledge of Zoom, Google Calendar, or zid. A caller with a pinned name of its
+ * own (Zoom's `zoomTopic`) short-circuits before ever reaching here.
+ *
+ * `singleScheduleSuffix` is the one thing the services genuinely disagree about: a lone row's
+ * own mode suffix. A Google Calendar event says "In Person" on an in-person meeting; a Zoom
+ * topic never does, because an in-person meeting has no Zoom meeting to name. Passing the map
+ * keeps each service's established single-schedule name byte-for-byte while the family case
+ * stays shared.
+ *
+ * `baseTitle` is the caller's own row's title, so two members' names agree only while their
+ * `title` columns do. Nothing here reconciles them -- an admin may still edit a linked row's
+ * title directly, which silently de-syncs the two events' names until both are rewritten.
+ */
+export function buildLinkedScheduleLabel(
+  baseTitle: string,
+  meeting: LinkedScheduleLabelRow,
+  family: LinkedScheduleLabelRow[],
+  singleScheduleSuffix: Record<string, string> = LINKED_SCHEDULE_MODE_LABEL,
+): string {
+  // Detachment is a property of the STORED row: the in-flight copy replacing it below comes
+  // from a request payload that carries no lineage fields, so a detached child would otherwise
+  // re-enter the label through its own edit.
+  const detachedMids = new Set(family.filter(isDetachedSplitChild).map((row) => row.mid));
+  const rows = resolveFamilyRows(meeting, family)
+    .filter((row) => !detachedMids.has(row.mid) && !isDetachedSplitChild(row));
+  const segments = LINKED_SCHEDULE_MODES.flatMap((mode) => {
+    const row = rows.find((candidate) => candidate.modeType === mode);
+    return row ? [`${LINKED_SCHEDULE_MODE_LABEL[mode]} ${scheduleDayLabel(row.recurrencePattern)}`.trim()] : [];
+  });
+  // Keyed on distinct MODES, not row count: a family's modes are unique by construction, so
+  // two segments means a genuine linked family, while several rows of the same mode (a legacy
+  // zid group, a recurring tail split) collapse to one segment and keep the plain
+  // single-schedule name they have today. Always the row's OWN mode, even when the row was
+  // filtered out above -- a detached one-off names itself, never the family it left.
+  if (segments.length < 2) {
+    const suffix = singleScheduleSuffix[meeting.modeType];
+    return suffix ? `${baseTitle} - ${suffix}` : baseTitle;
+  }
+  return `${baseTitle} - ${segments.join(" - ")}`;
+}
+
+/** A shareable once-per-request family reader -- see {@link linkedFamilyLoader}. */
+export type LinkedFamilyLoader = (zid: string | null) => Promise<IMeeting[]>;
+
+/**
+ * A once-per-request {@link getZoomScheduleFamily} reader. One meeting's family names both its
+ * Zoom topic and every family member's Google Calendar event title in the same sync, and the
+ * two must agree -- so the lookup happens at most once and every consumer reads that result.
+ * The `zid` argument only matters on the first call, which is the one that runs the query.
+ *
+ * Caches the in-flight promise, not the resolved value: a scoped edit starts its parent and
+ * child `after()` syncs concurrently, so two callers can reach an unresolved loader.
+ */
+export function linkedFamilyLoader(tx: Prisma.TransactionClient, mid: string): LinkedFamilyLoader {
+  let loaded: Promise<IMeeting[]> | null = null;
+  return (zid) => (loaded ??= getZoomScheduleFamily(tx, mid, zid));
 }

@@ -13,7 +13,9 @@ jest.mock("../../services/googleCalendar", () => ({
 jest.mock("../../lib/prisma", () => ({
   prisma: {
     $transaction: jest.fn(),
-    meeting: { update: jest.fn() },
+    // findUnique/findMany back the linked-schedule family lookup createPendingResumeSeries does
+    // before it publishes: these meetings have no family, so the reads answer empty.
+    meeting: { update: jest.fn(), findUnique: jest.fn(async () => null), findMany: jest.fn(async () => []) },
     suspensionPeriod: { update: jest.fn() },
   },
 }));
@@ -312,6 +314,10 @@ describe("createPendingResumeSeries", () => {
       "token-1",
       expect.objectContaining({ mid: meeting.mid }),
       "cal-aa",
+      undefined,
+      // The linked-schedule family, so a pre-created resume series is published under the same
+      // name every other member's event carries.
+      [],
     );
     expect(result).toEqual({ resumeEventIds: { AA: "evt-new" }, error: null });
   });

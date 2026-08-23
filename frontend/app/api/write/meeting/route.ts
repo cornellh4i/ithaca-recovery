@@ -7,6 +7,7 @@ import { createZoomMeeting, getZoomHostCapacities, getZoomMeetingInvitation, res
 import { findResourceConflicts, findResourceConflictRows, ConflictRow, ResourceConflictAbort } from "../../../../util/meetings/resourceOverlap";
 import { lockResourceClaims, ResourceClaim } from "../../../../util/meetings/resourceLocks";
 import { meetingSchema } from "../../../../util/meetings/meetingValidation";
+import { linkedFamilyLoader } from "../../../../util/meetings/linkedSchedules";
 import { calculateEndDateFromOccurrences } from "../../../../util/meetings/meetingOccurrences";
 import { prisma } from "../../../../lib/prisma";
 
@@ -45,13 +46,21 @@ async function syncNewMeeting(
   let zoomCalendarEventId: string | null = null;
   let zoomSynced = true;
   let zoomSyncError: string | null = null;
+  // One family lookup for this whole sync, shared by the Zoom create and every calendar publish
+  // below -- the family names the Zoom meeting and each member's calendar event alike, so a
+  // second lookup could only disagree with the first.
+  const loadFamily = linkedFamilyLoader(prisma, mid);
 
   if (zoomEnabled && !zid && !zoomLink) {
     if (!zoomHost) {
       zoomSynced = false;
       zoomSyncError = hostSyncError ?? "No Zoom host available for this meeting's schedule (pool exhausted).";
     } else {
-      const created = await createZoomMeeting({ ...meetingData, isRecurring }, zoomHost);
+      // The row is already committed by the time this runs, so the family lookup sees every
+      // schedule this meeting was created with -- one Zoom meeting is minted for the whole
+      // family, with its union schedule and its family Zoom name.
+      const family = await loadFamily(null);
+      const created = await createZoomMeeting({ ...meetingData, isRecurring }, zoomHost, family);
       if (created) {
         zid = created.zid;
         zoomLink = created.zoomLink;
@@ -95,8 +104,9 @@ async function syncNewMeeting(
     let syncError: string | null = unconfiguredCat
       ? `Calendar for "${unconfiguredCat}" is not configured.`
       : null;
+    const family = await loadFamily(zid);
     for (const [cat, calId] of Object.entries(calendarIds)) {
-      const { id, error } = await createCalendarEvent(accessToken, meetingForSync, calId);
+      const { id, error } = await createCalendarEvent(accessToken, meetingForSync, calId, undefined, family);
       if (id) eventIds[cat] = id;
       else syncError = syncError ?? error;
     }
@@ -126,7 +136,7 @@ async function syncNewMeeting(
     if (accessToken && zoomLink && meetingData.zoomRoom) {
       const calId = zoomRoomCalendarId[meetingData.zoomRoom];
       if (calId) {
-        const { id: eventId, error } = await createCalendarEvent(accessToken, { ...meetingForSync, zoomLink }, calId, zoomLink);
+        const { id: eventId, error } = await createCalendarEvent(accessToken, { ...meetingForSync, zoomLink }, calId, zoomLink, await loadFamily(zid));
         if (eventId) zoomCalendarEventId = eventId;
         else {
           zoomSynced = false;

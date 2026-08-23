@@ -286,7 +286,7 @@ test("a pure Zoom Room change on a MANAGED meeting moves in place -- keeps zid/l
   // The join-link event moved: deleted off the old room's calendar, created on the new one.
   expect(mockedDeleteCalendarEvent).toHaveBeenCalledWith("fake-token", "old-managed-room-event", "cal-managed-room-1");
   expect(mockedCreateCalendarEvent).toHaveBeenCalledWith(
-    "fake-token", expect.anything(), "cal-managed-room-2", "https://zoom.us/j/managed1",
+    "fake-token", expect.anything(), "cal-managed-room-2", "https://zoom.us/j/managed1", expect.any(Array),
   );
   expect(stored?.zoomCalendarEventId).toBe("new-managed-room-event");
 });
@@ -333,7 +333,7 @@ test("a shared-zid meeting's pure Zoom Room change also just moves calendars, wi
   expect(stored?.zid).toBe(sharedZid);
   expect(mockedDeleteCalendarEvent).toHaveBeenCalledWith("fake-token", "old-shared-room-event", "cal-shared-room-1");
   expect(mockedCreateCalendarEvent).toHaveBeenCalledWith(
-    "fake-token", expect.anything(), "cal-shared-room-2", "https://zoom.us/j/sharedroom",
+    "fake-token", expect.anything(), "cal-shared-room-2", "https://zoom.us/j/sharedroom", expect.any(Array),
   );
 
   // The sibling itself is untouched -- this was never about the sibling's own zoomRoom (it has
@@ -385,7 +385,7 @@ test("a room change combined with a genuine recreate reason (explicit host chang
   // one is still cleaned up first.
   expect(mockedDeleteCalendarEvent).toHaveBeenCalledWith("fake-token", "old-combined-room-event", "cal-combined-room-1");
   expect(mockedCreateCalendarEvent).toHaveBeenCalledWith(
-    "fake-token", expect.anything(), "cal-combined-room-2", "http://zoom.test/combined",
+    "fake-token", expect.anything(), "cal-combined-room-2", "http://zoom.test/combined", expect.any(Array),
   );
 });
 
@@ -1019,12 +1019,20 @@ test("editing a meeting whose scheduled resume date has already passed promotes 
   const response = await PUT(request);
   expect(response.status).toBe(200);
 
+  // The reconcile runs in the background sync, so wait for its persisted status rather than
+  // asserting straight off the response -- otherwise this races the sync's own DB reads.
+  await waitFor(async () => {
+    const row = await prisma.meeting.findUnique({ where: { mid } });
+    return row?.googleSyncStatus != null ? row : null;
+  });
+
   // reconcileMeetingCalendars must have been called against the promoted pointer
   // (resume-event-id), not the stale pre-suspend one still sitting in the DB row.
   expect(mockedReconcileMeetingCalendars).toHaveBeenCalledWith(
     "fake-token",
     expect.anything(),
     { AA: "resume-event-id" },
+    expect.any(Array),
   );
 
   const suspension = await prisma.suspensionPeriod.findFirst({ where: { mid } });
