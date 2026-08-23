@@ -2,7 +2,7 @@ import "server-only";
 import { getETDayBounds, convertETToUTC, addDaysToETDateString, getDaysInMonth, isDstGapError } from "../date/timeUtils";
 import { prisma } from "../../lib/prisma";
 import { PublicMeeting, toPublicMeeting } from "./publicMeeting";
-import { isDateSuspended, isAfterSeriesEnd, matchesRecurrencePattern, addOneETDay, adjustOccurrenceToDate } from "./recurrenceMatch";
+import { isDateSuspended, isAfterSeriesEnd, matchesRecurrencePattern, addOneETDay, adjustOccurrenceToDate, firstOccurrenceOnOrAfter } from "./recurrenceMatch";
 
 const notDeleted = { deletedAt: null };
 const etFmt = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' });
@@ -15,27 +15,7 @@ const isDateExcluded = (excludedDates: Date[], dateStr: string): boolean =>
 // importing these from meetingOccurrences.ts unchanged -- the pure logic itself now lives in
 // recurrenceMatch.ts, which ViewMeeting.tsx (client) also imports directly since this file's
 // `server-only`/Prisma imports make it unusable from client components.
-export { isDateSuspended, matchesRecurrencePattern, addOneETDay, adjustOccurrenceToDate };
-
-// Walks forward day-by-day from `fromEtDateStr` (inclusive) and returns the first ET date
-// string on/after it that the recurrence pattern actually produces an occurrence on. Bounded to
-// ~370 days so a pattern that (mis)matches nothing near `fromEtDateStr` can't loop forever.
-export const firstOccurrenceOnOrAfter = (
-    recurrence: { type: string; startDate: Date; endDate: Date | null; interval: number; daysOfWeek: string[]; weekOfMonth: number | null; dayOfMonth: number | null; excludedDates: Date[] },
-    fromEtDateStr: string,
-): string | null => {
-    const [year, month, day] = fromEtDateStr.split('-').map(Number);
-    let cursor = Date.UTC(year, month - 1, day);
-    const msPerDay = 24 * 60 * 60 * 1000;
-    for (let i = 0; i < 370; i++) {
-        const localDate = new Date(cursor);
-        const etDateStr = `${localDate.getUTCFullYear()}-${String(localDate.getUTCMonth() + 1).padStart(2, '0')}-${String(localDate.getUTCDate()).padStart(2, '0')}`;
-        if (isAfterSeriesEnd(recurrence.endDate, etDateStr)) return null;
-        if (matchesRecurrencePattern(recurrence, etDateStr, localDate)) return etDateStr;
-        cursor += msPerDay;
-    }
-    return null;
-};
+export { isDateSuspended, matchesRecurrencePattern, addOneETDay, adjustOccurrenceToDate, firstOccurrenceOnOrAfter };
 
 /**
  * Returns every meeting occurrence (one-time + recurring, expanded) that falls within

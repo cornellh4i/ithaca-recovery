@@ -116,6 +116,26 @@ export const matchesRecurrencePattern = (
     return false;
 };
 
+// Walks forward day-by-day from `fromEtDateStr` (inclusive) and returns the first ET date
+// string on/after it that the recurrence pattern actually produces an occurrence on. Bounded to
+// ~370 days so a pattern that (mis)matches nothing near `fromEtDateStr` can't loop forever.
+export const firstOccurrenceOnOrAfter = (
+    recurrence: { type: string; startDate: Date; endDate: Date | null; interval: number; daysOfWeek: string[]; weekOfMonth: number | null; dayOfMonth: number | null; excludedDates: Date[] },
+    fromEtDateStr: string,
+): string | null => {
+    const [year, month, day] = fromEtDateStr.split('-').map(Number);
+    let cursor = Date.UTC(year, month - 1, day);
+    const msPerDay = 24 * 60 * 60 * 1000;
+    for (let i = 0; i < 370; i++) {
+        const localDate = new Date(cursor);
+        const etDateStr = `${localDate.getUTCFullYear()}-${String(localDate.getUTCMonth() + 1).padStart(2, '0')}-${String(localDate.getUTCDate()).padStart(2, '0')}`;
+        if (isAfterSeriesEnd(recurrence.endDate, etDateStr)) return null;
+        if (matchesRecurrencePattern(recurrence, etDateStr, localDate)) return etDateStr;
+        cursor += msPerDay;
+    }
+    return null;
+};
+
 // Adds one calendar day to an ET date string ("YYYY-MM-DD"), via UTC-anchored date-component
 // arithmetic (not a real elapsed-time addition), so this can't be thrown off by DST.
 export const addOneETDay = (etDateStr: string): string => {
