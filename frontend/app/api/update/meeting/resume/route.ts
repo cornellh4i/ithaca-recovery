@@ -12,6 +12,7 @@ import {
   MeetingWithPattern,
   MeetingWithSuspensions,
 } from '../../../../../util/meetings/suspension';
+import { getZoomScheduleFamily } from '../../../../../util/meetings/linkedSchedules';
 import { prisma } from '../../../../../lib/prisma';
 
 // Resuming always creates a fresh series/event starting today (or recreates the original
@@ -36,6 +37,10 @@ async function syncResume(
   }
 
   const meetingForSync = toCalendarMeeting(meeting, meeting.startDateTime, meeting.endDateTime);
+  // A resumed row may be one schedule of a linked family, whose event title names every
+  // schedule -- recreating its events without the family would rename them to its own mode
+  // alone and leave them wrong until the row is next fully edited.
+  const family = await getZoomScheduleFamily(prisma, meeting.mid, meeting.zid ?? null);
   const eventIds: Record<string, string> = {};
   // requestedCats, not Object.keys(calendarIds) -- a category missing from calendarIds (its
   // GOOGLE_CALENDAR_* env var isn't configured) must still count against `synced` below, same
@@ -45,7 +50,7 @@ async function syncResume(
     ? `Calendar for "${unconfiguredCat}" is not configured.`
     : null;
   for (const [cat, calId] of Object.entries(calendarIds)) {
-    const { id, error } = await createCalendarEvent(accessToken, meetingForSync, calId);
+    const { id, error } = await createCalendarEvent(accessToken, meetingForSync, calId, undefined, family);
     if (id) eventIds[cat] = id;
     else googleSyncError = googleSyncError ?? error;
   }

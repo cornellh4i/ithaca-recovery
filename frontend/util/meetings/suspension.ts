@@ -3,6 +3,7 @@ import { Meeting, RecurrencePattern, SuspensionPeriod } from "@prisma/client";
 import { formatETDateString, isDstGapError } from "../date/timeUtils";
 import { isDateSuspended, adjustOccurrenceToDate, firstOccurrenceOnOrAfter } from "./meetingOccurrences";
 import { calendarIdsForMeeting, createCalendarEvent, deleteCalendarEvent } from "../../services/googleCalendar";
+import { linkedFamilyLoader } from "./linkedSchedules";
 import { IMeeting } from "../../types/models";
 import { prisma } from "../../lib/prisma";
 
@@ -111,6 +112,11 @@ export async function createPendingResumeSeries(
   const calendarIds = calendarIdsForMeeting(requestedCats);
   const resumeEventIds: Record<string, string> = {};
   let error: string | null = null;
+  // A suspended row may be one schedule of a linked family, whose event title names every
+  // schedule -- pre-creating the resume series without the family would publish it under this
+  // row's own mode alone, and it would stay wrong once promoted. Lazy: the early returns below
+  // for "no upcoming occurrence" must stay genuine no-ops, query included.
+  const loadFamily = linkedFamilyLoader(prisma, meeting.mid);
   // calendarIds silently drops any category whose GOOGLE_CALENDAR_* env var isn't configured --
   // only recorded once we know there's an occurrence worth syncing into (the early returns
   // below for "no upcoming occurrence" stay genuine no-ops, not a misconfiguration report).
@@ -141,8 +147,9 @@ export async function createPendingResumeSeries(
       return { resumeEventIds: {}, error: "Could not compute the resume time — it falls in a DST transition gap." };
     }
     const resumeMeeting = toCalendarMeeting(meeting, start, end);
+    const family = await loadFamily(meeting.zid ?? null);
     for (const [cat, calId] of Object.entries(calendarIds)) {
-      const { id, error: createError } = await createCalendarEvent(accessToken, resumeMeeting, calId);
+      const { id, error: createError } = await createCalendarEvent(accessToken, resumeMeeting, calId, undefined, family);
       if (id) resumeEventIds[cat] = id;
       else error = error ?? createError;
     }
@@ -151,8 +158,9 @@ export async function createPendingResumeSeries(
     // -- otherwise there's nothing meaningful to resume it into.
     recordUnconfiguredCat();
     const resumeMeeting = toCalendarMeeting(meeting, meeting.startDateTime, meeting.endDateTime);
+    const family = await loadFamily(meeting.zid ?? null);
     for (const [cat, calId] of Object.entries(calendarIds)) {
-      const { id, error: createError } = await createCalendarEvent(accessToken, resumeMeeting, calId);
+      const { id, error: createError } = await createCalendarEvent(accessToken, resumeMeeting, calId, undefined, family);
       if (id) resumeEventIds[cat] = id;
       else error = error ?? createError;
     }
