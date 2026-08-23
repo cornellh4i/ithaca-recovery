@@ -125,8 +125,11 @@ async function syncNewMeeting(
       isRecurring: row.isRecurring,
       // Only a Zoom-bearing row carries the family's link: buildEventBody writes
       // "Zoom: {link}" into the description whenever one is present, and an In-Person schedule
-      // must never advertise a join link.
-      ...(row.zoomBearing ? { zid, zoomLink, zoomPasscode } : {}),
+      // must never advertise a join link -- including one the payload itself supplied, which is
+      // why the else arm clears rather than omits.
+      ...(row.zoomBearing
+        ? { zid, zoomLink, zoomPasscode }
+        : { zid: null, zoomLink: null, zoomPasscode: null, zoomInvitation: null }),
     };
 
     // Accumulated instead of written immediately -- these used to be two separate
@@ -601,6 +604,13 @@ const createMeeting = async (request: Request) => {
           // sentinel for a real SQL NULL) -- Mongo's connector accepted plain `null` here directly.
           googleCalendarEventIds: meetingDetails.googleCalendarEventIds ?? Prisma.DbNull,
           isRecurring,
+          // An In-Person schedule must never hold a zid/zoomLink, whoever supplied it: its
+          // calendar event would advertise a join link for a meeting that never meets online,
+          // and buildZoomRecurrence would union its weekdays into Zoom's single schedule (the
+          // invariant in util/meetings/linkedSchedules.ts). Keyed on the MODE, not on
+          // primaryZoomBearing, so a suspended Hybrid schedule still keeps the adopted Zoom
+          // meeting it was created with.
+          ...(isZoomBearing(meetingData) ? {} : { zid: null, zoomLink: null, zoomPasscode: null, zoomInvitation: null }),
           // Never the family's host on a schedule that doesn't use Zoom: an In-Person primary
           // schedule whose linked schedule is Remote holds no Zoom identity at all.
           zoomHost: primaryZoomBearing ? resolvedHost : null,
@@ -738,7 +748,14 @@ const createMeeting = async (request: Request) => {
           console.error("syncNewMeeting threw:", error);
           try {
             await prisma.meeting.updateMany({
-              where: { mid: { in: syncRows.map((row) => row.mid) } },
+              // Never a row that already finished: the two schedules publish one after the
+              // other, so the second one throwing must not flip the first back to 'error' while
+              // its calendar events are live. The explicit null arm is load-bearing -- a plain
+              // `not` filter on a nullable column can't be relied on to match SQL NULLs.
+              where: {
+                mid: { in: syncRows.map((row) => row.mid) },
+                OR: [{ googleSyncStatus: null }, { googleSyncStatus: { not: 'synced' } }],
+              },
               data: { googleSyncStatus: 'error', googleSyncError: "Sync job failed unexpectedly." },
             });
           } catch (persistError) {

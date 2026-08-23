@@ -448,6 +448,75 @@ test("an exhausted host pool leaves BOTH schedules unpublished rather than half-
   expect(mockedCreateCalendarEvent).not.toHaveBeenCalled();
 });
 
+test("an In-Person primary schedule holds no client-supplied Zoom identity", async () => {
+  const linked = linkedBlock();
+  const payload = meetingPayload({
+    modeType: "In Person",
+    room: `In Person Adopting ${randomUUID()}`,
+    zoomRoom: null,
+    // The whole Zoom identity of an adopted meeting, supplied by the client for a schedule that
+    // never meets online.
+    zid: "adopted-zid",
+    zoomLink: "https://zoom.us/j/adopted",
+    zoomPasscode: "adopted-pass",
+    zoomInvitation: "adopted invitation",
+    linkedSchedule: linked,
+  });
+
+  expect((await postMeeting(payload)).status).toBe(201);
+  await drainAfterTasks();
+
+  const prisma = getTestPrismaClient();
+  const primary = await prisma.meeting.findUnique({ where: { mid: payload.mid } });
+  const created = await prisma.meeting.findUnique({ where: { mid: linked.mid } });
+
+  // Every Zoom field, not just the host: a row holding a zid/zoomLink would advertise a join
+  // link on its calendar event and union its weekdays into the family's Zoom recurrence.
+  expect(primary?.zid).toBeNull();
+  expect(primary?.zoomLink).toBeNull();
+  expect(primary?.zoomPasscode).toBeNull();
+  expect(primary?.zoomInvitation).toBeNull();
+  expect(primary?.zoomHost).toBeNull();
+  // The Remote schedule is where the adopted Zoom meeting actually lives.
+  expect(created?.zid).toBe("adopted-zid");
+  expect(created?.zoomLink).toBe("https://zoom.us/j/adopted");
+
+  // ...and the in-person schedule's calendar event is published with no join link either --
+  // buildEventBody writes "Zoom: {link}" from exactly this argument.
+  const primaryCall = mockedCreateCalendarEvent.mock.calls.find(([, meetingArg]) => meetingArg.mid === payload.mid);
+  expect(primaryCall).toBeDefined();
+  expect(primaryCall![1].zid).toBeNull();
+  expect(primaryCall![1].zoomLink).toBeNull();
+  // The payload already carried a Zoom meeting, so none is minted for the family.
+  expect(mockedCreateZoomMeeting).not.toHaveBeenCalled();
+});
+
+test("a deferred sync that throws on the second schedule leaves the first schedule's synced status standing", async () => {
+  mockedResolveZoomHost.mockResolvedValue("create-pool-host-1@icr.test");
+  mockedCreateZoomMeeting.mockResolvedValue({ zid: `zid-${randomUUID()}`, zoomLink: "https://zoom.us/j/throws", zoomPasscode: null });
+  const linked = linkedBlock();
+  const payload = meetingPayload({ linkedSchedule: linked });
+  // A throw, not a handled publish failure: the linked row's publish takes down the whole
+  // deferred sync after the primary row has already committed its own success.
+  mockedCreateCalendarEvent.mockImplementation(async (_token: string, meetingArg: { mid: string }) => {
+    if (meetingArg.mid === linked.mid) throw new Error("calendar publish exploded");
+    return { id: `event-${randomUUID()}`, error: null };
+  });
+
+  expect((await postMeeting(payload)).status).toBe(201);
+  await drainAfterTasks();
+
+  const prisma = getTestPrismaClient();
+  const primary = await prisma.meeting.findUnique({ where: { mid: payload.mid } });
+  const created = await prisma.meeting.findUnique({ where: { mid: linked.mid } });
+
+  // The primary schedule's events are live on Google -- the catch-all must not flip it to error.
+  expect(primary?.googleSyncStatus).toBe("synced");
+  expect(primary?.googleSyncError).toBeNull();
+  expect(created?.googleSyncStatus).toBe("error");
+  expect(created?.googleSyncError).toBe("Sync job failed unexpectedly.");
+});
+
 test("the linked schedule's own series is derived, never taken from the client", async () => {
   mockedResolveZoomHost.mockResolvedValue("create-pool-host-1@icr.test");
   mockedCreateZoomMeeting.mockResolvedValue({ zid: `zid-${randomUUID()}`, zoomLink: "https://zoom.us/j/derived", zoomPasscode: null });
