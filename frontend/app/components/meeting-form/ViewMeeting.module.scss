@@ -213,6 +213,21 @@
       }
     }
 
+    // The meeting's other schedules (its linked family), each rendered by ScheduleSummaryCard
+    // with its own border -- so this group only supplies the label and the spacing between them.
+    .linkedScheduleGroup {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .linkedScheduleHeading {
+      margin: 0;
+      font-size: 13px;
+      font-weight: 600;
+      color: $text-secondary-color;
+    }
+
     // Zoom block -- one tinted card instead of four stacked rows. No margin of its own --
     // it's a direct flex child of .details, so the container's gap already spaces it.
     .zoomBlock {

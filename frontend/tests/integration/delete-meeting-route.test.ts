@@ -1,5 +1,6 @@
 import { getTestPrismaClient, disconnectTestPrismaClient } from "../factories/db";
 import { seedMeeting, seedRecurringMeeting, seedSuspensionPeriod } from "../factories/meeting";
+import { buildLinkedScheduleLabel, familyMembers, getLinkedFamily } from "../../util/meetings/linkedSchedules";
 
 // The route always passes an already-started promise to after() (syncDeleteAll etc. are invoked
 // eagerly as part of constructing the argument, before after() ever sees it) -- capturing that
@@ -398,5 +399,107 @@ describe("deleteOption 'this' / 'thisAndFollowing'", () => {
     // to buildEventBody's street-address default, breaking Zoom Room one-touch join) is skipped.
     expect(mockedUpdate).toHaveBeenCalledTimes(1);
     expect(mockedUpdate).not.toHaveBeenCalledWith(expect.anything(), "live-room-event-id-3", expect.anything(), expect.anything(), expect.anything());
+  });
+});
+
+// One meeting run as two linked schedules (Meeting.linkedToMid). Deleting one of them is an
+// ordinary whole-series delete of an ordinary row -- what's specific to a family is that the
+// survivor must not be left pointing at a soft-deleted anchor, and that the Zoom meeting the
+// two share has to outlive whichever of them goes first.
+describe("linked schedules", () => {
+  const seedFamily = async (overrides: { zid?: string | null; linkedModeType?: string } = {}) => {
+    const { zid = null, linkedModeType = "Remote" } = overrides;
+    const { meeting: anchor } = await seedRecurringMeeting(
+      { title: "One Day at a Time", modeType: "Hybrid", room: "Serenity Room",
+        zoomRoom: "Delete Route Zoom Room", zid, zoomManaged: true },
+      { daysOfWeek: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"] },
+    );
+    const { meeting: linked } = await seedRecurringMeeting(
+      { title: "One Day at a Time", modeType: linkedModeType, room: "", zoomRoom: null,
+        zid: linkedModeType === "In Person" ? null : zid, zoomManaged: true, linkedToMid: anchor.mid },
+      { daysOfWeek: ["Saturday"] },
+    );
+    return { anchor, linked };
+  };
+
+  const deleteMeeting = (mid: string) => DELETE(new Request("http://localhost/api/delete/meeting", {
+    method: "DELETE", body: JSON.stringify({ mid, deleteOption: "all" }),
+  }));
+
+  test("deleting the anchor releases the surviving schedule instead of leaving it pointing at a deleted mid", async () => {
+    const { anchor, linked } = await seedFamily();
+
+    expect((await deleteMeeting(anchor.mid)).status).toBe(200);
+    await drainAfterTasks();
+
+    const survivor = await getTestPrismaClient().meeting.findUnique({ where: { mid: linked.mid } });
+    expect(survivor?.linkedToMid).toBeNull();
+    expect(survivor?.deletedAt).toBeNull();
+  });
+
+  test("deleting the linked schedule leaves the anchor untouched -- it never held a pointer", async () => {
+    const { anchor, linked } = await seedFamily();
+
+    expect((await deleteMeeting(linked.mid)).status).toBe(200);
+    await drainAfterTasks();
+
+    const survivor = await getTestPrismaClient().meeting.findUnique({ where: { mid: anchor.mid } });
+    expect(survivor?.linkedToMid).toBeNull();
+    expect(survivor?.deletedAt).toBeNull();
+  });
+
+  // The family's ONE Zoom meeting still serves whichever schedule is left -- the existing
+  // shared-zid guard is what keeps it alive, and it has to keep holding for a linked family.
+  test("the family's shared Zoom meeting survives the first deletion and only goes with the last", async () => {
+    const zid = "70000000901";
+    const { anchor, linked } = await seedFamily({ zid });
+
+    await deleteMeeting(anchor.mid);
+    await drainAfterTasks();
+    expect(mockedDeleteZoom).not.toHaveBeenCalled();
+
+    await deleteMeeting(linked.mid);
+    await drainAfterTasks();
+    expect(mockedDeleteZoom).toHaveBeenCalledWith(zid);
+  });
+
+  // An In-Person schedule holds no zid, so once it's the only row left there is nothing sharing
+  // the deleted row's zid -- the Zoom meeting goes with the schedule that was actually on it.
+  test("removing the only Zoom-bearing schedule tears the Zoom meeting down, In-Person survivor and all", async () => {
+    const zid = "70000000902";
+    const { meeting: anchor } = await seedRecurringMeeting(
+      { title: "Early Bird", modeType: "In Person", room: "Serenity Room", zid: null, zoomManaged: true },
+      { daysOfWeek: ["Monday"] },
+    );
+    const { meeting: linked } = await seedRecurringMeeting(
+      { title: "Early Bird", modeType: "Remote", room: "", zid, zoomManaged: true, linkedToMid: anchor.mid },
+      { daysOfWeek: ["Saturday"] },
+    );
+
+    await deleteMeeting(linked.mid);
+    await drainAfterTasks();
+
+    expect(mockedDeleteZoom).toHaveBeenCalledWith(zid);
+    const survivor = await getTestPrismaClient().meeting.findUnique({ where: { mid: anchor.mid } });
+    expect(survivor?.deletedAt).toBeNull();
+  });
+
+  // The survivor's family drops to one, so the name every external service shows it falls back
+  // from the two-schedule hierarchy to its own single-schedule suffix on the next write.
+  test("the survivor's external name falls back to the single-schedule form", async () => {
+    const prisma = getTestPrismaClient();
+    const { anchor, linked } = await seedFamily({ zid: "70000000903" });
+
+    const before = await getLinkedFamily(prisma, linked.mid);
+    expect(buildLinkedScheduleLabel(linked.title, before!.anchor, familyMembers(before!)))
+      .toBe("One Day at a Time - Hybrid Mon-Fri - Zoom Only Sat");
+
+    await deleteMeeting(anchor.mid);
+    await drainAfterTasks();
+
+    const after = await getLinkedFamily(prisma, linked.mid);
+    expect(familyMembers(after!)).toHaveLength(1);
+    expect(buildLinkedScheduleLabel(linked.title, after!.anchor, familyMembers(after!)))
+      .toBe("One Day at a Time - Zoom Only");
   });
 });

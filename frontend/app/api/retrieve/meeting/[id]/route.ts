@@ -4,7 +4,7 @@ import { prisma } from "../../../../../lib/prisma";
 import { toPublicMeeting } from "../../../../../util/meetings/publicMeeting";
 import { getUnresolvedSuspension } from "../../../../../util/meetings/suspension";
 import { isSharedZoomScheduleCompatible } from "../../../../../util/meetings/sharedZoomSchedule";
-import { isDetachedSplitChild } from "../../../../../util/meetings/linkedSchedules";
+import { familyMembers, getLinkedFamily, isDetachedSplitChild } from "../../../../../util/meetings/linkedSchedules";
 import { formatETDateString } from "../../../../../util/date/timeUtils";
 const getMeeting = async(request: NextRequest) => {
   try {
@@ -83,6 +83,32 @@ const getMeeting = async(request: NextRequest) => {
         }
       : {};
 
+    // The OTHER schedules of this one meeting (Meeting.linkedToMid), e.g. the Saturday Zoom-only
+    // half of a meeting whose weekday half is Hybrid. Deliberately separate from sharedWith
+    // above: that one is keyed on zid and answers whether this Zoom LINK feeds another row,
+    // which an In-Person family member (no zid at all) would never appear in. Admin-only for the
+    // same reason (BUG-022) -- it names rooms, hosts and schedules a public viewer never sees.
+    const family = isAdminSession ? await getLinkedFamily(prisma, meeting.mid) : null;
+    const linkedSchedules = family
+      ? familyMembers(family)
+          .filter((row) => row.mid !== meeting.mid)
+          .map((row) => ({
+            mid: row.mid,
+            modeType: row.modeType,
+            room: row.room,
+            zoomRoom: row.zoomRoom,
+            zoomHost: row.zoomHost,
+            recurrencePattern: row.recurrencePattern,
+            startDateTime: row.startDateTime,
+            endDateTime: row.endDateTime,
+            // A family member can be sitting at 'pending'/'error' with no calendar events yet
+            // (the Zoom host pool was exhausted when it was created, and it's waiting on a retry
+            // sync) -- the card says so rather than presenting the schedule as already live.
+            googleSyncStatus: row.googleSyncStatus,
+            zoomSyncStatus: row.zoomSyncStatus,
+          }))
+      : [];
+
     const body = isAdminSession
       ? {
           ...meetingWithoutSuspensions,
@@ -90,6 +116,9 @@ const getMeeting = async(request: NextRequest) => {
           suspendedSince: relevantSuspension?.from ?? null,
           suspensionActive,
           ...sharedZoom,
+          // Omitted entirely, not sent as [], for the overwhelmingly common single-schedule
+          // meeting -- same shape as sharedZoom above.
+          ...(linkedSchedules.length > 0 ? { linkedSchedules } : {}),
         }
       : toPublicMeeting({ ...meeting, recurrencePattern: meeting.recurrencePattern ?? null });
 

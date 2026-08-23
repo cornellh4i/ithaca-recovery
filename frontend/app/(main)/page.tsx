@@ -351,6 +351,7 @@ export default function HomePage() {
           zoomManaged={selectedMeeting.zoomManaged}
           sharedWith={selectedMeeting.sharedWith}
           zoomScheduleDiverged={selectedMeeting.zoomScheduleDiverged}
+          linkedSchedules={selectedMeeting.linkedSchedules}
           group={selectedMeeting.group}
 
           /* ViewMeetingDetails formats for ET display internally (formatETDateString, etTimeFmt,
