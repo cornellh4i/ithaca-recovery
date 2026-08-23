@@ -175,9 +175,10 @@ const deleteMeeting = async (request: Request) => {
     const calendarIds = calendarIdsForMeeting(meeting.calType ?? []);
     const eventIds = (meeting.googleCalendarEventIds ?? {}) as Record<string, string>;
 
-    // Verified atomic: each branch below is exactly one top-level Mongo write (recurrencePattern
-    // update, recurrencePattern update, or meeting update) -- no unwrapped multi-write gap to
-    // fix here, unlike write/meeting/route.ts's create path.
+    // Verified atomic: the two partial-delete branches below are each exactly one top-level
+    // write (a recurrencePattern update), and the 'all' branch wraps its soft delete and the
+    // linked-family pointer cleanup in one transaction -- no unwrapped multi-write gap to fix
+    // here, unlike write/meeting/route.ts's create path.
     if (deleteOption === 'this') {
       if (!meeting.recurrencePattern) {
         return new Response(JSON.stringify({ error: "Meeting has no recurrence pattern" }), {
@@ -236,11 +237,25 @@ const deleteMeeting = async (request: Request) => {
         meeting.zoomCalendarEventId, meeting.zoomRoom,
       ));
     } else {
-      // 'all' or non-recurring: soft-delete the master meeting record
-      await prisma.meeting.update({
-        where: { mid },
-        data: { deletedAt: new Date() },
-      });
+      // 'all' or non-recurring: soft-delete the master meeting record. Deleting the ANCHOR of a
+      // linked-schedule family also releases its surviving members, so a lone row never dangles
+      // a linkedToMid at a soft-deleted mid -- its family drops to one and its Zoom topic and
+      // calendar titles fall back to the single-schedule name on the next write. Nothing to do
+      // when the deleted row was the linked member instead: the anchor's own linkedToMid was
+      // never set. The shared Zoom meeting itself is untouched either way -- syncDeleteAll's
+      // zid guard keeps it alive for whichever member is left.
+      await prisma.$transaction([
+        prisma.meeting.update({
+          where: { mid },
+          data: { deletedAt: new Date() },
+        }),
+        ...(meeting.linkedToMid === null
+          ? [prisma.meeting.updateMany({
+              where: { linkedToMid: mid, deletedAt: null },
+              data: { linkedToMid: null },
+            })]
+          : []),
+      ]);
       // Google Calendar + Zoom: whole-series delete — 'this'/'thisAndFollowing' leave Zoom untouched
       after(syncDeleteAll(accessToken, calendarIds, eventIds, meeting));
     }

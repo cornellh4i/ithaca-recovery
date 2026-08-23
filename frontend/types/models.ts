@@ -48,6 +48,11 @@ interface IMeeting {
   // Those rows' schedules can't currently be expressed as one Zoom series, so Zoom keeps the
   // schedule it already has until they match again. Same population rules as sharedWith.
   zoomScheduleDiverged?: boolean;
+  // This meeting's OTHER schedules in its linked family (Meeting.linkedToMid) -- same
+  // population rules as sharedWith, and absent whenever the meeting has no linked schedule.
+  // A different question from sharedWith: that one asks whether this Zoom LINK feeds another
+  // row (a zid question), this one asks which schedules make up this one meeting.
+  linkedSchedules?: ILinkedSchedule[];
   isRecurring: boolean;
   recurrencePattern?: IRecurrencePattern | null;
   googleCalendarEventId?: string | null;
@@ -68,6 +73,24 @@ interface IMeeting {
 interface ISharedZoomRow {
   title: string;
   modeType: string;
+}
+
+// One member of a meeting's linked-schedule family, as retrieve/meeting/[id] returns it to an
+// admin -- everything ScheduleSummaryCard needs to render that schedule read-only, and nothing
+// else. The sync statuses are part of it because a family member can legitimately still be
+// waiting on Zoom host capacity when the card first renders (its calendar events don't exist
+// yet), which the card has to say rather than showing the schedule as already live.
+interface ILinkedSchedule {
+  mid: string;
+  modeType: string;
+  room: string;
+  zoomRoom: string | null;
+  zoomHost: string | null;
+  recurrencePattern: IRecurrencePattern | null;
+  startDateTime: Date;
+  endDateTime: Date;
+  googleSyncStatus: string | null;
+  zoomSyncStatus: string | null;
 }
 
 interface IRecurrencePattern {
@@ -106,4 +129,4 @@ interface ILeaseSettings {
   emailTemplate: string;
 }
 
-export type { IAdmin, IMeeting, ISharedZoomRow, IRecurrencePattern, IRoomRate, ILeaseSettings };
+export type { IAdmin, IMeeting, ISharedZoomRow, ILinkedSchedule, IRecurrencePattern, IRoomRate, ILeaseSettings };
