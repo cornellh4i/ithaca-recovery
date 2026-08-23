@@ -2,6 +2,7 @@ import "server-only";
 import { google } from "googleapis";
 import { IMeeting, IRecurrencePattern } from "../types/models";
 import { getETDayBounds, convertETToUTC } from "../util/date/timeUtils";
+import { buildLinkedScheduleLabel } from "../util/meetings/linkedSchedules";
 
 export const calendarIdForCategory: Record<string, string> = {
     AA:        process.env.GOOGLE_CALENDAR_AA ?? "",
@@ -109,29 +110,30 @@ function formatExdateCompact(occurrenceDate: Date | string, meetingStartDateTime
     return `${etDateCompact}T${get('hour')}${get('minute')}${get('second')}`;
 }
 
-// Suffix appended to the GCal event title so the mode is visible at a glance;
-// "Remote" reads as "Zoom Only" since ICR's meetings are never fully unattended.
-const modeTitleSuffix: Record<string, string> = {
-    Hybrid: "Hybrid",
-    "In Person": "In Person",
-    Remote: "Zoom Only",
-};
-
 // MEETING_LOCATION used for public-facing Google Calendars only,
 // Zoom Room calendars pass their own join link.
 const MEETING_LOCATION = "518 W Seneca St, Ithaca, NY 14850";
 
-function buildEventTitle(meeting: IMeeting): string {
-    const suffix = modeTitleSuffix[meeting.modeType];
-    return suffix ? `${meeting.title} - ${suffix}` : meeting.title;
+// The event title carries the meeting's mode ("… - Zoom Only") so it's visible at a glance on a
+// public calendar. A meeting run as a linked-schedule family gets that family's full name --
+// "One Day at a Time - Hybrid Mon-Fri - Zoom Only Sat" -- on EVERY member's event, not just the
+// segment describing that member: each schedule keeps its own event with its own dates and
+// RRULE, but a reader landing on either one sees the same meeting described the same way, which
+// is also exactly the name the family's shared Zoom meeting carries. Nothing pins a calendar
+// title the way zoomTopic pins a Zoom topic, so there's no verbatim-name escape hatch here.
+function buildEventTitle(meeting: IMeeting, family: IMeeting[]): string {
+    return buildLinkedScheduleLabel(meeting.title, meeting, family);
 }
 
+// family: the meeting's linked-schedule family (util/meetings/linkedSchedules.ts), for the
+// title above. Defaulted so the many callers with no family concept -- suspension resume,
+// delete-route rewrites -- stay unchanged.
 // locationOverride: Zoom Room calendars pass the join link here — Zoom Rooms detects a
 // joinable meeting from the location field, not the description.
 // Exported for direct unit testing of the RRULE/EXDATE serialization -- this is the single
 // place a RecurrencePattern turns into a Google Calendar body, so its output shape is worth
 // testing without going through the network-calling functions below.
-export function buildEventBody(meeting: IMeeting, locationOverride?: string) {
+export function buildEventBody(meeting: IMeeting, family: IMeeting[] = [], locationOverride?: string) {
     const descriptionLines = [
         meeting.calType?.length ? `Type: ${meeting.calType.join(', ')}` : null,
         meeting.modeType ? `Mode: ${meeting.modeType}` : null,
@@ -144,7 +146,7 @@ if (meeting.description) {
 }
 
     const event: Record<string, unknown> = {
-        summary: buildEventTitle(meeting),
+        summary: buildEventTitle(meeting, family),
         description: descriptionLines.join("\n"),
         location: locationOverride ?? MEETING_LOCATION,
         start: { dateTime: new Date(meeting.startDateTime).toISOString(), timeZone: "America/New_York" },
@@ -168,17 +170,23 @@ if (meeting.description) {
     return event;
 }
 
+// family (trailing, optional, like every other write below): the meeting's linked-schedule
+// family, so the event title names the whole family. Trailing rather than beside `meeting`
+// because most call sites -- resume, suspension, delete-route rewrites -- have no family in
+// hand, and a positional parameter they'd all have to pass `[]` to is only a chance to get the
+// argument order wrong.
 export async function createCalendarEvent(
     accessToken: string,
     meeting: IMeeting,
     calendarId: string,
     locationOverride?: string,
+    family: IMeeting[] = [],
 ): Promise<{ id: string | null; error: string | null }> {
     try {
         const calendar = getCalendarClient(accessToken);
         const res = await calendar.events.insert({
             calendarId,
-            requestBody: buildEventBody(meeting, locationOverride),
+            requestBody: buildEventBody(meeting, family, locationOverride),
         });
         return { id: res.data.id ?? null, error: null };
     } catch (error) {
@@ -193,13 +201,14 @@ export async function updateCalendarEvent(
     meeting: IMeeting,
     calendarId: string,
     locationOverride?: string,
+    family: IMeeting[] = [],
 ): Promise<{ ok: boolean; error: string | null }> {
     try {
         const calendar = getCalendarClient(accessToken);
         await calendar.events.update({
             calendarId,
             eventId: googleCalendarEventId,
-            requestBody: buildEventBody(meeting, locationOverride),
+            requestBody: buildEventBody(meeting, family, locationOverride),
         });
         return { ok: true, error: null };
     } catch (error) {
@@ -211,11 +220,14 @@ export async function updateCalendarEvent(
 // Reconciles a meeting's Google Calendar events against its current calType:
 // removes events for calendars no longer selected, updates events for calendars
 // still selected, and creates events for newly selected calendars. Used by both
-// the update route (on every edit) and the sync route (manual "Retry sync").
+// the update route (on every edit) and the sync route (manual "Retry sync"), which pass the
+// same linked-schedule family they hand Zoom in that request so the event title and the Zoom
+// topic are derived from one lookup and can't disagree.
 export async function reconcileMeetingCalendars(
     accessToken: string,
     meeting: IMeeting,
     existingEventIds: Record<string, string>,
+    family: IMeeting[] = [],
 ): Promise<{ updatedEventIds: Record<string, string>; allSynced: boolean; googleSyncError: string | null }> {
     const calendarIds = calendarIdsForMeeting(meeting.calType ?? []);
     const updatedEventIds: Record<string, string> = { ...existingEventIds };
@@ -259,13 +271,13 @@ export async function reconcileMeetingCalendars(
     for (const [cat, calId] of Object.entries(calendarIds)) {
         const existingId = existingEventIds[cat];
         if (existingId) {
-            const { ok, error } = await updateCalendarEvent(accessToken, existingId, meeting, calId);
+            const { ok, error } = await updateCalendarEvent(accessToken, existingId, meeting, calId, undefined, family);
             if (!ok) {
                 allSynced = false;
                 recordError(error ?? "Failed to update the calendar event.");
             }
         } else {
-            const { id: newId, error } = await createCalendarEvent(accessToken, meeting, calId);
+            const { id: newId, error } = await createCalendarEvent(accessToken, meeting, calId, undefined, family);
             if (newId) updatedEventIds[cat] = newId;
             else {
                 allSynced = false;

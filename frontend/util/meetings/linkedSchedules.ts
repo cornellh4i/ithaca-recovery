@@ -2,6 +2,7 @@ import type { Prisma } from "@prisma/client";
 
 import type { IMeeting } from "../../types/models";
 import { WEEKDAY_NAMES } from "../date/timeUtils";
+import { formatDayColumn } from "./recurrenceDisplay";
 
 // A "linked schedules" family is one meeting the group runs as two co-existing weekly
 // schedules -- same time, duration and interval, different modes on different weekdays -- served
@@ -27,12 +28,26 @@ export const LINKED_SCHEDULE_MODES = ["Hybrid", "In Person", "Remote"] as const;
 
 export type LinkedScheduleMode = (typeof LINKED_SCHEDULE_MODES)[number];
 
+// Only the pattern fields formatDayColumn reads, all optional so a Prisma row, an IMeeting's
+// IRecurrencePattern, and a bare { daysOfWeek } candidate all satisfy it.
+export interface LinkedSchedulePattern {
+  type?: string;
+  weekOfMonth?: number | null;
+  dayOfMonth?: number | null;
+  daysOfWeek?: string[] | null;
+}
+
 // The subset of a meeting row the pure predicates below read -- deliberately structural (same
 // approach as SharedZoomScheduleRow), so a Prisma row, an IMeeting, and a not-yet-created
 // candidate row from a request payload all satisfy it without casting.
 export interface LinkedScheduleRow {
   modeType: string;
-  recurrencePattern?: { daysOfWeek?: string[] | null } | null;
+  recurrencePattern?: LinkedSchedulePattern | null;
+}
+
+/** A row {@link buildLinkedScheduleLabel} can reconcile against a family: identity plus schedule. */
+export interface LinkedScheduleLabelRow extends LinkedScheduleRow {
+  mid: string;
 }
 
 export interface LinkedFamily<TRow extends LinkedScheduleRow = LinkedScheduleRow> {
@@ -157,4 +172,89 @@ export function claimedDaysFor(family: LinkedFamily): string[] {
  */
 export function isZoomBearing(row: { modeType: string }): boolean {
   return row.modeType === "Hybrid" || row.modeType === "Remote";
+}
+
+// --- the family's display name, shared by every external service --------------------------
+
+/**
+ * The family as a service must see it for THIS write: callers load the family from the
+ * database, so the row being created or updated is still its pre-edit copy in there -- the
+ * in-flight version replaces it. A caller that passes only the OTHER rows still gets a
+ * complete family, so no caller has to know which of the two shapes it holds.
+ */
+export function resolveFamilyRows<TRow extends { mid: string }>(meeting: TRow, family: TRow[]): TRow[] {
+  return family.some((row) => row.mid === meeting.mid)
+    ? family.map((row) => (row.mid === meeting.mid ? meeting : row))
+    : [meeting, ...family];
+}
+
+// How each mode names itself inside a family label. Only Remote is renamed ("Zoom Only") --
+// ICR's meetings are never fully unattended, so "Remote" would read as unhosted.
+export const LINKED_SCHEDULE_MODE_LABEL: Record<LinkedScheduleMode, string> = {
+  Hybrid: "Hybrid",
+  "In Person": "In Person",
+  Remote: "Zoom Only",
+};
+
+// The Day column the exports already render ("Mon-Fri", "Sat", "Daily") -- one formatter, so a
+// family's external name can never disagree with how the same schedule reads everywhere else.
+function scheduleDayLabel(pattern: LinkedSchedulePattern | null | undefined): string {
+  if (!pattern) return formatDayColumn(null);
+  return formatDayColumn({
+    type: pattern.type ?? "",
+    weekOfMonth: pattern.weekOfMonth ?? null,
+    dayOfMonth: pattern.dayOfMonth ?? null,
+    daysOfWeek: pattern.daysOfWeek ?? [],
+  });
+}
+
+/**
+ * The name one meeting run as several linked schedules carries on every external service:
+ * `"One Day at a Time - Hybrid Mon-Fri - Zoom Only Sat"`. Segments follow
+ * {@link LINKED_SCHEDULE_MODES}' fixed order, never the order the rows were created in, so the
+ * name is stable no matter which member triggered the write.
+ *
+ * Pure text: no knowledge of Zoom, Google Calendar, or zid. A caller with a pinned name of its
+ * own (Zoom's `zoomTopic`) short-circuits before ever reaching here.
+ *
+ * `singleScheduleSuffix` is the one thing the services genuinely disagree about: a lone row's
+ * own mode suffix. A Google Calendar event says "In Person" on an in-person meeting; a Zoom
+ * topic never does, because an in-person meeting has no Zoom meeting to name. Passing the map
+ * keeps each service's established single-schedule name byte-for-byte while the family case
+ * stays shared.
+ */
+export function buildLinkedScheduleLabel(
+  baseTitle: string,
+  meeting: LinkedScheduleLabelRow,
+  family: LinkedScheduleLabelRow[],
+  singleScheduleSuffix: Record<string, string> = LINKED_SCHEDULE_MODE_LABEL,
+): string {
+  const rows = resolveFamilyRows(meeting, family);
+  const segments = LINKED_SCHEDULE_MODES.flatMap((mode) => {
+    const row = rows.find((candidate) => candidate.modeType === mode);
+    return row ? [`${LINKED_SCHEDULE_MODE_LABEL[mode]} ${scheduleDayLabel(row.recurrencePattern)}`.trim()] : [];
+  });
+  // Keyed on distinct MODES, not row count: a family's modes are unique by construction, so
+  // two segments means a genuine linked family, while several rows of the same mode (a scoped
+  // edit's split children, a legacy zid group) collapse to one segment and keep the plain
+  // single-schedule name they have today.
+  if (segments.length < 2) {
+    const suffix = singleScheduleSuffix[meeting.modeType];
+    return suffix ? `${baseTitle} - ${suffix}` : baseTitle;
+  }
+  return `${baseTitle} - ${segments.join(" - ")}`;
+}
+
+/**
+ * A once-per-request {@link getZoomScheduleFamily} reader. One meeting's family names both its
+ * Zoom topic and every family member's Google Calendar event title in the same sync, and the
+ * two must agree -- so the lookup happens at most once and every consumer reads that result.
+ * The `zid` argument only matters on the first call, which is the one that runs the query.
+ */
+export function linkedFamilyLoader(
+  tx: Prisma.TransactionClient,
+  mid: string,
+): (zid: string | null) => Promise<IMeeting[]> {
+  let loaded: IMeeting[] | null = null;
+  return async (zid) => (loaded ??= await getZoomScheduleFamily(tx, mid, zid));
 }

@@ -3,8 +3,7 @@ import { Prisma } from "@prisma/client";
 import { IMeeting } from "../types/models";
 import { expandOccurrences, findResourceConflicts, findFirstFreePoolHost, getPoolHostLoads, OccurrenceInput } from "../util/meetings/resourceOverlap";
 import { isSharedZoomScheduleCompatible } from "../util/meetings/sharedZoomSchedule";
-import { isZoomBearing, LINKED_SCHEDULE_MODES, type LinkedScheduleMode } from "../util/meetings/linkedSchedules";
-import { formatDayColumn } from "../util/meetings/recurrenceDisplay";
+import { buildLinkedScheduleLabel, isZoomBearing, resolveFamilyRows } from "../util/meetings/linkedSchedules";
 import { prisma } from "../lib/prisma";
 
 const ZOOM_BASE_API = process.env.NEXT_PUBLIC_ZOOM_BASE_API ?? "https://api.zoom.us/v2";
@@ -249,17 +248,6 @@ const ZOOM_WEEKDAY: Record<string, number> = {
   Sunday: 1, Monday: 2, Tuesday: 3, Wednesday: 4, Thursday: 5, Friday: 6, Saturday: 7,
 };
 
-// The linked-schedule family (util/meetings/linkedSchedules.ts) as Zoom must see it for THIS
-// write: callers load the family from the database, so the row being created/PATCHed is still
-// its pre-edit copy in there -- the in-flight version replaces it. A caller that passes only
-// the OTHER rows still gets a complete family, which is why every internal below takes the
-// family rather than a bare sibling list.
-function resolveFamilyRows(meeting: IMeeting, family: IMeeting[]): IMeeting[] {
-  return family.some((row) => row.mid === meeting.mid)
-    ? family.map((row) => (row.mid === meeting.mid ? meeting : row))
-    : [meeting, ...family];
-}
-
 // The family members Zoom's one schedule actually has to cover, besides `meeting` itself. An
 // In-Person member is deliberately excluded: it holds no zid, and unioning its weekdays into
 // weekly_days would advertise Zoom occurrences for a schedule that never meets online.
@@ -335,52 +323,21 @@ function nextOccurrenceStart(meeting: IMeeting, family: IMeeting[] = []): Date {
   return candidates.reduce((a, b) => (a < b ? a : b));
 }
 
-// How each mode names itself inside a linked family's topic. Only Remote is renamed ("Zoom
-// Only"), matching the single-schedule suffix the same meeting would carry on its own.
-const MODE_TOPIC_LABEL: Record<LinkedScheduleMode, string> = {
+// A lone meeting's Zoom topic names only Hybrid and Remote. "In Person" is deliberately absent:
+// an in-person meeting has no Zoom meeting of its own to name, and only ever appears in a topic
+// as one segment of a family that also meets online.
+const ZOOM_SINGLE_TOPIC_SUFFIX: Record<string, string> = {
   Hybrid: "Hybrid",
-  "In Person": "In Person",
   Remote: "Zoom Only",
 };
 
-// The Day column the exports already render ("Mon-Fri", "Sat", "Daily") -- one formatter, so a
-// family's Zoom name can never disagree with how the same schedule reads everywhere else.
-function topicDayLabel(pattern: IMeeting["recurrencePattern"]): string {
-  if (!pattern) return formatDayColumn(null);
-  return formatDayColumn({
-    type: pattern.type,
-    weekOfMonth: pattern.weekOfMonth ?? null,
-    dayOfMonth: pattern.dayOfMonth ?? null,
-    daysOfWeek: pattern.daysOfWeek ?? [],
-  });
-}
-
 // ICR's own Zoom naming convention, applied when no explicit zoomTopic is pinned. Adopted
 // legacy meetings carry a pinned zoomTopic instead (their verbatim pre-app names) so an
-// app-side edit can never rename them implicitly.
-//
-// One meeting run as two linked schedules is ONE Zoom meeting, so its name has to say which
-// mode meets on which days -- "One Day at a Time - Hybrid Mon-Fri - Zoom Only Sat". Segments
-// follow LINKED_SCHEDULE_MODES' fixed order, never the order the rows were created in, so the
-// name is stable no matter which member triggered the write. Nothing writes this back into
+// app-side edit can never rename them implicitly. Nothing writes the derived topic back into
 // Meeting.zoomTopic: a null column keeps meaning "auto, recompute from the current family."
 function zoomTopicFor(meeting: IMeeting, family: IMeeting[] = []): string {
   if (meeting.zoomTopic) return meeting.zoomTopic;
-
-  const rows = resolveFamilyRows(meeting, family);
-  const segments = LINKED_SCHEDULE_MODES.flatMap((mode) => {
-    const row = rows.find((candidate) => candidate.modeType === mode);
-    return row ? [`${MODE_TOPIC_LABEL[mode]} ${topicDayLabel(row.recurrencePattern)}`.trim()] : [];
-  });
-  // Keyed on distinct MODES, not row count: a family's modes are unique by construction, so
-  // two segments means a genuine linked family, while several rows of the same mode (a scoped
-  // edit's split children, a legacy zid group) collapse to one segment and keep the plain
-  // single-schedule name they have today.
-  if (segments.length < 2) {
-    const suffix = meeting.modeType === "Remote" ? " - Zoom Only" : meeting.modeType === "Hybrid" ? " - Hybrid" : "";
-    return `${meeting.title}${suffix}`;
-  }
-  return `${meeting.title} - ${segments.join(" - ")}`;
+  return buildLinkedScheduleLabel(meeting.title, meeting, family, ZOOM_SINGLE_TOPIC_SUFFIX);
 }
 
 function buildZoomMeetingBody(meeting: IMeeting, family: IMeeting[] = []) {
