@@ -167,6 +167,71 @@ describe("toRRule — monthly", () => {
   });
 });
 
+// The event `summary` is the only name a member of the public ever sees for this meeting, so
+// these lock in both halves of it: the mode suffix every ordinary meeting has carried since
+// launch, and the family name a linked-schedule meeting carries on every one of its events.
+describe("buildEventBody — event title", () => {
+  const familyRow = (mid: string, modeType: string, daysOfWeek: string[]): IMeeting => buildMeeting({
+    mid,
+    modeType,
+    title: "One Day at a Time",
+    isRecurring: true,
+    recurrencePattern: { ...base, daysOfWeek },
+  });
+
+  it("names a lone meeting with its own mode suffix, byte-for-byte as it always has", () => {
+    expect(buildEventBody(buildMeeting({ modeType: "Hybrid" })).summary).toBe("Test Meeting - Hybrid");
+    expect(buildEventBody(buildMeeting({ modeType: "In Person" })).summary).toBe("Test Meeting - In Person");
+    // Remote reads as "Zoom Only" -- ICR's meetings are never fully unattended.
+    expect(buildEventBody(buildMeeting({ modeType: "Remote" })).summary).toBe("Test Meeting - Zoom Only");
+  });
+
+  it("leaves an unrecognised mode's title bare rather than inventing a suffix", () => {
+    expect(buildEventBody(buildMeeting({ modeType: "Telepathic" })).summary).toBe("Test Meeting");
+  });
+
+  it("keeps the lone-meeting suffix for a family of one, the shape almost every meeting has", () => {
+    const remote = familyRow("m-remote", "Remote", ["Monday"]);
+    expect(buildEventBody(remote, [remote]).summary).toBe("One Day at a Time - Zoom Only");
+  });
+
+  it("names both schedules on every member's event, so the two calendars agree", () => {
+    const hybrid = familyRow("m-hybrid", "Hybrid", ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]);
+    const remote = familyRow("m-remote", "Remote", ["Saturday"]);
+    const family = [hybrid, remote];
+    const expected = "One Day at a Time - Hybrid Mon-Fri - Zoom Only Sat";
+
+    // Each member keeps its own event with its own dates and RRULE, but both events are named
+    // after the whole family -- the same name the family's shared Zoom meeting carries.
+    expect(buildEventBody(hybrid, family).summary).toBe(expected);
+    expect(buildEventBody(remote, family).summary).toBe(expected);
+  });
+
+  it("orders segments Hybrid / In Person / Remote regardless of the family's own order", () => {
+    const inPerson = familyRow("m-inperson", "In Person", ["Saturday"]);
+    const remote = familyRow("m-remote", "Remote", ["Sunday"]);
+
+    expect(buildEventBody(remote, [remote, inPerson]).summary)
+      .toBe("One Day at a Time - In Person Sat - Zoom Only Sun");
+  });
+
+  it("keeps the lone-meeting name when the other rows are the same mode (a scoped edit's split children)", () => {
+    const parent = familyRow("m-parent", "Hybrid", ["Monday"]);
+    const child = familyRow("m-child", "Hybrid", ["Monday"]);
+
+    expect(buildEventBody(parent, [parent, child]).summary).toBe("One Day at a Time - Hybrid");
+  });
+
+  it("names the in-flight edit's days, not the copy of it still stored in the family", () => {
+    const stored = familyRow("m-hybrid", "Hybrid", ["Monday"]);
+    const edited = familyRow("m-hybrid", "Hybrid", ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]);
+    const remote = familyRow("m-remote", "Remote", ["Saturday"]);
+
+    expect(buildEventBody(edited, [stored, remote]).summary)
+      .toBe("One Day at a Time - Hybrid Mon-Fri - Zoom Only Sat");
+  });
+});
+
 // buildEventBody is the single place a RecurrencePattern turns into a Google Calendar
 // event body -- every full events.insert/events.update (create, whole-series edit, Retry
 // sync, reconcile, pending-resume series creation) goes through it, so these cases are what

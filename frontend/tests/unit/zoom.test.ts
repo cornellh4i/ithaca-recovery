@@ -477,6 +477,17 @@ describe("linked-schedule family topics and recurrence (via the outgoing request
     expect(body?.topic).toBe("One Day at a Time - Hybrid Mon-Fri - In Person Sat");
   });
 
+  it("names the family the same way when the caller passes only the other rows", async () => {
+    const { getCapturedBody } = mockFetchCapturingBody();
+    const hybrid = hybridWeekdays();
+
+    // A caller holding siblings rather than the whole family still gets the family's name --
+    // the row being written is added to it, never counted twice.
+    await updateZoomMeeting("zid-shared", hybrid, [remoteSaturday()]);
+
+    expect(getCapturedBody()?.topic).toBe("One Day at a Time - Hybrid Mon-Fri - Zoom Only Sat");
+  });
+
   it("uses the in-flight row rather than its stored copy when the family already contains it", async () => {
     const { getCapturedBody } = mockFetchCapturingBody();
     // What the database still holds for the row being edited, as getLinkedFamily returns it.
