@@ -13,6 +13,7 @@ import {
   availableModesFor,
   canLinkSchedule,
   claimedDaysFor,
+  isZoomBearing,
   LINKED_SCHEDULE_MODES,
   type LinkedFamily,
   type LinkedScheduleRow,
@@ -241,9 +242,18 @@ const MeetingSchedules: React.FC<MeetingSchedulesProps> = ({
                 compact={compact}
               />
             }
-            // Not a picker: a linked schedule never books a host of its own -- it joins the
-            // meeting's existing Zoom meeting, which is the whole point of linking it.
-            zoomHostDropdown={<p className={styles.inheritedValue}>Shares this meeting&apos;s Zoom host and join link.</p>}
+            // Not a picker either way: the family's one Zoom meeting is created against
+            // whichever schedule needs it, and its host is resolved from the pool server-side.
+            // Which schedule that is depends on the meeting's own mode -- an In Person meeting
+            // has no Zoom meeting to share, so this schedule is the one that mints it (and
+            // consumes host capacity), which the copy must not claim otherwise.
+            zoomHostDropdown={
+              <p className={styles.inheritedValue}>
+                {isZoomBearing({ modeType })
+                  ? "Shares this meeting's Zoom host and join link."
+                  : "Books its own Zoom host and join link, as this meeting is in person."}
+              </p>
+            }
             zoomHostHint=""
           />
         </div>

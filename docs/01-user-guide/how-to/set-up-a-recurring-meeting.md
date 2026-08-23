@@ -40,8 +40,9 @@ schedules are one meeting sharing one Zoom link (see
 2. Click **"Add another mode for other days."**
 3. Pick the second schedule's **Mode** and **days**. The mode the meeting already uses and the days
    it already meets on are greyed out — the two schedules must differ in mode and never share a day.
-4. Fill in whichever of Room / Zoom room the new mode needs. It uses the meeting's existing Zoom
-   host and join link, so there's nothing to pick there.
+4. Fill in whichever of Room / Zoom room the new mode needs. There's no Zoom host to pick: the
+   schedule uses the meeting's existing Zoom host and join link, or — if the meeting itself is In
+   Person and so has none — books its own, which the form says at that spot.
 5. Save the meeting as usual. Both schedules are written together.
 
 The time, length, repeat interval and end date always come from the meeting's main schedule — Zoom

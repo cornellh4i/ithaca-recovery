@@ -146,6 +146,15 @@ describe("MeetingSchedules linked-schedule locking", () => {
     expect(screen.getByText(/Shares this meeting's Zoom host and join link\./)).toBeInTheDocument();
   });
 
+  // An In Person meeting has no Zoom meeting to share, so this schedule is the one that mints the
+  // family's -- the single case that consumes Zoom host capacity.
+  it("says the schedule books its own Zoom host when the meeting is in person", () => {
+    renderSchedules({ modeType: "In Person", zoomRoom: "", draft: { ...draft, modeType: "Hybrid" } });
+
+    expect(screen.getByText(/Books its own Zoom host and join link/)).toBeInTheDocument();
+    expect(screen.queryByText(/Shares this meeting's Zoom host/)).not.toBeInTheDocument();
+  });
+
   it("discards the draft on Cancel", () => {
     const onDiscardDraft = jest.fn();
     renderSchedules({ draft, onDiscardDraft });
