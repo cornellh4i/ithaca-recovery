@@ -10,7 +10,7 @@ import styles from "./RecurringMeeting.module.scss";
 
 import CheckButton from '../ui/buttons/CheckButton';
 import { IRecurrencePattern } from "../../../types/models";
-import { convertUTCToET, formatETDateString, getDaysInMonth, getETDayOfWeek, parseMMDDYYYY } from "../../../util/date/timeUtils";
+import { convertUTCToET, formatETDateString, getDaysInMonth, getETDayOfWeek, parseMMDDYYYY, WEEKDAY_NAMES } from "../../../util/date/timeUtils";
 import { MAX_RECURRENCE_OCCURRENCES } from "../../../util/meetings/meetingValidation";
 
 
@@ -49,7 +49,6 @@ const days = [
 ];
 
 const ordinals = ["1st", "2nd", "3rd", "4th"];
-const weekdayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
 function inferEndOption(pattern: IRecurrencePattern | null): string {
   if (pattern?.numberOfOccurrences != null) return 'After';
@@ -79,7 +78,7 @@ function getMonthlyOptions(startDateStr: string): string[] {
   if (!date) return [];
   const [year, month, day] = formatETDateString(date).split('-').map(Number);
   const dayOfMonth = day;
-  const weekdayName = weekdayNames[getETDayOfWeek(date)];
+  const weekdayName = WEEKDAY_NAMES[getETDayOfWeek(date)];
   const nth = Math.ceil(dayOfMonth / 7);
   const daysInMonth = getDaysInMonth(year, month);
   const isLast = dayOfMonth + 7 > daysInMonth;

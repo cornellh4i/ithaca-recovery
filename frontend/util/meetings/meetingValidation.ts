@@ -115,6 +115,8 @@ export const meetingSchema = z.object({
     message: "At least one calendar type is required.",
     path: ["calType"],
   })
+  // modeType is a free-form string here; these two literals must stay spelled exactly as they are
+  // in LINKED_SCHEDULE_MODES (util/meetings/linkedSchedules.ts), the authoritative mode-name list.
   .refine(
     (meeting) => meeting.modeType !== "Hybrid" || (!!meeting.room && !!meeting.zoomRoom),
     {

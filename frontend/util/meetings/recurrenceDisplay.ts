@@ -1,6 +1,8 @@
 // Shared by the meetings XLSX and PandaDocs lease CSV exports so their "Day" columns
 // can never drift apart.
 
+import { WEEKDAY_NAMES } from "../date/timeUtils";
+
 export interface RecurrencePatternLike {
   type: string;
   weekOfMonth: number | null;
@@ -8,7 +10,6 @@ export interface RecurrencePatternLike {
   daysOfWeek: string[];
 }
 
-const DAY_ORDER = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 const WEEK_OF_MONTH_ORDINALS = ["1st", "2nd", "3rd", "4th"];
 
 const DAY_ABBREVIATIONS: Record<string, string> = {
@@ -24,12 +25,12 @@ const DAY_ABBREVIATIONS: Record<string, string> = {
 // Collapses a set of weekday names into abbreviated ranges in week order, e.g.
 // [Monday, Tuesday, Wednesday, Friday] -> "M-W, F".
 function collapseDayRuns(days: string[]): string {
-  const sorted = [...days].sort((a, b) => DAY_ORDER.indexOf(a) - DAY_ORDER.indexOf(b));
+  const sorted = [...days].sort((a, b) => WEEKDAY_NAMES.indexOf(a) - WEEKDAY_NAMES.indexOf(b));
   const runs: string[][] = [];
   for (const day of sorted) {
-    const dayIndex = DAY_ORDER.indexOf(day);
+    const dayIndex = WEEKDAY_NAMES.indexOf(day);
     const currentRun = runs[runs.length - 1];
-    const runEndIndex = currentRun ? DAY_ORDER.indexOf(currentRun[currentRun.length - 1]) : -2;
+    const runEndIndex = currentRun ? WEEKDAY_NAMES.indexOf(currentRun[currentRun.length - 1]) : -2;
     if (currentRun && dayIndex === runEndIndex + 1) {
       currentRun.push(day);
     } else {
