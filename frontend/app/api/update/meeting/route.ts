@@ -10,10 +10,15 @@ import {
 import { createZoomMeeting, updateZoomMeeting, deleteZoomMeeting, getZoomHostCapacities, getZoomMeetingInvitation, rehostZoomMeeting, resolveZoomHost, zoomHostPool, zoomRoomCalendarId } from "../../../../services/zoom";
 import { findResourceConflicts, findResourceConflictRows, ConflictRow, ResourceConflictAbort } from "../../../../util/meetings/resourceOverlap";
 import { lockResourceClaims, ResourceClaim } from "../../../../util/meetings/resourceLocks";
-import { meetingSchema, editScopeSchema } from "../../../../util/meetings/meetingValidation";
-import { linkedFamilyLoader, LinkedFamilyLoader } from "../../../../util/meetings/linkedSchedules";
+import { meetingSchema, editScopeSchema, linkedScheduleSchema, LinkedScheduleInput } from "../../../../util/meetings/meetingValidation";
+import {
+  linkedFamilyLoader, LinkedFamilyLoader, LinkedFamilyMeeting, getLinkedFamily, familyMembers,
+  canLinkSchedule, availableModesFor, claimedDaysFor, isZoomBearing, LINKED_SCHEDULE_CAP,
+} from "../../../../util/meetings/linkedSchedules";
+import { isSharedZoomScheduleCompatible } from "../../../../util/meetings/sharedZoomSchedule";
 import { reconcilePendingResume, tearDownPendingResumeSeries } from "../../../../util/meetings/suspension";
-import { calculateEndDateFromOccurrences } from "../../../../util/meetings/meetingOccurrences";
+import { calculateEndDateFromOccurrences, firstOccurrenceOnOrAfter } from "../../../../util/meetings/meetingOccurrences";
+import { convertETToUTC, getETTimeOfDay, isConvertETToUTCValidationError } from "../../../../util/date/timeUtils";
 import { EditScope, countOccurrencesBefore, exclusionInstant, trimmedEndDate, isLiveOccurrence, rootSplitMid, toETDateStr } from "../../../../util/meetings/editScope";
 import { prisma } from "../../../../lib/prisma";
 
@@ -327,8 +332,14 @@ async function syncUpdatedMeeting(
   }
 }
 
-// Runs after the response is sent — parent-side Google Calendar half of a scoped edit: a
-// full-body rewrite of each configured calType event from the parent's POST-WRITE
+// Runs after the response is sent — rewrites one existing meeting's Google Calendar events in
+// place from its current stored state. Two callers, same job: the parent of a scoped edit
+// (whose recurrence was just trimmed/excluded) and every other member of a linked-schedule
+// family a new schedule just joined (whose event TITLE now names a family it didn't before --
+// see handleLinkedScheduleCreate). Described below from the scoped-edit case, which is the one
+// with the subtleties.
+//
+// A full-body rewrite of each configured calType event from the meeting's POST-WRITE
 // RecurrencePattern (buildEventBody regenerates the whole recurrence -- RRULE + EXDATEs -- from
 // it, so a plain events.update is sufficient for both 'this' and 'thisAndFollowing'; no more
 // surgical EXDATE/UNTIL patch), plus the parent's OWN Zoom-Room join-link event (if it has one)
@@ -346,7 +357,7 @@ async function syncUpdatedMeeting(
 // Google write (technical-decisions.md's "API failure ⇒ googleSyncStatus 'error'"). The
 // suspended early-return above deliberately skips this write too -- that deferral is intentional
 // (status stays whatever it already was), not a failure to report.
-async function syncScopedParentCalendar(
+async function republishMeetingCalendars(
   mid: string,
   status: string,
   accessToken: string | undefined,
@@ -422,7 +433,7 @@ async function syncSplitMeeting(
   const meetingForSync: IMeeting = { ...meetingData, isRecurring };
   // The split-off row is a lineage of its parent, not a second mode, so it joins the family only
   // through the zid it inherited -- which is exactly how Zoom already sees it. Read from the
-  // parent's loader: this sync runs concurrently with syncScopedParentCalendar over the same
+  // parent's loader: this sync runs concurrently with republishMeetingCalendars over the same
   // zid group, so the two share one lookup instead of issuing near-identical queries.
   const family = await loadFamily(meetingData.zid ?? null);
 
@@ -710,10 +721,10 @@ async function handleScopedEdit(
   const loadFamily = linkedFamilyLoader(prisma, mid);
 
   after(
-    syncScopedParentCalendar(
+    republishMeetingCalendars(
       mid, existingMeeting.status, auth.accessToken, calendarIds, eventIds, parentForCalendar,
       existingMeeting.zoomCalendarEventId, existingMeeting.zoomRoom, loadFamily,
-    ).catch((error) => console.error("syncScopedParentCalendar threw:", error)),
+    ).catch((error) => console.error("republishMeetingCalendars threw:", error)),
   );
   if (hasStaleResumeSeries) {
     after(tearDownPendingResumeSeries(existingMeeting, auth.accessToken).catch((error) =>
@@ -746,6 +757,440 @@ async function handleScopedEdit(
   return NextResponse.json({ ...updatedParent, newMid: createdMeeting.mid });
 }
 
+// The anchor's ET wall-clock time of day and duration, re-anchored onto the first date its
+// series actually meets on `daysOfWeek`. A linked schedule never gets its start from the client:
+// the family is served by ONE Zoom meeting, which can only hold one series, so every member has
+// to keep the same time of day and duration (isSharedZoomScheduleCompatible) -- and the search
+// runs against the ANCHOR's pattern, so an every-other-week family stays in one week phase
+// instead of the two schedules landing on alternating weeks. Returns null when the requested
+// days produce no occurrence inside the anchor's series at all (e.g. a series that ends first).
+function deriveLinkedScheduleStart(
+  anchor: Meeting & { recurrencePattern: RecurrencePattern | null },
+  daysOfWeek: string[],
+): { startDateTime: Date; endDateTime: Date } | null {
+  const pattern = anchor.recurrencePattern!;
+  const firstETDate = firstOccurrenceOnOrAfter(
+    {
+      type: 'weekly',
+      startDate: pattern.startDate,
+      endDate: pattern.endDate,
+      interval: pattern.interval,
+      daysOfWeek,
+      weekOfMonth: null,
+      dayOfMonth: null,
+      // The anchor's own excluded dates are its alone -- a per-occurrence deletion on the
+      // Monday-Friday schedule says nothing about when the Saturday one starts.
+      excludedDates: [],
+    },
+    toETDateStr(pattern.startDate),
+  );
+  if (!firstETDate) return null;
+  const { hour, minute, second } = getETTimeOfDay(anchor.startDateTime);
+  const pad = (value: number) => String(value).padStart(2, '0');
+  const startDateTime = new Date(convertETToUTC(`${firstETDate}T${pad(hour)}:${pad(minute)}:${pad(second)}`));
+  const durationMs = anchor.endDateTime.getTime() - anchor.startDateTime.getTime();
+  return { startDateTime, endDateTime: new Date(startDateTime.getTime() + durationMs) };
+}
+
+// Runs after the response is sent — the new linked row's own half of the create: its Google
+// Calendar events (and its Zoom-Room event, if any), via the same publish a split-off row gets.
+// The one addition is the In-Person-anchor case: the family had no Zoom meeting to inherit, so
+// this row mints it -- with the family, so it is born holding the union schedule and the
+// family's name -- and becomes the family's zid holder. Every other case inherits the anchor's
+// zid and makes no Zoom API call at all.
+async function syncLinkedSchedule(
+  newMid: string,
+  linkedMeeting: IMeeting,
+  accessToken: string | undefined,
+  loadFamily: LinkedFamilyLoader,
+  // Non-null only when this row mints the family's Zoom meeting; `host` is the pool host already
+  // resolved and persisted synchronously in handleLinkedScheduleCreate (null when the pool was
+  // exhausted, with `syncError` saying so).
+  provision: { host: string | null; syncError: string | null } | null,
+): Promise<void> {
+  let meeting = linkedMeeting;
+
+  if (provision) {
+    if (!provision.host) {
+      // Same contract as every other Zoom-blocked publish: nothing is published with a missing
+      // join link, and "Retry sync" picks this row back up once a host frees up.
+      await prisma.meeting.update({
+        where: { mid: newMid },
+        data: {
+          googleSyncStatus: 'pending',
+          zoomSyncStatus: 'error',
+          zoomSyncError: provision.syncError ?? "No Zoom host available for this meeting's schedule (pool exhausted).",
+        },
+      });
+      return;
+    }
+    const created = await createZoomMeeting(meeting, provision.host, await loadFamily(null));
+    if (!created) {
+      await prisma.meeting.update({
+        where: { mid: newMid },
+        data: { googleSyncStatus: 'pending', zoomSyncStatus: 'error', zoomSyncError: "Failed to create the Zoom meeting." },
+      });
+      return;
+    }
+    const zoomInvitation = await getZoomMeetingInvitation(created.zid);
+    await prisma.meeting.update({
+      where: { mid: newMid },
+      data: { zid: created.zid, zoomLink: created.zoomLink, zoomPasscode: created.zoomPasscode, zoomInvitation },
+    });
+    meeting = { ...meeting, zid: created.zid, zoomLink: created.zoomLink, zoomPasscode: created.zoomPasscode };
+  }
+
+  await syncSplitMeeting(newMid, meeting, true, accessToken, loadFamily);
+}
+
+// Runs after the response is sent — the REST of the family's half of a linked-schedule create.
+// A family's external name is derived from all of its schedules ("Group - Hybrid Mon-Fri - Zoom
+// Only Sat"), so the moment a second schedule joins, every existing member's copy of that name
+// is stale: the shared Zoom meeting needs the widened union schedule and the new topic, and each
+// existing member's Google Calendar events need a full rewrite to pick up the new title. Without
+// this fan-out those events would keep advertising the old single-schedule name until something
+// else happened to touch them.
+async function syncLinkedScheduleFamily(
+  // The family as it stood BEFORE the create -- every member except the new row.
+  members: LinkedFamilyMeeting[],
+  accessToken: string | undefined,
+  loadFamily: LinkedFamilyLoader,
+  // The shared Zoom meeting the new schedule joined, when there is one to widen. Null when the
+  // new row is minting the family's Zoom meeting itself (createZoomMeeting is handed the family
+  // there, so there is nothing left to correct) or when no member uses Zoom at all.
+  patchZid: string | null,
+): Promise<void> {
+  if (patchZid) {
+    // Unmanaged Zoom meetings are never PATCHed -- the stored link is the contract (see
+    // syncUpdatedMeeting).
+    const holder = members.find((member) => member.zid === patchZid && member.zoomManaged);
+    if (holder) {
+      const ok = await updateZoomMeeting(patchZid, holder as unknown as IMeeting, await loadFamily(patchZid));
+      if (!ok) {
+        await prisma.meeting.update({
+          where: { mid: holder.mid },
+          data: {
+            zoomSyncStatus: 'error',
+            zoomSyncError: "Couldn't update the shared Zoom meeting for the newly linked schedule.",
+          },
+        });
+      }
+    }
+  }
+
+  for (const member of members) {
+    await republishMeetingCalendars(
+      member.mid,
+      member.status,
+      accessToken,
+      calendarIdsForMeeting(member.calType ?? []),
+      (member.googleCalendarEventIds ?? {}) as Record<string, string>,
+      member as unknown as IMeeting,
+      member.zoomCalendarEventId,
+      member.zoomRoom,
+      loadFamily,
+    );
+  }
+}
+
+// Handles a `linkedSchedule` block: adds a SECOND weekly schedule -- a different mode on
+// different weekdays -- to an existing recurring meeting, served by the family's one Zoom
+// meeting (util/meetings/linkedSchedules.ts). Modeled on handleScopedEdit, minus the parent
+// trim: the anchor row itself is not touched, only read.
+async function handleLinkedScheduleCreate(
+  auth: { accessToken?: string; user?: { email?: string | null } | null },
+  existingMeeting: Meeting,
+  linkedSchedule: LinkedScheduleInput,
+  confirmOverride: boolean,
+): Promise<Response> {
+  const family = await getLinkedFamily(prisma, existingMeeting.mid);
+  if (!family) {
+    return NextResponse.json({ error: `Meeting with ID ${existingMeeting.mid} not found` }, { status: 404 });
+  }
+  // Resolved from either member, so this is the family's own root even if the request targeted
+  // an already-linked row -- and by the cap check below, the only member whenever this request
+  // goes on to write anything.
+  const anchor = family.anchor;
+
+  if (!anchor.isRecurring || !anchor.recurrencePattern) {
+    return NextResponse.json(
+      { error: "A linked schedule can only be added to a recurring meeting." },
+      { status: 400 },
+    );
+  }
+  if (anchor.recurrencePattern.type !== 'weekly') {
+    return NextResponse.json(
+      { error: "A linked schedule can only be added to a weekly meeting." },
+      { status: 400 },
+    );
+  }
+  if (!canLinkSchedule(family)) {
+    return NextResponse.json(
+      { error: `This meeting already runs ${LINKED_SCHEDULE_CAP} schedules; no more can be linked.` },
+      { status: 400 },
+    );
+  }
+  const availableModes = availableModesFor(family);
+  if (!availableModes.includes(linkedSchedule.modeType)) {
+    return NextResponse.json(
+      { error: `A linked schedule must use a mode this meeting doesn't already run (${availableModes.join(", ")}).` },
+      { status: 400 },
+    );
+  }
+  const linkedDays = linkedSchedule.recurrencePattern.daysOfWeek ?? [];
+  if (linkedDays.length === 0) {
+    return NextResponse.json(
+      { error: "A linked schedule must meet on at least one day of the week." },
+      { status: 400 },
+    );
+  }
+  // Disjoint weekdays are a hard requirement, not a preference: Zoom holds the family's schedules
+  // as ONE union of weekdays, so a day claimed twice silently collapses into a single occurrence.
+  const claimedDays = claimedDaysFor(family);
+  const overlappingDays = linkedDays.filter((day) => claimedDays.includes(day));
+  if (overlappingDays.length > 0) {
+    return NextResponse.json(
+      { error: `This meeting already meets on ${overlappingDays.join(", ")}; a linked schedule must run on other days.` },
+      { status: 400 },
+    );
+  }
+
+  let derived: { startDateTime: Date; endDateTime: Date } | null;
+  try {
+    derived = deriveLinkedScheduleStart(anchor, linkedDays);
+  } catch (error) {
+    // The anchor's time of day doesn't exist on the linked schedule's first date (the DST
+    // spring-forward gap) -- the admin's own input, not a server fault.
+    if (isConvertETToUTCValidationError(error)) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
+    throw error;
+  }
+  if (!derived) {
+    return NextResponse.json(
+      { error: "The requested days produce no occurrence inside this meeting's series." },
+      { status: 400 },
+    );
+  }
+  const { startDateTime, endDateTime } = derived;
+
+  // Everything below is copied from the anchor, never read from the payload -- see
+  // linkedScheduleBlockSchema's comment. A count-bounded anchor gives the linked schedule the
+  // same count, resolved into its OWN end date because its weekdays reach that count elsewhere.
+  const pattern = anchor.recurrencePattern;
+  const numberOfOccurrences = pattern.endDate ? null : pattern.numberOfOccurrences;
+  const endDate = pattern.endDate ?? (numberOfOccurrences
+    ? calculateEndDateFromOccurrences(startDateTime, linkedDays, numberOfOccurrences, pattern.interval, 'weekly', null, null)
+    : null);
+
+  const needsZoom = isZoomBearing({ modeType: linkedSchedule.modeType });
+  // The family's Zoom identity is inherited whole, never re-provisioned -- one Zoom meeting per
+  // family. An In-Person linked row gets none of it; an In-Person ANCHOR has none to give, so a
+  // Zoom-bearing linked row mints the family's Zoom meeting itself and becomes its zid holder
+  // (linkedToMid still keys the family, which is exactly why the family isn't keyed on zid).
+  const inheritsZoom = needsZoom && isZoomBearing(anchor);
+  const provisionsZoom = needsZoom && !inheritsZoom;
+  const inheritedZoomHost = inheritsZoom ? anchor.zoomHost : null;
+
+  const candidate = {
+    mid: linkedSchedule.mid,
+    title: anchor.title,
+    room: linkedSchedule.room ?? "",
+    zoomRoom: linkedSchedule.zoomRoom ?? null,
+    zoomHost: inheritedZoomHost,
+    status: 'Active',
+    calType: anchor.calType,
+    startDateTime,
+    endDateTime,
+    isRecurring: true,
+    recurrencePattern: {
+      type: 'weekly',
+      startDate: startDateTime,
+      endDate,
+      interval: pattern.interval,
+      daysOfWeek: linkedDays,
+      weekOfMonth: null,
+      dayOfMonth: null,
+      excludedDates: [],
+    },
+  };
+
+  // Backstop for a family Zoom can't hold as one series (a member that diverged in interval,
+  // time of day or duration since it was created). Everything the check reads is derived above,
+  // so a request that reaches here normally passes -- but a family it rejects would have its
+  // Zoom schedule silently frozen from then on, which is worth refusing outright.
+  if (!isSharedZoomScheduleCompatible([...familyMembers(family), candidate])) {
+    return NextResponse.json(
+      { error: "This meeting's schedules can't be served by one Zoom meeting (they must share an interval, time of day and duration)." },
+      { status: 400 },
+    );
+  }
+
+  // License-dependent per-host capacities, resolved before the locked transaction below -- same
+  // reasoning as every other path (a Zoom API round trip while advisory locks are held would
+  // extend lock hold time by an external call's latency; cached 12h, usually a no-op).
+  const hostCapacities = await getZoomHostCapacities();
+
+  let txResult: { createdMeeting: LinkedFamilyMeeting; resolvedHost: string | null; hostSyncError: string | null };
+  try {
+    txResult = await prisma.$transaction(async (tx) => {
+      const claims: ResourceClaim[] = [];
+      if (candidate.room) claims.push({ type: "room", value: candidate.room });
+      if (candidate.zoomRoom) claims.push({ type: "zoomRoom", value: candidate.zoomRoom });
+      if (inheritedZoomHost) claims.push({ type: "zoomHost", value: inheritedZoomHost });
+      // Only the In-Person-anchor case ever picks a host here; every other case reuses the
+      // family's, so no pool lock is needed (or wanted -- see the host-capacity note below).
+      if (provisionsZoom) {
+        for (const host of zoomHostPool) claims.push({ type: "zoomHost", value: host });
+      }
+      await lockResourceClaims(tx, claims);
+
+      if (!confirmOverride) {
+        const conflictRows: ConflictRow[] = [];
+        // room/zoomRoom must NOT exclude the anchor -- same reasoning as handleScopedEdit's: the
+        // anchor's own occurrences are live bookings of that room, and the two schedules only
+        // avoid each other by weekday, which nothing here has verified about the ROOM.
+        if (candidate.room) {
+          conflictRows.push(...await findResourceConflictRows("room", candidate.room, candidate, tx, {}));
+        }
+        if (candidate.zoomRoom) {
+          conflictRows.push(...await findResourceConflictRows("zoomRoom", candidate.zoomRoom, candidate, tx, {}));
+        }
+        // zoomHost DOES exclude the family: the inherited zid is ONE real Zoom booking the two
+        // schedules share, not a second one to flag. The cap makes the anchor the family's only
+        // other member here. Belt-and-braces anyway -- the disjoint-weekday rule above already
+        // means the two schedules' occurrences never overlap.
+        if (inheritedZoomHost) {
+          conflictRows.push(...await findResourceConflictRows(
+            "zoomHost", inheritedZoomHost, candidate, tx,
+            { excludeMid: anchor.mid, includeSuspended: true, capacity: hostCapacities[inheritedZoomHost] ?? 1 },
+          ));
+        }
+        if (conflictRows.length > 0) {
+          throw new ResourceConflictAbort(conflictRows);
+        }
+      }
+
+      // Host capacity is consumed only when this row actually mints a Zoom meeting. An inherited
+      // zid re-uses the family's existing booking, so there is nothing to reserve -- mirrors
+      // handleScopedEdit exactly.
+      let resolvedHost: string | null = null;
+      let hostSyncError: string | null = null;
+      if (provisionsZoom) {
+        resolvedHost = await resolveZoomHost(candidate, tx, { capacities: hostCapacities });
+        hostSyncError = resolvedHost
+          ? null
+          : "No Zoom host available for this meeting's schedule (pool exhausted).";
+      }
+
+      const createdMeeting = await tx.meeting.create({
+        data: {
+          mid: linkedSchedule.mid,
+          title: anchor.title,
+          description: anchor.description,
+          creator: auth.user?.email ?? anchor.creator,
+          lastEditedBy: null,
+          group: anchor.group,
+          startDateTime,
+          endDateTime,
+          email: anchor.email,
+          calType: anchor.calType,
+          modeType: linkedSchedule.modeType,
+          room: candidate.room,
+          zoomRoom: candidate.zoomRoom,
+          // A linked schedule always starts Active -- it has no suspension history of its own,
+          // and must never inherit a suspended anchor's status.
+          status: 'Active',
+          isRecurring: true,
+          linkedToMid: anchor.mid,
+          // A second mode, not a division of the anchor's series -- the two lineage columns are
+          // deliberately distinct (schema.prisma).
+          splitFromMid: null,
+          ...(inheritsZoom
+            ? {
+                zid: anchor.zid,
+                zoomLink: anchor.zoomLink,
+                zoomPasscode: anchor.zoomPasscode,
+                zoomInvitation: anchor.zoomInvitation,
+                zoomHost: anchor.zoomHost,
+                zoomManaged: anchor.zoomManaged,
+                // A pinned family name stays pinned for every member; a null one keeps meaning
+                // "auto, recompute from the current family" (services/zoom.ts).
+                zoomTopic: anchor.zoomTopic,
+              }
+            : {}),
+          ...(provisionsZoom
+            ? {
+                zoomHost: resolvedHost,
+                ...(hostSyncError ? { zoomSyncStatus: 'error', zoomSyncError: hostSyncError } : {}),
+              }
+            : {}),
+          recurrencePattern: {
+            create: {
+              type: 'weekly',
+              startDate: startDateTime,
+              endDate,
+              numberOfOccurrences: numberOfOccurrences ?? undefined,
+              daysOfWeek: linkedDays,
+              firstDayOfWeek: pattern.firstDayOfWeek,
+              interval: pattern.interval,
+              weekOfMonth: null,
+              dayOfMonth: null,
+              excludedDates: [],
+            },
+          },
+        },
+        include: { recurrencePattern: true },
+      });
+
+      return { createdMeeting, resolvedHost, hostSyncError };
+    }, { timeout: 10_000, maxWait: 10_000 });
+  } catch (error) {
+    if (error instanceof ResourceConflictAbort) {
+      return NextResponse.json(
+        { error: "This meeting conflicts with an existing meeting's room, Zoom room, or Zoom host.", conflicts: error.conflicts },
+        { status: 409 },
+      );
+    }
+    throw error;
+  }
+
+  const { createdMeeting, resolvedHost, hostSyncError } = txResult;
+  // One family lookup for both background syncs below -- keyed on the anchor, so it returns the
+  // post-create family (both schedules) whichever of them asks for it first.
+  const loadFamily = linkedFamilyLoader(prisma, anchor.mid);
+
+  after(
+    syncLinkedSchedule(
+      createdMeeting.mid,
+      createdMeeting as unknown as IMeeting,
+      auth.accessToken,
+      loadFamily,
+      provisionsZoom ? { host: resolvedHost, syncError: hostSyncError } : null,
+    ).catch(async (error) => {
+      console.error("syncLinkedSchedule threw:", error);
+      try {
+        await prisma.meeting.update({
+          where: { mid: createdMeeting.mid },
+          data: { googleSyncStatus: 'error', googleSyncError: "Sync job failed unexpectedly." },
+        });
+      } catch (persistError) {
+        console.error("Failed to persist linked-schedule sync failure status:", persistError);
+      }
+    }),
+  );
+  after(
+    syncLinkedScheduleFamily(
+      familyMembers(family),
+      auth.accessToken,
+      loadFamily,
+      inheritsZoom ? anchor.zid : null,
+    ).catch((error) => console.error("syncLinkedScheduleFamily threw:", error)),
+  );
+
+  return NextResponse.json({ ...anchor, linkedMid: createdMeeting.mid });
+}
+
 const updateMeeting = async (request: Request): Promise<Response> => {
   try {
     const auth = await requireRole(Role.ADMIN);
@@ -767,6 +1212,23 @@ const updateMeeting = async (request: Request): Promise<Response> => {
     }
     const editScope: EditScope = scopeParsed.data.editScope ?? 'all';
     const occurrenceDate = scopeParsed.data.occurrenceDate ?? null;
+
+    // Parsed separately from meetingSchema too (see linkedScheduleBlockSchema's comment) --
+    // present only when the request is adding a SECOND schedule to this meeting.
+    const linkedParsed = linkedScheduleSchema.safeParse(rawBody);
+    if (!linkedParsed.success) {
+      return NextResponse.json({ error: "Invalid linked schedule", issues: linkedParsed.error.issues }, { status: 400 });
+    }
+    const linkedSchedule: LinkedScheduleInput | null = linkedParsed.data.linkedSchedule ?? null;
+    // A linked schedule is a property of the whole series (a second weekly schedule of the same
+    // meeting), so there is no coherent meaning for adding one to a single occurrence or to the
+    // tail of a split -- reject the combination instead of silently applying one half of it.
+    if (linkedSchedule && editScope !== 'all') {
+      return NextResponse.json(
+        { error: "A linked schedule applies to the whole series; editScope must be omitted or 'all'." },
+        { status: 400 },
+      );
+    }
 
     // Read before lockResourceClaims acquires anything below -- accepted gap, not covered by
     // this fix: two concurrent edits to this *same* meeting could each compute
@@ -790,6 +1252,10 @@ const updateMeeting = async (request: Request): Promise<Response> => {
     // googleCalendarEventIds if its date has arrived but nothing's promoted it yet, before this
     // edit reads/writes that field below.
     existingMeeting.googleCalendarEventIds = await reconcilePendingResume(existingMeeting);
+
+    if (linkedSchedule) {
+      return handleLinkedScheduleCreate(auth, existingMeeting, linkedSchedule, !!newMeeting.confirmOverride);
+    }
 
     if (editScope !== 'all') {
       if (!existingMeeting.recurrencePattern) {

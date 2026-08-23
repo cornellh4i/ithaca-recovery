@@ -128,10 +128,12 @@ const CALENDAR_SINGLE_TITLE_SUFFIX = LINKED_SCHEDULE_MODE_LABEL;
 // is also exactly the name the family's shared Zoom meeting carries. Nothing pins a calendar
 // title the way zoomTopic pins a Zoom topic, so there's no verbatim-name escape hatch here.
 //
-// TODO(linked-schedules PR3): the union title is recomputed only for the row being written, so
-// adding or removing a family member leaves the OTHER members' events on their previous title
-// until each is itself edited or retry-synced. PR3's family-wide fan-out has to republish every
-// member's calendar events alongside its updateZoomMeeting, not just the Zoom half.
+// The title is recomputed only for the row being written, so a write that changes the FAMILY's
+// shape has to republish the other members too, or their events keep the name they were last
+// written with. Adding a schedule does exactly that (handleLinkedScheduleCreate's
+// syncLinkedScheduleFamily fan-out, app/api/update/meeting/route.ts).
+// TODO(linked-schedules PR5): removing a linked schedule is a plain row soft-delete, which
+// leaves the SURVIVOR's events on the two-schedule name until it is next written.
 function buildEventTitle(meeting: IMeeting, family: IMeeting[]): string {
     return buildLinkedScheduleLabel(meeting.title, meeting, family, CALENDAR_SINGLE_TITLE_SUFFIX);
 }

@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { LINKED_SCHEDULE_MODES } from "./linkedSchedules";
+
 // Zoom's `agenda` field (which the description is sent as, see services/zoom.ts's
 // buildZoomMeetingBody) hard-caps at 1024 chars -- lower than Google Calendar's description
 // limit, so a too-long description silently fails only the Zoom half of the sync. The form UI
@@ -136,6 +138,43 @@ export const editScopeSchema = z.object({
   editScope: z.enum(['this', 'thisAndFollowing', 'all']).optional(),
   occurrenceDate: z.coerce.date().optional(),
 });
+
+// A second weekly schedule to create alongside the meeting being updated -- a different mode on
+// different weekdays, sharing the family's one Zoom meeting (util/meetings/linkedSchedules.ts).
+// Parsed separately from meetingSchema for the same reason editScopeSchema is: these keys
+// describe a whole other Meeting row, and must never be spread into the anchor's update data.
+//
+// Deliberately narrow. Everything the two schedules must agree on -- title, description, email,
+// group, calType, time of day, duration, interval, and where the series ends -- is derived
+// server-side from the anchor row and never read from here, because a family whose rows disagree
+// on any of them has no single-series representation on Zoom (isSharedZoomScheduleCompatible)
+// and would silently stop reaching Zoom at all. Only the mode, the room(s) that mode needs, and
+// the weekdays are genuinely this schedule's own.
+export const linkedScheduleBlockSchema = z.object({
+  // Client-generated, like NewMeeting's -- so both rows are known before the write and the
+  // create can stay inside the same transaction as the rest of the request.
+  mid: z.string().min(1),
+  modeType: z.enum(LINKED_SCHEDULE_MODES),
+  room: z.string().nullable().optional(),
+  zoomRoom: z.string().nullable().optional(),
+  recurrencePattern: recurrencePatternSchema,
+})
+  // Same room requirements meetingSchema puts on the primary schedule -- the linked row is an
+  // ordinary Meeting row and gets rendered, conflict-checked and published exactly like one.
+  .refine((linked) => linked.modeType !== "Hybrid" || (!!linked.room && !!linked.zoomRoom), {
+    message: "Hybrid meetings require both a physical room and a Zoom room.",
+    path: ["room"],
+  })
+  .refine((linked) => linked.modeType !== "In Person" || !!linked.room, {
+    message: "In Person meetings require a physical room.",
+    path: ["room"],
+  });
+
+export const linkedScheduleSchema = z.object({
+  linkedSchedule: linkedScheduleBlockSchema.optional(),
+});
+
+export type LinkedScheduleInput = z.infer<typeof linkedScheduleBlockSchema>;
 
 // Narrower shape for the Zoom host-availability check — only the fields
 // checkZoomHostPoolAvailability's OccurrenceInput actually needs. The client posts the same
