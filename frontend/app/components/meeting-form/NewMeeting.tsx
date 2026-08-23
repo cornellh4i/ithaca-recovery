@@ -20,6 +20,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { physicalRoomOptions, zoomRoomOptions } from "../../../util/rooms/rooms";
 import { useMeetingForm, CAL_TYPE_OPTIONS, CAL_TYPE_COLOR, DESCRIPTION_MAX_LENGTH, MeetingFormPayload } from '../../../hooks/useMeetingForm';
 import { ConflictListRow } from '../../../util/meetings/conflictDisplay';
+import { isZoomBearing } from '../../../util/meetings/linkedSchedules';
 import { useToast } from '../shared/ToastProvider';
 import { pollMeetingSyncStatus, describeSyncFailure } from '../../../services/syncMeeting';
 
@@ -159,12 +160,15 @@ const NewMeetingSidebar = React.forwardRef<NewMeetingSidebarHandle, NewMeetingSi
         });
 
         // The second schedule is its own row with its own calendar events, so it reports its own
-        // sync result. It never mints a Zoom meeting of its own -- the family's single one is
-        // created against whichever row needs it and fanned out (write/meeting's syncNewMeeting).
+        // sync result. The family's single Zoom meeting is minted against whichever row needs it
+        // and fanned out (write/meeting's syncNewMeeting) -- usually the primary, but an In
+        // Person meeting has none to give, so a Hybrid/Remote linked schedule is the minting row
+        // and its Zoom create is the one this poll must wait on.
         if (meetingResponse.linkedMid) {
           pollMeetingSyncStatus(meetingResponse.linkedMid, {
             expectGoogle: (payload.calType?.length ?? 0) > 0,
-            expectZoom: false,
+            expectZoom: !isZoomBearing({ modeType: payload.modeType })
+              && isZoomBearing({ modeType: payload.linkedSchedule?.modeType ?? "" }),
           }).then((result) => {
             const message = describeSyncFailure(result);
             if (message) showToast({ variant: "error", title: message, persistent: true });
