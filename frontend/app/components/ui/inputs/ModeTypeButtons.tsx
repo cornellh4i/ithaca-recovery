@@ -1,9 +1,8 @@
 import React from 'react';
 import styles from './ModeTypeButtons.module.scss';
 import { MODE_ICON_NAME } from '../../../../util/rooms/modeIcons';
+import { LINKED_SCHEDULE_MODES } from '../../../../util/meetings/linkedSchedules';
 import Icon from '../displays/Icon';
-
-const MODES = ["Hybrid", "In Person", "Remote"] as const;
 
 interface ModeButtonsProps {
   selectedMode: string;
@@ -30,7 +29,9 @@ const ModeButtons: React.FC<ModeButtonsProps> = ({
     <div className={styles.meetingButtons}>
       {/* Explicit type on all three: these render inside the meeting <form>, where a
           typeless button would default to submitting it. */}
-      {MODES.map((mode) => (
+      {/* The authoritative mode list, not a local copy: callers derive `disabledModes` from it
+          (MeetingSchedules), so a second spelling here would silently stop matching. */}
+      {LINKED_SCHEDULE_MODES.map((mode) => (
         <button
           key={mode}
           type="button"
