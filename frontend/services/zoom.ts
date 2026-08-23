@@ -3,6 +3,8 @@ import { Prisma } from "@prisma/client";
 import { IMeeting } from "../types/models";
 import { expandOccurrences, findResourceConflicts, findFirstFreePoolHost, getPoolHostLoads, OccurrenceInput } from "../util/meetings/resourceOverlap";
 import { isSharedZoomScheduleCompatible } from "../util/meetings/sharedZoomSchedule";
+import { familyMembers, getLinkedFamily, isZoomBearing, LINKED_SCHEDULE_MODES, type LinkedFamilyMeeting, type LinkedScheduleMode } from "../util/meetings/linkedSchedules";
+import { formatDayColumn } from "../util/meetings/recurrenceDisplay";
 import { prisma } from "../lib/prisma";
 
 const ZOOM_BASE_API = process.env.NEXT_PUBLIC_ZOOM_BASE_API ?? "https://api.zoom.us/v2";
@@ -247,19 +249,67 @@ const ZOOM_WEEKDAY: Record<string, number> = {
   Sunday: 1, Monday: 2, Tuesday: 3, Wednesday: 4, Thursday: 5, Friday: 6, Saturday: 7,
 };
 
+/**
+ * Every live row this meeting's single Zoom meeting has to account for, ready to pass as the
+ * `family` argument below.
+ *
+ * Two sources, unioned by mid, because neither alone is the whole picture:
+ * - the linked-schedule family (`linkedToMid`) -- the only way to reach a Zoom-free In-Person
+ *   member, which holds no zid but still names itself in the family's Zoom topic;
+ * - every other live row sharing this zid -- split children (a scoped edit keeps the parent's
+ *   zid but is deliberately not a family member) and any legacy zid group the linked backfill
+ *   didn't cover. They are real rows of the same Zoom meeting, and dropping them would narrow
+ *   the union schedule Zoom currently holds (#513).
+ */
+export async function loadZoomScheduleFamily(
+  client: Prisma.TransactionClient,
+  mid: string,
+  zid: string | null,
+): Promise<IMeeting[]> {
+  const family = await getLinkedFamily(client, mid);
+  const zidRows = zid
+    ? await client.meeting.findMany({ where: { zid, deletedAt: null }, include: { recurrencePattern: true } })
+    : [];
+  const byMid = new Map<string, LinkedFamilyMeeting>();
+  for (const row of [...(family ? familyMembers(family) : []), ...zidRows]) byMid.set(row.mid, row);
+  // Prisma rows are structurally what buildZoomMeetingBody reads (the same cast the routes
+  // already used for their zid siblings), just not nominally IMeeting.
+  return [...byMid.values()] as unknown as IMeeting[];
+}
+
+// The linked-schedule family (util/meetings/linkedSchedules.ts) as Zoom must see it for THIS
+// write: callers load the family from the database, so the row being created/PATCHed is still
+// its pre-edit copy in there -- the in-flight version replaces it. A caller that passes only
+// the OTHER rows still gets a complete family, which is why every internal below takes the
+// family rather than a bare sibling list.
+function resolveFamilyRows(meeting: IMeeting, family: IMeeting[]): IMeeting[] {
+  return family.some((row) => row.mid === meeting.mid)
+    ? family.map((row) => (row.mid === meeting.mid ? meeting : row))
+    : [meeting, ...family];
+}
+
+// The family members Zoom's one schedule actually has to cover, besides `meeting` itself. An
+// In-Person member is deliberately excluded: it holds no zid, and unioning its weekdays into
+// weekly_days would advertise Zoom occurrences for a schedule that never meets online.
+function zoomScheduleSiblings(meeting: IMeeting, family: IMeeting[]): IMeeting[] {
+  return resolveFamilyRows(meeting, family)
+    .filter((row) => row.mid !== meeting.mid && isZoomBearing(row));
+}
+
 // Maps the app's recurrence pattern onto Zoom's recurrence object so a recurring series is a
 // real type-8 recurring meeting on Zoom (visible as a series in the host's portal). An
 // unbounded series sends end_times: 0 -- undocumented but exactly what the Zoom portal itself
 // stores for its own "no end" meetings (verified empirically 2026-08-20; Zoom's PATCH path
 // clamps it to a ~2-year rolling horizon, which future edits keep pushing forward).
-// Some Zoom meetings serve several platform rows at once (one shared zid -- e.g. a Hybrid
-// M-Sat row and a Remote Sunday row on one legacy meeting). Zoom holds ONE schedule, so a
-// PATCH built from a single row would silently narrow it to that row's days (#513); with
-// siblings supplied, the recurrence is instead the union of every row's weekdays -- valid only
-// when all rows are weekly at the same interval, time-of-day, and duration, which is how the
-// shared legacy meetings were built. "incompatible" tells the caller to leave Zoom's schedule
-// untouched rather than mangle it.
-function buildZoomRecurrence(meeting: IMeeting, siblings: IMeeting[] = []): Record<string, unknown> | null | "incompatible" {
+// Some Zoom meetings serve several platform rows at once (one linked-schedule family -- e.g. a
+// Hybrid M-Sat row and a Remote Sunday row on one legacy meeting). Zoom holds ONE schedule, so a
+// PATCH built from a single row would silently narrow it to that row's days (#513); with the
+// family supplied, the recurrence is instead the union of its Zoom-bearing rows' weekdays --
+// valid only when all of them are weekly at the same interval, time-of-day, and duration, which
+// is how the shared legacy meetings were built. "incompatible" tells the caller to leave Zoom's
+// schedule untouched rather than mangle it.
+function buildZoomRecurrence(meeting: IMeeting, family: IMeeting[] = []): Record<string, unknown> | null | "incompatible" {
+  const siblings = zoomScheduleSiblings(meeting, family);
   if (!meeting.isRecurring || !meeting.recurrencePattern) return siblings.length ? "incompatible" : null;
   if (siblings.length > 0) {
     const rows = [meeting, ...siblings];
@@ -297,11 +347,12 @@ function buildZoomRecurrence(meeting: IMeeting, siblings: IMeeting[] = []): Reco
 // anchor: Zoom silently rewrites a past start_time to "now" (verified 2026-08-20), and a
 // backdated anchor (e.g. a lease-year import) would otherwise file the meeting under the
 // host's past meetings.
-function nextOccurrenceStart(meeting: IMeeting, siblings: IMeeting[] = []): Date {
+function nextOccurrenceStart(meeting: IMeeting, family: IMeeting[] = []): Date {
   if (!meeting.isRecurring || !meeting.recurrencePattern) return new Date(meeting.startDateTime);
   const now = new Date();
   const horizon = new Date(now.getTime() + 370 * 24 * 60 * 60 * 1000);
   // A shared meeting's next occurrence is the earliest across ALL rows it serves.
+  const siblings = zoomScheduleSiblings(meeting, family);
   const candidates = [meeting, ...siblings.filter((m) => m.isRecurring && m.recurrencePattern)]
     .map((m) => expandOccurrences(
       { ...m, recurrencePattern: m.recurrencePattern } as Parameters<typeof expandOccurrences>[0],
@@ -312,39 +363,78 @@ function nextOccurrenceStart(meeting: IMeeting, siblings: IMeeting[] = []): Date
   return candidates.reduce((a, b) => (a < b ? a : b));
 }
 
+// How each mode names itself inside a linked family's topic. Only Remote is renamed ("Zoom
+// Only"), matching the single-schedule suffix the same meeting would carry on its own.
+const MODE_TOPIC_LABEL: Record<LinkedScheduleMode, string> = {
+  Hybrid: "Hybrid",
+  "In Person": "In Person",
+  Remote: "Zoom Only",
+};
+
+// The Day column the exports already render ("Mon-Fri", "Sat", "Daily") -- one formatter, so a
+// family's Zoom name can never disagree with how the same schedule reads everywhere else.
+function topicDayLabel(pattern: IMeeting["recurrencePattern"]): string {
+  if (!pattern) return formatDayColumn(null);
+  return formatDayColumn({
+    type: pattern.type,
+    weekOfMonth: pattern.weekOfMonth ?? null,
+    dayOfMonth: pattern.dayOfMonth ?? null,
+    daysOfWeek: pattern.daysOfWeek ?? [],
+  });
+}
+
 // ICR's own Zoom naming convention, applied when no explicit zoomTopic is pinned. Adopted
 // legacy meetings carry a pinned zoomTopic instead (their verbatim pre-app names) so an
 // app-side edit can never rename them implicitly.
-function zoomTopicFor(meeting: IMeeting): string {
+//
+// One meeting run as two linked schedules is ONE Zoom meeting, so its name has to say which
+// mode meets on which days -- "One Day at a Time - Hybrid Mon-Fri - Zoom Only Sat". Segments
+// follow LINKED_SCHEDULE_MODES' fixed order, never the order the rows were created in, so the
+// name is stable no matter which member triggered the write. Nothing writes this back into
+// Meeting.zoomTopic: a null column keeps meaning "auto, recompute from the current family."
+function zoomTopicFor(meeting: IMeeting, family: IMeeting[] = []): string {
   if (meeting.zoomTopic) return meeting.zoomTopic;
-  const suffix = meeting.modeType === "Remote" ? " - Zoom Only" : meeting.modeType === "Hybrid" ? " - Hybrid" : "";
-  return `${meeting.title}${suffix}`;
+
+  const rows = resolveFamilyRows(meeting, family);
+  const segments = LINKED_SCHEDULE_MODES.flatMap((mode) => {
+    const row = rows.find((candidate) => candidate.modeType === mode);
+    return row ? [`${MODE_TOPIC_LABEL[mode]} ${topicDayLabel(row.recurrencePattern)}`.trim()] : [];
+  });
+  // Keyed on distinct MODES, not row count: a family's modes are unique by construction, so
+  // two segments means a genuine linked family, while several rows of the same mode (a scoped
+  // edit's split children, a legacy zid group) collapse to one segment and keep the plain
+  // single-schedule name they have today.
+  if (segments.length < 2) {
+    const suffix = meeting.modeType === "Remote" ? " - Zoom Only" : meeting.modeType === "Hybrid" ? " - Hybrid" : "";
+    return `${meeting.title}${suffix}`;
+  }
+  return `${meeting.title} - ${segments.join(" - ")}`;
 }
 
-function buildZoomMeetingBody(meeting: IMeeting, scheduleSiblings: IMeeting[] = []) {
+function buildZoomMeetingBody(meeting: IMeeting, family: IMeeting[] = []) {
   const durationMinutes = Math.round(
     (new Date(meeting.endDateTime).getTime() - new Date(meeting.startDateTime).getTime()) / 60000,
   );
-  const recurrence = buildZoomRecurrence(meeting, scheduleSiblings);
+  const recurrence = buildZoomRecurrence(meeting, family);
   if (recurrence === "incompatible") {
     // Divergent shared rows can't be one fixed-time series -- send a schedule-neutral body
     // (content only) so the PATCH can't narrow whatever union Zoom currently holds (#513).
     console.error(`Zoom shared-schedule rows for "${meeting.title}" diverged; leaving Zoom's schedule untouched`);
     return {
-      topic: zoomTopicFor(meeting),
+      topic: zoomTopicFor(meeting, family),
       duration: durationMinutes,
       agenda: meeting.description,
       settings: { host_video: true, participant_video: true, join_before_host: true },
     };
   }
   return {
-    topic: zoomTopicFor(meeting),
+    topic: zoomTopicFor(meeting, family),
     // Recurring series are real recurring meetings on Zoom (type 8, usually endless via
     // end_times: 0) -- one stable meeting ID across all occurrences, now with the schedule
     // visible in the host's portal. One-time meetings stay plain scheduled (type 2).
     type: recurrence ? 8 : 2,
     ...(recurrence ? { recurrence } : {}),
-    start_time: toZoomStartTime(recurrence ? nextOccurrenceStart(meeting, scheduleSiblings) : new Date(meeting.startDateTime)),
+    start_time: toZoomStartTime(recurrence ? nextOccurrenceStart(meeting, family) : new Date(meeting.startDateTime)),
     duration: durationMinutes,
     timezone: "America/New_York",
     agenda: meeting.description,
@@ -352,7 +442,10 @@ function buildZoomMeetingBody(meeting: IMeeting, scheduleSiblings: IMeeting[] = 
   };
 }
 
-export async function createZoomMeeting(meeting: IMeeting, hostEmail: string): Promise<{ zoomLink: string; zid: string; zoomPasscode: string | null } | null> {
+// `family`: every live row of this meeting's linked-schedule family (getLinkedFamily), so the
+// very first Zoom meeting is already minted with the union schedule and the family's topic --
+// a family is only ever served by ONE Zoom meeting, created once.
+export async function createZoomMeeting(meeting: IMeeting, hostEmail: string, family: IMeeting[] = []): Promise<{ zoomLink: string; zid: string; zoomPasscode: string | null } | null> {
   try {
     const token = await getZoomAccessToken();
     if (!token) return null;
@@ -361,7 +454,7 @@ export async function createZoomMeeting(meeting: IMeeting, hostEmail: string): P
     const res = await fetch(`${ZOOM_BASE_API}/users/${encodeURIComponent(hostEmail)}/meetings`, {
       method: "POST",
       headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-      body: JSON.stringify(buildZoomMeetingBody(meeting)),
+      body: JSON.stringify(buildZoomMeetingBody(meeting, family)),
     });
     invalidateZoomTokenIfUnauthorized(res);
     if (!res.ok) {
@@ -428,13 +521,14 @@ export async function getZoomMeetingCredentials(zid: string): Promise<{ passcode
   }
 }
 
-export async function updateZoomMeeting(zid: string, meeting: IMeeting, scheduleSiblings: IMeeting[] = []): Promise<boolean> {
+export async function updateZoomMeeting(zid: string, meeting: IMeeting, family: IMeeting[] = []): Promise<boolean> {
   // Managed recurring meetings mirror their real schedule to Zoom (type 8 + recurrence, built
   // from the same pattern the app/calendars use) -- each successful PATCH also re-extends
   // Zoom's ~2-year rolling occurrence horizon. Unmanaged meetings never reach this function
   // (gated at every call site); their Zoom-side schedule is the owner's business.
-  // scheduleSiblings: the OTHER active rows sharing this zid (shared legacy meetings) -- the
-  // schedule sent is then the union of all rows, never one row's narrowed view (#513).
+  // family: this meeting's linked-schedule family (getLinkedFamily) -- the schedule sent is the
+  // union of its Zoom-bearing rows, never one row's narrowed view (#513), and the topic is
+  // recomputed from the family on every PATCH.
 
   try {
     const token = await getZoomAccessToken();
@@ -443,7 +537,7 @@ export async function updateZoomMeeting(zid: string, meeting: IMeeting, schedule
     const res = await fetch(`${ZOOM_BASE_API}/meetings/${zid}`, {
       method: "PATCH",
       headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-      body: JSON.stringify(buildZoomMeetingBody(meeting, scheduleSiblings)),
+      body: JSON.stringify(buildZoomMeetingBody(meeting, family)),
     });
     invalidateZoomTokenIfUnauthorized(res);
     if (!res.ok) console.error("Zoom updateMeeting error:", await res.text());
