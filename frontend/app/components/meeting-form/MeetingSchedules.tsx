@@ -179,7 +179,7 @@ const MeetingSchedules: React.FC<MeetingSchedulesProps> = ({
       )}
 
       {draft && (
-        <div className={styles.scheduleCard}>
+        <div className={styles.scheduleCard} data-testid="linked-schedule-draft">
           <div className={styles.cardHeader}>
             <h4 className={styles.cardHeading}>New linked schedule</h4>
             <button type="button" className={styles.linkButton} onClick={onDiscardDraft}>

@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen, fireEvent, act } from "@testing-library/react";
+import { render, screen, fireEvent, act, within } from "@testing-library/react";
 import { ToastProvider } from "../../app/components/shared/ToastProvider";
 
 // uuid ships ESM-only (no CJS build as of v14) -- @swc/jest's transform doesn't cover
@@ -131,5 +131,69 @@ describe("NewMeetingSidebar", () => {
     fireEvent.change(endTime, { target: { value: "01:00" } });
     expect(screen.queryByText(/End time must differ from the start time/)).not.toBeInTheDocument();
     expect(screen.getByText("Ends the next day.")).toBeInTheDocument();
+  });
+});
+
+describe("NewMeetingSidebar linked schedule", () => {
+  // Everything a create needs, before the second schedule is composed: an In Person Mon meeting.
+  const fillPrimaryMeeting = () => {
+    fireEvent.change(screen.getByPlaceholderText("Meeting title"), { target: { value: "One Day at a Time" } });
+    fireEvent.click(screen.getByRole("button", { name: /In Person/ }));
+    const dateInput = screen.getByPlaceholderText("MM/DD/YYYY");
+    fireEvent.change(dateInput, { target: { value: "09/07/2026" } }); // a Monday
+    fireEvent.blur(dateInput);
+    fireEvent.change(screen.getByPlaceholderText("Email"), { target: { value: "odaat@test.icr" } });
+    fireEvent.click(screen.getByText("This meeting is recurring", { exact: true }));
+  };
+
+  it("carries the second schedule into the create request", async () => {
+    const ref = React.createRef<NewMeetingSidebarHandle>();
+    renderNewMeeting(ref);
+    await act(async () => {});
+
+    fillPrimaryMeeting();
+    fireEvent.click(screen.getByRole("button", { name: "Done" }));
+    fireEvent.click(screen.getByRole("button", { name: /Add another mode for other days/ }));
+
+    const draft = screen.getByTestId("linked-schedule-draft");
+    fireEvent.click(within(draft).getByRole("button", { name: /Remote/ }));
+    fireEvent.click(within(draft).getByRole("button", { name: "Saturday" }));
+
+    // Room, category and the rest of this meeting's own fields are still validated normally --
+    // fill in what's left through the same form.
+    fireEvent.click(screen.getByLabelText("AA"));
+    fireEvent.click(screen.getByRole("button", { name: /Select Room/ }));
+    fireEvent.click(screen.getAllByRole("option")[0]);
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Create Meeting" }));
+    });
+
+    const call = (global.fetch as jest.Mock).mock.calls.find(([url]) => url === "/api/write/meeting");
+    expect(call).toBeDefined();
+    const body = JSON.parse(call![1].body);
+    expect(body.modeType).toBe("In Person");
+    expect(body.linkedSchedule).toMatchObject({
+      modeType: "Remote",
+      room: null,
+      zoomRoom: null,
+      recurrencePattern: { type: "weekly", daysOfWeek: ["Saturday"], interval: 1 },
+    });
+  });
+
+  it("locks the second schedule out of this meeting's own mode and days", async () => {
+    const ref = React.createRef<NewMeetingSidebarHandle>();
+    renderNewMeeting(ref);
+    await act(async () => {});
+
+    fillPrimaryMeeting();
+    fireEvent.click(screen.getByRole("button", { name: "Done" }));
+    fireEvent.click(screen.getByRole("button", { name: /Add another mode for other days/ }));
+
+    const draft = screen.getByTestId("linked-schedule-draft");
+    expect(within(draft).getByRole("button", { name: /In Person/ })).toBeDisabled();
+    // The recurrence editor seeds the meeting's own weekday from its Date field.
+    expect(within(draft).getByRole("button", { name: "Monday" })).toBeDisabled();
+    expect(within(draft).getByRole("button", { name: "Saturday" })).toBeEnabled();
   });
 });
