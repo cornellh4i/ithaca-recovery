@@ -17,8 +17,11 @@ import { WEEKDAY_NAMES } from "../date/timeUtils";
 // shared between buildZoomRecurrence and the retrieve route).
 export const LINKED_SCHEDULE_CAP = 2;
 
-// Fixed order, also the Zoom-topic segment order: a family's modes always read Hybrid, then
-// In Person, then Remote, regardless of which row was created first.
+// The authoritative spelling of the three mode names -- util/rooms/modeIcons.ts keys its icon map
+// by LinkedScheduleMode, and meetingValidation's Hybrid/In Person refinements compare against
+// these exact strings. The order is this module's own concern: it is also the Zoom-topic segment
+// order, so a family's modes always read Hybrid, then In Person, then Remote, regardless of which
+// row was created first.
 export const LINKED_SCHEDULE_MODES = ["Hybrid", "In Person", "Remote"] as const;
 
 export type LinkedScheduleMode = (typeof LINKED_SCHEDULE_MODES)[number];
