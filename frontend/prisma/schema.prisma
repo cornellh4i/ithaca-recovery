@@ -83,6 +83,14 @@ model Meeting {
   // of an already-split-off row propagates ITS splitFromMid, not its own mid). Null for a
   // meeting that has never been split off from another series.
   splitFromMid           String?
+  // Set on the non-anchor row of a "linked schedules" family: one meeting the group runs as two
+  // co-existing weekly schedules (same time/duration/interval, different modes on different
+  // weekdays) served by ONE Zoom meeting -- the value is the anchor row's mid, and the family is
+  // { mid = anchor } union { linkedToMid = anchor }. The anchor itself keeps null. Deliberately
+  // a different column from splitFromMid: a split is a chronological division of one series,
+  // linked schedules permanently co-exist. Deliberately not keyed on the shared zid either --
+  // an In-Person family member must never hold a zid/zoomLink (util/meetings/linkedSchedules.ts).
+  linkedToMid            String?
   deletedAt              DateTime?
   updatedAt              DateTime?            @updatedAt
 
@@ -93,6 +101,7 @@ model Meeting {
   @@index([room])
   @@index([zoomRoom])
   @@index([splitFromMid])
+  @@index([linkedToMid])
 }
 
 model RecurrencePattern {
