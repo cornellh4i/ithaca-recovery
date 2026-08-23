@@ -57,6 +57,8 @@ jest.mock("../../services/zoom", () => ({
     "Shared Zid Move Room 2 - Zoom": "cal-shared-room-2",
     "Combined Recreate Room - Zoom": "cal-combined-room-1",
     "Combined Recreate Room 2 - Zoom": "cal-combined-room-2",
+    "Family Split Room - Zoom": "cal-family-split-1",
+    "Family Split Room 2 - Zoom": "cal-family-split-2",
   },
 }));
 
@@ -387,6 +389,71 @@ test("a room change combined with a genuine recreate reason (explicit host chang
   expect(mockedCreateCalendarEvent).toHaveBeenCalledWith(
     "fake-token", expect.anything(), "cal-combined-room-2", "http://zoom.test/combined", expect.any(Array),
   );
+});
+
+test("the same combination on a SHARED Zoom meeting refuses the recreate instead of splitting the family, and still moves the room", async () => {
+  mockedUpdateZoomMeeting.mockResolvedValue(true);
+  mockedCreateCalendarEvent.mockResolvedValue({ id: "new-family-split-event", error: null });
+  mockedReconcileMeetingCalendars.mockResolvedValue({ updatedEventIds: {}, allSynced: true });
+
+  const prisma = getTestPrismaClient();
+  const sharedZid = "zid-family-split";
+  const editedMid = `m-${randomUUID()}`;
+  const siblingMid = `m-${randomUUID()}`;
+  const start = new Date("2026-11-06T15:00:00Z");
+  const end = new Date("2026-11-06T16:00:00Z");
+  const siblingStart = new Date("2026-11-07T15:00:00Z");
+
+  await prisma.meeting.create({ data: { ...toMeetingCreateInput(buildMeetingPayload({
+    mid: editedMid, modeType: "Hybrid", room: "Family Split Room", zoomRoom: "Family Split Room - Zoom",
+    zid: sharedZid, zoomHost: "family-split-from@icr.test", zoomLink: "https://zoom.us/j/familysplit",
+    zoomPasscode: "family-pass", zoomCalendarEventId: "old-family-split-event",
+    startDateTime: start, endDateTime: end,
+  })), zoomManaged: true } });
+  // The second schedule variant of the same family, pointing at the same real Zoom meeting.
+  await prisma.meeting.create({ data: { ...toMeetingCreateInput(buildMeetingPayload({
+    mid: siblingMid, modeType: "Remote", room: "", zoomRoom: "", zid: sharedZid,
+    zoomHost: "family-split-from@icr.test", zoomLink: "https://zoom.us/j/familysplit",
+    startDateTime: siblingStart, endDateTime: new Date(siblingStart.getTime() + 60 * 60 * 1000),
+  })), zoomManaged: true, zoomSyncStatus: "synced" } });
+
+  // A host change bundled with a room change: rehostZid is null (schedule_for moves a host, not a
+  // room), so this is the recreate reason that never reaches the in-place transfer's own sibling
+  // guard -- recreating here would strand the sibling on the old Zoom meeting.
+  const edit = buildMeetingPayload({
+    mid: editedMid, modeType: "Hybrid", room: "Family Split Room 2", zoomRoom: "Family Split Room 2 - Zoom",
+    zid: sharedZid, zoomHost: "family-split-to@icr.test", startDateTime: start, endDateTime: end,
+  });
+  const response = await PUT(new Request("http://localhost/api/update/meeting", { method: "PUT", body: JSON.stringify(edit) }));
+  expect(response.status).toBe(200);
+
+  const afterSync = await waitFor(async () => {
+    const row = await prisma.meeting.findUnique({ where: { mid: editedMid } });
+    return row?.zoomSyncStatus === "error" ? row : null;
+  });
+
+  // No second Zoom meeting minted, and the family's existing one is left running.
+  expect(mockedCreateZoomMeeting).not.toHaveBeenCalled();
+  expect(mockedDeleteZoomMeeting).not.toHaveBeenCalled();
+  expect(mockedRehostZoomMeeting).not.toHaveBeenCalled();
+  expect(afterSync?.zid).toBe(sharedZid);
+  expect(afterSync?.zoomLink).toBe("https://zoom.us/j/familysplit");
+  expect(afterSync?.zoomPasscode).toBe("family-pass");
+  expect(afterSync?.zoomHost).toBe("family-split-from@icr.test");
+  expect(afterSync?.zoomSyncError).toMatch(/host is unchanged/i);
+
+  const sibling = await prisma.meeting.findUnique({ where: { mid: siblingMid } });
+  expect(sibling?.zid).toBe(sharedZid);
+  expect(sibling?.zoomHost).toBe("family-split-from@icr.test");
+
+  // The room change is a separate concern from the refused host move: the join-link event still
+  // moves off the old room's calendar onto the new one, carrying the KEPT link.
+  expect(afterSync?.zoomRoom).toBe("Family Split Room 2 - Zoom");
+  expect(mockedDeleteCalendarEvent).toHaveBeenCalledWith("fake-token", "old-family-split-event", "cal-family-split-1");
+  expect(mockedCreateCalendarEvent).toHaveBeenCalledWith(
+    "fake-token", expect.anything(), "cal-family-split-2", "https://zoom.us/j/familysplit", expect.any(Array),
+  );
+  expect(afterSync?.zoomCalendarEventId).toBe("new-family-split-event");
 });
 
 test("an explicit host change on an unmanaged Zoom meeting is rejected with 422 before touching Zoom", async () => {
