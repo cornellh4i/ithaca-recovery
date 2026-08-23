@@ -7,10 +7,11 @@ import {
   createCalendarEvent, updateCalendarEvent, deleteCalendarEvent, reconcileMeetingCalendars,
   calendarIdsForMeeting,
 } from "../../../../services/googleCalendar";
-import { createZoomMeeting, updateZoomMeeting, deleteZoomMeeting, getZoomHostCapacities, getZoomMeetingInvitation, loadZoomScheduleFamily, rehostZoomMeeting, resolveZoomHost, zoomHostPool, zoomRoomCalendarId } from "../../../../services/zoom";
+import { createZoomMeeting, updateZoomMeeting, deleteZoomMeeting, getZoomHostCapacities, getZoomMeetingInvitation, rehostZoomMeeting, resolveZoomHost, zoomHostPool, zoomRoomCalendarId } from "../../../../services/zoom";
 import { findResourceConflicts, findResourceConflictRows, ConflictRow, ResourceConflictAbort } from "../../../../util/meetings/resourceOverlap";
 import { lockResourceClaims, ResourceClaim } from "../../../../util/meetings/resourceLocks";
 import { meetingSchema, editScopeSchema } from "../../../../util/meetings/meetingValidation";
+import { getZoomScheduleFamily } from "../../../../util/meetings/linkedSchedules";
 import { reconcilePendingResume, tearDownPendingResumeSeries } from "../../../../util/meetings/suspension";
 import { calculateEndDateFromOccurrences } from "../../../../util/meetings/meetingOccurrences";
 import { EditScope, countOccurrencesBefore, exclusionInstant, trimmedEndDate, isLiveOccurrence, rootSplitMid, toETDateStr } from "../../../../util/meetings/editScope";
@@ -187,7 +188,7 @@ async function syncUpdatedMeeting(
         // The whole linked-schedule family rides along so the PATCH sends the union schedule
         // (#513) and the family's own Zoom name, not this row's narrowed view of either.
         const family = existingMeeting.zoomManaged
-          ? await loadZoomScheduleFamily(prisma, newMeeting.mid, zid)
+          ? await getZoomScheduleFamily(prisma, newMeeting.mid, zid)
           : [];
         const ok = existingMeeting.zoomManaged
           ? await updateZoomMeeting(zid, { ...newMeeting, zoomTopic: existingMeeting.zoomTopic }, family)
@@ -211,7 +212,7 @@ async function syncUpdatedMeeting(
         // the family is whatever linkedToMid says -- enough for the fresh meeting to be minted
         // with the family's union schedule and Zoom name rather than a name it has to be
         // renamed out of on the next PATCH.
-        const family = await loadZoomScheduleFamily(prisma, newMeeting.mid, null);
+        const family = await getZoomScheduleFamily(prisma, newMeeting.mid, null);
         const created = await createZoomMeeting(newMeeting, host, family);
         if (created) {
           zid = created.zid;

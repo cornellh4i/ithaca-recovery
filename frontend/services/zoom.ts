@@ -3,7 +3,7 @@ import { Prisma } from "@prisma/client";
 import { IMeeting } from "../types/models";
 import { expandOccurrences, findResourceConflicts, findFirstFreePoolHost, getPoolHostLoads, OccurrenceInput } from "../util/meetings/resourceOverlap";
 import { isSharedZoomScheduleCompatible } from "../util/meetings/sharedZoomSchedule";
-import { familyMembers, getLinkedFamily, isZoomBearing, LINKED_SCHEDULE_MODES, type LinkedFamilyMeeting, type LinkedScheduleMode } from "../util/meetings/linkedSchedules";
+import { isZoomBearing, LINKED_SCHEDULE_MODES, type LinkedScheduleMode } from "../util/meetings/linkedSchedules";
 import { formatDayColumn } from "../util/meetings/recurrenceDisplay";
 import { prisma } from "../lib/prisma";
 
@@ -248,34 +248,6 @@ function toZoomStartTime(date: Date): string {
 const ZOOM_WEEKDAY: Record<string, number> = {
   Sunday: 1, Monday: 2, Tuesday: 3, Wednesday: 4, Thursday: 5, Friday: 6, Saturday: 7,
 };
-
-/**
- * Every live row this meeting's single Zoom meeting has to account for, ready to pass as the
- * `family` argument below.
- *
- * Two sources, unioned by mid, because neither alone is the whole picture:
- * - the linked-schedule family (`linkedToMid`) -- the only way to reach a Zoom-free In-Person
- *   member, which holds no zid but still names itself in the family's Zoom topic;
- * - every other live row sharing this zid -- split children (a scoped edit keeps the parent's
- *   zid but is deliberately not a family member) and any legacy zid group the linked backfill
- *   didn't cover. They are real rows of the same Zoom meeting, and dropping them would narrow
- *   the union schedule Zoom currently holds (#513).
- */
-export async function loadZoomScheduleFamily(
-  client: Prisma.TransactionClient,
-  mid: string,
-  zid: string | null,
-): Promise<IMeeting[]> {
-  const family = await getLinkedFamily(client, mid);
-  const zidRows = zid
-    ? await client.meeting.findMany({ where: { zid, deletedAt: null }, include: { recurrencePattern: true } })
-    : [];
-  const byMid = new Map<string, LinkedFamilyMeeting>();
-  for (const row of [...(family ? familyMembers(family) : []), ...zidRows]) byMid.set(row.mid, row);
-  // Prisma rows are structurally what buildZoomMeetingBody reads (the same cast the routes
-  // already used for their zid siblings), just not nominally IMeeting.
-  return [...byMid.values()] as unknown as IMeeting[];
-}
 
 // The linked-schedule family (util/meetings/linkedSchedules.ts) as Zoom must see it for THIS
 // write: callers load the family from the database, so the row being created/PATCHed is still

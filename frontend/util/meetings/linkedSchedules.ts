@@ -1,5 +1,6 @@
 import type { Prisma } from "@prisma/client";
 
+import type { IMeeting } from "../../types/models";
 import { WEEKDAY_NAMES } from "../date/timeUtils";
 
 // A "linked schedules" family is one meeting the group runs as two co-existing weekly
@@ -88,6 +89,34 @@ export async function getLinkedFamily(
     orderBy: { mid: "asc" },
   });
   return { anchor, linked };
+}
+
+/**
+ * Every live row the family's single Zoom meeting has to account for, ready to hand to
+ * createZoomMeeting/updateZoomMeeting (services/zoom.ts).
+ *
+ * Two sources, unioned by mid, because neither alone is the whole picture:
+ * - the linked-schedule family -- the only way to reach a Zoom-free In-Person member, which
+ *   holds no zid yet still names itself in the family's Zoom topic;
+ * - every other live row sharing this zid -- a scoped edit's split children (deliberately not
+ *   family members) and any legacy zid group the linked backfill didn't cover. Those are real
+ *   rows of the same Zoom meeting, and dropping them would narrow the union schedule Zoom
+ *   currently holds (#513).
+ */
+export async function getZoomScheduleFamily(
+  tx: Prisma.TransactionClient,
+  mid: string,
+  zid: string | null,
+): Promise<IMeeting[]> {
+  const family = await getLinkedFamily(tx, mid);
+  const zidRows = zid
+    ? await tx.meeting.findMany({ where: { zid, deletedAt: null }, include: FAMILY_INCLUDE })
+    : [];
+  const byMid = new Map<string, LinkedFamilyMeeting>();
+  for (const row of [...(family ? familyMembers(family) : []), ...zidRows]) byMid.set(row.mid, row);
+  // A Prisma row with its pattern included is structurally what the Zoom body builder reads,
+  // just not nominally an IMeeting -- the same cast the routes already made for zid siblings.
+  return [...byMid.values()] as unknown as IMeeting[];
 }
 
 /** Whether another schedule may still be added to this family (cap of {@link LINKED_SCHEDULE_CAP}). */

@@ -3,10 +3,11 @@ import { Meeting, Prisma, Role } from "@prisma/client";
 import { NextResponse, after } from "next/server";
 import { requireRole } from "../../../../services/auth";
 import { createCalendarEvent, calendarIdsForMeeting } from "../../../../services/googleCalendar";
-import { createZoomMeeting, getZoomHostCapacities, getZoomMeetingInvitation, loadZoomScheduleFamily, resolveZoomHost, zoomHostPool, zoomRoomCalendarId } from "../../../../services/zoom";
+import { createZoomMeeting, getZoomHostCapacities, getZoomMeetingInvitation, resolveZoomHost, zoomHostPool, zoomRoomCalendarId } from "../../../../services/zoom";
 import { findResourceConflicts, findResourceConflictRows, ConflictRow, ResourceConflictAbort } from "../../../../util/meetings/resourceOverlap";
 import { lockResourceClaims, ResourceClaim } from "../../../../util/meetings/resourceLocks";
 import { meetingSchema } from "../../../../util/meetings/meetingValidation";
+import { getZoomScheduleFamily } from "../../../../util/meetings/linkedSchedules";
 import { calculateEndDateFromOccurrences } from "../../../../util/meetings/meetingOccurrences";
 import { prisma } from "../../../../lib/prisma";
 
@@ -54,7 +55,7 @@ async function syncNewMeeting(
       // The row is already committed by the time this runs, so the family lookup sees every
       // schedule this meeting was created with -- one Zoom meeting is minted for the whole
       // family, with its union schedule and its family Zoom name.
-      const family = await loadZoomScheduleFamily(prisma, mid, null);
+      const family = await getZoomScheduleFamily(prisma, mid, null);
       const created = await createZoomMeeting({ ...meetingData, isRecurring }, zoomHost, family);
       if (created) {
         zid = created.zid;

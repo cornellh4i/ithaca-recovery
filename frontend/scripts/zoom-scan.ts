@@ -17,7 +17,8 @@
 //   NODE_OPTIONS='--conditions=react-server' npx tsx scripts/zoom-scan.ts
 // (the condition neutralizes services/zoom.ts's "server-only" guard outside Next).
 import { PrismaClient } from "@prisma/client";
-import { getZoomMeetingCredentials, loadZoomScheduleFamily, updateZoomMeeting } from "../services/zoom";
+import { getZoomMeetingCredentials, updateZoomMeeting } from "../services/zoom";
+import { getZoomScheduleFamily } from "../util/meetings/linkedSchedules";
 import type { IMeeting } from "../types/models";
 
 const databaseUrl = process.env.DATABASE_URL_UNPOOLED ?? process.env.DATABASE_URL;
@@ -75,7 +76,7 @@ async function main(): Promise<void> {
     // can never rename a linked family's meeting back to a single schedule's name.
     const representative = group.find((m) => m.zoomManaged && m.isRecurring && m.status !== "Suspended") ?? null;
     if (representative) {
-      const family = await loadZoomScheduleFamily(prisma, representative.mid, zid);
+      const family = await getZoomScheduleFamily(prisma, representative.mid, zid);
       const ok = await updateZoomMeeting(zid, {
         ...representative,
         recurrencePattern: representative.recurrencePattern ?? null,
