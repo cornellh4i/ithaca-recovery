@@ -1179,13 +1179,17 @@ async function handleLinkedScheduleCreate(
       }
     }),
   );
+  // The family's existing shared Zoom meeting, if it has one. It needs the PATCH whether or not
+  // the new schedule is Zoom-bearing: an In-Person member adds no days to the recurrence but
+  // still names itself in the family's topic. Null only when this request just minted it, since
+  // createZoomMeeting was already handed the family.
+  const patchZid = provisionsZoom
+    ? null
+    : familyMembers(family).find((member) => isZoomBearing(member) && member.zid)?.zid ?? null;
+
   after(
-    syncLinkedScheduleFamily(
-      familyMembers(family),
-      auth.accessToken,
-      loadFamily,
-      inheritsZoom ? anchor.zid : null,
-    ).catch((error) => console.error("syncLinkedScheduleFamily threw:", error)),
+    syncLinkedScheduleFamily(familyMembers(family), auth.accessToken, loadFamily, patchZid)
+      .catch((error) => console.error("syncLinkedScheduleFamily threw:", error)),
   );
 
   return NextResponse.json({ ...anchor, linkedMid: createdMeeting.mid });
