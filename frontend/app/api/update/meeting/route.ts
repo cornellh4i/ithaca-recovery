@@ -23,6 +23,13 @@ import { isConvertETToUTCValidationError } from "../../../../util/date/timeUtils
 import { EditScope, countOccurrencesBefore, exclusionInstant, trimmedEndDate, isLiveOccurrence, rootSplitMid, toETDateStr } from "../../../../util/meetings/editScope";
 import { prisma } from "../../../../lib/prisma";
 
+// Both ways an explicit host change can be refused on a Zoom meeting several rows share: Zoom
+// itself rejecting the in-place transfer, and a recreate that would strand the siblings on the
+// old meeting. Same outcome either way -- only the host move is dropped, the rest of the edit
+// still applies -- so the admin-facing wording is the same too.
+const SHARED_ZOOM_HOST_MOVE_REFUSED =
+  "Couldn't move this shared Zoom meeting to the requested host; the host is unchanged.";
+
 // Runs after the response is sent (see after() call below) — failure updates googleSyncStatus
 // but does not fail the request, which has already returned by the time this runs.
 //
@@ -119,7 +126,7 @@ async function syncUpdatedMeeting(
           // Recreating would give this row a fresh zid and split the bundle away from its
           // siblings, so a shared Zoom meeting stays put and reports the failed move instead.
           zoomSynced = false;
-          zoomSyncError = "Couldn't move this shared Zoom meeting to the requested host; the host is unchanged.";
+          zoomSyncError = SHARED_ZOOM_HOST_MOVE_REFUSED;
         } else {
           rehostFellBackToRecreate = true;
         }
@@ -133,24 +140,31 @@ async function syncUpdatedMeeting(
     // newMeeting's (new) room regardless of which branch got Zoom to this point.
     const needsRecreate = (explicitHostChange && !rehostZid) || rehostFellBackToRecreate;
 
-    if (needsRecreate || roomChanged) {
+    // Shared-zid guard, same one the in-place transfer above already applies: a sibling row (same
+    // group, second schedule variant) may still point at this Zoom meeting, and a recreate mints
+    // a fresh meeting for THIS row alone -- the siblings would keep the old one, splitting the
+    // family across two real Zoom meetings. So a shared Zoom meeting refuses the recreate the same
+    // way it refuses a transfer Zoom rejects: keep the existing zid/link/passcode/host, report the
+    // failed move, and let the rest of the edit (the room move below, the schedule PATCH, the
+    // calendar reconcile) proceed normally. Only rehostFellBackToRecreate is already sibling-free
+    // by construction; the other reason (a host change bundled with a room change) reaches here
+    // with siblings intact.
+    const recreateSplitsFamily = needsRecreate && !!zid && existingMeeting.zoomManaged &&
+      (await prisma.meeting.count({ where: { zid, deletedAt: null, mid: { not: mid } } })) > 0;
+    if (recreateSplitsFamily) {
+      zoomSynced = false;
+      zoomSyncError = SHARED_ZOOM_HOST_MOVE_REFUSED;
+    }
+    const recreateZoom = needsRecreate && !recreateSplitsFamily;
+
+    if (recreateZoom || roomChanged) {
       // Only a genuine recreate reason ever tears down the Zoom meeting itself -- a pure room
       // change (no recreate reason) leaves it running untouched under its existing zid/host, the
       // same way an unmanaged meeting's room change already did (host changes were already
-      // 422'd upstream for those, so needsRecreate can never be true there). This also makes the
-      // shared-zid sibling guard below moot for a pure room move: nothing here would tear the
-      // Zoom meeting down in the first place, so there's nothing for a sibling to be guarded
-      // against.
-      if (needsRecreate && zid && existingMeeting.zoomManaged) {
-        // Shared-zid guard: a sibling row (same group, second schedule variant) may still point
-        // at this Zoom meeting -- only the last referencing row actually tears it down.
-        const siblingCount = await prisma.meeting.count({
-          where: { zid, deletedAt: null, mid: { not: mid } },
-        });
-        if (siblingCount === 0) {
-          const ok = await deleteZoomMeeting(zid);
-          if (!ok) zoomSynced = false;
-        }
+      // 422'd upstream for those, so needsRecreate can never be true there).
+      if (recreateZoom && zid && existingMeeting.zoomManaged) {
+        const ok = await deleteZoomMeeting(zid);
+        if (!ok) zoomSynced = false;
       }
       // The join-link event always moves off the old room's calendar here, recreate or not --
       // the downstream zoomCalendarEventId === null branch republishes it on the new room's
@@ -162,7 +176,7 @@ async function syncUpdatedMeeting(
           if (!ok) zoomSynced = false;
         }
       }
-      if (needsRecreate && existingMeeting.zoomManaged) {
+      if (recreateZoom && existingMeeting.zoomManaged) {
         zid = null;
         zoomLink = null;
         zoomPasscode = null;
