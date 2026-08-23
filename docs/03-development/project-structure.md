@@ -88,8 +88,9 @@ We group components by what they do (domain/feature) rather than how they compos
 
 **`ui/`** — generic, non-domain primitives, by kind:
 - `buttons/` — `CheckButton`, `IconButton`, `TextButton`
-- `inputs/` — `CheckBox`, `Dropdown`, `ModeTypeButtons` (a segmented value-selector, grouped here
-  by function despite the "Buttons" name), `RadioGroup`, `SpinnerInput`, `TextField`
+- `inputs/` — `CheckBox`, `DayPicker` (the week's seven day toggles, shared by the recurrence
+  editor and the linked-schedule form), `Dropdown`, `ModeTypeButtons` (a segmented value-selector,
+  grouped here by function despite the "Buttons" name), `RadioGroup`, `SpinnerInput`, `TextField`
 - `overlays/` — `BottomSheet`, `MobileFullScreenSheet`, `Modal`, `Tooltip`
 - `pickers/` — `DatePicker`, `TimePicker`
 - `displays/` — `BoxText`, `Icon`, `Logo`, `StatCounter`, `StatusPill`, `TagList`, `TopLoadingBar`
@@ -124,9 +125,10 @@ sits directly in `calendar/`, alongside three subfolders, not a flat list:
   desktop and mobile layouts), `MeetingsFilter`, `OverlapMeetingsPopover`
 
 **`meeting-form/`** — `NewMeeting`, `EditMeeting`, `MeetingForm`, `ViewMeeting`,
-`FormValidationBanner` (live "Fix N fields" banner), `RecurringMeeting`, `ZoomHostField`,
-`ConflictOverrideModal`, `DeleteMeetingModal`, `DeleteRecurringModal`, `SuspendMeetingModal`,
-`ResumeMeetingModal`
+`FormValidationBanner` (live "Fix N fields" banner), `RecurringMeeting`, `MeetingSchedules`
+(the meeting's own schedule plus the second "linked" one it can run in another mode),
+`ScheduleSummaryCard`, `ZoomHostField`, `ConflictOverrideModal`, `DeleteMeetingModal`,
+`DeleteRecurringModal`, `RemoveLinkedScheduleModal`, `SuspendMeetingModal`, `ResumeMeetingModal`
 
 **`admin/`** — `AdminShell` at the top, plus per-tab subfolders:
 - `diagnostics/` — `DiagnosticsTab` + one card per panel (`SystemStatusCard`,

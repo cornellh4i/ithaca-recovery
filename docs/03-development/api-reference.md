@@ -38,7 +38,9 @@ Once Zoom has resolved (or wasn't needed), sync publishes to Google Calendar per
 }
 ```
 
-**Response:** `201 Created` — created `IMeeting` object (with `recurrencePattern` if provided)
+The body may also carry an optional `linkedSchedule` block: a second weekly schedule of the same meeting — a different mode on other weekdays, sharing its single Zoom meeting. Both rows are created in this route's one transaction, and the family's Zoom meeting is created once and fanned out to whichever rows need it. The block's fields and rules are identical to `PUT /api/update/meeting`'s, documented in full there.
+
+**Response:** `201 Created` — created `IMeeting` object (with `recurrencePattern` if provided, and `linkedMid` if a `linkedSchedule` was created alongside it)
 **Error:** `400 Bad Request` — request body fails schema validation (issues listed in the response)
 
 ---
@@ -46,7 +48,9 @@ Once Zoom has resolved (or wasn't needed), sync publishes to Google Calendar per
 ### `GET /api/retrieve/meeting/[id]`
 Retrieve a single non-deleted meeting by `mid` in the URL path. An unauthenticated caller, or a `USER`-role session, gets the `PublicMeeting`-shaped subset (see [Technical Decisions](../02-handoff/technical-decisions.md#admin-gated-mids-pattern-for-calendar-badges)); an `ADMIN`/`SUPER_ADMIN` session gets the full row plus `recurrencePattern` and derived suspension fields (`resumesAt`/`suspendedSince`/`suspensionActive`).
 
-**Response:** `200 OK` — `PublicMeeting` for unauthenticated/`USER`; `IMeeting` for `ADMIN`/`SUPER_ADMIN`
+An `ADMIN`/`SUPER_ADMIN` response also carries `linkedSchedules` — the meeting's *other* schedules if it runs as a linked family (see `PUT /api/update/meeting` below), each as `{ mid, modeType, room, zoomRoom, zoomHost, recurrencePattern, startDateTime, endDateTime, googleSyncStatus, zoomSyncStatus }`. Empty for the overwhelmingly common single-schedule meeting, and never present for a `USER`/unauthenticated caller.
+
+**Response:** `200 OK` — `PublicMeeting` for unauthenticated/`USER`; `IMeeting` (plus `linkedSchedules`) for `ADMIN`/`SUPER_ADMIN`
 **Error:** `404 Not Found`
 
 ---
@@ -107,9 +111,24 @@ Either way, the new row inherits the parent's Zoom identity (`zid`, `zoomHost`, 
 
 For `editScope: "thisAndFollowing"`, the new tail series' `RecurrencePattern.startDate` anchors to `occurrenceDate`, while the row's own `startDateTime` is whatever the body submits — those must name the same Eastern-Time calendar date, or a `400` (`"date changes apply to a single event or the whole series"`) is returned; a client that re-anchors the date field to `occurrenceDate` (matching calendar date, any time-of-day) is unaffected. `editScope: "this"` is exempt — editing the single occurrence's own date is expected there.
 
-**Request body:** `IMeeting` (must include `mid`), plus `editScope`/`occurrenceDate` above
+#### Linked schedules (`linkedSchedule`)
 
-**Response:** `200 OK` — updated `IMeeting`; when `editScope` was `"this"`/`"thisAndFollowing"`, also includes `newMid` (the new split-off row's `mid`)
+An optional `linkedSchedule` block adds a **second weekly schedule** to the meeting: the same meeting on other weekdays in a different mode, served by the family's one Zoom meeting. Parsed by its own schema (`linkedScheduleBlockSchema`), so its keys never reach the meeting's own update data.
+
+| Field | Type | Description |
+|---|---|---|
+| `mid` | string | Client-generated, like a new meeting's — both rows are known before the write |
+| `modeType` | `"Hybrid" \| "In Person" \| "Remote"` | Must differ from every existing family member's |
+| `room` / `zoomRoom` | string \| null | The new schedule's own; same Hybrid/In-Person requirements as a meeting's |
+| `recurrencePattern` | `RecurrencePattern` | Only `daysOfWeek` is read (and `type` must be `"weekly"`) |
+
+Everything else about the schedule is **derived from the anchor row and never read from the block**: title, description, email, group, `calType`, time of day, duration, interval, and where the series ends — a family whose rows disagree on any of those has no single-series representation on Zoom, and would silently stop reaching it. The new row's `linkedToMid` points at the anchor's `mid` (a different lineage from `splitFromMid` — see [Meeting Lifecycle Flows](meeting-lifecycle-flows.md)); a Zoom-bearing one inherits the family's `zid`/link/passcode/host/`zoomManaged`/`zoomTopic` and consumes no additional host capacity, while an In-Person one inherits none of it. If the anchor has no Zoom meeting to inherit (an In-Person anchor gaining a Hybrid/Remote schedule), the new row provisions the family's Zoom meeting itself.
+
+`400`s: the anchor isn't a weekly recurring meeting; the family already runs two schedules; `modeType` duplicates an existing member's; `daysOfWeek` overlaps a day the family already meets on, or is empty; the resulting family can't be served by one Zoom meeting; `linkedSchedule` combined with a non-`"all"` `editScope`; or the same payload also edits the anchor's own fields (the two are separate requests — save the meeting's changes first). The same block on `POST /api/write/meeting` creates both rows in that route's one transaction, with the family's single Zoom meeting created once and fanned out.
+
+**Request body:** `IMeeting` (must include `mid`), plus `editScope`/`occurrenceDate` above, plus an optional `linkedSchedule` block
+
+**Response:** `200 OK` — updated `IMeeting`; when `editScope` was `"this"`/`"thisAndFollowing"`, also includes `newMid` (the new split-off row's `mid`); when a `linkedSchedule` was created, `linkedMid` (its `mid`) — and the meeting itself is returned unchanged, since that request only writes the new schedule
 **Error:** `404 Not Found` if `mid` doesn't exist
 **Error:** `400 Bad Request` — request body fails schema validation, or one of the `editScope` rules above (issues listed in the response)
 **Error:** `409 Conflict` — the new row's `room`/`zoomRoom`/`zoomHost` collides with another meeting; body includes `conflicts`. Resubmit with `confirmOverride: true` to save anyway.

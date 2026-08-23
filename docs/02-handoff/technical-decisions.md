@@ -155,6 +155,26 @@ Each section ends with a **Revisit if:** line — the condition under which this
 
 ---
 
+## Linked Meeting Modes: a `linkedToMid` Family, Not a Shared `zid`
+
+**Decision:** A group that meets one way on some days and another way on others — Hybrid Monday-Friday plus Zoom Only on Saturday, the shape three ICR meetings have had for years — is **one meeting run as two schedules**, keyed by a new `Meeting.linkedToMid` column pointing at the family's anchor row. The family is capped at **two** schedules, which must differ in mode, never share a weekday, and always share a time of day, duration, interval and end condition. It is served by **one** Zoom meeting, named for both schedules (`buildLinkedScheduleLabel`, `util/meetings/linkedSchedules.ts`).
+
+**Why:**
+- **The pair is a Zoom constraint before it's a UX choice.** One Zoom meeting holds exactly one recurrence, so `buildZoomRecurrence` (`services/zoom.ts`) sends the *union* of the family's weekdays — which `isSharedZoomScheduleCompatible` only permits when every row agrees on interval, ET time of day and duration. A family it rejects degrades to a schedule-neutral PATCH: the admin's edit appears to save and quietly stops reaching Zoom. Hence the form locks those fields on the second schedule (derived server-side, never read from the request) rather than merely discouraging divergence, and the disjoint-weekday rule is enforced in the validator, not just the day picker — a day claimed twice would silently collapse into one occurrence.
+- **`zid` can't be the family key**, even though the legacy pairs happen to share one. A family may contain an In-Person schedule, and an In-Person row must hold no `zid`/`zoomLink` at all: it would advertise a join link on an in-person meeting (in the UI and on its calendar events) and get its weekdays unioned into Zoom's schedule. A separate column also keeps the family distinct from `splitFromMid`'s chronological lineage (above) — the two are never both set, and a split child of a family member is created with `linkedToMid: null` so the family stays size 2 and its name doesn't grow a phantom segment. `zid` keeps answering what it's actually about: `sharedWith`/`zoomScheduleDiverged`, the recurrence union, and every teardown guard.
+- **The family's name is one string across services.** Both the Zoom topic and *every* member's Google Calendar event title come from the same builder — `"One Day at a Time - Hybrid Mon-Fri - Zoom Only Sat"` — in a fixed mode order, so the name is stable no matter which member triggered the write. A pinned `Meeting.zoomTopic` still short-circuits it (adopted legacy names are never touched), and a generated name is never written back into that column, so `null` keeps meaning "auto, recompute from the current family."
+- **The second schedule consumes no additional Zoom host capacity** — it inherits the family's whole Zoom identity instead of provisioning its own. Only the In-Person-anchor case (an In-Person meeting gaining a Hybrid/Remote schedule) mints one, and that row becomes the family's `zid` holder while the anchor stays Zoom-free — precisely why the family isn't keyed on `zid`.
+- **Cap of two, enforced on both sides.** `canLinkSchedule` gates the form's "Add another mode" trigger and the API's rejection of a third from the same predicate. The generalization past two is real for the recurrence union and nothing else: the name hierarchy, the mutual-exclusion locking and the divergence copy are all written for a pair, and an API accepting a shape no UI can render or edit is a support burden.
+
+**Deliberately out of scope:**
+- **Three or more schedules.** See the cap above.
+- **Editing an existing linked schedule's mode or days from the parent's form.** A linked schedule is an ordinary `Meeting` row with its own `mid`: an admin opens it from the calendar and edits it with the same form as any other meeting, and the existing `zoomScheduleDiverged` signal already reports it when such an edit breaks shared-schedule compatibility. The parent's form shows a read-only card, a link to that row, and Remove. Changing a linked schedule's mode in place is likewise remove-and-re-add.
+- **Reconciling the two rows' shared identity fields after creation.** Title, description, email, group and `calType` are copied from the anchor at create time and drift freely afterward — each member's external name is built from its *own* title, so editing one row's title de-syncs the two events' names until both are rewritten. Nothing detects it; re-saving both with the same values is the fix.
+
+**Revisit if:** ICR ever needs a third schedule on one meeting (Zoom's recurrence union already generalizes; the naming, locking and form flow would each need a pass), or if the create-time copy of the shared identity fields starts causing real confusion — the natural fix is a single submit that edits the anchor and its linked schedules together, which the update route currently refuses on purpose.
+
+---
+
 ## Leasing Documents: DB-configured CSV Export
 
 **Decision:** The Export tab's "Export Lease CSV" button exports a CSV file rather than calling the PandaDoc API directly, and its inputs (lease period, per-room rates, agent contact, email template) are stored in a `LeaseSettings` singleton rather than hardcoded in a component.
