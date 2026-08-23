@@ -35,15 +35,15 @@ Zoom Only on Saturday, say — add a **linked schedule** instead of creating a s
 schedules are one meeting sharing one Zoom link (see
 [How Calendar and Zoom Sync Work](../explanation/how-sync-works.md)).
 
-1. Fill in the recurrence options above for the meeting's main schedule, then click **Done** — it
-   collapses into a summary card.
-2. Click **"Add another mode for other days."**
-3. Pick the second schedule's **Mode** and **days**. The mode the meeting already uses and the days
+1. Fill in the recurrence options above for the meeting's main schedule, then click
+   **"Add another mode for other days."** The main schedule collapses into a summary card (with an
+   **Edit this schedule** link) and the new schedule's fields open below it.
+2. Pick the second schedule's **Mode** and **days**. The mode the meeting already uses and the days
    it already meets on are greyed out — the two schedules must differ in mode and never share a day.
-4. Fill in whichever of Room / Zoom room the new mode needs. There's no Zoom host to pick: the
+3. Fill in whichever of Room / Zoom room the new mode needs. There's no Zoom host to pick: the
    schedule uses the meeting's existing Zoom host and join link, or — if the meeting itself is In
    Person and so has none — books its own, which the form says at that spot.
-5. Save the meeting as usual. Both schedules are written together.
+4. Save the meeting as usual. Both schedules are written together.
 
 The time, length, repeat interval and end date always come from the meeting's main schedule — Zoom
 holds both as a single schedule, so they can't differ.
