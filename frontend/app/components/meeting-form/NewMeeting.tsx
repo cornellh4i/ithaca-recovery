@@ -251,7 +251,6 @@ const NewMeetingSidebar = React.forwardRef<NewMeetingSidebarHandle, NewMeetingSi
                 <RecurringMeetingForm
                   onChange={handleRecurringMeetingChange}
                   startDate={dateValue}
-                  onConfirm={() => setIsScheduleConfirmed(true)}
                 />
               }
               isConfirmed={isScheduleConfirmed}

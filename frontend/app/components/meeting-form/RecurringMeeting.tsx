@@ -27,10 +27,6 @@ interface RecurringMeetingFormProps {
   // "wide" narrows the Repeats/monthly-option dropdowns so they don't stretch full-width in
   // wider embedding contexts (e.g. an inline edit panel) -- see MeetingForm's layout prop.
   layout?: "sidebar" | "wide";
-  // Renders a "Done" button under the recurrence controls. Purely local: the host collapses this
-  // editor into a read-only summary card so a second schedule can be added beside it -- nothing
-  // is saved until the form's own submit. Omitted where there is no second schedule to add.
-  onConfirm?: () => void;
 }
 
 const ordinals = ["1st", "2nd", "3rd", "4th"];
@@ -93,7 +89,6 @@ const RecurringMeetingForm: React.FC<RecurringMeetingFormProps> = ({
   startDate,
   initialValue,
   layout = "sidebar",
-  onConfirm,
 }) => {
   const initPattern = initialValue?.recurrencePattern ?? null;
 
@@ -369,14 +364,6 @@ const RecurringMeetingForm: React.FC<RecurringMeetingFormProps> = ({
                 ),
               }}
             />
-
-            {onConfirm && (
-              <div className={styles.confirmRow}>
-                <button type="button" className={styles.confirmButton} onClick={onConfirm}>
-                  Done
-                </button>
-              </div>
-            )}
           </div>
           <div className={styles.separator}></div>
         </div>

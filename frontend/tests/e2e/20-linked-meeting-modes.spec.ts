@@ -41,8 +41,7 @@ test.describe("linked meeting modes", () => {
     await page.getByText("This meeting is recurring", { exact: true }).click();
     await expect(page.getByRole("button", { name: primaryDay.weekday })).toHaveAttribute("aria-pressed", "true");
 
-    // Confirming collapses the schedule into a card and offers the second one.
-    await page.getByRole("button", { name: "Done" }).click();
+    // One click: this meeting's schedule collapses into a card and the second one opens below it.
     await page.getByRole("button", { name: /Add another mode for other days/ }).click();
 
     const draft = page.getByTestId("linked-schedule-draft");
@@ -88,7 +87,6 @@ test.describe("linked meeting modes", () => {
     await page.goto(`/?mid=${hybrid.mid}&edit=1`);
     const linkedSection = page.getByRole("region", { name: "Linked schedule" });
     await expect(linkedSection.getByText("Remote")).toBeVisible();
-    await page.getByRole("button", { name: "Done" }).click();
     await expect(page.getByRole("button", { name: /Add another mode for other days/ })).toHaveCount(0);
   });
 });

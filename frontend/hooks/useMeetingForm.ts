@@ -264,9 +264,9 @@ export function useMeetingForm(initialMeeting?: IMeeting, defaultContext?: Meeti
     const [recurrencePattern, setRecurrencePattern] = useState<IRecurrencePattern | null>(
         initialMeeting?.recurrencePattern ?? null
     );
-    // Whether the admin has confirmed this meeting's own schedule ("Done"), collapsing the
-    // recurrence editor into a read-only card so a second schedule can be added beside it. Purely
-    // a display state -- it gates nothing about what gets submitted.
+    // Whether this meeting's own recurrence editor is collapsed into its read-only summary card,
+    // so a second schedule reads as sitting beside it. Purely a display state -- it gates nothing
+    // about what gets submitted.
     const [isScheduleConfirmed, setIsScheduleConfirmed] = useState(false);
     // The second schedule being composed, if any. Never more than one: a meeting runs at most
     // LINKED_SCHEDULE_CAP schedules, and the create form only ever adds the second.
@@ -358,9 +358,12 @@ export function useMeetingForm(initialMeeting?: IMeeting, defaultContext?: Meeti
         if (newMode === "Remote") { setRoom(""); setZoomRoom(""); }
     };
 
+    // Starting the second schedule is also what collapses this meeting's own into its summary
+    // card: one click, so the editor becomes a card as the new schedule's fields appear below it.
     // Mirrors handleModeSelect's own clearing rule for the draft: a mode that doesn't use a field
     // must not carry a stale value into the payload.
     const startLinkedDraft = (modeType: string) => {
+        setIsScheduleConfirmed(true);
         setLinkedDraft({ mid: uuidv4(), modeType, daysOfWeek: [], room: "", zoomRoom: "" });
     };
 

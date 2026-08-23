@@ -471,7 +471,6 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
                     recurrencePattern: meeting.recurrencePattern ?? null,
                   }}
                   layout={layout}
-                  onConfirm={() => setIsScheduleConfirmed(true)}
                 />
               }
               isConfirmed={isScheduleConfirmed}

@@ -32,7 +32,7 @@ export interface SavedSchedule {
 export interface MeetingSchedulesProps {
   /** The meeting's own recurrence editor (RecurringMeetingForm), mounted by the host. */
   recurrenceEditor: React.ReactElement;
-  /** Whether the editor is collapsed into its summary card ("Done"). */
+  /** Whether the editor is collapsed into its summary card. */
   isConfirmed: boolean;
   onEditSchedule: () => void;
   modeType: string;
@@ -45,6 +45,7 @@ export interface MeetingSchedulesProps {
   /** Schedules this meeting already runs (the edit path); empty for a meeting being created. */
   savedSchedules?: SavedSchedule[];
   draft: LinkedScheduleDraft | null;
+  /** Collapses this meeting's own schedule into its summary card AND opens the second one. */
   onAddSchedule: (modeType: string) => void;
   onSelectDraftMode: (modeType: string) => void;
   onSelectDraftRoom: (room: string) => void;
@@ -53,9 +54,9 @@ export interface MeetingSchedulesProps {
   onDiscardDraft: () => void;
   compact?: boolean;
   /**
-   * Why a second schedule can't be started right now, when the reason is worth saying. Shown in
-   * place of the trigger -- on the edit path, unsaved changes to the meeting itself, since the
-   * update route takes the two as separate requests.
+   * Why a second schedule can't be started right now, when the reason is worth saying. Disables
+   * the trigger and explains it -- on the edit path, unsaved changes to the meeting itself, since
+   * the update route takes the two as separate requests.
    */
   addBlockedNote?: string;
 }
@@ -79,8 +80,8 @@ function inheritedScheduleText(
 }
 
 /**
- * The meeting's schedules: its own recurrence editor, collapsed into a card once confirmed, and
- * the second "linked" schedule it can run on other days in another mode.
+ * The meeting's schedules: its own recurrence editor, collapsed into a card once a second
+ * schedule is started, and the second "linked" schedule it runs on other days in another mode.
  *
  * The linked schedule's mode and days are locked against the ones already in use (a family's
  * schedules must differ in mode and never share a weekday -- Zoom holds them as one union
@@ -132,6 +133,16 @@ const MeetingSchedules: React.FC<MeetingSchedulesProps> = ({
     : [];
   const canAddSchedule = canLinkSchedule({ anchor: anchorRow, linked: [...savedRows, ...draftRow] });
 
+  // The trigger below is a single step: it collapses this meeting's own schedule into its summary
+  // card AND opens the second one. So it is offered only once there is something to collapse into
+  // and something for the linked schedule to inherit -- a weekly series that meets on at least one
+  // weekday, plus a readable time range. Offered from the expanded editor as well as from the
+  // collapsed card, so composing the pair never takes two clicks.
+  const hasInheritableSchedule =
+    isWeeklySeries && (recurrencePattern?.daysOfWeek?.length ?? 0) > 0 && scheduleInstants !== null;
+  const offersSecondSchedule = hasInheritableSchedule && !draft && canAddSchedule;
+  const blockedNoteId = React.useId();
+
   const primarySummary = scheduleInstants && {
     modeType,
     recurrencePattern: recurrencePattern
@@ -165,18 +176,27 @@ const MeetingSchedules: React.FC<MeetingSchedulesProps> = ({
         </>
       )}
 
-      {isConfirmed && isWeeklySeries && !draft && canAddSchedule && !addBlockedNote && (
-        <button type="button" className={styles.addButton} onClick={() => onAddSchedule(candidateModes[0])}>
-          <Icon name="plus" size={16} />
-          Add another mode for other days
-        </button>
-      )}
-
-      {isConfirmed && isWeeklySeries && !draft && canAddSchedule && addBlockedNote && (
-        <p className={styles.blockedNote}>
-          <Icon name="warning-circle" size={16} />
-          <span>{addBlockedNote}</span>
-        </p>
+      {offersSecondSchedule && (
+        <>
+          {/* Disabled rather than withheld when blocked: the note below reads as the reason this
+              control is off, not as an unprompted warning about a schedule nobody asked for. */}
+          <button
+            type="button"
+            className={styles.addButton}
+            onClick={() => onAddSchedule(candidateModes[0])}
+            disabled={!!addBlockedNote}
+            aria-describedby={addBlockedNote ? blockedNoteId : undefined}
+          >
+            <Icon name="plus" size={16} />
+            Add another mode for other days
+          </button>
+          {addBlockedNote && (
+            <p className={styles.blockedNote} id={blockedNoteId}>
+              <Icon name="warning-circle" size={16} />
+              <span>{addBlockedNote}</span>
+            </p>
+          )}
+        </>
       )}
 
       {draft && (
