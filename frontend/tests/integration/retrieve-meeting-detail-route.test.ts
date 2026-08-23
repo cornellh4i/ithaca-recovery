@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { seedMeeting, seedRecurringMeeting } from "../factories/meeting";
-import { disconnectTestPrismaClient } from "../factories/db";
+import { getTestPrismaClient, disconnectTestPrismaClient } from "../factories/db";
 import { convertETToUTC, formatETDateString } from "../../util/date/timeUtils";
 
 jest.mock("../../services/auth", () => ({
@@ -169,5 +169,117 @@ describe("shared Zoom link siblings", () => {
     expect(Object.keys(body).sort()).toEqual(PUBLIC_MEETING_FIELDS);
     expect(body).not.toHaveProperty("sharedWith");
     expect(body).not.toHaveProperty("zoomScheduleDiverged");
+  });
+});
+
+// One meeting the group runs as two schedules (Meeting.linkedToMid) -- e.g. Hybrid on weekdays
+// and Zoom-only on Saturday. Keyed on linkedToMid, never on zid: an In-Person member holds no
+// zid at all, so a zid lookup would miss it entirely.
+describe("linked schedules", () => {
+  const seedFamily = async (
+    anchorOverrides: Record<string, unknown> = {},
+    linkedOverrides: Record<string, unknown> = {},
+  ) => {
+    const { meeting: anchor } = await seedRecurringMeeting(
+      { title: "One Day at a Time", modeType: "Hybrid", room: "Serenity Room",
+        zoomRoom: "Unity Room - Zoom", zoomHost: "pool-host-1@icr.test", ...anchorOverrides },
+      { daysOfWeek: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"] },
+    );
+    const { meeting: linked } = await seedRecurringMeeting(
+      { title: "One Day at a Time", modeType: "Remote", room: "", zoomRoom: null,
+        zoomHost: "pool-host-1@icr.test", linkedToMid: anchor.mid,
+        googleSyncStatus: "synced", zoomSyncStatus: "synced", ...linkedOverrides },
+      { daysOfWeek: ["Saturday"] },
+    );
+    return { anchor, linked };
+  };
+
+  test("an admin gets the other schedule, with everything the schedule card renders", async () => {
+    mockedGetAuth.mockResolvedValue({ user: { role: "ADMIN" } });
+    const { anchor, linked } = await seedFamily();
+
+    const body = await getMeetingDetail(anchor.mid);
+    expect(body.linkedSchedules).toHaveLength(1);
+    const [schedule] = body.linkedSchedules;
+    expect(Object.keys(schedule).sort()).toEqual([
+      "endDateTime", "googleSyncStatus", "mid", "modeType", "recurrencePattern", "room",
+      "startDateTime", "zoomRoom", "zoomSyncStatus", "zoomHost",
+    ].sort());
+    expect(schedule.mid).toBe(linked.mid);
+    expect(schedule.modeType).toBe("Remote");
+    expect(schedule.zoomHost).toBe("pool-host-1@icr.test");
+    expect(schedule.recurrencePattern.daysOfWeek).toEqual(["Saturday"]);
+    expect(schedule.googleSyncStatus).toBe("synced");
+    expect(new Date(schedule.startDateTime)).toEqual(linked.startDateTime);
+  });
+
+  // The family resolves from either member, so opening the Saturday row reports the weekday
+  // one -- never itself.
+  test("opening the linked row reports the anchor, not itself", async () => {
+    mockedGetAuth.mockResolvedValue({ user: { role: "ADMIN" } });
+    const { anchor, linked } = await seedFamily();
+
+    const body = await getMeetingDetail(linked.mid);
+    expect(body.linkedSchedules.map((row: { mid: string }) => row.mid)).toEqual([anchor.mid]);
+    expect(body.linkedSchedules[0].modeType).toBe("Hybrid");
+  });
+
+  // The whole reason the family is keyed on linkedToMid: an In-Person schedule must never hold
+  // a zid, so sharedWith (a zid question) can't see this pair at all.
+  test("a Zoom-free family member is reported even though the two share no zid", async () => {
+    mockedGetAuth.mockResolvedValue({ user: { role: "ADMIN" } });
+    const { anchor, linked } = await seedFamily(
+      { modeType: "In Person", zid: null, zoomRoom: null, zoomHost: null },
+      { modeType: "Remote", zid: "70000002101", room: "" },
+    );
+
+    const body = await getMeetingDetail(anchor.mid);
+    expect(body.linkedSchedules.map((row: { mid: string }) => row.mid)).toEqual([linked.mid]);
+    expect(body).not.toHaveProperty("sharedWith");
+  });
+
+  // Pool exhaustion leaves a just-created Zoom-bearing member at pending/error with no calendar
+  // events yet -- the card has to be able to say the schedule isn't live, so the statuses are
+  // part of the payload.
+  test("a member still waiting on its first sync reports its raw statuses", async () => {
+    mockedGetAuth.mockResolvedValue({ user: { role: "ADMIN" } });
+    const { anchor } = await seedFamily({}, { googleSyncStatus: "pending", zoomSyncStatus: "error" });
+
+    const body = await getMeetingDetail(anchor.mid);
+    expect(body.linkedSchedules[0].googleSyncStatus).toBe("pending");
+    expect(body.linkedSchedules[0].zoomSyncStatus).toBe("error");
+  });
+
+  test("a soft-deleted member is no longer part of the family", async () => {
+    mockedGetAuth.mockResolvedValue({ user: { role: "ADMIN" } });
+    const { anchor, linked } = await seedFamily();
+    await getTestPrismaClient().meeting.update({
+      where: { mid: linked.mid }, data: { deletedAt: new Date() },
+    });
+
+    const body = await getMeetingDetail(anchor.mid);
+    expect(body).not.toHaveProperty("linkedSchedules");
+  });
+
+  test("a single-schedule meeting carries no linkedSchedules at all", async () => {
+    mockedGetAuth.mockResolvedValue({ user: { role: "ADMIN" } });
+    const meeting = await seedMeeting();
+
+    const body = await getMeetingDetail(meeting.mid);
+    expect(body).not.toHaveProperty("linkedSchedules");
+  });
+
+  // BUG-022: rooms, hosts and schedules of another row are admin-only, exactly like sharedWith.
+  test("a USER-role session and a public caller both get nothing", async () => {
+    const { anchor } = await seedFamily();
+
+    mockedGetAuth.mockResolvedValue({ user: { role: "USER" } });
+    const userBody = await getMeetingDetail(anchor.mid);
+    expect(Object.keys(userBody).sort()).toEqual(PUBLIC_MEETING_FIELDS);
+    expect(userBody).not.toHaveProperty("linkedSchedules");
+
+    mockedGetAuth.mockResolvedValue(null);
+    const publicBody = await getMeetingDetail(anchor.mid);
+    expect(publicBody).not.toHaveProperty("linkedSchedules");
   });
 });
