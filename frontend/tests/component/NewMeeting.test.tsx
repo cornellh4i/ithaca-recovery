@@ -181,6 +181,37 @@ describe("NewMeetingSidebar linked schedule", () => {
     });
   });
 
+  // The draft's Room dropdown stays mounted across every mode still selectable, so a room can be
+  // picked while the draft is Remote -- a mode that uses none. Sending it would advisory-lock,
+  // conflict-check and publish a physical room for a Zoom-only schedule.
+  it("drops a room the second schedule's chosen mode doesn't use", async () => {
+    const ref = React.createRef<NewMeetingSidebarHandle>();
+    renderNewMeeting(ref);
+    await act(async () => {});
+
+    fillPrimaryMeeting();
+    fireEvent.click(screen.getByRole("button", { name: "Done" }));
+    fireEvent.click(screen.getByRole("button", { name: /Add another mode for other days/ }));
+
+    const draft = screen.getByTestId("linked-schedule-draft");
+    fireEvent.click(within(draft).getByRole("button", { name: /Remote/ }));
+    fireEvent.click(within(draft).getByRole("button", { name: "Saturday" }));
+    fireEvent.click(within(draft).getByRole("button", { name: /Select linked schedule room/ }));
+    fireEvent.click(within(draft).getAllByRole("option")[0]);
+
+    fireEvent.click(screen.getByLabelText("AA"));
+    fireEvent.click(screen.getByRole("button", { name: /Select Room/ }));
+    fireEvent.click(screen.getAllByRole("option")[0]);
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Create Meeting" }));
+    });
+
+    const call = (global.fetch as jest.Mock).mock.calls.find(([url]) => url === "/api/write/meeting");
+    const body = JSON.parse(call![1].body);
+    expect(body.linkedSchedule).toMatchObject({ modeType: "Remote", room: null, zoomRoom: null });
+  });
+
   it("locks the second schedule out of this meeting's own mode and days", async () => {
     const ref = React.createRef<NewMeetingSidebarHandle>();
     renderNewMeeting(ref);

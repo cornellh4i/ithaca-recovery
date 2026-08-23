@@ -81,4 +81,18 @@ describe("linkedScheduleSchema", () => {
     expect(linkedScheduleSchema.safeParse(linkedSchedule({ modeType: "In Person", room: "Serenity Room" })).success)
       .toBe(true);
   });
+
+  // The backstop for the form's superset-mounted Room / Zoom room dropdowns: a value picked
+  // under one candidate mode must not reach the write as a resource the chosen mode never uses,
+  // since the room is advisory-locked, conflict-checked and published to its own calendar.
+  it("rejects a room on a Remote schedule", () => {
+    expect(linkedScheduleSchema.safeParse(linkedSchedule({ room: "Serenity Room" })).success).toBe(false);
+  });
+
+  it("rejects a Zoom room on a schedule that isn't Hybrid", () => {
+    expect(linkedScheduleSchema.safeParse(linkedSchedule({ zoomRoom: "Zoom Room A" })).success).toBe(false);
+    expect(linkedScheduleSchema.safeParse(
+      linkedSchedule({ modeType: "In Person", room: "Serenity Room", zoomRoom: "Zoom Room A" }),
+    ).success).toBe(false);
+  });
 });

@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { IMeeting, IRecurrencePattern } from '../types/models';
 import { convertUTCToET, convertETToUTC, formatETDateString, getWeekDatesET, getCurrentETMinutesSinceMidnight, isConvertETToUTCValidationError, isDstGapError } from '../util/date/timeUtils';
 import { roomToZoomRoom } from '../util/rooms/rooms';
+import { modeFieldVisibility } from '../util/rooms/modeFields';
 import {
     DESCRIPTION_MAX_LENGTH,
     MAX_RECURRENCE_OCCURRENCES,
@@ -604,11 +605,17 @@ export function useMeetingForm(initialMeeting?: IMeeting, defaultContext?: Meeti
         // interval and week phase; its dates and end condition are re-derived server-side from
         // this meeting, whatever is sent (linkedScheduleBlockSchema).
         if (options?.withLinkedSchedule && linkedDraft && isRecurring && recurrencePattern) {
+            // INVARIANT: only the fields the chosen mode actually uses are sent. The draft's
+            // Room / Zoom room dropdowns stay mounted for every mode still selectable (the
+            // superset modeFieldVisibility returns for ModeFields), so a value picked under one
+            // mode survives a later switch to a mode that doesn't use it -- a Remote schedule
+            // holding a room would be advisory-locked, conflict-checked and published on it.
+            const linkedFields = modeFieldVisibility([linkedDraft.modeType]);
             payload.linkedSchedule = {
                 mid: linkedDraft.mid,
                 modeType: linkedDraft.modeType,
-                room: linkedDraft.room || null,
-                zoomRoom: linkedDraft.zoomRoom || null,
+                room: linkedFields.room ? linkedDraft.room || null : null,
+                zoomRoom: linkedFields.zoomRoom ? linkedDraft.zoomRoom || null : null,
                 recurrencePattern: {
                     ...recurrencePattern,
                     mid: linkedDraft.mid,
