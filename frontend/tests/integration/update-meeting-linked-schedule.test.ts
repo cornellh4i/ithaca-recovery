@@ -1,6 +1,6 @@
 import { randomUUID } from "crypto";
 import type { Meeting } from "@prisma/client";
-import { formatETDateString, formatETWeekdayLong, getETTimeOfDay } from "../../util/date/timeUtils";
+import { convertETToUTC, formatETDateString, formatETWeekdayLong, getETTimeOfDay } from "../../util/date/timeUtils";
 import { buildLinkedScheduleLabel } from "../../util/meetings/linkedSchedules";
 
 // after() tasks are collected rather than discarded (the shim update-meeting-scoped-edit.test.ts
@@ -62,6 +62,20 @@ const SERIES_END = new Date("2026-09-07T19:00:00Z");
 const ANCHOR_WEEKDAY = formatETWeekdayLong(SERIES_START); // Monday
 const LINKED_WEEKDAY = "Saturday";
 const FIRST_LINKED_ET_DATE = "2026-09-12"; // the first Saturday on/after the anchor's start
+
+// The first `weekday` on/after today in ET -- a linked schedule added to a series that is
+// already running starts now, so its first date can only be expressed relative to the run date.
+function firstETDateOnOrAfterToday(weekday: string): string {
+  const [year, month, day] = formatETDateString(new Date()).split("-").map(Number);
+  // 16:00 UTC is the same ET calendar day under either offset, so stepping in whole UTC days
+  // reads back as consecutive ET dates across a DST change.
+  const cursor = new Date(Date.UTC(year, month - 1, day, 16));
+  for (let i = 0; i < 7; i++) {
+    if (formatETWeekdayLong(cursor) === weekday) return formatETDateString(cursor);
+    cursor.setUTCDate(cursor.getUTCDate() + 1);
+  }
+  throw new Error(`No ${weekday} within a week of today`);
+}
 
 afterAll(async () => {
   await disconnectTestPrismaClient();
@@ -235,6 +249,36 @@ describe("linked-schedule rejections", () => {
       expect((await response.json()).error).toMatch(/whole series/i);
     },
   );
+
+  test("an edit to the anchor's own fields in the same request is rejected rather than dropped", async () => {
+    const anchor = await seedAnchor();
+    const response = await putMeeting(anchorPayload(anchor, {
+      title: "Renamed While Linking",
+      linkedSchedule: linkedBlock(),
+    }));
+    expect(response.status).toBe(400);
+    expect((await response.json()).error).toMatch(/before adding a linked schedule/i);
+
+    const prisma = getTestPrismaClient();
+    const anchorAfter = await prisma.meeting.findUnique({ where: { mid: anchor.mid } });
+    expect(anchorAfter?.title).toBe(anchor.title);
+  });
+
+  test("resubmitting the anchor's own stored values, recurrence included, is not an edit", async () => {
+    const anchor = await seedAnchor();
+    const response = await putMeeting(anchorPayload(anchor, {
+      recurrencePattern: {
+        type: "weekly",
+        startDate: anchor.startDateTime,
+        daysOfWeek: [ANCHOR_WEEKDAY],
+        firstDayOfWeek: "Sunday",
+        interval: 1,
+      },
+      linkedSchedule: linkedBlock(),
+    }));
+    expect(response.status).toBe(200);
+    await drainAfterTasks();
+  });
 });
 
 test("a room conflict on the linked schedule's own days is a 409 that writes nothing, and confirmOverride retries it", async () => {
@@ -447,6 +491,133 @@ test("a Remote schedule linked to an In-Person anchor provisions the family's Zo
   expect(created?.linkedToMid).toBe(anchor.mid);
   const anchorAfter = await prisma.meeting.findUnique({ where: { mid: anchor.mid } });
   expect(anchorAfter?.zid).toBeNull();
+});
+
+test("a count-bounded anchor with an evening start counts the linked schedule's occurrences from the right weekday", async () => {
+  // 8 PM ET on a Wednesday: the instant's UTC calendar date is already Thursday, which is
+  // exactly what an ET-midnight-anchored pattern startDate keeps out of the occurrence count.
+  const anchor = await seedAnchor(
+    {
+      startDateTime: new Date(convertETToUTC("2026-09-09T20:00:00")),
+      endDateTime: new Date(convertETToUTC("2026-09-09T21:00:00")),
+    },
+    {
+      daysOfWeek: ["Wednesday"],
+      startDate: new Date(convertETToUTC("2026-09-09T00:00:00")),
+      numberOfOccurrences: 2,
+    },
+  );
+  const linkedMid = `linked-${randomUUID()}`;
+
+  const response = await putMeeting(anchorPayload(anchor, {
+    linkedSchedule: linkedBlock({
+      mid: linkedMid,
+      recurrencePattern: {
+        type: "weekly", startDate: SERIES_START, daysOfWeek: ["Monday", "Tuesday"],
+        firstDayOfWeek: "Sunday", interval: 1,
+      },
+    }),
+  }));
+  expect(response.status).toBe(200);
+
+  const prisma = getTestPrismaClient();
+  const created = await prisma.meeting.findUnique({ where: { mid: linkedMid }, include: { recurrencePattern: true } });
+  // The pattern's start is ET midnight of the first date, not the row's 8 PM start instant.
+  expect(formatETDateString(created!.recurrencePattern!.startDate)).toBe("2026-09-14");
+  expect(getETTimeOfDay(created!.recurrencePattern!.startDate)).toEqual({ hour: 0, minute: 0, second: 0 });
+  // Two occurrences on Mon+Tue is that same week's Tuesday -- not a week later, which is what a
+  // weekday anchor read off the UTC date would produce.
+  expect(created?.recurrencePattern?.numberOfOccurrences).toBe(2);
+  expect(formatETDateString(created!.recurrencePattern!.endDate!)).toBe("2026-09-15");
+  await drainAfterTasks();
+});
+
+test("a schedule added to an already-running series starts now, not at the series' original start", async () => {
+  const anchor = await seedAnchor(
+    {
+      startDateTime: new Date(convertETToUTC("2019-01-07T18:00:00")), // a Monday, years ago
+      endDateTime: new Date(convertETToUTC("2019-01-07T19:00:00")),
+    },
+    { daysOfWeek: [ANCHOR_WEEKDAY], startDate: new Date(convertETToUTC("2019-01-07T00:00:00")) },
+  );
+  const linkedMid = `linked-${randomUUID()}`;
+
+  const response = await putMeeting(anchorPayload(anchor, { linkedSchedule: linkedBlock({ mid: linkedMid }) }));
+  expect(response.status).toBe(200);
+
+  const prisma = getTestPrismaClient();
+  const created = await prisma.meeting.findUnique({ where: { mid: linkedMid }, include: { recurrencePattern: true } });
+  const expectedFirstDate = firstETDateOnOrAfterToday(LINKED_WEEKDAY);
+  // Backdating this row to 2019 would publish a Google Calendar series with years of meetings
+  // that never happened.
+  expect(formatETDateString(created!.startDateTime)).toBe(expectedFirstDate);
+  expect(formatETDateString(created!.recurrencePattern!.startDate)).toBe(expectedFirstDate);
+  // The anchor's ET time of day still carries over -- one Zoom meeting, one time of day.
+  expect(getETTimeOfDay(created!.startDateTime)).toEqual(getETTimeOfDay(anchor.startDateTime));
+  await drainAfterTasks();
+});
+
+// A scoped edit's split child: not a family member (its linkedToMid stays null), but a real row
+// of the family's ONE Zoom booking, sitting on the linked schedule's very first Saturday.
+async function seedZidSharingSplitChild(anchor: Meeting) {
+  return seedMeeting({
+    modeType: "Remote",
+    room: "",
+    zoomRoom: null,
+    zid: anchor.zid,
+    zoomLink: anchor.zoomLink,
+    zoomHost: anchor.zoomHost,
+    splitFromMid: anchor.mid,
+    startDateTime: new Date(`${FIRST_LINKED_ET_DATE}T18:00:00Z`),
+    endDateTime: new Date(`${FIRST_LINKED_ET_DATE}T19:00:00Z`),
+  });
+}
+
+test("a Zoom-free linked schedule still leaves every row of the shared Zoom meeting in its schedule", async () => {
+  const anchor = await seedAnchor();
+  const splitChild = await seedZidSharingSplitChild(anchor);
+  const linkedMid = `linked-${randomUUID()}`;
+
+  // In Person deliberately: this row holds no zid of its own, so the family's zid has to come
+  // from the family rather than from whichever background sync asks for it first.
+  const response = await putMeeting(anchorPayload(anchor, {
+    linkedSchedule: linkedBlock({ mid: linkedMid, modeType: "In Person", room: `Linked In Person ${randomUUID()}` }),
+  }));
+  expect(response.status).toBe(200);
+  await drainAfterTasks();
+
+  const [, , zoomFamily] = mockedUpdateZoomMeeting.mock.calls[0];
+  expect((zoomFamily as { mid: string }[]).map((row) => row.mid).sort())
+    .toEqual([anchor.mid, splitChild.mid, linkedMid].sort());
+});
+
+test("another row of the family's own Zoom booking is not a host conflict", async () => {
+  const anchor = await seedAnchor();
+  await seedZidSharingSplitChild(anchor);
+  const linkedMid = `linked-${randomUUID()}`;
+
+  // The inherited host is booked at that hour by the split child -- which is the family's own
+  // single Zoom meeting, not a second booking to flag.
+  const response = await putMeeting(anchorPayload(anchor, { linkedSchedule: linkedBlock({ mid: linkedMid }) }));
+  expect(response.status).toBe(200);
+  await drainAfterTasks();
+});
+
+test("a successful family Zoom update clears the holder's stale error status", async () => {
+  const anchor = await seedAnchor({
+    zoomSyncStatus: "error",
+    zoomSyncError: "An earlier sync failed.",
+  });
+  const linkedMid = `linked-${randomUUID()}`;
+
+  const response = await putMeeting(anchorPayload(anchor, { linkedSchedule: linkedBlock({ mid: linkedMid }) }));
+  expect(response.status).toBe(200);
+  await drainAfterTasks();
+
+  const prisma = getTestPrismaClient();
+  const anchorAfter = await prisma.meeting.findUnique({ where: { mid: anchor.mid } });
+  expect(anchorAfter?.zoomSyncStatus).toBe("synced");
+  expect(anchorAfter?.zoomSyncError).toBeNull();
 });
 
 test("an exhausted host pool leaves the linked row unpublished rather than half-published", async () => {

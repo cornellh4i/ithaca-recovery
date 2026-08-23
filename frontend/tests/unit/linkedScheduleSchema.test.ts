@@ -67,6 +67,15 @@ describe("linkedScheduleSchema", () => {
     ).success).toBe(true);
   });
 
+  // Only the weekdays are read from the block's pattern, so a non-weekly type would otherwise be
+  // silently served as a weekly schedule.
+  it("rejects a non-weekly recurrence type", () => {
+    const parsed = linkedScheduleSchema.safeParse(
+      linkedSchedule({ recurrencePattern: { ...weeklyPattern, type: "monthly" } }),
+    );
+    expect(parsed.success).toBe(false);
+  });
+
   it("requires an In Person schedule to carry a room", () => {
     expect(linkedScheduleSchema.safeParse(linkedSchedule({ modeType: "In Person" })).success).toBe(false);
     expect(linkedScheduleSchema.safeParse(linkedSchedule({ modeType: "In Person", room: "Serenity Room" })).success)

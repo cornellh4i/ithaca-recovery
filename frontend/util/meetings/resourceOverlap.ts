@@ -246,6 +246,11 @@ export type FindConflictsOptions = {
   // Exclude this meeting (by mid) from the query — used when re-checking a meeting against
   // itself during an update.
   excludeMid?: string;
+  // Exclude every row sharing this zid — one Zoom meeting is ONE real booking of its host, no
+  // matter how many rows point at it (a linked-schedule family, a scoped edit's split children,
+  // a legacy zid group), so a zoomHost check for a candidate joining that meeting must not
+  // report it as colliding with itself. Rows with no zid at all are never excluded.
+  excludeZid?: string;
   // Suspended meetings still occupy their Zoom host (sync is skipped while suspended, not
   // torn down) but shouldn't nag admins on the room/zoomRoom conflicts panel. Default false.
   includeSuspended?: boolean;
@@ -281,6 +286,9 @@ export async function findResourceConflicts(
       notDeleted,
       fieldWhere(field, value),
       ...(opts.excludeMid ? [{ mid: { not: opts.excludeMid } }] : []),
+      // Spelled with the explicit null branch rather than a bare `not`: a SQL inequality never
+      // matches NULL, and the Zoom-free rows are exactly the ones this check must keep seeing.
+      ...(opts.excludeZid ? [{ OR: [{ zid: null }, { zid: { not: opts.excludeZid } }] }] : []),
     ],
   };
 
@@ -438,6 +446,9 @@ export async function getPoolHostLoads(
       notDeleted,
       { zoomHost: { in: pool, mode: "insensitive" } },
       ...(opts.excludeMid ? [{ mid: { not: opts.excludeMid } }] : []),
+      // Spelled with the explicit null branch rather than a bare `not`: a SQL inequality never
+      // matches NULL, and the Zoom-free rows are exactly the ones this check must keep seeing.
+      ...(opts.excludeZid ? [{ OR: [{ zid: null }, { zid: { not: opts.excludeZid } }] }] : []),
     ],
   };
 
@@ -750,6 +761,9 @@ export async function findResourceConflictRows(
       notDeleted,
       fieldWhere(field, value),
       ...(opts.excludeMid ? [{ mid: { not: opts.excludeMid } }] : []),
+      // Spelled with the explicit null branch rather than a bare `not`: a SQL inequality never
+      // matches NULL, and the Zoom-free rows are exactly the ones this check must keep seeing.
+      ...(opts.excludeZid ? [{ OR: [{ zid: null }, { zid: { not: opts.excludeZid } }] }] : []),
     ],
   };
 

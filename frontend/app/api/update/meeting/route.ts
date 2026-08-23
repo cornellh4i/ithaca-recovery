@@ -767,8 +767,17 @@ async function handleScopedEdit(
 function deriveLinkedScheduleStart(
   anchor: Meeting & { recurrencePattern: RecurrencePattern | null },
   daysOfWeek: string[],
-): { startDateTime: Date; endDateTime: Date } | null {
+): { startDateTime: Date; endDateTime: Date; patternStartDate: Date } | null {
   const pattern = anchor.recurrencePattern!;
+  // Never earlier than today: a schedule added to a series that started years ago is a schedule
+  // that starts NOW, not one that retroactively met every week since. Searching from the series
+  // start instead would publish a backdated Google Calendar series (fabricated history on past
+  // calendar views) and, for a count-bounded anchor, could resolve an end date that has already
+  // passed -- a row born dead. The week phase is unaffected: matchesRecurrencePattern measures
+  // the interval from the ANCHOR's own startDate below, whatever date the search begins on.
+  const seriesStartEtDateStr = toETDateStr(pattern.startDate);
+  const todayEtDateStr = toETDateStr(new Date());
+  const searchFromEtDateStr = seriesStartEtDateStr > todayEtDateStr ? seriesStartEtDateStr : todayEtDateStr;
   const firstETDate = firstOccurrenceOnOrAfter(
     {
       type: 'weekly',
@@ -782,14 +791,19 @@ function deriveLinkedScheduleStart(
       // Monday-Friday schedule says nothing about when the Saturday one starts.
       excludedDates: [],
     },
-    toETDateStr(pattern.startDate),
+    searchFromEtDateStr,
   );
   if (!firstETDate) return null;
   const { hour, minute, second } = getETTimeOfDay(anchor.startDateTime);
   const pad = (value: number) => String(value).padStart(2, '0');
   const startDateTime = new Date(convertETToUTC(`${firstETDate}T${pad(hour)}:${pad(minute)}:${pad(second)}`));
   const durationMs = anchor.endDateTime.getTime() - anchor.startDateTime.getTime();
-  return { startDateTime, endDateTime: new Date(startDateTime.getTime() + durationMs) };
+  // INVARIANT: a stored recurrencePattern.startDate is ET-midnight-anchored (parseMMDDYYYY),
+  // never a real meeting-time instant -- calculateEndDateFromOccurrences reads the weekday
+  // anchor straight off getUTCDay(), so a 7 PM-or-later ET start would roll into the next UTC
+  // day and count the occurrences from the wrong weekday.
+  const patternStartDate = new Date(convertETToUTC(`${firstETDate}T00:00:00`));
+  return { startDateTime, endDateTime: new Date(startDateTime.getTime() + durationMs), patternStartDate };
 }
 
 // Runs after the response is sent — the new linked row's own half of the create: its Google
@@ -866,15 +880,18 @@ async function syncLinkedScheduleFamily(
     const holder = members.find((member) => member.zid === patchZid && member.zoomManaged);
     if (holder) {
       const ok = await updateZoomMeeting(patchZid, holder as unknown as IMeeting, await loadFamily(patchZid));
-      if (!ok) {
-        await prisma.meeting.update({
-          where: { mid: holder.mid },
-          data: {
-            zoomSyncStatus: 'error',
-            zoomSyncError: "Couldn't update the shared Zoom meeting for the newly linked schedule.",
-          },
-        });
-      }
+      // Persisted either way, like every other Zoom write: a holder already carrying a stale
+      // zoomSyncStatus 'error' (from an earlier failed sync) would otherwise keep the calendar's
+      // ⚠ badge after this PATCH actually succeeded.
+      await prisma.meeting.update({
+        where: { mid: holder.mid },
+        data: ok
+          ? { zoomSyncStatus: 'synced', zoomSyncError: null }
+          : {
+              zoomSyncStatus: 'error',
+              zoomSyncError: "Couldn't update the shared Zoom meeting for the newly linked schedule.",
+            },
+      });
     }
   }
 
@@ -893,16 +910,82 @@ async function syncLinkedScheduleFamily(
   }
 }
 
+// Whether this payload asks to change the anchor row itself, on top of adding a schedule to it.
+// Compares only what the meeting form can actually edit: `creator` is server-managed and
+// `group` has no input at all (the form posts a placeholder for both), so a difference there is
+// never an admin's edit. A payload with no `recurrencePattern` makes no claim about the
+// recurrence either -- this branch never deletes one, unlike the whole-series path below.
+function submitsAnchorEdits(
+  existing: Meeting & { recurrencePattern: RecurrencePattern | null },
+  submitted: IMeeting,
+): boolean {
+  const text = (value: string | null | undefined) => value ?? "";
+  if (
+    submitted.title !== existing.title ||
+    text(submitted.description) !== text(existing.description) ||
+    text(submitted.email) !== text(existing.email) ||
+    submitted.modeType !== existing.modeType ||
+    text(submitted.room) !== text(existing.room) ||
+    text(submitted.zoomRoom) !== text(existing.zoomRoom) ||
+    text(submitted.status) !== text(existing.status) ||
+    submitted.isRecurring !== existing.isRecurring ||
+    new Date(submitted.startDateTime).getTime() !== existing.startDateTime.getTime() ||
+    new Date(submitted.endDateTime).getTime() !== existing.endDateTime.getTime() ||
+    [...submitted.calType].sort().join("|") !== [...existing.calType].sort().join("|")
+  ) {
+    return true;
+  }
+  // Same definition of "an explicit reassignment" the whole-series path's explicitHostChange
+  // uses: a blank/"Automatic" selection, or resubmitting the meeting's own host, is not one.
+  const submittedHost = (submitted.zoomHost ?? "").trim();
+  if (submittedHost && submittedHost.toLowerCase() !== (existing.zoomHost ?? "").trim().toLowerCase()) return true;
+
+  const pattern = submitted.recurrencePattern;
+  if (!pattern) return false;
+  const stored = existing.recurrencePattern;
+  if (!stored) return true;
+  // A count-bounded pattern is STORED with its count already resolved into a real endDate,
+  // while the form resubmits it as a still-null endDate plus the count -- so the submitted one
+  // has to be resolved the same way the whole-series path resolves it before comparing.
+  const submittedEndDate = pattern.endDate ?? (pattern.numberOfOccurrences
+    ? calculateEndDateFromOccurrences(
+        pattern.startDate, pattern.daysOfWeek ?? [], pattern.numberOfOccurrences,
+        pattern.interval || 1, pattern.type, pattern.weekOfMonth ?? null, pattern.dayOfMonth ?? null,
+      )
+    : null);
+  return (
+    pattern.type !== stored.type ||
+    new Date(pattern.startDate).getTime() !== stored.startDate.getTime() ||
+    (submittedEndDate ? new Date(submittedEndDate).getTime() : null) !== (stored.endDate?.getTime() ?? null) ||
+    (pattern.numberOfOccurrences ?? null) !== (stored.numberOfOccurrences ?? null) ||
+    (pattern.interval || 1) !== stored.interval ||
+    (pattern.weekOfMonth ?? null) !== (stored.weekOfMonth ?? null) ||
+    (pattern.dayOfMonth ?? null) !== (stored.dayOfMonth ?? null) ||
+    (pattern.daysOfWeek ?? []).join("|") !== (stored.daysOfWeek ?? []).join("|")
+  );
+}
+
 // Handles a `linkedSchedule` block: adds a SECOND weekly schedule -- a different mode on
 // different weekdays -- to an existing recurring meeting, served by the family's one Zoom
 // meeting (util/meetings/linkedSchedules.ts). Modeled on handleScopedEdit, minus the parent
 // trim: the anchor row itself is not touched, only read.
 async function handleLinkedScheduleCreate(
   auth: { accessToken?: string; user?: { email?: string | null } | null },
-  existingMeeting: Meeting,
+  existingMeeting: Meeting & { recurrencePattern: RecurrencePattern | null },
+  newMeeting: IMeeting,
   linkedSchedule: LinkedScheduleInput,
-  confirmOverride: boolean,
 ): Promise<Response> {
+  const confirmOverride = !!newMeeting.confirmOverride;
+  // This branch reads the anchor row and never writes it, so any edit to the anchor's own
+  // fields in the same payload would be accepted with a 200 and applied nowhere. Refused
+  // instead of silently dropped -- the two writes are separate requests.
+  if (submitsAnchorEdits(existingMeeting, newMeeting)) {
+    return NextResponse.json(
+      { error: "Save this meeting's own changes before adding a linked schedule -- they can't be submitted together." },
+      { status: 400 },
+    );
+  }
+
   const family = await getLinkedFamily(prisma, existingMeeting.mid);
   if (!family) {
     return NextResponse.json({ error: `Meeting with ID ${existingMeeting.mid} not found` }, { status: 404 });
@@ -955,7 +1038,7 @@ async function handleLinkedScheduleCreate(
     );
   }
 
-  let derived: { startDateTime: Date; endDateTime: Date } | null;
+  let derived: { startDateTime: Date; endDateTime: Date; patternStartDate: Date } | null;
   try {
     derived = deriveLinkedScheduleStart(anchor, linkedDays);
   } catch (error) {
@@ -972,15 +1055,16 @@ async function handleLinkedScheduleCreate(
       { status: 400 },
     );
   }
-  const { startDateTime, endDateTime } = derived;
+  const { startDateTime, endDateTime, patternStartDate } = derived;
 
   // Everything below is copied from the anchor, never read from the payload -- see
   // linkedScheduleBlockSchema's comment. A count-bounded anchor gives the linked schedule the
   // same count, resolved into its OWN end date because its weekdays reach that count elsewhere.
+  // Counted from patternStartDate, not the row's start instant: see deriveLinkedScheduleStart.
   const pattern = anchor.recurrencePattern;
   const numberOfOccurrences = pattern.endDate ? null : pattern.numberOfOccurrences;
   const endDate = pattern.endDate ?? (numberOfOccurrences
-    ? calculateEndDateFromOccurrences(startDateTime, linkedDays, numberOfOccurrences, pattern.interval, 'weekly', null, null)
+    ? calculateEndDateFromOccurrences(patternStartDate, linkedDays, numberOfOccurrences, pattern.interval, 'weekly', null, null)
     : null);
 
   const needsZoom = isZoomBearing({ modeType: linkedSchedule.modeType });
@@ -1005,7 +1089,7 @@ async function handleLinkedScheduleCreate(
     isRecurring: true,
     recurrencePattern: {
       type: 'weekly',
-      startDate: startDateTime,
+      startDate: patternStartDate,
       endDate,
       interval: pattern.interval,
       daysOfWeek: linkedDays,
@@ -1057,13 +1141,19 @@ async function handleLinkedScheduleCreate(
           conflictRows.push(...await findResourceConflictRows("zoomRoom", candidate.zoomRoom, candidate, tx, {}));
         }
         // zoomHost DOES exclude the family: the inherited zid is ONE real Zoom booking the two
-        // schedules share, not a second one to flag. The cap makes the anchor the family's only
-        // other member here. Belt-and-braces anyway -- the disjoint-weekday rule above already
-        // means the two schedules' occurrences never overlap.
+        // schedules share, not a second one to flag. Excluded by zid as well as by the anchor's
+        // mid, because "rows of that one booking" is exactly what a shared zid means -- a
+        // scoped-edit split child of the anchor holds the same zid without being a family
+        // member, and would otherwise be reported as the family colliding with itself.
+        // Belt-and-braces anyway -- the disjoint-weekday rule above already means the two
+        // schedules' occurrences never overlap.
         if (inheritedZoomHost) {
           conflictRows.push(...await findResourceConflictRows(
             "zoomHost", inheritedZoomHost, candidate, tx,
-            { excludeMid: anchor.mid, includeSuspended: true, capacity: hostCapacities[inheritedZoomHost] ?? 1 },
+            {
+              excludeMid: anchor.mid, excludeZid: anchor.zid ?? undefined,
+              includeSuspended: true, capacity: hostCapacities[inheritedZoomHost] ?? 1,
+            },
           ));
         }
         if (conflictRows.length > 0) {
@@ -1128,7 +1218,7 @@ async function handleLinkedScheduleCreate(
           recurrencePattern: {
             create: {
               type: 'weekly',
-              startDate: startDateTime,
+              startDate: patternStartDate,
               endDate,
               numberOfOccurrences: numberOfOccurrences ?? undefined,
               daysOfWeek: linkedDays,
@@ -1156,9 +1246,16 @@ async function handleLinkedScheduleCreate(
   }
 
   const { createdMeeting, resolvedHost, hostSyncError } = txResult;
+  // The zid the family already holds, if any -- the shared Zoom meeting the new schedule joined.
+  const familyZid = familyMembers(family).find((member) => isZoomBearing(member) && member.zid)?.zid ?? null;
   // One family lookup for both background syncs below -- keyed on the anchor, so it returns the
-  // post-create family (both schedules) whichever of them asks for it first.
-  const loadFamily = linkedFamilyLoader(prisma, anchor.mid);
+  // post-create family (both schedules) whichever of them asks for it first. Pinned to the
+  // FAMILY's zid rather than whichever caller gets there first: the loader resolves its zid
+  // argument once, on that first call, and an In-Person linked row would pin it to null --
+  // dropping every other row of the same Zoom meeting (split children, legacy zid groups) from
+  // the union the family PATCH is built from, silently narrowing Zoom's weekly_days (#513).
+  const familyLoader = linkedFamilyLoader(prisma, anchor.mid);
+  const loadFamily: LinkedFamilyLoader = () => familyLoader(familyZid);
 
   after(
     syncLinkedSchedule(
@@ -1179,13 +1276,11 @@ async function handleLinkedScheduleCreate(
       }
     }),
   );
-  // The family's existing shared Zoom meeting, if it has one. It needs the PATCH whether or not
-  // the new schedule is Zoom-bearing: an In-Person member adds no days to the recurrence but
-  // still names itself in the family's topic. Null only when this request just minted it, since
+  // The family's existing shared Zoom meeting needs the PATCH whether or not the new schedule
+  // is Zoom-bearing: an In-Person member adds no days to the recurrence but still names itself
+  // in the family's topic. Null only when this request just minted the Zoom meeting, since
   // createZoomMeeting was already handed the family.
-  const patchZid = provisionsZoom
-    ? null
-    : familyMembers(family).find((member) => isZoomBearing(member) && member.zid)?.zid ?? null;
+  const patchZid = provisionsZoom ? null : familyZid;
 
   after(
     syncLinkedScheduleFamily(familyMembers(family), auth.accessToken, loadFamily, patchZid)
@@ -1258,7 +1353,7 @@ const updateMeeting = async (request: Request): Promise<Response> => {
     existingMeeting.googleCalendarEventIds = await reconcilePendingResume(existingMeeting);
 
     if (linkedSchedule) {
-      return handleLinkedScheduleCreate(auth, existingMeeting, linkedSchedule, !!newMeeting.confirmOverride);
+      return handleLinkedScheduleCreate(auth, existingMeeting, newMeeting, linkedSchedule);
     }
 
     if (editScope !== 'all') {

@@ -150,6 +150,16 @@ export const editScopeSchema = z.object({
 // on any of them has no single-series representation on Zoom (isSharedZoomScheduleCompatible)
 // and would silently stop reaching Zoom at all. Only the mode, the room(s) that mode needs, and
 // the weekdays are genuinely this schedule's own.
+//
+// RULE: that derivation is a create-time snapshot, and drift afterwards is accepted, not
+// guarded. Editing either row's title/description/email/group/calType propagates to neither the
+// other row nor the family's external name (buildLinkedScheduleLabel builds each member's name
+// from that member's OWN title), so the two members' calendar events can end up reading
+// differently. Nothing detects or reconciles it; re-saving both rows with the same values is the
+// fix. The schedule fields above are the ones that would actually break Zoom, and those are
+// re-checked on every write.
+// TODO(linked-schedules PR6): if the form grows a single submit that edits the anchor and its
+// linked schedules together, propagate the shared identity fields there instead.
 export const linkedScheduleBlockSchema = z.object({
   // Client-generated, like NewMeeting's -- so both rows are known before the write and the
   // create can stay inside the same transaction as the rest of the request.
@@ -168,6 +178,13 @@ export const linkedScheduleBlockSchema = z.object({
   .refine((linked) => linked.modeType !== "In Person" || !!linked.room, {
     message: "In Person meetings require a physical room.",
     path: ["room"],
+  })
+  // The weekdays are read from this pattern but its frequency is not: the anchor must already be
+  // weekly, and Zoom holds the family as one weekly union. Rejected rather than silently coerced,
+  // so a client asking for a monthly schedule is told no instead of getting a weekly one.
+  .refine((linked) => linked.recurrencePattern.type === "weekly", {
+    message: "A linked schedule must be weekly.",
+    path: ["recurrencePattern", "type"],
   });
 
 export const linkedScheduleSchema = z.object({
