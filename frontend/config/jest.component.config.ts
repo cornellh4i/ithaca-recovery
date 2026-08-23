@@ -12,11 +12,16 @@ const config: Config = {
   // codebase (React 19) has components that rely on the automatic runtime and don't import
   // React themselves (@swc/jest's own default is the classic runtime, which would break them).
   transform: {
-    "^.+\\.tsx?$": [
+    // .jsx? too, for the ESM-only node_modules carved out of transformIgnorePatterns below.
+    "^.+\\.(t|j)sx?$": [
       "@swc/jest",
       { jsc: { transform: { react: { runtime: "automatic" } } } },
     ],
   },
+  // uuid ships ESM-only (no CJS build as of v14) and jest doesn't transform node_modules, so
+  // importing it under jsdom hits a raw `export` token -- hooks/useMeetingForm.ts reaches it
+  // from every form test. Carved out by name rather than transforming node_modules wholesale.
+  transformIgnorePatterns: ["/node_modules/(?!uuid/)", "\\.pnp\\.[^\\\\]+$"],
   moduleNameMapper: {
     "^server-only$": "<rootDir>/tests/mocks/server-only.js",
     // marked ships ESM-first (its exports map has no CJS entry) and jest doesn't transform

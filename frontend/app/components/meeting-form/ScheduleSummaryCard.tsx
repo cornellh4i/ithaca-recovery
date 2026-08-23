@@ -48,6 +48,16 @@ export interface ScheduleSummary {
  * (just the time range for a one-time schedule). Exported so anything referring to a schedule
  * outside the card -- the removal confirmation, a toast -- names it the same way the card does.
  */
+/**
+ * A schedule's ET time range on its own, e.g. `"9 - 10 AM"`. Exported so anything echoing the
+ * time a second schedule inherits reads it exactly as the card does.
+ */
+export function formatScheduleTimeRange(start: Date | string, end: Date | string): string {
+  // new Date() wrap: a saved schedule comes off a JSON fetch, so these are strings at runtime
+  // despite the Date type -- Intl.format throws on one unwrapped.
+  return formatCompactTimeRange(etTimeFmt.format(new Date(start)), etTimeFmt.format(new Date(end)));
+}
+
 export function formatScheduleLine(schedule: ScheduleSummary): string {
   const { recurrencePattern } = schedule;
   const dayText = formatDayColumn(
@@ -60,12 +70,7 @@ export function formatScheduleLine(schedule: ScheduleSummary): string {
         }
       : null,
   );
-  // new Date() wrap: a saved schedule comes off a JSON fetch, so these are strings at runtime
-  // despite the Date type -- Intl.format throws on one unwrapped.
-  const timeText = formatCompactTimeRange(
-    etTimeFmt.format(new Date(schedule.startDateTime)),
-    etTimeFmt.format(new Date(schedule.endDateTime)),
-  );
+  const timeText = formatScheduleTimeRange(schedule.startDateTime, schedule.endDateTime);
   return dayText ? `${dayText} · ${timeText}` : timeText;
 }
 

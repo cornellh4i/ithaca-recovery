@@ -16,12 +16,13 @@ import FormValidationBanner from './FormValidationBanner';
 import EditRecurringModal, { EditScope } from './EditRecurringModal';
 import IconButton from '../ui/buttons/IconButton';
 import ScheduleSummaryCard, { formatScheduleLine } from './ScheduleSummaryCard';
+import MeetingSchedules from './MeetingSchedules';
 import RemoveLinkedScheduleModal from './RemoveLinkedScheduleModal';
 
 import { ILinkedSchedule, IMeeting } from '../../../types/models'
 import { isZoomBearing } from '../../../util/meetings/linkedSchedules';
 import { physicalRoomOptions, zoomRoomOptions } from "../../../util/rooms/rooms";
-import { useMeetingForm, CAL_TYPE_OPTIONS, CAL_TYPE_COLOR, DESCRIPTION_MAX_LENGTH } from '../../../hooks/useMeetingForm';
+import { useMeetingForm, CAL_TYPE_OPTIONS, CAL_TYPE_COLOR, DESCRIPTION_MAX_LENGTH, MeetingFormPayload } from '../../../hooks/useMeetingForm';
 import { ConflictListRow } from '../../../util/meetings/conflictDisplay';
 import { useToast } from '../shared/ToastProvider';
 import { pollMeetingSyncStatus, describeSyncFailure } from '../../../services/syncMeeting';
@@ -39,7 +40,7 @@ const formatEffectiveDate = (date: Date): string =>
 // work) -- these three fields are the update/meeting PUT contract's edit-scope extension.
 // editScope/occurrenceDate drive server-side occurrence splitting; newMid is only ever read
 // off a response, never sent.
-type EditMeetingPayload = IMeeting & {
+type EditMeetingPayload = MeetingFormPayload & {
   editScope?: EditScope;
   occurrenceDate?: string;
 };
@@ -76,6 +77,17 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
       zoomRoom: selectedZoomRoom, setZoomRoom: setSelectedZoomRoom,
       zoomHost: selectedZoomHost, setZoomHost: setSelectedZoomHost,
       isRecurring,
+      recurrencePattern,
+      scheduleInstants,
+      isScheduleConfirmed, setIsScheduleConfirmed,
+      linkedDraft,
+      startLinkedDraft,
+      updateLinkedDraft,
+      selectLinkedDraftMode,
+      selectLinkedDraftRoom,
+      toggleLinkedDraftDay,
+      discardLinkedDraft,
+      isAnchorDirty,
       handleRecurringMeetingChange,
       handleRoomChange,
       handleModeSelect,
@@ -187,7 +199,14 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
         const meetingResponse = await response.json();
         console.log(meetingResponse);
         setConflictState(null);
-        showToast({ variant: "success", title: "Meeting updated successfully." });
+        // A linked-schedule save writes only the new schedule -- the meeting itself is read, not
+        // updated (the route refuses a payload that does both), so it says what actually changed.
+        const addedLinkedMid: string | undefined = meetingResponse.linkedMid;
+        showToast({
+          variant: "success",
+          title: addedLinkedMid ? "Linked schedule added." : "Meeting updated successfully.",
+        });
+        discardLinkedDraft();
         onUpdateSuccess();
         onClose();
 
@@ -197,7 +216,12 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
         // whatever zoomSyncStatus it already had before this edit (possibly a stale 'error'
         // from something unrelated) and wrongly blame this successful save for it. Only the
         // new detached/tail row (newMid, polled below) reflects this edit's own outcome.
-        const isScoped = payload.editScope === 'this' || payload.editScope === 'thisAndFollowing';
+        //
+        // A linked-schedule save is the same story for the same reason: it writes no field of the
+        // meeting itself, so only the schedule it just created (linkedMid, polled below) reports
+        // this save's own outcome.
+        const isScoped = payload.editScope === 'this' || payload.editScope === 'thisAndFollowing'
+          || !!payload.linkedSchedule;
 
         // Fire-and-forget -- see NewMeeting.tsx's identical call for why (the response above
         // is sent before the actual Zoom/Calendar sync runs). showToast is global, so this is
@@ -219,6 +243,20 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
           pollMeetingSyncStatus(meetingResponse.newMid, {
             expectGoogle: (payload.calType?.length ?? 0) > 0,
             expectZoom: false,
+          }).then((result) => {
+            const message = describeSyncFailure(result);
+            if (message) showToast({ variant: "error", title: message, persistent: true });
+          });
+        }
+
+        // A linked schedule inherits the family's Zoom meeting rather than minting one, EXCEPT
+        // when this meeting has none to inherit (an In Person meeting gaining a Hybrid/Remote
+        // schedule) -- that one case really does run a Zoom create worth waiting on.
+        if (addedLinkedMid) {
+          const linkedMode = payload.linkedSchedule?.modeType;
+          pollMeetingSyncStatus(addedLinkedMid, {
+            expectGoogle: (payload.calType?.length ?? 0) > 0,
+            expectZoom: !meeting.zid && (linkedMode === 'Hybrid' || linkedMode === 'Remote'),
           }).then((result) => {
             const message = describeSyncFailure(result);
             if (message) showToast({ variant: "error", title: message, persistent: true });
@@ -327,10 +365,12 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
         return;
       }
 
-      const updatedMeeting = buildMeetingPayload(meeting.mid, meeting.status ?? 'Active');
+      const updatedMeeting = buildMeetingPayload(meeting.mid, meeting.status ?? 'Active', { withLinkedSchedule: true });
       if (!updatedMeeting) return;
 
-      if (canScopeEdit) {
+      // A linked-schedule create is inherently whole-series (it adds another schedule to the
+      // whole meeting, and the route 400s it under any other scope), so there is nothing to ask.
+      if (canScopeEdit && !updatedMeeting.linkedSchedule) {
         pendingPayloadRef.current = updatedMeeting;
         setIsScopeModalOpen(true);
         return;
@@ -421,14 +461,42 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
             compact={compact}
           />}
           RecurringMeeting={
-            <RecurringMeetingForm
-              onChange={handleRecurringMeetingChange}
-              startDate={dateValue}
-              initialValue={{
-                isRecurring: !!meeting.recurrencePattern,
-                recurrencePattern: meeting.recurrencePattern ?? null,
-              }}
-              layout={layout}
+            <MeetingSchedules
+              recurrenceEditor={
+                <RecurringMeetingForm
+                  onChange={handleRecurringMeetingChange}
+                  startDate={dateValue}
+                  initialValue={{
+                    isRecurring: !!meeting.recurrencePattern,
+                    recurrencePattern: meeting.recurrencePattern ?? null,
+                  }}
+                  layout={layout}
+                  onConfirm={() => setIsScheduleConfirmed(true)}
+                />
+              }
+              isConfirmed={isScheduleConfirmed}
+              onEditSchedule={() => setIsScheduleConfirmed(false)}
+              modeType={selectedMode}
+              recurrencePattern={recurrencePattern}
+              isRecurring={isRecurring}
+              scheduleInstants={scheduleInstants}
+              room={selectedRoom}
+              zoomRoom={selectedZoomRoom}
+              savedSchedules={linkedSchedules}
+              draft={linkedDraft}
+              onAddSchedule={startLinkedDraft}
+              onSelectDraftMode={selectLinkedDraftMode}
+              onSelectDraftRoom={selectLinkedDraftRoom}
+              onSelectDraftZoomRoom={(value) => updateLinkedDraft({ zoomRoom: value })}
+              onToggleDraftDay={toggleLinkedDraftDay}
+              onDiscardDraft={discardLinkedDraft}
+              compact={compact}
+              // The update route applies a linked-schedule create and an edit to the meeting
+              // itself as two separate requests, and 400s a payload carrying both -- so the
+              // trigger says why instead of leading into that rejection.
+              addBlockedNote={isAnchorDirty
+                ? "Save this meeting's changes first — a linked schedule is added on its own."
+                : undefined}
             />
           }
           roomSelectionDropdown={

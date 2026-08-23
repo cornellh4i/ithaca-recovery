@@ -9,6 +9,7 @@ import TimePicker from '../ui/pickers/TimePicker';
 import Dropdown from '../ui/inputs/Dropdown';
 import LabeledCheckbox from '../ui/inputs/CheckBox';
 import RecurringMeetingForm from './RecurringMeeting';
+import MeetingSchedules from './MeetingSchedules';
 import ZoomHostField from './ZoomHostField';
 import ConflictOverrideModal from './ConflictOverrideModal';
 import DiscardChangesModal from './DiscardChangesModal';
@@ -17,8 +18,7 @@ import IconButton from '../ui/buttons/IconButton';
 
 import { v4 as uuidv4 } from 'uuid';
 import { physicalRoomOptions, zoomRoomOptions } from "../../../util/rooms/rooms";
-import { useMeetingForm, CAL_TYPE_OPTIONS, CAL_TYPE_COLOR, DESCRIPTION_MAX_LENGTH } from '../../../hooks/useMeetingForm';
-import { IMeeting } from '../../../types/models';
+import { useMeetingForm, CAL_TYPE_OPTIONS, CAL_TYPE_COLOR, DESCRIPTION_MAX_LENGTH, MeetingFormPayload } from '../../../hooks/useMeetingForm';
 import { ConflictListRow } from '../../../util/meetings/conflictDisplay';
 import { useToast } from '../shared/ToastProvider';
 import { pollMeetingSyncStatus, describeSyncFailure } from '../../../services/syncMeeting';
@@ -56,8 +56,20 @@ const NewMeetingSidebar = React.forwardRef<NewMeetingSidebarHandle, NewMeetingSi
       email: inputEmailValue, setEmail: setEmailValue,
       description: inputDescriptionValue, setDescription: setDescriptionValue,
       calTypes: selectedCalTypes,
+      room: selectedRoom,
       zoomRoom: selectedZoomRoom, setZoomRoom: setSelectedZoomRoom,
       zoomHost: selectedZoomHost, setZoomHost: setSelectedZoomHost,
+      isRecurring,
+      recurrencePattern,
+      scheduleInstants,
+      isScheduleConfirmed, setIsScheduleConfirmed,
+      linkedDraft,
+      startLinkedDraft,
+      updateLinkedDraft,
+      selectLinkedDraftMode,
+      selectLinkedDraftRoom,
+      toggleLinkedDraftDay,
+      discardLinkedDraft,
       handleRecurringMeetingChange,
       handleRoomChange,
       handleModeSelect,
@@ -78,7 +90,7 @@ const NewMeetingSidebar = React.forwardRef<NewMeetingSidebarHandle, NewMeetingSi
     const [isSubmitting, setIsSubmitting] = useState(false);
     // Holds the payload + conflict rows across the confirm round-trip -- a 409 doesn't clear
     // the form, it just pauses submission until the modal's Cancel or "Save anyway".
-    const [conflictState, setConflictState] = useState<{ payload: IMeeting; conflicts: ConflictListRow[] } | null>(null);
+    const [conflictState, setConflictState] = useState<{ payload: MeetingFormPayload; conflicts: ConflictListRow[] } | null>(null);
 
     const [isDiscardPromptOpen, setIsDiscardPromptOpen] = useState(false);
 
@@ -99,7 +111,7 @@ const NewMeetingSidebar = React.forwardRef<NewMeetingSidebarHandle, NewMeetingSi
 
     useImperativeHandle(ref, () => ({ requestClose: requestCloseNewMeeting }));
 
-    const submitMeeting = async (payload: IMeeting, confirmOverride: boolean) => {
+    const submitMeeting = async (payload: MeetingFormPayload, confirmOverride: boolean) => {
       setIsSubmitting(true);
       try {
         const response = await fetch('/api/write/meeting', {
@@ -145,6 +157,19 @@ const NewMeetingSidebar = React.forwardRef<NewMeetingSidebarHandle, NewMeetingSi
           const message = describeSyncFailure(result);
           if (message) showToast({ variant: "error", title: message, persistent: true });
         });
+
+        // The second schedule is its own row with its own calendar events, so it reports its own
+        // sync result. It never mints a Zoom meeting of its own -- the family's single one is
+        // created against whichever row needs it and fanned out (write/meeting's syncNewMeeting).
+        if (meetingResponse.linkedMid) {
+          pollMeetingSyncStatus(meetingResponse.linkedMid, {
+            expectGoogle: (payload.calType?.length ?? 0) > 0,
+            expectZoom: false,
+          }).then((result) => {
+            const message = describeSyncFailure(result);
+            if (message) showToast({ variant: "error", title: message, persistent: true });
+          });
+        }
       } catch (error) {
         console.error('There was an error fetching the data:', error);
         showToast({
@@ -168,7 +193,7 @@ const NewMeetingSidebar = React.forwardRef<NewMeetingSidebarHandle, NewMeetingSi
         return;
       }
 
-      const newMeeting = buildMeetingPayload(uuidv4(), 'Active');
+      const newMeeting = buildMeetingPayload(uuidv4(), 'Active', { withLinkedSchedule: true });
       if (!newMeeting) return;
 
       await submitMeeting(newMeeting, false);
@@ -217,9 +242,30 @@ const NewMeetingSidebar = React.forwardRef<NewMeetingSidebarHandle, NewMeetingSi
             compact
           />}
           RecurringMeeting={
-            <RecurringMeetingForm
-              onChange={handleRecurringMeetingChange}
-              startDate={dateValue}
+            <MeetingSchedules
+              recurrenceEditor={
+                <RecurringMeetingForm
+                  onChange={handleRecurringMeetingChange}
+                  startDate={dateValue}
+                  onConfirm={() => setIsScheduleConfirmed(true)}
+                />
+              }
+              isConfirmed={isScheduleConfirmed}
+              onEditSchedule={() => setIsScheduleConfirmed(false)}
+              modeType={selectedMode}
+              recurrencePattern={recurrencePattern}
+              isRecurring={isRecurring}
+              scheduleInstants={scheduleInstants}
+              room={selectedRoom}
+              zoomRoom={selectedZoomRoom}
+              draft={linkedDraft}
+              onAddSchedule={startLinkedDraft}
+              onSelectDraftMode={selectLinkedDraftMode}
+              onSelectDraftRoom={selectLinkedDraftRoom}
+              onSelectDraftZoomRoom={(value) => updateLinkedDraft({ zoomRoom: value })}
+              onToggleDraftDay={toggleLinkedDraftDay}
+              onDiscardDraft={discardLinkedDraft}
+              compact
             />
           }
           roomSelectionDropdown={
