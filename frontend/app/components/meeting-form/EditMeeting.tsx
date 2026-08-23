@@ -15,8 +15,11 @@ import DiscardChangesModal from './DiscardChangesModal';
 import FormValidationBanner from './FormValidationBanner';
 import EditRecurringModal, { EditScope } from './EditRecurringModal';
 import IconButton from '../ui/buttons/IconButton';
+import ScheduleSummaryCard, { formatScheduleLine } from './ScheduleSummaryCard';
+import RemoveLinkedScheduleModal from './RemoveLinkedScheduleModal';
 
-import { IMeeting } from '../../../types/models'
+import { ILinkedSchedule, IMeeting } from '../../../types/models'
+import { isZoomBearing } from '../../../util/meetings/linkedSchedules';
 import { physicalRoomOptions, zoomRoomOptions } from "../../../util/rooms/rooms";
 import { useMeetingForm, CAL_TYPE_OPTIONS, CAL_TYPE_COLOR, DESCRIPTION_MAX_LENGTH } from '../../../hooks/useMeetingForm';
 import { ConflictListRow } from '../../../util/meetings/conflictDisplay';
@@ -97,6 +100,13 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
     const sharedWithText = (meeting.sharedWith ?? [])
       .map((row) => `${row.title} (${row.modeType})`)
       .join(', ');
+
+    // This meeting's OTHER schedules, if it runs as a linked family. Read-only here: a linked
+    // schedule's own mode/days/room are edited from its own form (it's an ordinary meeting row
+    // with its own mid), so this form only shows what it is and offers to remove it.
+    const linkedSchedules = meeting.linkedSchedules ?? [];
+    const [scheduleToRemove, setScheduleToRemove] = useState<ILinkedSchedule | null>(null);
+    const [isRemovingSchedule, setIsRemovingSchedule] = useState(false);
 
     const { showToast } = useToast();
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -225,6 +235,38 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
       }
     };
 
+    // Removing a linked schedule is a whole-series delete of that row through the ordinary
+    // delete route -- it's a normal Meeting row, and that route already keeps the family's one
+    // shared Zoom meeting alive for whichever schedule is left. Nothing about the form's own
+    // in-progress edits is submitted or discarded here; the refresh onUpdateSuccess triggers
+    // re-reads the meeting (and so the remaining schedules) without closing the panel.
+    const confirmRemoveSchedule = async () => {
+      if (!scheduleToRemove || isRemovingSchedule) return;
+      setIsRemovingSchedule(true);
+      try {
+        const response = await fetch('/api/delete/meeting', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mid: scheduleToRemove.mid, deleteOption: 'all' }),
+        });
+        if (!response.ok) {
+          const body = await response.json().catch(() => null);
+          throw new Error(body?.error || `HTTP error! status: ${response.status}`);
+        }
+        setScheduleToRemove(null);
+        showToast({ variant: "success", title: "Linked schedule removed." });
+        onUpdateSuccess();
+      } catch (error) {
+        console.error('Could not remove the linked schedule:', error);
+        showToast({
+          variant: "error",
+          title: error instanceof Error ? error.message : "Could not remove the linked schedule.",
+        });
+      } finally {
+        setIsRemovingSchedule(false);
+      }
+    };
+
     // Scope: 'all' (or no occurrence context) submits the payload untouched -- current,
     // unscoped whole-series behavior. Scope 'this'/'thisAndFollowing' stamps editScope +
     // occurrenceDate on for the server, and strips recurrencePattern under 'this' specifically
@@ -327,6 +369,28 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
               The date below is the series&apos; start date, not this occurrence.
             </span>
           </p>
+        )}
+        {linkedSchedules.length > 0 && (
+          <section className={styles.linkedSchedules} aria-labelledby="linked-schedules-heading">
+            <h4 id="linked-schedules-heading" className={styles.linkedSchedulesHeading}>
+              {linkedSchedules.length === 1 ? 'Linked schedule' : 'Linked schedules'}
+            </h4>
+            <p className={styles.linkedSchedulesNote}>
+              This meeting also runs on other days in a different mode. The form below edits the
+              schedule you opened — a linked schedule is edited from its own form.
+            </p>
+            {linkedSchedules.map((schedule) => (
+              <ScheduleSummaryCard
+                key={schedule.mid}
+                schedule={schedule}
+                // A full navigation, not a client-side route change: page.tsx reads ?mid= once
+                // on mount to resolve a deep link.
+                editHref={`/?mid=${encodeURIComponent(schedule.mid)}&edit=1`}
+                onRemove={() => setScheduleToRemove(schedule)}
+                removeDisabled={isRemovingSchedule}
+              />
+            ))}
+          </section>
         )}
         <MeetingForm
           meetingTitleTextField={<TextField
@@ -489,6 +553,25 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
             disableScopedEdits={isModeDirty || isHostDirty}
             disableThisAndFollowing={isDateDirty}
             disableScoped={!occurrenceDate}
+          />
+        )}
+        {scheduleToRemove && (
+          <RemoveLinkedScheduleModal
+            isOpen
+            title={meeting.title}
+            modeType={scheduleToRemove.modeType}
+            scheduleText={formatScheduleLine(scheduleToRemove)}
+            // Whether the family's one Zoom meeting survives comes down to whether the schedule
+            // left behind is on it: the delete route only tears a Zoom meeting down once no live
+            // row still points at its zid (delete/meeting/route.ts's siblingCount guard). An
+            // In-Person schedule was never on it in the first place.
+            zoomImpact={
+              !isZoomBearing(scheduleToRemove)
+                ? 'none'
+                : meeting.zid ? 'kept' : 'deleted'
+            }
+            onCancel={() => setScheduleToRemove(null)}
+            onConfirm={confirmRemoveSchedule}
           />
         )}
         <ConflictOverrideModal

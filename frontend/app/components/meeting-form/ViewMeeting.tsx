@@ -10,7 +10,9 @@ import TagList from '../ui/displays/TagList';
 import BottomSheet from '../ui/overlays/BottomSheet';
 import Icon from '../ui/displays/Icon';
 
-import { IRecurrencePattern, ISharedZoomRow } from '../../../types/models';
+import ScheduleSummaryCard from './ScheduleSummaryCard';
+
+import { ILinkedSchedule, IRecurrencePattern, ISharedZoomRow } from '../../../types/models';
 import { formatCompactTimeRange, formatMeetingDateLine } from "../../../util/date/timeFormat";
 import {
   convertETToUTC,
@@ -77,6 +79,10 @@ type ViewMeetingDetailsProps = {
   // Those rows' schedules disagree, so Zoom is holding its current schedule until they match.
   // A pending state, not a failure: the app and Google calendars already follow this row.
   zoomScheduleDiverged?: boolean;
+  // The meeting's OTHER schedules -- one meeting the group runs on different days in a
+  // different mode. Admin-only, like sharedWith. Read-only here: removing one is an Edit
+  // action, and each is edited from its own form.
+  linkedSchedules?: ILinkedSchedule[];
   googleSyncStatus?: string | null;
   googleSyncError?: string | null;
   zoomSyncStatus?: string | null;
@@ -125,6 +131,7 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
   zoomManaged,
   sharedWith,
   zoomScheduleDiverged = false,
+  linkedSchedules,
   startDateTime,
   endDateTime,
   email,
@@ -414,6 +421,7 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
   const primaryLocation = room || (zoomRoom ? stripZoomSuffix(zoomRoom) : '');
   const showZoomMismatchRow = !!(room && zoomRoom && isZoomRoomMismatched(room, zoomRoom));
   const sharedRows = sharedWith ?? [];
+  const linkedRows = linkedSchedules ?? [];
   const sharedWithText = sharedRows.map((row) => `${row.title} (${row.modeType})`).join(', ');
 
   const content = (
@@ -504,6 +512,21 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
             </p>
           )}
         </div>
+
+        {isAdmin && linkedRows.length > 0 && (
+          <div className={styles.linkedScheduleGroup}>
+            <p className={styles.linkedScheduleHeading}>Also meets</p>
+            {linkedRows.map((schedule) => (
+              <ScheduleSummaryCard
+                key={schedule.mid}
+                schedule={schedule}
+                // A full navigation, not a client-side route change: page.tsx reads ?mid= once
+                // on mount to resolve a deep link.
+                editHref={`/?mid=${encodeURIComponent(schedule.mid)}&edit=1`}
+              />
+            ))}
+          </div>
+        )}
 
         {zoomLink && zid && (
           <div className={styles.zoomBlock}>

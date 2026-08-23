@@ -202,6 +202,30 @@
   }
 }
 
+// Read-only summary of the meeting's other schedules, above the form that edits this one.
+.linkedSchedules {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0 0 16px;
+}
+
+.linkedSchedulesHeading {
+  margin: 0;
+  color: $navy-color;
+  font-family: 'Source Sans Pro', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.linkedSchedulesNote {
+  margin: 0;
+  color: $text-secondary-color;
+  font-family: 'Source Sans Pro', sans-serif;
+  font-size: 12.5px;
+  line-height: 1.4;
+}
+
 .meetingHeader {
   display: flex;
   flex-direction: row;
