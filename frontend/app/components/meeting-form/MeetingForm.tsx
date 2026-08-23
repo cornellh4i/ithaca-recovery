@@ -1,6 +1,7 @@
 // General component for EditMeeting and NewMeeting
 
 import React, { useId } from 'react';
+import { modeFieldRequirement, modeFieldVisibility } from "../../../util/rooms/modeFields";
 import styles from "./MeetingForm.module.scss";
 
 export interface MeetingFormProps {
@@ -79,6 +80,55 @@ const Field: React.FC<{
       {hint && <span className={styles.fieldHint}>{hint}</span>}
       {children}
     </div>
+  );
+};
+
+export interface ModeFieldsProps {
+  /**
+   * Every mode this section's fields have to serve. The meeting's own Mode block passes the one
+   * selected mode; a section whose mode is still being picked (the linked schedule's) passes
+   * every mode still open to it, so the union stays mounted across all of them -- see
+   * util/rooms/modeFields.ts.
+   */
+  modes: string[];
+  roomSelectionDropdown: React.ReactElement;
+  zoomRoomDropdown: React.ReactElement;
+  zoomHostDropdown: React.ReactElement;
+  // What the Zoom host slot means here. A linked schedule doesn't pick a host at all (it joins
+  // the family's one Zoom meeting), so it says so instead of describing the pool.
+  zoomHostHint?: string;
+}
+
+// The Room / Zoom room / Zoom host block, mounted from a SET of modes. One implementation, used
+// both by the form's own mode block below and by the linked schedule's inline section -- so the
+// two can't drift in which field a mode needs, in the captions, or in the layout.
+export const ModeFields: React.FC<ModeFieldsProps> = ({
+  modes,
+  roomSelectionDropdown,
+  zoomRoomDropdown,
+  zoomHostDropdown,
+  zoomHostHint = "Automatic assignment picks the least-busy Zoom account from the org's pool.",
+}) => {
+  const visible = modeFieldVisibility(modes);
+  const required = modeFieldRequirement(modes);
+  return (
+    <>
+      {visible.room && (
+        <Field caption="Room" asGroup required={required.room} className={styles.dummyComponent}>
+          {roomSelectionDropdown}
+        </Field>
+      )}
+      {visible.zoomRoom && (
+        <Field caption="Zoom room" asGroup required={required.zoomRoom} className={styles.dummyComponent}>
+          {zoomRoomDropdown}
+        </Field>
+      )}
+      {visible.zoomHost && (
+        <Field caption="Zoom host" asGroup hint={zoomHostHint} className={styles.dummyComponent}>
+          {zoomHostDropdown}
+        </Field>
+      )}
+    </>
   );
 };
 
@@ -188,26 +238,12 @@ export const MeetingForm: React.FC<MeetingFormProps> = ({
         <Field caption="Categories" asGroup required className={`${styles.dummyComponent} ${styles.fieldFullWidth}`}>
           {meetingTypeDropdown}
         </Field>
-        {(selectedMode === "Hybrid" || selectedMode === "In Person") && (
-        <Field caption="Room" asGroup required className={styles.dummyComponent}>
-          {roomSelectionDropdown}
-        </Field>
-        )}
-        {selectedMode === "Hybrid" && (
-        <Field caption="Zoom room" asGroup required className={styles.dummyComponent}>
-          {zoomRoomDropdown}
-        </Field>
-        )}
-        {(selectedMode === "Hybrid" || selectedMode === "Remote") && (
-        <Field
-          caption="Zoom host"
-          asGroup
-          hint="Automatic assignment picks the least-busy Zoom account from the org's pool."
-          className={styles.dummyComponent}
-        >
-          {zoomHostDropdown}
-        </Field>
-        )}
+        <ModeFields
+          modes={[selectedMode]}
+          roomSelectionDropdown={roomSelectionDropdown}
+          zoomRoomDropdown={zoomRoomDropdown}
+          zoomHostDropdown={zoomHostDropdown}
+        />
         <Field
           caption="Group contact email"
           htmlFor={fieldId("email")}

@@ -564,3 +564,149 @@ describe("EditMeetingSidebar linked schedules", () => {
     expect(screen.queryByText(/Zoom meeting/)).not.toBeInTheDocument();
   });
 });
+
+describe("EditMeetingSidebar adding a linked schedule", () => {
+  // Confirms this meeting's own schedule, then opens the second one's inline section.
+  const openDraft = () => {
+    fireEvent.click(screen.getByRole("button", { name: "Done" }));
+    fireEvent.click(screen.getByRole("button", { name: /Add another mode for other days/ }));
+    return screen.getByTestId("linked-schedule-draft");
+  };
+
+  it("collapses this meeting's schedule into a card and offers a second one", async () => {
+    renderEdit(null);
+    await act(async () => {});
+
+    expect(screen.queryByRole("button", { name: /Add another mode for other days/ })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Done" }));
+
+    expect(screen.getByText("Sun · 6 - 7 PM")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Add another mode for other days/ })).toBeInTheDocument();
+  });
+
+  it("submits the second schedule as a linkedSchedule block on the meeting's own save", async () => {
+    renderEdit(null);
+    await act(async () => {});
+
+    const draft = openDraft();
+    fireEvent.click(within(draft).getByRole("button", { name: /Remote/ }));
+    fireEvent.click(within(draft).getByRole("button", { name: "Saturday" }));
+
+    // No scope dialog: adding a schedule is inherently whole-series (the route 400s it under
+    // any other scope), so there is nothing to ask.
+    fireEvent.click(screen.getByRole("button", { name: "Update Meeting" }));
+    expect(screen.queryByLabelText("This event")).not.toBeInTheDocument();
+
+    await waitFor(() => expect(global.fetch).toHaveBeenCalledWith(
+      "/api/update/meeting",
+      expect.objectContaining({ method: "PUT" }),
+    ));
+    const body = lastUpdateMeetingBody();
+    const linked = body.linkedSchedule as Record<string, unknown>;
+    expect(linked).toMatchObject({ modeType: "Remote", room: null, zoomRoom: null });
+    expect(linked.mid).toEqual(expect.any(String));
+    // The days are the schedule's own; the interval and week phase are this meeting's, and
+    // everything else about the series is re-derived server-side.
+    expect(linked.recurrencePattern).toMatchObject({
+      type: "weekly",
+      daysOfWeek: ["Saturday"],
+      interval: 1,
+    });
+    // This meeting itself is submitted unchanged -- the route applies the two as separate
+    // requests and refuses a payload carrying both.
+    expect(body.modeType).toBe("In Person");
+  });
+
+  it("blocks submission until the second schedule has a day", async () => {
+    renderEdit(null);
+    await act(async () => {});
+
+    const draft = openDraft();
+    fireEvent.click(within(draft).getByRole("button", { name: /Remote/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Update Meeting" }));
+
+    expect(screen.getByText("Choose at least one day for the linked schedule.")).toBeInTheDocument();
+    expect((global.fetch as jest.Mock).mock.calls.some(([url]) => url === "/api/update/meeting")).toBe(false);
+  });
+
+  it("won't start a second schedule while this meeting has unsaved changes", async () => {
+    renderEdit(null);
+    await act(async () => {});
+
+    fireEvent.change(screen.getByPlaceholderText("Meeting title"), { target: { value: "Renamed Series" } });
+    fireEvent.click(screen.getByRole("button", { name: "Done" }));
+
+    expect(screen.queryByRole("button", { name: /Add another mode for other days/ })).not.toBeInTheDocument();
+    expect(screen.getByText(/Save this meeting's changes first/)).toBeInTheDocument();
+  });
+
+  it("drops the draft on discard, with no request of its own", async () => {
+    renderEdit(null);
+    await act(async () => {});
+
+    const draft = openDraft();
+    fireEvent.click(within(draft).getByRole("button", { name: "Cancel" }));
+
+    expect(screen.queryByTestId("linked-schedule-draft")).not.toBeInTheDocument();
+    // Composing a schedule never talks to the server -- only the form's own submit does.
+    expect((global.fetch as jest.Mock).mock.calls.some(([url]) => url === "/api/update/meeting")).toBe(false);
+  });
+
+  it("guards the panel's close against a composed-but-unsaved schedule", async () => {
+    const onClose = jest.fn();
+    render(
+      <ToastProvider>
+        <EditMeetingSidebar
+          meeting={anchorMeeting}
+          onClose={onClose}
+          onUpdateSuccess={jest.fn()}
+          occurrenceDate={null}
+        />
+      </ToastProvider>,
+    );
+    await act(async () => {});
+
+    openDraft();
+    fireEvent.click(screen.getByRole("button", { name: "Close" }));
+
+    expect(onClose).not.toHaveBeenCalled();
+    expect(screen.getByRole("heading", { name: "Discard unsaved changes?" })).toBeInTheDocument();
+  });
+
+  it("offers no second schedule once one is already saved", async () => {
+    render(
+      <ToastProvider>
+        <EditMeetingSidebar
+          meeting={{
+            ...anchorMeeting,
+            linkedSchedules: [{
+              mid: "m-linked",
+              modeType: "Remote",
+              room: "",
+              zoomRoom: null,
+              zoomHost: null,
+              recurrencePattern: {
+                type: "weekly",
+                startDate: new Date("2026-07-11T00:00:00.000Z"),
+                daysOfWeek: ["Saturday"],
+                firstDayOfWeek: "Sunday",
+                interval: 1,
+              },
+              startDateTime: new Date("2026-07-11T22:00:00.000Z"),
+              endDateTime: new Date("2026-07-11T23:00:00.000Z"),
+              googleSyncStatus: "synced",
+              zoomSyncStatus: "synced",
+            }],
+          }}
+          onClose={jest.fn()}
+          onUpdateSuccess={jest.fn()}
+          occurrenceDate={null}
+        />
+      </ToastProvider>,
+    );
+    await act(async () => {});
+
+    fireEvent.click(screen.getByRole("button", { name: "Done" }));
+    expect(screen.queryByRole("button", { name: /Add another mode for other days/ })).not.toBeInTheDocument();
+  });
+});

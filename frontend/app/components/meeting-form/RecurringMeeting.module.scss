@@ -32,39 +32,6 @@
     max-width: 50%;
   }
 
-  .dayButtons {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 4px;
-    margin-bottom: 16px;
-
-    .dayButton {
-      padding: 6px 9px;
-      border: 1px solid #ccc;
-      border-radius: 50%;
-      background-color: #fff;
-      color: #333;
-      cursor: pointer;
-      transition: background-color 0.3s, border-color 0.3s;
-
-      &:hover {
-        background-color: $grey-lightest-color;
-      }
-
-      &.active {
-        background-color: $brand-pink-color;
-        color: #fff;
-        border-color: $brand-pink-color;
-      }
-
-      &:focus {
-        outline: none;
-        box-shadow: 0 0 4px rgb(204 51 102 / 60%);
-      }
-    }
-  }
-
   .spinner-container {
     display: flex;
     align-items: center;
@@ -96,6 +63,30 @@
         margin-right: 8px;
         accent-color: $brand-pink-color;
       }
+    }
+  }
+
+  // "Done": collapses this editor into a read-only schedule card so a second mode's schedule can
+  // be added beside it. Local only -- it confirms nothing with the server (see the onConfirm prop).
+  .confirmRow {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 4px;
+  }
+
+  .confirmButton {
+    background: #fff;
+    border: 1px solid $brand-pink-color;
+    border-radius: $radius-md;
+    color: $brand-pink-color;
+    font-family: "Source Sans Pro", sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 4px 16px;
+    cursor: pointer;
+
+    &:hover {
+      background-color: $grey-lightest-color;
     }
   }
 

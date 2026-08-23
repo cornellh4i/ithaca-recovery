@@ -22,6 +22,12 @@ Creating, editing, suspending, resuming, and retrying all report the sync-error 
 
 A few groups have two calendar entries that share one Zoom link — e.g. a Hybrid weekday meeting and a Zoom-only Sunday meeting that are the same group. Both entries show **"Zoom link shared with …"** in their details. Editing either entry updates the shared Zoom schedule to cover both; if an edit leaves the two entries at different times, a notice appears on the meeting until they match again — the calendars always show each entry's real schedule, and Zoom's own copy catches up once both agree. Changing the Zoom Host on either entry moves the shared meeting for both.
 
+## Linked schedules
+
+Some groups run one meeting on two schedules — e.g. Hybrid Monday-Friday and Zoom Only on Saturday. Those are set up as **linked schedules** (see [Set up a recurring meeting](../how-to/set-up-a-recurring-meeting.md)) and share one Zoom meeting: one join link, one Zoom name covering both — *"One Day at a Time - Hybrid Mon-Fri - Zoom Only Sat"* — and that same name on every schedule's Google Calendar entry. Each schedule keeps its own calendar entries, room and mode.
+
+A meeting runs at most two schedules, they never share a weekday, and they always keep the same time, length and repeat — Zoom holds them as a single schedule, so anything else can't be represented there. Suspending one schedule doesn't suspend the other, and Zoom keeps the suspended one's weekdays until it resumes. Removing one leaves the other on the same Zoom meeting, and the Zoom name goes back to naming just that schedule.
+
 ## External Zoom links
 
 A few meetings use a Zoom meeting ICR doesn't control at all (e.g. an outside organization's account). Those show a lock in the meeting details: the platform syncs their calendar events but never edits or deletes anything on Zoom, and consequently, the Zoom Host can't be reassigned.

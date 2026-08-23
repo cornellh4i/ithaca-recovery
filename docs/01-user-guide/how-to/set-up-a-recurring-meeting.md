@@ -28,6 +28,32 @@ options, then choose **Weekly** or **Monthly** from the "Repeats" dropdown.
 3. Click **M** and **W** in the day buttons.
 4. Set "Ends" to "On" and pick the date 6 months out.
 
+## A second mode on other days ("linked schedules")
+
+For a group that meets one way on some days and another way on others — Hybrid Monday-Friday and
+Zoom Only on Saturday, say — add a **linked schedule** instead of creating a second meeting. Both
+schedules are one meeting sharing one Zoom link (see
+[How Calendar and Zoom Sync Work](../explanation/how-sync-works.md)).
+
+1. Fill in the recurrence options above for the meeting's main schedule, then click **Done** — it
+   collapses into a summary card.
+2. Click **"Add another mode for other days."**
+3. Pick the second schedule's **Mode** and **days**. The mode the meeting already uses and the days
+   it already meets on are greyed out — the two schedules must differ in mode and never share a day.
+4. Fill in whichever of Room / Zoom room the new mode needs. There's no Zoom host to pick: the
+   schedule uses the meeting's existing Zoom host and join link, or — if the meeting itself is In
+   Person and so has none — books its own, which the form says at that spot.
+5. Save the meeting as usual. Both schedules are written together.
+
+The time, length, repeat interval and end date always come from the meeting's main schedule — Zoom
+holds both as a single schedule, so they can't differ.
+
+A meeting can run **two** schedules at most, so the trigger disappears once a second one exists.
+After saving, the second schedule shows at the top of the meeting's form as a card with a
+**Remove** button and a link to open it as a meeting of its own — that's where its mode, days, room
+and host are changed. On the edit form, adding a schedule is a save of its own: save any other
+changes to the meeting first.
+
 ## Editing or deleting one occurrence
 
 Works the same as any other meeting — see

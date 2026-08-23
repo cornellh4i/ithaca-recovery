@@ -48,6 +48,16 @@ export interface ScheduleSummary {
  * (just the time range for a one-time schedule). Exported so anything referring to a schedule
  * outside the card -- the removal confirmation, a toast -- names it the same way the card does.
  */
+/**
+ * A schedule's ET time range on its own, e.g. `"9 - 10 AM"`. Exported so anything echoing the
+ * time a second schedule inherits reads it exactly as the card does.
+ */
+export function formatScheduleTimeRange(start: Date | string, end: Date | string): string {
+  // new Date() wrap: a saved schedule comes off a JSON fetch, so these are strings at runtime
+  // despite the Date type -- Intl.format throws on one unwrapped.
+  return formatCompactTimeRange(etTimeFmt.format(new Date(start)), etTimeFmt.format(new Date(end)));
+}
+
 export function formatScheduleLine(schedule: ScheduleSummary): string {
   const { recurrencePattern } = schedule;
   const dayText = formatDayColumn(
@@ -60,12 +70,7 @@ export function formatScheduleLine(schedule: ScheduleSummary): string {
         }
       : null,
   );
-  // new Date() wrap: a saved schedule comes off a JSON fetch, so these are strings at runtime
-  // despite the Date type -- Intl.format throws on one unwrapped.
-  const timeText = formatCompactTimeRange(
-    etTimeFmt.format(new Date(schedule.startDateTime)),
-    etTimeFmt.format(new Date(schedule.endDateTime)),
-  );
+  const timeText = formatScheduleTimeRange(schedule.startDateTime, schedule.endDateTime);
   return dayText ? `${dayText} · ${timeText}` : timeText;
 }
 
@@ -94,7 +99,10 @@ const ScheduleSummaryCard: React.FC<ScheduleSummaryCardProps> = ({
   removeDisabled = false,
 }) => {
   const { modeType, room, zoomRoom, googleSyncStatus, zoomSyncStatus } = schedule;
-  const locationText = [room, zoomRoom ? stripZoomSuffix(zoomRoom) : null].filter(Boolean).join(' · ');
+  // A Hybrid schedule's Zoom room is usually the auto-paired one for its physical room, and
+  // naming the same room twice reads as a mistake -- so it's only added when it differs.
+  const zoomRoomText = zoomRoom ? stripZoomSuffix(zoomRoom) : null;
+  const locationText = [room, zoomRoomText === room ? null : zoomRoomText].filter(Boolean).join(' · ');
 
   // Not yet live on the service in question. 'error' counts as waiting rather than broken: a
   // schedule created while the Zoom host pool was exhausted lands here with no calendar events

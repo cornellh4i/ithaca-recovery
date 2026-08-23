@@ -1,6 +1,7 @@
 import React from 'react';
 import styles from './ModeTypeButtons.module.scss';
 import { MODE_ICON_NAME } from '../../../../util/rooms/modeIcons';
+import { LINKED_SCHEDULE_MODES } from '../../../../util/meetings/linkedSchedules';
 import Icon from '../displays/Icon';
 
 interface ModeButtonsProps {
@@ -8,9 +9,19 @@ interface ModeButtonsProps {
   onModeSelect: (mode: string) => void;
   // Scales font-size to ~80% for narrow embedding contexts (the 280px Main Calendar sidebar).
   compact?: boolean;
+  // Modes this picker may not choose -- a linked schedule can't take the mode the meeting's other
+  // schedule already runs (util/meetings/linkedSchedules.ts's availableModesFor). Rendered
+  // disabled rather than hidden so the row keeps its shape and the admin can see why: the
+  // remaining choices read as "the modes left," not as the only modes that exist.
+  disabledModes?: string[];
 }
 
-const ModeButtons: React.FC<ModeButtonsProps> = ({ selectedMode, onModeSelect, compact = false }) => {
+const ModeButtons: React.FC<ModeButtonsProps> = ({
+  selectedMode,
+  onModeSelect,
+  compact = false,
+  disabledModes = [],
+}) => {
   const buttonClassName = (mode: string) =>
     `${styles.button} ${compact ? styles.compact : ""} ${selectedMode === mode ? styles.selected : ""}`;
 
@@ -18,30 +29,20 @@ const ModeButtons: React.FC<ModeButtonsProps> = ({ selectedMode, onModeSelect, c
     <div className={styles.meetingButtons}>
       {/* Explicit type on all three: these render inside the meeting <form>, where a
           typeless button would default to submitting it. */}
-      <button
-        type="button"
-        className={buttonClassName("Hybrid")}
-        onClick={() => onModeSelect("Hybrid")}
-      >
-        <Icon name={MODE_ICON_NAME.Hybrid} className={styles.icon} />
-        Hybrid
-      </button>
-      <button
-        type="button"
-        className={buttonClassName("In Person")}
-        onClick={() => onModeSelect("In Person")}
-      >
-        <Icon name={MODE_ICON_NAME["In Person"]} className={styles.icon} />
-        In Person
-      </button>
-      <button
-        type="button"
-        className={buttonClassName("Remote")}
-        onClick={() => onModeSelect("Remote")}
-      >
-        <Icon name={MODE_ICON_NAME.Remote} className={styles.icon} />
-        Remote
-      </button>
+      {/* The authoritative mode list, not a local copy: callers derive `disabledModes` from it
+          (MeetingSchedules), so a second spelling here would silently stop matching. */}
+      {LINKED_SCHEDULE_MODES.map((mode) => (
+        <button
+          key={mode}
+          type="button"
+          className={buttonClassName(mode)}
+          onClick={() => onModeSelect(mode)}
+          disabled={disabledModes.includes(mode)}
+        >
+          <Icon name={MODE_ICON_NAME[mode]} className={styles.icon} />
+          {mode}
+        </button>
+      ))}
     </div>
   );
 };

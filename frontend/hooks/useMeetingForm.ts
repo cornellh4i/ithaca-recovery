@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { v4 as uuidv4 } from 'uuid';
 import { IMeeting, IRecurrencePattern } from '../types/models';
 import { convertUTCToET, convertETToUTC, formatETDateString, getWeekDatesET, getCurrentETMinutesSinceMidnight, isConvertETToUTCValidationError, isDstGapError } from '../util/date/timeUtils';
 import { roomToZoomRoom } from '../util/rooms/rooms';
+import { modeFieldVisibility } from '../util/rooms/modeFields';
 import {
     DESCRIPTION_MAX_LENGTH,
     MAX_RECURRENCE_OCCURRENCES,
@@ -27,12 +29,45 @@ export { DESCRIPTION_MAX_LENGTH, MAX_RECURRENCE_OCCURRENCES };
 // live count of distinct fields needing fixing, not just a count of error messages (a single
 // message can cover two fields, e.g. the Hybrid room/zoomRoom rule below).
 export type MeetingFormField =
-  | "title" | "date" | "time" | "email" | "calTypes" | "description" | "room" | "zoomRoom" | "recurrence";
+  | "title" | "date" | "time" | "email" | "calTypes" | "description" | "room" | "zoomRoom" | "recurrence"
+  | "linkedSchedule";
 
 export interface MeetingFormFieldError {
   fields: MeetingFormField[];
   message: string;
 }
+
+/**
+ * A second schedule being composed in this form session: a different mode on other weekdays,
+ * served by the same meeting and its one Zoom meeting (util/meetings/linkedSchedules.ts).
+ *
+ * Everything the two schedules must agree on -- time of day, duration, interval, where the
+ * series ends -- is deliberately absent: it is derived server-side from this meeting, because a
+ * family whose rows disagree on any of it has no single-series representation on Zoom.
+ *
+ * Local until the form's own submit carries it: nothing about a draft round-trips on its own.
+ */
+export interface LinkedScheduleDraft {
+  // Client-generated up front, like NewMeeting's own mid, so both rows are known before the write.
+  mid: string;
+  modeType: string;
+  /** Full weekday names, as a recurrence pattern stores them. */
+  daysOfWeek: string[];
+  room: string;
+  zoomRoom: string;
+}
+
+/** The `linkedSchedule` block the write/update routes parse (linkedScheduleBlockSchema). */
+export interface LinkedSchedulePayload {
+  mid: string;
+  modeType: string;
+  room: string | null;
+  zoomRoom: string | null;
+  recurrencePattern: IRecurrencePattern;
+}
+
+/** What the form submits: the meeting, plus the second schedule to create alongside it. */
+export type MeetingFormPayload = IMeeting & { linkedSchedule?: LinkedSchedulePayload };
 
 const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
@@ -229,6 +264,13 @@ export function useMeetingForm(initialMeeting?: IMeeting, defaultContext?: Meeti
     const [recurrencePattern, setRecurrencePattern] = useState<IRecurrencePattern | null>(
         initialMeeting?.recurrencePattern ?? null
     );
+    // Whether the admin has confirmed this meeting's own schedule ("Done"), collapsing the
+    // recurrence editor into a read-only card so a second schedule can be added beside it. Purely
+    // a display state -- it gates nothing about what gets submitted.
+    const [isScheduleConfirmed, setIsScheduleConfirmed] = useState(false);
+    // The second schedule being composed, if any. Never more than one: a meeting runs at most
+    // LINKED_SCHEDULE_CAP schedules, and the create form only ever adds the second.
+    const [linkedDraft, setLinkedDraft] = useState<LinkedScheduleDraft | null>(null);
     // Flips true on the first failed submit -- before that, FormValidationBanner stays hidden
     // even if fields are technically incomplete (nobody wants to see errors before they've
     // tried to save). Once true, liveValidationErrors below re-derives on every render, so the
@@ -316,6 +358,51 @@ export function useMeetingForm(initialMeeting?: IMeeting, defaultContext?: Meeti
         if (newMode === "Remote") { setRoom(""); setZoomRoom(""); }
     };
 
+    // Mirrors handleModeSelect's own clearing rule for the draft: a mode that doesn't use a field
+    // must not carry a stale value into the payload.
+    const startLinkedDraft = (modeType: string) => {
+        setLinkedDraft({ mid: uuidv4(), modeType, daysOfWeek: [], room: "", zoomRoom: "" });
+    };
+
+    const updateLinkedDraft = (patch: Partial<Omit<LinkedScheduleDraft, "mid">>) => {
+        setLinkedDraft((prev) => (prev ? { ...prev, ...patch } : prev));
+    };
+
+    const selectLinkedDraftMode = (modeType: string) => {
+        setLinkedDraft((prev) => {
+            if (!prev) return prev;
+            const cleared = {
+                ...prev,
+                modeType,
+                room: modeType === "Remote" ? "" : prev.room,
+                zoomRoom: modeType === "Hybrid" ? prev.zoomRoom : "",
+            };
+            return cleared;
+        });
+    };
+
+    const selectLinkedDraftRoom = (value: string) => {
+        setLinkedDraft((prev) => {
+            if (!prev) return prev;
+            // Same auto-pairing handleRoomChange does for the meeting's own room, and the same
+            // exception: an In Person schedule never carries a Zoom room.
+            const zoom = prev.modeType === "In Person" ? prev.zoomRoom : roomToZoomRoom[value];
+            return { ...prev, room: value, zoomRoom: zoom ?? prev.zoomRoom };
+        });
+    };
+
+    const toggleLinkedDraftDay = (day: string) => {
+        setLinkedDraft((prev) => {
+            if (!prev) return prev;
+            const daysOfWeek = prev.daysOfWeek.includes(day)
+                ? prev.daysOfWeek.filter((selected) => selected !== day)
+                : [...prev.daysOfWeek, day];
+            return { ...prev, daysOfWeek };
+        });
+    };
+
+    const discardLinkedDraft = () => setLinkedDraft(null);
+
     const handleCalTypeToggle = (type: string) => {
         setCalTypes(prev =>
             prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]
@@ -350,6 +437,8 @@ export function useMeetingForm(initialMeeting?: IMeeting, defaultContext?: Meeti
         setRecurrencePattern(null);
         setSubmitAttempted(false);
         setTouchedFields(new Set());
+        setIsScheduleConfirmed(false);
+        setLinkedDraft(null);
         // A reset form reads as untouched again -- rebaseline rather than leaving the values
         // it opened with as the comparison point.
         setFieldBaseline(snapshotFields(resetValues));
@@ -420,6 +509,36 @@ export function useMeetingForm(initialMeeting?: IMeeting, defaultContext?: Meeti
             });
         }
 
+        if (linkedDraft) {
+            const linked = (message: string) => errors.push({ fields: ["linkedSchedule"], message });
+            // The server derives the linked schedule's whole series from this one, so the meeting
+            // itself has to be a weekly series for there to be anything to derive from.
+            if (!isRecurring || recurrencePattern?.type !== "weekly") {
+                linked("A linked schedule can only be added to a weekly recurring meeting.");
+            }
+            if (linkedDraft.modeType === mode) {
+                linked("The linked schedule must use a different mode from this meeting's own.");
+            }
+            if (linkedDraft.daysOfWeek.length === 0) {
+                linked("Choose at least one day for the linked schedule.");
+            }
+            // Disjoint weekdays are a hard requirement, not a preference: Zoom holds both
+            // schedules as ONE union of weekdays (util/meetings/linkedSchedules.ts), so a day
+            // claimed twice would silently collapse into a single occurrence. Re-checked here
+            // rather than relying on the day picker's disabled state alone, since editing this
+            // meeting's own days after composing the draft can create the overlap.
+            const claimed = recurrencePattern?.daysOfWeek ?? [];
+            const overlap = linkedDraft.daysOfWeek.filter((day) => claimed.includes(day));
+            if (overlap.length > 0) {
+                linked(`The linked schedule can't meet on ${overlap.join(", ")} — this meeting already does.`);
+            }
+            if (linkedDraft.modeType === "Hybrid" && (!linkedDraft.room || !linkedDraft.zoomRoom)) {
+                linked("The linked Hybrid schedule requires both a physical room and a Zoom room.");
+            } else if (linkedDraft.modeType === "In Person" && !linkedDraft.room) {
+                linked("The linked In Person schedule requires a physical room.");
+            }
+        }
+
         return errors;
     };
 
@@ -427,7 +546,13 @@ export function useMeetingForm(initialMeeting?: IMeeting, defaultContext?: Meeti
     // recurrencePattern is passed through unmodified — its startDate is already
     // ET-midnight-anchored upstream. Returns null if unparseable (defensive fallback;
     // callers should call getValidationErrors() first).
-    const buildMeetingPayload = (mid: string, status: string): IMeeting | null => {
+    const buildMeetingPayload = (
+        mid: string,
+        status: string,
+        // Opt-in so the payload ZoomHostField builds for its availability check (which is about
+        // this meeting's own occurrences) never carries a second schedule with it.
+        options?: { withLinkedSchedule?: boolean },
+    ): MeetingFormPayload | null => {
         const isoDateValue = toISODate(date);
         if (!isoDateValue) {
             console.error("Failed to convert dateValue to ISO format");
@@ -453,7 +578,7 @@ export function useMeetingForm(initialMeeting?: IMeeting, defaultContext?: Meeti
             endDateTimeUTC.setUTCDate(endDateTimeUTC.getUTCDate() + 1);
         }
 
-        const payload: IMeeting = {
+        const payload: MeetingFormPayload = {
             mid,
             title,
             modeType: mode,
@@ -473,6 +598,34 @@ export function useMeetingForm(initialMeeting?: IMeeting, defaultContext?: Meeti
 
         if (isRecurring && recurrencePattern) {
             payload.recurrencePattern = recurrencePattern;
+        }
+
+        // Attached the same way recurrencePattern is: only when there's actually one to send. The
+        // pattern here carries the linked schedule's own weekdays and inherits this meeting's
+        // interval and week phase; its dates and end condition are re-derived server-side from
+        // this meeting, whatever is sent (linkedScheduleBlockSchema).
+        if (options?.withLinkedSchedule && linkedDraft && isRecurring && recurrencePattern) {
+            // INVARIANT: only the fields the chosen mode actually uses are sent. The draft's
+            // Room / Zoom room dropdowns stay mounted for every mode still selectable (the
+            // superset modeFieldVisibility returns for ModeFields), so a value picked under one
+            // mode survives a later switch to a mode that doesn't use it -- a Remote schedule
+            // holding a room would be advisory-locked, conflict-checked and published on it.
+            const linkedFields = modeFieldVisibility([linkedDraft.modeType]);
+            payload.linkedSchedule = {
+                mid: linkedDraft.mid,
+                modeType: linkedDraft.modeType,
+                room: linkedFields.room ? linkedDraft.room || null : null,
+                zoomRoom: linkedFields.zoomRoom ? linkedDraft.zoomRoom || null : null,
+                recurrencePattern: {
+                    ...recurrencePattern,
+                    mid: linkedDraft.mid,
+                    type: "weekly",
+                    daysOfWeek: linkedDraft.daysOfWeek,
+                    weekOfMonth: null,
+                    dayOfMonth: null,
+                    excludedDates: [],
+                },
+            };
         }
 
         return payload;
@@ -513,9 +666,30 @@ export function useMeetingForm(initialMeeting?: IMeeting, defaultContext?: Meeti
     const isHostDirty =
         zoomHost.trim() !== "" && zoomHost.trim().toLowerCase() !== zoomHostBaseline.trim().toLowerCase();
 
-    const isDirty =
+    // Just this meeting's own fields -- EditMeeting needs it separately from isDirty below,
+    // because the update route refuses to apply an edit to the meeting and add a linked schedule
+    // in one request (they're two writes) and so gates the "Add another mode" trigger on it.
+    const isAnchorDirty =
         snapshotFields({ title, mode, date, time, email, description, room, calTypes, zoomRoom, zoomHost }) !== fieldBaseline ||
         isRecurrenceDirty;
+
+    // A composed-but-unsaved linked schedule is an unsaved change like any other -- without this
+    // the discard-changes guard would let closing the form drop it silently.
+    const isDirty = isAnchorDirty || linkedDraft !== null;
+
+    // The ET instants the Date/Time fields currently describe, for anything that has to show this
+    // meeting's schedule before it's submitted (the collapsed schedule card). Null while either
+    // field is unparseable -- the same cases buildMeetingPayload bails on.
+    const scheduleInstants = (() => {
+        const isoDateValue = toISODate(date);
+        const [startTime, endTime] = time?.split(' - ') || [];
+        if (!isoDateValue || !startTime || !endTime) return null;
+        const startDateTime = tryConvertETToUTC(isoDateValue, startTime);
+        const endDateTime = tryConvertETToUTC(isoDateValue, endTime);
+        if (!startDateTime || !endDateTime) return null;
+        if (endDateTime <= startDateTime) endDateTime.setUTCDate(endDateTime.getUTCDate() + 1);
+        return { startDateTime, endDateTime };
+    })();
 
     // Independent of submitAttempted -- a field can show its own inline error the moment
     // it's been touched, even before any submit attempt (e.g. blurring an empty title on
@@ -549,6 +723,16 @@ export function useMeetingForm(initialMeeting?: IMeeting, defaultContext?: Meeti
         liveValidationErrors,
         timeRangeError,
         isOvernight,
+        scheduleInstants,
+        isScheduleConfirmed, setIsScheduleConfirmed,
+        linkedDraft,
+        startLinkedDraft,
+        updateLinkedDraft,
+        selectLinkedDraftMode,
+        selectLinkedDraftRoom,
+        toggleLinkedDraftDay,
+        discardLinkedDraft,
+        isAnchorDirty,
         isDirty,
         isRecurrenceDirty,
         isDateDirty,

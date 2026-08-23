@@ -1,0 +1,116 @@
+@import '../../../styles/Variables.module';
+
+.schedules {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-family: "Source Sans Pro", sans-serif;
+}
+
+// The recurrence editor stays mounted while collapsed (its state is the meeting's live
+// recurrence), so it's hidden rather than unmounted -- display:none also takes it out of the
+// tab order and the accessibility tree.
+.collapsedEditor {
+  display: none;
+}
+
+.actionRow {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.linkButton {
+  background: none;
+  border: none;
+  padding: 0;
+  color: $link-color;
+  font-family: "Source Sans Pro", sans-serif;
+  font-size: 12.5px;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.addButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px dashed $grey-border-color;
+  border-radius: $radius-lg;
+  background: #fff;
+  color: $brand-pink-color;
+  font-family: "Source Sans Pro", sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+
+  &:hover {
+    background-color: $grey-lightest-color;
+  }
+}
+
+.blockedNote {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 0;
+  color: $text-secondary-color;
+  font-size: 12.5px;
+  line-height: 1.4;
+
+  svg {
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+}
+
+// Same treatment as the meeting's own recurrence box (RecurringMeeting.module.scss's
+// .isRecurring) -- a second schedule is a peer of the first, not a nested sub-form.
+.scheduleCard {
+  padding: 16px;
+  border: 1px solid $grey-border-color;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.cardHeading {
+  margin: 0;
+  color: $navy-color;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.cardNote {
+  margin: 0 0 12px;
+  color: $text-secondary-color;
+  font-size: 12.5px;
+  line-height: 1.4;
+}
+
+.fieldCaption {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: $medium-grey-color;
+  margin-bottom: 6px;
+}
+
+.inheritedValue {
+  margin: 0;
+  color: $text-secondary-color;
+  font-size: 12.5px;
+  line-height: 1.4;
+}
