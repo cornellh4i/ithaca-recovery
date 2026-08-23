@@ -714,6 +714,14 @@ describe("scoped edit Zoom Room moves", () => {
       modeType: "Hybrid", room: meeting.room, zoomRoom: "Scoped Zoom Room 2", confirmOverride: true,
     }));
     expect(overridden.status).toBe(200);
+
+    // Drains the parent's background calendar rewrite before the test ends -- nothing above
+    // needs it, but a still-in-flight updateCalendarEvent would otherwise land inside the next
+    // test and break its not.toHaveBeenCalled() assertion.
+    await waitFor(async () => {
+      const parent = await getTestPrismaClient().meeting.findUnique({ where: { mid: meeting.mid } });
+      return parent?.googleSyncStatus != null ? true : null;
+    });
   });
 
   test("a suspended parent's scoped edit never rewrites its room-cal event either", async () => {

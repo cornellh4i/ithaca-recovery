@@ -5,7 +5,7 @@ import { IMeeting } from "../../../../../types/models";
 import { createCalendarEvent, updateCalendarEvent, reconcileMeetingCalendars } from "../../../../../services/googleCalendar";
 import { createZoomMeeting, getZoomHostCapacities, getZoomMeetingCredentials, updateZoomMeeting, getZoomMeetingInvitation, resolveZoomHost, zoomHostPool, zoomRoomCalendarId } from "../../../../../services/zoom";
 import { lockResourceClaims } from "../../../../../util/meetings/resourceLocks";
-import { getZoomScheduleFamily } from "../../../../../util/meetings/linkedSchedules";
+import { linkedFamilyLoader } from "../../../../../util/meetings/linkedSchedules";
 import { prisma } from "../../../../../lib/prisma";
 
 const syncMeeting = async (request: Request): Promise<Response> => {
@@ -54,6 +54,9 @@ const syncMeeting = async (request: Request): Promise<Response> => {
         let zoomSyncError: string | null = meeting.zoomSyncError ?? null;
         let zid = meeting.zid;
         let zoomLink = meeting.zoomLink;
+        // One family lookup for this whole retry, shared by the Zoom write and the calendar
+        // writes below -- they name the family the same way, so they must read the same rows.
+        const loadFamily = linkedFamilyLoader(prisma, mid);
 
         if (zoomEnabled) {
             let zoomPasscode = meeting.zoomPasscode;
@@ -88,9 +91,7 @@ const syncMeeting = async (request: Request): Promise<Response> => {
                 // sync only re-runs the calendar half against the stored link. The whole
                 // linked-schedule family rides along so the PATCH sends the union schedule
                 // (#513) and the family's own Zoom name, not this row's narrowed view of either.
-                const family = meeting.zoomManaged
-                    ? await getZoomScheduleFamily(prisma, mid, zid)
-                    : [];
+                const family = meeting.zoomManaged ? await loadFamily(zid) : [];
                 const ok = meeting.zoomManaged
                     ? await updateZoomMeeting(zid, meetingForCalendar, family)
                     : true;
@@ -131,7 +132,7 @@ const syncMeeting = async (request: Request): Promise<Response> => {
                     // Same family lookup as the PATCH branch above, minus the zid this row
                     // doesn't have yet -- the fresh Zoom meeting is minted with the family's
                     // union schedule and Zoom name from the start.
-                    const family = await getZoomScheduleFamily(prisma, mid, null);
+                    const family = await loadFamily(null);
                     const created = await createZoomMeeting(meetingForCalendar, host, family);
                     if (created) {
                         zid = created.zid;
@@ -151,14 +152,15 @@ const syncMeeting = async (request: Request): Promise<Response> => {
                 const calId = zoomRoomCalendarId[meeting.zoomRoom];
                 if (calId) {
                     const meetingWithZoomLink = { ...meetingForCalendar, zoomLink };
+                    const family = await loadFamily(zid);
                     if (zoomCalendarEventId) {
-                        const { ok, error } = await updateCalendarEvent(auth.accessToken, zoomCalendarEventId, meetingWithZoomLink, calId, zoomLink);
+                        const { ok, error } = await updateCalendarEvent(auth.accessToken, zoomCalendarEventId, meetingWithZoomLink, calId, zoomLink, family);
                         if (!ok) {
                             zoomSynced = false;
                             zoomSyncError = zoomSyncError ?? error ?? "Zoom meeting's calendar event failed to update.";
                         }
                     } else {
-                        const { id: eventId, error } = await createCalendarEvent(auth.accessToken, meetingWithZoomLink, calId, zoomLink);
+                        const { id: eventId, error } = await createCalendarEvent(auth.accessToken, meetingWithZoomLink, calId, zoomLink, family);
                         if (eventId) zoomCalendarEventId = eventId;
                         else {
                             zoomSynced = false;
@@ -201,6 +203,7 @@ const syncMeeting = async (request: Request): Promise<Response> => {
                 auth.accessToken,
                 { ...meetingForCalendar, zoomLink },
                 existingEventIds,
+                await loadFamily(zid),
             );
 
             googleSyncStatus = result.allSynced ? 'synced' : 'error';

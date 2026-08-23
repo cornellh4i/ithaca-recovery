@@ -89,6 +89,7 @@ test("a retry that newly succeeds at getting a host both creates the Zoom meetin
     "fake-token",
     expect.objectContaining({ zoomLink: "http://zoom.test/retried" }),
     {},
+    expect.any(Array),
   );
 
   const afterRetry = await prisma.meeting.findUnique({ where: { mid: meetingData.mid } });
@@ -296,6 +297,7 @@ describe("retrying an already-synced meeting (existing zid)", () => {
       "fake-token",
       expect.objectContaining({ zoomLink: "http://zoom.test/existing?pwd=rotated" }),
       expect.anything(),
+      expect.any(Array),
     );
     const after = await prisma.meeting.findUnique({ where: { mid: meetingData.mid } });
     expect(after?.zoomPasscode).toBe("rotated");
