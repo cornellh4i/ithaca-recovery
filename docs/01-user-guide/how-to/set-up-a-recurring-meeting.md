@@ -31,7 +31,7 @@ options, then choose **Weekly** or **Monthly** from the "Repeats" dropdown.
 ## A second mode on other days ("linked schedules")
 
 For a group that meets one way on some days and another way on others — Hybrid Monday-Friday and
-Zoom Only on Saturday, say — add a **linked schedule** instead of creating a second meeting. Both
+Remote on Saturday, say — add a **linked schedule** instead of creating a second meeting. Both
 schedules are one meeting sharing one Zoom link (see
 [How Calendar and Zoom Sync Work](../explanation/how-sync-works.md)).
 
@@ -40,13 +40,21 @@ schedules are one meeting sharing one Zoom link (see
    **Edit this schedule** link) and the new schedule's fields open below it.
 2. Pick the second schedule's **Mode** and **days**. The mode the meeting already uses and the days
    it already meets on are greyed out — the two schedules must differ in mode and never share a day.
-3. Fill in whichever of Room / Zoom room the new mode needs. There's no Zoom host to pick: the
-   schedule uses the meeting's existing Zoom host and join link, or — if the meeting itself is In
-   Person and so has none — books its own, which the form says at that spot.
-4. Save the meeting as usual. Both schedules are written together.
+3. Fill in whichever of Room / Zoom room the mode you picked shows — In Person shows only Room,
+   Hybrid shows both, Remote shows neither. An In Person second schedule involves no Zoom at all:
+   it just meets in its own Room. A Hybrid or Remote second schedule never picks a Zoom host —
+   it shares the meeting's existing Zoom host and join link, or, if the meeting itself is In
+   Person and so has none, books its own. The form says which at that spot.
+4. Click **Done**. The card collapses into a summary of the second schedule, with an edit link
+   named by its mode (**Edit the Remote schedule**, say) to reopen it and a **Remove** button to
+   drop it. Done stays greyed out until the schedule has a day, whichever rooms its mode needs,
+   and a readable date and time on the meeting itself.
+5. Save the meeting as usual. Both schedules are written together.
 
 The time, length, repeat interval and end date always come from the meeting's main schedule — Zoom
-holds both as a single schedule, so they can't differ.
+holds both as a single schedule, so they can't differ. For the same reason, switching the meeting
+to Monthly or turning recurrence off removes the second schedule; the form says so where the card
+was, and putting the meeting back on Weekly lets you add one again.
 
 A meeting can run **two** schedules at most, so the trigger disappears once a second one exists.
 After saving, the second schedule shows at the top of the meeting's form as a card with a

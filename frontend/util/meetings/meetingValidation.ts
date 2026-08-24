@@ -179,11 +179,9 @@ export const linkedScheduleBlockSchema = z.object({
     message: "In Person meetings require a physical room.",
     path: ["room"],
   })
-  // The mirror rules, which the primary schedule gets for free from its form (its Room field
-  // unmounts for Remote) but this block does not: the draft's dropdowns stay mounted for every
-  // mode still selectable, so a room picked under one mode can survive a switch to a mode that
-  // doesn't use it. A room here is not cosmetic -- it is advisory-locked, conflict-checked and
-  // published to that room's calendar.
+  // The mirror rules, as a server-side backstop: the form clears a room or Zoom room the newly
+  // picked mode doesn't use, but a request need not have come from the form. A room here is not
+  // cosmetic -- it is advisory-locked, conflict-checked and published to that room's calendar.
   .refine((linked) => linked.modeType !== "Remote" || !linked.room, {
     message: "Remote meetings take no physical room.",
     path: ["room"],

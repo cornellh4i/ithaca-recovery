@@ -114,3 +114,125 @@ describe("useMeetingForm date/recurrence dirty independence", () => {
     expect(result.current.isRecurrenceDirty).toBe(true);
   });
 });
+
+// A draft can only be started on a weekly series, but the meeting's own recurrence stays editable
+// underneath it -- and a linked schedule has no representation outside a weekly union.
+describe("useMeetingForm linked draft against a non-weekly recurrence", () => {
+  const weeklyPattern: IRecurrencePattern = {
+    mid: "m-1",
+    type: "weekly",
+    startDate: new Date("2026-07-05T00:00:00.000Z"),
+    daysOfWeek: ["Sunday"],
+    firstDayOfWeek: "Sunday",
+    interval: 1,
+    excludedDates: [],
+  };
+  const weeklyMeeting: IMeeting = { ...baseMeeting, isRecurring: true, recurrencePattern: weeklyPattern };
+
+  const startDraft = (result: { current: ReturnType<typeof useMeetingForm> }) => {
+    act(() => result.current.handleRecurringMeetingChange({ isRecurring: true, recurrencePattern: weeklyPattern }));
+    act(() => result.current.startLinkedDraft("Remote"));
+    act(() => result.current.setIsLinkedDraftConfirmed(true));
+  };
+
+  it("drops the draft and says so when the meeting switches to monthly", () => {
+    const { result } = renderHook(() => useMeetingForm(weeklyMeeting));
+    startDraft(result);
+
+    act(() => result.current.handleRecurringMeetingChange({
+      isRecurring: true,
+      recurrencePattern: { ...weeklyPattern, type: "monthly", dayOfMonth: 5, daysOfWeek: [] },
+    }));
+
+    expect(result.current.linkedDraft).toBeNull();
+    expect(result.current.isLinkedDraftConfirmed).toBe(false);
+    expect(result.current.linkedDraftDiscardedNote).toBe(true);
+  });
+
+  it("drops the draft when recurrence is turned off entirely", () => {
+    const { result } = renderHook(() => useMeetingForm(weeklyMeeting));
+    startDraft(result);
+
+    act(() => result.current.handleRecurringMeetingChange({ isRecurring: false, recurrencePattern: null }));
+
+    expect(result.current.linkedDraft).toBeNull();
+    expect(result.current.linkedDraftDiscardedNote).toBe(true);
+  });
+
+  // The meeting's own schedule collapsed only to make room for the second one; left collapsed, its
+  // summary card would describe a recurrence the meeting no longer has.
+  it("reopens the meeting's own schedule editor after an auto-discard", () => {
+    const { result } = renderHook(() => useMeetingForm(weeklyMeeting));
+    startDraft(result);
+    expect(result.current.isScheduleConfirmed).toBe(true);
+
+    act(() => result.current.handleRecurringMeetingChange({ isRecurring: false, recurrencePattern: null }));
+
+    expect(result.current.isScheduleConfirmed).toBe(false);
+  });
+
+  // RecurringMeetingForm reports on mount, before any draft can exist -- a notice then would be an
+  // unprompted warning about a schedule nobody asked for.
+  it("raises no notice for a non-weekly report while there is no draft", () => {
+    const { result } = renderHook(() => useMeetingForm(baseMeeting));
+    act(() => result.current.handleRecurringMeetingChange({ isRecurring: false, recurrencePattern: null }));
+
+    expect(result.current.linkedDraftDiscardedNote).toBe(false);
+  });
+
+  // The "Add another mode" trigger comes back with the weekly pattern, so a notice still saying
+  // the schedule was dropped for not repeating weekly would contradict the control beside it.
+  it("clears the notice when the meeting goes back to repeating weekly", () => {
+    const { result } = renderHook(() => useMeetingForm(weeklyMeeting));
+    startDraft(result);
+
+    act(() => result.current.handleRecurringMeetingChange({
+      isRecurring: true,
+      recurrencePattern: { ...weeklyPattern, type: "monthly", dayOfMonth: 5, daysOfWeek: [] },
+    }));
+    expect(result.current.linkedDraftDiscardedNote).toBe(true);
+
+    act(() => result.current.handleRecurringMeetingChange({ isRecurring: true, recurrencePattern: weeklyPattern }));
+    expect(result.current.linkedDraftDiscardedNote).toBe(false);
+  });
+
+  it("clears the notice once a new draft is started", () => {
+    const { result } = renderHook(() => useMeetingForm(weeklyMeeting));
+    startDraft(result);
+    act(() => result.current.handleRecurringMeetingChange({ isRecurring: false, recurrencePattern: null }));
+
+    act(() => result.current.handleRecurringMeetingChange({ isRecurring: true, recurrencePattern: weeklyPattern }));
+    act(() => result.current.startLinkedDraft("Remote"));
+
+    expect(result.current.linkedDraftDiscardedNote).toBe(false);
+    expect(result.current.linkedDraft).not.toBeNull();
+  });
+
+  // Cancelling is the admin's own doing, so there is nothing to explain.
+  it("raises no notice on an explicit discard", () => {
+    const { result } = renderHook(() => useMeetingForm(weeklyMeeting));
+    startDraft(result);
+
+    act(() => result.current.discardLinkedDraft());
+
+    expect(result.current.linkedDraft).toBeNull();
+    expect(result.current.isLinkedDraftConfirmed).toBe(false);
+    expect(result.current.linkedDraftDiscardedNote).toBe(false);
+  });
+
+  // NewMeeting reuses one mounted form for the next meeting, so anything left here would show up
+  // on a meeting that never had a linked schedule.
+  it("clears the confirmed flag and the notice on resetForm", () => {
+    const { result } = renderHook(() => useMeetingForm(weeklyMeeting));
+    startDraft(result);
+    act(() => result.current.handleRecurringMeetingChange({ isRecurring: false, recurrencePattern: null }));
+    expect(result.current.linkedDraftDiscardedNote).toBe(true);
+
+    act(() => result.current.resetForm());
+
+    expect(result.current.linkedDraft).toBeNull();
+    expect(result.current.isLinkedDraftConfirmed).toBe(false);
+    expect(result.current.linkedDraftDiscardedNote).toBe(false);
+    expect(result.current.isScheduleConfirmed).toBe(false);
+  });
+});

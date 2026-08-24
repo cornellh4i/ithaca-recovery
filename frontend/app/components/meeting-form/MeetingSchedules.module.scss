@@ -70,6 +70,13 @@
     flex-shrink: 0;
     margin-top: 1px;
   }
+
+  // The discard-notice live region stays mounted while empty (a live region inserted together
+  // with its text is announced unreliably) -- without this its empty box still claims a slot in
+  // .schedules' column gap. Not display: none, which would take it back out of the live tree.
+  &:empty {
+    display: contents;
+  }
 }
 
 // Same treatment as the meeting's own recurrence box (RecurringMeeting.module.scss's
@@ -77,7 +84,7 @@
 .scheduleCard {
   padding: 16px;
   border: 1px solid $grey-border-color;
-  border-radius: 8px;
+  border-radius: $radius-md;
   background: #fff;
 }
 
@@ -111,6 +118,32 @@
   letter-spacing: 0.4px;
   color: $medium-grey-color;
   margin-bottom: 6px;
+}
+
+.cardActions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 12px;
+}
+
+// Smaller sibling of the form's own submit (MeetingForm.module.scss's .createMeetingButton):
+// same solid pink, sized as an in-card action rather than the form's primary one.
+.doneButton {
+  padding: 6px 16px;
+  border: none;
+  border-radius: $radius-md;
+  background-color: $brand-pink-color;
+  color: #fff;
+  font-family: "Source Sans Pro", sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+
+  &:disabled {
+    background-color: $grey-lightest-color;
+    color: $medium-grey-color;
+    cursor: not-allowed;
+  }
 }
 
 .inheritedValue {

@@ -87,6 +87,8 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
       selectLinkedDraftRoom,
       toggleLinkedDraftDay,
       discardLinkedDraft,
+      isLinkedDraftConfirmed, setIsLinkedDraftConfirmed,
+      linkedDraftDiscardedNote,
       isAnchorDirty,
       handleRecurringMeetingChange,
       handleRoomChange,
@@ -475,6 +477,7 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
               }
               isConfirmed={isScheduleConfirmed}
               onEditSchedule={() => setIsScheduleConfirmed(false)}
+              onConfirmSchedule={() => setIsScheduleConfirmed(true)}
               modeType={selectedMode}
               recurrencePattern={recurrencePattern}
               isRecurring={isRecurring}
@@ -483,12 +486,16 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
               zoomRoom={selectedZoomRoom}
               savedSchedules={linkedSchedules}
               draft={linkedDraft}
+              isDraftConfirmed={isLinkedDraftConfirmed}
+              draftDiscardedNote={linkedDraftDiscardedNote}
               onAddSchedule={startLinkedDraft}
               onSelectDraftMode={selectLinkedDraftMode}
               onSelectDraftRoom={selectLinkedDraftRoom}
               onSelectDraftZoomRoom={(value) => updateLinkedDraft({ zoomRoom: value })}
               onToggleDraftDay={toggleLinkedDraftDay}
               onDiscardDraft={discardLinkedDraft}
+              onConfirmDraft={() => setIsLinkedDraftConfirmed(true)}
+              onEditDraft={() => setIsLinkedDraftConfirmed(false)}
               compact={compact}
               // The update route applies a linked-schedule create and an edit to the meeting
               // itself as two separate requests, and 400s a payload carrying both -- so the

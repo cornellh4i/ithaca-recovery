@@ -21,6 +21,7 @@ const renderSchedules = (overrides: Partial<MeetingSchedulesProps> = {}) => {
     recurrenceEditor: <div data-testid="recurrence-editor">recurrence editor</div>,
     isConfirmed: true,
     onEditSchedule: jest.fn(),
+    onConfirmSchedule: jest.fn(),
     modeType: "Hybrid",
     recurrencePattern: weeklyPattern,
     isRecurring: true,
@@ -28,12 +29,15 @@ const renderSchedules = (overrides: Partial<MeetingSchedulesProps> = {}) => {
     room: "Serenity Room",
     zoomRoom: "Serenity Room - Zoom",
     draft: null,
+    isDraftConfirmed: false,
     onAddSchedule: jest.fn(),
     onSelectDraftMode: jest.fn(),
     onSelectDraftRoom: jest.fn(),
     onSelectDraftZoomRoom: jest.fn(),
     onToggleDraftDay: jest.fn(),
     onDiscardDraft: jest.fn(),
+    onConfirmDraft: jest.fn(),
+    onEditDraft: jest.fn(),
     ...overrides,
   };
   return { props, ...render(<MeetingSchedules {...props} />) };
@@ -183,24 +187,139 @@ describe("MeetingSchedules linked-schedule locking", () => {
 describe("MeetingSchedules linked-schedule fields", () => {
   const draftIn = (modeType: string) => ({ mid: "draft-1", modeType, daysOfWeek: ["Saturday"], room: "", zoomRoom: "" });
 
-  it("mounts the union of every mode still selectable, not just the picked one", () => {
-    // Under a Hybrid meeting the remaining choices are In Person and Remote: Room (In Person) and
-    // Zoom host (Remote) are mounted, Zoom room isn't -- and none of that changes as the admin
-    // toggles between the two, so nothing typed into a field disappears mid-edit.
+  it("shows only the fields the picked mode uses", () => {
+    // A Remote schedule has nowhere physical to be and picks no Zoom room -- it only joins the
+    // family's one Zoom meeting.
     const { rerender, props } = renderSchedules({ draft: draftIn("Remote") });
-    expect(screen.getByText("Room")).toBeInTheDocument();
-    expect(screen.getByText(/Shares this meeting's Zoom host/)).toBeInTheDocument();
+    expect(screen.queryByText("Room")).not.toBeInTheDocument();
     expect(screen.queryByText("Zoom room")).not.toBeInTheDocument();
+    expect(screen.getByText(/Shares this meeting's Zoom host/)).toBeInTheDocument();
 
     rerender(<MeetingSchedules {...props} draft={draftIn("In Person")} />);
     expect(screen.getByText("Room")).toBeInTheDocument();
-    expect(screen.getByText(/Shares this meeting's Zoom host/)).toBeInTheDocument();
     expect(screen.queryByText("Zoom room")).not.toBeInTheDocument();
+    expect(screen.queryByText(/Shares this meeting's Zoom host/)).not.toBeInTheDocument();
   });
 
-  it("mounts the Zoom room too when Hybrid is still selectable", () => {
-    // An In Person meeting leaves Hybrid open, and Hybrid is the one mode that needs a Zoom room.
+  it("shows the Zoom room only for a Hybrid schedule", () => {
     renderSchedules({ modeType: "In Person", zoomRoom: "", draft: draftIn("Hybrid") });
+    expect(screen.getByText("Room")).toBeInTheDocument();
     expect(screen.getByText("Zoom room")).toBeInTheDocument();
+    expect(screen.getByText(/Books its own Zoom host/)).toBeInTheDocument();
+  });
+});
+
+describe("MeetingSchedules linked-schedule draft confirmation", () => {
+  const remoteDraft = { mid: "draft-1", modeType: "Remote", daysOfWeek: ["Saturday"], room: "", zoomRoom: "" };
+  const doneButton = () => screen.getByTestId("linked-schedule-done");
+
+  it("won't collapse a draft that has no day yet", () => {
+    renderSchedules({ draft: { ...remoteDraft, daysOfWeek: [] } });
+    expect(doneButton()).toBeDisabled();
+  });
+
+  it("won't collapse a Hybrid draft still missing a room", () => {
+    const hybrid = { ...remoteDraft, modeType: "Hybrid" };
+    const { rerender, props } = renderSchedules({ modeType: "In Person", zoomRoom: "", draft: hybrid });
+    expect(doneButton()).toBeDisabled();
+
+    rerender(<MeetingSchedules {...props} draft={{ ...hybrid, room: "Serenity Room" }} />);
+    expect(doneButton()).toBeDisabled();
+
+    rerender(
+      <MeetingSchedules
+        {...props}
+        draft={{ ...hybrid, room: "Serenity Room", zoomRoom: "Serenity Room - Zoom" }}
+      />,
+    );
+    expect(doneButton()).toBeEnabled();
+  });
+
+  it("collapses a complete draft on Done", () => {
+    const onConfirmDraft = jest.fn();
+    renderSchedules({ draft: remoteDraft, onConfirmDraft });
+
+    fireEvent.click(doneButton());
+    expect(onConfirmDraft).toHaveBeenCalled();
+  });
+
+  it("summarises the confirmed draft instead of its editor", () => {
+    renderSchedules({ draft: remoteDraft, isDraftConfirmed: true });
+
+    expect(screen.queryByTestId("linked-schedule-draft")).not.toBeInTheDocument();
+    expect(screen.getByText("Sat · 9 - 10 AM")).toBeInTheDocument();
+  });
+
+  it("reopens the confirmed draft's editor and drops it on Remove", () => {
+    const onEditDraft = jest.fn();
+    const onDiscardDraft = jest.fn();
+    renderSchedules({ draft: remoteDraft, isDraftConfirmed: true, onEditDraft, onDiscardDraft });
+
+    // Two schedules are on screen at once, so the linked one's link visibly names its mode.
+    fireEvent.click(screen.getByRole("button", { name: "Edit the Remote schedule" }));
+    expect(onEditDraft).toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Remove the Remote schedule" }));
+    expect(onDiscardDraft).toHaveBeenCalled();
+  });
+
+  it("keeps the editor open while there's no readable time range to summarise", () => {
+    renderSchedules({ draft: remoteDraft, isDraftConfirmed: true, scheduleInstants: null });
+    expect(screen.getByTestId("linked-schedule-draft")).toBeInTheDocument();
+  });
+
+  // Otherwise Done is a dead click: the flag flips but no card can be built from an unreadable
+  // Date/Time, so the editor stays open with nothing to show for the press.
+  it("won't collapse a draft while the Date or Time field is unreadable", () => {
+    renderSchedules({ draft: remoteDraft, scheduleInstants: null });
+    expect(doneButton()).toBeDisabled();
+  });
+});
+
+describe("MeetingSchedules linked-schedule discard notice", () => {
+  it("says where the draft went when the meeting stopped repeating weekly", () => {
+    renderSchedules({ isRecurring: false, recurrencePattern: null, draft: null, draftDiscardedNote: true });
+
+    expect(screen.getByTestId("linked-schedule-discarded-note")).toHaveTextContent(
+      "The linked schedule was removed because this meeting no longer repeats weekly.",
+    );
+  });
+
+  // The live region itself stays mounted so the message is announced when it appears; only its
+  // text is conditional.
+  it("says nothing while no draft has been dropped", () => {
+    renderSchedules();
+    expect(screen.getByTestId("linked-schedule-discarded-note")).toBeEmptyDOMElement();
+  });
+});
+
+describe("MeetingSchedules own-schedule confirmation", () => {
+  const doneButton = () => screen.getByTestId("schedule-done");
+
+  it("collapses the expanded editor through Done", () => {
+    const onConfirmSchedule = jest.fn();
+    renderSchedules({ isConfirmed: false, onConfirmSchedule });
+    fireEvent.click(doneButton());
+    expect(onConfirmSchedule).toHaveBeenCalled();
+  });
+
+  it("won't collapse a weekly series that meets on no day", () => {
+    renderSchedules({
+      isConfirmed: false,
+      recurrencePattern: { ...weeklyPattern, daysOfWeek: [] },
+    });
+    expect(doneButton()).toBeDisabled();
+  });
+
+  it("won't collapse while the Date or Time field is unreadable", () => {
+    renderSchedules({ isConfirmed: false, scheduleInstants: null });
+    expect(doneButton()).toBeDisabled();
+  });
+
+  it("is withheld once collapsed, and for a one-time meeting", () => {
+    renderSchedules({ isConfirmed: true });
+    expect(screen.queryByTestId("schedule-done")).not.toBeInTheDocument();
+    renderSchedules({ isConfirmed: false, isRecurring: false, recurrencePattern: null });
+    expect(screen.queryByTestId("schedule-done")).not.toBeInTheDocument();
   });
 });

@@ -180,9 +180,8 @@ describe("NewMeetingSidebar linked schedule", () => {
     });
   });
 
-  // The draft's Room dropdown stays mounted across every mode still selectable, so a room can be
-  // picked while the draft is Remote -- a mode that uses none. Sending it would advisory-lock,
-  // conflict-check and publish a physical room for a Zoom-only schedule.
+  // A room picked while the draft was Hybrid must not survive a switch to Remote -- sending it
+  // would advisory-lock, conflict-check and publish a physical room for a Zoom-only schedule.
   it("drops a room the second schedule's chosen mode doesn't use", async () => {
     const ref = React.createRef<NewMeetingSidebarHandle>();
     renderNewMeeting(ref);
@@ -192,10 +191,12 @@ describe("NewMeetingSidebar linked schedule", () => {
     fireEvent.click(screen.getByRole("button", { name: /Add another mode for other days/ }));
 
     const draft = screen.getByTestId("linked-schedule-draft");
-    fireEvent.click(within(draft).getByRole("button", { name: /Remote/ }));
+    fireEvent.click(within(draft).getByRole("button", { name: /Hybrid/ }));
     fireEvent.click(within(draft).getByRole("button", { name: "Saturday" }));
     fireEvent.click(within(draft).getByRole("button", { name: /Select linked schedule room/ }));
     fireEvent.click(within(draft).getAllByRole("option")[0]);
+    fireEvent.click(within(draft).getByRole("button", { name: /Remote/ }));
+    expect(within(draft).queryByText("Room")).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByLabelText("AA"));
     fireEvent.click(screen.getByRole("button", { name: /Select Room/ }));

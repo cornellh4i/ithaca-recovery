@@ -82,9 +82,9 @@ describe("linkedScheduleSchema", () => {
       .toBe(true);
   });
 
-  // The backstop for the form's superset-mounted Room / Zoom room dropdowns: a value picked
-  // under one candidate mode must not reach the write as a resource the chosen mode never uses,
-  // since the room is advisory-locked, conflict-checked and published to its own calendar.
+  // The backstop for the form's own clearing rule: a room must not reach the write as a resource
+  // the chosen mode never uses, since it is advisory-locked, conflict-checked and published to
+  // that room's calendar.
   it("rejects a room on a Remote schedule", () => {
     expect(linkedScheduleSchema.safeParse(linkedSchedule({ room: "Serenity Room" })).success).toBe(false);
   });

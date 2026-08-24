@@ -19,12 +19,8 @@ export interface ModeFieldVisibility {
 
 /**
  * The fields a form section must mount to serve ANY of `modes` -- the union, not an intersection.
- *
- * One mode in gives exactly what that mode needs (the meeting form's own Room / Zoom room /
- * Zoom host block). Several modes in gives the superset, which is what a section whose mode is
- * still being picked needs: the fields stay mounted across every choice still open there, so
- * nothing remounts (and no value is silently dropped) as the admin toggles between them, and
- * there is no disabled/greyed intermediate state to build.
+ * Callers pass the one mode their section currently uses, which yields exactly that mode's
+ * fields (the meeting form's own Room / Zoom room / Zoom host block).
  *
  * An unrecognised mode contributes nothing, so an empty or unknown selection mounts no field --
  * the behavior a bare `selectedMode === "Hybrid"`-style check already had.
@@ -45,10 +41,9 @@ export function modeFieldVisibility(modes: string[]): ModeFieldVisibility {
 }
 
 /**
- * Which of the mounted fields every one of `modes` needs -- the intersection, i.e. the ones that
- * are required whichever mode is ultimately picked. Identical to {@link modeFieldVisibility} for
- * a single mode; narrower for a set (Room is mounted for an In Person / Remote choice, but only
- * required if In Person wins).
+ * Which of the mounted fields every one of `modes` needs -- the intersection. Callers pass the
+ * one mode their section currently uses, where this is identical to {@link modeFieldVisibility};
+ * for a set it is narrower, since a field only some of the modes use is mounted but not required.
  */
 export function modeFieldRequirement(modes: string[]): ModeFieldVisibility {
   const known = modes.filter((mode): mode is LinkedScheduleMode => !!MODE_FIELDS[mode as LinkedScheduleMode]);
