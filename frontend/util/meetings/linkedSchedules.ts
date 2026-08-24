@@ -286,13 +286,23 @@ export function resolveFamilyRows<TRow extends { mid: string }>(meeting: TRow, f
 // category checkboxes were clicked in.
 const FELLOWSHIP_CAL_TYPES = ["AA", "Al-Anon"] as const;
 
+const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+// Whether the title already names this fellowship as a whole word ("AA District",
+// "Tuesday Noon Al-Anon") -- a prefix would then just stutter ("AA AA District").
+// Whole-word so "AA" inside e.g. "AFG" or "Baggers" can never suppress a genuine prefix.
+function titleAlreadyNames(title: string, name: string): boolean {
+  return new RegExp(`(^|[^A-Za-z0-9])${escapeRegExp(name)}([^A-Za-z0-9]|$)`, "i").test(title);
+}
+
 /**
  * The fellowship-prefixed base title external services display:
  * `"AA/Al-Anon Serenity Now"`. AA and Al-Anon come straight from calType; a calType of
- * "Other" contributes the custom `fellowship` text instead (nothing when it's empty). With no
- * fellowship at all the title passes through unchanged. Like {@link buildLinkedScheduleLabel},
- * the prefix uses the caller's own row, so family members' names agree only while their
- * calType/fellowship columns do.
+ * "Other" contributes the custom `fellowship` text instead (nothing when it's empty). A
+ * fellowship the title already names as a word is skipped rather than stuttered
+ * ("AA District", not "AA AA District"). With no fellowship left the title passes through
+ * unchanged. Like {@link buildLinkedScheduleLabel}, the prefix uses the caller's own row, so
+ * family members' names agree only while their calType/fellowship columns do.
  */
 export function fellowshipPrefixedTitle(
   meeting: Pick<IMeeting, "title" | "calType" | "fellowship">,
@@ -301,7 +311,8 @@ export function fellowshipPrefixedTitle(
   const parts: string[] = FELLOWSHIP_CAL_TYPES.filter((name) => calType.includes(name));
   const custom = calType.includes("Other") ? meeting.fellowship?.trim() : "";
   if (custom) parts.push(custom);
-  return parts.length ? `${parts.join("/")} ${meeting.title}` : meeting.title;
+  const needed = parts.filter((name) => !titleAlreadyNames(meeting.title, name));
+  return needed.length ? `${needed.join("/")} ${meeting.title}` : meeting.title;
 }
 
 // How each mode names itself inside a family label. Only Remote is renamed ("Zoom Only") --

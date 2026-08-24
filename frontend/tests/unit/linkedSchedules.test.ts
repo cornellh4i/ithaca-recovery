@@ -363,3 +363,31 @@ describe("fellowshipPrefixedTitle", () => {
     expect(titled([])).toBe("Serenity Now");
   });
 });
+
+describe("fellowshipPrefixedTitle redundancy skip", () => {
+  const prefixed = (title: string, calType: string[], fellowship: string | null = null) =>
+    fellowshipPrefixedTitle({ title, calType, fellowship });
+
+  test("skips a fellowship the title already names as a word", () => {
+    expect(prefixed("AA District", ["AA"])).toBe("AA District");
+    expect(prefixed("Al-Anon Intergroup", ["Al-Anon"])).toBe("Al-Anon Intergroup");
+    expect(prefixed("Tuesday Noon Al-Anon", ["Al-Anon"])).toBe("Tuesday Noon Al-Anon");
+    expect(prefixed("Friday Al-Anon (AFG)", ["Al-Anon"])).toBe("Friday Al-Anon (AFG)");
+  });
+
+  test("skips only the redundant part of a multi-fellowship prefix", () => {
+    expect(prefixed("AA District", ["AA", "Al-Anon"])).toBe("Al-Anon AA District");
+  });
+
+  test("matching is whole-word and case-insensitive -- substrings never suppress a prefix", () => {
+    expect(prefixed("Thursday AFG", ["Al-Anon"])).toBe("Al-Anon Thursday AFG");
+    expect(prefixed("Noon Brown Baggers", ["AA"])).toBe("AA Noon Brown Baggers");
+    expect(prefixed("aa district", ["AA"])).toBe("aa district");
+  });
+
+  test("applies to the custom Other fellowship too, with regex metacharacters escaped", () => {
+    expect(prefixed("NA Spiritual Foundations", ["Other"], "NA")).toBe("NA Spiritual Foundations");
+    expect(prefixed("Spiritual Foundation", ["Other"], "NA")).toBe("NA Spiritual Foundation");
+    expect(prefixed("C+ Group Meeting", ["Other"], "C+")).toBe("C+ Group Meeting");
+  });
+});
