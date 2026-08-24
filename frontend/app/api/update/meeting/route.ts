@@ -8,6 +8,7 @@ import {
   calendarIdsForMeeting,
 } from "../../../../services/googleCalendar";
 import { createZoomMeeting, updateZoomMeeting, deleteZoomMeeting, getZoomHostCapacities, getZoomMeetingCredentials, getZoomMeetingInvitation, rehostZoomMeeting, resolveZoomHost, zoomHostPool, zoomRoomCalendarId } from "../../../../services/zoom";
+import { syncOneMeeting } from "../../../../services/syncOneMeeting";
 import { findResourceConflicts, findResourceConflictRows, ConflictRow, ResourceConflictAbort } from "../../../../util/meetings/resourceOverlap";
 import { lockResourceClaims, ResourceClaim } from "../../../../util/meetings/resourceLocks";
 import { meetingSchema, editScopeSchema, linkedScheduleSchema, LinkedScheduleInput } from "../../../../util/meetings/meetingValidation";
@@ -228,6 +229,22 @@ async function syncUpdatedMeeting(
           if (liveCredentials?.joinUrl) {
             zoomLink = liveCredentials.joinUrl;
             zoomPasscode = liveCredentials.passcode;
+            // Every other row on this zid (linked-schedule siblings, scoped-edit split
+            // children) still stores the pre-rewrite link, and their published calendar
+            // events embed it -- run each through the full reconcile so their columns AND
+            // events adopt the new credentials, instead of advertising a dead ?pwd= link
+            // until someone happens to hit Retry sync on them.
+            const staleSiblings = await prisma.meeting.findMany({
+              where: { zid, deletedAt: null, mid: { not: mid } },
+              select: { mid: true },
+            });
+            for (const sibling of staleSiblings) {
+              try {
+                await syncOneMeeting(sibling.mid, accessToken ?? "");
+              } catch (error) {
+                console.error(`Passcode-change resync failed for sibling ${sibling.mid}:`, error);
+              }
+            }
           }
         }
       }
@@ -865,6 +882,25 @@ async function syncLinkedScheduleFamily(
     const holder = members.find((member) => member.zid === patchZid && member.zoomManaged);
     if (holder) {
       const ok = await updateZoomMeeting(patchZid, holder as unknown as IMeeting, await loadFamily(patchZid));
+      // The PATCH pushes the holder's custom passcode; when that differs from the stored
+      // mirror, Zoom just rewrote join_url -- adopt the rewritten credentials on every
+      // zid-sharing row (and in the in-memory members about to be republished below) so no
+      // event goes out embedding the now-dead old link.
+      if (ok && holder.zoomCustomPasscode && holder.zoomCustomPasscode !== holder.zoomPasscode) {
+        const liveCredentials = await getZoomMeetingCredentials(patchZid);
+        if (liveCredentials?.joinUrl) {
+          await prisma.meeting.updateMany({
+            where: { zid: patchZid, deletedAt: null },
+            data: { zoomLink: liveCredentials.joinUrl, zoomPasscode: liveCredentials.passcode },
+          });
+          for (const member of members) {
+            if (member.zid === patchZid) {
+              member.zoomLink = liveCredentials.joinUrl;
+              member.zoomPasscode = liveCredentials.passcode;
+            }
+          }
+        }
+      }
       // Persisted either way, like every other Zoom write: a holder already carrying a stale
       // zoomSyncStatus 'error' (from an earlier failed sync) would otherwise keep the calendar's
       // ⚠ badge after this PATCH actually succeeded.
@@ -917,7 +953,10 @@ function submitsAnchorEdits(
     new Date(submitted.startDateTime).getTime() !== existing.startDateTime.getTime() ||
     new Date(submitted.endDateTime).getTime() !== existing.endDateTime.getTime() ||
     [...submitted.calType].sort().join("|") !== [...existing.calType].sort().join("|") ||
-    text(submitted.fellowship) !== text(existing.fellowship)
+    text(submitted.fellowship) !== text(existing.fellowship) ||
+    text(submitted.zoomCustomPasscode) !== text(existing.zoomCustomPasscode) ||
+    (submitted.zoomMeetAnytime ?? false) !== existing.zoomMeetAnytime ||
+    (submitted.zoomJoinBeforeHost ?? true) !== existing.zoomJoinBeforeHost
   ) {
     return true;
   }

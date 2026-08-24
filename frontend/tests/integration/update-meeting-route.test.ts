@@ -1158,6 +1158,15 @@ test("an edit pushing a new custom passcode adopts Zoom's rewritten credentials 
     zoomLink: "https://zoom.test/j/70000000779?pwd=old", zoomPasscode: "oldpw",
   })), zoomManaged: true, zoomSyncStatus: "synced" } });
 
+  // A zid-sharing sibling (a scoped-edit split child or linked schedule) whose stored link --
+  // and published events -- would otherwise keep the pre-rewrite ?pwd= URL.
+  const siblingMid = `m-${randomUUID()}`;
+  await prisma.meeting.create({ data: { ...toMeetingCreateInput(buildMeetingPayload({
+    mid: siblingMid, modeType: "Remote", room: "", zoomRoom: "", zid: "70000000779", zoomHost: host,
+    zoomLink: "https://zoom.test/j/70000000779?pwd=old", zoomPasscode: "oldpw",
+    startDateTime: new Date("2026-08-02T22:00:00Z"), endDateTime: new Date("2026-08-02T23:00:00Z"),
+  })), zoomManaged: true, zoomSyncStatus: "synced" } });
+
   const edit = buildMeetingPayload({
     mid, modeType: "Remote", room: "", zoomRoom: "", zoomHost: host,
     zoomCustomPasscode: "newpw1",
@@ -1177,6 +1186,14 @@ test("an edit pushing a new custom passcode adopts Zoom's rewritten credentials 
   );
   expect(updated.zoomLink).toBe("https://zoom.test/j/70000000779?pwd=rewritten");
   expect(updated.zoomCustomPasscode).toBe("newpw1");
+
+  // The sibling was run through the full reconcile too -- its stored link adopts the rewrite
+  // instead of advertising the dead old ?pwd= URL until someone retries it by hand.
+  const sibling = await waitFor(async () => {
+    const row = await prisma.meeting.findUnique({ where: { mid: siblingMid } });
+    return row?.zoomPasscode === "newpw1" ? row : null;
+  });
+  expect(sibling.zoomLink).toBe("https://zoom.test/j/70000000779?pwd=rewritten");
 });
 
 test("an edit with no custom passcode never fetches credentials or sends a password", async () => {

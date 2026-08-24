@@ -554,8 +554,11 @@ export function useMeetingForm(initialMeeting?: IMeeting, defaultContext?: Meeti
         }
 
         // Mirrors meetingSchema's server-side rule so a value Zoom would reject blocks submit
-        // here instead of silently 400ing.
-        if (zoomCustomPasscode && !/^[a-zA-Z0-9@\-_*]{1,10}$/.test(zoomCustomPasscode.trim())) {
+        // here instead of silently 400ing. Gated on a Zoom-bearing mode: the field isn't even
+        // rendered for In Person, so an error there would point at nothing on screen (the
+        // payload drops the value for those modes too).
+        if ((mode === "Hybrid" || mode === "Remote")
+            && zoomCustomPasscode && !/^[a-zA-Z0-9@\-_*]{1,10}$/.test(zoomCustomPasscode.trim())) {
             errors.push({
                 fields: ["zoomCustomPasscode"],
                 message: "Zoom passcode must be 10 characters or fewer, using only letters, numbers, @ - _ *.",
@@ -672,9 +675,13 @@ export function useMeetingForm(initialMeeting?: IMeeting, defaultContext?: Meeti
             status,
             room,
             isRecurring,
-            zoomCustomPasscode: zoomCustomPasscode.trim() || null,
-            zoomMeetAnytime,
-            zoomJoinBeforeHost,
+            // Dropped to their inert defaults for a mode with no Zoom meeting -- like
+            // fellowship above, a hidden field must not smuggle a live value into the row
+            // (it would spring back the moment the meeting turns Zoom-bearing again).
+            zoomCustomPasscode: (mode === "Hybrid" || mode === "Remote") && zoomCustomPasscode.trim()
+                ? zoomCustomPasscode.trim() : null,
+            zoomMeetAnytime: (mode === "Hybrid" || mode === "Remote") && zoomMeetAnytime,
+            zoomJoinBeforeHost: (mode === "Hybrid" || mode === "Remote") ? zoomJoinBeforeHost : true,
         };
 
         if (isRecurring && recurrencePattern) {
