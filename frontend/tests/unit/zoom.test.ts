@@ -132,7 +132,7 @@ describe("toZoomStartTime / buildZoomMeetingBody (via createZoomMeeting's reques
     await createZoomMeeting(meeting, "host@test.icr");
 
     const body = getCapturedBody();
-    expect(body?.topic).toBe("AA Wednesday AA");
+    expect(body?.topic).toBe("Wednesday AA");
     expect(body?.agenda).toBe("Weekly meeting");
     expect(body?.type).toBe(2);
   });
