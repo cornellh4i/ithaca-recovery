@@ -30,6 +30,10 @@ model Meeting {
   mid                    String               @unique
   title                  String
   calType                String[]
+  // Custom fellowship name, entered only when calType includes "Other". AA/Al-Anon are never
+  // stored here -- they derive from calType when building external titles (see
+  // util/meetings/linkedSchedules.ts fellowshipPrefixedTitle).
+  fellowship             String?
   description            String
   creator                String
   group                  String

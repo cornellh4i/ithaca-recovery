@@ -2,7 +2,7 @@ import "server-only";
 import { google } from "googleapis";
 import { IMeeting, IRecurrencePattern } from "../types/models";
 import { getETDayBounds, convertETToUTC } from "../util/date/timeUtils";
-import { buildLinkedScheduleLabel, LINKED_SCHEDULE_MODE_LABEL } from "../util/meetings/linkedSchedules";
+import { buildLinkedScheduleLabel, fellowshipPrefixedTitle, LINKED_SCHEDULE_MODE_LABEL } from "../util/meetings/linkedSchedules";
 
 export const calendarIdForCategory: Record<string, string> = {
     AA:        process.env.GOOGLE_CALENDAR_AA ?? "",
@@ -135,7 +135,7 @@ const CALENDAR_SINGLE_TITLE_SUFFIX = LINKED_SCHEDULE_MODE_LABEL;
 // TODO(linked-schedules PR5): removing a linked schedule is a plain row soft-delete, which
 // leaves the SURVIVOR's events on the two-schedule name until it is next written.
 function buildEventTitle(meeting: IMeeting, family: IMeeting[]): string {
-    return buildLinkedScheduleLabel(meeting.title, meeting, family, CALENDAR_SINGLE_TITLE_SUFFIX);
+    return buildLinkedScheduleLabel(fellowshipPrefixedTitle(meeting), meeting, family, CALENDAR_SINGLE_TITLE_SUFFIX);
 }
 
 // family: the meeting's linked-schedule family (util/meetings/linkedSchedules.ts), for the

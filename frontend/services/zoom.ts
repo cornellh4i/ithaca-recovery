@@ -3,7 +3,7 @@ import { Prisma } from "@prisma/client";
 import { IMeeting } from "../types/models";
 import { expandOccurrences, findResourceConflicts, findFirstFreePoolHost, getPoolHostLoads, OccurrenceInput } from "../util/meetings/resourceOverlap";
 import { isSharedZoomScheduleCompatible } from "../util/meetings/sharedZoomSchedule";
-import { buildLinkedScheduleLabel, isZoomBearing, resolveFamilyRows } from "../util/meetings/linkedSchedules";
+import { buildLinkedScheduleLabel, fellowshipPrefixedTitle, isZoomBearing, resolveFamilyRows } from "../util/meetings/linkedSchedules";
 import { prisma } from "../lib/prisma";
 
 const ZOOM_BASE_API = process.env.NEXT_PUBLIC_ZOOM_BASE_API ?? "https://api.zoom.us/v2";
@@ -337,7 +337,7 @@ const ZOOM_SINGLE_TOPIC_SUFFIX: Record<string, string> = {
 // Meeting.zoomTopic: a null column keeps meaning "auto, recompute from the current family."
 function zoomTopicFor(meeting: IMeeting, family: IMeeting[] = []): string {
   if (meeting.zoomTopic) return meeting.zoomTopic;
-  return buildLinkedScheduleLabel(meeting.title, meeting, family, ZOOM_SINGLE_TOPIC_SUFFIX);
+  return buildLinkedScheduleLabel(fellowshipPrefixedTitle(meeting), meeting, family, ZOOM_SINGLE_TOPIC_SUFFIX);
 }
 
 function buildZoomMeetingBody(meeting: IMeeting, family: IMeeting[] = []) {

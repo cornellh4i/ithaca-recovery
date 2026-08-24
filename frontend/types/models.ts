@@ -26,6 +26,9 @@ interface IMeeting {
   zoomPasscode?: string | null;
   zoomInvitation?: string | null;
   calType: string[];
+  // Custom fellowship name (only meaningful while calType includes "Other"); AA/Al-Anon derive
+  // from calType when building external titles.
+  fellowship?: string | null;
   modeType: string;
   room: string;
   status?: string;

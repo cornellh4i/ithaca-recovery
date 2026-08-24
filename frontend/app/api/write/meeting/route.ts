@@ -656,6 +656,7 @@ const createMeeting = async (request: Request) => {
                 group: meetingData.group,
                 email: meetingData.email,
                 calType: meetingData.calType,
+                fellowship: meetingData.fellowship ?? null,
                 // Mirrors the primary schedule's status rather than being pinned Active: both
                 // rows are born here, together, so there is no prior suspension for this row to
                 // wrongly inherit -- and a family whose halves disagreed would have one schedule

@@ -668,6 +668,7 @@ async function handleScopedEdit(
           endDateTime: newMeeting.endDateTime,
           email: newMeeting.email,
           calType: newMeeting.calType,
+          fellowship: newMeeting.fellowship ?? null,
           modeType: newMeeting.modeType,
           room: newMeeting.room,
           // Always Active -- see the identical comment on `candidate` above.
@@ -897,7 +898,8 @@ function submitsAnchorEdits(
     submitted.isRecurring !== existing.isRecurring ||
     new Date(submitted.startDateTime).getTime() !== existing.startDateTime.getTime() ||
     new Date(submitted.endDateTime).getTime() !== existing.endDateTime.getTime() ||
-    [...submitted.calType].sort().join("|") !== [...existing.calType].sort().join("|")
+    [...submitted.calType].sort().join("|") !== [...existing.calType].sort().join("|") ||
+    text(submitted.fellowship) !== text(existing.fellowship)
   ) {
     return true;
   }
@@ -1151,6 +1153,7 @@ async function handleLinkedScheduleCreate(
           endDateTime,
           email: anchor.email,
           calType: anchor.calType,
+          fellowship: anchor.fellowship ?? null,
           modeType: linkedSchedule.modeType,
           room: candidate.room,
           zoomRoom: candidate.zoomRoom,

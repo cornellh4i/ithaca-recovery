@@ -132,7 +132,7 @@ describe("toZoomStartTime / buildZoomMeetingBody (via createZoomMeeting's reques
     await createZoomMeeting(meeting, "host@test.icr");
 
     const body = getCapturedBody();
-    expect(body?.topic).toBe("Wednesday AA");
+    expect(body?.topic).toBe("AA Wednesday AA");
     expect(body?.agenda).toBe("Weekly meeting");
     expect(body?.type).toBe(2);
   });
@@ -389,7 +389,7 @@ describe("linked-schedule family topics and recurrence (via the outgoing request
 
     await updateZoomMeeting("zid-shared", hybrid, [hybrid, remoteSaturday()]);
 
-    expect(getCapturedBody()?.topic).toBe("One Day at a Time - Hybrid Mon-Fri - Zoom Only Sat");
+    expect(getCapturedBody()?.topic).toBe("AA One Day at a Time - Hybrid Mon-Fri - Zoom Only Sat");
   });
 
   it("names a Hybrid + In Person family, whose In-Person member holds no Zoom link of its own", async () => {
@@ -399,7 +399,7 @@ describe("linked-schedule family topics and recurrence (via the outgoing request
 
     await updateZoomMeeting("zid-shared", hybrid, [hybrid, inPerson]);
 
-    expect(getCapturedBody()?.topic).toBe("One Day at a Time - Hybrid Mon-Wed - In Person Thu-Fri");
+    expect(getCapturedBody()?.topic).toBe("AA One Day at a Time - Hybrid Mon-Wed - In Person Thu-Fri");
   });
 
   it("names an In Person + Remote family from the Remote member that holds the Zoom meeting", async () => {
@@ -409,7 +409,7 @@ describe("linked-schedule family topics and recurrence (via the outgoing request
 
     await updateZoomMeeting("zid-shared", remote, [inPerson, remote]);
 
-    expect(getCapturedBody()?.topic).toBe("One Day at a Time - In Person Sat - Zoom Only Sun");
+    expect(getCapturedBody()?.topic).toBe("AA One Day at a Time - In Person Sat - Zoom Only Sun");
   });
 
   it("orders segments Hybrid / In Person / Remote regardless of the family's own order", async () => {
@@ -421,7 +421,7 @@ describe("linked-schedule family topics and recurrence (via the outgoing request
     // depend on which row triggered the write or how the rows came back from the database.
     await updateZoomMeeting("zid-shared", remote, [remote, hybrid]);
 
-    expect(getCapturedBody()?.topic).toBe("One Day at a Time - Hybrid Mon-Fri - Zoom Only Sat");
+    expect(getCapturedBody()?.topic).toBe("AA One Day at a Time - Hybrid Mon-Fri - Zoom Only Sat");
   });
 
   it("leaves a single-schedule meeting's topic byte-identical to the mode suffix it has today", async () => {
@@ -429,20 +429,20 @@ describe("linked-schedule family topics and recurrence (via the outgoing request
     const remote = familyRow("m-1", "Remote", ["Monday"]);
 
     await createZoomMeeting(remote, "host@test.icr");
-    expect(getCapturedBody()?.topic).toBe("One Day at a Time - Zoom Only");
+    expect(getCapturedBody()?.topic).toBe("AA One Day at a Time - Zoom Only");
 
     // A family of one (the overwhelmingly common case, as getLinkedFamily returns it) is the
     // same path -- no hierarchy, no trailing day label.
     await createZoomMeeting(remote, "host@test.icr", [remote]);
-    expect(getCapturedBody()?.topic).toBe("One Day at a Time - Zoom Only");
+    expect(getCapturedBody()?.topic).toBe("AA One Day at a Time - Zoom Only");
 
     const hybrid = familyRow("m-1", "Hybrid", ["Monday"]);
     await createZoomMeeting(hybrid, "host@test.icr", [hybrid]);
-    expect(getCapturedBody()?.topic).toBe("One Day at a Time - Hybrid");
+    expect(getCapturedBody()?.topic).toBe("AA One Day at a Time - Hybrid");
 
     const inPerson = familyRow("m-1", "In Person", ["Monday"]);
     await createZoomMeeting(inPerson, "host@test.icr", [inPerson]);
-    expect(getCapturedBody()?.topic).toBe("One Day at a Time");
+    expect(getCapturedBody()?.topic).toBe("AA One Day at a Time");
   });
 
   it("keeps a pinned zoomTopic verbatim even for a linked family", async () => {
@@ -461,7 +461,7 @@ describe("linked-schedule family topics and recurrence (via the outgoing request
 
     await updateZoomMeeting("zid-shared", parent, [parent, splitChild]);
 
-    expect(getCapturedBody()?.topic).toBe("One Day at a Time - Hybrid");
+    expect(getCapturedBody()?.topic).toBe("AA One Day at a Time - Hybrid");
   });
 
   it("excludes an In-Person member's weekdays from Zoom's recurrence union", async () => {
@@ -474,7 +474,7 @@ describe("linked-schedule family topics and recurrence (via the outgoing request
     const body = getCapturedBody();
     // Mon-Fri only: Saturday meets in person, so Zoom must not list an occurrence for it.
     expect(body?.recurrence).toEqual({ type: 2, repeat_interval: 1, weekly_days: "2,3,4,5,6", end_times: 0 });
-    expect(body?.topic).toBe("One Day at a Time - Hybrid Mon-Fri - In Person Sat");
+    expect(body?.topic).toBe("AA One Day at a Time - Hybrid Mon-Fri - In Person Sat");
   });
 
   it("names the family the same way when the caller passes only the other rows", async () => {
@@ -485,7 +485,7 @@ describe("linked-schedule family topics and recurrence (via the outgoing request
     // the row being written is added to it, never counted twice.
     await updateZoomMeeting("zid-shared", hybrid, [remoteSaturday()]);
 
-    expect(getCapturedBody()?.topic).toBe("One Day at a Time - Hybrid Mon-Fri - Zoom Only Sat");
+    expect(getCapturedBody()?.topic).toBe("AA One Day at a Time - Hybrid Mon-Fri - Zoom Only Sat");
   });
 
   it("uses the in-flight row rather than its stored copy when the family already contains it", async () => {
@@ -498,6 +498,6 @@ describe("linked-schedule family topics and recurrence (via the outgoing request
 
     const body = getCapturedBody();
     expect(body?.recurrence).toEqual({ type: 2, repeat_interval: 1, weekly_days: "2,3,4,5,6,7", end_times: 0 });
-    expect(body?.topic).toBe("One Day at a Time - Hybrid Mon-Fri - Zoom Only Sat");
+    expect(body?.topic).toBe("AA One Day at a Time - Hybrid Mon-Fri - Zoom Only Sat");
   });
 });

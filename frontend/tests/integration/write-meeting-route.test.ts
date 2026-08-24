@@ -775,3 +775,17 @@ test("a missing access token persists an error status instead of leaving googleS
   expect(afterSync?.googleSyncError).toBeTruthy();
   expect(mockedCreateCalendarEvent).not.toHaveBeenCalled();
 });
+
+test("fellowship is persisted through the zod parse and Prisma create", async () => {
+  mockedCreateCalendarEvent.mockResolvedValue({ id: "fake-event-id", error: null });
+  const payload = buildMeetingPayload({ calType: ["AA", "Other"], fellowship: "NA", room: "Fellowship Room" });
+  const response = await POST(new Request("http://localhost/api/write/meeting", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  }));
+  expect(response.status).toBe(201);
+
+  const prisma = getTestPrismaClient();
+  const stored = await prisma.meeting.findUnique({ where: { mid: payload.mid } });
+  expect(stored?.fellowship).toBe("NA");
+});

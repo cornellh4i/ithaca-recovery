@@ -51,6 +51,7 @@ function buildMeeting(overrides: Partial<Meeting> = {}): Omit<Meeting, "recurren
     mid: "m-1",
     title: "Test Meeting",
     calType: ["AA"],
+    fellowship: null,
     description: "",
     creator: "creator@test.icr",
     lastEditedBy: null,
