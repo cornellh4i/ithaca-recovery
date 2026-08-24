@@ -180,26 +180,26 @@ describe("buildEventBody — event title", () => {
   });
 
   it("names a lone meeting with its own mode suffix, byte-for-byte as it always has", () => {
-    expect(buildEventBody(buildMeeting({ modeType: "Hybrid" })).summary).toBe("Test Meeting - Hybrid");
-    expect(buildEventBody(buildMeeting({ modeType: "In Person" })).summary).toBe("Test Meeting - In Person");
+    expect(buildEventBody(buildMeeting({ modeType: "Hybrid" })).summary).toBe("AA Test Meeting - Hybrid");
+    expect(buildEventBody(buildMeeting({ modeType: "In Person" })).summary).toBe("AA Test Meeting - In Person");
     // Remote reads as "Zoom Only" -- ICR's meetings are never fully unattended.
-    expect(buildEventBody(buildMeeting({ modeType: "Remote" })).summary).toBe("Test Meeting - Zoom Only");
+    expect(buildEventBody(buildMeeting({ modeType: "Remote" })).summary).toBe("AA Test Meeting - Zoom Only");
   });
 
   it("leaves an unrecognised mode's title bare rather than inventing a suffix", () => {
-    expect(buildEventBody(buildMeeting({ modeType: "Telepathic" })).summary).toBe("Test Meeting");
+    expect(buildEventBody(buildMeeting({ modeType: "Telepathic" })).summary).toBe("AA Test Meeting");
   });
 
   it("keeps the lone-meeting suffix for a family of one, the shape almost every meeting has", () => {
     const remote = familyRow("m-remote", "Remote", ["Monday"]);
-    expect(buildEventBody(remote, [remote]).summary).toBe("One Day at a Time - Zoom Only");
+    expect(buildEventBody(remote, [remote]).summary).toBe("AA One Day at a Time - Zoom Only");
   });
 
   it("names both schedules on every member's event, so the two calendars agree", () => {
     const hybrid = familyRow("m-hybrid", "Hybrid", ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]);
     const remote = familyRow("m-remote", "Remote", ["Saturday"]);
     const family = [hybrid, remote];
-    const expected = "One Day at a Time - Hybrid Mon-Fri - Zoom Only Sat";
+    const expected = "AA One Day at a Time - Hybrid Mon-Fri - Zoom Only Sat";
 
     // Each member keeps its own event with its own dates and RRULE, but both events are named
     // after the whole family -- the same name the family's shared Zoom meeting carries.
@@ -212,14 +212,14 @@ describe("buildEventBody — event title", () => {
     const remote = familyRow("m-remote", "Remote", ["Sunday"]);
 
     expect(buildEventBody(remote, [remote, inPerson]).summary)
-      .toBe("One Day at a Time - In Person Sat - Zoom Only Sun");
+      .toBe("AA One Day at a Time - In Person Sat - Zoom Only Sun");
   });
 
   it("keeps the lone-meeting name when the other rows are the same mode (a scoped edit's split children)", () => {
     const parent = familyRow("m-parent", "Hybrid", ["Monday"]);
     const child = familyRow("m-child", "Hybrid", ["Monday"]);
 
-    expect(buildEventBody(parent, [parent, child]).summary).toBe("One Day at a Time - Hybrid");
+    expect(buildEventBody(parent, [parent, child]).summary).toBe("AA One Day at a Time - Hybrid");
   });
 
   it("names the in-flight edit's days, not the copy of it still stored in the family", () => {
@@ -228,7 +228,7 @@ describe("buildEventBody — event title", () => {
     const remote = familyRow("m-remote", "Remote", ["Saturday"]);
 
     expect(buildEventBody(edited, [stored, remote]).summary)
-      .toBe("One Day at a Time - Hybrid Mon-Fri - Zoom Only Sat");
+      .toBe("AA One Day at a Time - Hybrid Mon-Fri - Zoom Only Sat");
   });
 });
 

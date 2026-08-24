@@ -57,6 +57,7 @@ const NewMeetingSidebar = React.forwardRef<NewMeetingSidebarHandle, NewMeetingSi
       email: inputEmailValue, setEmail: setEmailValue,
       description: inputDescriptionValue, setDescription: setDescriptionValue,
       calTypes: selectedCalTypes,
+      fellowship, setFellowship,
       room: selectedRoom,
       zoomRoom: selectedZoomRoom, setZoomRoom: setSelectedZoomRoom,
       zoomHost: selectedZoomHost, setZoomHost: setSelectedZoomHost,
@@ -289,29 +290,39 @@ const NewMeetingSidebar = React.forwardRef<NewMeetingSidebarHandle, NewMeetingSi
             />
           }
           meetingTypeDropdown={
-            <div style={{ display: 'flex', alignItems: 'center' }}>
-              <span
-                className={styles.meetingTypeIcon}
-                style={{ marginRight: '6px', display: 'flex', alignItems: 'center' }}
-              >
-                <Icon name="group" size={28} ariaLabel="Group Icon" />
-              </span>
-              <div
-                data-testid="meeting-type-checkboxes"
-                style={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: '16px' }}
-              >
-                {CAL_TYPE_OPTIONS.map(type => (
-                  <LabeledCheckbox
-                    key={type}
-                    label={type}
-                    checked={selectedCalTypes.includes(type)}
-                    onChange={(_e) => handleCalTypeToggle(type)}
-                    color={CAL_TYPE_COLOR}
-                    uncheckedBg="#fff"
-                    compact
-                  />
-                ))}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <span
+                  className={styles.meetingTypeIcon}
+                  style={{ marginRight: '6px', display: 'flex', alignItems: 'center' }}
+                >
+                  <Icon name="group" size={28} ariaLabel="Group Icon" />
+                </span>
+                <div
+                  data-testid="meeting-type-checkboxes"
+                  style={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: '16px' }}
+                >
+                  {CAL_TYPE_OPTIONS.map(type => (
+                    <LabeledCheckbox
+                      key={type}
+                      label={type}
+                      checked={selectedCalTypes.includes(type)}
+                      onChange={(_e) => handleCalTypeToggle(type)}
+                      color={CAL_TYPE_COLOR}
+                      uncheckedBg="#fff"
+                      compact
+                    />
+                  ))}
+                </div>
               </div>
+              {selectedCalTypes.includes("Other") && (
+                <TextField
+                  input="Fellowship name (optional)"
+                  value={fellowship}
+                  onChange={setFellowship}
+                  compact
+                />
+              )}
             </div>
           }
           zoomRoomDropdown={

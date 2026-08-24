@@ -281,6 +281,29 @@ export function resolveFamilyRows<TRow extends { mid: string }>(meeting: TRow, f
     : [meeting, ...family];
 }
 
+// Category values that name a fellowship directly; "Other" instead reveals the free-text
+// Meeting.fellowship column. Fixed order so the prefix is stable regardless of the order the
+// category checkboxes were clicked in.
+const FELLOWSHIP_CAL_TYPES = ["AA", "Al-Anon"] as const;
+
+/**
+ * The fellowship-prefixed base title external services display:
+ * `"AA/Al-Anon Serenity Now"`. AA and Al-Anon come straight from calType; a calType of
+ * "Other" contributes the custom `fellowship` text instead (nothing when it's empty). With no
+ * fellowship at all the title passes through unchanged. Like {@link buildLinkedScheduleLabel},
+ * the prefix uses the caller's own row, so family members' names agree only while their
+ * calType/fellowship columns do.
+ */
+export function fellowshipPrefixedTitle(
+  meeting: Pick<IMeeting, "title" | "calType" | "fellowship">,
+): string {
+  const calType = meeting.calType ?? [];
+  const parts: string[] = FELLOWSHIP_CAL_TYPES.filter((name) => calType.includes(name));
+  const custom = calType.includes("Other") ? meeting.fellowship?.trim() : "";
+  if (custom) parts.push(custom);
+  return parts.length ? `${parts.join("/")} ${meeting.title}` : meeting.title;
+}
+
 // How each mode names itself inside a family label. Only Remote is renamed ("Zoom Only") --
 // ICR's meetings are never fully unattended, so "Remote" would read as unhosted.
 export const LINKED_SCHEDULE_MODE_LABEL: Record<LinkedScheduleMode, string> = {

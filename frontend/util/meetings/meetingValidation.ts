@@ -90,6 +90,7 @@ export const meetingSchema = z.object({
   zoomPasscode: z.string().nullable().optional(),
   zoomInvitation: z.string().nullable().optional(),
   calType: z.array(z.string()),
+  fellowship: z.string().max(100).nullable().optional(),
   modeType: z.string(),
   room: z.string(),
   status: z.string().optional(),

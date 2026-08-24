@@ -7,6 +7,7 @@ import {
   canLinkSchedule,
   claimedDaysFor,
   familyMembers,
+  fellowshipPrefixedTitle,
   getLinkedFamily,
   isDetachedSplitChild,
   isZoomBearing,
@@ -328,5 +329,37 @@ describe("isZoomBearing", () => {
 
   test("an unrecognised mode is treated as Zoom-free", () => {
     expect(isZoomBearing({ modeType: "" })).toBe(false);
+  });
+});
+
+describe("fellowshipPrefixedTitle", () => {
+  const titled = (calType: string[], fellowship: string | null = null) =>
+    fellowshipPrefixedTitle({ title: "Serenity Now", calType, fellowship });
+
+  test("prefixes a single fellowship from calType", () => {
+    expect(titled(["AA"])).toBe("AA Serenity Now");
+    expect(titled(["Al-Anon"])).toBe("Al-Anon Serenity Now");
+  });
+
+  test("concatenates multiple fellowships in fixed AA-first order regardless of click order", () => {
+    expect(titled(["Al-Anon", "AA"])).toBe("AA/Al-Anon Serenity Now");
+  });
+
+  test("Other contributes the custom fellowship text", () => {
+    expect(titled(["Other"], "NA")).toBe("NA Serenity Now");
+    expect(titled(["AA", "Other"], "NA")).toBe("AA/NA Serenity Now");
+  });
+
+  test("Other with empty or whitespace text contributes nothing", () => {
+    expect(titled(["Other"], null)).toBe("Serenity Now");
+    expect(titled(["Other"], "   ")).toBe("Serenity Now");
+  });
+
+  test("custom text without Other checked is ignored -- unchecking the category drops the prefix", () => {
+    expect(titled([], "NA")).toBe("Serenity Now");
+  });
+
+  test("no categories leaves the title unchanged", () => {
+    expect(titled([])).toBe("Serenity Now");
   });
 });

@@ -236,3 +236,42 @@ describe("useMeetingForm linked draft against a non-weekly recurrence", () => {
     expect(result.current.isScheduleConfirmed).toBe(false);
   });
 });
+
+describe("useMeetingForm fellowship field", () => {
+  it("submits trimmed fellowship only while Other is checked", () => {
+    const { result } = renderHook(() => useMeetingForm(baseMeeting));
+    act(() => {
+      result.current.handleCalTypeToggle("Other");
+      result.current.setFellowship("  NA  ");
+    });
+    expect(result.current.buildMeetingPayload("m-1", "Active")?.fellowship).toBe("NA");
+
+    // Unchecking Other nulls the payload value even though the typed text is kept in state,
+    // so a ghost prefix can't linger on external titles.
+    act(() => result.current.handleCalTypeToggle("Other"));
+    expect(result.current.buildMeetingPayload("m-1", "Active")?.fellowship).toBeNull();
+    expect(result.current.fellowship).toBe("  NA  ");
+  });
+
+  it("empty fellowship submits null and stays optional (no validation error)", () => {
+    const { result } = renderHook(() => useMeetingForm(baseMeeting));
+    act(() => result.current.handleCalTypeToggle("Other"));
+    expect(result.current.buildMeetingPayload("m-1", "Active")?.fellowship).toBeNull();
+    expect(result.current.getValidationErrors()).toEqual([]);
+  });
+
+  it("editing fellowship marks the form dirty; resetForm clears it", () => {
+    const { result } = renderHook(() => useMeetingForm(baseMeeting));
+    expect(result.current.isDirty).toBe(false);
+    act(() => result.current.setFellowship("NA"));
+    expect(result.current.isDirty).toBe(true);
+    act(() => result.current.resetForm());
+    expect(result.current.fellowship).toBe("");
+  });
+
+  it("seeds fellowship from the stored meeting", () => {
+    const { result } = renderHook(() => useMeetingForm({ ...baseMeeting, calType: ["Other"], fellowship: "NA" }));
+    expect(result.current.fellowship).toBe("NA");
+    expect(result.current.buildMeetingPayload("m-1", "Active")?.fellowship).toBe("NA");
+  });
+});

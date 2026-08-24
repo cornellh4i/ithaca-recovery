@@ -226,3 +226,20 @@ describe("NewMeetingSidebar linked schedule", () => {
     expect(within(draft).getByRole("button", { name: "Saturday" })).toBeEnabled();
   });
 });
+
+describe("fellowship input behind the Other category", () => {
+  it("appears only while Other is checked", async () => {
+    const ref = React.createRef<NewMeetingSidebarHandle>();
+    renderNewMeeting(ref);
+    await act(async () => {});
+
+    expect(screen.queryByPlaceholderText("Fellowship name (optional)")).toBeNull();
+
+    const checkboxes = screen.getByTestId("meeting-type-checkboxes");
+    fireEvent.click(within(checkboxes).getByLabelText("Other"));
+    expect(screen.getByPlaceholderText("Fellowship name (optional)")).toBeInTheDocument();
+
+    fireEvent.click(within(checkboxes).getByLabelText("Other"));
+    expect(screen.queryByPlaceholderText("Fellowship name (optional)")).toBeNull();
+  });
+});

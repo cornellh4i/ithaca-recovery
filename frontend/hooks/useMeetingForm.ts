@@ -206,7 +206,8 @@ function computeDefaultTime(): { time: string; rolledToNextDay: boolean } {
 // append in click order), so unchecking and rechecking a category isn't an "edit".
 function snapshotFields(values: {
     title: string; mode: string; date: string; time: string; email: string;
-    description: string; room: string; calTypes: string[]; zoomRoom: string; zoomHost: string;
+    description: string; room: string; calTypes: string[]; fellowship: string;
+    zoomRoom: string; zoomHost: string;
 }): string {
     return JSON.stringify({ ...values, calTypes: [...values.calTypes].sort() });
 }
@@ -248,6 +249,10 @@ export function useMeetingForm(initialMeeting?: IMeeting, defaultContext?: Meeti
                 : initialMeeting.calType ? [initialMeeting.calType as unknown as string] : []
             : []
     );
+    // Custom fellowship text behind the "Other" category checkbox. Kept even while "Other" is
+    // unchecked so re-checking restores what was typed; buildMeetingPayload nulls it out of the
+    // payload whenever "Other" isn't selected.
+    const [fellowship, setFellowship] = useState(initialMeeting?.fellowship ?? "");
     // Every existing Remote meeting today has a non-null zoomRoom (the old rules required
     // it), but Remote no longer collects/shows this field -- don't resubmit a stale value
     // the new UI can't display or let the user clear.
@@ -320,7 +325,7 @@ export function useMeetingForm(initialMeeting?: IMeeting, defaultContext?: Meeti
     // rather than re-derived from initialMeeting -- a brand-new form's computed date/time
     // defaults count as untouched too.
     const [fieldBaseline, setFieldBaseline] = useState(() =>
-        snapshotFields({ title, mode, date, time, email, description, room, calTypes, zoomRoom, zoomHost })
+        snapshotFields({ title, mode, date, time, email, description, room, calTypes, fellowship, zoomRoom, zoomHost })
     );
 
     // Must be stable: RecurringMeeting.tsx's effect depends on this callback, and an
@@ -464,6 +469,7 @@ export function useMeetingForm(initialMeeting?: IMeeting, defaultContext?: Meeti
             description: "",
             room: "",
             calTypes: [] as string[],
+            fellowship: "",
             zoomRoom: "",
             zoomHost: "",
         };
@@ -475,6 +481,7 @@ export function useMeetingForm(initialMeeting?: IMeeting, defaultContext?: Meeti
         setDescription(resetValues.description);
         setRoom(resetValues.room);
         setCalTypes(resetValues.calTypes);
+        setFellowship(resetValues.fellowship);
         setZoomRoom(resetValues.zoomRoom);
         setZoomHost(resetValues.zoomHost);
         setIsRecurring(false);
@@ -638,6 +645,9 @@ export function useMeetingForm(initialMeeting?: IMeeting, defaultContext?: Meeti
             zoomRoom,
             zoomHost: zoomHost || null,
             calType: calTypes,
+            // Nulled whenever "Other" isn't selected, so unchecking the category can't leave a
+            // ghost prefix on external titles.
+            fellowship: calTypes.includes("Other") && fellowship.trim() ? fellowship.trim() : null,
             status,
             room,
             isRecurring,
@@ -715,7 +725,7 @@ export function useMeetingForm(initialMeeting?: IMeeting, defaultContext?: Meeti
     // because the update route refuses to apply an edit to the meeting and add a linked schedule
     // in one request (they're two writes) and so gates the "Add another mode" trigger on it.
     const isAnchorDirty =
-        snapshotFields({ title, mode, date, time, email, description, room, calTypes, zoomRoom, zoomHost }) !== fieldBaseline ||
+        snapshotFields({ title, mode, date, time, email, description, room, calTypes, fellowship, zoomRoom, zoomHost }) !== fieldBaseline ||
         isRecurrenceDirty;
 
     // A composed-but-unsaved linked schedule is an unsaved change like any other -- without this
@@ -753,6 +763,7 @@ export function useMeetingForm(initialMeeting?: IMeeting, defaultContext?: Meeti
         description, setDescription,
         room, setRoom,
         calTypes, setCalTypes,
+        fellowship, setFellowship,
         zoomRoom, setZoomRoom,
         zoomHost, setZoomHost,
         isRecurring, setIsRecurring,

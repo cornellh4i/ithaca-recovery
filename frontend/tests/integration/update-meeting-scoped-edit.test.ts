@@ -240,7 +240,7 @@ test("editScope 'this' excludes the occurrence on the parent and creates a detac
   const { meeting } = await seedWeeklySeries({ googleCalendarEventIds: { AA: "parent-event-aa" } });
   const occurrenceDate = occurrence(2).start;
 
-  const response = await putMeeting(scopedPayload(meeting.mid, "this", occurrenceDate, { title: "Just This Week" }));
+  const response = await putMeeting(scopedPayload(meeting.mid, "this", occurrenceDate, { title: "Just This Week", calType: ["AA", "Other"], fellowship: "NA" }));
   expect(response.status).toBe(200);
   const body = await response.json();
   expect(body.newMid).toBeTruthy();
@@ -256,6 +256,7 @@ test("editScope 'this' excludes the occurrence on the parent and creates a detac
   expect(created?.isRecurring).toBe(false);
   expect(created?.splitFromMid).toBe(meeting.mid);
   expect(created?.title).toBe("Just This Week");
+  expect(created?.fellowship).toBe("NA");
   expect(created?.zid).toBe(meeting.zid);
   expect(created?.zoomHost).toBe(meeting.zoomHost);
   expect(created?.zoomManaged).toBe(meeting.zoomManaged);
