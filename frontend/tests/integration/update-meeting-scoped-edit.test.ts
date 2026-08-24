@@ -114,6 +114,9 @@ async function seedWeeklySeries(overrides: Partial<Parameters<typeof seedRecurri
       zoomHost: `zoom-${randomUUID()}@518icr.com`,
       zoomManaged: true,
       zoomTopic: "Pinned Scoped-Edit Topic",
+      zoomCustomPasscode: "inherit1",
+      zoomMeetAnytime: true,
+      zoomJoinBeforeHost: false,
       modeType: "Remote",
       zoomRoom: null,
       room: "",
@@ -261,6 +264,11 @@ test("editScope 'this' excludes the occurrence on the parent and creates a detac
   expect(created?.zoomHost).toBe(meeting.zoomHost);
   expect(created?.zoomManaged).toBe(meeting.zoomManaged);
   expect(created?.zoomTopic).toBe(meeting.zoomTopic);
+  // Advanced Zoom settings describe the shared Zoom meeting -- inherited from the stored row,
+  // not the payload.
+  expect(created?.zoomCustomPasscode).toBe(meeting.zoomCustomPasscode);
+  expect(created?.zoomMeetAnytime).toBe(meeting.zoomMeetAnytime);
+  expect(created?.zoomJoinBeforeHost).toBe(meeting.zoomJoinBeforeHost);
 
   // No Zoom API call for the split-off row -- the zid/host/link are inherited, not provisioned.
   expect(mockedCreateZoomMeeting).not.toHaveBeenCalled();

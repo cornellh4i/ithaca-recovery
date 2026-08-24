@@ -16,6 +16,11 @@ interface IMeeting {
   lastEditedBy?: string | null; // server-managed: session email of the last admin to save an edit
   zoomManaged?: boolean; // false = the app points at an ICR-owned/external Zoom meeting and never mutates it
   zoomTopic?: string | null; // pinned Zoom display topic; null derives title + mode suffix
+  // Advanced Zoom settings (see schema.prisma). zoomCustomPasscode is admin intent to push a
+  // passcode; zoomPasscode below stays the read-back mirror of Zoom's actual value.
+  zoomCustomPasscode?: string | null;
+  zoomMeetAnytime?: boolean;
+  zoomJoinBeforeHost?: boolean;
   group: string; // group interface later on [optional]
   startDateTime: Date;
   endDateTime: Date;

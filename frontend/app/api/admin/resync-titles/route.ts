@@ -58,7 +58,9 @@ const resyncTitles = async (request: Request): Promise<Response> => {
         ...(mids ? { mid: { in: mids } } : cursor ? { mid: { gt: cursor } } : {}),
       },
       orderBy: { mid: "asc" },
-      take: limit,
+      // A mids batch is processed whole -- take: limit would silently truncate it while
+      // nextCursor: null below reads as "complete".
+      take: mids ? mids.length : limit,
       include: { recurrencePattern: true },
     });
 
@@ -75,6 +77,11 @@ const resyncTitles = async (request: Request): Promise<Response> => {
         // A pinned topic keeps its verbatim Zoom name; only the calendar events get newTitle.
         pinnedZoomTopic: meeting.zoomTopic,
         zoomManaged: meeting.zoomManaged,
+        // Surfaced in the dry run because executing such a row does more than rename: the
+        // shared reconcile will mint a Zoom meeting (and consume a host slot) for a
+        // Zoom-bearing row that never got one.
+        willProvisionZoom:
+          !meeting.zid && meeting.zoomManaged && (meeting.modeType === "Hybrid" || meeting.modeType === "Remote"),
       };
       if (dryRun) {
         results.push(base);

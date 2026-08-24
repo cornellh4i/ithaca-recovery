@@ -30,7 +30,7 @@ export { DESCRIPTION_MAX_LENGTH, MAX_RECURRENCE_OCCURRENCES };
 // message can cover two fields, e.g. the Hybrid room/zoomRoom rule below).
 export type MeetingFormField =
   | "title" | "date" | "time" | "email" | "calTypes" | "description" | "room" | "zoomRoom" | "recurrence"
-  | "linkedSchedule";
+  | "linkedSchedule" | "zoomCustomPasscode";
 
 export interface MeetingFormFieldError {
   fields: MeetingFormField[];
@@ -207,7 +207,8 @@ function computeDefaultTime(): { time: string; rolledToNextDay: boolean } {
 function snapshotFields(values: {
     title: string; mode: string; date: string; time: string; email: string;
     description: string; room: string; calTypes: string[]; fellowship: string;
-    zoomRoom: string; zoomHost: string;
+    zoomRoom: string; zoomHost: string; zoomCustomPasscode: string;
+    zoomMeetAnytime: boolean; zoomJoinBeforeHost: boolean;
 }): string {
     return JSON.stringify({ ...values, calTypes: [...values.calTypes].sort() });
 }
@@ -260,6 +261,11 @@ export function useMeetingForm(initialMeeting?: IMeeting, defaultContext?: Meeti
         initialMeeting?.modeType === "Remote" ? "" : (initialMeeting?.zoomRoom ?? "")
     );
     const [zoomHost, setZoomHost] = useState(initialMeeting?.zoomHost ?? "");
+    // Advanced Zoom settings (the disclosure under the Zoom host field). The passcode is admin
+    // intent to PUSH a value; blank = never send a password field (services/zoom.ts).
+    const [zoomCustomPasscode, setZoomCustomPasscode] = useState(initialMeeting?.zoomCustomPasscode ?? "");
+    const [zoomMeetAnytime, setZoomMeetAnytime] = useState(initialMeeting?.zoomMeetAnytime ?? false);
+    const [zoomJoinBeforeHost, setZoomJoinBeforeHost] = useState(initialMeeting?.zoomJoinBeforeHost ?? true);
     // Snapshot of the Zoom Host the form opened with -- same gating role as modeBaseline above.
     // The server 400s a scoped save's host change (a non-empty host that case-insensitively
     // differs from the parent's), so comparisons below match that case-insensitive rule exactly
@@ -325,7 +331,7 @@ export function useMeetingForm(initialMeeting?: IMeeting, defaultContext?: Meeti
     // rather than re-derived from initialMeeting -- a brand-new form's computed date/time
     // defaults count as untouched too.
     const [fieldBaseline, setFieldBaseline] = useState(() =>
-        snapshotFields({ title, mode, date, time, email, description, room, calTypes, fellowship, zoomRoom, zoomHost })
+        snapshotFields({ title, mode, date, time, email, description, room, calTypes, fellowship, zoomRoom, zoomHost, zoomCustomPasscode, zoomMeetAnytime, zoomJoinBeforeHost })
     );
 
     // Must be stable: RecurringMeeting.tsx's effect depends on this callback, and an
@@ -471,6 +477,9 @@ export function useMeetingForm(initialMeeting?: IMeeting, defaultContext?: Meeti
             calTypes: [] as string[],
             fellowship: "",
             zoomRoom: "",
+            zoomCustomPasscode: "",
+            zoomMeetAnytime: false,
+            zoomJoinBeforeHost: true,
             zoomHost: "",
         };
         setTitle(resetValues.title);
@@ -484,6 +493,9 @@ export function useMeetingForm(initialMeeting?: IMeeting, defaultContext?: Meeti
         setFellowship(resetValues.fellowship);
         setZoomRoom(resetValues.zoomRoom);
         setZoomHost(resetValues.zoomHost);
+        setZoomCustomPasscode(resetValues.zoomCustomPasscode);
+        setZoomMeetAnytime(resetValues.zoomMeetAnytime);
+        setZoomJoinBeforeHost(resetValues.zoomJoinBeforeHost);
         setIsRecurring(false);
         setRecurrencePattern(null);
         setSubmitAttempted(false);
@@ -538,6 +550,18 @@ export function useMeetingForm(initialMeeting?: IMeeting, defaultContext?: Meeti
             errors.push({
                 fields: ["description"],
                 message: `Description must be ${DESCRIPTION_MAX_LENGTH} characters or fewer (Zoom's limit) — currently ${description.length}.`,
+            });
+        }
+
+        // Mirrors meetingSchema's server-side rule so a value Zoom would reject blocks submit
+        // here instead of silently 400ing. Gated on a Zoom-bearing mode: the field isn't even
+        // rendered for In Person, so an error there would point at nothing on screen (the
+        // payload drops the value for those modes too).
+        if ((mode === "Hybrid" || mode === "Remote")
+            && zoomCustomPasscode && !/^[a-zA-Z0-9@\-_*]{1,10}$/.test(zoomCustomPasscode.trim())) {
+            errors.push({
+                fields: ["zoomCustomPasscode"],
+                message: "Zoom passcode must be 10 characters or fewer, using only letters, numbers, @ - _ *.",
             });
         }
 
@@ -651,6 +675,13 @@ export function useMeetingForm(initialMeeting?: IMeeting, defaultContext?: Meeti
             status,
             room,
             isRecurring,
+            // Dropped to their inert defaults for a mode with no Zoom meeting -- like
+            // fellowship above, a hidden field must not smuggle a live value into the row
+            // (it would spring back the moment the meeting turns Zoom-bearing again).
+            zoomCustomPasscode: (mode === "Hybrid" || mode === "Remote") && zoomCustomPasscode.trim()
+                ? zoomCustomPasscode.trim() : null,
+            zoomMeetAnytime: (mode === "Hybrid" || mode === "Remote") && zoomMeetAnytime,
+            zoomJoinBeforeHost: (mode === "Hybrid" || mode === "Remote") ? zoomJoinBeforeHost : true,
         };
 
         if (isRecurring && recurrencePattern) {
@@ -725,7 +756,7 @@ export function useMeetingForm(initialMeeting?: IMeeting, defaultContext?: Meeti
     // because the update route refuses to apply an edit to the meeting and add a linked schedule
     // in one request (they're two writes) and so gates the "Add another mode" trigger on it.
     const isAnchorDirty =
-        snapshotFields({ title, mode, date, time, email, description, room, calTypes, fellowship, zoomRoom, zoomHost }) !== fieldBaseline ||
+        snapshotFields({ title, mode, date, time, email, description, room, calTypes, fellowship, zoomRoom, zoomHost, zoomCustomPasscode, zoomMeetAnytime, zoomJoinBeforeHost }) !== fieldBaseline ||
         isRecurrenceDirty;
 
     // A composed-but-unsaved linked schedule is an unsaved change like any other -- without this
@@ -766,6 +797,9 @@ export function useMeetingForm(initialMeeting?: IMeeting, defaultContext?: Meeti
         fellowship, setFellowship,
         zoomRoom, setZoomRoom,
         zoomHost, setZoomHost,
+        zoomCustomPasscode, setZoomCustomPasscode,
+        zoomMeetAnytime, setZoomMeetAnytime,
+        zoomJoinBeforeHost, setZoomJoinBeforeHost,
         isRecurring, setIsRecurring,
         recurrencePattern, setRecurrencePattern,
         handleRecurringMeetingChange,

@@ -76,6 +76,16 @@ model Meeting {
   // " - Zoom Only", ICR's own naming convention); non-null = pinned verbatim -- backfilled with
   // the adopted legacy meetings' exact topics so an app-side edit never renames them by surprise.
   zoomTopic              String?
+  // Admin intent from the form's Advanced Zoom settings: "push this passcode to Zoom". Distinct
+  // from zoomPasscode, which stays the read-back mirror of whatever Zoom actually holds. Null =
+  // never send a password field at all (Zoom keeps whatever it has).
+  zoomCustomPasscode    String?
+  // Advanced Zoom setting: the meeting is created on Zoom as type 3 (recurring, no fixed time /
+  // joinable anytime) instead of a scheduled type 2/8 series. Calendar events keep the real
+  // schedule regardless.
+  zoomMeetAnytime       Boolean               @default(false)
+  // Advanced Zoom setting, default matches the previously hardcoded body value.
+  zoomJoinBeforeHost    Boolean               @default(true)
   // When the live Zoom passcode/join URL was last seen differing from the stored copy (set by
   // the monthly zoom-scan workflow and the on-open drift check; cleared once a retry sync
   // adopts the live values). Non-null feeds the calendar's sync-attention badge without any

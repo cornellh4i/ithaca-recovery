@@ -344,6 +344,28 @@ function buildZoomMeetingBody(meeting: IMeeting, family: IMeeting[] = []) {
   const durationMinutes = Math.round(
     (new Date(meeting.endDateTime).getTime() - new Date(meeting.startDateTime).getTime()) / 60000,
   );
+  const settings = {
+    host_video: true,
+    participant_video: true,
+    join_before_host: meeting.zoomJoinBeforeHost ?? true,
+  };
+  // Sent only when an admin explicitly set one (Advanced Zoom settings) -- omitting the key on
+  // a PATCH means Zoom keeps whatever passcode it has, which is what preserves the
+  // "credentials flow FROM Zoom" contract for every meeting without a custom passcode.
+  const password = meeting.zoomCustomPasscode ? { password: meeting.zoomCustomPasscode } : {};
+  // "Meet anytime": a type-3 recurring meeting with no fixed time -- Zoom rejects/ignores a
+  // recurrence or start_time on it, so the schedule (and the shared-rows divergence question)
+  // doesn't apply at all; calendar events keep the real schedule regardless.
+  if (meeting.zoomMeetAnytime) {
+    return {
+      topic: zoomTopicFor(meeting, family),
+      type: 3,
+      duration: durationMinutes,
+      agenda: meeting.description,
+      ...password,
+      settings,
+    };
+  }
   const recurrence = buildZoomRecurrence(meeting, family);
   if (recurrence === "incompatible") {
     // Divergent shared rows can't be one fixed-time series -- send a schedule-neutral body
@@ -353,7 +375,8 @@ function buildZoomMeetingBody(meeting: IMeeting, family: IMeeting[] = []) {
       topic: zoomTopicFor(meeting, family),
       duration: durationMinutes,
       agenda: meeting.description,
-      settings: { host_video: true, participant_video: true, join_before_host: true },
+      ...password,
+      settings,
     };
   }
   return {
@@ -367,7 +390,8 @@ function buildZoomMeetingBody(meeting: IMeeting, family: IMeeting[] = []) {
     duration: durationMinutes,
     timezone: "America/New_York",
     agenda: meeting.description,
-    settings: { host_video: true, participant_video: true, join_before_host: true },
+    ...password,
+    settings,
   };
 }
 
@@ -424,8 +448,10 @@ export async function getZoomMeetingInvitation(zid: string): Promise<string | nu
 
 // Live join credentials straight from Zoom, for drift detection/reconciliation against the
 // stored copy. Zoom is the source of truth for passcode/join URL -- a portal-side passcode
-// change rewrites join_url's ?pwd= with no signal to the app (our PATCHes never send a
-// password field, so they neither revert nor absorb it). null = couldn't fetch; callers must
+// change rewrites join_url's ?pwd= with no signal to the app. A PATCH sends a password field
+// only when the meeting carries a zoomCustomPasscode (Advanced Zoom settings); the sync paths
+// re-fetch these credentials right after such a PATCH, so the stored copy adopts the rewritten
+// join URL and later drift checks compare against it. null = couldn't fetch; callers must
 // keep their stored values rather than treat an unreachable API as drift.
 export async function getZoomMeetingCredentials(zid: string): Promise<{ passcode: string | null; joinUrl: string | null } | null> {
   try {

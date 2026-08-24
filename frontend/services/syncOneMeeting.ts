@@ -122,6 +122,19 @@ export async function syncOneMeeting(mid: string, accessToken: string): Promise<
                 ? await updateZoomMeeting(zid, meetingForCalendar, family)
                 : true;
             if (!ok) zoomSynced = false;
+            // The PATCH above may have pushed a new custom passcode, making Zoom rewrite
+            // join_url's ?pwd= AFTER the credential fetch adopted the pre-PATCH values --
+            // re-fetch so the calendar writes below carry the rewritten link.
+            if (ok && meeting.zoomManaged
+                && meeting.zoomCustomPasscode
+                && meeting.zoomCustomPasscode !== zoomPasscode) {
+                const postPatchCredentials = await getZoomMeetingCredentials(zid);
+                if (postPatchCredentials?.joinUrl) {
+                    zoomLink = postPatchCredentials.joinUrl;
+                    zoomPasscode = postPatchCredentials.passcode;
+                    liveCredentialsFetched = true;
+                }
+            }
         } else if (!meeting.zoomManaged) {
             // An unmanaged meeting with no zid points outside the app's Zoom account by
             // deliberate choice -- a retry must not auto-provision an app-owned meeting

@@ -275,3 +275,64 @@ describe("useMeetingForm fellowship field", () => {
     expect(result.current.buildMeetingPayload("m-1", "Active")?.fellowship).toBe("NA");
   });
 });
+
+describe("useMeetingForm advanced Zoom settings", () => {
+  // The settings only apply to a mode with a Zoom meeting -- an In Person payload drops them
+  // to inert defaults (see the mode-gating cases below).
+  const zoomMeeting: IMeeting = { ...baseMeeting, modeType: "Remote", room: "" };
+  it("defaults: no custom passcode, scheduled (not meet-anytime), join-before-host on", () => {
+    const { result } = renderHook(() => useMeetingForm(baseMeeting));
+    const payload = result.current.buildMeetingPayload("m-1", "Active");
+    expect(payload?.zoomCustomPasscode).toBeNull();
+    expect(payload?.zoomMeetAnytime).toBe(false);
+    expect(payload?.zoomJoinBeforeHost).toBe(true);
+  });
+
+  it("submits the trimmed passcode and the toggles as set", () => {
+    const { result } = renderHook(() => useMeetingForm(zoomMeeting));
+    act(() => {
+      result.current.setZoomCustomPasscode(" abc123 ");
+      result.current.setZoomMeetAnytime(true);
+      result.current.setZoomJoinBeforeHost(false);
+    });
+    const payload = result.current.buildMeetingPayload("m-1", "Active");
+    expect(payload?.zoomCustomPasscode).toBe("abc123");
+    expect(payload?.zoomMeetAnytime).toBe(true);
+    expect(payload?.zoomJoinBeforeHost).toBe(false);
+  });
+
+  it("rejects a passcode outside Zoom's constraints, mirroring the server rule", () => {
+    const { result } = renderHook(() => useMeetingForm(zoomMeeting));
+    act(() => result.current.setZoomCustomPasscode("way-too-long-passcode"));
+    expect(result.current.getValidationErrors().some((e) => e.fields.includes("zoomCustomPasscode"))).toBe(true);
+    act(() => result.current.setZoomCustomPasscode("abc 123"));
+    expect(result.current.getValidationErrors().some((e) => e.fields.includes("zoomCustomPasscode"))).toBe(true);
+    act(() => result.current.setZoomCustomPasscode("abc-123"));
+    expect(result.current.getValidationErrors().some((e) => e.fields.includes("zoomCustomPasscode"))).toBe(false);
+  });
+
+  it("a non-Zoom mode drops the settings to inert defaults and skips passcode validation", () => {
+    const { result } = renderHook(() => useMeetingForm(baseMeeting)); // In Person
+    act(() => {
+      result.current.setZoomCustomPasscode("way-too-long-passcode");
+      result.current.setZoomMeetAnytime(true);
+      result.current.setZoomJoinBeforeHost(false);
+    });
+    expect(result.current.getValidationErrors().some((e) => e.fields.includes("zoomCustomPasscode"))).toBe(false);
+    const payload = result.current.buildMeetingPayload("m-1", "Active");
+    expect(payload?.zoomCustomPasscode).toBeNull();
+    expect(payload?.zoomMeetAnytime).toBe(false);
+    expect(payload?.zoomJoinBeforeHost).toBe(true);
+  });
+
+  it("editing any advanced setting marks the form dirty; seeds from the stored meeting", () => {
+    const seeded = { ...zoomMeeting, zoomCustomPasscode: "pw1", zoomMeetAnytime: true, zoomJoinBeforeHost: false };
+    const { result } = renderHook(() => useMeetingForm(seeded));
+    expect(result.current.zoomCustomPasscode).toBe("pw1");
+    expect(result.current.zoomMeetAnytime).toBe(true);
+    expect(result.current.zoomJoinBeforeHost).toBe(false);
+    expect(result.current.isDirty).toBe(false);
+    act(() => result.current.setZoomJoinBeforeHost(true));
+    expect(result.current.isDirty).toBe(true);
+  });
+});
