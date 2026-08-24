@@ -106,6 +106,11 @@ export const meetingSchema = z.object({
   zoomCalendarEventId: z.string().nullable().optional(),
   zoomSyncStatus: z.string().nullable().optional(),
   zoomHost: z.string().nullable().optional(),
+  // Zoom's own passcode constraints (<=10 chars from its allowed set) -- enforced here so a
+  // value Zoom would reject 400s at the door instead of failing the deferred sync.
+  zoomCustomPasscode: z.string().max(10).regex(/^[a-zA-Z0-9@\-_*]*$/).nullable().optional(),
+  zoomMeetAnytime: z.boolean().optional(),
+  zoomJoinBeforeHost: z.boolean().optional(),
   zoomSyncError: z.string().nullable().optional(),
   deletedAt: z.coerce.date().nullable().optional(),
   updatedAt: z.coerce.date().nullable().optional(),

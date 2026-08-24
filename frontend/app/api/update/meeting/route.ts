@@ -7,7 +7,7 @@ import {
   createCalendarEvent, updateCalendarEvent, deleteCalendarEvent, reconcileMeetingCalendars,
   calendarIdsForMeeting,
 } from "../../../../services/googleCalendar";
-import { createZoomMeeting, updateZoomMeeting, deleteZoomMeeting, getZoomHostCapacities, getZoomMeetingInvitation, rehostZoomMeeting, resolveZoomHost, zoomHostPool, zoomRoomCalendarId } from "../../../../services/zoom";
+import { createZoomMeeting, updateZoomMeeting, deleteZoomMeeting, getZoomHostCapacities, getZoomMeetingCredentials, getZoomMeetingInvitation, rehostZoomMeeting, resolveZoomHost, zoomHostPool, zoomRoomCalendarId } from "../../../../services/zoom";
 import { findResourceConflicts, findResourceConflictRows, ConflictRow, ResourceConflictAbort } from "../../../../util/meetings/resourceOverlap";
 import { lockResourceClaims, ResourceClaim } from "../../../../util/meetings/resourceLocks";
 import { meetingSchema, editScopeSchema, linkedScheduleSchema, LinkedScheduleInput } from "../../../../util/meetings/meetingValidation";
@@ -217,6 +217,19 @@ async function syncUpdatedMeeting(
           ? await updateZoomMeeting(zid, { ...newMeeting, zoomTopic: existingMeeting.zoomTopic }, family)
           : true;
         if (!ok) zoomSynced = false;
+        // A PATCH that pushed a new custom passcode just made Zoom rewrite join_url's ?pwd= --
+        // adopt the rewritten credentials BEFORE the calendar writes below, or every event
+        // (whose description embeds zoomLink) republishes the now-dead old link. A failed
+        // fetch keeps the stored values; the next Retry sync adopts them then.
+        if (ok && existingMeeting.zoomManaged
+          && newMeeting.zoomCustomPasscode
+          && newMeeting.zoomCustomPasscode !== existingMeeting.zoomPasscode) {
+          const liveCredentials = await getZoomMeetingCredentials(zid);
+          if (liveCredentials?.joinUrl) {
+            zoomLink = liveCredentials.joinUrl;
+            zoomPasscode = liveCredentials.passcode;
+          }
+        }
       }
     } else if (!existingMeeting.zoomManaged) {
       // An unmanaged meeting with no zid means an admin deliberately points it outside the
@@ -688,6 +701,11 @@ async function handleScopedEdit(
           zoomHost: existingMeeting.zoomHost,
           zoomManaged: existingMeeting.zoomManaged,
           zoomTopic: existingMeeting.zoomTopic,
+          // Advanced Zoom settings describe the SHARED Zoom meeting the child inherits, not the
+          // schedule -- copied from the stored row like zoomTopic/zoomManaged above.
+          zoomCustomPasscode: existingMeeting.zoomCustomPasscode,
+          zoomMeetAnytime: existingMeeting.zoomMeetAnytime,
+          zoomJoinBeforeHost: existingMeeting.zoomJoinBeforeHost,
           splitFromMid,
           ...(isRecurringSplit
             ? {
@@ -1176,6 +1194,10 @@ async function handleLinkedScheduleCreate(
                 // A pinned family name stays pinned for every member; a null one keeps meaning
                 // "auto, recompute from the current family" (services/zoom.ts).
                 zoomTopic: anchor.zoomTopic,
+                // Advanced settings of the family's ONE Zoom meeting -- every member must agree.
+                zoomCustomPasscode: anchor.zoomCustomPasscode,
+                zoomMeetAnytime: anchor.zoomMeetAnytime,
+                zoomJoinBeforeHost: anchor.zoomJoinBeforeHost,
               }
             : {}),
           ...(provisionsZoom

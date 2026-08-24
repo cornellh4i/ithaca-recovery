@@ -243,3 +243,22 @@ describe("fellowship input behind the Other category", () => {
     expect(screen.queryByPlaceholderText("Fellowship name (optional)")).toBeNull();
   });
 });
+
+describe("advanced Zoom settings disclosure", () => {
+  it("collapsed by default for a Zoom-bearing mode, revealing its fields on toggle", async () => {
+    const ref = React.createRef<NewMeetingSidebarHandle>();
+    renderNewMeeting(ref);
+    await act(async () => {});
+
+    // Default mode is Hybrid, so the disclosure trigger is present but its fields are hidden.
+    const toggle = screen.getByRole("button", { name: "Advanced Zoom settings" });
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByPlaceholderText("Custom passcode")).toBeNull();
+
+    fireEvent.click(toggle);
+    expect(toggle).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByPlaceholderText("Custom passcode")).toBeInTheDocument();
+    expect(screen.getByLabelText("Meet anytime (recurring, no fixed time)")).not.toBeChecked();
+    expect(screen.getByLabelText("Allow joining before the host")).toBeChecked();
+  });
+});

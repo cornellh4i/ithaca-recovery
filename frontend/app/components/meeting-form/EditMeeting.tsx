@@ -10,6 +10,7 @@ import Dropdown from '../ui/inputs/Dropdown';
 import LabeledCheckbox from '../ui/inputs/CheckBox';
 import RecurringMeetingForm from './RecurringMeeting';
 import ZoomHostField from './ZoomHostField';
+import AdvancedZoomSettings from './AdvancedZoomSettings';
 import ConflictOverrideModal from './ConflictOverrideModal';
 import DiscardChangesModal from './DiscardChangesModal';
 import FormValidationBanner from './FormValidationBanner';
@@ -77,6 +78,9 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
       fellowship, setFellowship,
       zoomRoom: selectedZoomRoom, setZoomRoom: setSelectedZoomRoom,
       zoomHost: selectedZoomHost, setZoomHost: setSelectedZoomHost,
+      zoomCustomPasscode, setZoomCustomPasscode,
+      zoomMeetAnytime, setZoomMeetAnytime,
+      zoomJoinBeforeHost, setZoomJoinBeforeHost,
       isRecurring,
       recurrencePattern,
       scheduleInstants,
@@ -566,19 +570,33 @@ const EditMeetingSidebar: React.FC<EditMeetingSidebarProps> =
             />
           }
           zoomHostDropdown={
-            <ZoomHostField
-              zoomHost={selectedZoomHost}
-              onZoomHostChange={setSelectedZoomHost}
-              isVisible={true}
-              compact={compact}
-              getCandidate={() => buildMeetingPayload(meeting.mid, meeting.status ?? 'Active')}
-              lockedReason={meeting.zoomManaged === false
-                ? "External Zoom link; host can't be reassigned from the app."
-                : undefined}
-              sharedLinkNote={sharedWithText
-                ? `This Zoom link is shared with ${sharedWithText}; the schedule saved here feeds that same Zoom meeting.`
-                : undefined}
-            />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <ZoomHostField
+                zoomHost={selectedZoomHost}
+                onZoomHostChange={setSelectedZoomHost}
+                isVisible={true}
+                compact={compact}
+                getCandidate={() => buildMeetingPayload(meeting.mid, meeting.status ?? 'Active')}
+                lockedReason={meeting.zoomManaged === false
+                  ? "External Zoom link; host can't be reassigned from the app."
+                  : undefined}
+                sharedLinkNote={sharedWithText
+                  ? `This Zoom link is shared with ${sharedWithText}; the schedule saved here feeds that same Zoom meeting.`
+                  : undefined}
+              />
+              <AdvancedZoomSettings
+                zoomCustomPasscode={zoomCustomPasscode}
+                onZoomCustomPasscodeChange={setZoomCustomPasscode}
+                zoomMeetAnytime={zoomMeetAnytime}
+                onZoomMeetAnytimeChange={setZoomMeetAnytime}
+                zoomJoinBeforeHost={zoomJoinBeforeHost}
+                onZoomJoinBeforeHostChange={setZoomJoinBeforeHost}
+                isVisible={selectedMode === "Hybrid" || selectedMode === "Remote"}
+                passcodeError={getFieldError("zoomCustomPasscode")}
+                onPasscodeBlur={() => markFieldTouched("zoomCustomPasscode")}
+                compact={compact}
+              />
+            </div>
           }
           emailTextField={<TextField
             input="Email"

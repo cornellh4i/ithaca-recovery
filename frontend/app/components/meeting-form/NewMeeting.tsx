@@ -11,6 +11,7 @@ import LabeledCheckbox from '../ui/inputs/CheckBox';
 import RecurringMeetingForm from './RecurringMeeting';
 import MeetingSchedules from './MeetingSchedules';
 import ZoomHostField from './ZoomHostField';
+import AdvancedZoomSettings from './AdvancedZoomSettings';
 import ConflictOverrideModal from './ConflictOverrideModal';
 import DiscardChangesModal from './DiscardChangesModal';
 import FormValidationBanner from './FormValidationBanner';
@@ -61,6 +62,9 @@ const NewMeetingSidebar = React.forwardRef<NewMeetingSidebarHandle, NewMeetingSi
       room: selectedRoom,
       zoomRoom: selectedZoomRoom, setZoomRoom: setSelectedZoomRoom,
       zoomHost: selectedZoomHost, setZoomHost: setSelectedZoomHost,
+      zoomCustomPasscode, setZoomCustomPasscode,
+      zoomMeetAnytime, setZoomMeetAnytime,
+      zoomJoinBeforeHost, setZoomJoinBeforeHost,
       isRecurring,
       recurrencePattern,
       scheduleInstants,
@@ -338,13 +342,27 @@ const NewMeetingSidebar = React.forwardRef<NewMeetingSidebarHandle, NewMeetingSi
             />
           }
           zoomHostDropdown={
-            <ZoomHostField
-              zoomHost={selectedZoomHost}
-              onZoomHostChange={setSelectedZoomHost}
-              isVisible={selectedMode === "Hybrid" || selectedMode === "Remote"}
-              compact
-              getCandidate={() => buildMeetingPayload(uuidv4(), 'Active')}
-            />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <ZoomHostField
+                zoomHost={selectedZoomHost}
+                onZoomHostChange={setSelectedZoomHost}
+                isVisible={selectedMode === "Hybrid" || selectedMode === "Remote"}
+                compact
+                getCandidate={() => buildMeetingPayload(uuidv4(), 'Active')}
+              />
+              <AdvancedZoomSettings
+                zoomCustomPasscode={zoomCustomPasscode}
+                onZoomCustomPasscodeChange={setZoomCustomPasscode}
+                zoomMeetAnytime={zoomMeetAnytime}
+                onZoomMeetAnytimeChange={setZoomMeetAnytime}
+                zoomJoinBeforeHost={zoomJoinBeforeHost}
+                onZoomJoinBeforeHostChange={setZoomJoinBeforeHost}
+                isVisible={selectedMode === "Hybrid" || selectedMode === "Remote"}
+                passcodeError={getFieldError("zoomCustomPasscode")}
+                onPasscodeBlur={() => markFieldTouched("zoomCustomPasscode")}
+                compact
+              />
+            </div>
           }
           emailTextField={<TextField
             input="Email"

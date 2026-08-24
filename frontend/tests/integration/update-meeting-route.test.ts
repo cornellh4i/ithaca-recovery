@@ -40,6 +40,7 @@ jest.mock("../../services/zoom", () => ({
   updateZoomMeeting: jest.fn(),
   rehostZoomMeeting: jest.fn(),
   deleteZoomMeeting: jest.fn(),
+  getZoomMeetingCredentials: jest.fn(),
   getZoomMeetingInvitation: jest.fn(),
   resolveZoomHost: jest.fn(),
   // Per-host capacities are resolved before the locked transaction and threaded into the
@@ -1136,4 +1137,69 @@ test("a missing access token persists an error status instead of leaving googleS
   expect(afterSync?.googleSyncStatus).toBe("error");
   expect(afterSync?.googleSyncError).toBeTruthy();
   expect(mockedReconcileMeetingCalendars).not.toHaveBeenCalled();
+});
+
+test("an edit pushing a new custom passcode adopts Zoom's rewritten credentials before persisting", async () => {
+  const { getZoomMeetingCredentials } = jest.requireMock("../../services/zoom");
+  const mockedGetZoomMeetingCredentials = getZoomMeetingCredentials as jest.Mock;
+  mockedGetZoomMeetingCredentials.mockReset();
+  mockedUpdateZoomMeeting.mockResolvedValue(true);
+  mockedReconcileMeetingCalendars.mockResolvedValue({ updatedEventIds: {}, allSynced: true });
+  mockedGetZoomMeetingCredentials.mockResolvedValue({
+    passcode: "newpw1",
+    joinUrl: "https://zoom.test/j/70000000779?pwd=rewritten",
+  });
+
+  const prisma = getTestPrismaClient();
+  const mid = `m-${randomUUID()}`;
+  const host = `zoom-${randomUUID()}@518icr.com`;
+  await prisma.meeting.create({ data: { ...toMeetingCreateInput(buildMeetingPayload({
+    mid, modeType: "Remote", room: "", zoomRoom: "", zid: "70000000779", zoomHost: host,
+    zoomLink: "https://zoom.test/j/70000000779?pwd=old", zoomPasscode: "oldpw",
+  })), zoomManaged: true, zoomSyncStatus: "synced" } });
+
+  const edit = buildMeetingPayload({
+    mid, modeType: "Remote", room: "", zoomRoom: "", zoomHost: host,
+    zoomCustomPasscode: "newpw1",
+  });
+  const response = await PUT(new Request("http://localhost/api/update/meeting", { method: "PUT", body: JSON.stringify(edit) }));
+  expect(response.status).toBe(200);
+
+  // The PATCH body carries the custom passcode, and the stored copy adopts the rewritten link.
+  const updated = await waitFor(async () => {
+    const row = await prisma.meeting.findUnique({ where: { mid } });
+    return row?.zoomPasscode === "newpw1" ? row : null;
+  });
+  expect(mockedUpdateZoomMeeting).toHaveBeenCalledWith(
+    "70000000779",
+    expect.objectContaining({ zoomCustomPasscode: "newpw1" }),
+    expect.any(Array),
+  );
+  expect(updated.zoomLink).toBe("https://zoom.test/j/70000000779?pwd=rewritten");
+  expect(updated.zoomCustomPasscode).toBe("newpw1");
+});
+
+test("an edit with no custom passcode never fetches credentials or sends a password", async () => {
+  const { getZoomMeetingCredentials } = jest.requireMock("../../services/zoom");
+  const mockedGetZoomMeetingCredentials = getZoomMeetingCredentials as jest.Mock;
+  mockedGetZoomMeetingCredentials.mockReset();
+  mockedUpdateZoomMeeting.mockResolvedValue(true);
+  mockedReconcileMeetingCalendars.mockResolvedValue({ updatedEventIds: {}, allSynced: true });
+
+  const prisma = getTestPrismaClient();
+  const mid = `m-${randomUUID()}`;
+  const host = `zoom-${randomUUID()}@518icr.com`;
+  await prisma.meeting.create({ data: { ...toMeetingCreateInput(buildMeetingPayload({
+    mid, modeType: "Remote", room: "", zoomRoom: "", zid: "70000000780", zoomHost: host,
+    zoomPasscode: "portalpw",
+  })), zoomManaged: true, zoomSyncStatus: "synced" } });
+
+  const edit = buildMeetingPayload({ mid, modeType: "Remote", room: "", zoomRoom: "", zoomHost: host });
+  const response = await PUT(new Request("http://localhost/api/update/meeting", { method: "PUT", body: JSON.stringify(edit) }));
+  expect(response.status).toBe(200);
+
+  await waitFor(async () => (mockedUpdateZoomMeeting.mock.calls.length > 0 ? true : null));
+  expect(mockedGetZoomMeetingCredentials).not.toHaveBeenCalled();
+  const row = await prisma.meeting.findUnique({ where: { mid } });
+  expect(row?.zoomPasscode).toBe("portalpw");
 });

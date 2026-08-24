@@ -501,3 +501,44 @@ describe("linked-schedule family topics and recurrence (via the outgoing request
     expect(body?.topic).toBe("AA One Day at a Time - Hybrid Mon-Fri - Zoom Only Sat");
   });
 });
+
+describe("advanced Zoom settings (via the outgoing request body)", () => {
+  it("sends no password key by default, so a PATCH leaves Zoom's passcode untouched", async () => {
+    const { getCapturedBody } = mockFetchCapturingBody();
+    await createZoomMeeting(buildMeeting(), "host@test.icr");
+    expect(getCapturedBody()).not.toHaveProperty("password");
+  });
+
+  it("sends the custom passcode when one is stored", async () => {
+    const { getCapturedBody } = mockFetchCapturingBody();
+    await createZoomMeeting(buildMeeting({ zoomCustomPasscode: "abc-123" }), "host@test.icr");
+    expect(getCapturedBody()?.password).toBe("abc-123");
+  });
+
+  it("join_before_host follows the stored setting and defaults on", async () => {
+    const { getCapturedBody } = mockFetchCapturingBody();
+    await createZoomMeeting(buildMeeting(), "host@test.icr");
+    expect((getCapturedBody()?.settings as Record<string, unknown>).join_before_host).toBe(true);
+
+    await createZoomMeeting(buildMeeting({ zoomJoinBeforeHost: false }), "host@test.icr");
+    expect((getCapturedBody()?.settings as Record<string, unknown>).join_before_host).toBe(false);
+  });
+
+  it("meet anytime sends type 3 with no recurrence or start_time, even for a recurring series", async () => {
+    const { getCapturedBody } = mockFetchCapturingBody();
+    const meeting = buildMeeting({
+      zoomMeetAnytime: true,
+      isRecurring: true,
+      recurrencePattern: {
+        type: "weekly", startDate: new Date("2026-07-01T23:00:00.000Z"), endDate: null,
+        daysOfWeek: ["Wednesday"], firstDayOfWeek: "Sunday", interval: 1,
+      },
+    });
+    await createZoomMeeting(meeting, "host@test.icr");
+    const body = getCapturedBody();
+    expect(body?.type).toBe(3);
+    expect(body).not.toHaveProperty("recurrence");
+    expect(body).not.toHaveProperty("start_time");
+    expect(body?.topic).toBe("AA Test Meeting");
+  });
+});

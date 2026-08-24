@@ -657,6 +657,11 @@ const createMeeting = async (request: Request) => {
                 email: meetingData.email,
                 calType: meetingData.calType,
                 fellowship: meetingData.fellowship ?? null,
+                // The family's ONE Zoom meeting has one set of advanced settings -- both rows
+                // carry them (like zid/link below) so either member's sync sends the same body.
+                zoomCustomPasscode: meetingData.zoomCustomPasscode ?? null,
+                zoomMeetAnytime: meetingData.zoomMeetAnytime ?? false,
+                zoomJoinBeforeHost: meetingData.zoomJoinBeforeHost ?? true,
                 // Mirrors the primary schedule's status rather than being pinned Active: both
                 // rows are born here, together, so there is no prior suspension for this row to
                 // wrongly inherit -- and a family whose halves disagreed would have one schedule
