@@ -43,4 +43,34 @@
             cursor: pointer;
         }
     }
+
+    &.compact {
+        gap: 6px;
+        font-size: 13px;
+
+        // Caption treatment, matching the meeting form's field captions
+        // (MeetingForm.module.scss's .fieldCaption).
+        .radioGroupLabel {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            color: $medium-grey-color;
+        }
+
+        .radioGroupOptions {
+            gap: 10px;
+        }
+
+        .radioOption {
+            gap: 8px;
+            align-items: center;
+        }
+
+        .radioCustomIcon svg {
+            display: block;
+            width: 16px;
+            height: 16.8px;
+        }
+    }
 }

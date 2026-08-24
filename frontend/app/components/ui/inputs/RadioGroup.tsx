@@ -13,6 +13,9 @@ interface RadioGroupProps {
     // <label>, not a child, so clicking into it doesn't also toggle the radio via native
     // label-to-control click forwarding.
     optionContent?: Partial<Record<string, React.ReactNode>>;
+    // Meeting-form scale: caption-style group label and smaller options, matching the other
+    // form atoms' compact variants. The admin modals keep the full-size default.
+    compact?: boolean;
     [key: string]: unknown;
 }
 
@@ -24,10 +27,11 @@ const RadioGroup: React.FC<RadioGroupProps> = ({
     name,
     disabledOptions = [],
     optionContent = {},
+    compact = false,
     ...props
 }) => {
     return (
-        <div className={styles.radioGroupContainer} {...props}>
+        <div className={`${styles.radioGroupContainer} ${compact ? styles.compact : ''}`.trim()} {...props}>
             <label className={styles.radioGroupLabel}>{label}</label>
             <div className={styles.radioGroupOptions}>
                 {options.map((option) => {
