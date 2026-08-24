@@ -85,10 +85,9 @@ const Field: React.FC<{
 
 export interface ModeFieldsProps {
   /**
-   * Every mode this section's fields have to serve. The meeting's own Mode block passes the one
-   * selected mode; a section whose mode is still being picked (the linked schedule's) passes
-   * every mode still open to it, so the union stays mounted across all of them -- see
-   * util/rooms/modeFields.ts.
+   * The modes this section's fields have to serve -- the meeting's own Mode block and the linked
+   * schedule's card each pass their one selected mode. A field mounts when any mode in the set
+   * uses it (util/rooms/modeFields.ts), so a set is accepted rather than a single mode.
    */
   modes: string[];
   roomSelectionDropdown: React.ReactElement;

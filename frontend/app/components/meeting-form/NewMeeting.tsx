@@ -71,6 +71,8 @@ const NewMeetingSidebar = React.forwardRef<NewMeetingSidebarHandle, NewMeetingSi
       selectLinkedDraftRoom,
       toggleLinkedDraftDay,
       discardLinkedDraft,
+      isLinkedDraftConfirmed, setIsLinkedDraftConfirmed,
+      linkedDraftDiscardedNote,
       handleRecurringMeetingChange,
       handleRoomChange,
       handleModeSelect,
@@ -255,6 +257,7 @@ const NewMeetingSidebar = React.forwardRef<NewMeetingSidebarHandle, NewMeetingSi
               }
               isConfirmed={isScheduleConfirmed}
               onEditSchedule={() => setIsScheduleConfirmed(false)}
+              onConfirmSchedule={() => setIsScheduleConfirmed(true)}
               modeType={selectedMode}
               recurrencePattern={recurrencePattern}
               isRecurring={isRecurring}
@@ -262,12 +265,16 @@ const NewMeetingSidebar = React.forwardRef<NewMeetingSidebarHandle, NewMeetingSi
               room={selectedRoom}
               zoomRoom={selectedZoomRoom}
               draft={linkedDraft}
+              isDraftConfirmed={isLinkedDraftConfirmed}
+              draftDiscardedNote={linkedDraftDiscardedNote}
               onAddSchedule={startLinkedDraft}
               onSelectDraftMode={selectLinkedDraftMode}
               onSelectDraftRoom={selectLinkedDraftRoom}
               onSelectDraftZoomRoom={(value) => updateLinkedDraft({ zoomRoom: value })}
               onToggleDraftDay={toggleLinkedDraftDay}
               onDiscardDraft={discardLinkedDraft}
+              onConfirmDraft={() => setIsLinkedDraftConfirmed(true)}
+              onEditDraft={() => setIsLinkedDraftConfirmed(false)}
               compact
             />
           }

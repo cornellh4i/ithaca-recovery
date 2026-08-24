@@ -253,119 +253,120 @@ const RecurringMeetingForm: React.FC<RecurringMeetingFormProps> = ({
       </div>
 
       {isRecurring && (
-        <div>
-          <div className={styles.isRecurring}>
+        <div className={styles.isRecurring}>
+          <div className={layout === "wide" ? styles.compactField : undefined}>
+            {/* Caption above the control, like the form's other fields -- not Dropdown's own
+                inline 18px label, which reads as a different design next to them. */}
+            <span className={styles.fieldCaption}>Repeats</span>
+            <Dropdown
+              label=""
+              value={recurrenceType === "monthly" ? "Monthly" : "Weekly"}
+              isVisible={true}
+              elements={['Weekly', 'Monthly']}
+              name="Select frequency"
+              onChange={(val) => {
+                const type = val.toLowerCase();
+                setRecurrenceType(type);
+                if (type === "monthly" && startDate && !monthlyOption) {
+                  const opts = getMonthlyOptions(startDate);
+                  if (opts.length > 0) setMonthlyOption(opts[0]);
+                }
+              }}
+              compact={layout === "sidebar"}
+            />
+          </div>
+
+          {recurrenceType === "weekly" && (
+            <>
+              <div className={styles.intervalRow}>
+                <label className={styles.inlineLabel}>Every</label>
+                <SpinnerInput
+                  value={frequency}
+                  min={1}
+                  step={1}
+                  onChange={setFrequency}
+                />
+                <label className={styles.inlineLabel}>week(s)</label>
+              </div>
+
+              {(!frequency || frequency < 1) && (
+                <div className={styles['error-message']}>
+                  Please specify a number of weeks.
+                </div>
+              )}
+
+              <DayPicker
+                label="On"
+                selectedDays={selectedDays}
+                onToggleDay={toggleDay}
+                compact={layout === "sidebar"}
+              />
+
+              {touched && selectedDays.length === 0 && (
+                <div className={styles['error-message']}>
+                  Please select at least one day.
+                </div>
+              )}
+            </>
+          )}
+
+          {recurrenceType === "monthly" && (
             <div className={layout === "wide" ? styles.compactField : undefined}>
               <Dropdown
-                label="Repeats"
-                value={recurrenceType === "monthly" ? "Monthly" : "Weekly"}
+                key={startDate}
+                label=""
+                value={monthlyOption}
                 isVisible={true}
-                elements={['Weekly', 'Monthly']}
-                name="Select frequency"
-                onChange={(val) => {
-                  const type = val.toLowerCase();
-                  setRecurrenceType(type);
-                  if (type === "monthly" && startDate && !monthlyOption) {
-                    const opts = getMonthlyOptions(startDate);
-                    if (opts.length > 0) setMonthlyOption(opts[0]);
-                  }
-                }}
+                elements={monthlyOptions}
+                name="Select recurrence"
+                onChange={setMonthlyOption}
                 compact={layout === "sidebar"}
               />
             </div>
+          )}
 
-            {recurrenceType === "weekly" && (
-              <>
-                <div style={{ display: 'flex', alignItems: 'center', marginBottom: '18px' }}>
-                  <label style={{ marginRight: '5px' }}>Every</label>
-                  <SpinnerInput
-                    value={frequency}
-                    min={1}
-                    step={1}
-                    onChange={setFrequency}
-                  />
-                  <label style={{ marginLeft: '5px' }}>week(s)</label>
-                </div>
-
-                {(!frequency || frequency < 1) && (
-                  <div className={styles['error-message']}>
-                    Please specify a number of weeks.
-                  </div>
-                )}
-
-                <DayPicker
-                  label="On"
-                  selectedDays={selectedDays}
-                  onToggleDay={toggleDay}
+          <RadioGroup
+            compact
+            label="Ends"
+            options={endOptions}
+            selectedOption={endOption}
+            onChange={handleEndOptionChange}
+            name="recurrence-end"
+            optionContent={{
+              On: (
+                <DatePicker
+                  label={""}
+                  value={endDate}
+                  onChange={(val) => setEndDate(val)}
                   compact={layout === "sidebar"}
                 />
-
-                {touched && selectedDays.length === 0 && (
-                  <div className={styles['error-message']}>
-                    Please select at least one day.
+              ),
+              After: (
+                <div className={styles['spinner-group']}>
+                  <div className={styles['spinner-container']}>
+                    <SpinnerInput
+                      value={occurrences}
+                      min={1}
+                      max={MAX_RECURRENCE_OCCURRENCES}
+                      step={1}
+                      onChange={setOccurrences}
+                    />
+                    <label className={styles.inlineLabel}>occurrence(s)</label>
                   </div>
-                )}
-              </>
-            )}
-
-            {recurrenceType === "monthly" && (
-              <div className={layout === "wide" ? styles.compactField : undefined}>
-                <Dropdown
-                  key={startDate}
-                  label=""
-                  value={monthlyOption}
-                  isVisible={true}
-                  elements={monthlyOptions}
-                  name="Select recurrence"
-                  onChange={setMonthlyOption}
-                  compact={layout === "sidebar"}
-                />
-              </div>
-            )}
-
-            <RadioGroup
-              label="Ends"
-              options={endOptions}
-              selectedOption={endOption}
-              onChange={handleEndOptionChange}
-              name="recurrence-end"
-              optionContent={{
-                On: (
-                  <DatePicker
-                    label={""}
-                    value={endDate}
-                    onChange={(val) => setEndDate(val)}
-                    compact={layout === "sidebar"}
-                  />
-                ),
-                After: (
-                  <div className={styles['spinner-group']}>
-                    <div className={styles['spinner-container']}>
-                      <SpinnerInput
-                        value={occurrences}
-                        min={1}
-                        max={MAX_RECURRENCE_OCCURRENCES}
-                        step={1}
-                        onChange={setOccurrences}
-                      />
-                      <label style={{ marginLeft: '5px' }}>occurrence(s)</label>
+                  {(!occurrences || occurrences < 1) && (
+                    <div className={styles['error-message']}>
+                      Please enter at least one occurrence.
                     </div>
-                    {(!occurrences || occurrences < 1) && (
-                      <div className={styles['error-message']}>
-                        Please enter at least one occurrence.
-                      </div>
-                    )}
-                    {occurrences > MAX_RECURRENCE_OCCURRENCES && (
-                      <div className={styles['error-message']}>
-                        Please enter {MAX_RECURRENCE_OCCURRENCES} occurrences or fewer.
-                      </div>
-                    )}
-                  </div>
-                ),
-              }}
-            />
-          </div>
-          <div className={styles.separator}></div>
+                  )}
+                  {occurrences > MAX_RECURRENCE_OCCURRENCES && (
+                    <div className={styles['error-message']}>
+                      Please enter {MAX_RECURRENCE_OCCURRENCES} occurrences or fewer.
+                    </div>
+                  )}
+                </div>
+              ),
+            }}
+          />
         </div>
       )}
     </div>

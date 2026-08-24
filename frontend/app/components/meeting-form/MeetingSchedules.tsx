@@ -18,6 +18,7 @@ import {
   type LinkedFamily,
   type LinkedScheduleRow,
 } from '../../../util/meetings/linkedSchedules';
+import { modeFieldRequirement } from '../../../util/rooms/modeFields';
 import { physicalRoomOptions, zoomRoomOptions } from '../../../util/rooms/rooms';
 import { formatETLongDate } from '../../../util/date/timeUtils';
 
@@ -35,6 +36,8 @@ export interface MeetingSchedulesProps {
   /** Whether the editor is collapsed into its summary card. */
   isConfirmed: boolean;
   onEditSchedule: () => void;
+  /** Collapses the meeting's own recurrence editor into its summary card (the Done button). */
+  onConfirmSchedule: () => void;
   modeType: string;
   recurrencePattern: IRecurrencePattern | null;
   isRecurring: boolean;
@@ -45,6 +48,13 @@ export interface MeetingSchedulesProps {
   /** Schedules this meeting already runs (the edit path); empty for a meeting being created. */
   savedSchedules?: SavedSchedule[];
   draft: LinkedScheduleDraft | null;
+  /** Whether the draft is collapsed into its own summary card, as `isConfirmed` does above. */
+  isDraftConfirmed: boolean;
+  /**
+   * Whether a draft was dropped because the meeting stopped repeating weekly, so the warning
+   * explaining that stands where the card was.
+   */
+  draftDiscardedNote?: boolean;
   /** Collapses this meeting's own schedule into its summary card AND opens the second one. */
   onAddSchedule: (modeType: string) => void;
   onSelectDraftMode: (modeType: string) => void;
@@ -52,6 +62,8 @@ export interface MeetingSchedulesProps {
   onSelectDraftZoomRoom: (zoomRoom: string) => void;
   onToggleDraftDay: (day: string) => void;
   onDiscardDraft: () => void;
+  onConfirmDraft: () => void;
+  onEditDraft: () => void;
   compact?: boolean;
   /**
    * Why a second schedule can't be started right now, when the reason is worth saying. Disables
@@ -85,13 +97,14 @@ function inheritedScheduleText(
  *
  * The linked schedule's mode and days are locked against the ones already in use (a family's
  * schedules must differ in mode and never share a weekday -- Zoom holds them as one union
- * schedule), and its Room / Zoom room fields are the meeting form's own, mounted for the union
- * of every mode still selectable here so nothing remounts as the admin toggles between them.
+ * schedule), and its Room / Zoom room fields are the meeting form's own, mounted for whichever
+ * mode it currently uses.
  */
 const MeetingSchedules: React.FC<MeetingSchedulesProps> = ({
   recurrenceEditor,
   isConfirmed,
   onEditSchedule,
+  onConfirmSchedule,
   modeType,
   recurrencePattern,
   isRecurring,
@@ -100,12 +113,16 @@ const MeetingSchedules: React.FC<MeetingSchedulesProps> = ({
   zoomRoom,
   savedSchedules = [],
   draft,
+  isDraftConfirmed,
+  draftDiscardedNote = false,
   onAddSchedule,
   onSelectDraftMode,
   onSelectDraftRoom,
   onSelectDraftZoomRoom,
   onToggleDraftDay,
   onDiscardDraft,
+  onConfirmDraft,
+  onEditDraft,
   compact = false,
   addBlockedNote,
 }) => {
@@ -159,11 +176,60 @@ const MeetingSchedules: React.FC<MeetingSchedulesProps> = ({
     zoomRoom,
   };
 
+  // Same guard the primary card uses: with no readable time range there is nothing to summarise,
+  // so the editor stays open rather than collapsing into a half-empty card.
+  const draftSummary = draft &&
+    scheduleInstants && {
+      modeType: draft.modeType,
+      recurrencePattern: {
+        type: 'weekly',
+        weekOfMonth: null,
+        dayOfMonth: null,
+        daysOfWeek: draft.daysOfWeek,
+      },
+      startDateTime: scheduleInstants.startDateTime,
+      endDateTime: scheduleInstants.endDateTime,
+      room: draft.room,
+      zoomRoom: draft.zoomRoom,
+    };
+
+  // Everything the draft still owes before it can be collapsed -- including a readable time range,
+  // without which draftSummary above can't be built and Done would be a dead click.
+  const draftRequired = modeFieldRequirement(draft ? [draft.modeType] : []);
+  const isDraftComplete =
+    !!draft &&
+    isWeeklySeries &&
+    scheduleInstants !== null &&
+    draft.daysOfWeek.length > 0 &&
+    (!draftRequired.room || !!draft.room) &&
+    (!draftRequired.zoomRoom || !!draft.zoomRoom);
+
   return (
     <div className={styles.schedules}>
       {/* Kept mounted while collapsed, not unmounted: remounting would reseed the recurrence
           controls from the stored pattern and lose everything edited in this session. */}
       <div className={isConfirmed ? styles.collapsedEditor : undefined}>{recurrenceEditor}</div>
+
+      {/* Same contract as the draft's Done: collapses the editor into its card, nothing more --
+          offered only while there is a recurrence box to collapse, and disabled while the card
+          couldn't yet say anything useful (no readable time, or a weekly series with no day). */}
+      {!isConfirmed && isRecurring && (
+        <div className={styles.cardActions}>
+          <button
+            type="button"
+            className={styles.doneButton}
+            onClick={onConfirmSchedule}
+            disabled={
+              scheduleInstants === null ||
+              recurrencePattern === null ||
+              (recurrencePattern.type === 'weekly' && (recurrencePattern.daysOfWeek?.length ?? 0) === 0)
+            }
+            data-testid="schedule-done"
+          >
+            Done
+          </button>
+        </div>
+      )}
 
       {isConfirmed && primarySummary && (
         <>
@@ -199,7 +265,34 @@ const MeetingSchedules: React.FC<MeetingSchedulesProps> = ({
         </>
       )}
 
-      {draft && (
+      {/* Rendered independently of the draft: the point of it is that the draft is gone. A live
+          region because nothing the admin did on this region raised it -- editing the recurrence
+          above discarded the card for them. The region itself stays in the DOM empty, since a
+          live region inserted together with its text is announced unreliably. */}
+      <p className={styles.blockedNote} role="status" data-testid="linked-schedule-discarded-note">
+        {draftDiscardedNote && (
+          <>
+            <Icon name="warning-circle" size={16} />
+            <span>The linked schedule was removed because this meeting no longer repeats weekly.</span>
+          </>
+        )}
+      </p>
+
+      {isDraftConfirmed && draftSummary && (
+        <>
+          <ScheduleSummaryCard schedule={draftSummary} onRemove={onDiscardDraft} />
+          <div className={styles.actionRow}>
+            {/* Named by its mode, visibly: both edit links can be on screen at once, and
+                distinguishing them in an aria-label alone would leave two identical visible
+                labels (WCAG 2.5.3 Label in Name). */}
+            <button type="button" className={styles.linkButton} onClick={onEditDraft}>
+              {`Edit the ${draft.modeType} schedule`}
+            </button>
+          </div>
+        </>
+      )}
+
+      {draft && !(isDraftConfirmed && draftSummary) && (
         <div className={styles.scheduleCard} data-testid="linked-schedule-draft">
           <div className={styles.cardHeader}>
             <h4 className={styles.cardHeading}>New linked schedule</h4>
@@ -234,11 +327,12 @@ const MeetingSchedules: React.FC<MeetingSchedulesProps> = ({
             />
           </div>
 
-          {/* The meeting form's own Room / Zoom room / Zoom host block, mounted for every mode
-              still selectable above rather than for the one currently picked -- so the fields
-              don't come and go (dropping what was typed in them) as the admin toggles modes. */}
+          {/* The meeting form's own Room / Zoom room / Zoom host block, showing exactly what the
+              picked mode uses. Switching modes clears the fields the new mode doesn't use
+              (useMeetingForm.ts's selectLinkedDraftMode), so a room chosen under one mode can't
+              reach the payload as a resource the chosen mode never books. */}
           <ModeFields
-            modes={candidateModes}
+            modes={[draft.modeType]}
             roomSelectionDropdown={
               <Dropdown
                 label={<Icon name="location" size={28} ariaLabel="Location Icon" />}
@@ -276,6 +370,21 @@ const MeetingSchedules: React.FC<MeetingSchedulesProps> = ({
             }
             zoomHostHint=""
           />
+
+          {/* Collapses the card, nothing more -- the schedule is written by the form's own
+              Create/Save, so this is disabled only while the draft is still missing something
+              the summary card would need: a day, a room the mode uses, or a readable time. */}
+          <div className={styles.cardActions}>
+            <button
+              type="button"
+              className={styles.doneButton}
+              onClick={onConfirmDraft}
+              disabled={!isDraftComplete}
+              data-testid="linked-schedule-done"
+            >
+              Done
+            </button>
+          </div>
         </div>
       )}
     </div>

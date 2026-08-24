@@ -271,6 +271,18 @@ export function useMeetingForm(initialMeeting?: IMeeting, defaultContext?: Meeti
     // The second schedule being composed, if any. Never more than one: a meeting runs at most
     // LINKED_SCHEDULE_CAP schedules, and the create form only ever adds the second.
     const [linkedDraft, setLinkedDraft] = useState<LinkedScheduleDraft | null>(null);
+    // Whether the composed second schedule is collapsed into its own read-only card, exactly as
+    // isScheduleConfirmed does for this meeting's own recurrence. Display state only.
+    const [isLinkedDraftConfirmed, setIsLinkedDraftConfirmed] = useState(false);
+    // Set when a draft was dropped for the admin rather than by them (see
+    // handleRecurringMeetingChange), so the form can say where the card went.
+    const [linkedDraftDiscardedNote, setLinkedDraftDiscardedNote] = useState(false);
+    // Mirrors linkedDraft for handleRecurringMeetingChange, which has to stay referentially
+    // stable (RecurringMeeting's own effect depends on it) and so can't close over the draft.
+    // A commit behind is harmless here: nothing that starts or drops a draft also reports a
+    // recurrence change in the same commit.
+    const linkedDraftRef = useRef<LinkedScheduleDraft | null>(null);
+    useEffect(() => { linkedDraftRef.current = linkedDraft; }, [linkedDraft]);
     // Flips true on the first failed submit -- before that, FormValidationBanner stays hidden
     // even if fields are technically incomplete (nobody wants to see errors before they've
     // tried to save). Once true, liveValidationErrors below re-derives on every render, so the
@@ -319,6 +331,26 @@ export function useMeetingForm(initialMeeting?: IMeeting, defaultContext?: Meeti
     }) => {
         setIsRecurring(data.isRecurring);
         setRecurrencePattern(data.recurrencePattern);
+        // A linked schedule exists only as part of a weekly union: the server derives its whole
+        // series from this meeting's weekly pattern. Switching the meeting off weekly therefore
+        // drops the draft outright, instead of leaving a card describing a repeat the meeting no
+        // longer has. Guarded on a draft actually existing, so RecurringMeetingForm's own
+        // mount-time reports can never raise the notice.
+        const isWeeklySeries = data.isRecurring && data.recurrencePattern?.type === "weekly";
+        if (!isWeeklySeries && linkedDraftRef.current) {
+            linkedDraftRef.current = null;
+            setLinkedDraft(null);
+            setIsLinkedDraftConfirmed(false);
+            setLinkedDraftDiscardedNote(true);
+            // This meeting's own schedule collapses only to make room for a second one; with that
+            // gone, its summary card would be rebuilt from a pattern the meeting no longer has, so
+            // the editor reopens beside the notice.
+            setIsScheduleConfirmed(false);
+        } else if (isWeeklySeries) {
+            // Back on a weekly series, so a second schedule can be started again -- leaving the
+            // notice up would contradict the re-enabled "Add another mode" trigger beside it.
+            setLinkedDraftDiscardedNote(false);
+        }
         // recurrencePattern.startDate is excluded from the dirty-comparison signature below --
         // RecurringMeetingForm rebuilds it from this hook's own `date` field on every Date-field
         // edit (its main effect depends on the `startDate` prop), so it shifts every time
@@ -365,6 +397,8 @@ export function useMeetingForm(initialMeeting?: IMeeting, defaultContext?: Meeti
     const startLinkedDraft = (modeType: string) => {
         setIsScheduleConfirmed(true);
         setLinkedDraft({ mid: uuidv4(), modeType, daysOfWeek: [], room: "", zoomRoom: "" });
+        setIsLinkedDraftConfirmed(false);
+        setLinkedDraftDiscardedNote(false);
     };
 
     const updateLinkedDraft = (patch: Partial<Omit<LinkedScheduleDraft, "mid">>) => {
@@ -374,13 +408,12 @@ export function useMeetingForm(initialMeeting?: IMeeting, defaultContext?: Meeti
     const selectLinkedDraftMode = (modeType: string) => {
         setLinkedDraft((prev) => {
             if (!prev) return prev;
-            const cleared = {
+            return {
                 ...prev,
                 modeType,
                 room: modeType === "Remote" ? "" : prev.room,
                 zoomRoom: modeType === "Hybrid" ? prev.zoomRoom : "",
             };
-            return cleared;
         });
     };
 
@@ -404,7 +437,15 @@ export function useMeetingForm(initialMeeting?: IMeeting, defaultContext?: Meeti
         });
     };
 
-    const discardLinkedDraft = () => setLinkedDraft(null);
+    // An explicit discard needs no explanation of where the card went, so it clears the notice.
+    const discardLinkedDraft = () => {
+        // Synchronously, like the auto-discard branch: a recurrence report landing in the same
+        // commit must not see the discarded draft through the ref and raise the notice.
+        linkedDraftRef.current = null;
+        setLinkedDraft(null);
+        setIsLinkedDraftConfirmed(false);
+        setLinkedDraftDiscardedNote(false);
+    };
 
     const handleCalTypeToggle = (type: string) => {
         setCalTypes(prev =>
@@ -441,7 +482,10 @@ export function useMeetingForm(initialMeeting?: IMeeting, defaultContext?: Meeti
         setSubmitAttempted(false);
         setTouchedFields(new Set());
         setIsScheduleConfirmed(false);
+        linkedDraftRef.current = null;
         setLinkedDraft(null);
+        setIsLinkedDraftConfirmed(false);
+        setLinkedDraftDiscardedNote(false);
         // A reset form reads as untouched again -- rebaseline rather than leaving the values
         // it opened with as the comparison point.
         setFieldBaseline(snapshotFields(resetValues));
@@ -608,11 +652,9 @@ export function useMeetingForm(initialMeeting?: IMeeting, defaultContext?: Meeti
         // interval and week phase; its dates and end condition are re-derived server-side from
         // this meeting, whatever is sent (linkedScheduleBlockSchema).
         if (options?.withLinkedSchedule && linkedDraft && isRecurring && recurrencePattern) {
-            // INVARIANT: only the fields the chosen mode actually uses are sent. The draft's
-            // Room / Zoom room dropdowns stay mounted for every mode still selectable (the
-            // superset modeFieldVisibility returns for ModeFields), so a value picked under one
-            // mode survives a later switch to a mode that doesn't use it -- a Remote schedule
-            // holding a room would be advisory-locked, conflict-checked and published on it.
+            // INVARIANT: only the fields the chosen mode actually uses are sent. Belt-and-braces
+            // over selectLinkedDraftMode's own clearing rule: a Remote schedule carrying a room
+            // would be advisory-locked, conflict-checked and published on it.
             const linkedFields = modeFieldVisibility([linkedDraft.modeType]);
             payload.linkedSchedule = {
                 mid: linkedDraft.mid,
@@ -735,6 +777,8 @@ export function useMeetingForm(initialMeeting?: IMeeting, defaultContext?: Meeti
         selectLinkedDraftRoom,
         toggleLinkedDraftDay,
         discardLinkedDraft,
+        isLinkedDraftConfirmed, setIsLinkedDraftConfirmed,
+        linkedDraftDiscardedNote,
         isAnchorDirty,
         isDirty,
         isRecurrenceDirty,

@@ -170,8 +170,8 @@ export function canLinkSchedule(family: LinkedFamily): boolean {
 /**
  * The modes a new linked schedule may take: every mode no existing member already holds, in
  * {@link LINKED_SCHEDULE_MODES} order. Empty once the family is at the cap. Drives the form's
- * mode-button locking, the superset of Room / Zoom Room / Zoom Host fields it mounts, and the
- * server's rejection of a duplicate mode -- one source of truth for all three.
+ * mode-button locking and the server's rejection of a duplicate mode -- one source of truth for
+ * both.
  */
 export function availableModesFor(family: LinkedFamily): LinkedScheduleMode[] {
   if (!canLinkSchedule(family)) return [];
