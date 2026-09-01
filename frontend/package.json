@@ -1,6 +1,6 @@
 {
   "name": "frontend",
-  "version": "2026.8.3",
+  "version": "2026.9.0",
   "private": true,
   "scripts": {
     "dev": "node build-scripts/generate-docs-content.mjs && next dev",
