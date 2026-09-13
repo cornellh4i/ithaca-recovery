@@ -35,7 +35,11 @@ function MainContent({ children }: PropsWithChildren) {
     const { navHidden } = useCalendarContext();
     const { handleScroll } = useScrollNavHide();
     return (
-        <div className={`${styles.content} ${navHidden ? styles.navHidden : ""}`} onScroll={handleScroll}>
+        <div
+            className={`${styles.content} ${navHidden ? styles.navHidden : ""}`}
+            data-testid="app-shell-content"
+            onScroll={handleScroll}
+        >
             {children}
         </div>
     );

@@ -54,15 +54,11 @@
   // (page.module.scss) -- kept alongside that fix, it would double-subtract.
   overflow: auto; // This single scroll container will control both time and days
   margin-top: 24px;
+  scrollbar-color: $medium-grey-color $grey-lightest-color;
 
-  // Hide scrollbar for Chrome, Safari and Opera
-  &::-webkit-scrollbar {
-    display: none;
-  }
-
-  // Hide scrollbar for IE, Edge and Firefox
-  -ms-overflow-style: none; // IE and Edge
-  scrollbar-width: none; // Firefox
+  // scrollLocked (WeekView.tsx) swaps this to overflow: hidden -- see DayView.module.scss's
+  // matching .viewContainer comment (same mechanism).
+  scrollbar-gutter: stable;
 }
 
 .timeColumn {

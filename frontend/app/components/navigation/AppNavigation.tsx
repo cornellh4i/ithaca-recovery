@@ -99,7 +99,7 @@ const AppNavigation: React.FC = () => {
                         </div>
                     ) : session && session.user ? (
                         <div className={styles.flyoutAnchor} ref={flyoutRef}>
-                            <Tooltip content="User menu">
+                            <Tooltip content="User menu" align="right">
                                 <button
                                     ref={buttonRef}
                                     type="button"

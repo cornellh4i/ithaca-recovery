@@ -71,6 +71,94 @@ test.describe("calendar display", () => {
     await expect(page.getByText("Evening Meeting")).toBeVisible();
   });
 
+  // #578 -- the calendar's own scroll container is the one region in the app that scrolls
+  // horizontally, so a `scrollbar-width: none` here removes the only affordance that content
+  // extends past the visible area. `scrollbar-gutter: stable` reserves that track whether or
+  // not the bar is drawn: scrollLocked (page.tsx, while ViewMeeting is open) swaps the
+  // container to overflow: hidden, and an unreserved track takes the grid sideways with it,
+  // out from under the popup anchored to it.
+  test("5.7 the Day and Week scroll containers keep a visible scrollbar over a reserved gutter", async ({ adminPage }) => {
+    const { page } = adminPage;
+    await page.goto("/");
+
+    async function readScrollContainer(testId: string) {
+      const container = page.getByTestId(testId);
+      await expect(container).toBeVisible();
+      return container.evaluate((el) => {
+        const computed = window.getComputedStyle(el);
+        return {
+          scrollbarWidth: computed.scrollbarWidth,
+          scrollbarGutter: computed.scrollbarGutter,
+          scrollbarColor: computed.scrollbarColor,
+          // The bar belongs on the element that genuinely overflows its box, not on an inert
+          // wrapper the real scroller hides behind. Day overflows across its 24 hour columns,
+          // Week down its 24 hour rows.
+          overflows: el.scrollWidth > el.clientWidth || el.scrollHeight > el.clientHeight,
+        };
+      });
+    }
+
+    const day = await readScrollContainer("day-view-scroll-container");
+    expect(day.scrollbarWidth).not.toBe("none");
+    expect(day.scrollbarGutter).toBe("stable");
+    // Named thumb/track, not the platform default -- this bar runs the full width of a grid
+    // already built from greys, where an unstyled one reads as one more row border.
+    expect(day.scrollbarColor).not.toBe("auto");
+    expect(day.overflows).toBe(true);
+
+    // A computed scrollbar-width alone doesn't prove this element is the one actually
+    // scrolling -- confirm setting scrollLeft moves it, not some inert wrapper behind it.
+    // Aim at whichever end is further away rather than toggling 0/max: mandatory snap pins the
+    // minimum resting point at 30 (see .viewContainer's scroll-padding-left comment), so from
+    // an already-near-zero start -- where scrollToCurrentTime parks for ET hours 0-2 -- a write
+    // of 0 snaps straight back and reads as no movement at all. One hour column of travel is
+    // the bar for the same reason: no snap correction accounts for 155px.
+    const dayContainer = page.getByTestId("day-view-scroll-container");
+    const before = await dayContainer.evaluate((el) => el.scrollLeft);
+    const after = await dayContainer.evaluate((el) => {
+      const max = el.scrollWidth - el.clientWidth;
+      el.scrollLeft = el.scrollLeft < max / 2 ? max : 0;
+      return el.scrollLeft;
+    });
+    expect(Math.abs(after - before)).toBeGreaterThan(155);
+
+    await selectView(page, "Week");
+    const week = await readScrollContainer("week-view-scroll-container");
+    expect(week.scrollbarWidth).not.toBe("none");
+    expect(week.scrollbarGutter).toBe("stable");
+    expect(week.scrollbarColor).not.toBe("auto");
+    expect(week.overflows).toBe(true);
+  });
+
+  // #578 -- `.content` must declare overflow-x explicitly: `overflow-y: auto` alone computes
+  // overflow-x to auto too (CSS can't mix visible with non-visible per-axis), painting a
+  // horizontal track across the app shell with no scroll distance behind it. Every route's
+  // real horizontal scroll region -- 5.7's containers included -- is a descendant of this box.
+  // Signed in, not anonymous -- the navbar's rightmost trigger (and the tooltip that overhangs
+  // from it) only exists on the session branch, and it is one of the two things that give the
+  // document a horizontal scroll of its own.
+  test("5.8 the app shell never gives the document a horizontal scroll of its own", async ({ adminPage }) => {
+    const { page } = adminPage;
+    await page.goto("/");
+    const overflowX = await page
+      .getByTestId("app-shell-content")
+      .evaluate((el) => window.getComputedStyle(el).overflowX);
+    expect(overflowX).toBe("hidden");
+
+    // A hidden tooltip still occupies layout, so one overhanging the viewport is enough to
+    // paint a page-level track. Hover isn't needed -- the overhang is there at rest.
+    await expect(page.getByRole("button", { name: "User menu" })).toBeVisible();
+    expect(await page.evaluate(() =>
+      document.documentElement.scrollWidth - document.documentElement.clientWidth
+    )).toBe(0);
+
+    // .mainlayout's width is the shell's other route to a page-level track (100vw counts the
+    // classic scrollbar gutter as usable width, so the shell outgrows the space beside the
+    // bar), and it is deliberately unasserted: this runner draws zero-width overlay bars, so
+    // there is no gutter to outgrow and any comparison here comes out equal either way.
+    // Verified by hand instead, on a build with classic scrollbars turned on.
+  });
+
   // Regression test for #350: the view-toggle icon and the unauthenticated "View only" pill
   // stayed a fixed pixel size while the rest of the header row scaled continuously with its
   // own container width (container queries, not viewport-based breakpoints). The pill in
