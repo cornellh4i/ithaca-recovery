@@ -6,6 +6,9 @@ jest.mock("../../services/auth", () => ({
 }));
 
 jest.mock("../../services/googleCalendar", () => ({
+  // buildEventBody stays real -- it's pure, and the dry run's newDescription is only worth
+  // previewing if it's the body the sweep would actually publish.
+  buildEventBody: jest.requireActual("../../services/googleCalendar").buildEventBody,
   createCalendarEvent: jest.fn(),
   updateCalendarEvent: jest.fn(),
   reconcileMeetingCalendars: jest.fn(),
@@ -82,10 +85,18 @@ async function findSweepRow(mid: string, dryRun: boolean): Promise<Record<string
 }
 
 test("dry run previews the new prefixed titles without touching Zoom or the calendars", async () => {
-  const meeting = await seedSyncedMeeting({ calType: ["AA", "Other"], fellowship: "NA" });
+  const meeting = await seedSyncedMeeting({
+    calType: ["AA", "Other"],
+    fellowship: "NA",
+    zid: "88312345678",
+    zoomLink: "https://zoom.us/j/88312345678",
+  });
 
   const row = await findSweepRow(meeting.mid, true);
   expect(row?.newTitle).toBe(`AA/NA ${meeting.title} - Zoom Only`);
+  // The sweep is also what backfills the HTML description, so the preview has to show it.
+  expect(row?.newDescription).toContain('<a href="https://zoom.us/j/88312345678">JOIN ZOOM MEETING</a>');
+  expect(row?.newDescription).toContain("Meeting ID: 883 1234 5678");
   expect(mockedUpdateZoomMeeting).not.toHaveBeenCalled();
   expect(mockedReconcileMeetingCalendars).not.toHaveBeenCalled();
 });

@@ -13,7 +13,7 @@ All endpoints are Next.js Route Handlers under `frontend/app/api/`. Requests and
 
 Zoom is needed when `modeType` is `"Hybrid"` or `"Remote"` (not `"In Person"`). Zoom resolves/creates *before* the Google Calendar publish below, and if it can't get a working Zoom meeting this run (host pool exhausted, or the Zoom API call failed), **the Google Calendar publish is skipped entirely and `googleSyncStatus` is set to `"pending"`** rather than publishing the meeting with no Zoom link. A later `POST /api/update/meeting/sync` retry (below) picks this back up once a host becomes available, publishing both at once. See the Zoom section below for host selection.
 
-Once Zoom has resolved (or wasn't needed), sync publishes to Google Calendar per category in `calType` (skipped if `status: "Suspended"`), writing `googleCalendarEventIds` and `googleSyncStatus`/`googleSyncError` back onto the meeting — the event body includes the Zoom join link when one exists. `zoomHost`, `zid`, `zoomLink`, `zoomCalendarEventId`, `zoomSyncStatus`, and `zoomSyncError` are also written back onto the meeting; only Hybrid meetings additionally get a dedicated Zoom-Room-calendar event (keyed by `zoomRoom`) with the join link as its location, for Zoom Room hardware to detect. Skipped (persisted verbatim, marked synced) if `zid`/`zoomLink` already came in on the payload.
+Once Zoom has resolved (or wasn't needed), sync publishes to Google Calendar per category in `calType` (skipped if `status: "Suspended"`), writing `googleCalendarEventIds` and `googleSyncStatus`/`googleSyncError` back onto the meeting — the event description is HTML, leading with a join block (a `JOIN ZOOM MEETING` hyperlink, the Zoom meeting ID, and the passcode) when a Zoom link exists. It is a hyperlink rather than a bare URL because ICR's website embeds these calendars in an iframe, which renders a bare URL as unclickable text. `zoomHost`, `zid`, `zoomLink`, `zoomCalendarEventId`, `zoomSyncStatus`, and `zoomSyncError` are also written back onto the meeting; only Hybrid meetings additionally get a dedicated Zoom-Room-calendar event (keyed by `zoomRoom`) with the join link as its location, for Zoom Room hardware to detect. Skipped (persisted verbatim, marked synced) if `zid`/`zoomLink` already came in on the payload.
 
 **Request body:** `IMeeting`
 ```json
@@ -343,6 +343,26 @@ Mids of meetings with a Google Calendar or Zoom sync error — backs the calenda
 sync-error badge.
 
 **Response:** `200 OK` — `{ "mids": ["string"] }`
+
+### `POST /api/admin/resync-titles`
+Bulk sweep that republishes live meetings' external names and calendar events through the same
+reconcile `POST /api/update/meeting/sync` runs (`services/syncOneMeeting.ts`), so a format change
+to either reaches events already published. No UI — call it directly as an authenticated admin.
+Idempotent: a pinned `zoomTopic` keeps its verbatim Zoom name and an unmanaged meeting is never
+PATCHed, only their calendar events are rewritten. `Suspended` rows are skipped (their events are
+deliberately absent) and pick the new format up on resume.
+
+Dry run is the default; executing rewrites external services and must be asked for with
+`dryRun: false`. Walk `nextCursor` until it comes back `null`.
+
+**Request body:** `{ "dryRun"?: boolean = true, "limit"?: number = 10, "cursor"?: string, "mids"?: string[] }`
+(`limit`/`mids` cap at 25 — each row is several Zoom and Calendar calls, sized to stay inside
+Zoom's rate limits and one serverless invocation's budget)
+
+**Response:** `200 OK` — `{ "dryRun": boolean, "results": [{ "mid", "title", "newTitle",
+"newDescription", "pinnedZoomTopic", "zoomManaged", "willProvisionZoom" }], "nextCursor": string | null }`.
+Executed rows also carry that row's `googleSyncStatus`/`zoomSyncStatus` and errors; one row failing
+doesn't fail the batch.
 
 ---
 

@@ -1,8 +1,10 @@
 import { Role } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { IMeeting } from "../../../../types/models";
 import { requireRole } from "../../../../services/auth";
 import { prisma } from "../../../../lib/prisma";
+import { buildEventBody } from "../../../../services/googleCalendar";
 import { syncOneMeeting } from "../../../../services/syncOneMeeting";
 import { buildLinkedScheduleLabel, fellowshipPrefixedTitle, linkedFamilyLoader } from "../../../../util/meetings/linkedSchedules";
 
@@ -74,6 +76,9 @@ const resyncTitles = async (request: Request): Promise<Response> => {
         mid: meeting.mid,
         title: meeting.title,
         newTitle,
+        // The sweep rewrites the whole event body, so a preview that showed only the title would
+        // understate what executing does.
+        newDescription: buildEventBody(row as unknown as IMeeting, family).description,
         // A pinned topic keeps its verbatim Zoom name; only the calendar events get newTitle.
         pinnedZoomTopic: meeting.zoomTopic,
         zoomManaged: meeting.zoomManaged,
