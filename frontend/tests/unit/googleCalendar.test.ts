@@ -312,6 +312,21 @@ describe("buildEventBody — description", () => {
     );
   });
 
+  it("publishes the meeting id alone when a row has credentials but no link", () => {
+    const body = buildEventBody(zoomMeeting({ zoomLink: null }));
+
+    expect(body.description).toBe(
+      "Meeting ID: 883 1234 5678<br>Passcode: 481926"
+      + "<br><br>Type: AA<br>Mode: Hybrid<br>Room: Serenity Room",
+    );
+  });
+
+  it("drops a whitespace-only description rather than publishing a bare label", () => {
+    const body = buildEventBody(buildMeeting({ description: "   " }));
+
+    expect(body.description).toBe("Type: AA<br>Mode: In Person<br>Room: Serenity Room");
+  });
+
   it("escapes the admin's free text, which is now published into an HTML field", () => {
     const body = buildEventBody(buildMeeting({ description: `<b>Bring a "friend" & don't be late</b>` }));
 
@@ -330,14 +345,16 @@ describe("buildEventBody — description", () => {
     );
   });
 
-  it("escapes the href too, so a query-string ampersand can't break out of the attribute", () => {
+  it("escapes the href -- a quote would close the attribute, an ampersand would start an entity", () => {
     const body = buildEventBody(zoomMeeting({
-      zoomLink: "https://zoom.us/j/8831234567?pwd=a&b",
+      zoomLink: 'https://zoom.us/j/8831234567?pwd=a&b"onmouseover=x',
       zid: null,
       zoomPasscode: null,
     }));
 
-    expect(body.description).toContain('<a href="https://zoom.us/j/8831234567?pwd=a&amp;b">JOIN ZOOM MEETING</a>');
+    expect(body.description).toContain(
+      '<a href="https://zoom.us/j/8831234567?pwd=a&amp;b&quot;onmouseover=x">JOIN ZOOM MEETING</a>',
+    );
   });
 
   it("publishes a non-http link as plain escaped text -- zoomLink is unvalidated admin free text", () => {

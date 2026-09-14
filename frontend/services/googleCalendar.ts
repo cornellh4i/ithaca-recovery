@@ -114,8 +114,7 @@ function formatExdateCompact(occurrenceDate: Date | string, meetingStartDateTime
 // Zoom Room calendars pass their own join link.
 const MEETING_LOCATION = "518 W Seneca St, Ithaca, NY 14850";
 
-// The description is published as HTML -- ICR embeds these calendars in an iframe, which leaves
-// a bare Zoom URL as dead, unclickable text where Google's own web UI would linkify it (#579).
+// The description is HTML -- the iframe embed on ICR's site leaves a bare URL unclickable (#579).
 // BR, not "\n" -- a newline is only whitespace in HTML, so the body would collapse to one line.
 const BR = "<br>";
 
@@ -178,6 +177,7 @@ export function buildEventBody(meeting: IMeeting, family: IMeeting[] = [], locat
             : escapeHtml(zoomLink));
     }
     if (meeting.zid) joinLines.push(`Meeting ID: ${escapeHtml(formatZoomMeetingId(meeting.zid))}`);
+    // Keyed on joinLines, not the passcode alone -- a passcode with nothing above it is a dangling secret.
     if (joinLines.length && meeting.zoomPasscode) joinLines.push(`Passcode: ${escapeHtml(meeting.zoomPasscode)}`);
 
     const detailLines = [
@@ -186,8 +186,9 @@ export function buildEventBody(meeting: IMeeting, family: IMeeting[] = [], locat
         meeting.room ? `Room: ${escapeHtml(meeting.room)}` : null,
     ].filter((line): line is string => line !== null);
 
-    const freeTextLines = meeting.description
-        ? [`Description: ${escapeHtml(meeting.description).replace(/\r\n|\r|\n/g, BR)}`]
+    const freeText = meeting.description?.trim();
+    const freeTextLines = freeText
+        ? [`Description: ${escapeHtml(freeText).replace(/\r\n|\r|\n/g, BR)}`]
         : [];
 
     const event: Record<string, unknown> = {
