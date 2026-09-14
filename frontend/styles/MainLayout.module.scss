@@ -27,7 +27,11 @@
     display: flex;
     flex-direction: column;
     height: 100vh;
-    width: 100vw;
+
+    // 100%, not 100vw -- wherever the platform paints a classic page-level bar, vw counts its
+    // gutter as usable width and the document picks up a horizontal scroll of exactly that: a
+    // track that shifts the shell sideways and reaches no scroll region anyone wants.
+    width: 100%;
 
     .navigation {
         flex: 0 1 auto;
@@ -49,10 +53,16 @@
     .content {
         flex: 1 1 auto;
         min-height: 0; // lets this shrink to the space left under the navbar, so overflow-y actually scrolls instead of growing past the viewport
-        overflow-y: auto;
+
+        // overflow-x explicit, not implicit -- overflow-y: auto alone computes overflow-x to
+        // auto too (CSS can't mix visible with non-visible per-axis), painting a horizontal
+        // track with no scroll distance behind it: every horizontal scroll region is a
+        // descendant. The retained `auto` still makes this the real vertical scroller on /admin.
+        overflow: hidden auto;
 
         // overscroll-behavior-x doesn't inherit from html -- this is the actual scroll
-        // container an unclaimed horizontal gesture would otherwise chain up from.
+        // container an unclaimed horizontal gesture would otherwise chain up from. Still one
+        // under overflow-x: hidden, which is what keeps this effective.
         overscroll-behavior-x: none;
 
         // Width-or-height, not width alone -- a landscape phone (e.g. 844x390) is still
@@ -97,7 +107,10 @@
         }
 
         .content {
-            overflow-y: visible;
+            // Both axes, not overflow-y alone -- a lone overflow-y: visible computes straight
+            // back to auto against .content's own overflow-x: hidden (see it above), leaving
+            // intact the very scroll region this block exists to dissolve.
+            overflow: visible;
         }
     }
 }

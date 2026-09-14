@@ -351,6 +351,7 @@ const DayView: React.FC<DayViewProps> = ({
       <div
         ref={scrollContainerRef}
         className={styles.viewContainer}
+        data-testid="day-view-scroll-container"
         style={{
           ...(scrollLocked ? { overflow: 'hidden' } : undefined),
           visibility: initialScrollDone ? 'visible' : 'hidden',
