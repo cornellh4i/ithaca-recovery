@@ -1,6 +1,7 @@
 import { randomUUID } from "crypto";
 import type { Meeting } from "@prisma/client";
-import { convertETToUTC, formatETDateString, formatETWeekdayLong, getETTimeOfDay } from "../../util/date/timeUtils";
+import { formatETDateString, formatETWeekdayLong, getETTimeOfDay } from "../../util/date/timeUtils";
+import { addETDays, etInstant, firstETWeekdayOnOrAfter, nextETWeekday, todayETDateString } from "../factories/dates";
 import { buildLinkedScheduleLabel } from "../../util/meetings/linkedSchedules";
 
 // after() tasks are collected rather than discarded (the shim update-meeting-scoped-edit.test.ts
@@ -57,25 +58,15 @@ const mockedResolveZoomHost = resolveZoomHost as jest.Mock;
 
 // A real future Monday, so the anchor's weekday and the linked schedule's Saturday are both
 // derived from the anchor date instead of being hardcoded names that could drift apart.
-const SERIES_START = new Date("2026-09-07T18:00:00Z");
-const SERIES_END = new Date("2026-09-07T19:00:00Z");
+// Computed, never pinned -- the derivation under test clamps the linked schedule's first
+// occurrence to today, so a pinned start stops being in the future and every date below it
+// shifts by a week.
+const SERIES_START_ET_DATE = nextETWeekday("Monday");
+const SERIES_START = etInstant(SERIES_START_ET_DATE, "14:00:00");
+const SERIES_END = etInstant(SERIES_START_ET_DATE, "15:00:00");
 const ANCHOR_WEEKDAY = formatETWeekdayLong(SERIES_START); // Monday
 const LINKED_WEEKDAY = "Saturday";
-const FIRST_LINKED_ET_DATE = "2026-09-12"; // the first Saturday on/after the anchor's start
-
-// The first `weekday` on/after today in ET -- a linked schedule added to a series that is
-// already running starts now, so its first date can only be expressed relative to the run date.
-function firstETDateOnOrAfterToday(weekday: string): string {
-  const [year, month, day] = formatETDateString(new Date()).split("-").map(Number);
-  // 16:00 UTC is the same ET calendar day under either offset, so stepping in whole UTC days
-  // reads back as consecutive ET dates across a DST change.
-  const cursor = new Date(Date.UTC(year, month - 1, day, 16));
-  for (let i = 0; i < 7; i++) {
-    if (formatETWeekdayLong(cursor) === weekday) return formatETDateString(cursor);
-    cursor.setUTCDate(cursor.getUTCDate() + 1);
-  }
-  throw new Error(`No ${weekday} within a week of today`);
-}
+const FIRST_LINKED_ET_DATE = firstETWeekdayOnOrAfter(LINKED_WEEKDAY, SERIES_START_ET_DATE);
 
 afterAll(async () => {
   await disconnectTestPrismaClient();
@@ -287,8 +278,8 @@ test("a room conflict on the linked schedule's own days is a 409 that writes not
   // A one-time booking of the room on the linked schedule's very first Saturday.
   await seedMeeting({
     room: contestedRoom,
-    startDateTime: new Date(`${FIRST_LINKED_ET_DATE}T18:00:00Z`),
-    endDateTime: new Date(`${FIRST_LINKED_ET_DATE}T19:00:00Z`),
+    startDateTime: etInstant(FIRST_LINKED_ET_DATE, "14:00:00"),
+    endDateTime: etInstant(FIRST_LINKED_ET_DATE, "15:00:00"),
   });
 
   const linkedMid = `linked-${randomUUID()}`;
@@ -496,14 +487,15 @@ test("a Remote schedule linked to an In-Person anchor provisions the family's Zo
 test("a count-bounded anchor with an evening start counts the linked schedule's occurrences from the right weekday", async () => {
   // 8 PM ET on a Wednesday: the instant's UTC calendar date is already Thursday, which is
   // exactly what an ET-midnight-anchored pattern startDate keeps out of the occurrence count.
+  const anchorEtDate = nextETWeekday("Wednesday");
   const anchor = await seedAnchor(
     {
-      startDateTime: new Date(convertETToUTC("2026-09-09T20:00:00")),
-      endDateTime: new Date(convertETToUTC("2026-09-09T21:00:00")),
+      startDateTime: etInstant(anchorEtDate, "20:00:00"),
+      endDateTime: etInstant(anchorEtDate, "21:00:00"),
     },
     {
       daysOfWeek: ["Wednesday"],
-      startDate: new Date(convertETToUTC("2026-09-09T00:00:00")),
+      startDate: etInstant(anchorEtDate, "00:00:00"),
       numberOfOccurrences: 2,
     },
   );
@@ -523,22 +515,23 @@ test("a count-bounded anchor with an evening start counts the linked schedule's 
   const prisma = getTestPrismaClient();
   const created = await prisma.meeting.findUnique({ where: { mid: linkedMid }, include: { recurrencePattern: true } });
   // The pattern's start is ET midnight of the first date, not the row's 8 PM start instant.
-  expect(formatETDateString(created!.recurrencePattern!.startDate)).toBe("2026-09-14");
+  const expectedMonday = firstETWeekdayOnOrAfter("Monday", anchorEtDate);
+  expect(formatETDateString(created!.recurrencePattern!.startDate)).toBe(expectedMonday);
   expect(getETTimeOfDay(created!.recurrencePattern!.startDate)).toEqual({ hour: 0, minute: 0, second: 0 });
   // Two occurrences on Mon+Tue is that same week's Tuesday -- not a week later, which is what a
   // weekday anchor read off the UTC date would produce.
   expect(created?.recurrencePattern?.numberOfOccurrences).toBe(2);
-  expect(formatETDateString(created!.recurrencePattern!.endDate!)).toBe("2026-09-15");
+  expect(formatETDateString(created!.recurrencePattern!.endDate!)).toBe(addETDays(expectedMonday, 1));
   await drainAfterTasks();
 });
 
 test("a schedule added to an already-running series starts now, not at the series' original start", async () => {
   const anchor = await seedAnchor(
     {
-      startDateTime: new Date(convertETToUTC("2019-01-07T18:00:00")), // a Monday, years ago
-      endDateTime: new Date(convertETToUTC("2019-01-07T19:00:00")),
+      startDateTime: etInstant("2019-01-07", "18:00:00"), // a Monday, years ago -- pinned on purpose
+      endDateTime: etInstant("2019-01-07", "19:00:00"),
     },
-    { daysOfWeek: [ANCHOR_WEEKDAY], startDate: new Date(convertETToUTC("2019-01-07T00:00:00")) },
+    { daysOfWeek: [ANCHOR_WEEKDAY], startDate: etInstant("2019-01-07", "00:00:00") },
   );
   const linkedMid = `linked-${randomUUID()}`;
 
@@ -547,7 +540,7 @@ test("a schedule added to an already-running series starts now, not at the serie
 
   const prisma = getTestPrismaClient();
   const created = await prisma.meeting.findUnique({ where: { mid: linkedMid }, include: { recurrencePattern: true } });
-  const expectedFirstDate = firstETDateOnOrAfterToday(LINKED_WEEKDAY);
+  const expectedFirstDate = firstETWeekdayOnOrAfter(LINKED_WEEKDAY, todayETDateString());
   // Backdating this row to 2019 would publish a Google Calendar series with years of meetings
   // that never happened.
   expect(formatETDateString(created!.startDateTime)).toBe(expectedFirstDate);
@@ -568,8 +561,8 @@ async function seedZidSharingSplitChild(anchor: Meeting) {
     zoomLink: anchor.zoomLink,
     zoomHost: anchor.zoomHost,
     splitFromMid: anchor.mid,
-    startDateTime: new Date(`${FIRST_LINKED_ET_DATE}T18:00:00Z`),
-    endDateTime: new Date(`${FIRST_LINKED_ET_DATE}T19:00:00Z`),
+    startDateTime: etInstant(FIRST_LINKED_ET_DATE, "14:00:00"),
+    endDateTime: etInstant(FIRST_LINKED_ET_DATE, "15:00:00"),
   });
 }
 
