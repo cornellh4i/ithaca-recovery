@@ -1,5 +1,6 @@
 import { randomUUID } from "crypto";
 import { formatETDateString, formatETWeekdayLong, getETTimeOfDay } from "../../util/date/timeUtils";
+import { addETDays, etInstant, firstETWeekdayOnOrAfter, nextETWeekday } from "../factories/dates";
 import { buildLinkedScheduleLabel } from "../../util/meetings/linkedSchedules";
 
 // after() tasks are collected rather than discarded, so each test can drain them at a known
@@ -51,12 +52,15 @@ const mockedCreateZoomMeeting = createZoomMeeting as jest.Mock;
 const mockedResolveZoomHost = resolveZoomHost as jest.Mock;
 
 // A real future Monday at 2 PM ET, so both schedules' weekdays are derived from one date rather
-// than hardcoded names that could drift apart.
-const SERIES_START = new Date("2026-09-07T18:00:00Z");
-const SERIES_END = new Date("2026-09-07T19:00:00Z");
+// than hardcoded names that could drift apart. Computed, never pinned -- the derivation under
+// test clamps the linked schedule's first occurrence to today, so a pinned start stops being in
+// the future and every date below it shifts by a week.
+const SERIES_START_ET_DATE = nextETWeekday("Monday");
+const SERIES_START = etInstant(SERIES_START_ET_DATE, "14:00:00");
+const SERIES_END = etInstant(SERIES_START_ET_DATE, "15:00:00");
 const PRIMARY_WEEKDAY = formatETWeekdayLong(SERIES_START); // Monday
 const LINKED_WEEKDAY = "Saturday";
-const FIRST_LINKED_ET_DATE = "2026-09-12"; // the first Saturday on/after the series start
+const FIRST_LINKED_ET_DATE = firstETWeekdayOnOrAfter(LINKED_WEEKDAY, SERIES_START_ET_DATE);
 
 afterAll(async () => {
   await disconnectTestPrismaClient();
@@ -296,8 +300,8 @@ test("a manually-picked host busy on the LINKED schedule's day is a 409 that wri
     modeType: "Remote",
     room: "",
     zid: `zid-busy-${randomUUID()}`,
-    startDateTime: new Date(`${FIRST_LINKED_ET_DATE}T18:00:00Z`),
-    endDateTime: new Date(`${FIRST_LINKED_ET_DATE}T19:00:00Z`),
+    startDateTime: etInstant(FIRST_LINKED_ET_DATE, "14:00:00"),
+    endDateTime: etInstant(FIRST_LINKED_ET_DATE, "15:00:00"),
   });
   const linked = linkedBlock();
   const payload = meetingPayload({ zoomHost: contestedHost, linkedSchedule: linked });
@@ -316,8 +320,8 @@ test("a room conflict on the linked schedule's own room is a 409 that writes nei
   const contestedRoom = `Contested Linked Room ${randomUUID()}`;
   await seedMeeting({
     room: contestedRoom,
-    startDateTime: new Date(`${FIRST_LINKED_ET_DATE}T18:00:00Z`),
-    endDateTime: new Date(`${FIRST_LINKED_ET_DATE}T19:00:00Z`),
+    startDateTime: etInstant(FIRST_LINKED_ET_DATE, "14:00:00"),
+    endDateTime: etInstant(FIRST_LINKED_ET_DATE, "15:00:00"),
   });
   const linked = linkedBlock({ modeType: "In Person", room: contestedRoom });
   const payload = meetingPayload({ linkedSchedule: linked });
@@ -566,5 +570,5 @@ test("a count-bounded meeting gives its linked schedule the same count, resolved
   // Three Saturdays from its own first one, not the primary schedule's three Mondays.
   expect(created?.recurrencePattern?.numberOfOccurrences).toBe(3);
   expect(formatETDateString(created!.recurrencePattern!.startDate)).toBe(FIRST_LINKED_ET_DATE);
-  expect(formatETDateString(created!.recurrencePattern!.endDate!)).toBe("2026-09-26");
+  expect(formatETDateString(created!.recurrencePattern!.endDate!)).toBe(addETDays(FIRST_LINKED_ET_DATE, 14));
 });
