@@ -114,6 +114,28 @@ function formatExdateCompact(occurrenceDate: Date | string, meetingStartDateTime
 // Zoom Room calendars pass their own join link.
 const MEETING_LOCATION = "518 W Seneca St, Ithaca, NY 14850";
 
+// The description is published as HTML -- ICR embeds these calendars in an iframe, which leaves
+// a bare Zoom URL as dead, unclickable text where Google's own web UI would linkify it (#579).
+// BR, not "\n" -- a newline is only whitespace in HTML, so the body would collapse to one line.
+const BR = "<br>";
+
+function escapeHtml(value: string): string {
+    // & first, or the ampersands of the entities below get escaped a second time.
+    return value
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+}
+
+function formatZoomMeetingId(zid: string): string {
+    const digits = zid.replace(/\D/g, "");
+    if (digits.length === 11) return `${digits.slice(0, 3)} ${digits.slice(3, 7)} ${digits.slice(7)}`;
+    if (digits.length === 10) return `${digits.slice(0, 3)} ${digits.slice(3, 6)} ${digits.slice(6)}`;
+    return zid;
+}
+
 // A lone meeting's event title names its own mode, "In Person" included: unlike a Zoom topic,
 // a calendar event exists for an in-person meeting and its mode is exactly what a reader needs.
 // Passed explicitly rather than left to buildLinkedScheduleLabel's default, so both services
@@ -147,20 +169,34 @@ function buildEventTitle(meeting: IMeeting, family: IMeeting[]): string {
 // place a RecurrencePattern turns into a Google Calendar body, so its output shape is worth
 // testing without going through the network-calling functions below.
 export function buildEventBody(meeting: IMeeting, family: IMeeting[] = [], locationOverride?: string) {
-    const descriptionLines = [
-        meeting.calType?.length ? `Type: ${meeting.calType.join(', ')}` : null,
-        meeting.modeType ? `Mode: ${meeting.modeType}` : null,
-        meeting.room ? `Room: ${meeting.room}` : null,
-        meeting.zoomLink ? `Zoom: ${meeting.zoomLink}` : null,
-].filter(Boolean);
-if (meeting.description) {
-    if (descriptionLines.length) descriptionLines.push("");
-    descriptionLines.push(`Description: ${meeting.description}`);
-}
+    const zoomLink = meeting.zoomLink?.trim();
+    const joinLines: string[] = [];
+    if (zoomLink) {
+        // zoomLink is admin-typed free text on adopted meetings -- no href unless it's really http(s).
+        joinLines.push(/^https?:\/\//i.test(zoomLink)
+            ? `<a href="${escapeHtml(zoomLink)}">JOIN ZOOM MEETING</a>`
+            : escapeHtml(zoomLink));
+    }
+    if (meeting.zid) joinLines.push(`Meeting ID: ${escapeHtml(formatZoomMeetingId(meeting.zid))}`);
+    if (joinLines.length && meeting.zoomPasscode) joinLines.push(`Passcode: ${escapeHtml(meeting.zoomPasscode)}`);
+
+    const detailLines = [
+        meeting.calType?.length ? `Type: ${escapeHtml(meeting.calType.join(', '))}` : null,
+        meeting.modeType ? `Mode: ${escapeHtml(meeting.modeType)}` : null,
+        meeting.room ? `Room: ${escapeHtml(meeting.room)}` : null,
+    ].filter((line): line is string => line !== null);
+
+    const freeTextLines = meeting.description
+        ? [`Description: ${escapeHtml(meeting.description).replace(/\r\n|\r|\n/g, BR)}`]
+        : [];
 
     const event: Record<string, unknown> = {
+        // Not escaped -- summary is plain text to Google, so escaping would publish a literal "&amp;".
         summary: buildEventTitle(meeting, family),
-        description: descriptionLines.join("\n"),
+        description: [joinLines, detailLines, freeTextLines]
+            .filter((block) => block.length)
+            .map((block) => block.join(BR))
+            .join(BR + BR),
         location: locationOverride ?? MEETING_LOCATION,
         start: { dateTime: new Date(meeting.startDateTime).toISOString(), timeZone: "America/New_York" },
         end: { dateTime: new Date(meeting.endDateTime).toISOString(), timeZone: "America/New_York" },
