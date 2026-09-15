@@ -357,6 +357,15 @@ describe("buildEventBody — description", () => {
     );
   });
 
+  it("publishes a scheme-only or unparseable link as text -- an anchor to nothing is worse than none", () => {
+    for (const zoomLink of ["https://", "http:// spaces"]) {
+      const body = buildEventBody(zoomMeeting({ zoomLink, zid: null, zoomPasscode: null }));
+
+      expect(body.description).not.toContain("<a ");
+      expect(body.description).not.toContain("JOIN ZOOM MEETING");
+    }
+  });
+
   it("publishes a non-http link as plain escaped text -- zoomLink is unvalidated admin free text", () => {
     const body = buildEventBody(zoomMeeting({
       zoomLink: "javascript:alert(1)",

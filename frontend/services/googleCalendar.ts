@@ -128,6 +128,17 @@ function escapeHtml(value: string): string {
         .replace(/'/g, "&#39;");
 }
 
+// Parsed, not prefix-matched -- "https://" on its own passes a /^https?:/ test and would
+// publish a JOIN ZOOM MEETING anchor pointing at nothing.
+function isHttpUrl(value: string): boolean {
+    try {
+        const url = new URL(value);
+        return (url.protocol === "https:" || url.protocol === "http:") && Boolean(url.hostname);
+    } catch {
+        return false;
+    }
+}
+
 function formatZoomMeetingId(zid: string): string {
     const digits = zid.replace(/\D/g, "");
     if (digits.length === 11) return `${digits.slice(0, 3)} ${digits.slice(3, 7)} ${digits.slice(7)}`;
@@ -171,8 +182,8 @@ export function buildEventBody(meeting: IMeeting, family: IMeeting[] = [], locat
     const zoomLink = meeting.zoomLink?.trim();
     const joinLines: string[] = [];
     if (zoomLink) {
-        // zoomLink is admin-typed free text on adopted meetings -- no href unless it's really http(s).
-        joinLines.push(/^https?:\/\//i.test(zoomLink)
+        // zoomLink is admin-typed free text on adopted meetings -- no href unless it really resolves.
+        joinLines.push(isHttpUrl(zoomLink)
             ? `<a href="${escapeHtml(zoomLink)}">JOIN ZOOM MEETING</a>`
             : escapeHtml(zoomLink));
     }
