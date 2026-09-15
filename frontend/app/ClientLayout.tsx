@@ -2,6 +2,7 @@
 
 import { PropsWithChildren } from "react";
 import AppNavigation from "./components/navigation/AppNavigation";
+import GoogleReconnectBanner from "./components/auth/GoogleReconnectBanner";
 import { Inter } from "next/font/google";
 import styles from "../styles/MainLayout.module.scss";
 import type { Session } from "next-auth";
@@ -40,6 +41,7 @@ function MainContent({ children }: PropsWithChildren) {
             data-testid="app-shell-content"
             onScroll={handleScroll}
         >
+            <GoogleReconnectBanner />
             {children}
         </div>
     );
@@ -53,7 +55,10 @@ export default function ClientLayout({
         <html lang="en" suppressHydrationWarning>
             <head></head>
             <body className={inter.className} suppressHydrationWarning>
-                <SessionProvider session={session}>
+                {/* Nothing else tells an already-open tab its Google grant died -- /api/auth/session
+                    is outside proxy.ts's matcher, and (main)/layout.tsx's getAuth() only runs on a
+                    full page load. */}
+                <SessionProvider session={session} refetchInterval={5 * 60}>
                     <SidebarProvider>
                         <CalendarProvider>
                             <ToastProvider>
