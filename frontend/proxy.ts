@@ -29,9 +29,14 @@ export async function proxy(request: NextRequest) {
     // can't persist a refreshed token to the cookie — see services/auth.ts's getAuth().
     // Middleware has real cookie write access, so the refresh is persisted here instead.
     const refreshed = await refreshGoogleAccessToken(token.refreshToken);
-    if (!refreshed) return response; // revoked/failed — downstream jwt callback hits its existing RefreshTokenError path
+    if (!refreshed.ok && !refreshed.revoked) return response; // transient — the next request retries
 
-    const updatedToken = { ...token, accessToken: refreshed.accessToken, expiresAt: refreshed.expiresAt };
+    // A confirmed revocation rides the same cookie write for the same reason the refresh does:
+    // it's the only durable record of it, and without it every request re-asks Google a question
+    // whose answer can't change until the admin re-consents.
+    const updatedToken = refreshed.ok
+        ? { ...token, accessToken: refreshed.accessToken, expiresAt: refreshed.expiresAt }
+        : { ...token, error: "RefreshTokenError" as const };
     const newCookieValue = await encode({
         token: updatedToken,
         secret: process.env.NEXTAUTH_SECRET!,

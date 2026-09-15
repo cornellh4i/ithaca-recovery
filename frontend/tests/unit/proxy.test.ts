@@ -63,7 +63,7 @@ test("a token that isn't near expiry passes through unchanged", async () => {
 
 test("a token within the refresh skew gets refreshed and persisted via Set-Cookie", async () => {
   const almostExpired = Math.floor(Date.now() / 1000) + 30;
-  mockedRefresh.mockResolvedValue({ accessToken: "brand-new-token", expiresAt: almostExpired + 3600 });
+  mockedRefresh.mockResolvedValue({ ok: true, accessToken: "brand-new-token", expiresAt: almostExpired + 3600 });
   const request = await requestWithToken({ expiresAt: almostExpired, refreshToken: "refresh-1", accessToken: "old-token" });
 
   const response = await proxy(request);
@@ -78,9 +78,27 @@ test("a token within the refresh skew gets refreshed and persisted via Set-Cooki
   expect(decoded?.expiresAt).toBe(almostExpired + 3600);
 });
 
-test("a failed refresh (revoked token) leaves the cookie untouched", async () => {
+test("a revoked refresh token is persisted onto the cookie as RefreshTokenError", async () => {
   const almostExpired = Math.floor(Date.now() / 1000) + 30;
-  mockedRefresh.mockResolvedValue(null);
+  mockedRefresh.mockResolvedValue({ ok: false, revoked: true });
+  const request = await requestWithToken({ expiresAt: almostExpired, refreshToken: "refresh-1", accessToken: "old-token" });
+
+  const response = await proxy(request);
+
+  const setCookie = response.headers.get("set-cookie");
+  expect(setCookie).not.toBeNull();
+
+  const [, cookieValue] = setCookie!.match(new RegExp(`${COOKIE_NAME}=([^;]+)`))!;
+  const decoded = await decode({ token: cookieValue, secret: TEST_SECRET });
+  expect(decoded?.error).toBe("RefreshTokenError");
+  // The dead access token stays put -- withholding it would route every write into a canned
+  // "no access token" message instead of the named condition the session now carries.
+  expect(decoded?.accessToken).toBe("old-token");
+});
+
+test("a transient refresh failure leaves the cookie untouched", async () => {
+  const almostExpired = Math.floor(Date.now() / 1000) + 30;
+  mockedRefresh.mockResolvedValue({ ok: false, revoked: false });
   const request = await requestWithToken({ expiresAt: almostExpired, refreshToken: "refresh-1" });
 
   const response = await proxy(request);
