@@ -287,7 +287,7 @@ async function syncUpdatedMeeting(
     if (accessToken && zoomLink && newZoomRoom && !skipCalendarTimeSync) {
       const calId = zoomRoomCalendarId[newZoomRoom];
       if (calId) {
-        const meetingWithZoomLink = { ...newMeeting, zoomLink };
+        const meetingWithZoomLink = { ...newMeeting, zid, zoomLink, zoomPasscode };
         const family = await loadFamily(zid);
         if (zoomCalendarEventId) {
           const { ok, error } = await updateCalendarEvent(accessToken, zoomCalendarEventId, meetingWithZoomLink, calId, zoomLink, family);
@@ -312,7 +312,7 @@ async function syncUpdatedMeeting(
   // moved to the new time (a host time-conflict, see skipCalendarTimeSync above) -- either
   // way, the calendar reconcile below is deferred, not run with a missing or stale link.
   const zoomBlocking = zoomEnabled && (!zid || skipCalendarTimeSync);
-  const meetingForCalendar: IMeeting = { ...newMeeting, zoomLink };
+  const meetingForCalendar: IMeeting = { ...newMeeting, zid, zoomLink, zoomPasscode };
 
   if (zoomBlocking) {
     await prisma.meeting.update({ where: { mid }, data: { googleSyncStatus: 'pending' } });
@@ -788,7 +788,7 @@ async function handleScopedEdit(
       // persisted onto the row above) is what should flow into the child's room-cal event, not
       // the parent's room. status is forced to 'Active' to match what was actually persisted
       // (see the create data above) -- newMeeting.status could still be the parent's 'Suspended'.
-      { ...newMeeting, mid: newMid, zid: existingMeeting.zid, zoomLink: existingMeeting.zoomLink, status: 'Active' },
+      { ...newMeeting, mid: newMid, zid: existingMeeting.zid, zoomLink: existingMeeting.zoomLink, zoomPasscode: existingMeeting.zoomPasscode, status: 'Active' },
       isRecurringSplit,
       auth.accessToken,
       loadFamily,

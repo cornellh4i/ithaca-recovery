@@ -35,8 +35,8 @@ type NewMeetingSyncRow = {
 //
 // Zoom resolves/creates FIRST, before the main calType-calendar publish -- two reasons, not
 // just one: (1) so the calType events actually carry the real zoomLink (services/
-// googleCalendar.ts's buildEventBody already writes "Zoom: {link}" into the description
-// whenever it's present; previously this loop ran first, so it never had one), and (2) so a
+// googleCalendar.ts's buildEventBody publishes it as the description's join link whenever
+// it's present), and (2) so a
 // meeting that needs Zoom but doesn't have a working one yet (host pool exhausted, or the
 // Zoom API call failed) can skip the calendar publish entirely this run rather than
 // publishing "fully scheduled" with a missing link -- a later "Retry sync"
@@ -123,8 +123,8 @@ async function syncNewMeeting(
     const meetingForSync: IMeeting = {
       ...row.meeting,
       isRecurring: row.isRecurring,
-      // Only a Zoom-bearing row carries the family's link: buildEventBody writes
-      // "Zoom: {link}" into the description whenever one is present, and an In-Person schedule
+      // Only a Zoom-bearing row carries the family's link: buildEventBody publishes a join
+      // block into the description whenever one is present, and an In-Person schedule
       // must never advertise a join link -- including one the payload itself supplied, which is
       // why the else arm clears rather than omits.
       ...(row.zoomBearing

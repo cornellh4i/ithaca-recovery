@@ -486,7 +486,7 @@ test("an In-Person primary schedule holds no client-supplied Zoom identity", asy
   expect(created?.zoomLink).toBe("https://zoom.us/j/adopted");
 
   // ...and the in-person schedule's calendar event is published with no join link either --
-  // buildEventBody writes "Zoom: {link}" from exactly this argument.
+  // buildEventBody builds the description's join block from exactly this argument.
   const primaryCall = mockedCreateCalendarEvent.mock.calls.find(([, meetingArg]) => meetingArg.mid === payload.mid);
   expect(primaryCall).toBeDefined();
   expect(primaryCall![1].zid).toBeNull();

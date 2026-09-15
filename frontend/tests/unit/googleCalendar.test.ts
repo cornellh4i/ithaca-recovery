@@ -232,6 +232,165 @@ describe("buildEventBody — event title", () => {
   });
 });
 
+// The description is the only field ICR's public site can show a join link through: its embed
+// renders a bare URL as dead text, so the anchor, the separators around it and the escaping of
+// every admin-typed value are the whole contract -- asserted as full strings, since a toContain
+// would happily pass on a body carrying a stray leading or trailing <br><br>.
+describe("buildEventBody — description", () => {
+  const zoomMeeting = (overrides: Partial<IMeeting> = {}): IMeeting => buildMeeting({
+    modeType: "Hybrid",
+    zoomLink: "https://zoom.us/j/88312345678",
+    zid: "88312345678",
+    zoomPasscode: "481926",
+    ...overrides,
+  });
+
+  it("leads with a real anchor, then the meeting ID and passcode, then the details and free text", () => {
+    const body = buildEventBody(zoomMeeting({ description: "Open discussion, newcomers welcome." }));
+
+    expect(body.description).toBe(
+      '<a href="https://zoom.us/j/88312345678">JOIN ZOOM MEETING</a>'
+      + "<br>Meeting ID: 883 1234 5678"
+      + "<br>Passcode: 481926"
+      + "<br><br>Type: AA<br>Mode: Hybrid<br>Room: Serenity Room"
+      + "<br><br>Description: Open discussion, newcomers welcome.",
+    );
+  });
+
+  it("groups the meeting ID the way Zoom itself spaces it, 3-4-4 for 11 digits and 3-3-4 for 10", () => {
+    expect(buildEventBody(zoomMeeting({ zid: "88312345678" })).description)
+      .toContain("Meeting ID: 883 1234 5678");
+    expect(buildEventBody(zoomMeeting({ zid: "8831234567" })).description)
+      .toContain("Meeting ID: 883 123 4567");
+  });
+
+  it("prints an ID of any other length or shape verbatim rather than mis-grouping it", () => {
+    expect(buildEventBody(zoomMeeting({ zid: "883123456" })).description)
+      .toContain("Meeting ID: 883123456");
+    expect(buildEventBody(zoomMeeting({ zid: "not-a-zid" })).description)
+      .toContain("Meeting ID: not-a-zid");
+  });
+
+  it("omits the passcode line entirely when the meeting has no passcode", () => {
+    const body = buildEventBody(zoomMeeting({ zoomPasscode: null }));
+
+    expect(body.description).toBe(
+      '<a href="https://zoom.us/j/88312345678">JOIN ZOOM MEETING</a>'
+      + "<br>Meeting ID: 883 1234 5678"
+      + "<br><br>Type: AA<br>Mode: Hybrid<br>Room: Serenity Room",
+    );
+  });
+
+  it("publishes the anchor alone when the link is all the Zoom identity the row has", () => {
+    const body = buildEventBody(zoomMeeting({ zid: null, zoomPasscode: null }));
+
+    expect(body.description).toBe(
+      '<a href="https://zoom.us/j/88312345678">JOIN ZOOM MEETING</a>'
+      + "<br><br>Type: AA<br>Mode: Hybrid<br>Room: Serenity Room",
+    );
+  });
+
+  it("drops a passcode with nothing to join above it, rather than publishing it on its own", () => {
+    const body = buildEventBody(buildMeeting({ zoomPasscode: "481926" }));
+
+    expect(body.description).toBe("Type: AA<br>Mode: In Person<br>Room: Serenity Room");
+  });
+
+  it("starts at Type: for an in-person meeting, with no leading separator where the join block would be", () => {
+    expect(buildEventBody(buildMeeting()).description)
+      .toBe("Type: AA<br>Mode: In Person<br>Room: Serenity Room");
+  });
+
+  it("ends at Room: when there's no free text, with no trailing separator and no bare Description: label", () => {
+    const body = buildEventBody(zoomMeeting({ description: "" }));
+
+    expect(body.description).toBe(
+      '<a href="https://zoom.us/j/88312345678">JOIN ZOOM MEETING</a>'
+      + "<br>Meeting ID: 883 1234 5678"
+      + "<br>Passcode: 481926"
+      + "<br><br>Type: AA<br>Mode: Hybrid<br>Room: Serenity Room",
+    );
+  });
+
+  it("publishes the meeting id alone when a row has credentials but no link", () => {
+    const body = buildEventBody(zoomMeeting({ zoomLink: null }));
+
+    expect(body.description).toBe(
+      "Meeting ID: 883 1234 5678<br>Passcode: 481926"
+      + "<br><br>Type: AA<br>Mode: Hybrid<br>Room: Serenity Room",
+    );
+  });
+
+  it("drops a whitespace-only description rather than publishing a bare label", () => {
+    const body = buildEventBody(buildMeeting({ description: "   " }));
+
+    expect(body.description).toBe("Type: AA<br>Mode: In Person<br>Room: Serenity Room");
+  });
+
+  it("escapes the admin's free text, which is now published into an HTML field", () => {
+    const body = buildEventBody(buildMeeting({ description: `<b>Bring a "friend" & don't be late</b>` }));
+
+    expect(body.description).toBe(
+      "Type: AA<br>Mode: In Person<br>Room: Serenity Room"
+      + "<br><br>Description: &lt;b&gt;Bring a &quot;friend&quot; &amp; don&#39;t be late&lt;/b&gt;",
+    );
+  });
+
+  it("turns the free text's own line breaks into <br>, since a newline is only whitespace in HTML", () => {
+    const body = buildEventBody(buildMeeting({ description: "Line one\nLine two\r\nLine three" }));
+
+    expect(body.description).toBe(
+      "Type: AA<br>Mode: In Person<br>Room: Serenity Room"
+      + "<br><br>Description: Line one<br>Line two<br>Line three",
+    );
+  });
+
+  it("escapes the href -- a quote would close the attribute, an ampersand would start an entity", () => {
+    const body = buildEventBody(zoomMeeting({
+      zoomLink: 'https://zoom.us/j/8831234567?pwd=a&b"onmouseover=x',
+      zid: null,
+      zoomPasscode: null,
+    }));
+
+    expect(body.description).toContain(
+      '<a href="https://zoom.us/j/8831234567?pwd=a&amp;b&quot;onmouseover=x">JOIN ZOOM MEETING</a>',
+    );
+  });
+
+  it("publishes a scheme-only or unparseable link as text -- an anchor to nothing is worse than none", () => {
+    for (const zoomLink of ["https://", "http:// spaces"]) {
+      const body = buildEventBody(zoomMeeting({ zoomLink, zid: null, zoomPasscode: null }));
+
+      expect(body.description).not.toContain("<a ");
+      expect(body.description).not.toContain("JOIN ZOOM MEETING");
+    }
+  });
+
+  it("publishes a non-http link as plain escaped text -- zoomLink is unvalidated admin free text", () => {
+    const body = buildEventBody(zoomMeeting({
+      zoomLink: "javascript:alert(1)",
+      zid: null,
+      zoomPasscode: null,
+    }));
+
+    expect(body.description).not.toContain("<a");
+    expect(body.description).toBe(
+      "javascript:alert(1)<br><br>Type: AA<br>Mode: Hybrid<br>Room: Serenity Room",
+    );
+  });
+
+  it("leaves the summary unescaped -- Google reads it as plain text, so an entity would show literally", () => {
+    expect(buildEventBody(buildMeeting({ title: "Big Book & Beyond" })).summary)
+      .toBe("AA Big Book & Beyond - In Person");
+  });
+
+  it("never writes the join link into location, which is what Zoom Room one-touch join reads", () => {
+    expect(buildEventBody(zoomMeeting()).location).toBe("518 W Seneca St, Ithaca, NY 14850");
+    expect(buildEventBody(zoomMeeting(), [], "https://zoom.us/j/88312345678").location)
+      .toBe("https://zoom.us/j/88312345678");
+  });
+});
+
 // buildEventBody is the single place a RecurrencePattern turns into a Google Calendar
 // event body -- every full events.insert/events.update (create, whole-series edit, Retry
 // sync, reconcile, pending-resume series creation) goes through it, so these cases are what

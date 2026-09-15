@@ -87,6 +87,8 @@ export function toCalendarMeeting(
     email: meeting.email,
     zoomRoom: meeting.zoomRoom,
     zoomLink: meeting.zoomLink,
+    zid: meeting.zid,
+    zoomPasscode: meeting.zoomPasscode,
     calType: meeting.calType,
     modeType: meeting.modeType,
     room: meeting.room,

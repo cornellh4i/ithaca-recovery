@@ -72,12 +72,12 @@ export async function syncOneMeeting(mid: string, accessToken: string): Promise<
     let zoomSyncError: string | null = meeting.zoomSyncError ?? null;
     let zid = meeting.zid;
     let zoomLink = meeting.zoomLink;
+    let zoomPasscode = meeting.zoomPasscode;
     // One family lookup for this whole retry, shared by the Zoom write and the calendar
     // writes below -- they name the family the same way, so they must read the same rows.
     const loadFamily = linkedFamilyLoader(prisma, mid);
 
     if (zoomEnabled) {
-        let zoomPasscode = meeting.zoomPasscode;
         let zoomHost = meeting.zoomHost;
         let zoomManaged = meeting.zoomManaged;
         let zoomCalendarEventId = meeting.zoomCalendarEventId;
@@ -304,7 +304,7 @@ export async function syncOneMeeting(mid: string, accessToken: string): Promise<
         if (accessToken && zoomLink && meeting.zoomRoom) {
             const calId = zoomRoomCalendarId[meeting.zoomRoom];
             if (calId) {
-                const meetingWithZoomLink = { ...meetingForCalendar, zoomLink };
+                const meetingWithZoomLink = { ...meetingForCalendar, zid, zoomLink, zoomPasscode };
                 const family = await loadFamily(zid);
                 if (zoomCalendarEventId) {
                     const { ok, error } = await updateCalendarEvent(accessToken, zoomCalendarEventId, meetingWithZoomLink, calId, zoomLink, family);
@@ -368,7 +368,7 @@ export async function syncOneMeeting(mid: string, accessToken: string): Promise<
     } else {
         const result = await reconcileMeetingCalendars(
             accessToken,
-            { ...meetingForCalendar, zoomLink },
+            { ...meetingForCalendar, zid, zoomLink, zoomPasscode },
             existingEventIds,
             await loadFamily(zid),
         );
