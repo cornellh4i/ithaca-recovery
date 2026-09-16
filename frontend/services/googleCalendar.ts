@@ -1,5 +1,5 @@
 import "server-only";
-import { google } from "googleapis";
+import { auth as googleAuth, calendar } from "@googleapis/calendar";
 import { IMeeting, IRecurrencePattern } from "../types/models";
 import { getETDayBounds, convertETToUTC } from "../util/date/timeUtils";
 import { buildLinkedScheduleLabel, fellowshipPrefixedTitle, LINKED_SCHEDULE_MODE_LABEL } from "../util/meetings/linkedSchedules";
@@ -26,10 +26,13 @@ function errorMessage(error: unknown): string {
     return error instanceof Error ? error.message : String(error);
 }
 
+// The Calendar-only client, not googleapis' barrel export -- that package ships all 335 Google
+// API surfaces (214 MB unpacked), and Next traces the reachable slice of it into every function
+// bundle that touches this file, which is what pushed Vercel's Functions Storage over its limit.
 function getCalendarClient(accessToken: string) {
-    const auth = new google.auth.OAuth2();
+    const auth = new googleAuth.OAuth2();
     auth.setCredentials({ access_token: accessToken });
-    return google.calendar({ version: "v3", auth });
+    return calendar({ version: "v3", auth });
 }
 
 export async function checkCalendarReachable(accessToken: string, calendarId: string): Promise<boolean> {
