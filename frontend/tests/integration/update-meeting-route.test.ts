@@ -248,7 +248,7 @@ test("a pure Zoom Room change on a MANAGED meeting moves in place -- keeps zid/l
   mockedReconcileMeetingCalendars.mockResolvedValue({ updatedEventIds: {}, allSynced: true });
   mockedCreateCalendarEvent.mockResolvedValue({ id: "new-managed-room-event", error: null });
   // The kept-zid branch still PATCHes the schedule (unrelated to the room move) -- needs a
-  // resolved value or it defaults to undefined/falsy and zoomSynced never reaches 'synced'.
+  // resolved value of the right shape, or reading `.ok` off it throws inside the deferred sync.
   mockedUpdateZoomMeeting.mockResolvedValue({ ok: true, error: null });
 
   const prisma = getTestPrismaClient();
@@ -292,6 +292,34 @@ test("a pure Zoom Room change on a MANAGED meeting moves in place -- keeps zid/l
     "fake-token", expect.anything(), "cal-managed-room-2", "https://zoom.us/j/managed1", expect.any(Array),
   );
   expect(stored?.zoomCalendarEventId).toBe("new-managed-room-event");
+});
+
+test("a refused Zoom PATCH on a whole-series edit records Zoom's own reason on the row", async () => {
+  mockedReconcileMeetingCalendars.mockResolvedValue({ updatedEventIds: {}, allSynced: true });
+  mockedUpdateZoomMeeting.mockResolvedValue({ ok: false, error: "Meeting does not exist: 84197760261." });
+
+  const prisma = getTestPrismaClient();
+  const mid = `m-${randomUUID()}`;
+  // A host of its own, so the upstream same-host conflict check can't claim zoomSyncError first.
+  const uniqueHost = `stale-host-${randomUUID()}@icr.test`;
+  await prisma.meeting.create({ data: { ...toMeetingCreateInput(buildMeetingPayload({
+    mid, modeType: "Hybrid", room: "Serenity Room", zoomRoom: "Serenity Room - Zoom",
+    zid: `stale-zid-${randomUUID()}`, zoomHost: uniqueHost, zoomLink: "https://zoom.us/j/stale1",
+  })), zoomManaged: true } });
+
+  const edit = buildMeetingPayload({
+    mid, modeType: "Hybrid", room: "Serenity Room", zoomRoom: "Serenity Room - Zoom",
+    zoomHost: uniqueHost, title: "Renamed Series",
+  });
+  const response = await PUT(new Request("http://localhost/api/update/meeting", { method: "PUT", body: JSON.stringify(edit) }));
+  expect(response.status).toBe(200);
+
+  const stored = await waitFor(async () => {
+    const m = await prisma.meeting.findUnique({ where: { mid } });
+    return m?.zoomSyncStatus === "error" ? m : null;
+  });
+
+  expect(stored?.zoomSyncError).toBe("Meeting does not exist: 84197760261.");
 });
 
 test("a shared-zid meeting's pure Zoom Room change also just moves calendars, without the sibling guard blocking anything", async () => {

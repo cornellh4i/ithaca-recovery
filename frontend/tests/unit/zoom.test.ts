@@ -61,15 +61,6 @@ function buildMeeting(overrides: Partial<IMeeting> = {}): IMeeting {
 // Mocks fetch to succeed on the token endpoint and record the JSON body sent to whichever Zoom
 // meetings-API call the test triggers. Token-fetch failure paths are covered separately below,
 // each with its own inline fetch mock.
-function mockFetchFailingPatch(status: number, body: string) {
-  global.fetch = jest.fn((url: string) => {
-    if (url.includes("oauth/token")) {
-      return Promise.resolve({ ok: true, status: 200, json: async () => ({ access_token: "tok-1", expires_in: 3600 }) });
-    }
-    return Promise.resolve({ ok: false, status, text: async () => body });
-  }) as unknown as typeof fetch;
-}
-
 function mockFetchCapturingBody() {
   let capturedBody: Record<string, unknown> | undefined;
   const fetchMock = jest.fn((url: string, init?: RequestInit) => {
@@ -90,6 +81,15 @@ function mockFetchCapturingBody() {
   });
   global.fetch = fetchMock as unknown as typeof fetch;
   return { getCapturedBody: () => capturedBody, fetchMock };
+}
+
+function mockFetchFailingPatch(status: number, body: string) {
+  global.fetch = jest.fn((url: string) => {
+    if (url.includes("oauth/token")) {
+      return Promise.resolve({ ok: true, status: 200, json: async () => ({ access_token: "tok-1", expires_in: 3600 }) });
+    }
+    return Promise.resolve({ ok: false, status, text: async () => body });
+  }) as unknown as typeof fetch;
 }
 
 describe("toZoomStartTime / buildZoomMeetingBody (via createZoomMeeting's request body)", () => {

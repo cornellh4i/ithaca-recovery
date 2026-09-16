@@ -482,9 +482,7 @@ function zoomErrorMessage(body: string, status: number): string {
   try {
     const parsed = JSON.parse(body);
     if (typeof parsed?.message === "string" && parsed.message.trim()) return parsed.message.trim();
-  } catch {
-    // Not JSON.
-  }
+  } catch {}
   return `Zoom returned ${status}.`;
 }
 

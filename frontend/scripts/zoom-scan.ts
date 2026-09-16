@@ -77,14 +77,14 @@ async function main(): Promise<void> {
     const representative = group.find((m) => m.zoomManaged && m.isRecurring && m.status !== "Suspended") ?? null;
     if (representative) {
       const family = await getZoomScheduleFamily(prisma, representative.mid, zid);
-      const ok = await updateZoomMeeting(zid, {
+      const { ok, error } = await updateZoomMeeting(zid, {
         ...representative,
         recurrencePattern: representative.recurrencePattern ?? null,
       } as unknown as IMeeting, family);
       if (ok) extended++;
       else {
         failures++;
-        console.error(`horizon PATCH failed for ${zid} (${representative.title})`);
+        console.error(`horizon PATCH failed for ${zid} (${representative.title}): ${error}`);
       }
     }
   }
