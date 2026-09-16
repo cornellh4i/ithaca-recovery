@@ -67,4 +67,22 @@ describe("GoogleReconnectBanner", () => {
     expect(signIn).toHaveBeenCalledWith("google", { callbackUrl: "/admin/diagnostics" });
     expect((signIn as jest.Mock).mock.calls[0]).toHaveLength(2);
   });
+
+  // usePathname() drops the query string, and the calendar addresses an open meeting entirely
+  // through ?mid= -- returning to the bare path would strand the admin back at the grid.
+  it("keeps the query string so a deep-linked meeting survives the round trip", () => {
+    window.history.replaceState({}, "", "/admin/diagnostics?mid=m-1&edit=1");
+    mockedUseSession.mockReturnValue({
+      data: buildSession({ googleAuthExpired: true }),
+      status: "authenticated",
+    });
+    render(<GoogleReconnectBanner />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Reconnect Google" }));
+
+    expect(signIn).toHaveBeenCalledWith("google", {
+      callbackUrl: "/admin/diagnostics?mid=m-1&edit=1",
+    });
+    window.history.replaceState({}, "", "/");
+  });
 });

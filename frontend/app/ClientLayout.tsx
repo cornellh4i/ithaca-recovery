@@ -42,7 +42,7 @@ function MainContent({ children }: PropsWithChildren) {
             onScroll={handleScroll}
         >
             <GoogleReconnectBanner />
-            {children}
+            <div className={styles.routeSlot}>{children}</div>
         </div>
     );
 }

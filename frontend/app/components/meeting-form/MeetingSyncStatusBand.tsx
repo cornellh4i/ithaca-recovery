@@ -102,7 +102,7 @@ const MeetingSyncStatusBand: React.FC<MeetingSyncStatusBandProps> = ({
           <div className={styles.syncActions}>
             {googleAuthBlocked && (
               <button
-                onClick={() => signIn('google', { callbackUrl: pathname })}
+                onClick={() => signIn('google', { callbackUrl: `${pathname ?? "/"}${window.location.search}` })}
                 className={styles.reconnectButton}
               >
                 Reconnect Google

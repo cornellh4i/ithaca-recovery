@@ -41,8 +41,8 @@ export const authOptions: NextAuthOptions = {
                 token.refreshToken = account.refresh_token;
                 token.expiresAt = account.expires_at;
                 token.picture = user?.image ?? (profile as { picture?: string })?.picture;
-                // A fresh grant arrives here -- a flag left over from the dead one would outlive
-                // the very reconnect it prompted.
+                // Belt-and-braces: next-auth hands this callback a freshly built token on
+                // sign-in, so there is nothing to carry over unless that changes upstream.
                 delete token.error;
 
                 if (token.email) {
@@ -73,7 +73,6 @@ export const authOptions: NextAuthOptions = {
                 if (refreshed.ok) {
                     token.accessToken = refreshed.accessToken;
                     token.expiresAt = refreshed.expiresAt;
-                    delete token.error;
                 } else if (refreshed.revoked) {
                     token.error = "RefreshTokenError";
                 }

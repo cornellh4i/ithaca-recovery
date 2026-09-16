@@ -40,7 +40,12 @@ export async function refreshGoogleAccessToken(
             return { ok: false, revoked };
         }
 
-        const refreshed = await response.json();
+        const refreshed = await response.json().catch(() => null);
+        // A 200 missing either field would otherwise mint expiresAt: NaN, which every later
+        // expiry check reads as falsy -- the session then never refreshes and never reports why.
+        if (!refreshed?.access_token || typeof refreshed.expires_in !== "number") {
+            return { ok: false, revoked: false };
+        }
         return {
             ok: true,
             accessToken: refreshed.access_token,

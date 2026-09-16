@@ -89,6 +89,8 @@ describe("jwt callback", () => {
     expect(token.error).toBe("RefreshTokenError");
   });
 
+  // next-auth builds a fresh token for the jwt callback on sign-in, so this guards the
+  // account branch against that changing upstream rather than describing the live path.
   it("clears the error when a fresh account arrives (re-consent)", async () => {
     const token = await runJwt({
       token: { email: "admin@test.icr", error: "RefreshTokenError" },
@@ -107,8 +109,8 @@ describe("jwt callback", () => {
     expect(mockedRefresh).not.toHaveBeenCalled();
   });
 
-  // Regression: the revoked path used to early-return, so a session holding a dead Google token
-  // also stopped noticing role changes/removal until its 30-day JWT aged out.
+  // A dead Google grant must not also freeze the role -- revocation and removal are separate
+  // events, and the role drives admin access for the JWT's whole 30-day life.
   it("still re-reads the role from the database on the revoked path", async () => {
     mockedRefresh.mockResolvedValue({ ok: false, revoked: true });
     mockedFindUnique.mockResolvedValue({ role: "SUPER_ADMIN" });

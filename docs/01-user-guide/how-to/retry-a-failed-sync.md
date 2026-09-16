@@ -23,10 +23,13 @@ duplicate Zoom sessions.
 
 If the detail panel reads **"Google authorization expired"** instead of "Failed to sync", the
 account's Google authorization is gone and **Retry sync** is disabled — replaying the same write
-against a dead authorization only reproduces the same error. Click **Reconnect Google** (in the
-panel, or in the banner across the top of the app), approve the Google consent screen, and the
-meeting publishes on its next sync. **Admin → Diagnostics** reports the same condition on its
-System Status card.
+against a dead authorization only reproduces the same error. The **Sync Issues** card on
+**Admin → Diagnostics** disables its own Retry buttons for the same reason, and its System Status
+card names the condition.
+
+Click **Reconnect Google** (in the panel, or in the banner across the top of the app) and approve
+the Google consent screen. Nothing republishes on its own afterwards: come back to the meeting and
+click **Retry sync**, which is enabled again once the authorization is renewed.
 
 This same retry can also be triggered from the **Sync Issues** card on **Admin → Diagnostics**, which lists
 every meeting currently showing a sync problem in one place — useful for checking on multiple

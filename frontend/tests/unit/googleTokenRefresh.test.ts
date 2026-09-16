@@ -87,3 +87,26 @@ test("a timeout resolves as a failure rather than hanging, and is not a revocati
 
   await expect(promise).resolves.toEqual({ ok: false, revoked: false });
 });
+
+// A 200 that doesn't actually carry a token is the quietest way to break a session: a NaN
+// expiresAt reads as falsy at every later expiry check, so the session simply stops refreshing
+// and nothing ever reports why.
+test("a 200 missing expires_in is a failure, not a usable token", async () => {
+  global.fetch = jest.fn().mockResolvedValue({
+    ok: true,
+    status: 200,
+    json: async () => ({ access_token: "new-token" }),
+  }) as unknown as typeof fetch;
+
+  await expect(refreshGoogleAccessToken("refresh-token")).resolves.toEqual({ ok: false, revoked: false });
+});
+
+test("a 200 missing access_token is a failure, not a usable token", async () => {
+  global.fetch = jest.fn().mockResolvedValue({
+    ok: true,
+    status: 200,
+    json: async () => ({ expires_in: 3600 }),
+  }) as unknown as typeof fetch;
+
+  await expect(refreshGoogleAccessToken("refresh-token")).resolves.toEqual({ ok: false, revoked: false });
+});

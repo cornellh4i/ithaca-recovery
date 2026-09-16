@@ -27,7 +27,7 @@ const GoogleReconnectBanner: React.FC = () => {
       <button
         type="button"
         className={styles.action}
-        onClick={() => signIn("google", { callbackUrl: pathname })}
+        onClick={() => signIn("google", { callbackUrl: `${pathname ?? "/"}${window.location.search}` })}
       >
         Reconnect Google
       </button>
