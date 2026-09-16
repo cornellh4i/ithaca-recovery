@@ -228,6 +228,14 @@ test("1.12 a session carrying a dead Google grant gets an app-wide reconnect ban
     page.getByText("Google Calendar isn't accepting changes from this account."),
   ).toBeVisible();
   await expect(page.getByRole("button", { name: "Reconnect Google" }).first()).toBeVisible();
+
+  // The banner is a sibling of a route root that claims height: 100%, so it has to take layout
+  // space rather than add to it. Measured, not eyeballed: headless Chromium draws zero-width
+  // scrollbars, so an overflowing shell is invisible to every visual assertion.
+  const overflow = await page.getByTestId("app-shell-content").evaluate(
+    (el) => el.scrollHeight - el.clientHeight,
+  );
+  expect(overflow).toBe(0);
 });
 
 test("1.13 an ordinary admin session shows no reconnect banner", async ({ adminPage }) => {
