@@ -16,6 +16,9 @@ export async function retryMeetingSync(mid: string): Promise<MeetingSyncResult> 
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ mid }),
   });
+  if (response.status === 409) {
+    throw new Error("Google authorization expired — reconnect to publish changes");
+  }
   if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
   return response.json();
 }

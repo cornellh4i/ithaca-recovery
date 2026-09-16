@@ -10,6 +10,11 @@ const syncMeeting = async (request: Request): Promise<Response> => {
         if (!auth.accessToken) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
+        // The stored token is still present but dead, so letting this through would spend a
+        // guaranteed 401 and overwrite the meeting's real failure reason with Google's.
+        if (auth.googleAuthExpired) {
+            return NextResponse.json({ error: "GoogleAuthExpired" }, { status: 409 });
+        }
 
         const { mid } = await request.json();
         const result = await syncOneMeeting(mid, auth.accessToken);

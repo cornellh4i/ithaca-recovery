@@ -4,6 +4,7 @@ import type { Role } from "@prisma/client";
 declare module "next-auth" {
     interface Session {
         accessToken?: string;
+        googleAuthExpired?: boolean;
         user: {
             role?: Role;
         } & DefaultSession["user"];
@@ -16,5 +17,6 @@ declare module "next-auth/jwt" {
         refreshToken?: string;
         expiresAt?: number;
         role?: Role;
+        error?: "RefreshTokenError";
     }
 }

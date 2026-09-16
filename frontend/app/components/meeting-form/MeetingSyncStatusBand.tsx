@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
+import { signIn, useSession } from 'next-auth/react';
+import { usePathname } from 'next/navigation';
 import Icon from '../ui/displays/Icon';
 import styles from './MeetingSyncStatusBand.module.scss';
 import { formatSuspensionStatusText } from '../../../util/meetings/suspensionText';
@@ -57,7 +59,10 @@ const MeetingSyncStatusBand: React.FC<MeetingSyncStatusBandProps> = ({
   suspensionActive,
 }) => {
   const [syncDetailsOpen, setSyncDetailsOpen] = useState(false);
+  const { data: session } = useSession();
+  const pathname = usePathname();
   const hasSyncFailure = googleSyncStatus === 'error' || zoomSyncStatus === 'error';
+  const googleAuthBlocked = Boolean(session?.googleAuthExpired) && googleSyncStatus === 'error';
 
   if (!isAdmin || !(hasSyncFailure || zoomDrift || sharedScheduleDiverged || conflictCount > 0 || hasSuspension)) return null;
 
@@ -67,7 +72,7 @@ const MeetingSyncStatusBand: React.FC<MeetingSyncStatusBandProps> = ({
         <div className={styles.syncFailureBlock}>
           <div className={styles.syncFailureHeader}>
             <Icon name="sync-error" />
-            <span>Failed to sync</span>
+            <span>{googleAuthBlocked ? 'Google authorization expired' : 'Failed to sync'}</span>
             <button
               className={styles.syncDetailsToggle}
               aria-expanded={syncDetailsOpen}
@@ -80,20 +85,39 @@ const MeetingSyncStatusBand: React.FC<MeetingSyncStatusBandProps> = ({
           {syncDetailsOpen && (
             <div className={styles.syncDetailsList}>
               {googleSyncStatus === 'error' && (
-                <div>Google Calendar: &quot;{googleSyncError ?? 'Sync failed.'}&quot;</div>
+                googleAuthBlocked ? (
+                  <div>
+                    Google Calendar: this account&apos;s authorization expired or was revoked, so
+                    changes stop publishing until it reconnects.
+                  </div>
+                ) : (
+                  <div>Google Calendar: &quot;{googleSyncError ?? 'Sync failed.'}&quot;</div>
+                )
               )}
               {zoomSyncStatus === 'error' && (
                 <div>Zoom: &quot;{zoomSyncError ?? 'Sync failed.'}&quot;</div>
               )}
             </div>
           )}
-          <button
-            onClick={onRetrySync}
-            disabled={syncing}
-            className={styles.retryButton}
-          >
-            {syncing ? 'Retrying…' : 'Retry sync'}
-          </button>
+          <div className={styles.syncActions}>
+            {googleAuthBlocked && (
+              <button
+                onClick={() => signIn('google', { callbackUrl: `${pathname ?? "/"}${window.location.search}` })}
+                className={styles.reconnectButton}
+              >
+                Reconnect Google
+              </button>
+            )}
+            <button
+              onClick={onRetrySync}
+              // Retrying replays the same write against the same dead grant -- it can only
+              // reproduce the error, so reconnecting is the only move that changes anything.
+              disabled={syncing || googleAuthBlocked}
+              className={styles.retryButton}
+            >
+              {syncing ? 'Retrying…' : 'Retry sync'}
+            </button>
+          </div>
         </div>
       )}
 

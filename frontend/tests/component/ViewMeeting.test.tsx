@@ -2,6 +2,26 @@ import React from "react";
 import { render, screen, waitFor, within, fireEvent } from "@testing-library/react";
 import ViewMeetingDetails from "../../app/components/meeting-form/ViewMeeting";
 import { ToastProvider } from "../../app/components/shared/ToastProvider";
+import { signIn, useSession } from "next-auth/react";
+
+jest.mock("next-auth/react", () => ({
+  signIn: jest.fn(),
+  useSession: jest.fn(),
+}));
+
+jest.mock("next/navigation", () => ({
+  usePathname: () => "/",
+}));
+
+const mockedUseSession = jest.mocked(useSession);
+const mockedSignIn = jest.mocked(signIn);
+
+const setSession = (googleAuthExpired: boolean) =>
+  mockedUseSession.mockReturnValue({
+    data: { googleAuthExpired, expires: "2099-01-01T00:00:00.000Z" },
+    status: "authenticated",
+    update: jest.fn(),
+  } as unknown as ReturnType<typeof useSession>);
 
 // ViewMeeting's "Retry sync" button reads useToast() -- which throws outside a ToastProvider --
 // so every render here needs one in the tree, not just the ones that click Retry.
@@ -13,6 +33,8 @@ const renderViewMeeting = (props: React.ComponentProps<typeof ViewMeetingDetails
   );
 
 beforeEach(() => {
+  setSession(false);
+  mockedSignIn.mockClear();
   global.fetch = jest.fn().mockResolvedValue({
     ok: true,
     json: async () => ({ hosts: [] }),
@@ -189,6 +211,48 @@ describe("ViewMeeting", () => {
       expect(await screen.findByText(/Insufficient permissions/)).toBeInTheDocument();
       expect(screen.getByText(/Meeting ID no longer exists/)).toBeInTheDocument();
       expect(screen.getByRole("button", { name: "Hide sync error details" })).toBeInTheDocument();
+    });
+
+    it("offers a reconnect and disables Retry sync once the Google grant is dead", async () => {
+      setSession(true);
+      renderViewMeeting({ ...withProblems, isAdmin: true, anchorEl: makeAnchorEl(), isPhone: false });
+
+      expect(await screen.findByText("Google authorization expired")).toBeInTheDocument();
+      expect(screen.queryByText("Failed to sync")).not.toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Retry sync" })).toBeDisabled();
+
+      fireEvent.click(screen.getByRole("button", { name: "Reconnect Google" }));
+      // A third signIn argument would replace authConfig's own prompt: "consent" and lose the
+      // refresh token, so the reconnect must pass exactly two.
+      expect(mockedSignIn).toHaveBeenCalledWith("google", { callbackUrl: "/" });
+    });
+
+    it("names the authorization instead of echoing Google's credentials error", async () => {
+      setSession(true);
+      renderViewMeeting({ ...withProblems, isAdmin: true, anchorEl: makeAnchorEl(), isPhone: false });
+
+      fireEvent.click(await screen.findByRole("button", { name: "Show sync error details" }));
+
+      expect(screen.getByText(/authorization expired or was revoked/)).toBeInTheDocument();
+      expect(screen.queryByText(/Insufficient permissions/)).not.toBeInTheDocument();
+      // Zoom is a separate channel -- a dead Google grant says nothing about it.
+      expect(screen.getByText(/Meeting ID no longer exists/)).toBeInTheDocument();
+    });
+
+    it("leaves Retry sync live for a Zoom-only failure", async () => {
+      setSession(true);
+      renderViewMeeting({
+        ...withProblems,
+        googleSyncStatus: "synced",
+        googleSyncError: null,
+        isAdmin: true,
+        anchorEl: makeAnchorEl(),
+        isPhone: false,
+      });
+
+      expect(await screen.findByText("Failed to sync")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Retry sync" })).toBeEnabled();
+      expect(screen.queryByRole("button", { name: "Reconnect Google" })).not.toBeInTheDocument();
     });
   });
 

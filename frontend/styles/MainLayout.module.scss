@@ -54,6 +54,17 @@
         flex: 1 1 auto;
         min-height: 0; // lets this shrink to the space left under the navbar, so overflow-y actually scrolls instead of growing past the viewport
 
+        // Column flex, not block flow -- GoogleReconnectBanner is a sibling of the route's own
+        // root, and every route root claims height: 100%. In block flow the two would sum past
+        // this container and hand the shell back the page-level scrollbar it doesn't want.
+        display: flex;
+        flex-direction: column;
+
+        > .routeSlot {
+            flex: 1 1 auto;
+            min-height: 0;
+        }
+
         // overflow-x explicit, not implicit -- overflow-y: auto alone computes overflow-x to
         // auto too (CSS can't mix visible with non-visible per-axis), painting a horizontal
         // track with no scroll distance behind it: every horizontal scroll region is a

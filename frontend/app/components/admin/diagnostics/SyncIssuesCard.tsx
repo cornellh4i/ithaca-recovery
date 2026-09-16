@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
+import { useSession } from "next-auth/react";
 import Card from "../shared/Card";
 import Icon from "../../ui/displays/Icon";
 import TopLoadingBar from "../../ui/displays/TopLoadingBar";
@@ -33,6 +34,8 @@ interface SyncIssueRow {
 
 const SyncIssuesCard: React.FC = () => {
   const { showToast } = useToast();
+  const { data: session } = useSession();
+  const googleAuthExpired = Boolean(session?.googleAuthExpired);
   const [syncIssues, setSyncIssues] = useState<SyncIssueRow[] | null>(null);
   const [total, setTotal] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -167,7 +170,9 @@ const SyncIssuesCard: React.FC = () => {
         Sync Issues ({total})
       </div>
       <div className={styles.panelSubhead}>
-        Failed to sync, or waiting on a Zoom host. Retry here; edit the meeting if that doesn&apos;t resolve it.
+        {googleAuthExpired
+          ? "Retry is unavailable while this account's Google authorization is expired — reconnect from the banner above, then retry."
+          : "Failed to sync, or waiting on a Zoom host. Retry here; edit the meeting if that doesn't resolve it."}
       </div>
       {syncIssues.length === 0 ? (
         <div className={styles.emptyState}>No sync issues.</div>
@@ -198,7 +203,7 @@ const SyncIssuesCard: React.FC = () => {
                     type="button"
                     className={styles.retryButton}
                     onClick={() => retrySync(meeting.mid)}
-                    disabled={retryingMid === meeting.mid}
+                    disabled={retryingMid === meeting.mid || googleAuthExpired}
                   >
                     {retryingMid === meeting.mid ? "Retrying…" : "Retry sync"}
                   </button>

@@ -50,7 +50,10 @@ export const GET = async () => {
     await prisma.admin.count();
     const databaseLatencyMs = Date.now() - dbStart;
 
-    const token = auth.accessToken as string | undefined;
+    // Every calendar probe below is a guaranteed 401 once this admin's grant is dead -- skipping
+    // them keeps an "unreachable" reading about Google rather than about their authorization.
+    const googleAuthExpired = Boolean(auth.googleAuthExpired);
+    const token = googleAuthExpired ? undefined : (auth.accessToken as string | undefined);
     const unreachableHostPool = Object.fromEntries(zoomHostPool.map((email) => [email, { ok: false, licensed: null }]));
 
     // All four independent external-check groups run together instead of sequentially --
@@ -66,7 +69,7 @@ export const GET = async () => {
       database: { ok: true, latencyMs: databaseLatencyMs },
       googleCalendar: { categories: googleCalendarCategories },
       zoom: { reachable: zoomReachable, roomCalendars, hostPool },
-      session: { email: auth.user?.email ?? null, role: auth.user?.role ?? null },
+      session: { email: auth.user?.email ?? null, role: auth.user?.role ?? null, googleAuthExpired },
       // Kept in the same shape/order as SystemStatusCard.tsx's hardcoded top-level rows
       // (readability only -- those rows are fixed JSX, not driven by this object's key order;
       // only the nested calendar/host-pool maps render via Object.entries()).
