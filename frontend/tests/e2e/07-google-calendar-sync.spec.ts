@@ -101,4 +101,21 @@ test.describe("google calendar sync", () => {
     await expect(page.getByText("Failed to sync")).toHaveCount(0);
     await expect(page.getByRole("button", { name: "Retry sync" })).toHaveCount(0);
   });
+
+  // A dead Google grant is the one failure Retry can never clear, so the band names it and
+  // points at the only action that changes anything.
+  test("7.11 an expired Google grant disables retry and offers a reconnect instead", async ({ page, context }) => {
+    const admin = await seedAdmin(Role.ADMIN);
+    await loginAs(context, admin.email, { error: "RefreshTokenError" });
+    await seedMeeting({ title: "GCal Dead Grant Meeting", googleSyncStatus: "error" });
+
+    await page.goto("/");
+    await page.getByText("GCal Dead Grant Meeting", { exact: true }).click();
+
+    await expect(page.locator("span", { hasText: /^Google authorization expired$/ })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Retry sync" })).toBeDisabled();
+    await expect(
+      page.getByRole("button", { name: "Reconnect Google" }).first(),
+    ).toBeVisible();
+  });
 });

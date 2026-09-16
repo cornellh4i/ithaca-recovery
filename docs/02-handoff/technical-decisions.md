@@ -95,6 +95,8 @@ Each section ends with a **Revisit if:** line — the condition under which this
 
 **Token refresh happens in `proxy.ts`, not in route handlers** — `services/auth.ts`'s single-argument `getServerSession()` call can't persist a refreshed token back to the cookie (its response object's cookie-write is a no-op), so a route handler alone would refresh the same soon-to-expire token on every request, forever. `frontend/proxy.ts` has real cookie-write access and owns the actual fix; see that file's own comments for the mechanism.
 
+**Only `invalid_grant` counts as a dead grant** — Google refuses a refresh for reasons that range from permanent (the user revoked access, the token aged out, an admin revoked it, the ~100-token-per-user-per-client cap evicted the oldest) to momentary (a 5xx, a network blip, the client's own 5-second timeout). `refreshGoogleAccessToken()` reports those two cases apart rather than collapsing both to a failure, because the permanent case ends in asking an admin to re-consent — an expensive thing to ask over a two-second outage. Only the permanent case sets `RefreshTokenError`; the proxy persists that flag to the cookie so later requests stop re-asking a question whose answer can't change.
+
 **Notes:**
 - Production's User Type is **Internal** (sign-in restricted to ICR's Google Workspace accounts, no user cap or test-user step); dev stays External/unverified, where the sensitive `calendar.events` scope caps it at 100 manually-approved test users — see [Integration Guides](../03-development/integration-guides.md#2-google-oauth-nextauth).
 

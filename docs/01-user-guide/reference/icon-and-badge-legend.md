@@ -80,7 +80,9 @@ expands a per-service breakdown of what failed. See
 
 The same icon also appears when nothing failed but the meeting's Zoom settings were
 [changed outside the app](../explanation/how-sync-works.md#zoom-side-changes-are-detected-not-synced-live) —
-opening the meeting shows which case it is and the one-click fix.
+opening the meeting shows which case it is and the one-click fix. A third case reads
+**"Google authorization expired"** and offers **Reconnect Google** with Retry sync greyed out — the
+account's Google authorization is gone, and no amount of retrying reaches Google until it's renewed.
 
 ![A sync-error icon on a calendar block](../assets/sync-error-badge.png)
 

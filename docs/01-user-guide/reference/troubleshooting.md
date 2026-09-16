@@ -8,6 +8,7 @@
 | Meeting not visible after creating it | Wait 30 seconds for the auto-refresh, or reload the page |
 | Zoom link is blank on a meeting | Open the meeting, if it shows a sync-error badge, use [Retry a Failed Sync](../how-to/retry-a-failed-sync.md) first. Deleting and recreating is a last resort; it's permanent, see [why some actions can't be undone](../explanation/why-some-actions-cant-be-undone.md) |
 | A meeting shows a sync-error badge | Google Calendar and/or Zoom sync failed for that meeting. See [Retry a Failed Sync](../how-to/retry-a-failed-sync.md) |
+| Meetings save but never appear on Google Calendar | Your Google authorization expired or was revoked. A banner across the top of the app says so — click **Reconnect Google** in it, or in the meeting's own status band. Retrying the sync can't help until you do. |
 | Not sure what an icon or badge on the calendar means | See the [Icon and Badge Legend](icon-and-badge-legend.md) |
 | "Export Lease CSV" fails with no meetings to export | Confirm at least one non-deleted meeting exists (suspended meetings still count) |
 | Page behaves unexpectedly | Hard refresh: Ctrl+Shift+R (Windows) or Cmd+Shift+R (Mac). Or try a different browser |
