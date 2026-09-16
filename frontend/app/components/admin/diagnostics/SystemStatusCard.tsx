@@ -22,7 +22,7 @@ interface SystemStatusData {
     roomCalendars: Record<string, boolean>;
     hostPool: Record<string, { ok: boolean; licensed: boolean | null }>;
   };
-  session: { email: string | null; role: Role | null };
+  session: { email: string | null; role: Role | null; googleAuthExpired?: boolean };
   application: { version: string; deployedAt: string | null };
 }
 
@@ -73,6 +73,7 @@ const SystemStatusCard: React.FC<SystemStatusCardProps> = ({ email, role }) => {
     );
   }
 
+  const googleAuthExpired = Boolean(data.session.googleAuthExpired);
   const gcalEntries = Object.entries(data.googleCalendar.categories);
   const gcalReachableCount = gcalEntries.filter(([, ok]) => ok).length;
 
@@ -110,19 +111,25 @@ const SystemStatusCard: React.FC<SystemStatusCardProps> = ({ email, role }) => {
 
       <div className={styles.statusBlock}>
         <div className={styles.statusRow}>
-          <span className={`${styles.dot} ${gcalReachableCount === gcalEntries.length ? styles.dotOk : styles.dotDown}`} />
+          <span className={`${styles.dot} ${googleAuthExpired || gcalReachableCount !== gcalEntries.length ? styles.dotDown : styles.dotOk}`} />
           <span className={styles.statusLabel}>Google Calendar</span>
           <span className={styles.statusValue}>
-            {gcalReachableCount}/{gcalEntries.length} calendars reachable
+            {googleAuthExpired ? "Not checked" : `${gcalReachableCount}/${gcalEntries.length} calendars reachable`}
           </span>
         </div>
-        <div className={styles.gcalSubRow}>
-          {gcalEntries.map(([cat, ok]) => (
-            <span key={cat} className={ok ? styles.gcalOk : styles.dangerText}>
-              {ok ? cat : `${cat}: unreachable`}
-            </span>
-          ))}
-        </div>
+        {googleAuthExpired ? (
+          <div className={styles.statusDetail}>
+            This admin&apos;s Google authorization is expired, so no calendar was contacted.
+          </div>
+        ) : (
+          <div className={styles.gcalSubRow}>
+            {gcalEntries.map(([cat, ok]) => (
+              <span key={cat} className={ok ? styles.gcalOk : styles.dangerText}>
+                {ok ? cat : `${cat}: unreachable`}
+              </span>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className={styles.statusBlock}>
@@ -131,17 +138,19 @@ const SystemStatusCard: React.FC<SystemStatusCardProps> = ({ email, role }) => {
           <span className={styles.statusLabel}>Zoom</span>
           <span className={styles.statusValue}>
             {data.zoom.reachable ? "App reachable" : "App unreachable"}
-            {" · "}{roomCalendarOkCount}/{roomCalendarEntries.length} rooms
+            {" · "}{googleAuthExpired ? "rooms not checked" : `${roomCalendarOkCount}/${roomCalendarEntries.length} rooms`}
             {" · "}{hostPoolReachableCount}/{hostPoolEntries.length} hosts
           </span>
         </div>
-        <div className={styles.gcalSubRow}>
-          {roomCalendarEntries.map(([room, ok]) => (
-            <span key={room} className={ok ? styles.gcalOk : styles.dangerText}>
-              {ok ? room.replace(/ - Zoom$/, "") : `${room.replace(/ - Zoom$/, "")}: unreachable`}
-            </span>
-          ))}
-        </div>
+        {!googleAuthExpired && (
+          <div className={styles.gcalSubRow}>
+            {roomCalendarEntries.map(([room, ok]) => (
+              <span key={room} className={ok ? styles.gcalOk : styles.dangerText}>
+                {ok ? room.replace(/ - Zoom$/, "") : `${room.replace(/ - Zoom$/, "")}: unreachable`}
+              </span>
+            ))}
+          </div>
+        )}
         <div className={styles.pooledHosts}>
           <div className={styles.pooledHostsHeader}>
             POOLED HOSTS · {hostPoolReachableCount} reachable · {hostPoolLicensedCount} Licensed, {hostPoolBasicCount} Basic
@@ -161,11 +170,16 @@ const SystemStatusCard: React.FC<SystemStatusCardProps> = ({ email, role }) => {
 
       <div className={styles.statusBlock}>
         <div className={styles.statusRow}>
-          <span className={`${styles.dot} ${styles.dotOk}`} />
+          <span className={`${styles.dot} ${googleAuthExpired ? styles.dotDown : styles.dotOk}`} />
           <span className={styles.statusLabel}>Session</span>
           <span className={styles.statusValue}>{email}</span>
         </div>
         <div className={styles.statusDetail}>{roleLabel[role] ?? role}</div>
+        {googleAuthExpired && (
+          <div className={styles.dangerText}>
+            Google authorization expired — reconnect to publish changes.
+          </div>
+        )}
       </div>
 
       <div className={styles.statusBlock}>
