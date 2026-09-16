@@ -118,10 +118,14 @@ export async function syncOneMeeting(mid: string, accessToken: string): Promise<
             // linked-schedule family rides along so the PATCH sends the union schedule
             // (#513) and the family's own Zoom name, not this row's narrowed view of either.
             const family = meeting.zoomManaged ? await loadFamily(zid) : [];
-            const ok = meeting.zoomManaged
+            const zoomPatch = meeting.zoomManaged
                 ? await updateZoomMeeting(zid, meetingForCalendar, family)
-                : true;
-            if (!ok) zoomSynced = false;
+                : { ok: true, error: null };
+            const ok = zoomPatch.ok;
+            if (!ok) {
+                zoomSynced = false;
+                zoomSyncError = zoomPatch.error ?? "Couldn't update this meeting in Zoom.";
+            }
             // The PATCH above may have pushed a new custom passcode, making Zoom rewrite
             // join_url's ?pwd= AFTER the credential fetch adopted the pre-PATCH values --
             // re-fetch so the calendar writes below carry the rewritten link.
@@ -261,10 +265,10 @@ export async function syncOneMeeting(mid: string, accessToken: string): Promise<
                 // Unmanaged (adopted/external) Zoom meetings are never PATCHed -- same
                 // contract as the zid branch above; the stored link is all this row adopts.
                 if (holder.zoomManaged) {
-                    const ok = await updateZoomMeeting(holderZid, meetingForCalendar, await loadFamily(holderZid));
-                    if (!ok) {
+                    const holderPatch = await updateZoomMeeting(holderZid, meetingForCalendar, await loadFamily(holderZid));
+                    if (!holderPatch.ok) {
                         zoomSynced = false;
-                        zoomSyncError = "Couldn't update the shared Zoom meeting for this schedule.";
+                        zoomSyncError = holderPatch.error ?? "Couldn't update the shared Zoom meeting for this schedule.";
                     }
                 }
             } else if (mintHost) {

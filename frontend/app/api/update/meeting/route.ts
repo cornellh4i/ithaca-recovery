@@ -214,10 +214,14 @@ async function syncUpdatedMeeting(
         // The whole linked-schedule family rides along so the PATCH sends the union schedule
         // (#513) and the family's own Zoom name, not this row's narrowed view of either.
         const family = existingMeeting.zoomManaged ? await loadFamily(zid) : [];
-        const ok = existingMeeting.zoomManaged
+        const zoomPatch = existingMeeting.zoomManaged
           ? await updateZoomMeeting(zid, { ...newMeeting, zoomTopic: existingMeeting.zoomTopic }, family)
-          : true;
-        if (!ok) zoomSynced = false;
+          : { ok: true, error: null };
+        const ok = zoomPatch.ok;
+        if (!ok) {
+          zoomSynced = false;
+          zoomSyncError = zoomPatch.error ?? "Couldn't update this meeting in Zoom.";
+        }
         // A PATCH that pushed a new custom passcode just made Zoom rewrite join_url's ?pwd= --
         // adopt the rewritten credentials BEFORE the calendar writes below, or every event
         // (whose description embeds zoomLink) republishes the now-dead old link. A failed
@@ -881,7 +885,7 @@ async function syncLinkedScheduleFamily(
     // syncUpdatedMeeting).
     const holder = members.find((member) => member.zid === patchZid && member.zoomManaged);
     if (holder) {
-      const ok = await updateZoomMeeting(patchZid, holder as unknown as IMeeting, await loadFamily(patchZid));
+      const { ok } = await updateZoomMeeting(patchZid, holder as unknown as IMeeting, await loadFamily(patchZid));
       // The PATCH pushes the holder's custom passcode; when that differs from the stored
       // mirror, Zoom just rewrote join_url -- adopt the rewritten credentials on every
       // zid-sharing row (and in the in-memory members about to be republished below) so no

@@ -167,7 +167,7 @@ test("a malformed body returns 400 with validation issues instead of a raw 500",
 });
 
 test("a managed edit threads the pinned zoomTopic into the Zoom PATCH instead of the title", async () => {
-  mockedUpdateZoomMeeting.mockResolvedValue(true);
+  mockedUpdateZoomMeeting.mockResolvedValue({ ok: true, error: null });
   mockedReconcileMeetingCalendars.mockResolvedValue({ updatedEventIds: {}, allSynced: true });
 
   const prisma = getTestPrismaClient();
@@ -249,7 +249,7 @@ test("a pure Zoom Room change on a MANAGED meeting moves in place -- keeps zid/l
   mockedCreateCalendarEvent.mockResolvedValue({ id: "new-managed-room-event", error: null });
   // The kept-zid branch still PATCHes the schedule (unrelated to the room move) -- needs a
   // resolved value or it defaults to undefined/falsy and zoomSynced never reaches 'synced'.
-  mockedUpdateZoomMeeting.mockResolvedValue(true);
+  mockedUpdateZoomMeeting.mockResolvedValue({ ok: true, error: null });
 
   const prisma = getTestPrismaClient();
   const mid = `m-${randomUUID()}`;
@@ -297,7 +297,7 @@ test("a pure Zoom Room change on a MANAGED meeting moves in place -- keeps zid/l
 test("a shared-zid meeting's pure Zoom Room change also just moves calendars, without the sibling guard blocking anything", async () => {
   mockedReconcileMeetingCalendars.mockResolvedValue({ updatedEventIds: {}, allSynced: true });
   mockedCreateCalendarEvent.mockResolvedValue({ id: "new-shared-room-event", error: null });
-  mockedUpdateZoomMeeting.mockResolvedValue(true);
+  mockedUpdateZoomMeeting.mockResolvedValue({ ok: true, error: null });
 
   const prisma = getTestPrismaClient();
   const sharedZid = "shared-zid-room-move";
@@ -393,7 +393,7 @@ test("a room change combined with a genuine recreate reason (explicit host chang
 });
 
 test("the same combination on a SHARED Zoom meeting refuses the recreate instead of splitting the family, and still moves the room", async () => {
-  mockedUpdateZoomMeeting.mockResolvedValue(true);
+  mockedUpdateZoomMeeting.mockResolvedValue({ ok: true, error: null });
   mockedCreateCalendarEvent.mockResolvedValue({ id: "new-family-split-event", error: null });
   mockedReconcileMeetingCalendars.mockResolvedValue({ updatedEventIds: {}, allSynced: true });
 
@@ -500,7 +500,7 @@ test("an update never overwrites the stored creator with the client payload's va
 });
 
 test("a same-room time edit that now conflicts with another meeting on the same Zoom host fails soft instead of double-booking it", async () => {
-  mockedUpdateZoomMeeting.mockResolvedValue(true);
+  mockedUpdateZoomMeeting.mockResolvedValue({ ok: true, error: null });
   mockedReconcileMeetingCalendars.mockResolvedValue({ updatedEventIds: {}, allSynced: true });
 
   const prisma = getTestPrismaClient();
@@ -730,7 +730,7 @@ test("an exhausted Zoom host pool on update fails soft, synchronously, without t
 
 test("an explicit host reassignment transfers the Zoom meeting in place, keeping its ID, link and passcode", async () => {
   mockedRehostZoomMeeting.mockResolvedValue(true);
-  mockedUpdateZoomMeeting.mockResolvedValue(true);
+  mockedUpdateZoomMeeting.mockResolvedValue({ ok: true, error: null });
   mockedReconcileMeetingCalendars.mockResolvedValue({ updatedEventIds: {}, allSynced: true });
 
   const prisma = getTestPrismaClient();
@@ -770,7 +770,7 @@ test("an explicit host reassignment transfers the Zoom meeting in place, keeping
 
 test("transferring a Zoom meeting shared by several rows moves every one of them to the new host", async () => {
   mockedRehostZoomMeeting.mockResolvedValue(true);
-  mockedUpdateZoomMeeting.mockResolvedValue(true);
+  mockedUpdateZoomMeeting.mockResolvedValue({ ok: true, error: null });
   mockedReconcileMeetingCalendars.mockResolvedValue({ updatedEventIds: {}, allSynced: true });
 
   const prisma = getTestPrismaClient();
@@ -805,7 +805,7 @@ test("transferring a Zoom meeting shared by several rows moves every one of them
 
 test("a refused transfer of a shared Zoom meeting fails soft instead of splitting the bundle with a recreate", async () => {
   mockedRehostZoomMeeting.mockResolvedValue(false);
-  mockedUpdateZoomMeeting.mockResolvedValue(true);
+  mockedUpdateZoomMeeting.mockResolvedValue({ ok: true, error: null });
   mockedReconcileMeetingCalendars.mockResolvedValue({ updatedEventIds: {}, allSynced: true });
 
   const prisma = getTestPrismaClient();
@@ -1143,7 +1143,7 @@ test("an edit pushing a new custom passcode adopts Zoom's rewritten credentials 
   const { getZoomMeetingCredentials } = jest.requireMock("../../services/zoom");
   const mockedGetZoomMeetingCredentials = getZoomMeetingCredentials as jest.Mock;
   mockedGetZoomMeetingCredentials.mockReset();
-  mockedUpdateZoomMeeting.mockResolvedValue(true);
+  mockedUpdateZoomMeeting.mockResolvedValue({ ok: true, error: null });
   mockedReconcileMeetingCalendars.mockResolvedValue({ updatedEventIds: {}, allSynced: true });
   mockedGetZoomMeetingCredentials.mockResolvedValue({
     passcode: "newpw1",
@@ -1200,7 +1200,7 @@ test("an edit with no custom passcode never fetches credentials or sends a passw
   const { getZoomMeetingCredentials } = jest.requireMock("../../services/zoom");
   const mockedGetZoomMeetingCredentials = getZoomMeetingCredentials as jest.Mock;
   mockedGetZoomMeetingCredentials.mockReset();
-  mockedUpdateZoomMeeting.mockResolvedValue(true);
+  mockedUpdateZoomMeeting.mockResolvedValue({ ok: true, error: null });
   mockedReconcileMeetingCalendars.mockResolvedValue({ updatedEventIds: {}, allSynced: true });
 
   const prisma = getTestPrismaClient();

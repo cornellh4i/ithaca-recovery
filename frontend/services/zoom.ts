@@ -476,7 +476,19 @@ export async function getZoomMeetingCredentials(zid: string): Promise<{ passcode
   }
 }
 
-export async function updateZoomMeeting(zid: string, meeting: IMeeting, family: IMeeting[] = []): Promise<boolean> {
+// Zoom names the cause in the body's `message` (e.g. "Meeting does not exist") -- a retry
+// can't clear most of them, so it belongs on the row, not only in the log.
+function zoomErrorMessage(body: string, status: number): string {
+  try {
+    const parsed = JSON.parse(body);
+    if (typeof parsed?.message === "string" && parsed.message.trim()) return parsed.message.trim();
+  } catch {
+    // Not JSON.
+  }
+  return `Zoom returned ${status}.`;
+}
+
+export async function updateZoomMeeting(zid: string, meeting: IMeeting, family: IMeeting[] = []): Promise<{ ok: boolean; error: string | null }> {
   // Managed recurring meetings mirror their real schedule to Zoom (type 8 + recurrence, built
   // from the same pattern the app/calendars use) -- each successful PATCH also re-extends
   // Zoom's ~2-year rolling occurrence horizon. Unmanaged meetings never reach this function
@@ -487,7 +499,7 @@ export async function updateZoomMeeting(zid: string, meeting: IMeeting, family: 
 
   try {
     const token = await getZoomAccessToken();
-    if (!token) return false;
+    if (!token) return { ok: false, error: "Couldn't authenticate with Zoom." };
 
     const res = await fetch(`${ZOOM_BASE_API}/meetings/${zid}`, {
       method: "PATCH",
@@ -495,11 +507,15 @@ export async function updateZoomMeeting(zid: string, meeting: IMeeting, family: 
       body: JSON.stringify(buildZoomMeetingBody(meeting, family)),
     });
     invalidateZoomTokenIfUnauthorized(res);
-    if (!res.ok) console.error("Zoom updateMeeting error:", await res.text());
-    return res.ok;
+    if (!res.ok) {
+      const body = await res.text();
+      console.error("Zoom updateMeeting error:", body);
+      return { ok: false, error: zoomErrorMessage(body, res.status) };
+    }
+    return { ok: true, error: null };
   } catch (error) {
     console.error("Zoom updateMeeting error:", error);
-    return false;
+    return { ok: false, error: error instanceof Error ? error.message : String(error) };
   }
 }
 

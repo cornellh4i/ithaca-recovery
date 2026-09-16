@@ -111,7 +111,7 @@ test("dry run is the default -- an empty body never executes", async () => {
 test("execution runs the shared full reconcile per row (Zoom PATCH + calendar rewrite)", async () => {
   const meeting = await seedSyncedMeeting({ calType: ["AA"] });
   mockedGetZoomMeetingCredentials.mockResolvedValue(null);
-  mockedUpdateZoomMeeting.mockResolvedValue(true);
+  mockedUpdateZoomMeeting.mockResolvedValue({ ok: true, error: null });
   mockedReconcileMeetingCalendars.mockResolvedValue({ updatedEventIds: { AA: "evt-1" }, allSynced: true });
 
   // Scoped by mids: parallel suites share this database, and executing a whole-table sweep
