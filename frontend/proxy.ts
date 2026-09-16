@@ -23,6 +23,9 @@ export async function proxy(request: NextRequest) {
     const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET, secureCookie });
 
     if (!token?.expiresAt || !token.refreshToken) return response;
+    // A revoked grant can't heal without a re-consent, so the flag persisted below is also what
+    // stops every later request re-asking Google a question whose answer already can't change.
+    if (token.error) return response;
     if (Date.now() / 1000 <= token.expiresAt - REFRESH_SKEW_SECONDS) return response;
 
     // getServerSession()'s single-argument ("RSC") code path used elsewhere in this app
@@ -31,9 +34,6 @@ export async function proxy(request: NextRequest) {
     const refreshed = await refreshGoogleAccessToken(token.refreshToken);
     if (!refreshed.ok && !refreshed.revoked) return response; // transient — the next request retries
 
-    // A confirmed revocation rides the same cookie write for the same reason the refresh does:
-    // it's the only durable record of it, and without it every request re-asks Google a question
-    // whose answer can't change until the admin re-consents.
     const updatedToken = refreshed.ok
         ? { ...token, accessToken: refreshed.accessToken, expiresAt: refreshed.expiresAt }
         : { ...token, error: "RefreshTokenError" as const };

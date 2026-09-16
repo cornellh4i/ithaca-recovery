@@ -91,8 +91,6 @@ test("a revoked refresh token is persisted onto the cookie as RefreshTokenError"
   const [, cookieValue] = setCookie!.match(new RegExp(`${COOKIE_NAME}=([^;]+)`))!;
   const decoded = await decode({ token: cookieValue, secret: TEST_SECRET });
   expect(decoded?.error).toBe("RefreshTokenError");
-  // The dead access token stays put -- withholding it would route every write into a canned
-  // "no access token" message instead of the named condition the session now carries.
   expect(decoded?.accessToken).toBe("old-token");
 });
 
@@ -103,5 +101,19 @@ test("a transient refresh failure leaves the cookie untouched", async () => {
 
   const response = await proxy(request);
 
+  expect(response.headers.get("set-cookie")).toBeNull();
+});
+
+test("a token already carrying RefreshTokenError doesn't re-ask Google", async () => {
+  const expired = Math.floor(Date.now() / 1000) - 30;
+  const request = await requestWithToken({
+    expiresAt: expired,
+    refreshToken: "refresh-1",
+    error: "RefreshTokenError",
+  });
+
+  const response = await proxy(request);
+
+  expect(mockedRefresh).not.toHaveBeenCalled();
   expect(response.headers.get("set-cookie")).toBeNull();
 });

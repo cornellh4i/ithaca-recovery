@@ -6,8 +6,6 @@ import { usePathname } from "next/navigation";
 import Icon from "../ui/displays/Icon";
 import styles from "./GoogleReconnectBanner.module.scss";
 
-// App-wide banner for the one auth condition that doesn't announce itself anywhere else: the
-// admin is still signed in, but their Google grant is gone, so every calendar write fails.
 const GoogleReconnectBanner: React.FC = () => {
   const { data: session } = useSession();
   const pathname = usePathname();
