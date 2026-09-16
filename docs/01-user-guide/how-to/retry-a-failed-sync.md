@@ -19,6 +19,18 @@ again), the retry succeeds and the badge clears. If not, it fails again with the
 updated reason — safe to retry as many times as needed, it doesn't create duplicate meetings or
 duplicate Zoom sessions.
 
+## The one case retry can't fix
+
+If the detail panel reads **"Google authorization expired"** instead of "Failed to sync", the
+account's Google authorization is gone and **Retry sync** is disabled — replaying the same write
+against a dead authorization only reproduces the same error. The **Sync Issues** card on
+**Admin → Diagnostics** disables its own Retry buttons for the same reason, and its System Status
+card names the condition.
+
+Click **Reconnect Google** (in the panel, or in the banner across the top of the app) and approve
+the Google consent screen. Nothing republishes on its own afterwards: come back to the meeting and
+click **Retry sync**, which is enabled again once the authorization is renewed.
+
 This same retry can also be triggered from the **Sync Issues** card on **Admin → Diagnostics**, which lists
 every meeting currently showing a sync problem in one place — useful for checking on multiple
 meetings at once rather than finding them individually on the calendar.

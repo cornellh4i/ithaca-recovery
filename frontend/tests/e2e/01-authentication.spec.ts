@@ -218,3 +218,30 @@ test("1.10c a signed-in Admin who lands on an AccessDenied redirect still sees t
   await expect(page).toHaveURL(/\/login/);
   await expect(page.getByRole("heading", { name: "Access denied" })).toBeVisible();
 });
+
+// The session is still valid; only the Google grant behind it is gone.
+test("1.12 a session carrying a dead Google grant gets an app-wide reconnect banner", async ({ page, context }) => {
+  await loginAs(context, "admin@test.icr", { error: "RefreshTokenError" });
+  await page.goto("/");
+
+  await expect(
+    page.getByText("Google Calendar isn't accepting changes from this account."),
+  ).toBeVisible();
+  await expect(page.getByRole("button", { name: "Reconnect Google" }).first()).toBeVisible();
+
+  // The banner is a sibling of a route root that claims height: 100%, so it has to take layout
+  // space rather than add to it. Measured, not eyeballed: headless Chromium draws zero-width
+  // scrollbars, so an overflowing shell is invisible to every visual assertion.
+  const overflow = await page.getByTestId("app-shell-content").evaluate(
+    (el) => el.scrollHeight - el.clientHeight,
+  );
+  expect(overflow).toBe(0);
+});
+
+test("1.13 an ordinary admin session shows no reconnect banner", async ({ adminPage }) => {
+  const { page } = adminPage;
+  await page.goto("/");
+
+  await expect(page.getByTestId("app-shell-content")).toBeVisible();
+  await expect(page.getByText("Google Calendar isn't accepting changes from this account.")).toHaveCount(0);
+});

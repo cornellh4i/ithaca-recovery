@@ -66,6 +66,37 @@
   line-height: 1.4;
 }
 
+// Sits under .syncDetailsList's own 22px indent, so the actions line up with the detail text
+// rather than with the header icon.
+.syncActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-left: 22px;
+
+  .retryButton,
+  .reconnectButton {
+    margin-left: 0;
+  }
+}
+
+.reconnectButton {
+  align-self: flex-start;
+  border: 1px solid $danger-color;
+  background: $danger-color;
+  color: $white-color;
+  border-radius: $radius-md;
+  padding: 4px 10px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+
+  &:hover {
+    opacity: 0.9;
+  }
+}
+
 .retryButton {
   align-self: flex-start;
   margin-left: 22px;

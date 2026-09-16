@@ -3,9 +3,13 @@
 
 const REFRESH_TIMEOUT_MS = 5000;
 
+export type GoogleRefreshResult =
+    | { ok: true; accessToken: string; expiresAt: number }
+    | { ok: false; revoked: boolean };
+
 export async function refreshGoogleAccessToken(
     refreshToken: string,
-): Promise<{ accessToken: string; expiresAt: number } | null> {
+): Promise<GoogleRefreshResult> {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), REFRESH_TIMEOUT_MS);
 
@@ -22,15 +26,33 @@ export async function refreshGoogleAccessToken(
             signal: controller.signal,
         });
 
-        if (!response.ok) return null;
+        if (!response.ok) {
+            // Only invalid_grant means the grant itself is gone -- a 5xx, an invalid_client
+            // misconfiguration, or a body that isn't even JSON is Google having a bad minute,
+            // and telling an admin their authorization died over that costs a re-consent on nothing.
+            let revoked = false;
+            try {
+                const body = await response.json();
+                revoked = body?.error === "invalid_grant";
+            } catch {
+                revoked = false;
+            }
+            return { ok: false, revoked };
+        }
 
-        const refreshed = await response.json();
+        const refreshed = await response.json().catch(() => null);
+        // A 200 missing either field would otherwise mint expiresAt: NaN, which every later
+        // expiry check reads as falsy -- the session then never refreshes and never reports why.
+        if (!refreshed?.access_token || typeof refreshed.expires_in !== "number") {
+            return { ok: false, revoked: false };
+        }
         return {
+            ok: true,
             accessToken: refreshed.access_token,
             expiresAt: Math.floor(Date.now() / 1000) + refreshed.expires_in,
         };
     } catch {
-        return null;
+        return { ok: false, revoked: false };
     } finally {
         clearTimeout(timeout);
     }

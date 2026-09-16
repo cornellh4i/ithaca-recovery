@@ -41,6 +41,9 @@ export const authOptions: NextAuthOptions = {
                 token.refreshToken = account.refresh_token;
                 token.expiresAt = account.expires_at;
                 token.picture = user?.image ?? (profile as { picture?: string })?.picture;
+                // Belt-and-braces: next-auth hands this callback a freshly built token on
+                // sign-in, so there is nothing to carry over unless that changes upstream.
+                delete token.error;
 
                 if (token.email) {
                     // signIn already guarantees this row exists (invite or bootstrap) — update, don't create.
@@ -62,14 +65,16 @@ export const authOptions: NextAuthOptions = {
                 }
             }
 
-            if (token.expiresAt && Date.now() / 1000 > token.expiresAt - 60) {
+            // A revoked grant doesn't heal on its own, so once the flag is set every further
+            // request would pay another Google round trip -- up to the 5s timeout -- for an
+            // answer that can't change until the admin re-consents.
+            if (token.expiresAt && !token.error && Date.now() / 1000 > token.expiresAt - 60) {
                 const refreshed = await refreshGoogleAccessToken(token.refreshToken!);
-                if (refreshed) {
+                if (refreshed.ok) {
                     token.accessToken = refreshed.accessToken;
                     token.expiresAt = refreshed.expiresAt;
-                } else {
-                    // Refresh token revoked (or the refresh call failed/timed out) — force re-login
-                    return { ...token, error: "RefreshTokenError" };
+                } else if (refreshed.revoked) {
+                    token.error = "RefreshTokenError";
                 }
             }
 
@@ -87,6 +92,7 @@ export const authOptions: NextAuthOptions = {
         },
         async session({ session, token }) {
             session.accessToken = token.accessToken;
+            session.googleAuthExpired = token.error === "RefreshTokenError";
             if (session.user) {
                 session.user.role = token.role;
                 session.user.image = token.picture as string | undefined;
