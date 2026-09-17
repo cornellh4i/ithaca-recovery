@@ -45,6 +45,8 @@ const mockedLockResourceClaims = lockResourceClaims as jest.Mock;
 const mockedResolveZoomHost = resolveZoomHost as jest.Mock;
 const mockedCreateZoomMeeting = createZoomMeeting as jest.Mock;
 const mockedUpdateZoomMeeting = updateZoomMeeting as jest.Mock;
+
+const ZOOM_PATCH_ERROR = "Meeting does not exist: 84197760261.";
 const mockedGetZoomMeetingCredentials = getZoomMeetingCredentials as jest.Mock;
 const mockedReconcileMeetingCalendars = reconcileMeetingCalendars as jest.Mock;
 
@@ -220,7 +222,7 @@ describe("retrying an already-synced meeting (existing zid)", () => {
   }
 
   test("a real Zoom API success keeps the meeting synced and still runs the calendar reconcile (first-come-first-served: no conflict pre-check downgrades an unchanged, already-working meeting)", async () => {
-    mockedUpdateZoomMeeting.mockResolvedValue(true);
+    mockedUpdateZoomMeeting.mockResolvedValue({ ok: true, error: null });
     mockedReconcileMeetingCalendars.mockResolvedValue({ updatedEventIds: {}, allSynced: true, googleSyncError: null });
 
     const prisma = getTestPrismaClient();
@@ -262,7 +264,7 @@ describe("retrying an already-synced meeting (existing zid)", () => {
   });
 
   test("a shared-zid meeting's retry hands the whole family to the Zoom PATCH so the union schedule is sent (#513)", async () => {
-    mockedUpdateZoomMeeting.mockResolvedValue(true);
+    mockedUpdateZoomMeeting.mockResolvedValue({ ok: true, error: null });
     mockedReconcileMeetingCalendars.mockResolvedValue({ updatedEventIds: {}, allSynced: true, googleSyncError: null });
 
     const prisma = getTestPrismaClient();
@@ -287,7 +289,7 @@ describe("retrying an already-synced meeting (existing zid)", () => {
   });
 
   test("a retry adopts a portal-side passcode/link change: fresh credentials are stored and the reconcile publishes the live link", async () => {
-    mockedUpdateZoomMeeting.mockResolvedValue(true);
+    mockedUpdateZoomMeeting.mockResolvedValue({ ok: true, error: null });
     mockedGetZoomMeetingCredentials.mockResolvedValue({
       passcode: "rotated",
       joinUrl: "http://zoom.test/existing?pwd=rotated",
@@ -316,7 +318,7 @@ describe("retrying an already-synced meeting (existing zid)", () => {
   });
 
   test("adopting live credentials clears a persisted drift flag", async () => {
-    mockedUpdateZoomMeeting.mockResolvedValue(true);
+    mockedUpdateZoomMeeting.mockResolvedValue({ ok: true, error: null });
     mockedGetZoomMeetingCredentials.mockResolvedValue({ passcode: "rotated", joinUrl: "http://zoom.test/existing?pwd=rotated" });
     mockedReconcileMeetingCalendars.mockResolvedValue({ updatedEventIds: {}, allSynced: true, googleSyncError: null });
 
@@ -334,7 +336,7 @@ describe("retrying an already-synced meeting (existing zid)", () => {
   });
 
   test("a failed credentials fetch leaves a persisted drift flag standing", async () => {
-    mockedUpdateZoomMeeting.mockResolvedValue(true);
+    mockedUpdateZoomMeeting.mockResolvedValue({ ok: true, error: null });
     mockedGetZoomMeetingCredentials.mockResolvedValue(null);
     mockedReconcileMeetingCalendars.mockResolvedValue({ updatedEventIds: {}, allSynced: true, googleSyncError: null });
 
@@ -354,7 +356,7 @@ describe("retrying an already-synced meeting (existing zid)", () => {
   });
 
   test("an unreachable Zoom credentials fetch keeps the stored passcode and link", async () => {
-    mockedUpdateZoomMeeting.mockResolvedValue(true);
+    mockedUpdateZoomMeeting.mockResolvedValue({ ok: true, error: null });
     mockedGetZoomMeetingCredentials.mockResolvedValue(null);
     mockedReconcileMeetingCalendars.mockResolvedValue({ updatedEventIds: {}, allSynced: true, googleSyncError: null });
 
@@ -374,7 +376,7 @@ describe("retrying an already-synced meeting (existing zid)", () => {
   });
 
   test("a real Zoom API failure marks zoomSyncStatus error and defers the calendar reconcile", async () => {
-    mockedUpdateZoomMeeting.mockResolvedValue(false);
+    mockedUpdateZoomMeeting.mockResolvedValue({ ok: false, error: ZOOM_PATCH_ERROR });
 
     const prisma = getTestPrismaClient();
     const meetingData = buildSyncedMeetingData();
@@ -389,6 +391,7 @@ describe("retrying an already-synced meeting (existing zid)", () => {
     expect(response.status).toBe(200);
     const body = await response.json();
     expect(body.zoomSyncStatus).toBe("error");
+    expect(body.zoomSyncError).toBe(ZOOM_PATCH_ERROR);
     expect(body.googleSyncStatus).toBe("pending");
     expect(mockedReconcileMeetingCalendars).not.toHaveBeenCalled();
   });
@@ -430,7 +433,7 @@ describe("retrying a linked-schedule family", () => {
     mockedCreateZoomMeeting.mockResolvedValue({
       zid: "one-family-zid", zoomLink: "http://zoom.test/one-family", zoomPasscode: "family-pass",
     });
-    mockedUpdateZoomMeeting.mockResolvedValue(true);
+    mockedUpdateZoomMeeting.mockResolvedValue({ ok: true, error: null });
     mockedGetZoomMeetingCredentials.mockResolvedValue(null);
     mockedReconcileMeetingCalendars.mockResolvedValue({ updatedEventIds: {}, allSynced: true, googleSyncError: null });
 
@@ -473,7 +476,7 @@ describe("retrying a linked-schedule family", () => {
 
     mockedResolveZoomHost.mockResolvedValue("race-host@icr.test");
     mockedGetZoomMeetingCredentials.mockResolvedValue(null);
-    mockedUpdateZoomMeeting.mockResolvedValue(true);
+    mockedUpdateZoomMeeting.mockResolvedValue({ ok: true, error: null });
     mockedReconcileMeetingCalendars.mockResolvedValue({ updatedEventIds: {}, allSynced: true, googleSyncError: null });
 
     let racingResponse: Response | null = null;
@@ -524,7 +527,7 @@ describe("retrying a linked-schedule family", () => {
   });
 
   test("a retry of a family that already holds a zid never mints a second Zoom meeting", async () => {
-    mockedUpdateZoomMeeting.mockResolvedValue(true);
+    mockedUpdateZoomMeeting.mockResolvedValue({ ok: true, error: null });
     mockedGetZoomMeetingCredentials.mockResolvedValue(null);
     mockedReconcileMeetingCalendars.mockResolvedValue({ updatedEventIds: {}, allSynced: true, googleSyncError: null });
 
@@ -659,7 +662,7 @@ describe("retrying a linked-schedule family", () => {
   });
 
   test("retrying a zid-less schedule whose family already has a Zoom meeting adopts it instead of minting a second", async () => {
-    mockedUpdateZoomMeeting.mockResolvedValue(true);
+    mockedUpdateZoomMeeting.mockResolvedValue({ ok: true, error: null });
     mockedReconcileMeetingCalendars.mockResolvedValue({ updatedEventIds: {}, allSynced: true, googleSyncError: null });
 
     const prisma = getTestPrismaClient();

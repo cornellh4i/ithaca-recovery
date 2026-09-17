@@ -165,7 +165,10 @@ async function syncUpdatedMeeting(
       // 422'd upstream for those, so needsRecreate can never be true there).
       if (recreateZoom && zid && existingMeeting.zoomManaged) {
         const ok = await deleteZoomMeeting(zid);
-        if (!ok) zoomSynced = false;
+        if (!ok) {
+          zoomSynced = false;
+          zoomSyncError = zoomSyncError ?? "Couldn't remove the old Zoom meeting.";
+        }
       }
       // The join-link event always moves off the old room's calendar here, recreate or not --
       // the downstream zoomCalendarEventId === null branch republishes it on the new room's
@@ -174,7 +177,10 @@ async function syncUpdatedMeeting(
         const oldCalId = zoomRoomCalendarId[oldZoomRoom];
         if (oldCalId) {
           const ok = await deleteCalendarEvent(accessToken, zoomCalendarEventId, oldCalId);
-          if (!ok) zoomSynced = false;
+          if (!ok) {
+            zoomSynced = false;
+            zoomSyncError = zoomSyncError ?? "Couldn't remove the Zoom-Room calendar event from the old room.";
+          }
         }
       }
       if (recreateZoom && existingMeeting.zoomManaged) {
@@ -214,10 +220,14 @@ async function syncUpdatedMeeting(
         // The whole linked-schedule family rides along so the PATCH sends the union schedule
         // (#513) and the family's own Zoom name, not this row's narrowed view of either.
         const family = existingMeeting.zoomManaged ? await loadFamily(zid) : [];
-        const ok = existingMeeting.zoomManaged
+        const zoomPatch = existingMeeting.zoomManaged
           ? await updateZoomMeeting(zid, { ...newMeeting, zoomTopic: existingMeeting.zoomTopic }, family)
-          : true;
-        if (!ok) zoomSynced = false;
+          : { ok: true, error: null };
+        const ok = zoomPatch.ok;
+        if (!ok) {
+          zoomSynced = false;
+          zoomSyncError = zoomSyncError ?? zoomPatch.error ?? "Couldn't update this meeting in Zoom.";
+        }
         // A PATCH that pushed a new custom passcode just made Zoom rewrite join_url's ?pwd= --
         // adopt the rewritten credentials BEFORE the calendar writes below, or every event
         // (whose description embeds zoomLink) republishes the now-dead old link. A failed
@@ -881,7 +891,7 @@ async function syncLinkedScheduleFamily(
     // syncUpdatedMeeting).
     const holder = members.find((member) => member.zid === patchZid && member.zoomManaged);
     if (holder) {
-      const ok = await updateZoomMeeting(patchZid, holder as unknown as IMeeting, await loadFamily(patchZid));
+      const { ok, error: patchError } = await updateZoomMeeting(patchZid, holder as unknown as IMeeting, await loadFamily(patchZid));
       // The PATCH pushes the holder's custom passcode; when that differs from the stored
       // mirror, Zoom just rewrote join_url -- adopt the rewritten credentials on every
       // zid-sharing row (and in the in-memory members about to be republished below) so no
@@ -910,7 +920,7 @@ async function syncLinkedScheduleFamily(
           ? { zoomSyncStatus: 'synced', zoomSyncError: null }
           : {
               zoomSyncStatus: 'error',
-              zoomSyncError: "Couldn't update the shared Zoom meeting for the newly linked schedule.",
+              zoomSyncError: patchError ?? "Couldn't update the shared Zoom meeting for the newly linked schedule.",
             },
       });
     }

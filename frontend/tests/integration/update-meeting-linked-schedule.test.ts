@@ -34,7 +34,7 @@ jest.mock("../../services/googleCalendar", () => ({
 
 jest.mock("../../services/zoom", () => ({
   createZoomMeeting: jest.fn(),
-  updateZoomMeeting: jest.fn().mockResolvedValue(true),
+  updateZoomMeeting: jest.fn().mockResolvedValue({ ok: true, error: null }),
   rehostZoomMeeting: jest.fn(),
   deleteZoomMeeting: jest.fn(),
   getZoomMeetingInvitation: jest.fn().mockResolvedValue(null),

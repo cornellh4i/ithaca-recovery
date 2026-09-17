@@ -83,6 +83,15 @@ function mockFetchCapturingBody() {
   return { getCapturedBody: () => capturedBody, fetchMock };
 }
 
+function mockFetchFailingPatch(status: number, body: string) {
+  global.fetch = jest.fn((url: string) => {
+    if (url.includes("oauth/token")) {
+      return Promise.resolve({ ok: true, status: 200, json: async () => ({ access_token: "tok-1", expires_in: 3600 }) });
+    }
+    return Promise.resolve({ ok: false, status, text: async () => body });
+  }) as unknown as typeof fetch;
+}
+
 describe("toZoomStartTime / buildZoomMeetingBody (via createZoomMeeting's request body)", () => {
   it("sends the ET wall-clock start time (not the UTC instant) as start_time", async () => {
     const { getCapturedBody } = mockFetchCapturingBody();
@@ -135,6 +144,28 @@ describe("toZoomStartTime / buildZoomMeetingBody (via createZoomMeeting's reques
     expect(body?.topic).toBe("Wednesday AA");
     expect(body?.agenda).toBe("Weekly meeting");
     expect(body?.type).toBe(2);
+  });
+
+  it("surfaces Zoom's own message when the PATCH is refused", async () => {
+    mockFetchFailingPatch(404, JSON.stringify({ code: 3001, message: "Meeting does not exist: 84197760261." }));
+
+    const result = await updateZoomMeeting("zid-1", buildMeeting());
+
+    expect(result).toEqual({ ok: false, error: "Meeting does not exist: 84197760261." });
+  });
+
+  it("falls back to the status when the refusal body isn't JSON", async () => {
+    mockFetchFailingPatch(502, "<html>Bad Gateway</html>");
+
+    const result = await updateZoomMeeting("zid-1", buildMeeting());
+
+    expect(result).toEqual({ ok: false, error: "Zoom returned 502." });
+  });
+
+  it("reports ok with no error when the PATCH succeeds", async () => {
+    mockFetchCapturingBody();
+
+    await expect(updateZoomMeeting("zid-1", buildMeeting())).resolves.toEqual({ ok: true, error: null });
   });
 
   it("builds the same request body shape for updateZoomMeeting as for createZoomMeeting", async () => {
