@@ -20,6 +20,14 @@ updates:
         update-types:
           - "patch"
           - "minor"
+      # Without applies-to, groups only cover version updates -- every vulnerability alert
+      # opened its own PR. Majors stay individual here too, so one breaking bump can't block
+      # the rest of the group.
+      security-updates:
+        applies-to: security-updates
+        update-types:
+          - "patch"
+          - "minor"
 
   # .github/workflows/test.yml — actions/checkout, actions/setup-node, actions/upload-artifact
   # Never auto-merged, regardless of semver level: Action version bumps don't reliably
