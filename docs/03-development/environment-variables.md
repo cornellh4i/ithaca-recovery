@@ -36,7 +36,7 @@ GOOGLE_CALENDAR_ZOOM_ROOM_FOR_IMPROVEMENT="<calendar-id>@group.calendar.google.c
 GOOGLE_CALENDAR_ZOOM_CHILDRENS_ROOM_518="<calendar-id>@group.calendar.google.com"
 
 # Zoom Host Pool — comma-separated licensed Zoom user emails, shared across all rooms
-ZOOM_HOSTS="host1@icr.org,host2@icr.org,host3@icr.org,host4@icr.org,host5@icr.org"
+ZOOM_HOSTS="host1@icr.org,host2@icr.org,host3@icr.org,host4@icr.org"
 ```
 
 ## Reference table
