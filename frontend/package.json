@@ -31,7 +31,7 @@
     "@vercel/functions": "^3.10.5",
     "google-auth-library": "^11.0.0",
     "marked": "^18.1.2",
-    "motion": "^13.3.0",
+    "motion": "^14.9.0",
     "next": "16.4.3",
     "next-auth": "^4.24.15",
     "prisma": "6.19.3",
