@@ -1,4 +1,3 @@
-@use 'sass:color';
 @import '../../../styles/Variables.module';
 
 // Main container
@@ -103,7 +102,7 @@
         cursor: pointer;
 
         &:hover {
-            background-color: color.adjust($brand-pink-color, $lightness: 35%);
+            background-color: $brand-tint-color;
         }
     }
 
@@ -152,7 +151,7 @@
             width: var(--rdp-day-width);
             aspect-ratio: 1;
             border-radius: 50%;
-            background-color: color.adjust($brand-pink-color, $lightness: 35%);
+            background-color: $brand-tint-color;
             z-index: -1;
         }
     }

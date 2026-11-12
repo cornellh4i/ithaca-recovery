@@ -46,7 +46,7 @@
   border: 1px solid $light-grey-color;
   border-right: none;
   border-radius: $radius-md 0 0 $radius-md;
-  background: $white-color;
+  background: $surface-color;
   color: $medium-grey-color;
   font-size: 13px;
   cursor: pointer;
@@ -64,7 +64,7 @@
   padding: 5px 8px;
   border: 1px solid $light-grey-color;
   border-radius: 0 $radius-md $radius-md 0;
-  background: $white-color;
+  background: $surface-color;
   color: $medium-grey-color;
   cursor: pointer;
 
@@ -79,7 +79,7 @@
   top: calc(100% + 4px);
   right: 0;
   width: 180px;
-  background: $white-color;
+  background: $surface-color;
   border: 1px solid $light-grey-color;
   border-radius: $radius-md;
   box-shadow: 0 8px 16px rgb(0 0 0 / 8%);
@@ -395,7 +395,7 @@
   :global(.callout-important) {
     // No dedicated "pink-tint" background token exists (unlike info/success/warning/danger) --
     // derived inline rather than adding one just for this one variant.
-    background: rgba($brand-pink-color, 8%);
+    background: color-mix(in srgb, $brand-pink-color 8%, transparent);
     border-left-color: $brand-pink-color;
 
     :global(.calloutLabel) {
@@ -463,7 +463,7 @@
   width: 220px;
   max-height: 60vh;
   overflow-y: auto;
-  background: $white-color;
+  background: $surface-color;
   border: 1px solid $light-grey-color;
   border-radius: $radius-md;
   box-shadow: 0 8px 16px rgb(0 0 0 / 8%);
