@@ -96,6 +96,18 @@ $terminal-text-color: var(--terminal-text);
 // Modal backdrop.
 $overlay-color: var(--overlay);
 
+// Text on a solid room color -- dark in both themes.
+$on-room-color: var(--on-room);
+
+// Popovers, menus, flyouts, bottom sheets.
+$surface-overlay-color: var(--surface-overlay);
+
+// Tinted page ground behind a centered card (login, access denied).
+$page-tint-color: var(--page-tint);
+
+// Logo PNG is black-on-transparent; dark mode inverts it.
+$logo-filter: var(--logo-filter);
+
 // Legacy one-off greys -- see theme.scss.
 $text-strong-color: var(--text-strong);
 $text-body-color: var(--text-body);

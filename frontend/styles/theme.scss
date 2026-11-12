@@ -76,6 +76,22 @@
   // Modal backdrop -- a half-black scrim over an already-dark page reads as nothing.
   --overlay: rgb(0 0 0 / 50%);
 
+  // Room-colored cards. Text on a solid room color (the Day-view room-label column) stays dark
+  // in both themes, like the room color itself; tag pills inside a card are the solid room
+  // color in light and a stronger mix toward --wash-base in dark (see util/common/color.ts).
+  --on-room: #000;
+  --chip-strength: 100%;
+
+  // Popovers, menus, flyouts, sheets -- one step above --surface in dark, where a lighter
+  // surface (not a bigger shadow) is what reads as elevation.
+  --surface-overlay: #FFF;
+
+  // The logo PNG is black on transparent; dark mode inverts it to soft white.
+  --logo-filter: none;
+
+  // Tinted page ground behind a centered card (login, access denied).
+  --page-tint: #F5F5F5;
+
   // Legacy one-off greys, kept as their own tokens so light mode stays pixel-identical
   // (GitHub #464, option A). Candidates to fold into the core tokens above later.
   --text-strong: #000;
@@ -147,6 +163,10 @@
   --code-bg: #101114;
   --terminal-bg: #101114;
   --overlay: rgb(0 0 0 / 65%);
+  --chip-strength: 42%;
+  --surface-overlay: #262932;
+  --logo-filter: invert(91%);
+  --page-tint: #17181C;
 
   // Legacy one-off greys (see the bare :root block).
   --text-strong: #F2F3F5;

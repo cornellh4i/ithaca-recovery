@@ -20,6 +20,10 @@ const stylelintConfig = {
           true,
           { message: "Use a theme token from styles/Variables.module.scss instead of a raw hex color." },
         ],
+        "color-named": [
+          "never",
+          { message: "Use a theme token from styles/Variables.module.scss instead of a named color." },
+        ],
       },
     },
   ],

@@ -2,7 +2,7 @@
 @import '../../../styles/Variables.module';
 
 .container {
-  color: var(--black, $black-color);
+  color: $black-color;
   font-family: "Source Sans Pro", sans-serif;
   font-size: 13px;
   font-style: normal;

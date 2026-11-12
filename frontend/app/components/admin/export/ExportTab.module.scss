@@ -112,7 +112,7 @@
   white-space: nowrap;
 
   &:hover {
-    border-color: $brand-pink-color;
+    border-color: $brand-text-color;
   }
 }
 
@@ -197,12 +197,12 @@
   cursor: pointer;
 
   &:hover {
-    border-color: $brand-pink-color;
+    border-color: $brand-text-color;
   }
 }
 
 .cycleRowSelected {
-  border-color: $brand-pink-color;
+  border-color: $brand-text-color;
   background: $brand-wash-color;
 }
 
@@ -215,7 +215,7 @@
 .cycleRadioIcon {
   display: inline-flex;
   align-items: center;
-  color: $brand-pink-color;
+  color: $brand-text-color;
 }
 
 .cycleRadioEmpty {
@@ -349,7 +349,7 @@
   white-space: nowrap;
 
   &:hover {
-    border-color: $brand-pink-color;
+    border-color: $brand-text-color;
   }
 }
 
@@ -368,7 +368,7 @@
 
 .previewHighlight {
   background: $brand-wash-color;
-  color: $brand-pink-color;
+  color: $brand-text-color;
   font-weight: 600;
   border-radius: 4px;
   padding: 0 3px;

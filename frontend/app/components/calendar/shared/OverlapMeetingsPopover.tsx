@@ -1,7 +1,7 @@
 import React, { useLayoutEffect, useRef, useState } from 'react';
 import styles from './OverlapMeetingsPopover.module.scss';
 import { formatCompactTimeRange } from '../../../../util/date/timeFormat';
-import { toPastelColor } from '../../../../util/common/color';
+import { roomWash } from '../../../../util/common/color';
 import Icon from '../../ui/displays/Icon';
 import TagList from '../../ui/displays/TagList';
 import Modal from '../../ui/overlays/Modal';
@@ -167,7 +167,7 @@ const OverlapMeetingsPopover: React.FC<OverlapMeetingsPopoverProps> = ({
                                 className={styles.row}
                                 style={{
                                     borderLeftColor: meeting.primaryColor,
-                                    backgroundColor: meeting.primaryColor ? toPastelColor(meeting.primaryColor) : undefined,
+                                    backgroundColor: meeting.primaryColor ? roomWash(meeting.primaryColor) : undefined,
                                 }}
                                 onClick={() => onSelectMeeting(meeting.id)}
                                 onKeyDown={(e) => {

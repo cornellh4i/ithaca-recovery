@@ -13,7 +13,7 @@
   // direct child of .page rather than nested under .sidebarNav or .compactBar -- CSS custom
   // properties cascade through the DOM tree regardless of position: fixed, so this one
   // declaration covers all three components.
-  --pf-outline-focus: #{$brand-pink-color};
+  --pf-outline-focus: #{$brand-text-color};
 }
 
 // Compact bar (under the navbar) + drawer/TOC visibility are driven entirely by JS-computed
@@ -313,7 +313,7 @@
 
   &.isActive {
     background: $grey-lightest-color;
-    color: $brand-pink-color;
+    color: $brand-text-color;
     font-weight: 600;
   }
 }

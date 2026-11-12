@@ -14,7 +14,7 @@
   transition: border-color 0.15s ease;
 
   &:focus-within {
-    border-color: $brand-pink-color;
+    border-color: $brand-text-color;
   }
 
   .date-picker-label {
@@ -81,7 +81,7 @@
   // paint over its own calendar. Extend this chain (don't guess) if a higher modal tier is
   // ever added.
   z-index: 2002;
-  background-color: white;
+  background-color: $surface-color;
   box-shadow: 0 4px 12px rgb(0 0 0 / 15%);
   border-radius: 4px;
 

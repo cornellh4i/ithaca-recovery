@@ -14,6 +14,7 @@ import ScheduleSummaryCard from './ScheduleSummaryCard';
 
 import { ILinkedSchedule, IRecurrencePattern, ISharedZoomRow } from '../../../types/models';
 import { formatCompactTimeRange, formatMeetingDateLine } from "../../../util/date/timeFormat";
+import { roomChip } from '../../../util/common/color';
 import {
   convertETToUTC,
   formatETDateString,
@@ -433,7 +434,7 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
         <h1 id={titleId}>{title}</h1>
         <span
           className={styles.settingLabel}
-          style={{ backgroundColor: primaryColor, borderColor: primaryColor }}
+          style={{ backgroundColor: roomChip(primaryColor), borderColor: primaryColor }}
         >
           {MODE_ICON_NAME[modeType] && (
             <Icon name={MODE_ICON_NAME[modeType]} className={styles.settingLabelIcon} />

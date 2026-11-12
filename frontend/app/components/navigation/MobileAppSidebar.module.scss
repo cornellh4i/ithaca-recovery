@@ -15,7 +15,7 @@
     z-index: $z-index-modal;
     width: 260px;
     max-width: 80vw;
-    background-color: $surface-color;
+    background-color: $surface-overlay-color;
     box-shadow: 4px 0 16px rgb(0 0 0 / 15%);
     display: flex;
     flex-direction: column;
@@ -62,7 +62,7 @@
     }
 
     &.active {
-        color: $brand-pink-color;
+        color: $brand-text-color;
         background-color: $grey-lightest-color;
         font-weight: 600;
     }

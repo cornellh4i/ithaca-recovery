@@ -36,7 +36,7 @@
     // absolutely-positioned, overflow-clipped grid wrappers, so an outward outline would be
     // partially clipped on tightly-packed cards.
     &:focus-visible {
-      outline: 2px solid $brand-pink-color;
+      outline: 2px solid $brand-text-color;
       outline-offset: -2px;
     }
 
@@ -65,6 +65,9 @@
     padding: 6px;
     margin: 0;
     border-radius: 4px;
+
+    // Solid room color in both themes, so its label stays dark in both too.
+    color: $on-room-color;
 
     .title {
       font-size: 16px;
