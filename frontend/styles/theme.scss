@@ -76,6 +76,15 @@
   // Modal backdrop -- a half-black scrim over an already-dark page reads as nothing.
   --overlay: rgb(0 0 0 / 50%);
 
+  // Semantic colors as fills under white text -- identical in both themes, like --brand. The
+  // text/outline versions above (--danger, --warning-text, ...) lighten in dark, which would
+  // drop white-on-fill contrast below 3:1.
+  --danger-fill: #C62828;
+  --warning-fill: #B4790A;
+  --success-fill: #4CAF50;
+  --link-fill: #007BFF;
+  --info-fill: #1976D2;
+
   // Room-colored cards. Text on a solid room color (the Day-view room-label column) stays dark
   // in both themes, like the room color itself; tag pills inside a card are the solid room
   // color in light and a stronger mix toward --wash-base in dark (see util/common/color.ts).
@@ -190,6 +199,32 @@
   --grid-line-strong: #3E424B;
   --border-input: #3E424B;
   --border-mid: #5A5E68;
+
+  // Pagefind's modal mounts outside DocsShell's .page, which sets this for the inline trigger.
+  --pf-outline-focus: var(--brand-text);
+
+  // Pagefind's /docs search UI (its own stylesheet declares these on bare :root; the dark
+  // selectors that include this mixin out-specify it, so light mode keeps Pagefind's defaults).
+  // Its icons are masks painted with --pf-text-muted, so they follow too.
+  --pf-text: var(--text);
+  --pf-text-secondary: var(--text-secondary);
+  --pf-text-muted: var(--text-muted);
+  --pf-background: var(--surface);
+  --pf-border: var(--border);
+  --pf-border-focus: var(--border-strong);
+  --pf-skeleton: var(--surface-raised);
+  --pf-skeleton-shine: var(--border);
+  --pf-hover: var(--surface-raised);
+  --pf-mark: var(--text);
+  --pf-scroll-shadow: rgb(255 255 255 / 10%);
+  --pf-shadow-sm: 0 2px 8px rgb(0 0 0 / 30%);
+  --pf-shadow-md: 0 4px 12px rgb(0 0 0 / 40%);
+  --pf-shadow-lg: 0 16px 48px rgb(0 0 0 / 50%);
+  --pf-error-bg: var(--danger-bg);
+  --pf-error-border: var(--danger-bg-strong);
+  --pf-error-text: var(--danger);
+  --pf-error-text-secondary: var(--danger);
+  --pf-modal-backdrop: var(--overlay);
 }
 
 // Screen only: printing always uses the light palette, whatever the viewer's theme.

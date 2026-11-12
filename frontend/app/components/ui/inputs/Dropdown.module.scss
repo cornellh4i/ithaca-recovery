@@ -63,7 +63,7 @@
     top: calc(100% + 5px);
     left: 30px;
     width: calc(100% - 30px);
-    background-color: $surface-color;
+    background-color: $surface-overlay-color;
 
     // Same bordered field-box language as MeetingForm's own fields (TextField, DatePicker,
     // .DropdownButton above all use $grey-border-color + 6px radius) instead of a hardcoded
@@ -173,7 +173,7 @@
     top: 100%;
     left: 0;
     width: 100%;
-    background-color: $surface-color;
+    background-color: $surface-overlay-color;
     border: 1px solid $border-input-color;
     box-shadow: 0 2px 5px rgb(0 0 0 / 10%);
     z-index: 1;

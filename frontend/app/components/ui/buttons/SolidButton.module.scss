@@ -29,7 +29,7 @@
 }
 
 .danger {
-    background-color: $danger-color;
+    background-color: $danger-fill-color;
     color: $white-color;
 
     &:hover:not(:disabled) {

@@ -51,11 +51,11 @@ $status-value-indent: $status-dot-gap + $status-label-width + 12px;
 }
 
 .dotOk {
-  background-color: $success-text-color;
+  background-color: $success-fill-color;
 }
 
 .dotDown {
-  background-color: $danger-color;
+  background-color: $danger-fill-color;
 }
 
 .statusLabel {

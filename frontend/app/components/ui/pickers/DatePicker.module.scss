@@ -81,7 +81,7 @@
   // paint over its own calendar. Extend this chain (don't guess) if a higher modal tier is
   // ever added.
   z-index: 2002;
-  background-color: $surface-color;
+  background-color: $surface-overlay-color;
   box-shadow: 0 4px 12px rgb(0 0 0 / 15%);
   border-radius: 4px;
 
