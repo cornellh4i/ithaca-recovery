@@ -7,7 +7,7 @@ import Logo from "../ui/displays/Logo";
 import Tooltip from "../ui/overlays/Tooltip";
 import ProfileCard from "../auth/ProfileCard";
 import MobileAppNavigation from "./MobileAppNavigation";
-import ThemeDevSwitcher from "../theme/ThemeDevSwitcher";
+import ThemeToggle from "../theme/ThemeToggle";
 import { useIsPhone } from "../../../hooks/useIsPhone";
 import { useUserAvatar } from "../../../hooks/useUserAvatar";
 import styles from "./AppNavigation.module.scss";
@@ -94,7 +94,7 @@ const AppNavigation: React.FC = () => {
                     )}
                 </ul>
                 <div className={styles.navRight}>
-                    <ThemeDevSwitcher />
+                    <ThemeToggle />
                     {status === "loading" ? (
                         <div className={styles.signInButton} style={{ opacity: 0, pointerEvents: "none" }}>
                             <p>Loading...</p>

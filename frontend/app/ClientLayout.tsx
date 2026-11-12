@@ -6,8 +6,8 @@ import GoogleReconnectBanner from "./components/auth/GoogleReconnectBanner";
 import { Inter } from "next/font/google";
 import "../styles/theme.scss";
 import styles from "../styles/MainLayout.module.scss";
-import ThemeScript, { SERVER_THEME_ATTRIBUTE } from "./components/theme/ThemeScript";
-import { ThemeSync } from "./components/theme/ThemeDevSwitcher";
+import ThemeScript from "./components/theme/ThemeScript";
+import ThemeSync from "./components/theme/ThemeSync";
 import type { Session } from "next-auth";
 import { SessionProvider } from "next-auth/react";
 import { SidebarProvider } from "./context/SidebarContext";
@@ -55,7 +55,7 @@ export default function ClientLayout({
     children,
 }: PropsWithChildren<ClientLayoutProps>) {
     return (
-        <html lang="en" data-theme={SERVER_THEME_ATTRIBUTE} suppressHydrationWarning>
+        <html lang="en" suppressHydrationWarning>
             <head>
                 <ThemeScript />
             </head>

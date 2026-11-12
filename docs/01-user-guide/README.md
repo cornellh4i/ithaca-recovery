@@ -15,6 +15,7 @@ For ICR board members using the platform day to day. Organized by what you need 
   - [Manage Admin Users](how-to/manage-admin-users.md)
   - [Use Digital Signage](how-to/use-digital-signage.md)
   - [Retry a Failed Sync](how-to/retry-a-failed-sync.md)
+  - [Switch Between Light and Dark Mode](how-to/switch-light-and-dark-mode.md)
 - **Need to look something up?** Reference:
   - [Roles and Permissions](reference/roles-and-permissions.md)
   - [Meeting Fields and Modes](reference/meeting-fields-and-modes.md)

@@ -40,5 +40,6 @@ For developers (current or future H4I teams) writing code against this app — s
 - [Integration Guides](03-development/integration-guides.md) — step-by-step setup for every external service (Postgres, Google OAuth, Google Calendar, Zoom, PandaDoc, Vercel)
 - [CI/CD](03-development/ci-cd.md) — what runs automatically on pushes and PRs
 - [Docs Site](03-development/docs-site.md) — how docs/ becomes the in-app /docs page, and the checklist for adding or moving a doc
+- [Theming and Dark Mode](03-development/theming.md) — the color token system, light/dark/system toggle, and the no-raw-colors lint rule
 - [Testing](03-development/testing/README.md) — how the automated test suite (lint/unit/component/integration/e2e) and CI work
 - [Manual Test Script](03-development/testing/manual-test-script-template.md) — manual pre-release checklist (for what CI can't cover)

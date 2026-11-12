@@ -151,6 +151,10 @@ repository's own top-level `docs/` folder, snapshotted at build time into
 **`navigation/`** — real site-chrome only: `AppNavigation`, `MobileAppNavigation`,
 `MobileAppSidebar`
 
+**`theme/`** — the light/dark/system controls: `ThemeToggle` (desktop navbar), `ThemeOptions`
+(mobile sidebar), `ThemeSync`, and the pre-paint `ThemeScript` — see
+[Theming and Dark Mode](theming.md)
+
 **`shared/`** — components genuinely used by 2+ domains, kept deliberately small:
 `Toast`/`ToastProvider` (app-wide notification system — see
 [Technical Decisions §Toast/Banner Notification System](../02-handoff/technical-decisions.md#toast-banner-notification-system)),
@@ -159,13 +163,16 @@ that caller's domain.
 
 Each component's `.module.scss` lives alongside it as a sibling file in the same folder (e.g.
 `Button.tsx` + `Button.module.scss`) — there are no barrel/index files. `styles/` at the
-`frontend/` root holds two global files: `Variables.module.scss` (design tokens, `@import`ed by
-nearly every component module) and `MainLayout.module.scss` (the app shell, used by
+`frontend/` root holds three global files: `theme.scss` (the light and dark color palettes as CSS
+custom properties — see [Theming and Dark Mode](theming.md)), `Variables.module.scss` (design
+tokens — color aliases onto those properties, plus breakpoints, radii, and z-index — `@import`ed
+by nearly every component module), and `MainLayout.module.scss` (the app shell, used by
 `app/ClientLayout.tsx`).
 
 ### `util/` — domain-logic utilities, grouped by subfolder
 
-- `common/` — `breakpoints.ts`, `color.ts`, `linkify.tsx`, `simpleCache.ts` (generic get-or-fetch
+- `common/` — `breakpoints.ts`, `color.ts` (room-color washes), `theme.ts` (theme preference +
+  pre-paint script), `linkify.tsx`, `simpleCache.ts` (generic get-or-fetch
   cache)
 - `date/` — `timeUtils.ts`, `timeFormat.tsx`, `weekDates.ts`, `dateTransition.ts` (swipe
   direction/same-week math plus the shared `dateEnterMotion` enter-transition helper, used by both
@@ -213,7 +220,8 @@ create/update/delete Zoom meeting, room→calendar lookup map, `resolveZoomHost`
 admin-gated-mids pattern above), `useWeekMeetings.ts` / `useRangeMeetings.ts` (Day/Week meeting
 fetch + module-level cache), `useZoomHostPool.ts`, `useUserAvatar.tsx`, `useViewport.ts` /
 `useIsPhone.ts` / `useBreakpoint.ts` (responsive layout), `useElementSize.ts` /
-`useElementWidth.ts`, `useScrollNavHide.ts`, `usePagefindComponentUI.ts` (docs search).
+`useElementWidth.ts`, `useScrollNavHide.ts`, `usePagefindComponentUI.ts` (docs search),
+`useThemePreference.ts` (light/dark/system preference — see [Theming and Dark Mode](theming.md)).
 
 ---
 
