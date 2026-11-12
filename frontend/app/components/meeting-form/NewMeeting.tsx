@@ -313,7 +313,7 @@ const NewMeetingSidebar = React.forwardRef<NewMeetingSidebarHandle, NewMeetingSi
                       checked={selectedCalTypes.includes(type)}
                       onChange={(_e) => handleCalTypeToggle(type)}
                       color={CAL_TYPE_COLOR}
-                      uncheckedBg="#fff"
+                      uncheckedBg="var(--surface)"
                       compact
                     />
                   ))}

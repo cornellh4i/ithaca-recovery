@@ -9,7 +9,7 @@
     align-items: center;
     gap: 10px;
     transition: border-color 0.3s;
-    background: var(--white, #FFF);
+    background: $surface-color;
     border-radius: 8px;
 
     &.default {
@@ -40,7 +40,7 @@
     }
 
     &:disabled {
-        background-color: #f0f0f0;
+        background-color: $fill-input-color;
         cursor: not-allowed;
         opacity: 0.6;
     }

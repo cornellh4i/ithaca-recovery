@@ -45,7 +45,7 @@
 
 .panelSubhead {
   font-size: 13px;
-  color: #555;
+  color: $text-body-soft-color;
   margin-bottom: 12px;
 }
 
@@ -134,17 +134,17 @@
 
 .dateCell {
   white-space: nowrap;
-  color: #555;
+  color: $text-body-soft-color;
 }
 
 .sizeCell {
-  color: #555;
+  color: $text-body-soft-color;
   white-space: nowrap;
 }
 
 .expiresCell {
   white-space: nowrap;
-  color: #555;
+  color: $text-body-soft-color;
 }
 
 .expiresNever {
@@ -170,8 +170,8 @@
 }
 
 .tierMonthly {
-  background: #EFE6FB;
-  color: #6A3FA0;
+  background: $purple-bg-color;
+  color: $purple-text-color;
 }
 
 .tierPermanent {
@@ -226,7 +226,7 @@
   justify-content: center;
   min-width: 30px;
   height: 30px;
-  background: #fff;
+  background: $surface-color;
   border: 1px solid $grey-border-color;
   border-radius: 6px;
   color: $black-color;
@@ -246,7 +246,7 @@
 .pageButtonActive {
   background: $navy-color;
   border-color: $navy-color;
-  color: #fff;
+  color: $bg-color;
 }
 
 /* ---------- Restore Runbook card ---------- */
@@ -257,7 +257,7 @@
   gap: 6px;
   margin-bottom: 14px;
   font-size: 13px;
-  color: #555;
+  color: $text-body-soft-color;
 }
 
 .runbookPrereq {
@@ -357,7 +357,7 @@
   width: 26px;
   height: 26px;
   border-radius: 50%;
-  background-color: #fff;
+  background-color: $surface-color;
   color: $warning-text-color;
   flex-shrink: 0;
 
@@ -383,7 +383,7 @@
   margin: 2px 0 0;
   font-size: 13px;
   line-height: 1.5;
-  color: #444;
+  color: $text-body-color;
 }
 
 .warningBannerAction {
@@ -483,7 +483,7 @@
 
 .replicasSummary {
   font-size: 13px;
-  color: #555;
+  color: $text-body-soft-color;
   text-align: right;
 }
 
@@ -548,7 +548,7 @@
 
 .headroomLabel {
   font-size: 13px;
-  color: #555;
+  color: $text-body-soft-color;
 }
 
 .headroomRemaining {
@@ -570,7 +570,7 @@
 .filterChip {
   display: inline-flex;
   align-items: center;
-  background: #fff;
+  background: $surface-color;
   border: 1px solid $grey-border-color;
   border-radius: 999px;
   padding: 4px 12px;
@@ -589,7 +589,7 @@
 .filterChipActive {
   background: $navy-color;
   border-color: $navy-color;
-  color: #fff;
+  color: $bg-color;
 }
 
 // Amber variant for the Unverified chip when its count > 0 -- draws the eye without
@@ -659,7 +659,7 @@
   align-items: center;
   gap: 6px;
   font-size: 13px;
-  color: #555;
+  color: $text-body-soft-color;
 
   &::before {
     content: '';
@@ -713,7 +713,7 @@
 // in JS from the icon's actual on-screen position, already clamped there to stay in-viewport.
 .legendPopover {
   position: fixed;
-  background: #fff;
+  background: $surface-color;
   border: 1px solid $grey-border-color;
   border-radius: $radius-sm;
   box-shadow: 0 4px 12px rgb(0 0 0 / 15%);
@@ -744,7 +744,7 @@
 
 .legendDescCell {
   font-size: 13px;
-  color: #555;
+  color: $text-body-soft-color;
   line-height: 1.4;
   min-width: 0;
   overflow-wrap: break-word;
@@ -772,7 +772,7 @@
   padding: 6px 10px;
   border-radius: 4px;
   background-color: $black-color;
-  color: #fff;
+  color: $bg-color;
   font-size: 12px;
   width: max-content;
   max-width: 220px;
@@ -787,7 +787,7 @@
 }
 
 .replicaTooltipLinePresent {
-  color: #fff;
+  color: $bg-color;
 }
 
 .replicaTooltipLineMissing {
@@ -804,7 +804,7 @@
   justify-content: center;
   width: 30px;
   height: 30px;
-  background: #fff;
+  background: $surface-color;
   border: 1px solid $grey-border-color;
   border-radius: 6px;
   color: $black-color;
@@ -829,7 +829,7 @@
 
 .commandBox {
   position: relative;
-  background: #14161B;
+  background: $terminal-bg-color;
   border-radius: $radius-sm;
   padding: 30px 44px 14px 14px;
 }
@@ -848,7 +848,7 @@
 .commandBoxCode {
   font-family: Menlo, Monaco, monospace;
   font-size: 13px;
-  color: #F2F2F2;
+  color: $terminal-text-color;
 
   /* Wrap, don't scroll: an operator mid-incident must see the whole command at
      once -- a horizontally-scrolled tail is how a flag gets missed. */
@@ -878,11 +878,11 @@
 
   &:hover {
     background: rgb(255 255 255 / 18%);
-    color: #fff;
+    color: $white-color;
   }
 
   &:focus-visible {
-    outline: 2px solid #fff;
+    outline: 2px solid $white-color;
     outline-offset: 2px;
   }
 }
@@ -890,7 +890,7 @@
 .commandCopyButtonCopied {
   background: $success-text-color;
   border-color: $success-text-color;
-  color: #fff;
+  color: $white-color;
 }
 
 /* ---------- Notable Activity card ---------- */
@@ -930,7 +930,7 @@
 // error surface (a single tab-wide fetch failure) instead of per-card errors.
 .retryButton {
   flex-shrink: 0;
-  background: #fff;
+  background: $surface-color;
   border: 1px solid $grey-border-color;
   border-radius: 6px;
   padding: 6px 12px;

@@ -4,7 +4,7 @@
     position: fixed;
     inset: 0;
     z-index: $z-index-modal;
-    background-color: #fff;
+    background-color: $surface-color;
 
     // See page.module.scss's .sidebarScroll for why overflow-x is explicit, not left to the
     // overflow-y: auto/visible-x default.

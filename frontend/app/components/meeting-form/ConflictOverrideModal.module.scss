@@ -6,7 +6,7 @@
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: rgb(0 0 0 / 50%);
+  background-color: $overlay-color;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -62,7 +62,7 @@
   padding-left: 48px;
   font-size: 15px;
   line-height: 1.5;
-  color: #444;
+  color: $text-body-color;
 }
 
 // Scrolls internally instead of growing the modal unbounded -- a save can collide with more
@@ -86,7 +86,7 @@
 
 .conflictMeta {
   font-size: 13px;
-  color: #555;
+  color: $text-body-soft-color;
 }
 
 .conflictValue {
@@ -135,7 +135,7 @@
   cursor: pointer;
 
   &:hover {
-    background-color: #F5F5F5;
+    background-color: $hover-fill-color;
   }
 
   &:disabled {
@@ -156,7 +156,7 @@
   cursor: pointer;
 
   &:hover {
-    background-color: #96620A;
+    background-color: $warning-hover-color;
   }
 
   &:disabled {

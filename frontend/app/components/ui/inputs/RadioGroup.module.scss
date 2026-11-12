@@ -74,3 +74,16 @@
         }
     }
 }
+
+// Icon state colors -- the SVGs draw in currentColor.
+.iconSelected {
+    color: $brand-pink-color;
+}
+
+.iconIdle {
+    color: $black-color;
+}
+
+.iconDisabled {
+    color: $disabled-color;
+}

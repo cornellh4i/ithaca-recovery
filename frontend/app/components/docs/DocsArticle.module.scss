@@ -203,8 +203,8 @@
   }
 
   :global(pre) {
-    background: $black-color;
-    color: $grey-lightest-color;
+    background: $code-bg-color;
+    color: $code-text-color;
     padding: 16px 20px;
     border-radius: $radius-md;
     overflow-x: auto;
@@ -255,18 +255,18 @@
 
     &:hover {
       background: rgb(255 255 255 / 18%);
-      color: #fff;
+      color: $white-color;
     }
 
     &:focus-visible {
-      outline: 2px solid #fff;
+      outline: 2px solid $white-color;
       outline-offset: 2px;
     }
 
     &[data-copied="true"] {
       background: $success-text-color;
       border-color: $success-text-color;
-      color: #fff;
+      color: $white-color;
 
       :global(.codeCopyIconCopy) {
         display: none;
@@ -521,21 +521,21 @@
     :global(p),
     :global(ul),
     :global(ol) {
-      color: #000;
+      color: $text-strong-color;
     }
 
     // Ink-friendly inversion of the screen's dark-on-light code styling; pre-wrap because a
     // printed page has no overflow-x scrollbar to reach clipped-off line ends with.
     :global(pre) {
-      background: #fff;
-      color: #000;
+      background: $surface-color;
+      color: $text-strong-color;
       border: 1px solid $light-grey-color;
       white-space: pre-wrap;
     }
 
     :global(code) {
       background: transparent;
-      color: #000;
+      color: $text-strong-color;
     }
 
     :global(.codeCopyButton) {
@@ -544,12 +544,12 @@
 
     // Underline instead of pink: color alone can't distinguish a link in grayscale print.
     :global(a) {
-      color: #000;
+      color: $text-strong-color;
       text-decoration: underline;
     }
 
     :global(th) {
-      background: #fff;
+      background: $surface-color;
     }
 
     :global(table),
@@ -568,7 +568,7 @@
     :global(.callout-important),
     :global(.callout-warning),
     :global(.callout-caution) {
-      background: #fff;
+      background: $surface-color;
     }
 
     :global(.callout-note) {
@@ -593,7 +593,7 @@
 
     // Outranks each variant's own tinted label color (same specificity, later in source).
     :global(.callout) :global(.calloutLabel) {
-      color: #000;
+      color: $text-strong-color;
     }
   }
 }

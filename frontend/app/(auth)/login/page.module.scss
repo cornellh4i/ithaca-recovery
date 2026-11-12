@@ -6,7 +6,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background-color: #F5F5F5;
+    background-color: $hover-fill-color;
     position: relative;
     padding: 24px;
     box-sizing: border-box;
@@ -26,7 +26,7 @@
 }
 
 .card {
-    background-color: #fff;
+    background-color: $surface-color;
     border-radius: 8px;
     box-shadow: 0 4px 12px rgb(0 0 0 / 15%);
     width: 520px;

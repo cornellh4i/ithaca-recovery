@@ -7,7 +7,7 @@
 
 .conflictGroup {
   padding: 14px 0;
-  border-top: 1.5px solid #E5E5E5;
+  border-top: 1.5px solid $border-divider-color;
 
   &:first-of-type {
     border-top: none;
@@ -139,7 +139,7 @@
     border-color: $medium-grey-color;
   }
 
-  // Distinct fill (not #fff, not $grey-lightest-color) so the expanded state stays visually
+  // Distinct fill (not $surface-color, not $grey-lightest-color) so the expanded state stays visually
   // flagged against both the idle button and .conflictBox's own background.
   &[aria-expanded="true"] {
     border-color: $medium-grey-color;
