@@ -14,7 +14,7 @@
 }
 
 .modalContent {
-  background-color: white;
+  background-color: $surface-color;
   border-radius: $radius-md;
   width: 400px;
   max-width: 90%;
@@ -144,7 +144,7 @@
   padding: 8px 16px;
   border-radius: $radius-sm;
   border: 1.5px solid $light-grey-color;
-  background-color: white;
+  background-color: $surface-color;
   color: $black-color;
   font-size: 14px;
   font-weight: 600;
@@ -186,9 +186,9 @@
 .confirmButtonOutline {
   padding: 8px 16px;
   border-radius: $radius-sm;
-  border: 1.5px solid $brand-pink-color;
-  background-color: white;
-  color: $brand-pink-color;
+  border: 1.5px solid $brand-text-color;
+  background-color: $surface-color;
+  color: $brand-text-color;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;

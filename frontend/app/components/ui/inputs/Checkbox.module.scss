@@ -22,7 +22,7 @@
     }
   
     .checkboxLabel {
-      color: var(--black, $black-color);
+      color: $black-color;
       font-family: "Source Sans Pro", sans-serif;
       font-size: 18px;
       font-style: normal;
@@ -31,7 +31,7 @@
     }
 
     .checkmark {
-        color: white;
+        color: $white-color;
     }
 
     // Scales font-size to ~80% for narrow embedding contexts (the 280px Main Calendar sidebar).

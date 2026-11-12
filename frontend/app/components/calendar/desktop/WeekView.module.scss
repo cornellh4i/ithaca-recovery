@@ -200,7 +200,7 @@
 // Style for current date - now a square without rounded edges
 .currentDate {
   background-color: $brand-pink-color;
-  color: white;
+  color: $white-color;
   border-radius: 0; // No rounded edges
   width: 24px;
   height: 24px;

@@ -180,7 +180,7 @@
 // from an inline style computed in JS from the kebab button's actual on-screen position.
 .optionsMenu {
   position: fixed;
-  background: white;
+  background: $surface-color;
   box-shadow: 0 4px 8px rgb(0 0 0 / 10%);
   border-radius: $radius-sm;
   overflow: hidden;

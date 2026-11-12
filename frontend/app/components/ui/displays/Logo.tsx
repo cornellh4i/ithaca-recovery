@@ -12,7 +12,8 @@ const Logo = ({ height = 50 }: LogoProps) => {
         <Image
           src={IcrLogo}
           alt="Logo"
-          style={{ height: `${height}px`, width: 'auto', padding: '6px' }}
+          // filter: the PNG is black on transparent -- dark mode inverts it (see --logo-filter).
+          style={{ height: `${height}px`, width: 'auto', padding: '6px', filter: 'var(--logo-filter)' }}
         />
     </>
   );

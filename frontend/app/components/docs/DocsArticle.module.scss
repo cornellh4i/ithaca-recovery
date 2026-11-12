@@ -199,7 +199,7 @@
     background: $grey-lightest-color;
     padding: 2px 6px;
     border-radius: $radius-sm;
-    color: $brand-pink-color;
+    color: $brand-text-color;
   }
 
   :global(pre) {
@@ -298,7 +298,7 @@
   }
 
   :global(a) {
-    color: $brand-pink-color;
+    color: $brand-text-color;
     text-decoration: none;
 
     &:hover {
@@ -399,7 +399,7 @@
     border-left-color: $brand-pink-color;
 
     :global(.calloutLabel) {
-      color: $brand-pink-color;
+      color: $brand-text-color;
     }
   }
 
@@ -580,7 +580,7 @@
     }
 
     :global(.callout-important) {
-      border-left-color: $brand-pink-color;
+      border-left-color: $brand-text-color;
     }
 
     :global(.callout-warning) {

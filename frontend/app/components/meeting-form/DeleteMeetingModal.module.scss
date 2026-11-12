@@ -20,7 +20,7 @@
 }
 
 .modalContent {
-  background-color: white;
+  background-color: $surface-color;
   border-radius: 8px;
   width: 400px;
   max-width: 90%;
@@ -121,7 +121,7 @@
   padding: 8px 16px;
   border-radius: 6px;
   border: 1.5px solid $light-grey-color;
-  background-color: white;
+  background-color: $surface-color;
   color: $black-color;
   font-size: 14px;
   font-weight: 600;

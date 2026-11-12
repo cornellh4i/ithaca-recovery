@@ -20,7 +20,7 @@
   // no way to reach them -- the overlay itself has no scroll, so the modal needs its own.
   max-height: calc(100vh - 32px);
   overflow-y: auto;
-  background-color: white;
+  background-color: $surface-color;
   border-radius: 8px;
   width: 440px;
   max-width: 90%;
@@ -127,7 +127,7 @@
   padding: 8px 16px;
   border-radius: 6px;
   border: 1.5px solid $light-grey-color;
-  background-color: white;
+  background-color: $surface-color;
   color: $black-color;
   font-size: 14px;
   font-weight: 600;

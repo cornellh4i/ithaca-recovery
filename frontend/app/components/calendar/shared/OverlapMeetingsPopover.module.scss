@@ -13,7 +13,7 @@
   position: fixed;
   width: 272px;
   max-width: calc(100vw - 16px);
-  background-color: white;
+  background-color: $surface-overlay-color;
   border: 1px solid $grey-border-color;
   border-radius: $radius-lg;
   box-shadow: 0 4px 12px rgb(0 0 0 / 15%);
@@ -76,7 +76,7 @@
   }
 
   &:focus-visible {
-    outline: 2px solid $brand-pink-color;
+    outline: 2px solid $brand-text-color;
     outline-offset: 1px;
   }
 }

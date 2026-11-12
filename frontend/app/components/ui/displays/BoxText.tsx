@@ -1,6 +1,6 @@
 import React, { useLayoutEffect, useRef, useState } from "react";
 import styles from './BoxText.module.scss';
-import { toPastelColor } from '../../../../util/common/color';
+import { roomWash } from '../../../../util/common/color';
 import { MODE_ICON_NAME } from '../../../../util/rooms/modeIcons';
 import Icon from './Icon';
 import TagList from './TagList';
@@ -89,7 +89,7 @@ const BoxText: React.FC<BoxProps> = ({
 
   const bgColor =
     boxType === 'Meeting Block'
-      ? toPastelColor(primaryColor)
+      ? roomWash(primaryColor)
       : primaryColor;
   // Subcompact's row is too short for the standard 6px accent to read proportionally.
   const borderLeftWidth = isSubcompact ? 3 : 6;

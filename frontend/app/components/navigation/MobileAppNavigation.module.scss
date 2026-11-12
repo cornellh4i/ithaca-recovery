@@ -11,7 +11,7 @@
     align-items: center;
     justify-content: space-between;
     padding: 0 8px;
-    background-color: $surface-color;
+    background-color: $bg-color;
     border-bottom: 1px solid $grey-border-color;
     transition: transform 0.25s ease;
 
@@ -44,7 +44,7 @@
 // the icon itself) is enough to tint it -- matches how IconButton already lets a caller-
 // supplied className override its own styling.
 .filterActive {
-    color: $brand-pink-color !important;
+    color: $brand-text-color !important;
 }
 
 .filterBadge {

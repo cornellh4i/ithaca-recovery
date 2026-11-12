@@ -68,9 +68,9 @@
 // Today, not selected -- bold pink text alone reads too close to a plain bold day, so this
 // also gets an outline ring, matching MiniCalendar's today treatment.
 .today {
-    color: $brand-pink-color;
+    color: $brand-text-color;
     font-weight: 700;
-    border: 2px solid $brand-pink-color;
+    border: 2px solid $brand-text-color;
 }
 
 // Today and selected.
