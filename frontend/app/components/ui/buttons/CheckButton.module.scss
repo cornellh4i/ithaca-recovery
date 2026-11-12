@@ -9,7 +9,7 @@
     flex-shrink: 0;
     border-radius: 50%; // <-- this makes the button circular
     border: 1px solid $grey-border-color;
-    background-color: #fff;
+    background-color: $surface-color;
     color: $medium-grey-color;
     font-weight: 600;
     cursor: pointer;

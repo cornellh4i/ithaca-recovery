@@ -14,7 +14,7 @@
 
 .button {
   flex: 1;
-  background: #fff;
+  background: $surface-color;
   border: none;
   border-right: 1px solid $grey-border-color;
   font-family: 'Source Sans Pro', sans-serif;
@@ -43,12 +43,12 @@
 }
 
 .button.selected:focus-visible {
-  box-shadow: inset 0 0 0 2px #fff;
+  box-shadow: inset 0 0 0 2px $white-color;
 }
 
 .button.selected {
   background: $brand-pink-color;
-  color: #fff;
+  color: $white-color;
 }
 
 .button.selected:hover {
@@ -77,4 +77,4 @@
 }
 
 // No color override needed for .button.selected -- the icon renders at currentColor (see
-// Icon.tsx) and .button.selected above already sets color: #fff, so it inherits automatically.
+// Icon.tsx) and .button.selected above already sets color: $white-color, so it inherits automatically.

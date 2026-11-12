@@ -11,7 +11,7 @@
   border-radius: 6px;
   padding: 0 12px;
   height: 42px;
-  background-color: #fff;
+  background-color: $surface-color;
   transition: border-color 0.15s ease;
 
   &:focus-within {

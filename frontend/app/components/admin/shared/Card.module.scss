@@ -1,8 +1,8 @@
 @import '../../../../styles/Variables.module';
 
 .card {
-  background: #fff;
-  border: 1.5px solid #E5E5E5;
+  background: $surface-color;
+  border: 1.5px solid $border-divider-color;
   border-radius: 8px;
   padding: 20px 24px;
   width: 100%;

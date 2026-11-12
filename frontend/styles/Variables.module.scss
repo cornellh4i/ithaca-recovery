@@ -72,6 +72,53 @@ $text-secondary-color: var(--text-secondary);
 // What a meeting block's room-color wash mixes toward (white in light, the surface in dark).
 $wash-base-color: var(--wash-base);
 
+// Pressed/hover fills under white text (same in both themes).
+$danger-hover-color: var(--danger-hover);
+$warning-hover-color: var(--warning-hover);
+$link-hover-color: var(--link-hover);
+$accent-blue-color: var(--accent-blue);
+
+// Badge and icon-circle washes.
+$danger-wash-color: var(--danger-wash);
+$brand-wash-color: var(--brand-wash);
+$warning-pill-bg-color: var(--warning-pill-bg);
+$warning-pill-text-color: var(--warning-pill-text);
+$purple-bg-color: var(--purple-bg);
+$purple-text-color: var(--purple-text);
+
+// Code surfaces -- dark in both themes. Docs code blocks use $code-*, the Backups runbook's
+// command box uses $terminal-*.
+$code-bg-color: var(--code-bg);
+$code-text-color: var(--code-text);
+$terminal-bg-color: var(--terminal-bg);
+$terminal-text-color: var(--terminal-text);
+
+// Modal backdrop.
+$overlay-color: var(--overlay);
+
+// Legacy one-off greys -- see theme.scss.
+$text-strong-color: var(--text-strong);
+$text-body-color: var(--text-body);
+$text-body-soft-color: var(--text-body-soft);
+$nav-text-color: var(--nav-text);
+$nav-text-soft-color: var(--nav-text-soft);
+$text-muted-cool-color: var(--text-muted-cool);
+$text-hint-color: var(--text-hint);
+$disabled-color: var(--disabled);
+$hover-fill-color: var(--hover-fill);
+$hover-fill-cool-color: var(--hover-fill-cool);
+$fill-subtle-color: var(--fill-subtle);
+$fill-input-color: var(--fill-input);
+$fill-faint-color: var(--fill-faint);
+$fill-faintest-color: var(--fill-faintest);
+$pressed-fill-color: var(--pressed-fill);
+$selected-fill-color: var(--selected-fill);
+$nav-hover-fill-color: var(--nav-hover-fill);
+$grid-line-color: var(--grid-line);
+$grid-line-strong-color: var(--grid-line-strong);
+$border-input-color: var(--border-input);
+$border-mid-color: var(--border-mid);
+
 // Corner radii -- named by scale (sm/md/lg), not by component, so any part of the UI can reuse
 // the same token instead of hardcoding a one-off border-radius value.
 $radius-sm: 4px;

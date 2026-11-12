@@ -10,7 +10,7 @@
 
 .cardDesc {
   font-size: 14px;
-  color: #555;
+  color: $text-body-soft-color;
   margin-bottom: 14px;
 }
 
@@ -45,8 +45,8 @@
 }
 
 .viewButton {
-  background: #fff;
-  border: 1.5px solid #E5E5E5;
+  background: $surface-color;
+  border: 1.5px solid $border-divider-color;
   border-radius: 8px;
   color: $black-color;
   font-family: inherit;
@@ -58,7 +58,7 @@
 .viewButtonActive {
   background: $brand-pink-color;
   border-color: $brand-pink-color;
-  color: #fff;
+  color: $white-color;
   font-weight: 600;
 }
 
@@ -86,7 +86,7 @@
   font-size: 13px;
   color: $black-color;
   background: $grey-lightest-color;
-  border: 1.5px solid #E5E5E5;
+  border: 1.5px solid $border-divider-color;
   border-radius: 6px;
   padding: 8px 12px;
   box-sizing: border-box;
@@ -94,7 +94,7 @@
 
 .copyButton {
   background: $brand-pink-color;
-  color: #fff;
+  color: $white-color;
   border: none;
   border-radius: 8px;
   padding: 8px 20px;

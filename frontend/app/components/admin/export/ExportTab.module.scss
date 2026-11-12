@@ -51,7 +51,7 @@
 
 .cardDesc {
   font-size: 14px;
-  color: #555;
+  color: $text-body-soft-color;
   margin-bottom: 14px;
 }
 
@@ -70,7 +70,7 @@
 
 .exportButton {
   background: $brand-pink-color;
-  color: #fff;
+  color: $white-color;
   border: none;
   border-radius: 8px;
   padding: 10px 20px;
@@ -92,7 +92,7 @@
   align-items: center;
   gap: 10px;
   font-size: 13px;
-  color: #555;
+  color: $text-body-soft-color;
   margin-bottom: 14px;
 }
 
@@ -102,7 +102,7 @@
 
 .viewRatesButton {
   background: none;
-  border: 1.5px solid #E5E5E5;
+  border: 1.5px solid $border-divider-color;
   border-radius: 6px;
   color: $black-color;
   font-family: inherit;
@@ -121,8 +121,8 @@
   top: 100%;
   right: 0;
   margin-top: 6px;
-  background: #fff;
-  border: 1.5px solid #E5E5E5;
+  background: $surface-color;
+  border: 1.5px solid $border-divider-color;
   border-radius: 8px;
   padding: 10px 14px;
   box-shadow: 0 4px 12px rgb(0 0 0 / 10%);
@@ -153,7 +153,7 @@
 }
 
 .modal {
-  background: #fff;
+  background: $surface-color;
   border-radius: 8px;
   padding: 24px 28px;
   width: 100%;
@@ -172,7 +172,7 @@
 
 .modalIntro {
   font-size: 13px;
-  color: #555;
+  color: $text-body-soft-color;
   margin: 0 0 8px;
 }
 
@@ -192,7 +192,7 @@
   align-items: center;
   gap: 10px;
   padding: 8px 10px;
-  border: 1.5px solid #E5E5E5;
+  border: 1.5px solid $border-divider-color;
   border-radius: 8px;
   cursor: pointer;
 
@@ -203,7 +203,7 @@
 
 .cycleRowSelected {
   border-color: $brand-pink-color;
-  background: #FBE1E7;
+  background: $brand-wash-color;
 }
 
 .cycleRadioInput {
@@ -339,7 +339,7 @@
 
 .previewToggleButton {
   background: none;
-  border: 1.5px solid #E5E5E5;
+  border: 1.5px solid $border-divider-color;
   border-radius: 6px;
   color: $black-color;
   font-family: inherit;
@@ -359,7 +359,7 @@
   font-size: 13px;
   color: $black-color;
   background: $grey-lightest-color;
-  border: 1.5px solid #E5E5E5;
+  border: 1.5px solid $border-divider-color;
   border-radius: 6px;
   padding: 8px 10px;
   box-sizing: border-box;
@@ -367,7 +367,7 @@
 }
 
 .previewHighlight {
-  background: #FBE1E7;
+  background: $brand-wash-color;
   color: $brand-pink-color;
   font-weight: 600;
   border-radius: 4px;
@@ -393,8 +393,8 @@
   font-family: inherit;
   font-size: 14px;
   color: $black-color;
-  background: #fff;
-  border: 1.5px solid #E5E5E5;
+  background: $surface-color;
+  border: 1.5px solid $border-divider-color;
   border-radius: 6px;
   padding: 6px 10px;
   box-sizing: border-box;
@@ -404,8 +404,8 @@
   font-family: inherit;
   font-size: 14px;
   color: $black-color;
-  background: #fff;
-  border: 1.5px solid #E5E5E5;
+  background: $surface-color;
+  border: 1.5px solid $border-divider-color;
   border-radius: 6px;
   padding: 6px 10px;
   width: 90px;
@@ -436,7 +436,7 @@
     font-size: 12px;
     font-weight: 600;
     color: $medium-grey-color;
-    border-bottom: 1.5px solid #E5E5E5;
+    border-bottom: 1.5px solid $border-divider-color;
     padding: 0 6px 8px;
   }
 
@@ -463,8 +463,8 @@
   font-family: inherit;
   font-size: 13px;
   color: $black-color;
-  background: #fff;
-  border: 1.5px solid #E5E5E5;
+  background: $surface-color;
+  border: 1.5px solid $border-divider-color;
   border-radius: 6px;
   padding: 8px 10px;
   box-sizing: border-box;
@@ -486,7 +486,7 @@
 
 .cancelButton {
   background: none;
-  border: 1.5px solid #E5E5E5;
+  border: 1.5px solid $border-divider-color;
   border-radius: 8px;
   padding: 10px 20px;
   font-family: inherit;
@@ -497,7 +497,7 @@
 
 .saveButton {
   background: $brand-pink-color;
-  color: #fff;
+  color: $white-color;
   border: none;
   border-radius: 8px;
   padding: 10px 20px;

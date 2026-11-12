@@ -326,7 +326,7 @@
 @media print {
   .page {
     height: auto;
-    background: #fff;
+    background: $surface-color;
   }
 
   // !important beats the .isCompact/.isOpen state variants' higher-specificity display flips,

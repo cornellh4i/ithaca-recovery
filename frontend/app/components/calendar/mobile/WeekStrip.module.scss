@@ -18,7 +18,7 @@
     display: flex;
     justify-content: space-between;
     padding: 8px 4px;
-    background-color: #fff;
+    background-color: $surface-color;
     border-bottom: 1px solid $grey-border-color;
 }
 
@@ -62,7 +62,7 @@
 // pink-color) pastel fill for better contrast against this circle's white text.
 .selectedNotToday {
     background-color: $brand-pink-secondary;
-    color: #fff;
+    color: $white-color;
 }
 
 // Today, not selected -- bold pink text alone reads too close to a plain bold day, so this
@@ -76,5 +76,5 @@
 // Today and selected.
 .selectedToday {
     background-color: $brand-pink-color;
-    color: #fff;
+    color: $white-color;
 }

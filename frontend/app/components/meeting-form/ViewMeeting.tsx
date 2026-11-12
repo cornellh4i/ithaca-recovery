@@ -626,7 +626,7 @@ const ViewMeetingDetails: React.FC<ViewMeetingDetailsProps> = ({
             tags={calType}
             color={primaryColor}
             gap={4}
-            tagStyle={{ padding: '2px 12px', fontSize: '12px', color: '#000' }}
+            tagStyle={{ padding: '2px 12px', fontSize: '12px', color: 'var(--text-strong)' }}
           />
         )}
       </div>

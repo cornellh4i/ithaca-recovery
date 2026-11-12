@@ -9,7 +9,7 @@
     padding: 14px;
     border: 1.5px solid $light-grey-color;
     border-radius: 8px;
-    background-color: #fff;
+    background-color: $surface-color;
     font-size: 15px;
     font-weight: 600;
     color: $black-color;
@@ -17,7 +17,7 @@
 
     &:hover,
     &:focus {
-        background-color: #F5F5F5;
+        background-color: $hover-fill-color;
     }
 }
 

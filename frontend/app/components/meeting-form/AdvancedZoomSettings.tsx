@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import TextField from '../ui/inputs/TextField';
 import LabeledCheckbox from '../ui/inputs/CheckBox';
 import { CAL_TYPE_COLOR } from '../../../hooks/useMeetingForm';
+import styles from './AdvancedZoomSettings.module.scss';
 
 interface AdvancedZoomSettingsProps {
   zoomCustomPasscode: string;
@@ -41,21 +42,17 @@ const AdvancedZoomSettings: React.FC<AdvancedZoomSettingsProps> = ({
   if (!isVisible) return null;
 
   return (
-    <div data-testid="advanced-zoom-settings" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+    <div data-testid="advanced-zoom-settings" className={styles.container}>
       <button
         type="button"
         aria-expanded={isOpen}
         onClick={() => setIsOpen((open) => !open)}
-        style={{
-          background: 'none', border: 'none', padding: 0, cursor: 'pointer',
-          textAlign: 'left', fontSize: compact ? '13px' : '15px', color: '#666',
-          textDecoration: 'underline',
-        }}
+        className={`${styles.toggle} ${compact ? styles.compact : ""}`}
       >
         {isOpen ? "Hide advanced Zoom settings" : "Advanced Zoom settings"}
       </button>
       {isOpen && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', paddingLeft: '4px' }}>
+        <div className={styles.fields}>
           <div>
             <TextField
               input="Custom passcode"
@@ -65,7 +62,7 @@ const AdvancedZoomSettings: React.FC<AdvancedZoomSettingsProps> = ({
               error={passcodeError}
               compact={compact}
             />
-            <span style={{ fontSize: compact ? '11px' : '12px', color: '#888' }}>
+            <span className={`${styles.hint} ${compact ? styles.compact : ""}`}>
               Up to 10 characters (letters, numbers, @ - _ *). Changing it invalidates previously shared join links; leave blank to keep Zoom&apos;s current passcode.
             </span>
           </div>
@@ -74,7 +71,7 @@ const AdvancedZoomSettings: React.FC<AdvancedZoomSettingsProps> = ({
             checked={zoomMeetAnytime}
             onChange={() => onZoomMeetAnytimeChange(!zoomMeetAnytime)}
             color={CAL_TYPE_COLOR}
-            uncheckedBg="#fff"
+            uncheckedBg="var(--surface)"
             compact={compact}
           />
           <LabeledCheckbox
@@ -82,7 +79,7 @@ const AdvancedZoomSettings: React.FC<AdvancedZoomSettingsProps> = ({
             checked={zoomJoinBeforeHost}
             onChange={() => onZoomJoinBeforeHostChange(!zoomJoinBeforeHost)}
             color={CAL_TYPE_COLOR}
-            uncheckedBg="#fff"
+            uncheckedBg="var(--surface)"
             compact={compact}
           />
         </div>

@@ -50,7 +50,7 @@
   position: sticky;
   left: 0;
   z-index: 20;
-  background-color: #fff;
+  background-color: $surface-color;
 }
 
 // Blank top-left corner where the sticky room column and sticky hour header row meet --
@@ -59,7 +59,7 @@
   position: sticky;
   top: 0;
   z-index: 21;
-  background-color: #fff;
+  background-color: $surface-color;
 }
 
 .currentTimeLine {
@@ -128,7 +128,7 @@
   display: grid;
   grid-template-columns: repeat(24, 155px);
   font-weight: 600;
-  background-color: #fff;
+  background-color: $surface-color;
   border-bottom: 1px solid $grey-border-color;
   scroll-snap-align: start;
   position: sticky;
@@ -169,7 +169,7 @@
       transform: translateX(-50%);
       height: 100%;
       width: 1px;
-      background-color: #eee;
+      background-color: $fill-subtle-color;
       opacity: 0.5;
     }
   }

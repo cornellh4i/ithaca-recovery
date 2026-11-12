@@ -43,13 +43,13 @@
   padding: 11.4px;
   border: 1.5px solid $light-grey-color;
   border-radius: 8px;
-  background: #fff;
+  background: $surface-color;
   color: rgb(0 0 0);
   cursor: pointer;
   transition: background-color 0.2s;
 
   &:hover {
-    background-color: #BFC2C8;
+    background-color: $pressed-fill-color;
   }
 
   .icon {
@@ -61,7 +61,7 @@
     font-size: 15px;
     font-style: normal;
     font-weight: 600;
-    color: #000;
+    color: $text-strong-color;
   }
 }
 

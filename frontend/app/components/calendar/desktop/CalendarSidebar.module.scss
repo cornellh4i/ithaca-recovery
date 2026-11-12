@@ -1,9 +1,11 @@
+@import '../../../../styles/Variables.module';
+
 .meetingsFilter {
   margin-top: 7px;
   padding: 20px;
   padding-top: 1px;
   border-radius: 6px;
-  border: 1.5px solid #E5E5E5;
-  background: #FFF;
+  border: 1.5px solid $border-divider-color;
+  background: $surface-color;
   color: rgb(0 0 0);
 }
