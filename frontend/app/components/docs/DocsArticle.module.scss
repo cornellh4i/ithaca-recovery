@@ -264,8 +264,8 @@
     }
 
     &[data-copied="true"] {
-      background: $success-text-color;
-      border-color: $success-text-color;
+      background: $success-fill-color;
+      border-color: $success-fill-color;
       color: $white-color;
 
       :global(.codeCopyIconCopy) {

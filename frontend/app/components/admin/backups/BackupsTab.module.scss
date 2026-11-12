@@ -70,15 +70,15 @@
   position: absolute;
   inset: 0;
   border-radius: 999px;
-  background: $success-text-color;
+  background: $success-fill-color;
 }
 
 .headroomFillWarn {
-  background: $warning-text-color;
+  background: $warning-fill-color;
 }
 
 .headroomFillError {
-  background: $danger-color;
+  background: $danger-fill-color;
 }
 
 .headroomCaption {
@@ -514,11 +514,11 @@
 }
 
 .replicaTileDotOk {
-  background: $success-text-color;
+  background: $success-fill-color;
 }
 
 .replicaTileDotStale {
-  background: $warning-text-color;
+  background: $warning-fill-color;
 }
 
 .replicaTileName {
@@ -666,7 +666,7 @@
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    background: $success-text-color;
+    background: $success-fill-color;
   }
 }
 
@@ -674,7 +674,7 @@
   color: $warning-text-color;
 
   &::before {
-    background: $warning-text-color;
+    background: $warning-fill-color;
   }
 }
 
@@ -888,8 +888,8 @@
 }
 
 .commandCopyButtonCopied {
-  background: $success-text-color;
-  border-color: $success-text-color;
+  background: $success-fill-color;
+  border-color: $success-fill-color;
   color: $white-color;
 }
 
@@ -901,11 +901,11 @@
   border-radius: 50%;
   flex-shrink: 0;
   margin-top: 5px;
-  background: $success-text-color;
+  background: $success-fill-color;
 }
 
 .activityDotFailure {
-  background: $danger-color;
+  background: $danger-fill-color;
 }
 
 .activityDotNeutral {

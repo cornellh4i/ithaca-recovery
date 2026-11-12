@@ -96,6 +96,14 @@ $terminal-text-color: var(--terminal-text);
 // Modal backdrop.
 $overlay-color: var(--overlay);
 
+// Semantic colors as fills under white text (same in both themes). Use these for a button or
+// badge background; the non-fill versions are for text and outlines on the ground.
+$danger-fill-color: var(--danger-fill);
+$warning-fill-color: var(--warning-fill);
+$success-fill-color: var(--success-fill);
+$link-fill-color: var(--link-fill);
+$info-fill-color: var(--info-fill);
+
 // Text on a solid room color -- dark in both themes.
 $on-room-color: var(--on-room);
 
