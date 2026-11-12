@@ -47,6 +47,9 @@ import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import LinkIcon from "@mui/icons-material/Link";
 import FileDownloadOutlinedIcon from "@mui/icons-material/FileDownloadOutlined";
+import LightModeOutlinedIcon from "@mui/icons-material/LightModeOutlined";
+import DarkModeOutlinedIcon from "@mui/icons-material/DarkModeOutlined";
+import BrightnessAutoOutlinedIcon from "@mui/icons-material/BrightnessAutoOutlined";
 import type { SvgIconComponent } from "@mui/icons-material";
 
 // Brand logos with no faithful @mui/icons-material equivalent (multi-color marks with no
@@ -126,6 +129,10 @@ const MUI_ICONS = {
     copy: ContentCopyIcon,
     link: LinkIcon,
     download: FileDownloadOutlinedIcon,
+    // Theme toggle states (AppNavigation) -- sun, moon, and "A" for follow-the-system.
+    "theme-light": LightModeOutlinedIcon,
+    "theme-dark": DarkModeOutlinedIcon,
+    "theme-system": BrightnessAutoOutlinedIcon,
 } satisfies Record<string, SvgIconComponent>;
 
 export type IconName = keyof typeof LOCAL_ICONS | keyof typeof MUI_ICONS;

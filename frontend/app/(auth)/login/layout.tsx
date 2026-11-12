@@ -1,11 +1,11 @@
 import { PropsWithChildren } from "react";
 import "../../../styles/theme.scss";
-import ThemeScript, { SERVER_THEME_ATTRIBUTE } from "../../components/theme/ThemeScript";
-import { ThemeSync } from "../../components/theme/ThemeDevSwitcher";
+import ThemeScript from "../../components/theme/ThemeScript";
+import ThemeSync from "../../components/theme/ThemeSync";
 
 export default function LoginLayout({ children }: PropsWithChildren) {
   return (
-    <html lang="en" data-theme={SERVER_THEME_ATTRIBUTE} suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning>
       <head>
         <ThemeScript />
       </head>

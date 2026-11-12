@@ -67,3 +67,9 @@
         font-weight: 600;
     }
 }
+
+// Pinned to the drawer's bottom edge (.drawer is a column flex container).
+.themeRow {
+    margin-top: auto;
+    padding-top: 16px;
+}

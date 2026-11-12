@@ -11,10 +11,11 @@ export const THEME_STORAGE_KEY = "icr-theme";
 // Toggle cycle order: Light -> Dark -> System -> Light.
 export const THEME_PREFERENCES: readonly ThemePreference[] = ["light", "dark", "system"];
 
-// Dark mode is dev-gated until the user-facing toggle ships (GitHub #456 / #467): production
-// builds pin data-theme="light" server-side and never run the pre-paint script, so a viewer
-// whose OS is in dark mode doesn't get a half-themed app in the meantime.
-export const THEME_SWITCHING_ENABLED = process.env.NODE_ENV === "development";
+export const THEME_LABELS: Record<ThemePreference, string> = {
+  light: "Light",
+  dark: "Dark",
+  system: "System",
+};
 
 export function parseThemePreference(value: unknown): ThemePreference {
   return value === "light" || value === "dark" ? value : "system";

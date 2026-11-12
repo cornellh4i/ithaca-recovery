@@ -22,6 +22,8 @@ For developers (current or future H4I teams) writing code against this app. Orga
   [Backup Infrastructure Setup](backup-infra-setup.md) — reproducible provisioning checklist
   (GCP projects, buckets, R2, WIF).
 - **How do I add or move a doc on the /docs page?** [Docs Site](docs-site.md).
+- **How do colors and dark mode work? Where does a new color go?**
+  [Theming and Dark Mode](theming.md) — the token system, the toggle, and the stylelint guard.
 - **How does testing work? How do I run the suite?** [Testing](testing/README.md).
   Before a release, see [Manual Test Script](testing/manual-test-script-template.md)
   for what automation can't cover.
