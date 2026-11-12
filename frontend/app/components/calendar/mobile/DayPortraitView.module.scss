@@ -4,7 +4,7 @@
     display: flex;
     flex-direction: column;
     height: 100%;
-    background-color: $white-color;
+    background-color: $surface-color;
     position: relative; // anchors TopLoadingBar's absolute positioning to this view's own bounds
 
     // WeekStrip and CalendarHeader are plain flex siblings above this, not part of
@@ -57,7 +57,7 @@
     display: flex;
     flex-direction: column;
     border-right: 1px solid $grey-border-color;
-    background-color: $white-color;
+    background-color: $surface-color;
     height: 1440px; // 24 hours * 60px -- matches DayColumn's own grid at MOBILE_HOUR_HEIGHT
 }
 

@@ -1,0 +1,106 @@
+// The only file that knows both palettes. Every color in Variables.module.scss is an alias for
+// one of these custom properties, so the ~700 existing $-variable references across the SCSS
+// modules switch theme at runtime without being touched -- Sass variables alone compile away at
+// build time and can't.
+
+// Three viewer states (see util/common/theme.ts): Light/Dark stamp data-theme on <html>; System
+// leaves it off and the prefers-color-scheme block decides. Every token MUST have a bare :root
+// value below -- one defined only under [data-theme] never applies to a System-mode viewer.
+
+// Tokens that are identical in both themes (brand fills, white-on-fill text) live only in the
+// bare :root block; the dark mixin overrides just the ones that change.
+
+:root {
+  color-scheme: light;
+
+  // Grounds
+  --bg: #FFF;
+  --surface: #FFF;
+  --surface-raised: #F1F1F1;
+
+  // Text
+  --text: #1E1E1E;
+  --text-secondary: #666;
+  --text-muted: #848484;
+  --navy: #3A3E49;
+
+  // Lines
+  --border: #DDD;
+  --border-strong: #CECECE;
+  --divider: #E5E5E5;
+
+  // Brand -- #CC3366 is a fill under white text in both themes; --brand-text is the pink that
+  // has to be read on the ground (#CC3366 is only 3.4:1 on the dark ground).
+  --brand: #C36;
+  --brand-text: #C36;
+  --brand-secondary: #B85578;
+  --brand-hover: rgb(67.2% 16.8% 33.6%); // = color.adjust(#C36, $lightness: -8%), exactly
+  --brand-tint: rgb(94% 76% 82%); // = color.adjust(#C36, $lightness: 35%), exactly
+  --on-fill: #FFF;
+  --link: #007BFF;
+
+  // Semantic: text color + wash, same recipe for all four.
+  --success-text: #4CAF50;
+  --success-bg: #D4F4D2;
+  --danger: #C62828;
+  --danger-bg: #FAEEEE;
+  --danger-bg-strong: #F4D4D4;
+  --warning-text: #B4790A;
+  --warning-bg: #FDF3DC;
+  --info-text: #1976D2;
+  --info-bg: #E8F1FB;
+
+  // What a meeting block's room-color wash mixes toward.
+  --wash-base: #FFF;
+}
+
+@mixin dark-palette {
+  color-scheme: dark;
+
+  // Cool near-black from the $navy-color family, never #000.
+  --bg: #17181C;
+  --surface: #1F2127;
+  --surface-raised: #262932;
+
+  // Soft white -- full #FFF glares at body sizes.
+  --text: #E8E9ED;
+  --text-secondary: #A5A8B0;
+  --text-muted: #7C808A;
+  --navy: #A5A8B0;
+  --border: #34373F;
+  --border-strong: #3E424B;
+  --divider: #2C2F37;
+  --brand-text: #E05C8A;
+
+  // Same 30% room-wash recipe, pointed at the dark surface.
+  --brand-tint: color-mix(in srgb, #C36 30%, #1F2127);
+  --link: #5CA8FF;
+
+  // Deep same-hue washes; text lightens one step.
+  --success-text: #6FCF73;
+  --success-bg: #1E2B1E;
+  --danger: #EF6B6B;
+  --danger-bg: #2B1B1B;
+  --danger-bg-strong: #3A2020;
+  --warning-text: #E0A93E;
+  --warning-bg: #2E2717;
+  --info-text: #64A9E8;
+  --info-bg: #1A2634;
+  --wash-base: #1F2127;
+}
+
+:root[data-theme="dark"] {
+  @include dark-palette;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    @include dark-palette;
+  }
+}
+
+// Paints the page ground. #FFF in light is the browser's own canvas color, so this is a no-op
+// there; in dark it keeps overscroll and any uncovered area from flashing white.
+:root {
+  background-color: var(--bg);
+}

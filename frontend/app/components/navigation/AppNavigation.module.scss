@@ -1,4 +1,3 @@
-@use 'sass:color';
 @import '../../../styles/Variables.module';
 
 .navbar {
@@ -106,8 +105,8 @@
 
     &:hover,
     &:focus {
-        background-color: color.adjust($brand-pink-color, $lightness: -8%);
-        border-color: color.adjust($brand-pink-color, $lightness: -8%);
+        background-color: $brand-hover-color;
+        border-color: $brand-hover-color;
         color: #fff;
     }
 }

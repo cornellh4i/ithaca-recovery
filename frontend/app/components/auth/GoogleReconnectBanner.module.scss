@@ -25,7 +25,7 @@
   width: 26px;
   height: 26px;
   border-radius: 50%;
-  background-color: $white-color;
+  background-color: $surface-color;
   color: $warning-text-color;
   flex-shrink: 0;
 }
@@ -53,7 +53,7 @@
   flex-shrink: 0;
   align-self: center;
   border: 1px solid $warning-text-color;
-  background: $white-color;
+  background: $surface-color;
   color: $warning-text-color;
   border-radius: $radius-md;
   padding: 6px 12px;
