@@ -23,7 +23,7 @@
 .tabRow {
   display: flex;
   gap: 24px;
-  border-bottom: 1.5px solid #E5E5E5;
+  border-bottom: 1.5px solid $border-divider-color;
   margin-bottom: 24px;
 }
 
@@ -36,14 +36,14 @@
   cursor: pointer;
   font-family: inherit;
   font-size: 16px;
-  color: #3A3E49;
+  color: $navy-color;
   padding: 0 0 10px;
   border-bottom: 2.5px solid transparent;
 }
 
 .tabActive {
-  color: $brand-pink-color;
-  border-bottom-color: $brand-pink-color;
+  color: $brand-text-color;
+  border-bottom-color: $brand-text-color;
 }
 
 .tabLocked {
@@ -75,7 +75,7 @@
   padding: 4px 8px;
   border-radius: 4px;
   background-color: $black-color;
-  color: #fff;
+  color: $bg-color;
   font-size: 12px;
   width: max-content;
   max-width: 220px;

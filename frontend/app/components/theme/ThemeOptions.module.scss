@@ -1,0 +1,48 @@
+@import '../../../styles/Variables.module';
+
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.label {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: $medium-grey-color;
+}
+
+.options {
+  display: flex;
+  border: 1.5px solid $light-grey-color;
+  border-radius: $radius-md;
+  overflow: hidden;
+}
+
+.option {
+  flex: 1 1 0;
+  padding: 8px 4px;
+  border: none;
+  background: none;
+  color: $navy-color;
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+
+  & + & {
+    border-left: 1.5px solid $light-grey-color;
+  }
+
+  &:focus-visible {
+    outline: 2px solid $brand-text-color;
+    outline-offset: -2px;
+  }
+
+  &.selected {
+    background-color: $brand-pink-color;
+    color: $white-color;
+    font-weight: 600;
+  }
+}

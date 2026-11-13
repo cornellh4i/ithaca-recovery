@@ -46,7 +46,7 @@
   border: 1px solid $light-grey-color;
   border-right: none;
   border-radius: $radius-md 0 0 $radius-md;
-  background: $white-color;
+  background: $surface-color;
   color: $medium-grey-color;
   font-size: 13px;
   cursor: pointer;
@@ -64,7 +64,7 @@
   padding: 5px 8px;
   border: 1px solid $light-grey-color;
   border-radius: 0 $radius-md $radius-md 0;
-  background: $white-color;
+  background: $surface-color;
   color: $medium-grey-color;
   cursor: pointer;
 
@@ -79,7 +79,7 @@
   top: calc(100% + 4px);
   right: 0;
   width: 180px;
-  background: $white-color;
+  background: $surface-color;
   border: 1px solid $light-grey-color;
   border-radius: $radius-md;
   box-shadow: 0 8px 16px rgb(0 0 0 / 8%);
@@ -199,12 +199,12 @@
     background: $grey-lightest-color;
     padding: 2px 6px;
     border-radius: $radius-sm;
-    color: $brand-pink-color;
+    color: $brand-text-color;
   }
 
   :global(pre) {
-    background: $black-color;
-    color: $grey-lightest-color;
+    background: $code-bg-color;
+    color: $code-text-color;
     padding: 16px 20px;
     border-radius: $radius-md;
     overflow-x: auto;
@@ -255,18 +255,18 @@
 
     &:hover {
       background: rgb(255 255 255 / 18%);
-      color: #fff;
+      color: $white-color;
     }
 
     &:focus-visible {
-      outline: 2px solid #fff;
+      outline: 2px solid $white-color;
       outline-offset: 2px;
     }
 
     &[data-copied="true"] {
-      background: $success-text-color;
-      border-color: $success-text-color;
-      color: #fff;
+      background: $success-fill-color;
+      border-color: $success-fill-color;
+      color: $white-color;
 
       :global(.codeCopyIconCopy) {
         display: none;
@@ -298,7 +298,7 @@
   }
 
   :global(a) {
-    color: $brand-pink-color;
+    color: $brand-text-color;
     text-decoration: none;
 
     &:hover {
@@ -395,11 +395,11 @@
   :global(.callout-important) {
     // No dedicated "pink-tint" background token exists (unlike info/success/warning/danger) --
     // derived inline rather than adding one just for this one variant.
-    background: rgba($brand-pink-color, 8%);
+    background: color-mix(in srgb, $brand-pink-color 8%, transparent);
     border-left-color: $brand-pink-color;
 
     :global(.calloutLabel) {
-      color: $brand-pink-color;
+      color: $brand-text-color;
     }
   }
 
@@ -463,7 +463,7 @@
   width: 220px;
   max-height: 60vh;
   overflow-y: auto;
-  background: $white-color;
+  background: $surface-color;
   border: 1px solid $light-grey-color;
   border-radius: $radius-md;
   box-shadow: 0 8px 16px rgb(0 0 0 / 8%);
@@ -521,21 +521,21 @@
     :global(p),
     :global(ul),
     :global(ol) {
-      color: #000;
+      color: $text-strong-color;
     }
 
     // Ink-friendly inversion of the screen's dark-on-light code styling; pre-wrap because a
     // printed page has no overflow-x scrollbar to reach clipped-off line ends with.
     :global(pre) {
-      background: #fff;
-      color: #000;
+      background: $surface-color;
+      color: $text-strong-color;
       border: 1px solid $light-grey-color;
       white-space: pre-wrap;
     }
 
     :global(code) {
       background: transparent;
-      color: #000;
+      color: $text-strong-color;
     }
 
     :global(.codeCopyButton) {
@@ -544,12 +544,12 @@
 
     // Underline instead of pink: color alone can't distinguish a link in grayscale print.
     :global(a) {
-      color: #000;
+      color: $text-strong-color;
       text-decoration: underline;
     }
 
     :global(th) {
-      background: #fff;
+      background: $surface-color;
     }
 
     :global(table),
@@ -568,7 +568,7 @@
     :global(.callout-important),
     :global(.callout-warning),
     :global(.callout-caution) {
-      background: #fff;
+      background: $surface-color;
     }
 
     :global(.callout-note) {
@@ -580,7 +580,7 @@
     }
 
     :global(.callout-important) {
-      border-left-color: $brand-pink-color;
+      border-left-color: $brand-text-color;
     }
 
     :global(.callout-warning) {
@@ -593,7 +593,7 @@
 
     // Outranks each variant's own tinted label color (same specificity, later in source).
     :global(.callout) :global(.calloutLabel) {
-      color: #000;
+      color: $text-strong-color;
     }
   }
 }

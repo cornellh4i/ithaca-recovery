@@ -2,7 +2,7 @@
 @import '../../../styles/Variables.module';
 
 .container {
-  color: var(--black, $black-color);
+  color: $black-color;
   font-family: "Source Sans Pro", sans-serif;
   font-size: 13px;
   font-style: normal;
@@ -28,7 +28,7 @@
     padding: 16px;
     border: 1px solid $grey-border-color;
     border-radius: $radius-md;
-    background: #fff;
+    background: $surface-color;
   }
 
   .compactField {

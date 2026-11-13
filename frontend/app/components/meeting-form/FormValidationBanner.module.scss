@@ -20,7 +20,7 @@
   width: 26px;
   height: 26px;
   border-radius: 50%;
-  background-color: white;
+  background-color: $surface-color;
   color: $danger-color;
   flex-shrink: 0;
 }
@@ -42,5 +42,5 @@
   padding-left: 18px;
   font-size: 13px;
   line-height: 1.5;
-  color: #444;
+  color: $text-body-color;
 }

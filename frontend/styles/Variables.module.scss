@@ -1,53 +1,143 @@
-$black-color: #1E1E1E;
-$medium-grey-color: #848484;
-$light-grey-color: #CECECE;
-$white-color: #FFF;
+// Colors are aliases for the CSS custom properties in styles/theme.scss -- that file holds the
+// actual light/dark values, and swaps them at runtime. These resolve to var(--x), not a color,
+// so Sass color functions (color.adjust, rgba($x, ...), mix) can't take them; use CSS
+// color-mix() or a dedicated token instead.
 
+// Grounds. $surface-color is cards, panels, the calendar grid; $bg-color is the page itself
+// (one step darker in dark mode); $surface-raised-color is popovers, hover fills, modals.
+$bg-color: var(--bg);
+$surface-color: var(--surface);
+$surface-raised-color: var(--surface-raised);
+$black-color: var(--text);
+$medium-grey-color: var(--text-muted);
+$light-grey-color: var(--border-strong);
+
+// White text/marks on a solid fill (brand, danger, warning, link buttons) -- stays white in
+// both themes. Surfaces use $surface-color, not this.
+$white-color: var(--on-fill);
+
+// Brand pink as a fill under white text -- identical in both themes. Where the pink itself has
+// to be read on the ground (text, outlines, focus rings), use $brand-text-color: it lightens in
+// dark mode, where #CC3366 falls to 3.4:1.
+$brand-pink-color: var(--brand);
+$brand-text-color: var(--brand-text);
 
 // Higher-contrast pink for small text/UI on top of $brand-pink-color's own pastel tint (e.g.
 // WeekStrip's selected-day fill) -- $brand-pink-color's default pastel reads too washed out
 // there.
-$brand-pink-color: #C36;
-$brand-pink-secondary: #B85578;
+$brand-pink-secondary: var(--brand-secondary);
+
+// Pressed/hover fill for brand buttons, and the pale pink behind MiniCalendar's selected day.
+$brand-hover-color: var(--brand-hover);
+$brand-tint-color: var(--brand-tint);
 
 // Field-box border and card-fill tones, matching the Ithaca Recovery Design System's
 // --color-grey-border / --color-grey-lightest tokens.
-$grey-border-color: #DDD;
-$grey-lightest-color: #F1F1F1;
+$grey-border-color: var(--border);
+$grey-lightest-color: var(--surface-raised);
 
 // Semantic — named for what they mean (success, danger, warning, link), not for any one
 // component, so any part of the UI needing that meaning reuses the same token.
-$success-bg-color: #D4F4D2;
-$success-text-color: #4CAF50;
+$success-bg-color: var(--success-bg);
+$success-text-color: var(--success-text);
 
 // Crimson, not pure red (#F00) -- pure red clashed against the brand's #CC3366 pink wherever
 // both appeared together (e.g. a destructive button in a pink-accented card). #C62828 still
 // reads unambiguously as destructive without fighting the palette.
-$danger-color: #C62828;
+$danger-color: var(--danger);
 
-// = color-mix(in srgb, $danger-color 8%, white), precomputed -- this file is plain SCSS vars,
-// not CSS custom properties, so color-mix() can't reference $danger-color at runtime here.
-$danger-bg-color: #FAEEEE;
+// Light value = color-mix(in srgb, #C62828 8%, white), precomputed.
+$danger-bg-color: var(--danger-bg);
 
-// = color-mix(in srgb, $danger-color 22%, white), precomputed -- a stronger tint than
+// Light value = color-mix(in srgb, #C62828 22%, white), precomputed -- a stronger tint than
 // $danger-bg-color, which is meant as a subtle pill/badge wash. At full-card scale (Toast's
 // filled background, not just an icon accent) that pale a mix reads as pink rather than red;
 // this saturation keeps the same hue but reads unambiguously as red.
-$danger-bg-strong-color: #F4D4D4;
-$link-color: #007BFF;
-$warning-bg-color: #FDF3DC;
-$warning-text-color: #B4790A;
+$danger-bg-strong-color: var(--danger-bg-strong);
+$link-color: var(--link);
+$warning-bg-color: var(--warning-bg);
+$warning-text-color: var(--warning-text);
 
 // Deliberately not $link-color (#007BFF) -- that's reserved for hyperlink text, and reusing it
 // here would make an info toast/banner read as a clickable link. #1976D2 is a distinct blue.
-$info-bg-color: #E8F1FB;
-$info-text-color: #1976D2;
+$info-bg-color: var(--info-bg);
+$info-text-color: var(--info-text);
 
 // Secondary text tones used by ViewMeeting's demoted metadata rows (contact info, room line,
 // recurrence line) -- distinct from $medium-grey-color (#848484, used for icon tints) and
 // $black-color (primary text).
-$navy-color: #3A3E49;
-$text-secondary-color: #666;
+$navy-color: var(--navy);
+$text-secondary-color: var(--text-secondary);
+
+// What a meeting block's room-color wash mixes toward (white in light, the surface in dark).
+$wash-base-color: var(--wash-base);
+
+// Pressed/hover fills under white text (same in both themes).
+$danger-hover-color: var(--danger-hover);
+$warning-hover-color: var(--warning-hover);
+$link-hover-color: var(--link-hover);
+$accent-blue-color: var(--accent-blue);
+
+// Badge and icon-circle washes.
+$danger-wash-color: var(--danger-wash);
+$brand-wash-color: var(--brand-wash);
+$warning-pill-bg-color: var(--warning-pill-bg);
+$warning-pill-text-color: var(--warning-pill-text);
+$purple-bg-color: var(--purple-bg);
+$purple-text-color: var(--purple-text);
+
+// Code surfaces -- dark in both themes. Docs code blocks use $code-*, the Backups runbook's
+// command box uses $terminal-*.
+$code-bg-color: var(--code-bg);
+$code-text-color: var(--code-text);
+$terminal-bg-color: var(--terminal-bg);
+$terminal-text-color: var(--terminal-text);
+
+// Modal backdrop.
+$overlay-color: var(--overlay);
+
+// Semantic colors as fills under white text (same in both themes). Use these for a button or
+// badge background; the non-fill versions are for text and outlines on the ground.
+$danger-fill-color: var(--danger-fill);
+$warning-fill-color: var(--warning-fill);
+$success-fill-color: var(--success-fill);
+$link-fill-color: var(--link-fill);
+$info-fill-color: var(--info-fill);
+
+// Text on a solid room color -- dark in both themes.
+$on-room-color: var(--on-room);
+
+// Popovers, menus, flyouts, bottom sheets.
+$surface-overlay-color: var(--surface-overlay);
+
+// Tinted page ground behind a centered card (login, access denied).
+$page-tint-color: var(--page-tint);
+
+// Logo PNG is black-on-transparent; dark mode inverts it.
+$logo-filter: var(--logo-filter);
+
+// Legacy one-off greys -- see theme.scss.
+$text-strong-color: var(--text-strong);
+$text-body-color: var(--text-body);
+$text-body-soft-color: var(--text-body-soft);
+$nav-text-color: var(--nav-text);
+$nav-text-soft-color: var(--nav-text-soft);
+$text-muted-cool-color: var(--text-muted-cool);
+$text-hint-color: var(--text-hint);
+$disabled-color: var(--disabled);
+$hover-fill-color: var(--hover-fill);
+$hover-fill-cool-color: var(--hover-fill-cool);
+$fill-subtle-color: var(--fill-subtle);
+$fill-input-color: var(--fill-input);
+$fill-faint-color: var(--fill-faint);
+$fill-faintest-color: var(--fill-faintest);
+$pressed-fill-color: var(--pressed-fill);
+$selected-fill-color: var(--selected-fill);
+$nav-hover-fill-color: var(--nav-hover-fill);
+$grid-line-color: var(--grid-line);
+$grid-line-strong-color: var(--grid-line-strong);
+$border-input-color: var(--border-input);
+$border-mid-color: var(--border-mid);
 
 // Corner radii -- named by scale (sm/md/lg), not by component, so any part of the UI can reuse
 // the same token instead of hardcoding a one-off border-radius value.
@@ -56,6 +146,8 @@ $radius-md: 8px;
 $radius-lg: 10px;
 
 // Room/Zoom-room/Remote color coding used by the calendar views and their filter chips.
+// Deliberately plain values, not theme tokens -- room color is meeting identity and is identical
+// in both themes.
 // Mirrors util/filterColors.ts's ROOM_COLORS/ZOOM_ROOM_COLOR/REMOTE_COLOR -- Sass vars aren't
 // importable into TS (same reason as the breakpoints above), so this pair has to be kept in
 // sync manually. util/filterColors.ts is the source of truth callers actually consume today
@@ -80,7 +172,7 @@ $breakpoint-desktop: 1024px;
 
 // Docs page sidebar/compact-bar dividers -- distinct from $grey-border-color (#DDD), which is
 // used for field-box borders and card fills.
-$border-divider-color: #E5E5E5;
+$border-divider-color: var(--divider);
 
 // Z-index scheme -- ground truth for all NEW z-indexing going forward. Existing z-index
 // values elsewhere in the codebase predate this scheme and are not guaranteed to conform;

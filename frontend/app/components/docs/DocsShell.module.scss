@@ -13,7 +13,7 @@
   // direct child of .page rather than nested under .sidebarNav or .compactBar -- CSS custom
   // properties cascade through the DOM tree regardless of position: fixed, so this one
   // declaration covers all three components.
-  --pf-outline-focus: #{$brand-pink-color};
+  --pf-outline-focus: #{$brand-text-color};
 }
 
 // Compact bar (under the navbar) + drawer/TOC visibility are driven entirely by JS-computed
@@ -36,7 +36,7 @@
   justify-content: center;
   flex-shrink: 0; // stays fixed size as .compactBarChrome/.compactSearchWrapper animate between them
   border: 1px solid $light-grey-color;
-  background: $white-color;
+  background: $surface-color;
   color: $black-color;
   border-radius: $radius-md;
   padding: 6px;
@@ -134,7 +134,7 @@
     height: auto; // top:0/bottom:0 on a fixed element already gives the full viewport height; overrides the base rule's height:100% (of .columns), which doesn't apply once this is out of flow
     width: 78%;
     max-width: 300px;
-    background: $white-color;
+    background: $surface-color;
     border-right: 2px solid $light-grey-color;
     box-shadow: 8px 0 16px rgb(0 0 0 / 8%);
     z-index: $z-index-modal;
@@ -168,7 +168,7 @@
 
 .sidebarClose {
   border: 1px solid $light-grey-color;
-  background: $white-color;
+  background: $surface-color;
   color: $black-color;
   border-radius: $radius-md;
   padding: 5px 8px;
@@ -218,7 +218,7 @@
   position: fixed;
   inset: var(--docs-compact-bar-bottom, 0) 0 0; // top / left+right / bottom
   overflow-y: auto;
-  background: $white-color;
+  background: $surface-color;
   padding: 16px;
   z-index: $z-index-modal;
   opacity: 1;
@@ -313,7 +313,7 @@
 
   &.isActive {
     background: $grey-lightest-color;
-    color: $brand-pink-color;
+    color: $brand-text-color;
     font-weight: 600;
   }
 }
@@ -326,7 +326,7 @@
 @media print {
   .page {
     height: auto;
-    background: #fff;
+    background: $surface-color;
   }
 
   // !important beats the .isCompact/.isOpen state variants' higher-specificity display flips,

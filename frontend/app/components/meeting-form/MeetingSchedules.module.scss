@@ -40,8 +40,8 @@
   padding: 8px 12px;
   border: 1px dashed $grey-border-color;
   border-radius: $radius-lg;
-  background: #fff;
-  color: $brand-pink-color;
+  background: $surface-color;
+  color: $brand-text-color;
   font-family: "Source Sans Pro", sans-serif;
   font-size: 13px;
   font-weight: 600;
@@ -85,7 +85,7 @@
   padding: 16px;
   border: 1px solid $grey-border-color;
   border-radius: $radius-md;
-  background: #fff;
+  background: $surface-color;
 }
 
 .cardHeader {
@@ -133,7 +133,7 @@
   border: none;
   border-radius: $radius-md;
   background-color: $brand-pink-color;
-  color: #fff;
+  color: $white-color;
   font-family: "Source Sans Pro", sans-serif;
   font-size: 13px;
   font-weight: 600;

@@ -7,7 +7,7 @@
   flex-direction: column;
   font-family: "Source Sans Pro", sans-serif;
   text-align: left;
-  color: #000;
+  color: $text-strong-color;
 
   .modeIcon {
     margin-right: 3px;
@@ -36,7 +36,7 @@
     // absolutely-positioned, overflow-clipped grid wrappers, so an outward outline would be
     // partially clipped on tightly-packed cards.
     &:focus-visible {
-      outline: 2px solid $brand-pink-color;
+      outline: 2px solid $brand-text-color;
       outline-offset: -2px;
     }
 
@@ -65,6 +65,9 @@
     padding: 6px;
     margin: 0;
     border-radius: 4px;
+
+    // Solid room color in both themes, so its label stays dark in both too.
+    color: $on-room-color;
 
     .title {
       font-size: 16px;
@@ -218,13 +221,13 @@
     display: inline-flex;
     align-items: center;
     gap: 3px;
-    background: #fff;
-    border: 1px solid #999;
+    background: $surface-color;
+    border: 1px solid $border-mid-color;
     padding: 1px 10px;
     border-radius: 999px;
     font-size: 10px;
     font-weight: 400;
-    color: #3A3E49;
+    color: $navy-color;
     white-space: nowrap;
     z-index: 1;
   }

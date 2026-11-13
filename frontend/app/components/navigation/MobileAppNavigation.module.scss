@@ -11,7 +11,7 @@
     align-items: center;
     justify-content: space-between;
     padding: 0 8px;
-    background-color: #fff;
+    background-color: $bg-color;
     border-bottom: 1px solid $grey-border-color;
     transition: transform 0.25s ease;
 
@@ -44,7 +44,7 @@
 // the icon itself) is enough to tint it -- matches how IconButton already lets a caller-
 // supplied className override its own styling.
 .filterActive {
-    color: $brand-pink-color !important;
+    color: $brand-text-color !important;
 }
 
 .filterBadge {
@@ -56,7 +56,7 @@
     padding: 0 3px;
     border-radius: 8px;
     background-color: $brand-pink-color;
-    color: #fff;
+    color: $white-color;
     font-size: 10px;
     font-weight: 700;
     line-height: 16px;
@@ -142,7 +142,7 @@
     padding: 0 12px;
     border: 1px solid $grey-border-color;
     border-radius: 16px;
-    background-color: #fff;
+    background-color: $surface-color;
     color: $black-color;
     font: inherit;
     font-size: 13px;
@@ -180,7 +180,7 @@
 // against the pastel-pink tint) on a pastel-pink tint -- rgb(240 194 209) is
 // toPastelColor($brand-pink-color) from util/color.ts, computed once and hardcoded here
 // (same manual-sync convention as WeekStrip.module.scss/MiniCalendar.module.scss's matching
-// rule -- re-run toPastelColor('#CC3366') if $brand-pink-color ever changes).
+// rule -- re-run toPastelColor() on the brand pink if $brand-pink-color ever changes).
 .profileButtonSignedOut {
     background-color: $brand-pink-color;
     border-color: transparent;

@@ -13,7 +13,7 @@
   font-family: "Source Sans Pro", sans-serif;
   text-align: left;
   color: $black-color;
-  background: $white-color;
+  background: $surface-overlay-color;
   border: 1px solid $grey-border-color;
   border-radius: 8px;
   box-shadow: 0 4px 12px rgb(0 0 0 / 15%);
@@ -98,7 +98,7 @@
         position: absolute;
         right: 0;
         top: 24px;
-        background: white;
+        background: $surface-overlay-color;
         box-shadow: 0 4px 8px rgb(0 0 0 / 10%);
         border-radius: 4px;
         overflow: hidden;
@@ -117,7 +117,7 @@
           white-space: nowrap;
 
           &:hover {
-            background-color: #f8f8f8;
+            background-color: $fill-faintest-color;
           }
         }
 

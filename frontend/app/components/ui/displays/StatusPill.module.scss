@@ -15,8 +15,8 @@
 }
 
 .warning {
-  background: #FDECC8;
-  color: #B8860B;
+  background: $warning-pill-bg-color;
+  color: $warning-pill-text-color;
 }
 
 .neutral {
@@ -25,6 +25,6 @@
 }
 
 .error {
-  background: #FBE1E7;
-  color: $brand-pink-color;
+  background: $brand-wash-color;
+  color: $brand-text-color;
 }

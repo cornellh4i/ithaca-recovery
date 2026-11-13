@@ -1,0 +1,247 @@
+// The only file that knows both palettes. Every color in Variables.module.scss is an alias for
+// one of these custom properties, so the ~700 existing $-variable references across the SCSS
+// modules switch theme at runtime without being touched -- Sass variables alone compile away at
+// build time and can't.
+
+// Three viewer states (see util/common/theme.ts): Light/Dark stamp data-theme on <html>; System
+// leaves it off and the prefers-color-scheme block decides. Every token MUST have a bare :root
+// value below -- one defined only under [data-theme] never applies to a System-mode viewer.
+
+// Tokens that are identical in both themes (brand fills, white-on-fill text) live only in the
+// bare :root block; the dark mixin overrides just the ones that change.
+
+:root {
+  color-scheme: light;
+
+  // Grounds
+  --bg: #FFF;
+  --surface: #FFF;
+  --surface-raised: #F1F1F1;
+
+  // Text
+  --text: #1E1E1E;
+  --text-secondary: #666;
+  --text-muted: #848484;
+  --navy: #3A3E49;
+
+  // Lines
+  --border: #DDD;
+  --border-strong: #CECECE;
+  --divider: #E5E5E5;
+
+  // Brand -- #CC3366 is a fill under white text in both themes; --brand-text is the pink that
+  // has to be read on the ground (#CC3366 is only 3.4:1 on the dark ground).
+  --brand: #C36;
+  --brand-text: #C36;
+  --brand-secondary: #B85578;
+  --brand-hover: rgb(67.2% 16.8% 33.6%); // = color.adjust(#C36, $lightness: -8%), exactly
+  --brand-tint: rgb(94% 76% 82%); // = color.adjust(#C36, $lightness: 35%), exactly
+  --on-fill: #FFF;
+  --link: #007BFF;
+
+  // Semantic: text color + wash, same recipe for all four.
+  --success-text: #4CAF50;
+  --success-bg: #D4F4D2;
+  --danger: #C62828;
+  --danger-bg: #FAEEEE;
+  --danger-bg-strong: #F4D4D4;
+  --warning-text: #B4790A;
+  --warning-bg: #FDF3DC;
+  --info-text: #1976D2;
+  --info-bg: #E8F1FB;
+
+  // What a meeting block's room-color wash mixes toward.
+  --wash-base: #FFF;
+
+  // Pressed/hover fills under white text -- identical in both themes.
+  --danger-hover: #A32020;
+  --warning-hover: #96620A;
+  --link-hover: #005FCC;
+  --accent-blue: #4285F4; // radio/checkbox accent in the recurring-meeting dialogs
+
+  // Badge and icon-circle washes.
+  --danger-wash: #FEE4E2;
+  --brand-wash: #FBE1E7;
+  --warning-pill-bg: #FDECC8;
+  --warning-pill-text: #B8860B;
+  --purple-bg: #EFE6FB;
+  --purple-text: #6A3FA0;
+
+  // Code surfaces stay dark in both themes; their light-on-dark text never changes.
+  --code-bg: #1E1E1E;
+  --code-text: #F1F1F1;
+  --terminal-bg: #14161B;
+  --terminal-text: #F2F2F2;
+
+  // Modal backdrop -- a half-black scrim over an already-dark page reads as nothing.
+  --overlay: rgb(0 0 0 / 50%);
+
+  // Semantic colors as fills under white text -- identical in both themes, like --brand. The
+  // text/outline versions above (--danger, --warning-text, ...) lighten in dark, which would
+  // drop white-on-fill contrast below 3:1.
+  --danger-fill: #C62828;
+  --warning-fill: #B4790A;
+  --success-fill: #4CAF50;
+  --link-fill: #007BFF;
+  --info-fill: #1976D2;
+
+  // Room-colored cards. Text on a solid room color (the Day-view room-label column) stays dark
+  // in both themes, like the room color itself; tag pills inside a card are the solid room
+  // color in light and a stronger mix toward --wash-base in dark (see util/common/color.ts).
+  --on-room: #000;
+  --chip-strength: 100%;
+
+  // Popovers, menus, flyouts, sheets -- one step above --surface in dark, where a lighter
+  // surface (not a bigger shadow) is what reads as elevation.
+  --surface-overlay: #FFF;
+
+  // The logo PNG is black on transparent; dark mode inverts it to soft white.
+  --logo-filter: none;
+
+  // Tinted page ground behind a centered card (login, access denied).
+  --page-tint: #F5F5F5;
+
+  // Legacy one-off greys, kept as their own tokens so light mode stays pixel-identical
+  // (GitHub #464, option A). Candidates to fold into the core tokens above later.
+  --text-strong: #000;
+  --text-body: #444;
+  --text-body-soft: #555;
+  --nav-text: #111827;
+  --nav-text-soft: #4B5563;
+  --text-muted-cool: #6B7280;
+  --text-hint: #888;
+  --disabled: #B0B0B0;
+  --hover-fill: #F5F5F5;
+  --hover-fill-cool: #F3F4F6;
+  --fill-subtle: #EEE;
+  --fill-input: #F0F0F0;
+  --fill-faint: #F7F7F7;
+  --fill-faintest: #F8F8F8;
+  --pressed-fill: #BFC2C8;
+  --selected-fill: #D4DAE1;
+  --nav-hover-fill: #E9D8A6;
+  --grid-line: #E5E7EB;
+  --grid-line-strong: #D1D5DB;
+  --border-input: #CCC;
+  --border-mid: #999;
+}
+
+@mixin dark-palette {
+  color-scheme: dark;
+
+  // Cool near-black from the $navy-color family, never #000.
+  --bg: #17181C;
+  --surface: #1F2127;
+  --surface-raised: #262932;
+
+  // Soft white -- full #FFF glares at body sizes.
+  --text: #E8E9ED;
+  --text-secondary: #A5A8B0;
+  --text-muted: #7C808A;
+  --navy: #A5A8B0;
+  --border: #34373F;
+  --border-strong: #3E424B;
+  --divider: #2C2F37;
+  --brand-text: #E05C8A;
+
+  // Same 30% room-wash recipe, pointed at the dark surface.
+  --brand-tint: color-mix(in srgb, #C36 30%, #1F2127);
+  --link: #5CA8FF;
+
+  // Deep same-hue washes; text lightens one step.
+  --success-text: #6FCF73;
+  --success-bg: #1E2B1E;
+  --danger: #EF6B6B;
+  --danger-bg: #2B1B1B;
+  --danger-bg-strong: #3A2020;
+  --warning-text: #E0A93E;
+  --warning-bg: #2E2717;
+  --info-text: #64A9E8;
+  --info-bg: #1A2634;
+  --wash-base: #1F2127;
+
+  // Same-hue deep tints, matching the semantic washes above.
+  --danger-wash: #3A2020;
+  --brand-wash: color-mix(in srgb, #C36 22%, #1F2127);
+  --warning-pill-bg: #2E2717;
+  --warning-pill-text: #E0A93E;
+  --purple-bg: #2A2238;
+  --purple-text: #C3A6EE;
+
+  // A step below the ground so code still reads as its own panel.
+  --code-bg: #101114;
+  --terminal-bg: #101114;
+  --overlay: rgb(0 0 0 / 65%);
+  --chip-strength: 42%;
+  --surface-overlay: #262932;
+  --logo-filter: invert(91%);
+  --page-tint: #17181C;
+
+  // Legacy one-off greys (see the bare :root block).
+  --text-strong: #F2F3F5;
+  --text-body: #C5C7CD;
+  --text-body-soft: #B6B8BF;
+  --nav-text: #E8E9ED;
+  --nav-text-soft: #B8BBC2;
+  --text-muted-cool: #8E929B;
+  --text-hint: #7C808A;
+  --disabled: #565A63;
+  --hover-fill: #262932;
+  --hover-fill-cool: #262932;
+  --fill-subtle: #2A2D35;
+  --fill-input: #282B33;
+  --fill-faint: #24272E;
+  --fill-faintest: #23262D;
+  --pressed-fill: #3A3D46;
+  --selected-fill: #333944;
+  --nav-hover-fill: #3A3424;
+  --grid-line: #2C2F37;
+  --grid-line-strong: #3E424B;
+  --border-input: #3E424B;
+  --border-mid: #5A5E68;
+
+  // Pagefind's modal mounts outside DocsShell's .page, which sets this for the inline trigger.
+  --pf-outline-focus: var(--brand-text);
+
+  // Pagefind's /docs search UI (its own stylesheet declares these on bare :root; the dark
+  // selectors that include this mixin out-specify it, so light mode keeps Pagefind's defaults).
+  // Its icons are masks painted with --pf-text-muted, so they follow too.
+  --pf-text: var(--text);
+  --pf-text-secondary: var(--text-secondary);
+  --pf-text-muted: var(--text-muted);
+  --pf-background: var(--surface);
+  --pf-border: var(--border);
+  --pf-border-focus: var(--border-strong);
+  --pf-skeleton: var(--surface-raised);
+  --pf-skeleton-shine: var(--border);
+  --pf-hover: var(--surface-raised);
+  --pf-mark: var(--text);
+  --pf-scroll-shadow: rgb(255 255 255 / 10%);
+  --pf-shadow-sm: 0 2px 8px rgb(0 0 0 / 30%);
+  --pf-shadow-md: 0 4px 12px rgb(0 0 0 / 40%);
+  --pf-shadow-lg: 0 16px 48px rgb(0 0 0 / 50%);
+  --pf-error-bg: var(--danger-bg);
+  --pf-error-border: var(--danger-bg-strong);
+  --pf-error-text: var(--danger);
+  --pf-error-text-secondary: var(--danger);
+  --pf-modal-backdrop: var(--overlay);
+}
+
+// Screen only: printing always uses the light palette, whatever the viewer's theme.
+@media screen {
+  :root[data-theme="dark"] {
+    @include dark-palette;
+  }
+}
+
+@media screen and (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    @include dark-palette;
+  }
+}
+
+// Paints the page ground. #FFF in light is the browser's own canvas color, so this is a no-op
+// there; in dark it keeps overscroll and any uncovered area from flashing white.
+:root {
+  background-color: var(--bg);
+}

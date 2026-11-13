@@ -246,8 +246,8 @@ const RecurringMeetingForm: React.FC<RecurringMeetingFormProps> = ({
           label={`This meeting is recurring`}
           checked={isRecurring}
           onChange={handleRecurringChange}
-          color="#848484"
-          uncheckedBg="#fff"
+          color="var(--text-muted)"
+          uncheckedBg="var(--surface)"
           compact={layout === "sidebar"}
         />
       </div>

@@ -25,7 +25,7 @@
     margin-bottom: 10px;
     border-radius: 4px;
 
-    // border: 1px solid #ccc;
+    // border: 1px solid $border-input-color;
 }
 
 .meetingTypeContainer {
@@ -37,14 +37,14 @@
 .meetingTypeButton {
     padding: 2% 5%;
     border: none;
-    background-color: #fff;
+    background-color: $surface-color;
     cursor: pointer;
     border-radius: 5px;
     transition: background-color 0.3s ease;
 }
 
 .meetingTypeButton.active {
-    background-color: #d4dae1;
+    background-color: $selected-fill-color;
     color: rgb(0 0 0);
     font-weight: bold;
 }
@@ -53,7 +53,7 @@
     width: 100%;
     padding: 8px;
     margin-bottom: 10px;
-    border: 1px solid #ccc;
+    border: 1px solid $border-input-color;
     border-radius: 5px;
 }
 
@@ -63,11 +63,11 @@
     top: calc(100% + 5px);
     left: 30px;
     width: calc(100% - 30px);
-    background-color: white;
+    background-color: $surface-overlay-color;
 
     // Same bordered field-box language as MeetingForm's own fields (TextField, DatePicker,
     // .DropdownButton above all use $grey-border-color + 6px radius) instead of a hardcoded
-    // #ccc/4px that didn't match anything else in the form.
+    // $border-input-color/4px that didn't match anything else in the form.
     border: 1px solid $grey-border-color;
     border-radius: 6px;
     box-shadow: 0 4px 8px rgb(0 0 0 / 20%);
@@ -104,7 +104,7 @@
     height: 42px;
     width: 100%; /* Make button full width */
     border: 1px solid $grey-border-color; /* Add a border */
-    background-color: #fff;
+    background-color: $surface-color;
     cursor: pointer;
     border-radius: 6px; /* Softer, slightly rounded corners */
     transition: background-color 0.15s ease, border-color 0.15s ease; /* Transition for border color */
@@ -153,7 +153,7 @@
 
 /* Add active class for when the dropdown is clicked */
 .activeDropdown {
-    border-color: $brand-pink-color; /* Pink border when dropdown is active */
+    border-color: $brand-text-color; /* Pink border when dropdown is active */
 }
 
 // Keyboard focus keeps the same brand-pink treatment the open state uses -- otherwise closing
@@ -164,8 +164,8 @@
 }
 
 .DropdownButton:focus-visible {
-    border-color: $brand-pink-color;
-    box-shadow: inset 0 0 0 1px $brand-pink-color;
+    border-color: $brand-text-color;
+    box-shadow: inset 0 0 0 1px $brand-text-color;
 }
 
 .locationList {
@@ -173,8 +173,8 @@
     top: 100%;
     left: 0;
     width: 100%;
-    background-color: white;
-    border: 1px solid #ccc;
+    background-color: $surface-overlay-color;
+    border: 1px solid $border-input-color;
     box-shadow: 0 2px 5px rgb(0 0 0 / 10%);
     z-index: 1;
     border-radius: 4px; /* Softer corners for the dropdown */
@@ -186,7 +186,7 @@
 .dropdownItem {
     // Matches MeetingForm's field typography (TextField/DatePicker/.DropdownButton above
     // all use this same family + $black-color) instead of falling back to the browser's
-    // default UI font and a bespoke #333.
+    // default UI font and a bespoke dark grey.
     font-family: 'Source Sans Pro', sans-serif;
     font-size: 15px;
     color: $black-color;
@@ -216,7 +216,7 @@
 }
 
 .dropdownItem:focus-visible {
-    box-shadow: inset 0 0 0 2px $brand-pink-color;
+    box-shadow: inset 0 0 0 2px $brand-text-color;
 }
 
 .dropdownItem:hover {

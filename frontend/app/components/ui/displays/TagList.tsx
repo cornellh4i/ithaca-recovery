@@ -3,6 +3,7 @@ import styles from './TagList.module.scss';
 import { sortTags } from '../../../../util/filters/tagOrder';
 import { MODE_ICON_NAME } from '../../../../util/rooms/modeIcons';
 import Icon from './Icon';
+import { roomChip } from '../../../../util/common/color';
 
 interface TagListProps {
   tags: string[];
@@ -125,13 +126,13 @@ const TagList: React.FC<TagListProps> = ({ tags, color, gap = 3, containerStyle,
     <>
       <div ref={containerRef} className={styles.tags} style={{ gap, ...containerStyle }}>
         {sorted.slice(0, visibleCount).map(tag => (
-          <span key={tag} className={styles.tag} style={{ backgroundColor: color, ...tagStyle }}>
+          <span key={tag} className={styles.tag} style={{ backgroundColor: roomChip(color), ...tagStyle }}>
             {MODE_ICON_NAME[tag] && <Icon name={MODE_ICON_NAME[tag]} className={styles.tagIcon} />}
             {tag}
           </span>
         ))}
         {overflowCount > 0 && (
-          <span className={styles.overflowTag} style={{ backgroundColor: color, ...tagStyle }}>
+          <span className={styles.overflowTag} style={{ backgroundColor: roomChip(color), ...tagStyle }}>
             +{overflowCount}
           </span>
         )}
