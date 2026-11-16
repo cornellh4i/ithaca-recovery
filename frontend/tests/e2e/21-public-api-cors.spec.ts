@@ -7,6 +7,6 @@ test("public meeting reads allow cross-origin requests from ICR's website", asyn
 });
 
 test("other API routes stay same-origin only", async ({ request }) => {
-  const response = await request.get("/api/auth/status");
+  const response = await request.get("/api/retrieve/meeting-export-settings");
   expect(response.headers()["access-control-allow-origin"]).toBeUndefined();
 });

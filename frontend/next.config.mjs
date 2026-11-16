@@ -41,9 +41,8 @@ const nextConfig = {
         source,
         headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }],
       })),
-      // Public meeting reads, open to ICR's website. Safe as a wildcard: without
-      // Allow-Credentials a cross-origin request carries no session, so it only ever gets the
-      // public subset.
+      // Public meeting reads, open to ICR's website. Safe as a wildcard: browsers never expose a
+      // credentialed response under "*", so other origins only ever read the public subset.
       {
         source: "/api/retrieve/meeting/:path*",
         headers: [{ key: "Access-Control-Allow-Origin", value: "*" }],

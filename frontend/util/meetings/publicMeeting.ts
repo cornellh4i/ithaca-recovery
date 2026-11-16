@@ -3,8 +3,6 @@ import { IMeeting } from "../../types/models";
 // Fields safe to serve from unauthenticated or USER-role meeting endpoints (public calendar,
 // signage kiosk, ICR's website). Deliberately an allowlist, a new sensitive column added to
 // the Meeting model (e.g. another contact/credential field) is excluded by default here.
-// The attendee-facing Zoom fields and description are already public through the Google
-// Calendar events (buildEventBody).
 //
 // googleSyncStatus/zoomSyncStatus are deliberately NOT included -- ViewMeeting's status band
 // (sync-error/conflict messaging) is admin-only.
@@ -40,7 +38,7 @@ export const toPublicMeeting = (meeting: PublicMeeting): PublicMeeting => ({
   zoomLink: meeting.zoomLink ?? null,
   zid: meeting.zid ?? null,
   // Same rule as buildEventBody -- a passcode with no link or ID to join is a dangling secret.
-  zoomPasscode: meeting.zoomLink || meeting.zid ? meeting.zoomPasscode ?? null : null,
+  zoomPasscode: meeting.zoomLink?.trim() || meeting.zid ? meeting.zoomPasscode ?? null : null,
   zoomInvitation: meeting.zoomInvitation ?? null,
   isRecurring: meeting.isRecurring,
   recurrencePattern: meeting.recurrencePattern,

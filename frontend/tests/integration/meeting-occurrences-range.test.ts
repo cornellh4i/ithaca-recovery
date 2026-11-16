@@ -106,6 +106,7 @@ test("expanded recurring occurrences carry the attendee-facing Zoom details", as
     { daysOfWeek: ALL_DAYS },
   );
 
-  const results = await getMeetingsForRange(addDaysToETDateString(today, 1), addDaysToETDateString(today, 1));
-  expect(results.find(r => r.mid === meeting.mid)).toMatchObject(zoomFields);
+  const own = (await getMeetingsForRange(today, addDaysToETDateString(today, 1))).filter(r => r.mid === meeting.mid);
+  expect(own).toHaveLength(2);
+  own.forEach(occurrence => expect(occurrence).toMatchObject(zoomFields));
 });

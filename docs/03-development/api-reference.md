@@ -62,7 +62,7 @@ Retrieve all meetings for a specific day, including expanded recurring instances
 |---|---|---|
 | `startDate` | ISO 8601 or `YYYY-MM-DD` | Target day |
 
-**Response:** `200 OK` — `IMeeting[]` with times adjusted to the requested day
+**Response:** `200 OK` — `PublicMeeting[]` with times adjusted to the requested day
 
 ---
 
@@ -73,7 +73,7 @@ Retrieve all meetings for the 7-day week beginning on the Sunday of the provided
 |---|---|---|
 | `startDate` | ISO 8601 | Any date within the target week |
 
-**Response:** `200 OK` — `IMeeting[]`
+**Response:** `200 OK` — `PublicMeeting[]`
 
 ---
 
@@ -85,7 +85,7 @@ Retrieve all meetings for an arbitrary date range (used by mobile's prev/current
 | `startDate` | ISO 8601 | Range start (defaults to now if omitted) |
 | `endDate` | ISO 8601 | Range end (defaults to `startDate` if omitted) |
 
-**Response:** `200 OK` — `IMeeting[]`
+**Response:** `200 OK` — `PublicMeeting[]`
 
 ---
 
