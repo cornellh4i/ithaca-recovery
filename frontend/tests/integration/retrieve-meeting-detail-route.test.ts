@@ -16,11 +16,17 @@ afterAll(async () => {
   await disconnectTestPrismaClient();
 });
 
-const ADMIN_ONLY_FIELDS = ["creator", "email", "googleSyncStatus", "zoomSyncError", "zoomPasscode", "zoomInvitation"];
+const ADMIN_ONLY_FIELDS = ["creator", "email", "googleSyncStatus", "zoomSyncError", "zoomHost", "zoomCustomPasscode"];
 const PUBLIC_MEETING_FIELDS = [
-  "mid", "title", "startDateTime", "endDateTime", "calType",
-  "modeType", "room", "zoomRoom", "isRecurring", "recurrencePattern",
+  "mid", "title", "description", "startDateTime", "endDateTime", "calType", "modeType", "room",
+  "zoomRoom", "zoomLink", "zid", "zoomPasscode", "zoomInvitation", "isRecurring", "recurrencePattern",
 ].sort();
+const ZOOM_FIELDS = {
+  zoomLink: "https://zoom.us/j/123456789",
+  zid: "123456789",
+  zoomPasscode: "serenity",
+  zoomInvitation: "Join Zoom Meeting\nhttps://zoom.us/j/123456789",
+};
 
 async function getMeetingDetail(mid: string) {
   const request = new NextRequest(`http://localhost/api/retrieve/meeting/${mid}`);
@@ -46,6 +52,22 @@ test("a USER-role session gets the same public-safe subset as an unauthenticated
   expect(body.mid).toBe(meeting.mid);
   expect(Object.keys(body).sort()).toEqual(PUBLIC_MEETING_FIELDS);
   ADMIN_ONLY_FIELDS.forEach((field) => expect(body).not.toHaveProperty(field));
+});
+
+test("a public caller gets the attendee-facing description and Zoom details", async () => {
+  mockedGetAuth.mockResolvedValue(null);
+  const meeting = await seedMeeting({ modeType: "Zoom Only", description: "Doors open at 6.", ...ZOOM_FIELDS });
+
+  const body = await getMeetingDetail(meeting.mid);
+  expect(body).toMatchObject({ description: "Doors open at 6.", ...ZOOM_FIELDS });
+});
+
+test("a public caller never gets a passcode with no link or meeting ID to use it on", async () => {
+  mockedGetAuth.mockResolvedValue(null);
+  const meeting = await seedMeeting({ zoomPasscode: "orphaned" });
+
+  const body = await getMeetingDetail(meeting.mid);
+  expect(body.zoomPasscode).toBeNull();
 });
 
 test("an ADMIN-role session gets the full record", async () => {

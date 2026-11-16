@@ -97,3 +97,16 @@ test("catches a non-anchor overnight occurrence spilling in from the day before 
   expect(own.length).toBe(1);
   expect(own[0].date).toBe(rangeStart);
 });
+
+test("expanded recurring occurrences carry the attendee-facing Zoom details", async () => {
+  const today = formatETDateString(new Date());
+  const zoomFields = { zoomLink: "https://zoom.us/j/987654321", zid: "987654321", zoomPasscode: "unity", zoomInvitation: "Join Zoom Meeting" };
+  const { meeting } = await seedRecurringMeeting(
+    { modeType: "Zoom Only", startDateTime: new Date(convertETToUTC(`${today}T18:00:00`)), endDateTime: new Date(convertETToUTC(`${today}T19:00:00`)), ...zoomFields },
+    { daysOfWeek: ALL_DAYS },
+  );
+
+  const own = (await getMeetingsForRange(today, addDaysToETDateString(today, 1))).filter(r => r.mid === meeting.mid);
+  expect(own).toHaveLength(2);
+  own.forEach(occurrence => expect(occurrence).toMatchObject(zoomFields));
+});
