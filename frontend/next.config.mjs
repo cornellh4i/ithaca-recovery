@@ -36,10 +36,19 @@ const nextConfig = {
   // (or never, if hydration trips) -- a header is crawler-equivalent and unconditional. The
   // user guide stays indexable.
   async headers() {
-    return ["/docs/02-handoff/:path*", "/docs/03-development/:path*"].map((source) => ({
-      source,
-      headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }],
-    }));
+    return [
+      ...["/docs/02-handoff/:path*", "/docs/03-development/:path*"].map((source) => ({
+        source,
+        headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }],
+      })),
+      // Public meeting reads, open to ICR's website. Safe as a wildcard: without
+      // Allow-Credentials a cross-origin request carries no session, so it only ever gets the
+      // public subset.
+      {
+        source: "/api/retrieve/meeting/:path*",
+        headers: [{ key: "Access-Control-Allow-Origin", value: "*" }],
+      },
+    ];
   },
   async rewrites() {
     return [
