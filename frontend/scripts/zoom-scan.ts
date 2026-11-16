@@ -9,8 +9,10 @@
 //    PATCHed endless (end_times: 0) type-8 series to a rolling window (~110 weekly / 60
 //    monthly occurrences from the PATCH date), so a series edited never again would run out of
 //    listed occurrences after ~2 years; a monthly re-PATCH keeps every horizon perpetually
-//    fresh with no per-meeting bookkeeping (GitHub #508). Unmanaged meetings are never
-//    PATCHed -- drift detection is the only thing the scan does to them.
+//    fresh with no per-meeting bookkeeping (GitHub #508).
+//
+// Unmanaged meetings (zoomManaged: false, e.g. Noon Brown Baggers) live on Zoom accounts the
+// app's credentials can't read, so the scan skips them entirely rather than failing on them.
 //
 // Uses the app's own zoom service (single source of truth for the meeting body, pinned
 // zoomTopic handling included). Run via:
@@ -19,6 +21,7 @@
 import { PrismaClient } from "@prisma/client";
 import { getZoomMeetingCredentials, updateZoomMeeting } from "../services/zoom";
 import { getZoomScheduleFamily } from "../util/meetings/linkedSchedules";
+import { hasZoomCredentialDrift } from "../util/meetings/zoomDrift";
 import type { IMeeting } from "../types/models";
 
 const databaseUrl = process.env.DATABASE_URL_UNPOOLED ?? process.env.DATABASE_URL;
@@ -46,6 +49,10 @@ async function main(): Promise<void> {
   let driftSet = 0, driftCleared = 0, extended = 0, failures = 0;
 
   for (const [zid, group] of byZid) {
+    if (group.every((m) => !m.zoomManaged)) {
+      console.log(`skip ${zid} (${group.map((m) => m.title).join(" + ")}): externally managed`);
+      continue;
+    }
     const live = await getZoomMeetingCredentials(zid);
     if (!live?.joinUrl) {
       // Unreachable/deleted on Zoom's side is a sync problem, not drift -- leave flags as-is
@@ -56,9 +63,7 @@ async function main(): Promise<void> {
     }
 
     for (const meeting of group) {
-      const drift =
-        live.joinUrl !== meeting.zoomLink ||
-        live.passcode !== (meeting.zoomPasscode || null);
+      const drift = hasZoomCredentialDrift({ joinUrl: live.joinUrl, passcode: live.passcode }, meeting);
       if (drift !== (meeting.zoomDriftDetectedAt !== null)) {
         await prisma.meeting.update({
           where: { mid: meeting.mid },

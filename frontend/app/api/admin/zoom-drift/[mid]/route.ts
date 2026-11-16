@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireRole } from "../../../../../services/auth";
 import { getZoomMeetingCredentials } from "../../../../../services/zoom";
 import { prisma } from "../../../../../lib/prisma";
+import { hasZoomCredentialDrift } from "../../../../../util/meetings/zoomDrift";
 
 // Admin-only: does this meeting's live Zoom passcode/join URL differ from the stored copy?
 // Backs ViewMeeting's drift notice on the sync-status band. One Zoom GET per request is fine
@@ -33,11 +34,7 @@ export const GET = async (request: NextRequest) => {
     return NextResponse.json({ drift: false });
   }
 
-  // live.passcode is already ""-normalized to null (getZoomMeetingCredentials); the stored
-  // side gets the same treatment so a null-vs-"" pairing never reads as permanent drift.
-  const drift =
-    live.joinUrl !== meeting.zoomLink ||
-    live.passcode !== (meeting.zoomPasscode || null);
+  const drift = hasZoomCredentialDrift({ joinUrl: live.joinUrl, passcode: live.passcode }, meeting);
 
   // Keep the persisted flag (the calendar badge's source) in step with what this fresh check
   // just learned -- an admin opening the meeting is a better signal than waiting for the next

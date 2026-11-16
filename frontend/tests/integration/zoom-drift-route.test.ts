@@ -79,6 +79,19 @@ test("a join-URL-only change is drift even when the passcode is unchanged", asyn
   expect(await response.json()).toEqual({ drift: true });
 });
 
+test("a domain-only join-URL change is not drift and clears a persisted flag", async () => {
+  const meeting = await seedMeeting({
+    zid: "70000000910", zoomLink: "https://us02web.zoom.us/j/70000000910?pwd=x", zoomPasscode: "x",
+    zoomDriftDetectedAt: new Date(),
+  });
+  mockedGetCredentials.mockResolvedValue({ passcode: "x", joinUrl: "https://518icr.zoom.us/j/70000000910?pwd=x" });
+
+  const response = await GET(driftRequest(meeting.mid));
+  expect(await response.json()).toEqual({ drift: false });
+  const after = await getTestPrismaClient().meeting.findUnique({ where: { mid: meeting.mid } });
+  expect(after?.zoomDriftDetectedAt).toBeNull();
+});
+
 test("a null stored passcode against Zoom's normalized passcode-less value is not drift", async () => {
   const meeting = await seedMeeting({
     zid: "70000000908", zoomLink: "http://zoom.test/j/70000000908", zoomPasscode: "",
