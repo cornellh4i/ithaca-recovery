@@ -4,7 +4,10 @@ import { PropsWithChildren } from "react";
 import AppNavigation from "./components/navigation/AppNavigation";
 import GoogleReconnectBanner from "./components/auth/GoogleReconnectBanner";
 import { Inter } from "next/font/google";
+import "../styles/theme.scss";
 import styles from "../styles/MainLayout.module.scss";
+import ThemeScript from "./components/theme/ThemeScript";
+import ThemeSync from "./components/theme/ThemeSync";
 import type { Session } from "next-auth";
 import { SessionProvider } from "next-auth/react";
 import { SidebarProvider } from "./context/SidebarContext";
@@ -53,7 +56,9 @@ export default function ClientLayout({
 }: PropsWithChildren<ClientLayoutProps>) {
     return (
         <html lang="en" suppressHydrationWarning>
-            <head></head>
+            <head>
+                <ThemeScript />
+            </head>
             <body className={inter.className} suppressHydrationWarning>
                 {/* Nothing else tells an already-open tab its Google grant died -- /api/auth/session
                     is outside proxy.ts's matcher, and (main)/layout.tsx's getAuth() only runs on a
@@ -68,6 +73,7 @@ export default function ClientLayout({
                                     </div>
                                     <MainContent>{children}</MainContent>
                                 </div>
+                                <ThemeSync />
                             </ToastProvider>
                         </CalendarProvider>
                     </SidebarProvider>

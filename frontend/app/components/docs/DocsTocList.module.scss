@@ -24,7 +24,7 @@
   // own active doc-link, for a consistent "you are here" look across both.
   &.isCurrent {
     background: $grey-lightest-color;
-    color: $brand-pink-color;
+    color: $brand-text-color;
     font-weight: 600;
   }
 }

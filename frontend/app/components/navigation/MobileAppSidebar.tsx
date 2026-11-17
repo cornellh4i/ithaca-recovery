@@ -8,6 +8,7 @@ import { useSession } from "next-auth/react";
 import { AnimatePresence, motion } from "motion/react";
 import Logo from "../ui/displays/Logo";
 import styles from "./MobileAppSidebar.module.scss";
+import ThemeOptions from "../theme/ThemeOptions";
 
 interface MobileAppSidebarProps {
   isOpen: boolean;
@@ -73,6 +74,9 @@ const MobileAppSidebar: React.FC<MobileAppSidebarProps> = ({ isOpen, onClose }) 
                 </Link>
               )}
             </nav>
+            <div className={styles.themeRow}>
+              <ThemeOptions />
+            </div>
           </motion.div>
         </React.Fragment>
       )}

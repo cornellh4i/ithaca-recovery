@@ -6,7 +6,7 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background-color: $white-color;
+  background-color: $surface-color;
   position: relative; // anchors TopLoadingBar's absolute positioning to this view's own bounds
 }
 
@@ -57,7 +57,7 @@
   display: flex;
   flex-direction: column;
   padding-left: max(16px, env(safe-area-inset-left));
-  background-color: $white-color;
+  background-color: $surface-color;
 }
 
 // Matches .dayHeader's own height so the hour labels below line up with the meeting grid,
@@ -70,7 +70,7 @@
   top: 0;
   z-index: 15;
   flex: 0 0 auto;
-  background-color: $white-color;
+  background-color: $surface-color;
 }
 
 .hourLabel {
@@ -142,12 +142,12 @@
   font-weight: 600;
   color: $navy-color;
   border-bottom: 1px solid $grey-border-color;
-  background-color: $white-color;
+  background-color: $surface-color;
   box-sizing: border-box;
   font-variant-numeric: tabular-nums;
 
   &.today {
-    color: $brand-pink-color;
+    color: $brand-text-color;
   }
 }
 
@@ -155,7 +155,7 @@
   color: $text-secondary-color;
 
   .today & {
-    color: $brand-pink-color;
+    color: $brand-text-color;
   }
 }
 

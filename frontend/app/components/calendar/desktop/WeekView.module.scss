@@ -26,14 +26,14 @@
 
 .navButton {
   padding: 8px 16px;
-  background-color: #f3f4f6;
-  border: 1px solid #d1d5db;
+  background-color: $hover-fill-cool-color;
+  border: 1px solid $grid-line-strong-color;
   border-radius: 6px;
   cursor: pointer;
   font-weight: 500;
 
   &:hover {
-    background-color: #e5e7eb;
+    background-color: $grid-line-color;
   }
 }
 
@@ -75,7 +75,7 @@
   // minimum size (based on content, 0 for an empty element) lets it absorb the whole
   // shrink and collapse to 0, throwing off every time label below it.
   height: 2921px;
-  background-color: #fff;
+  background-color: $surface-color;
 
 }
 
@@ -87,7 +87,7 @@
   position: sticky;
   top: 0;
   z-index: 21;
-  background-color: #fff;
+  background-color: $surface-color;
 }
 
 .timeSlots {
@@ -101,8 +101,8 @@
   justify-content: flex-end; // aligns text to the right
   padding-right: 16px; // increased padding on the right
   font-size: 1rem; // increased font size from 0.8rem
-  color: #6b7280;
-  background-color: #fff;
+  color: $text-muted-cool-color;
+  background-color: $surface-color;
 }
 
 .daysContainer {
@@ -171,7 +171,7 @@
   padding: 10px;
   font-weight: 700;
   border-bottom: 1px solid $grey-border-color;
-  background-color: #fff;
+  background-color: $surface-color;
   text-align: center;
   height: 40px; // Fixed height to ensure consistent alignment
   display: flex;
@@ -187,20 +187,20 @@
 .dayName {
   font-size: 1.1rem;
   font-weight: 600;
-  color: #000;
+  color: $text-strong-color;
 }
 
 // New style for date number
 .dateNumber {
   font-size: 1.1rem;
-  color: #6b7280;
+  color: $text-muted-cool-color;
   margin-left: 9px;
 }
 
 // Style for current date - now a square without rounded edges
 .currentDate {
   background-color: $brand-pink-color;
-  color: white;
+  color: $white-color;
   border-radius: 0; // No rounded edges
   width: 24px;
   height: 24px;
@@ -230,7 +230,7 @@
     left: 50%;
     height: 100%;
     width: 1px;
-    background-color: #eee;
+    background-color: $fill-subtle-color;
     opacity: 0.5;
   }
 }

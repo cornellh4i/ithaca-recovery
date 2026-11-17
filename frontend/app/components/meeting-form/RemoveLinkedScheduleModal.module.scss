@@ -6,7 +6,7 @@
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: rgb(0 0 0 / 50%);
+  background-color: $overlay-color;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -17,7 +17,7 @@
 }
 
 .modalContent {
-  background-color: $white-color;
+  background-color: $surface-overlay-color;
   border-radius: $radius-md;
   width: 400px;
   max-width: 90%;
@@ -41,7 +41,7 @@
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background-color: #FEE4E2;
+  background-color: $danger-wash-color;
   color: $danger-color;
   flex-shrink: 0;
 }
@@ -59,7 +59,7 @@
   padding-left: 48px;
   font-size: 15px;
   line-height: 1.5;
-  color: #444;
+  color: $text-body-color;
 }
 
 .scheduleText {
@@ -74,7 +74,7 @@
   padding: 10px 12px;
   border-radius: 6px;
   background-color: $warning-bg-color;
-  color: #444;
+  color: $text-body-color;
   font-size: 13px;
   line-height: 1.4;
 }
@@ -95,7 +95,7 @@
   padding: 8px 16px;
   border-radius: 6px;
   border: 1.5px solid $light-grey-color;
-  background-color: $white-color;
+  background-color: $surface-overlay-color;
   color: $black-color;
   font-size: 14px;
   font-weight: 600;
@@ -103,7 +103,7 @@
   cursor: pointer;
 
   &:hover {
-    background-color: #F5F5F5;
+    background-color: $hover-fill-color;
   }
 }
 
@@ -111,7 +111,7 @@
   padding: 8px 16px;
   border-radius: 6px;
   border: none;
-  background-color: $danger-color;
+  background-color: $danger-fill-color;
   color: $white-color;
   font-size: 14px;
   font-weight: 600;
@@ -119,6 +119,6 @@
   cursor: pointer;
 
   &:hover {
-    background-color: #A32020;
+    background-color: $danger-hover-color;
   }
 }

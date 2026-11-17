@@ -83,8 +83,8 @@
 
 .reconnectButton {
   align-self: flex-start;
-  border: 1px solid $danger-color;
-  background: $danger-color;
+  border: 1px solid $danger-fill-color;
+  background: $danger-fill-color;
   color: $white-color;
   border-radius: $radius-md;
   padding: 4px 10px;
@@ -101,7 +101,7 @@
   align-self: flex-start;
   margin-left: 22px;
   border: 1px solid $danger-color;
-  background: $white-color;
+  background: $surface-color;
   color: $danger-color;
   border-radius: $radius-md;
   padding: 4px 10px;

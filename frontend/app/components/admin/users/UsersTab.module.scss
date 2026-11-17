@@ -38,6 +38,10 @@
 .searchInput {
   border: none;
   outline: none;
+
+  // Shows .searchField's own surface -- left unset, color-scheme: dark gives the bare input the
+  // browser's grey field fill, a mismatched box inside the field.
+  background: transparent;
   font-family: inherit;
   font-size: 14px;
   color: $black-color;
@@ -74,7 +78,7 @@
     font-size: 13px;
     font-weight: 600;
     color: $medium-grey-color;
-    border-bottom: 1.5px solid #E5E5E5;
+    border-bottom: 1.5px solid $border-divider-color;
     padding: 0 8px 10px;
   }
 
@@ -152,7 +156,7 @@
 
 .emailCell {
   font-size: 14px;
-  color: #555;
+  color: $text-body-soft-color;
 }
 
 .actionCell {
@@ -180,7 +184,7 @@
 // from an inline style computed in JS from the kebab button's actual on-screen position.
 .optionsMenu {
   position: fixed;
-  background: white;
+  background: $surface-overlay-color;
   box-shadow: 0 4px 8px rgb(0 0 0 / 10%);
   border-radius: $radius-sm;
   overflow: hidden;
@@ -253,7 +257,7 @@
 // needs its own responsive override.
 .legendPopover {
   position: fixed;
-  background: #fff;
+  background: $surface-overlay-color;
   border: 1px solid $grey-border-color;
   border-radius: $radius-sm;
   box-shadow: 0 4px 12px rgb(0 0 0 / 15%);
@@ -287,7 +291,7 @@
 
 .legendDescCell {
   font-size: 13px;
-  color: #555;
+  color: $text-body-soft-color;
   line-height: 1.4;
 
   // A 1fr grid column still won't shrink below its content's intrinsic width by default

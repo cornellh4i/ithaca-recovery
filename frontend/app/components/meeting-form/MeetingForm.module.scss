@@ -9,7 +9,7 @@
 }
 
 .newMeetingSidebar {
-  background-color: #fff;
+  background-color: $surface-color;
   width: 100%;
   height: auto;
   margin: 0 auto; // so the height is responsive to the atoms in it
@@ -77,7 +77,7 @@
   width: 100%;
   height: auto;
   background-color: $brand-pink-color;
-  color: #fff;
+  color: $white-color;
   border: none;
   font-family: 'Source Sans Pro', sans-serif;
   font-weight: 600;
@@ -93,7 +93,7 @@
 // modals in this folder use (DeleteMeetingModal.module.scss's .cancelButton).
 .cancelMeetingButton {
   flex: 0 0 auto;
-  background-color: #fff;
+  background-color: $surface-color;
   color: $medium-grey-color;
   border: 1px solid $grey-border-color;
   font-family: 'Source Sans Pro', sans-serif;
@@ -106,7 +106,7 @@
   border-radius: 8px;
 
   &:hover:not(:disabled) {
-    background-color: #F7F7F7;
+    background-color: $fill-faint-color;
   }
 }
 
@@ -231,7 +231,7 @@
   flex-direction: row;
   justify-content: space-between;
   align-items: center;
-  color: var(--dark-navy, #3A3E49);
+  color: $navy-color;
   font-family: "Source Sans Pro", sans-serif;
   font-style: normal;
   font-weight: 600;
@@ -248,10 +248,10 @@
   height: 40px;
 
   // Preserves the previous <CloseIcon sx={{color:'black'}}> exactly -- .meetingHeader's own
-  // ambient color is navy ($navy-color, #3A3E49), not black, so this can't just inherit.
+  // ambient color is navy ($navy-color), not black, so this can't just inherit.
   // !important: MUI's own MuiIconButton-root class sets its own same-specificity default
   // color (rgba(0,0,0,.54)) on this same button element, which otherwise wins unpredictably
   // depending on emotion's <style> injection order (same class of bug already fixed for
   // IconButton.module.scss's own .iconButton, verified there via getComputedStyle).
-  color: #000 !important;
+  color: $text-strong-color !important;
 }

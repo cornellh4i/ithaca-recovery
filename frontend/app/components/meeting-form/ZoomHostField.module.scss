@@ -80,7 +80,7 @@
     color: $danger-color;
 }
 
-// "1/2"-style remaining-capacity badge per host (#472) -- free slots in green, at-capacity in
+// "1/2"-style remaining-capacity badge per host (GitHub issue 472) -- free slots in green, at-capacity in
 // red, mirroring .checkIcon/.crossIcon's semantic colors.
 .slotBadge {
     flex-shrink: 0;
