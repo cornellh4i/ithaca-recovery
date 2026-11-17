@@ -72,6 +72,11 @@ $text-secondary-color: var(--text-secondary);
 // What a meeting block's room-color wash mixes toward (white in light, the surface in dark).
 $wash-base-color: var(--wash-base);
 
+// Secondary text, icons, and the sync-error icon drawn on a meeting block's wash.
+$text-on-wash-color: var(--text-on-wash);
+$icon-on-wash-color: var(--icon-on-wash);
+$danger-on-wash-color: var(--danger-on-wash);
+
 // Pressed/hover fills under white text (same in both themes).
 $danger-hover-color: var(--danger-hover);
 $warning-hover-color: var(--warning-hover);

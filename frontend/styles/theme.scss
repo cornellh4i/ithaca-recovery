@@ -53,6 +53,13 @@
   // What a meeting block's room-color wash mixes toward.
   --wash-base: #FFF;
 
+  // Secondary text and icons on top of a room wash. In light they match --navy, --text-muted
+  // and --danger; in dark they're lighter than those, which fall below contrast on the
+  // brighter washes (Seeds of Hope yellow, Serenity green).
+  --text-on-wash: #3A3E49;
+  --icon-on-wash: #848484;
+  --danger-on-wash: #C62828;
+
   // Pressed/hover fills under white text -- identical in both themes.
   --danger-hover: #A32020;
   --warning-hover: #96620A;
@@ -159,6 +166,11 @@
   --info-text: #64A9E8;
   --info-bg: #1A2634;
   --wash-base: #1F2127;
+
+  // On every dark room wash: text >= 4.67:1, sync-error icon >= 3.34:1.
+  --text-on-wash: #D4D6DB;
+  --icon-on-wash: #D4D6DB;
+  --danger-on-wash: #FF9A9A;
 
   // Same-hue deep tints, matching the semantic washes above.
   --danger-wash: #3A2020;
