@@ -83,6 +83,24 @@ describe("readThemePreference / storeThemePreference", () => {
     expect(() => storeThemePreference("dark", throwingStorage)).not.toThrow();
     expect(() => storeThemePreference("system", throwingStorage)).not.toThrow();
   });
+
+  it("remembers an unpersisted choice so the toggle can still cycle when storage throws", () => {
+    let current = readThemePreference(throwingStorage);
+    const seen: string[] = [];
+    for (let i = 0; i < 3; i++) {
+      current = nextThemePreference(current);
+      storeThemePreference(current, throwingStorage);
+      seen.push(readThemePreference(throwingStorage));
+    }
+    expect(seen).toEqual(["light", "dark", "system"]);
+  });
+
+  it("drops the unpersisted choice once storage works again", () => {
+    storeThemePreference("dark", throwingStorage);
+    const storage = memoryStorage();
+    storeThemePreference("light", storage);
+    expect(readThemePreference(throwingStorage)).toBe("system");
+  });
 });
 
 describe("applyThemePreference", () => {

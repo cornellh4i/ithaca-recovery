@@ -26,13 +26,18 @@ export function nextThemePreference(current: ThemePreference): ThemePreference {
   return THEME_PREFERENCES[(index + 1) % THEME_PREFERENCES.length];
 }
 
-// localStorage throws outright in some privacy modes and sandboxed frames -- a missing or
-// unreadable preference is just "system".
+// localStorage throws outright in some privacy modes and sandboxed frames. When a write fails,
+// the choice is kept here for the rest of the page view -- otherwise every read would come back
+// "system" and the toggle could never get past Light.
+let unpersistedPreference: ThemePreference | null = null;
+
+// A missing or unreadable preference is the last unpersisted choice, or else "system".
 export function readThemePreference(storage: Pick<Storage, "getItem"> | undefined = globalThis.localStorage): ThemePreference {
   try {
-    return parseThemePreference(storage?.getItem(THEME_STORAGE_KEY));
+    if (!storage) throw new Error("localStorage unavailable");
+    return parseThemePreference(storage.getItem(THEME_STORAGE_KEY));
   } catch {
-    return "system";
+    return unpersistedPreference ?? "system";
   }
 }
 
@@ -41,10 +46,13 @@ export function storeThemePreference(
   storage: Pick<Storage, "setItem" | "removeItem"> | undefined = globalThis.localStorage,
 ): void {
   try {
-    if (preference === "system") storage?.removeItem(THEME_STORAGE_KEY);
-    else storage?.setItem(THEME_STORAGE_KEY, preference);
+    if (!storage) throw new Error("localStorage unavailable");
+    if (preference === "system") storage.removeItem(THEME_STORAGE_KEY);
+    else storage.setItem(THEME_STORAGE_KEY, preference);
+    unpersistedPreference = null;
   } catch {
     // Not persisted; the choice still applies for this page view.
+    unpersistedPreference = preference;
   }
 }
 
