@@ -58,8 +58,8 @@
     box-sizing: border-box;
 }
 
-// Selected, not today -- $brand-pink-secondary instead of MiniCalendar's toPastelColor($brand-
-// pink-color) pastel fill for better contrast against this circle's white text.
+// Selected, not today -- $brand-pink-secondary instead of MiniCalendar's pale $brand-tint-color
+// fill, for better contrast against this circle's white text.
 .selectedNotToday {
     background-color: $brand-pink-secondary;
     color: $white-color;

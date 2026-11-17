@@ -51,7 +51,7 @@ contrast below 3:1. Use the `-fill-` variant there.
 
 ### Room colors
 
-Room colors (`util/filterColors.ts` / `$room-*-color`) identify the meeting and are **identical in
+Room colors (`util/rooms/filterColors.ts` / `$room-*-color`) identify the meeting and are **identical in
 both themes**: stripes, dots, filter checkboxes, and the Day-view room-label column (whose
 text uses `$on-room-color`, dark in both themes).
 
@@ -96,7 +96,7 @@ without re-rendering.
 - **Tests**:
   - `tests/unit/theme.test.ts`: preference logic and the inline script.
   - `tests/component/ThemeToggle.test.tsx`: both controls.
-  - `tests/e2e/21-dark-mode.spec.ts`: cycling and persistence, no flash, System following the
+  - `tests/e2e/22-dark-mode.spec.ts`: cycling and persistence, no flash, System following the
     OS, the mobile row, and a dark smoke pass.
 
 ## Adding a color

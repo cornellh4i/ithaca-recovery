@@ -35,7 +35,7 @@ export const roomToZoomRoom: Record<string, string> = {
 export const isZoomRoomMismatched = (room: string, zoomRoom?: string | null): boolean =>
   !!zoomRoom && zoomRoom !== roomToZoomRoom[room];
 
-// Combines the room lists above with their filter colors (util/filterColors.ts) into the
+// Combines the room lists above with their filter colors (util/rooms/filterColors.ts) into the
 // {name, primaryColor} shape DayView renders rooms with, so that shape doesn't need its
 // own separately-maintained room list.
 //

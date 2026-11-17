@@ -153,9 +153,9 @@ $radius-lg: 10px;
 // Room/Zoom-room/Remote color coding used by the calendar views and their filter chips.
 // Deliberately plain values, not theme tokens -- room color is meeting identity and is identical
 // in both themes.
-// Mirrors util/filterColors.ts's ROOM_COLORS/ZOOM_ROOM_COLOR/REMOTE_COLOR -- Sass vars aren't
+// Mirrors util/rooms/filterColors.ts's ROOM_COLORS/ZOOM_ROOM_COLOR/REMOTE_COLOR -- Sass vars aren't
 // importable into TS (same reason as the breakpoints above), so this pair has to be kept in
-// sync manually. util/filterColors.ts is the source of truth callers actually consume today
+// sync manually. util/rooms/filterColors.ts is the source of truth callers actually consume today
 // (room colors are applied via inline style/prop, not a CSS class); these exist for any SCSS
 // that needs to reference the same palette directly.
 $room-serenity-color: #B3EA75;

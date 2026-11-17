@@ -176,11 +176,7 @@
     }
 }
 
-// Signed-out state: sign-in icon (black, via currentColor -- light grey read too low-contrast
-// against the pastel-pink tint) on a pastel-pink tint -- rgb(240 194 209) is
-// toPastelColor($brand-pink-color) from util/color.ts, computed once and hardcoded here
-// (same manual-sync convention as WeekStrip.module.scss/MiniCalendar.module.scss's matching
-// rule -- re-run toPastelColor() on the brand pink if $brand-pink-color ever changes).
+// Signed-out state: white sign-in icon on a solid brand-pink fill, the same in both themes.
 .profileButtonSignedOut {
     background-color: $brand-pink-color;
     border-color: transparent;
