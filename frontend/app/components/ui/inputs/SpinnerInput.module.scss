@@ -60,4 +60,5 @@
     width: 6px;
     height: 3px;
     cursor: pointer;
+    color: $text-strong-color; // the arrow SVGs fill with currentColor
 }
