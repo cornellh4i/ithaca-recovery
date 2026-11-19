@@ -22,7 +22,8 @@ Once signed in, you land on the main calendar. Three areas:
 - **Top nav** — Main Calendar, Resources, and Admin (only visible if you have admin access — it's
   hidden entirely otherwise, not shown-but-disabled)
 - **Left sidebar** — where you create meetings, navigate dates, and filter what's shown
-- **Main calendar** — meetings as time blocks on the selected day or week
+- **Main calendar** — meetings as time blocks on the selected day or week, or as dots on a
+  month grid
 
 The calendar refreshes automatically every 30 seconds.
 

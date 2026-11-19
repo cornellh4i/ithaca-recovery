@@ -2,17 +2,21 @@
 
 What each icon and badge on the calendar means, and where you'll see it.
 
-**Admin-only:** every icon on this page except the mode icons appears only for signed-in
-admins — conflict, sync-failure, and suspension data is never loaded for public viewers.
+**Admin-only:** every icon on this page except the mode icons and Month view's dots and counts
+appears only for signed-in admins — conflict, sync-failure, and suspension data is never loaded
+for public viewers.
 
-**Screenshot freshness:** the mode-icon screenshot is current; the other screenshots still show
+**Screenshot freshness:** the mode-icon and Month view screenshots are current; the other screenshots still show
 the app's older icons and need re-capturing by an admin — what each icon means is unchanged.
 
 | Icon | Meaning | Where you'll see it |
 |---|---|---|
 | Co-present (mode tag) | Meeting is **Hybrid** | Mode picker, calendar tags, detail panel |
 | Amber triangle | Room/Zoom room/Zoom host **conflict** | Calendar block (top-left), detail panel, overlap popover |
-| "+N" pill (block corner) | Cluster hides N more **overlapping** meetings | Day/Week view, when 2+ meetings share a slot |
+| "+N" pill (block corner) | Cluster hides N more **overlapping** meetings | Day and Week view, when 2+ meetings share a slot |
+| Colored dot | One meeting, colored by room | Month view day cells and day popover |
+| Number (cell top-right) | How many meetings that day has (darker at 9+) | Month view day cells |
+| "⚠ N double-bookings" | N of that day's meetings have a **conflict** | Month view day cells (bottom-left), day popover |
 | Red broken-ring + "!" | Google Calendar/Zoom **sync needs attention** — a failed sync, or Zoom settings changed outside the app | Calendar block (top-right), detail panel |
 | Pause (⏸) | Meeting is **suspended** | Suspend dialog, Admin Diagnostics |
 | Video icon + room name | Zoom room doesn't match the physical room's default pairing | Calendar block (top-right) |
@@ -50,9 +54,9 @@ Separate from the conflict warning above — clustering is about layout, not det
 cluster when they overlap in time in the same room/column; two meetings that only share a Zoom
 host or Zoom room never cluster (different columns) but still conflict.
 
-When more meetings overlap than the view can show (2 on desktop Day/Week, 3 on mobile portrait,
-1 on mobile landscape), the visible ones render narrower and a **"+N" pill** appears for the
-folded rest.
+When more meetings overlap than the view can show (2 on desktop Day and Week view, 3 on mobile
+portrait, 1 on mobile landscape), the visible ones render narrower and a **"+N" pill** appears for
+the folded rest.
 
 ![The Unity Room row on the calendar: a cluster of two offset, narrowed blocks with a "+1" overflow pill on the left, next to a normal full-width single block later in the same row for comparison](../assets/icon-legend-cluster-overflow-pill.png)
 
@@ -67,6 +71,27 @@ mean sharing a status. (Screenshot predates the popover redesign.)
 
 Don't confuse this with the "+N" **inside** a block's tag row — that one summarizes tags that
 didn't fit (e.g. `AA +2`), not folded meetings.
+
+## Month view markers
+
+![A Month view day cell with eight colored dots, an "8" count in its top-right corner, and an amber "⚠ 2 double-bookings" line in its bottom-left corner](../assets/icon-legend-month-view-cell.png)
+
+Month view has no room for meeting blocks, so each day cell summarizes its meetings:
+
+- **Dots** — one per meeting, in start-time order, in the meeting's room color (grey when only
+  its Zoom room's filter keeps it visible). Hover a dot for the meeting's time and title.
+- **Count** — the number in the top-right corner. It turns darker at 9 or more meetings and is
+  hidden on an empty day.
+- **"⚠ N double-bookings"** (admins only) — the amber line in the bottom-left corner counts that
+  day's meetings with a conflict, the same conflicts the triangle marks in Day and Week view.
+
+![The Month view day popover listing a day's meetings, with "⚠ Double-booked in Serenity Room" under the two conflicting ones](../assets/icon-legend-month-view-popover.png)
+
+Clicking a day opens its **popover**: every meeting with its time and room, the day's count of
+double-booked meetings next to the meeting count (admins only), and a **"⚠ Double-booked in
+\<room\>"** line under each conflicting meeting naming its room. A meeting with no physical room
+(Zoom only) just says "⚠ Double-booked". As in Day and Week view, a recurring meeting with a
+conflict is flagged on every day it appears.
 
 ## Sync failure
 

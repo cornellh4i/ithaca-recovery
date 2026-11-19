@@ -20,7 +20,7 @@ import { useSyncErrorMids } from "../../hooks/useSyncErrorMids";
 import { useMeetingDetailsSync } from "../../hooks/useMeetingDetailsSync";
 import { useViewport } from "../../hooks/useViewport";
 import { PHONE_BREAKPOINT } from "../../util/common/breakpoints";
-import { getDesktopCalendarViews } from "../../util/common/calendarViews";
+import { DESKTOP_CALENDAR_VIEWS } from "../../util/common/calendarViews";
 import { useCalendarContext } from "../context/CalendarProvider";
 import { useToast } from "../components/shared/ToastProvider";
 
@@ -466,7 +466,7 @@ export default function HomePage() {
               onViewChange={setSelectedView}
               isAdmin={isAdmin}
               transitionDirection={transitionDirection}
-              views={getDesktopCalendarViews()}
+              views={DESKTOP_CALENDAR_VIEWS}
             />
             {selectedView === "Month" ? (
               <MonthView

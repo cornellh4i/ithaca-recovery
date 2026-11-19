@@ -108,7 +108,7 @@ test("mounting directly in Week view renders week controls and steps by week, no
   expect(afterOneClick).not.toBe(addDaysToETDateString(start, 1));
 });
 
-// Month view (GitHub #459): the main calendar passes Month in via `views` (dev builds only, see
+// Month view (GitHub #459): the main calendar passes Month in via `views` (see
 // util/common/calendarViews.ts); /signage relies on the Day/Week default.
 describe("Month view in the switcher", () => {
   const MonthHarness: React.FC<{ views?: readonly string[] }> = ({ views }) => {

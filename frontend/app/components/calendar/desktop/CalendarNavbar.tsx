@@ -70,8 +70,8 @@ type CalendarNavbarProps = {
     // 'forward' there, so the heading still animates, just always in one direction.
     transitionDirection?: SwipeDirection;
     // Which views the switcher lists. Defaults to Day/Week, which is all /signage supports
-    // (its URL contract is ?view=day|week); the main calendar passes getDesktopCalendarViews(),
-    // which adds Month in development builds until Month view ships (GitHub #459/#462).
+    // (its URL contract is ?view=day|week); the main calendar passes DESKTOP_CALENDAR_VIEWS,
+    // which adds Month.
     views?: readonly string[];
   };
 

@@ -1,15 +1,9 @@
-import { DAY_WEEK_VIEWS, getDesktopCalendarViews, isMonthViewEnabled } from "../../util/common/calendarViews";
+import { DAY_WEEK_VIEWS, DESKTOP_CALENDAR_VIEWS } from "../../util/common/calendarViews";
 
-// Month view is dev-gated until GitHub #462 ships it -- production builds must never list it.
-describe("desktop calendar views", () => {
-  test("development builds offer Day, Week and Month", () => {
-    expect(isMonthViewEnabled("development")).toBe(true);
-    expect(getDesktopCalendarViews("development")).toEqual(["Day", "Week", "Month"]);
-  });
-
-  test.each(["production", "test", undefined])("a %s build offers only Day and Week", (env) => {
-    expect(isMonthViewEnabled(env)).toBe(false);
-    expect(getDesktopCalendarViews(env)).toEqual(["Day", "Week"]);
+describe("calendar views", () => {
+  // Month view ships in every build (GitHub #462 removed the development-only gate).
+  test("the main calendar's desktop switcher offers Day, Week and Month", () => {
+    expect(DESKTOP_CALENDAR_VIEWS).toEqual(["Day", "Week", "Month"]);
   });
 
   test("the Day/Week pair signage uses never includes Month", () => {

@@ -78,7 +78,7 @@ Retrieve all meetings for the 7-day week beginning on the Sunday of the provided
 ---
 
 ### `GET /api/retrieve/meeting/range`
-Retrieve all meetings for an arbitrary date range (used by mobile's prev/current/next carousel views, which need a range that doesn't align to week boundaries). Same expansion/shape as `week`.
+Retrieve all meetings for an arbitrary date range (used by mobile's prev/current/next carousel views, which need a range that doesn't align to week boundaries, and by desktop Month view, which fetches its whole 6-week grid at once). Same expansion/shape as `week`. The range may span at most **42 days** (inclusive); a wider one, or an `endDate` before `startDate`, returns `400`.
 
 | Param | Type | Description |
 |---|---|---|
