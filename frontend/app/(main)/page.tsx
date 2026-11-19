@@ -162,6 +162,13 @@ export default function HomePage() {
     setShowEditMeeting(false);
   }, [selectedView]);
 
+  // Month view's day popover "Open day view →": straight to Day view on the clicked date.
+  // Not via CalendarNavbar's view switcher, which always resets the date to today.
+  const handleOpenDayFromMonth = (date: Date) => {
+    changeSelectedDate(date);
+    setSelectedView("Day");
+  };
+
   const handleOpenEdit = () => {
     setShowEditMeeting(true);
   };
@@ -467,6 +474,8 @@ export default function HomePage() {
                 selectedDate={selectedDate}
                 refreshTrigger={refreshTrigger}
                 transitionDirection={transitionDirection}
+                conflictMids={conflictMids}
+                onOpenDay={handleOpenDayFromMonth}
               />
             ) : selectedView === "Day" ? (
               <DayView

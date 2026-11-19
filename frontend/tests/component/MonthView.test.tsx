@@ -43,12 +43,16 @@ const mockRange = (rows: RawRow[]) => {
   }) as jest.Mock;
 };
 
-const renderMonth = (anchor: string, opts: { filters?: MeetingFilters; onDayClick?: (d: string) => void } = {}) =>
+const renderMonth = (
+  anchor: string,
+  opts: { filters?: MeetingFilters; conflictMids?: Set<string>; onOpenDay?: (d: Date) => void } = {},
+) =>
   render(
     <MonthView
       filters={opts.filters ?? createDefaultFilters(true)}
       selectedDate={etNoon(anchor)}
-      onDayClick={opts.onDayClick}
+      conflictMids={opts.conflictMids}
+      onOpenDay={opts.onOpenDay}
     />,
   );
 
@@ -264,15 +268,194 @@ describe("MonthView filters and clicks", () => {
     expect(global.fetch).toHaveBeenCalledTimes(1);
   });
 
-  test("clicking anywhere on a cell reports that day, including adjacent-month cells", async () => {
+});
+
+const openCell = (container: HTMLElement, etDateStr: string) =>
+  fireEvent.click(within(cellFor(container, etDateStr)).getByRole("button", { name: /meeting/ }));
+
+describe("MonthView day popover", () => {
+  test("clicking a cell opens its day's popover with the long date, count and every meeting", async () => {
+    mockRange([
+      { mid: "a", title: "Beginners Meeting", date: "2032-06-16", start: "09:00", end: "10:00", room: "Serenity Room" },
+      { mid: "b", title: "A Very Long Meeting Title That Will Not Fit", date: "2032-06-16", start: "19:30", end: "20:30", room: "Unity Room" },
+    ]);
+    const { container } = renderMonth("2032-06-16");
+    await waitFor(() => expect(within(cellFor(container, "2032-06-16")).getAllByTestId("meeting-dot")).toHaveLength(2));
+
+    openCell(container, "2032-06-16");
+    const dialog = screen.getByRole("dialog", { name: /Wednesday, June 16/ });
+    expect(within(dialog).getByText("2 meetings")).toBeInTheDocument();
+    const rows = within(dialog).getAllByRole("listitem");
+    expect(rows.map(r => r.textContent)).toEqual([
+      "Beginners Meeting9 - 10 AM · Serenity Room",
+      "A Very Long Meeting Title That Will Not Fit7:30 - 8:30 PM · Unity Room",
+    ]);
+    // Ellipsized titles keep their full text as a tooltip.
+    expect(within(dialog).getByTitle("A Very Long Meeting Title That Will Not Fit")).toBeInTheDocument();
+    // Lives inside its own cell -- not portaled out of the grid.
+    expect(cellFor(container, "2032-06-16")).toContainElement(dialog);
+  });
+
+  test("an empty day's popover says so", async () => {
     mockRange([]);
-    const onDayClick = jest.fn();
-    const { container } = renderMonth("2032-05-12", { onDayClick });
+    const { container } = renderMonth("2034-06-07");
+    await waitFor(() => expect(global.fetch).toHaveBeenCalled());
+    openCell(container, "2034-06-07");
+    expect(within(screen.getByRole("dialog")).getByText("No meetings")).toBeInTheDocument();
+    expect(within(screen.getByRole("dialog")).queryByRole("list")).not.toBeInTheDocument();
+  });
+
+  test("only one popover is open at a time, and clicking the same cell again closes it", async () => {
+    mockRange([]);
+    const { container } = renderMonth("2032-07-14");
     await waitFor(() => expect(global.fetch).toHaveBeenCalled());
 
-    fireEvent.click(within(cellFor(container, "2032-05-12")).getByRole("button"));
-    // May 2032 starts on a Saturday, so April 25 is the grid's first cell.
-    fireEvent.click(within(cellFor(container, "2032-04-25")).getByRole("button"));
-    expect(onDayClick.mock.calls).toEqual([["2032-05-12"], ["2032-04-25"]]);
+    openCell(container, "2032-07-14");
+    expect(screen.getAllByRole("dialog")).toHaveLength(1);
+
+    // A click elsewhere is a mousedown (outside the open cell) then a click on the new cell.
+    const other = within(cellFor(container, "2032-07-15")).getByRole("button", { name: /meeting/ });
+    fireEvent.mouseDown(other);
+    fireEvent.click(other);
+    const dialogs = screen.getAllByRole("dialog");
+    expect(dialogs).toHaveLength(1);
+    expect(dialogs[0]).toHaveAccessibleName(/July 15/);
+
+    const same = within(cellFor(container, "2032-07-15")).getByRole("button", { name: /meeting/ });
+    fireEvent.mouseDown(same);
+    fireEvent.click(same);
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  test("closes on ✕, Escape and an outside click", async () => {
+    mockRange([]);
+    const { container } = renderMonth("2032-08-11");
+    await waitFor(() => expect(global.fetch).toHaveBeenCalled());
+    const cellButton = () => within(cellFor(container, "2032-08-11")).getByRole("button", { name: /meeting/ });
+
+    openCell(container, "2032-08-11");
+    fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Close" }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(cellButton()).toHaveFocus();
+
+    openCell(container, "2032-08-11");
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(cellButton()).toHaveFocus();
+
+    openCell(container, "2032-08-11");
+    fireEvent.mouseDown(document.body);
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  test("clicks inside the popover don't close it", async () => {
+    mockRange([{ mid: "a", title: "Inside", date: "2032-09-15", start: "09:00", end: "10:00" }]);
+    const { container } = renderMonth("2032-09-15");
+    await waitFor(() => expect(within(cellFor(container, "2032-09-15")).getAllByTestId("meeting-dot")).toHaveLength(1));
+    openCell(container, "2032-09-15");
+    const dialog = screen.getByRole("dialog");
+    fireEvent.mouseDown(within(dialog).getByText("Inside"));
+    fireEvent.click(within(dialog).getByText("Inside"));
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+  });
+
+  test("anchors left on the first five columns and right on Friday and Saturday", async () => {
+    mockRange([]);
+    const { container } = renderMonth("2032-10-13");
+    await waitFor(() => expect(global.fetch).toHaveBeenCalled());
+    // Oct 2032: Sun 10th .. Sat 16th.
+    const expected: Record<string, string> = {
+      "2032-10-10": "alignLeft", "2032-10-11": "alignLeft", "2032-10-12": "alignLeft",
+      "2032-10-13": "alignLeft", "2032-10-14": "alignLeft",
+      "2032-10-15": "alignRight", "2032-10-16": "alignRight",
+    };
+    for (const [day, align] of Object.entries(expected)) {
+      openCell(container, day);
+      expect(screen.getByRole("dialog")).toHaveClass(align);
+      fireEvent.keyDown(document, { key: "Escape" });
+    }
+  });
+
+  test("“Open day view →” hands back the clicked date and closes the popover", async () => {
+    mockRange([]);
+    const onOpenDay = jest.fn();
+    const { container } = renderMonth("2032-11-10", { onOpenDay });
+    await waitFor(() => expect(global.fetch).toHaveBeenCalled());
+
+    // An adjacent-month cell works too: Nov 2032 starts on a Monday, so Oct 31 pads row one.
+    openCell(container, "2032-10-31");
+    fireEvent.click(screen.getByRole("button", { name: "Open day view →" }));
+    expect(onOpenDay).toHaveBeenCalledTimes(1);
+    expect(formatETDateString(onOpenDay.mock.calls[0][0])).toBe("2032-10-31");
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  test("navigating to another month closes an open popover", async () => {
+    mockRange([]);
+    const filters = createDefaultFilters(true);
+    const { container, rerender } = render(<MonthView filters={filters} selectedDate={etNoon("2033-01-12")} />);
+    await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(1));
+    openCell(container, "2033-01-12");
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+
+    rerender(<MonthView filters={filters} selectedDate={etNoon("2033-02-12")} />);
+    await waitFor(() => expect(screen.getByRole("grid", { name: "February 2033" })).toBeInTheDocument());
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+});
+
+// Mirrors the Day/Week conflict-badge tests (OverlapMeetingsPopover.test.tsx): conflictMids is
+// admin-only data, so its presence alone decides whether any conflict UI renders.
+describe("MonthView conflict indicators", () => {
+  const rows: RawRow[] = [
+    { mid: "c1", title: "Clash One", date: "2033-03-16", start: "18:00", end: "19:00", room: "Serenity Room" },
+    { mid: "c2", title: "Clash Two", date: "2033-03-16", start: "18:30", end: "19:30", room: "Serenity Room" },
+    {
+      mid: "zoomOnly", title: "Zoom Clash", date: "2033-03-16", start: "20:00", end: "21:00",
+      room: "", zoomRoom: "Unity Room - Zoom", modeType: "Zoom Only",
+    },
+    { mid: "fine", title: "No Clash", date: "2033-03-16", start: "09:00", end: "10:00", room: "Unity Room" },
+  ];
+
+  test("admins see the in-cell count, the popover subline and a per-meeting line naming the physical room", async () => {
+    mockRange(rows);
+    const { container } = renderMonth("2033-03-16", { conflictMids: new Set(["c1", "c2", "zoomOnly"]) });
+    const cell = cellFor(container, "2033-03-16");
+    await waitFor(() => expect(within(cell).getAllByTestId("meeting-dot")).toHaveLength(4));
+
+    expect(within(cell).getByTestId("cell-conflict")).toHaveTextContent("⚠ 3 double-bookings");
+
+    openCell(container, "2033-03-16");
+    const dialog = screen.getByRole("dialog");
+    expect(within(dialog).getByText("4 meetings · 3 double-booked")).toBeInTheDocument();
+    expect(within(dialog).getAllByText("⚠ Double-booked in Serenity Room")).toHaveLength(2);
+    // No physical room: never names the Zoom room.
+    expect(within(dialog).getByText("⚠ Double-booked")).toBeInTheDocument();
+    expect(within(dialog).queryByText(/Double-booked in Unity Room/)).not.toBeInTheDocument();
+
+    const fineRow = within(dialog).getByText("No Clash").closest("li") as HTMLElement;
+    expect(within(fineRow).queryByText(/Double-booked/)).not.toBeInTheDocument();
+  });
+
+  test("a single conflict reads in the singular", async () => {
+    mockRange([{ ...rows[0], date: "2033-04-13" }]);
+    const { container } = renderMonth("2033-04-13", { conflictMids: new Set(["c1"]) });
+    const cell = cellFor(container, "2033-04-13");
+    await waitFor(() => expect(within(cell).getByTestId("cell-conflict")).toHaveTextContent("⚠ 1 double-booking"));
+    openCell(container, "2033-04-13");
+    expect(within(screen.getByRole("dialog")).getByText("1 meeting · 1 double-booked")).toBeInTheDocument();
+  });
+
+  test("public viewers (no conflictMids) see no conflict UI anywhere", async () => {
+    mockRange(rows.map(r => ({ ...r, date: "2033-05-18" })));
+    const { container } = renderMonth("2033-05-18");
+    const cell = cellFor(container, "2033-05-18");
+    await waitFor(() => expect(within(cell).getAllByTestId("meeting-dot")).toHaveLength(4));
+
+    expect(within(cell).queryByTestId("cell-conflict")).not.toBeInTheDocument();
+    openCell(container, "2033-05-18");
+    const dialog = screen.getByRole("dialog");
+    expect(within(dialog).getByText("4 meetings")).toBeInTheDocument();
+    expect(within(dialog).queryByText(/double-booked/i)).not.toBeInTheDocument();
   });
 });

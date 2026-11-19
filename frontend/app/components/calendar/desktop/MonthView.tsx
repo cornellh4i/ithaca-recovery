@@ -1,9 +1,11 @@
-import React, { useMemo } from "react";
+import React, { useCallback, useMemo, useRef, useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import styles from "./MonthView.module.scss";
+import MonthDayPopover, { MonthDayPopoverMeeting } from "./MonthDayPopover";
 import { filterMeetingsForDate, MeetingFilters } from "../../../../util/filters/meetingFilters";
 import { getMeetingChipPresentation } from "../../../../util/meetings/meetingChipPresentation";
 import { etDateStringToNoonET, isInGridMonth } from "../../../../util/meetings/monthGrid";
+import { ROOM_COLORS } from "../../../../util/rooms/filterColors";
 import { formatETDateString, formatETWeekdayShort } from "../../../../util/date/timeUtils";
 import { formatCompactTime, formatETDateLine, monthNameForETDateString } from "../../../../util/date/timeFormat";
 import { dateEnterMotion, type SwipeDirection } from "../../../../util/date/dateTransition";
@@ -16,6 +18,10 @@ import TopLoadingBar from "../../ui/displays/TopLoadingBar";
 // is 6-9 a day, so 9+ marks an unusually full day.
 export const BUSY_DAY_THRESHOLD = 9;
 
+// Weekday columns (0 = Sunday) whose popover hangs from the cell's right edge instead of its
+// left, so a 272px panel never runs off the grid's right side.
+const RIGHT_ALIGNED_COLUMNS = new Set([5, 6]);
+
 interface MonthViewProps {
     filters: MeetingFilters;
     selectedDate: Date;
@@ -23,44 +29,72 @@ interface MonthViewProps {
     // Which way the month-transition animation slides (see CalendarProvider's
     // changeSelectedDate) -- same optional-prop reasoning as DayView/WeekView's.
     transitionDirection?: SwipeDirection;
-    // Fires with the clicked cell's ET date string ("YYYY-MM-DD"). Deliberately not a
-    // selectedDate change: clicking a greyed adjacent-month cell would otherwise jump the
-    // whole grid to that month. The day popover (GitHub #461) hangs off this.
-    onDayClick?: (etDateStr: string) => void;
+    // Admin-only (see hooks/useConflictMids) -- mids with an unresolved conflict. The page
+    // passes an empty set for public viewers, so no conflict UI renders for them.
+    conflictMids?: Set<string>;
+    // The popover's "Open day view →": switch to Day view on this date (noon ET).
+    onOpenDay?: (date: Date) => void;
 }
 
-interface DayDot {
-    id: string;
-    color: string;
-    label: string;
-}
+type DayMeeting = MonthDayPopoverMeeting & { dotLabel: string };
 
-// One dot per meeting, start-time order, colored exactly like the meeting's Day/Week chip
+// One entry per meeting, start-time order, colored exactly like the meeting's Day/Week chip
 // (getMeetingChipPresentation: the room color, grey when only its Zoom room's filter keeps it
 // visible, teal for Remote). startTime is the day-clipped time, so an overnight meeting that
 // spills in from the night before sorts first on its second day.
-const toDots = (meetings: WeekMeeting[], filters: MeetingFilters): DayDot[] =>
+const toDayMeetings = (meetings: WeekMeeting[], filters: MeetingFilters): DayMeeting[] =>
     [...meetings]
         .sort((a, b) => a.startTime.localeCompare(b.startTime) || a.title.localeCompare(b.title))
-        .map((meeting, index) => ({
-            id: `${meeting.id}-${index}`,
-            color: getMeetingChipPresentation(meeting, filters).primaryColor,
-            label: `${formatCompactTime(meeting.displayStartTime ?? meeting.startTime)} ${meeting.title}`,
-        }));
+        .map((meeting, index) => {
+            const presentation = getMeetingChipPresentation(meeting, filters);
+            const startTime = meeting.displayStartTime ?? meeting.startTime;
+            return {
+                key: `${meeting.id}-${index}`,
+                id: meeting.id,
+                title: meeting.title,
+                color: presentation.primaryColor,
+                startTime,
+                endTime: meeting.displayEndTime ?? meeting.endTime,
+                location: presentation.room || meeting.zoomRoom || (meeting.tags.includes("Remote") ? "Remote" : ""),
+                // Only a real physical room (one with a room color) -- never a Zoom room.
+                physicalRoom: meeting.room in ROOM_COLORS ? meeting.room : null,
+                dotLabel: `${formatCompactTime(startTime)} ${meeting.title}`,
+            };
+        });
 
 const MonthView: React.FC<MonthViewProps> = ({
     filters,
     selectedDate,
     refreshTrigger = 0,
     transitionDirection = "forward",
-    onDayClick,
+    conflictMids,
+    onOpenDay,
 }) => {
     const reducedMotion = useReducedMotion();
+    const gridRef = useRef<HTMLDivElement>(null);
     // Rendered from loadedRange (what the meetings belong to), not the requested month, so the
     // cells, dots and enter transition all swap together once the new month's data lands --
     // same loaded-data keying DayView/WeekView use.
     const { loadedRange, meetingsByDate, isLoading } = useMonthMeetings(selectedDate, refreshTrigger);
     const todayKey = formatETDateString(new Date());
+
+    // The one open popover's ET date, if any. Closed whenever the displayed month changes --
+    // derived during render ("adjusting state when a prop changes"), no effect needed.
+    const [openDay, setOpenDay] = useState<string | null>(null);
+    const [openDayMonth, setOpenDayMonth] = useState(loadedRange.monthKey);
+    if (openDayMonth !== loadedRange.monthKey) {
+        setOpenDayMonth(loadedRange.monthKey);
+        setOpenDay(null);
+    }
+
+    // ✕ and Escape hand focus back to the cell that opened the popover; an outside click
+    // leaves it wherever the user clicked.
+    const closePopover = useCallback((restoreFocus: boolean) => {
+        if (restoreFocus && openDay) {
+            gridRef.current?.querySelector<HTMLButtonElement>(`[data-date="${openDay}"] > button`)?.focus();
+        }
+        setOpenDay(null);
+    }, [openDay]);
 
     // Filters are applied here, client-side, over the month's already-fetched meetings, so
     // toggling one never refetches.
@@ -69,7 +103,7 @@ const MonthView: React.FC<MonthViewProps> = ({
             loadedRange.days.map((day) => {
                 const date = etDateStringToNoonET(day);
                 const meetings = filterMeetingsForDate(meetingsByDate.get(day) ?? [], date, filters);
-                return { day, date, dots: toDots(meetings, filters) };
+                return { day, date, meetings: toDayMeetings(meetings, filters) };
             }),
         [loadedRange, meetingsByDate, filters],
     );
@@ -80,7 +114,12 @@ const MonthView: React.FC<MonthViewProps> = ({
         <div className={styles.outerContainer} data-testid="month-view">
             <TopLoadingBar active={isLoading} label="Loading meetings" />
             <div className={styles.scrollContainer}>
-                <div className={styles.grid} role="grid" aria-label={`${monthNameForETDateString(`${loadedRange.monthKey}-01`)} ${loadedRange.monthKey.slice(0, 4)}`}>
+                <div
+                    ref={gridRef}
+                    className={styles.grid}
+                    role="grid"
+                    aria-label={`${monthNameForETDateString(`${loadedRange.monthKey}-01`)} ${loadedRange.monthKey.slice(0, 4)}`}
+                >
                     <div className={styles.weekdayHeader} role="row">
                         {cells.slice(0, 7).map(({ day, date }) => (
                             <div key={day} className={styles.weekday} role="columnheader">
@@ -99,22 +138,28 @@ const MonthView: React.FC<MonthViewProps> = ({
                     >
                         {weeks.map((week) => (
                             <div key={week[0].day} className={styles.weekRow} role="row">
-                                {week.map(({ day, date, dots }) => {
+                                {week.map(({ day, date, meetings }, column) => {
                                     const isToday = day === todayKey;
                                     const isAdjacentMonth = !isInGridMonth(day, loadedRange);
-                                    const count = dots.length;
+                                    const count = meetings.length;
+                                    const doubleBookedCount = conflictMids
+                                        ? meetings.filter(m => conflictMids.has(m.id)).length
+                                        : 0;
+                                    const isOpen = openDay === day;
                                     return (
                                         <div
                                             key={day}
-                                            className={styles.cell}
+                                            className={isOpen ? `${styles.cell} ${styles.cellOpen}` : styles.cell}
                                             role="gridcell"
                                             data-date={day}
                                         >
                                             <button
                                                 type="button"
                                                 className={styles.cellButton}
-                                                aria-label={`${formatETDateLine(date)}, ${count === 0 ? "no meetings" : pluralize(count, "meeting")}`}
-                                                onClick={() => onDayClick?.(day)}
+                                                aria-label={`${formatETDateLine(date)}, ${count === 0 ? "no meetings" : pluralize(count, "meeting")}${doubleBookedCount > 0 ? `, ${pluralize(doubleBookedCount, "double-booking")}` : ""}`}
+                                                aria-haspopup="dialog"
+                                                aria-expanded={isOpen}
+                                                onClick={() => setOpenDay(current => (current === day ? null : day))}
                                             >
                                                 <span className={styles.cellHeader}>
                                                     <span
@@ -141,20 +186,38 @@ const MonthView: React.FC<MonthViewProps> = ({
                                                 </span>
                                                 {count > 0 && (
                                                     <span className={styles.dots}>
-                                                        {dots.map((dot) => (
+                                                        {meetings.map((meeting) => (
                                                             <span
-                                                                key={dot.id}
+                                                                key={meeting.key}
                                                                 className={styles.dot}
                                                                 // A data-driven room color, not a design constant --
                                                                 // the same value Day/Week chips get inline.
-                                                                style={{ backgroundColor: dot.color }}
-                                                                title={dot.label}
+                                                                style={{ backgroundColor: meeting.color }}
+                                                                title={meeting.dotLabel}
                                                                 data-testid="meeting-dot"
                                                             />
                                                         ))}
                                                     </span>
                                                 )}
+                                                {doubleBookedCount > 0 && (
+                                                    <span className={styles.conflictWarning} data-testid="cell-conflict">
+                                                        ⚠ {pluralize(doubleBookedCount, "double-booking")}
+                                                    </span>
+                                                )}
                                             </button>
+                                            {isOpen && (
+                                                <MonthDayPopover
+                                                    date={date}
+                                                    meetings={meetings}
+                                                    conflictMids={conflictMids}
+                                                    align={RIGHT_ALIGNED_COLUMNS.has(column) ? "right" : "left"}
+                                                    onClose={closePopover}
+                                                    onOpenDay={() => {
+                                                        setOpenDay(null);
+                                                        onOpenDay?.(date);
+                                                    }}
+                                                />
+                                            )}
                                         </div>
                                     );
                                 })}

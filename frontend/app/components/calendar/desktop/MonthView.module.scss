@@ -82,6 +82,12 @@
   }
 }
 
+// Lifts the open cell (and the popover inside it) above later cells in the grid, which would
+// otherwise paint over the panel.
+.cellOpen {
+  z-index: $z-index-dropdown;
+}
+
 // The whole cell is one click target. Past days get no special treatment -- deliberately
 // identical to future days.
 .cellButton {
@@ -148,6 +154,17 @@
   display: flex;
   flex-wrap: wrap;
   gap: 5px;
+}
+
+// Admin-only double-booking warning, pinned to the cell's bottom-left (inside the 22px bottom
+// padding the cell reserves for it).
+.conflictWarning {
+  position: absolute;
+  bottom: 7px;
+  left: 9px;
+  font-size: 11px;
+  font-weight: 600;
+  color: $warning-text-color;
 }
 
 .dot {
