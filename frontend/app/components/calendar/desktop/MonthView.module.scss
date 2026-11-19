@@ -1,0 +1,19 @@
+@import '../../../../styles/Variables.module';
+
+.outerContainer {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  font-family: 'Source Sans Pro', sans-serif;
+  position: relative; // anchors TopLoadingBar's absolute positioning to this view's own bounds
+
+  // Fills whatever's left under CalendarNavbar in .primaryCalendar, same as Day/Week view.
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.placeholder {
+  margin: 40px auto;
+  color: $medium-grey-color;
+}

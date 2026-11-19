@@ -37,6 +37,11 @@ export interface UseRangeMeetingsResult {
     // hit, since getOrFetch always returns a promise either way; a cache hit just resolves on
     // the next microtask, so this flips back to false before paint and never visibly flashes.
     isLoading: boolean;
+    // The start date `meetings` actually belongs to -- lags `startDate` while a fetch for a
+    // newly requested range is still in flight, same contract as useWeekMeetings'
+    // loadedWeekStartDate. MonthView keys its enter transition off this, so the grid doesn't
+    // animate in the previous month's dots under the new month's heading.
+    loadedStartDate: Date;
 }
 
 // Fetches (and caches) meetings for exactly `days` consecutive ET days starting at
@@ -46,6 +51,7 @@ export interface UseRangeMeetingsResult {
 export function useRangeMeetings(startDate: Date, days: number, refreshTrigger: number = 0): UseRangeMeetingsResult {
     const [allMeetings, setAllMeetings] = useState<WeekMeeting[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [loadedStartDate, setLoadedStartDate] = useState<Date>(startDate);
 
     // Ref instead of closing over startDate/days directly -- same reasoning as useWeekMeetings'
     // own weekStartDateRef: keeps fetchRangeMeetings' identity stable across range changes, so
@@ -87,6 +93,7 @@ export function useRangeMeetings(startDate: Date, days: number, refreshTrigger: 
             const meetings = await fetchMeetingsByRange(start, endDate);
             if (requestId === fetchRequestIdRef.current) {
                 setAllMeetings(meetings);
+                setLoadedStartDate(start);
             }
         } catch (error) {
             console.error("[useRangeMeetings] fetchRangeMeetings failed:", error instanceof Error ? error.message : String(error));
@@ -107,5 +114,5 @@ export function useRangeMeetings(startDate: Date, days: number, refreshTrigger: 
         }
     }, [refreshTrigger, fetchRangeMeetings]);
 
-    return { meetings: allMeetings, isLoading };
+    return { meetings: allMeetings, isLoading, loadedStartDate };
 }

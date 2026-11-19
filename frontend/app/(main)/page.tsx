@@ -6,6 +6,7 @@ import CalendarSidebarShell from "../components/calendar/desktop/CalendarSidebar
 import ViewMeetingDetails from "../components/meeting-form/ViewMeeting";
 import DayView from "../components/calendar/desktop/DayView";
 import WeekView from "../components/calendar/desktop/WeekView";
+import MonthView from "../components/calendar/desktop/MonthView";
 import DayPortraitView from "../components/calendar/mobile/DayPortraitView";
 import DayLandscapeSwitcher from "../components/calendar/mobile/DayLandscapeSwitcher";
 import MobileFullScreenSheet from "../components/ui/overlays/MobileFullScreenSheet";
@@ -19,6 +20,7 @@ import { useSyncErrorMids } from "../../hooks/useSyncErrorMids";
 import { useMeetingDetailsSync } from "../../hooks/useMeetingDetailsSync";
 import { useViewport } from "../../hooks/useViewport";
 import { PHONE_BREAKPOINT } from "../../util/common/breakpoints";
+import { getDesktopCalendarViews } from "../../util/common/calendarViews";
 import { useCalendarContext } from "../context/CalendarProvider";
 import { useToast } from "../components/shared/ToastProvider";
 
@@ -82,6 +84,8 @@ export default function HomePage() {
     setDayFilters,
     weekFilters,
     setWeekFilters,
+    monthFilters,
+    setMonthFilters,
     transitionDirection,
   } = useCalendarContext();
   const [selectedMeeting, setSelectedMeeting] = useState<IMeeting | null>(null);
@@ -138,7 +142,7 @@ export default function HomePage() {
     setAnchorEl(null);
   };
 
-  // Switching Day/Week view backs out to neutral (CalendarSidebar, no popup) entirely --
+  // Switching Day/Week/Month view backs out to neutral (CalendarSidebar, no popup) entirely --
   // not just closing Edit, since the clicked box's anchorEl also goes stale across the
   // switch (Day view's boxes aren't in the DOM once Week view renders, and vice versa),
   // so leaving the View Meeting popup open underneath would anchor to a detached element.
@@ -255,8 +259,12 @@ export default function HomePage() {
     }
   };
 
-  const filters = selectedView === "Day" ? dayFilters : weekFilters;
-  const setFilters = selectedView === "Day" ? setDayFilters : setWeekFilters;
+  // Each view keeps its own filter state, so switching views never carries one view's
+  // unchecked rooms into another.
+  const [filters, setFilters] =
+    selectedView === "Month" ? [monthFilters, setMonthFilters]
+    : selectedView === "Week" ? [weekFilters, setWeekFilters]
+    : [dayFilters, setDayFilters];
 
   // ViewMeeting's popup is anchored to the clicked box's on-screen position -- scrolling
   // either the sidebar or the calendar grid underneath it while it's open just fights that
@@ -451,8 +459,15 @@ export default function HomePage() {
               onViewChange={setSelectedView}
               isAdmin={isAdmin}
               transitionDirection={transitionDirection}
+              views={getDesktopCalendarViews()}
             />
-            {selectedView === "Day" ? (
+            {selectedView === "Month" ? (
+              <MonthView
+                filters={filters}
+                selectedDate={selectedDate}
+                refreshTrigger={refreshTrigger}
+              />
+            ) : selectedView === "Day" ? (
               <DayView
                 filters={filters}
                 selectedDate={selectedDate}

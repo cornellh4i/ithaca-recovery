@@ -107,3 +107,73 @@ test("mounting directly in Week view renders week controls and steps by week, no
   expect(afterOneClick).toBe(addDaysToETDateString(start, 7));
   expect(afterOneClick).not.toBe(addDaysToETDateString(start, 1));
 });
+
+// Month view (GitHub #459): the main calendar passes Month in via `views` (dev builds only, see
+// util/common/calendarViews.ts); /signage relies on the Day/Week default.
+describe("Month view in the switcher", () => {
+  const MonthHarness: React.FC<{ views?: readonly string[] }> = ({ views }) => {
+    const [selectedDate, setSelectedDate] = useState(new Date("2026-01-31T12:00:00-05:00"));
+    const [selectedView, setSelectedView] = useState("Day");
+    return (
+      <>
+        <div data-testid="selected-date">{formatETDateString(selectedDate)}</div>
+        <CalendarNavbar
+          selectedDate={selectedDate}
+          onDateChange={setSelectedDate}
+          selectedView={selectedView}
+          onViewChange={setSelectedView}
+          views={views}
+        />
+      </>
+    );
+  };
+
+  test("lists Month only when the caller passes it", () => {
+    const { unmount } = render(<MonthHarness views={["Day", "Week", "Month"]} />);
+    fireEvent.click(screen.getByRole("button", { name: "Day" }));
+    expect(screen.getByRole("option", { name: "Month" })).toBeInTheDocument();
+    unmount();
+
+    render(<MonthHarness />);
+    fireEvent.click(screen.getByRole("button", { name: "Day" }));
+    expect(screen.getByRole("option", { name: "Week" })).toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: "Month" })).not.toBeInTheDocument();
+  });
+
+  test("selecting Month shows the month heading, steps by calendar month, and Today returns to this month", () => {
+    render(<MonthHarness views={["Day", "Week", "Month"]} />);
+    fireEvent.click(screen.getByRole("button", { name: "Day" }));
+    fireEvent.click(screen.getByRole("option", { name: "Month" }));
+
+    // Switching views resets to today, same as Day<->Week.
+    const today = formatETDateString(new Date());
+    expect(screen.getByTestId("selected-date").textContent).toBe(today);
+
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    const nextMonth = screen.getByTestId("selected-date").textContent as string;
+    expect(nextMonth.slice(0, 7)).not.toBe(today.slice(0, 7));
+    const [y, m] = today.split("-").map(Number);
+    const expectedNext = m === 12 ? `${y + 1}-01` : `${y}-${String(m + 1).padStart(2, "0")}`;
+    expect(nextMonth.slice(0, 7)).toBe(expectedNext);
+
+    const [ny, nm] = expectedNext.split("-").map(Number);
+    const monthName = new Intl.DateTimeFormat("en-US", { month: "long", timeZone: "UTC" })
+      .format(new Date(Date.UTC(ny, nm - 1, 1)));
+    expect(screen.getByRole("heading", { level: 2 })).toHaveTextContent(`${monthName} ${ny}`);
+
+    fireEvent.click(screen.getByRole("button", { name: "Previous" }));
+    fireEvent.click(screen.getByRole("button", { name: "Previous" }));
+    fireEvent.click(screen.getByText("Today"));
+    expect(screen.getByTestId("selected-date").textContent).toBe(today);
+  });
+});
+
+test("Month heading key changes with the month only, not the day", () => {
+  const jul1 = new Date("2026-07-01T12:00:00-04:00");
+  const jul31 = new Date("2026-07-31T12:00:00-04:00");
+  const aug1 = new Date("2026-08-01T12:00:00-04:00");
+  expect(computeHeadingTransitionKey("Month", jul1)).toBe(computeHeadingTransitionKey("Month", jul31));
+  expect(computeHeadingTransitionKey("Month", jul31)).not.toBe(computeHeadingTransitionKey("Month", aug1));
+  // Distinct from Day's key on the same date, so a Day<->Month toggle still animates.
+  expect(computeHeadingTransitionKey("Month", jul1)).not.toBe(computeHeadingTransitionKey("Day", jul1));
+});
