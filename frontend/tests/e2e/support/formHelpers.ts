@@ -45,12 +45,12 @@ export async function toggleFilter(page: Page, label: string): Promise<void> {
   await page.locator('[class*="meetingsFilter"]').getByText(label, { exact: true }).first().click();
 }
 
-// Switches the CalendarNavbar Day/Week view via its ui/inputs/Dropdown.tsx view-switcher.
+// Switches the CalendarNavbar Day/Week/Month view via its ui/inputs/Dropdown.tsx view-switcher.
 // Scoped to the navbar's own dropdown wrapper (not the meeting form's Dropdown
 // instances) so the button can be clicked without knowing which view is currently
 // selected -- unlike selectFromDropdown's callers, this button's accessible name
 // changes with the current view instead of staying a fixed placeholder.
-export async function selectView(page: Page, view: "Day" | "Week"): Promise<void> {
+export async function selectView(page: Page, view: "Day" | "Week" | "Month"): Promise<void> {
   const dropdown = page.locator('[class*="viewDropdown"]');
   await dropdown.getByRole("button").click();
   await dropdown.getByRole("option").filter({ hasText: view }).click();

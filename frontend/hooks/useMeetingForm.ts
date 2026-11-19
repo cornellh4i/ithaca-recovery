@@ -163,7 +163,8 @@ function addOneDayISO(isoDate: string): string {
 // Day View defaults to the day being viewed; Week View defaults to today (ET) if the
 // displayed week is the real current week, otherwise to that week's first day (Sunday) --
 // there's no single obviously-right day to default to when browsing a week that isn't
-// the current one. `rolledToNextDay` (from computeDefaultTime) bumps only the "today"-derived
+// the current one. Month View works the same way at month granularity: today in the current
+// month, otherwise the displayed month's 1st. `rolledToNextDay` (from computeDefaultTime) bumps only the "today"-derived
 // branches by a day -- explicit non-today selections (a different Day-view date, or a
 // non-current week's Sunday) are left alone, since those weren't derived from "now".
 function computeDefaultDate(context?: MeetingFormDefaultContext, rolledToNextDay = false): string {
@@ -175,6 +176,13 @@ function computeDefaultDate(context?: MeetingFormDefaultContext, rolledToNextDay
     const selectedET = formatETDateString(context.selectedDate);
     if (context.selectedView === "Day") {
         return isoToPickerDate(selectedET === todayET ? advance(selectedET) : selectedET);
+    }
+
+    // Month: today if the displayed month is the current one, else that month's 1st -- the
+    // week logic below would otherwise default to a Sunday that can fall in the previous month.
+    if (context.selectedView === "Month") {
+        const displayedMonth = selectedET.slice(0, 7);
+        return isoToPickerDate(displayedMonth === todayET.slice(0, 7) ? advance(todayET) : `${displayedMonth}-01`);
     }
 
     const displayedWeek = getWeekDatesET(selectedET);

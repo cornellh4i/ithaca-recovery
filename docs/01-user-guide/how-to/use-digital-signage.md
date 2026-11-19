@@ -7,7 +7,8 @@ requiring a phone or computer.
 - No sign-in required to view it — fully public and read-only.
 - Auto-refreshes every 2 minutes, and rolls over to the next day automatically at midnight
   (Eastern Time), no page reload needed.
-- Uses the same Day/Week toggle as the main calendar.
+- Uses the same Day/Week toggle as the main calendar. Signage has no Month view: a signage URL
+  with `view=month` shows Day view instead.
 
 ## Generate a signage URL
 

@@ -11,12 +11,14 @@ import {
 } from "../../../../util/date/timeUtils";
 import { getFirstDayOfWeek } from "../../../../util/date/weekDates";
 import type { SwipeDirection } from "../../../../util/date/dateTransition";
+import { DAY_WEEK_VIEWS } from "../../../../util/common/calendarViews";
 
 // Same renderElement pattern MobileAppNavigation's own Day/Multi-Day dropdown uses (icon-only
 // in the closed button via .viewOptionText's display:none, icon+label in the open list).
 const VIEW_ICONS: Record<string, IconName> = {
   Day: "view-timeline",
   Week: "calendar-view-week",
+  Month: "calendar-view-month",
 };
 
 // Week view's displayed range only changes when the week itself changes (see
@@ -30,10 +32,17 @@ const VIEW_ICONS: Record<string, IconName> = {
 // Sunday case above has a direct unit test rather than depending on a real Sunday date -- Jest's
 // "fake system time" is on the same real clock this function reads via getFirstDayOfWeek, so it
 // still needs a fixed `date` argument, not `new Date()`, to be deterministic on any day.
-export const computeHeadingTransitionKey = (selectedView: string, selectedDate: Date): string =>
-  selectedView === 'Week'
-    ? `Week:${formatETDateString(getFirstDayOfWeek(selectedDate))}`
-    : `${selectedView}:${formatETDateString(selectedDate)}`;
+// Month gets the same treatment for the same reason: its heading ("July 2026") only changes
+// when the month does, so the key is the ET "YYYY-MM" alone.
+export const computeHeadingTransitionKey = (selectedView: string, selectedDate: Date): string => {
+  if (selectedView === 'Week') {
+    return `Week:${formatETDateString(getFirstDayOfWeek(selectedDate))}`;
+  }
+  if (selectedView === 'Month') {
+    return `Month:${formatETDateString(selectedDate).slice(0, 7)}`;
+  }
+  return `${selectedView}:${formatETDateString(selectedDate)}`;
+};
 
 type CalendarNavbarProps = {
     selectedDate: Date;
@@ -60,6 +69,10 @@ type CalendarNavbarProps = {
     // /signage renders this component with no CalendarProvider ancestor at all; defaults to
     // 'forward' there, so the heading still animates, just always in one direction.
     transitionDirection?: SwipeDirection;
+    // Which views the switcher lists. Defaults to Day/Week, which is all /signage supports
+    // (its URL contract is ?view=day|week); the main calendar passes DESKTOP_CALENDAR_VIEWS,
+    // which adds Month.
+    views?: readonly string[];
   };
 
 const CalendarNavbar: React.FC<CalendarNavbarProps> = ({
@@ -69,6 +82,7 @@ const CalendarNavbar: React.FC<CalendarNavbarProps> = ({
     onViewChange,
     isAdmin = null,
     transitionDirection = 'forward',
+    views = DAY_WEEK_VIEWS,
 }) => {
     const handleViewChange = (value: string) => {
       onViewChange(value); // Call the external function
@@ -112,7 +126,8 @@ const CalendarNavbar: React.FC<CalendarNavbarProps> = ({
     const headingTransitionKey = computeHeadingTransitionKey(selectedView, selectedDate);
     // Day matches its own content's vertical transition (DayView's room rows); Week matches
     // its own content's horizontal one (WeekView's day columns, which read left-to-right the
-    // same way a week of days does) -- see WeekView.tsx's own dateEnterMotion call.
+    // same way a week of days does) -- see WeekView.tsx's own dateEnterMotion call. Month
+    // slides vertically like Day, matching MonthView's own grid transition.
     const headingAxis: 'x' | 'y' = selectedView === 'Week' ? 'x' : 'y';
 
     return (
@@ -128,7 +143,7 @@ const CalendarNavbar: React.FC<CalendarNavbarProps> = ({
               label=""
               value={selectedView}
               isVisible={true}
-              elements={['Day', 'Week']}
+              elements={[...views]}
               name="Select view"
               ariaLabel={selectedView}
               onChange={handleViewChange}

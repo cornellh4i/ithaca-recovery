@@ -49,7 +49,7 @@ ithaca-recovery/
 app/
 ├── (main)/                      # Route group: the live, authenticated app
 │   ├── layout.tsx
-│   ├── page.tsx                 # Home — calendar (Day/Week/mobile views)
+│   ├── page.tsx                 # Home — calendar (Day/Week/Month/mobile views)
 │   ├── admin/page.tsx           # /admin — AdminShell
 │   └── docs/[[...slug]]/        # /docs — Resources page (renders repo-root docs/, snapshotted
 │                                 #   at build time — see util/docs/ below)
@@ -76,7 +76,7 @@ app/
 
 | Route | Purpose |
 |---|---|
-| `/` | Home — calendar (Day/Week, responsive mobile layouts) |
+| `/` | Home — calendar (Day/Week/Month, responsive mobile layouts) |
 | `/admin` | Admin shell: Diagnostics, Signage, Users, Export tabs |
 | `/docs` | In-app documentation (Resources page), Pagefind-searchable |
 | `/login` | Sign-in |
@@ -118,7 +118,8 @@ of brand logos with no MUI equivalent (Google, Zoom) stay as local `public/svg/`
 **`calendar/`** — `MiniCalendar` (a compact date-picker calendar, used from multiple contexts)
 sits directly in `calendar/`, alongside three subfolders, not a flat list:
 - `desktop/` — `CalendarNavbar`, `CalendarSidebar`, `CalendarSidebarShell`,
-  `CompactCalendarSidebar`, `DailyViewRow`, `DayView`, `WeekView`
+  `CompactCalendarSidebar`, `DailyViewRow`, `DayView`, `WeekView`, `MonthView`,
+  `MonthDayPopover` (Month view's per-day meeting list, rendered inside its grid cell)
 - `mobile/` — `DayLandscapeSwitcher`, `DayLandscapeView`, `DayPortraitView`, `MobileFab`,
   `MultiDayLandscapeView`, `WeekStrip`
 - `shared/` — `CalendarHeader`, `DayColumn` (the day-to-meetings column mapping, reused by both
@@ -171,13 +172,14 @@ by nearly every component module), and `MainLayout.module.scss` (the app shell, 
 
 ### `util/` — domain-logic utilities, grouped by subfolder
 
-- `common/` — `breakpoints.ts`, `color.ts` (room-color washes), `theme.ts` (theme preference +
+- `common/` — `breakpoints.ts`, `calendarViews.ts` (which views each view switcher lists),
+  `color.ts` (room-color washes), `theme.ts` (theme preference +
   pre-paint script), `linkify.tsx`, `simpleCache.ts` (generic get-or-fetch
   cache)
 - `date/` — `timeUtils.ts`, `timeFormat.tsx`, `weekDates.ts`, `dateTransition.ts` (swipe
   direction/same-week math plus the shared `dateEnterMotion` enter-transition helper, used by both
   mobile and desktop calendar views)
-- `filters/` — `meetingFilters.ts` (tag/room predicates for the authenticated Day/Week views),
+- `filters/` — `meetingFilters.ts` (tag/room predicates for the authenticated calendar views),
   `signageFilters.ts` (standalone URL-param parsing for the public `/signage` page — the two
   never share code), `tagOrder.ts`
 - `lease/` — `leaseDefaults.ts`, `leaseYearCycles.ts`
@@ -186,6 +188,7 @@ by nearly every component module), and `MainLayout.module.scss` (the app shell, 
   rendering, not scheduling), `meetingValidation.ts` (the `zod` schema `write`/`update` validate
   against), `publicMeeting.ts` (the `PublicMeeting` allowlist — see
   [Technical Decisions §Admin-Gated Mids Pattern for Calendar Badges](../02-handoff/technical-decisions.md#admin-gated-mids-pattern-for-calendar-badges)),
+  `monthGrid.ts` (Month view's 42-day ET grid window and per-day grouping),
   `recurrenceDisplay.ts`, `resourceLocks.ts` (advisory-lock helpers), `resourceOverlap.ts`
   (recurrence-aware room/Zoom-room/Zoom-host conflict detection — scheduling, not rendering; shared
   by host resolution and the Diagnostics Conflicts panel), `suspension.ts`, `suspensionText.ts`
@@ -217,8 +220,8 @@ create/update/delete Zoom meeting, room→calendar lookup map, `resolveZoomHost`
 
 `useMeetingForm.ts` (shared state/handlers/validation for `NewMeeting`/`EditMeeting`),
 `useConflictMids.ts` / `useSyncErrorMids.ts` (admin-gated calendar-badge data — see the
-admin-gated-mids pattern above), `useWeekMeetings.ts` / `useRangeMeetings.ts` (Day/Week meeting
-fetch + module-level cache), `useZoomHostPool.ts`, `useUserAvatar.tsx`, `useViewport.ts` /
+admin-gated-mids pattern above), `useWeekMeetings.ts` / `useRangeMeetings.ts` /
+`useMonthMeetings.ts` (calendar meeting fetch + module-level cache), `useZoomHostPool.ts`, `useUserAvatar.tsx`, `useViewport.ts` /
 `useIsPhone.ts` / `useBreakpoint.ts` (responsive layout), `useElementSize.ts` /
 `useElementWidth.ts`, `useScrollNavHide.ts`, `usePagefindComponentUI.ts` (docs search),
 `useThemePreference.ts` (light/dark/system preference — see [Theming and Dark Mode](theming.md)).

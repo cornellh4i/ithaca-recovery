@@ -53,6 +53,8 @@ interface CalendarContextValue {
   setDayFilters: React.Dispatch<React.SetStateAction<MeetingFilters>>;
   weekFilters: MeetingFilters;
   setWeekFilters: React.Dispatch<React.SetStateAction<MeetingFilters>>;
+  monthFilters: MeetingFilters;
+  setMonthFilters: React.Dispatch<React.SetStateAction<MeetingFilters>>;
   navHidden: boolean;
   setNavHidden: React.Dispatch<React.SetStateAction<boolean>>;
   // Which of DayLandscapeView/MultiDayLandscapeView a landscape phone shows -- lives here
@@ -80,10 +82,11 @@ interface CalendarProviderProps {
 export const CalendarProvider: React.FC<CalendarProviderProps> = ({ children, initialDate }) => {
   const [selectedDate, setSelectedDate] = useState<Date>(() => initialDate ?? new Date());
   const [selectedView, setSelectedView] = useState<string>("Day");
-  // Both views default to every room visible -- see the matching comment on the old
+  // Every view defaults to every room visible -- see the matching comment on the old
   // HomePage useState this replaced.
   const [dayFilters, setDayFilters] = useState<MeetingFilters>(() => createDefaultFilters(true));
   const [weekFilters, setWeekFilters] = useState<MeetingFilters>(() => createDefaultFilters(true));
+  const [monthFilters, setMonthFilters] = useState<MeetingFilters>(() => createDefaultFilters(true));
   const [navHidden, setNavHidden] = useState(false);
   const [landscapeView, setLandscapeView] = useState<"day" | "multiday">("day");
   const [transitionDirection, setTransitionDirection] = useState<SwipeDirection>("forward");
@@ -126,6 +129,8 @@ export const CalendarProvider: React.FC<CalendarProviderProps> = ({ children, in
       setDayFilters,
       weekFilters,
       setWeekFilters,
+      monthFilters,
+      setMonthFilters,
       navHidden,
       setNavHidden,
       landscapeView,
@@ -140,6 +145,7 @@ export const CalendarProvider: React.FC<CalendarProviderProps> = ({ children, in
       selectedView,
       dayFilters,
       weekFilters,
+      monthFilters,
       navHidden,
       landscapeView,
       transitionDirection,

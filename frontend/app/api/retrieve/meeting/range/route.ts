@@ -2,11 +2,13 @@ export const dynamic = 'force-dynamic';
 
 import { getMeetingsForRange } from "../../../../../util/meetings/meetingOccurrences";
 import { toETDateString, addDaysToETDateString } from "../../../../../util/date/timeUtils";
+import { MONTH_GRID_DAYS } from "../../../../../util/meetings/monthGrid";
 import { NextRequest } from 'next/server';
 
-// A safety backstop, not a real limit any caller should hit -- MultiDayLandscapeView's pages
-// top out at MAX_DAYS (7), so a well-formed request never approaches this.
-const MAX_RANGE_DAYS = 31;
+// A safety backstop sized to the widest real caller: the desktop Month view fetches its whole
+// 6-week grid (MONTH_GRID_DAYS = 42) in one request, since the adjacent-month padding cells
+// show real meetings too. MultiDayLandscapeView's pages top out at MAX_DAYS (7).
+const MAX_RANGE_DAYS = MONTH_GRID_DAYS;
 
 const retrieveRangeMeetings = async (request: NextRequest) => {
     try {

@@ -17,6 +17,12 @@ const splitHourMinute = (time: string): { label: string; period: 'AM' | 'PM' } =
     return { label, period };
 };
 
+/** Compact single time from an "HH:MM" (24hr) string: "9 AM", "9:30 PM". */
+export const formatCompactTime = (time: string): string => {
+    const { label, period } = splitHourMinute(time);
+    return `${label} ${period}`;
+};
+
 /**
  * Compact time range from two "HH:MM" (24hr) strings: "7 - 8 AM", "7 - 8:30 AM"; both
  * periods are shown only when they differ, e.g. "11 AM - 12:30 PM".
@@ -45,6 +51,17 @@ const etYearFmt = new Intl.DateTimeFormat('en-US', {
 });
 
 /**
+ * Plain-string form of formatMeetingDateLine's label (no " · Today" suffix): "Friday, July 24",
+ * with the year appended only when it isn't the current ET year -- for aria-labels and other
+ * places that need a string, not a ReactNode.
+ */
+export const formatETDateLine = (date: Date, compact: boolean = false): string => {
+    const base = (compact ? etDateLineCompactFmt : etDateLineFmt).format(date);
+    const dateYear = etYearFmt.format(date);
+    return dateYear === etYearFmt.format(new Date()) ? base : `${base}, ${dateYear}`;
+};
+
+/**
  * ET calendar date as "Friday, July 24" ("Thu, Aug 13" when `compact` is set), with the year
  * appended ("Friday, July 24, 2027" / "Thu, Aug 13, 2027") only when it differs from the
  * current ET year. When
@@ -54,10 +71,7 @@ const etYearFmt = new Intl.DateTimeFormat('en-US', {
  */
 export const formatMeetingDateLine = (date: Date, isHeader: boolean = false, compact: boolean = false): ReactNode => {
     const now = new Date();
-    const base = (compact ? etDateLineCompactFmt : etDateLineFmt).format(date);
-    const dateYear = etYearFmt.format(date);
-    const currentYear = etYearFmt.format(now);
-    const label = dateYear === currentYear ? base : `${base}, ${dateYear}`;
+    const label = formatETDateLine(date, compact);
 
     if (!isHeader) return label;
 

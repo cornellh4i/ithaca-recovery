@@ -13,6 +13,7 @@ import LockIcon from "@mui/icons-material/Lock";
 import RepeatIcon from "@mui/icons-material/Repeat";
 import ViewTimelineIcon from "@mui/icons-material/ViewTimeline";
 import CalendarViewWeekIcon from "@mui/icons-material/CalendarViewWeek";
+import CalendarViewMonthIcon from "@mui/icons-material/CalendarViewMonth";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import MailIcon from "@mui/icons-material/Mail";
 import PersonIcon from "@mui/icons-material/Person";
@@ -83,6 +84,7 @@ const MUI_ICONS = {
     repeat: RepeatIcon,
     "view-timeline": ViewTimelineIcon,
     "calendar-view-week": CalendarViewWeekIcon,
+    "calendar-view-month": CalendarViewMonthIcon,
     clock: AccessTimeIcon,
     mail: MailIcon,
     person: PersonIcon,

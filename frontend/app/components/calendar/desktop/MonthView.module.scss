@@ -1,0 +1,174 @@
+@import '../../../../styles/Variables.module';
+
+// Desktop Month view grid (GitHub #460). Design spec values map onto theme tokens so the grid
+// follows dark mode: #DDD = $grey-border-color, #848484 = $medium-grey-color, #1E1E1E =
+// $black-color (--text), #3A3E49 = $navy-color, #CC3366 = $brand-pink-color, #FAFAFA = $fill-soft-color.
+
+.outerContainer {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  font-family: 'Source Sans Pro', sans-serif;
+  position: relative; // anchors TopLoadingBar's absolute positioning to this view's own bounds
+
+  // Fills whatever's left under CalendarNavbar in .primaryCalendar, same as Day/Week view.
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+// Six rows at the 108px minimum don't fit a short window, so the grid scrolls inside its own
+// area rather than pushing the page.
+.scrollContainer {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.grid {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  border-top: 1px solid $grey-border-color;
+  border-left: 1px solid $grey-border-color;
+}
+
+.weekdayHeader,
+.weekRow {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
+.weekdayHeader {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background-color: $fill-soft-color;
+}
+
+.weekday {
+  padding: 6px 9px;
+  border-right: 1px solid $grey-border-color;
+  border-bottom: 1px solid $grey-border-color;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: $medium-grey-color;
+  text-transform: uppercase;
+}
+
+.weeks {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+}
+
+// Rows share the leftover height evenly once the window is taller than six 108px rows.
+.weekRow {
+  flex: 1 1 0;
+}
+
+.cell {
+  // Anchors in-cell absolutely-positioned children (the day popover and the conflict line,
+  // GitHub #461).
+  position: relative;
+  min-width: 0;
+  min-height: 108px;
+  border-right: 1px solid $grey-border-color;
+  border-bottom: 1px solid $grey-border-color;
+  background-color: $surface-color;
+
+  &:hover {
+    background-color: $fill-soft-color;
+  }
+}
+
+// Lifts the open cell (and the popover inside it) above later cells in the grid, which would
+// otherwise paint over the panel.
+.cellOpen {
+  z-index: $z-index-dropdown;
+}
+
+// The whole cell is one click target. Past days get no special treatment -- deliberately
+// identical to future days.
+.cellButton {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  height: 100%;
+  padding: 8px 9px 22px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+
+  &:focus-visible {
+    outline: 2px solid $brand-text-color;
+    outline-offset: -2px;
+  }
+}
+
+.cellHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.dateNumber {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  font-size: 14px;
+  font-weight: 400;
+  color: $black-color;
+}
+
+.today {
+  border-radius: 50%;
+  background-color: $brand-pink-color;
+  color: $white-color;
+  font-weight: 600;
+}
+
+// Only the number greys out -- an adjacent-month day's dots stay full strength.
+.adjacentMonth {
+  color: $medium-grey-color;
+}
+
+.count {
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 24px;
+  color: $medium-grey-color;
+}
+
+.countBusy {
+  color: $navy-color;
+}
+
+.dots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+// Admin-only double-booking warning, pinned to the cell's bottom-left (inside the 22px bottom
+// padding the cell reserves for it).
+.conflictWarning {
+  position: absolute;
+  bottom: 7px;
+  left: 9px;
+  font-size: 11px;
+  font-weight: 600;
+  color: $warning-text-color;
+}
+
+.dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+}

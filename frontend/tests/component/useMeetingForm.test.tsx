@@ -336,3 +336,16 @@ describe("useMeetingForm advanced Zoom settings", () => {
     expect(result.current.isDirty).toBe(true);
   });
 });
+
+describe("useMeetingForm default date from the calendar's Month view", () => {
+  // A browsed month that isn't the current one has no obviously-right day, so the form
+  // defaults to that month's 1st -- not the Week-view fallback (the displayed week's Sunday),
+  // which can land in the previous month.
+  it("defaults to the 1st of a non-current displayed month", () => {
+    const selectedDate = new Date("2030-03-15T16:00:00.000Z"); // noon ET, March 15, 2030 (a Friday)
+    const { result } = renderHook(() =>
+      useMeetingForm(undefined, { selectedDate, selectedView: "Month" }),
+    );
+    expect(result.current.date).toBe("03/01/2030");
+  });
+});

@@ -91,5 +91,7 @@ export const parseSignageFilters = (
   return filters;
 };
 
+// Signage is Day/Week only -- anything else, including ?view=month (the main calendar's Month
+// view has no signage equivalent), falls back to Day rather than erroring.
 export const parseSignageView = (searchParams: URLSearchParams): 'Day' | 'Week' =>
   searchParams.get('view')?.toLowerCase() === 'week' ? 'Week' : 'Day';
