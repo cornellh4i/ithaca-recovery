@@ -466,6 +466,7 @@ export default function HomePage() {
                 filters={filters}
                 selectedDate={selectedDate}
                 refreshTrigger={refreshTrigger}
+                transitionDirection={transitionDirection}
               />
             ) : selectedView === "Day" ? (
               <DayView
